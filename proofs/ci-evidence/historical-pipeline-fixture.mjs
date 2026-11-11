@@ -116,6 +116,7 @@ export async function historicalPipelineFixture(root, revision) {
       verifyPristineTamperRefusals: acceptance.verifyPristineTamperRefusals,
       verifyFixedJsTamperRefusals: acceptance.verifyFixedJsTamperRefusals,
       checkIsolatedInputs: runtime.checkIsolatedInputs,
+      imageRuntime: runtime.imageRuntime,
       pipelinePristineSourcePaths: isolation.pipelinePristineSourcePaths,
       pipelineFixedJsSourcePaths: isolation.pipelineFixedJsSourcePaths,
       snapshotFromGit: runtime.snapshotFromGit,

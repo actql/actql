@@ -21,6 +21,16 @@ fn audit_local_update_completion_free(
     ProfileNotInstalled => return ProfileNotInstalled
     CompletionObserved => return CompletionObserved
   }
+  audit_local_update_mapping(computation, effects, work)
+}
+
+///|
+fn audit_local_update_mapping(
+  computation : EffectComputationCandidate,
+  effects : @results.EffectStaticCandidate,
+  work : Int,
+) -> CompletionFreeAudit {
+  let checked = computation.checked
   let headers = computation.headers
   if @syntax.effect_header_count(headers) != 1 {
     return ProfileNotInstalled
@@ -158,4 +168,58 @@ pub fn local_update_completion_free_inventory_work(
   inventory : LocalUpdateCompletionFreeInventory,
 ) -> Int {
   inventory.audited_work
+}
+
+///|
+/// Same original computation requirement closure plus the original static
+/// update/selector/Mapping audit. This is normalization custody, not support,
+/// Source, Model, Preview, apply or physical resource authority.
+struct LocalCommonUpdateCompletionFreeInventory {
+  owner : EffectProgramStaticCandidate
+  computation : LocalCommonNormalizationInventory
+  audited_work : Int
+}
+
+///|
+pub fn effect_program_common_update_completion_free_inventory(
+  candidate : EffectProgramStaticCandidate,
+) -> Result[
+  LocalCommonUpdateCompletionFreeInventory,
+  CompletionFreeInventoryIssue,
+] {
+  let computation = match
+    audit_local_common_normalization_inventory(
+      candidate.computation.checked,
+      10000,
+    ) {
+    Ok(value) => value
+    Err(CompletionObserved) => return Err(CompletionObserved)
+    Err(_) => return Err(ProfileNotInstalled)
+  }
+  // This new immutable profile certifies only actual zero-entry inventories.
+  // A sort/projection/default/Source completion is never discarded.
+  if local_common_normalization_entry_count(computation) != 0 {
+    return Err(CompletionObserved)
+  }
+  let work = local_common_normalization_inventory_work(computation)
+  match
+    audit_local_update_mapping(candidate.computation, candidate.effects, work) {
+    Complete(audited_work) =>
+      Ok({ owner: candidate, computation, audited_work, })
+    CompletionObserved => Err(CompletionObserved)
+    ProfileNotInstalled => Err(ProfileNotInstalled)
+  }
+}
+
+///|
+pub fn local_common_update_completion_free_inventory_matches(
+  inventory : LocalCommonUpdateCompletionFreeInventory,
+  candidate : EffectProgramStaticCandidate,
+) -> Bool {
+  physical_equal(inventory.owner, candidate) &&
+  inventory.audited_work >= 0 &&
+  local_common_normalization_inventory_matches(
+    inventory.computation,
+    candidate.computation.checked,
+  )
 }

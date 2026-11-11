@@ -29,7 +29,11 @@ for argument in "$@"; do
   fi
 done
 
-arguments=()
+# Select the C++ runtime without changing any input's language. GNU g++ can
+# otherwise omit it when every C file/object follows an explicit -x option;
+# Clang++ supplies it independently. Keep the original driver/stdlib choice
+# and let later user options such as -nodefaultlibs remain authoritative.
+arguments=("-x" "c++" "-x" "none")
 for argument in "$@"; do
   if [[ "$argument" == *.c ]]; then
     arguments+=("-x" "c" "$argument" "-x" "none")

@@ -60,6 +60,18 @@ test('missing, symlink, submodule and traversal source entries cannot be copied 
   }
 });
 
+test('Session staging refuses missing or linked ordinary CJS and reviewed inventory dependencies', () => {
+  for (const path of ['adapters/host-node/ordinary-node-resource-runtime.cjs',
+    'proofs/relation-pipeline/proof-runner-extension.mjs']) {
+    for (const missing of [true,false]) {
+      const {tree} = sources();
+      if (missing) tree.entries.delete(path);
+      else tree.entries.get(path).mode = '120000';
+      assert.throws(() => mutationSourcePaths(tree));
+    }
+  }
+});
+
 test('unknown imports expand the physical source set while remaining ineligible for narrowed reuse', t => {
   const {tree, bodies} = sources(), destination = temporary(t);
   bodies.set('src/query_integration/moon.pkg', 'import { dynamic_dependency() }');

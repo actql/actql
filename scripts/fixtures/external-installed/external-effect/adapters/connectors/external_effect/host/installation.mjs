@@ -1,10 +1,9 @@
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
+import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '@actql/sdk/host-port';
-import {checked, createInstalledRowEffect, rowSourceCheckEnvironment,
-  rowSourceMapping, installRowSourceAuthorization, openRowSourceCredentialSite,
-  retainInstalledHostInitializationFailure, invokeScopedCredentialOperation}
+import {checked, rowSourceMapping}
   from '@actql/local-node/connector-installation';
 
 const registration = 'external_effect';
@@ -56,10 +55,8 @@ export async function publish(profile, {moon}) {
       target: mapping.target, mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid})]});
 }
 
-async function siteOf(path) {
-  const bytes = await readFile(path);
-  if (bytes.byteLength > 16384) fail('InvalidExternalEffectSite');
-  const site = JSON.parse(bytes.toString('utf8'));
+async function siteOf(path, readers) {
+  const site = await readers.readJson(path, {maxBytes: 16384});
   if (!exact(site, ['resourceOrigin', 'namespaceId', 'environment', 'siteKey',
     'siteGeneration', 'credentialAuthorityId', 'credentialKeyId',
     'credentialPrivateKeyPath', 'journalRoot']) || site.resourceOrigin !== origin ||
@@ -69,65 +66,93 @@ async function siteOf(path) {
 }
 
 export async function load(profile, {root, principalId, moon, providerMoon,
-  baseEnvironmentWire, runtimeBundleCid, resolveSecret, ledgerRoot, installation}) {
+  baseEnvironmentWire, runtimeBundleCid, resolveSecret, ledgerRoot, installation, construction}) {
+  if (typeof construction?.prepareAuthoredDeclaration !== 'function' ||
+      typeof construction.prepareMappings !== 'function' ||
+      typeof construction.openRowSite !== 'function' ||
+      typeof construction.createRowEffect !== 'function' ||
+      typeof construction.prepareEffectDriverConstruction !== 'function' ||
+      typeof construction.configurationReader?.readOriginalText !== 'function' ||
+      typeof construction.configurationReader.readJson !== 'function') {
+    fail('ExternalEffectConstructionUnavailable');
+  }
   const selected = checkProfile(profile);
   if (typeof providerMoon?.externalEffectRequestJson !== 'function' ||
       typeof providerMoon?.externalEffectObservationJson !== 'function') {
     fail('ExternalEffectProviderMissing');
   }
-  const specification = await siteOf(selected.siteProfilePath);
-  const {declared, mapping} = await declarationOf(moon, selected.connectorId);
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared, [mapping.body]);
-  const authorization = await installRowSourceAuthorization({
-    accountConfiguration: selected.accountConfigurationWire, principalId, root,
-    connectorRegistration: registration});
+  const readers = construction.configurationReader;
+  const specification = await siteOf(selected.siteProfilePath, readers);
+  construction.prepareAuthoredDeclaration(
+    await readers.readOriginalText(new URL('catalog-views.json', assets)));
+  construction.prepareMappings(await readers.readOriginalText(new URL('writes.json', assets)),
+    Object.freeze([Object.freeze({resource: 'events', sources: Object.freeze([
+      Object.freeze({target: 'key', field: 'key', null_behavior: 'reject'}),
+      Object.freeze({target: 'note', field: 'note', null_behavior: 'reject'}),
+    ])})]));
   const connection = 'external_effect:events';
-  const site = await openRowSourceCredentialSite({profile: specification,
-    principalId, authorization, connection, connectorRegistration: registration,
-    connectorRevision: revision, runtimeBundleCid, commonMoon: moon,
+  const {site, authorization} = await construction.openRowSite({profile: specification,
+    accountConfiguration: selected.accountConfigurationWire, connection,
     resolveSecret: resolveSecret ?? (async () => fail('FixtureSecretUnavailable')),
     responseHeaders: installation?.responseHeaders ?? [], admitsApprovalTarget: () => false});
-  try {
-    return await createInstalledRowEffect({moon, environmentWire: environment.wire,
-      connectorId: selected.connectorId, connectorRegistration: registration,
-      connectorRevision: revision, connection, site, authorization, runtimeBundleCid,
-      bindingCid: cid({version: 'actql-external-effect-binding/0.1',
-        contextCid: authorization.context.contextCid, specification}),
-      ledgerRoot, installation,
-      mappings: [{resource: 'events', mappingRef: mapping.mappingRef,
-        mappingCid: mapping.mappingCid, body: mapping.body}],
-      driver: {
-        kinds: ['create'], writeOperation: () => operation,
-        requestFacts: request => ({value: JSON.parse(request.body)}),
-        prepareRequest({member, value}) {
-          if (member.resource !== 'events' || !exact(value, ['key', 'note']) ||
-              typeof value.key !== 'string' || typeof value.note !== 'string') {
-            fail('InvalidExternalEffectValue');
-          }
-          const prepared = JSON.parse(providerMoon.externalEffectRequestJson(value.key, value.note));
-          if (prepared.refused) fail(prepared.refused);
-          const request = Object.freeze({method: 'POST', path: '/events',
-            body: prepared.body, key: value.key});
-          // Exact request bytes retain data strings without normalization.
-          const requestCid = `sha256:${createHash('sha256')
-            .update('external_effect:POST:/events\0').update(request.body).digest('hex')}`;
-          return {request, requestCid};
-        },
-        async send({request, authorization: grant, credential, callResource, signal}) {
-          const response = await invokeScopedCredentialOperation({
-            authorization: grant, credential, callResource, operation,
-            method: request.method, path: request.path, body: request.body,
-            responseHeaders: [], maxRequestBytes: 4096, maxResponseBytes: 4096, signal});
-          return {observation: {useCid: response.useCid,
-            statusCode: response.statusCode, body: response.body}, headers: response.headers};
-        },
-        project: ({request, observation}) => JSON.parse(
-          providerMoon.externalEffectObservationJson(observation.statusCode,
-            observation.body, request.key)),
-        footprint: () => ({providerNamespace: registration, resourceKind: 'event',
-          boundaryCid: cid({origin, namespace: specification.namespaceId})}),
-      }});
-  } catch (cause) {
-    throw await retainInstalledHostInitializationFailure(cause, {installedEffect: site});
+  const native = captureEffectProvider(providerMoon);
+  const implementation = construction.prepareEffectDriverConstruction(Object.freeze({
+    capacity() {
+      return native.externalEffectDriverConstructionCapacity(BigInt(
+        origin.length + specification.namespaceId.length));
+    },
+    project() {return standardCreateImplementation(native, specification);},
+  }));
+  return await construction.createRowEffect({connection, runtimeBundleCid,
+    bindingCid: cid({version: 'actql-external-effect-binding/0.1',
+      contextCid: authorization.context.contextCid, specification}),
+    ledgerRoot, installation, ...implementation});
+}
+
+// Retain the original native methods and receiver before initialization can
+// reenter. The standard composer forwards their quantity profile unchanged;
+// these are constructor DATA, never a declaration, Run, grant or cleanup ACK.
+function captureEffectProvider(provider) {
+  if (provider === null || typeof provider !== 'object' || nodeTypes.isProxy(provider)) {
+    fail('ExternalEffectProviderMissing');
   }
+  const names = ['externalEffectRequestJson', 'externalEffectObservationJson',
+    'installedStandardCreateConstructionProfile', 'installedStandardCreateHttpLimits',
+    'externalEffectDriverConstructionCapacity'];
+  return Object.freeze(Object.fromEntries(names.map(name => {
+    const field = Object.getOwnPropertyDescriptor(provider, name);
+    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
+        nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
+      fail('ExternalEffectProviderMissing');
+    }
+    const method = field.value;
+    return [name, (...args) => Reflect.apply(method, provider, args)];
+  })));
+}
+
+function standardCreateImplementation(providerMoon, specification) {
+  // The same native limits bound the real send and the standard recipe. The
+  // common constructor validates its HTTP bounds; no second capacity table.
+  const [maxRequestBytes, maxResponseBytes] = providerMoon.installedStandardCreateHttpLimits();
+  const boundaryCid = cid({origin, namespace: specification.namespaceId});
+  const write = Object.freeze({kind: 'create', operation, resourceKind: 'event', boundaryCid,
+    http: Object.freeze({origin, method: 'POST', path: '/events',
+      responseHeaders: Object.freeze([]), maxRequestBytes, maxResponseBytes}),
+    request({resource, value}) {
+      if (resource !== 'events' || !exact(value, ['key', 'note']) ||
+          typeof value.key !== 'string' || typeof value.note !== 'string') {
+        fail('InvalidExternalEffectValue');
+      }
+      const prepared = JSON.parse(providerMoon.externalEffectRequestJson(value.key, value.note));
+      if (prepared.refused) fail(prepared.refused);
+      // Preserve this provider's original request identity and exact bytes.
+      const requestCid = `sha256:${createHash('sha256')
+        .update('external_effect:POST:/events\0').update(prepared.body).digest('hex')}`;
+      return Object.freeze({method: 'POST', path: '/events', body: prepared.body,
+        key: value.key, requestCid});
+    },
+    classify: ({request, observation}) => JSON.parse(providerMoon.externalEffectObservationJson(
+      observation.statusCode, observation.body, request.key)),
+  });
+  return Object.freeze({providerMoon, write});
 }

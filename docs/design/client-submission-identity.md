@@ -334,6 +334,30 @@ to a Run whose binding is independently checked against the same request
 journal. Terminal outcomes are immutable; stale observations cannot replace a
 newer committed outcome.
 
+An installed Model execution reader can establish missing execution metadata
+without entering a funded reader or provider callback when its original frozen
+execution and dependency inventories are ordinary empty DATA arrays. The Host
+consumes that exact reader failure once for the same Prepared, installation and
+occurrence, and pairs it with the already captured nominal Request. It still
+checks original ownership, currentness, no issued Run or stored Definition, and
+no pending cleanup before reporting a pre-acceptance refusal. An equal error
+code, copied exception, custom metadata iterator, callback failure, or selected
+Model/Source/Content work cannot supply this observation. Other failures retain
+their existing uncertain handling; this is neither physical cleanup evidence
+nor a new Model execution grant.
+
+The same observation also covers a typed metadata rejection returned by the
+original native execution/dependency reader after the Host's internal Request
+material-funding callback has returned synchronously. The reader consumes
+ordinary frozen own-DATA with its original selection intrinsics, and retains
+the exact Prepared, installation, occurrence, funding callback and dependency
+execution where applicable. The Host consumes that same exception once before
+diagnostic callbacks and applies the same unadmitted/current/Journal/cleanup
+fences. Funding throws, native throws, asynchronous funding, custom metadata
+reads and arbitrary provider-validator failures supply no such observation.
+This reuses the one native read and original Request; it does not parse or
+check the contract again, construct a second Ledger, or issue a Run.
+
 The initial epoch-bound public path does not admit pre-Run approval waits: its
 complete response, cancellation, expiry and lost-response recovery contract is
 not yet exposed. Preparation and Source-read delegation without an immediate

@@ -185,6 +185,7 @@ pub fn[P, C, R] backed_execution_live_state(
   }
   if access.closing ||
     region.closing ||
+    (region.working is Some((working, _, _)) && working.closing) ||
     read_use.closing ||
     region.capacity.unwrap().closing {
     Ok(LiveClosing)
@@ -251,6 +252,18 @@ pub fn[P, C, R] stop_backed_execution_live_child(
   match backed_live_original(access, runtime) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  // The same original child already exists inside this synchronous stop.
+  // Publish its restriction before a consuming callback can return; the
+  // imported post-current fence must not wait for another external callback.
+  if access.child_origin is Some(origin) {
+    origin.stopping = true
+    origin.acquire_window = None
+  }
+  if access.ticket is Some(ticket) &&
+    ticket.current_window is Some(_) &&
+    access.read_use is Some(read_use) {
+    read_use.closing = true
   }
   access.closing = true
   Ok(())

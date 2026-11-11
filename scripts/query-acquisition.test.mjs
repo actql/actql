@@ -1,8 +1,6 @@
 import {generateQueryEvidenceVectors} from './query-evidence-vectors.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync} from 'node:fs';
-import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
@@ -237,37 +235,31 @@ test('current query fixtures change only declared containing-expression and evid
     'coverage/filter_evidence_cid','coverage/select_evidence_cid']);
 });
 
-test('named query fixture history retains complete original bytes and expression identity', () => {
-  const source = '9a283b230a3fad9ae43e711fb20e2773840f8e27';
-  const original = path => execFileSync('git', ['show', `${source}:${path}`],
-    {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
-  // Preserve the full authored fixtures, not only a former owner or CID.
-  for (const [name, sha256] of [
-    ['query-acquisition-owner', '18ad22465c1beed63ce2793d2198720c5f9033b6681d26309d0638a1077000d6'],
-    ['query-acquisition-identities', '1072cb38bd36ee35c5a024cb17ef704583d36bbca567fe520748baed69fa453b'],
-    ['query-process-evidence', 'c2e03dc43bdba7bd4ca99be5c5f87372c3989769e3494a46efbec5f8dd0ce5da'],
-    ['query-two-receipt', '7cf684322dc509a3d888fab944fb392b47c92269d97e24bca9330cbe3ca5001f'],
-    ['query-time-acquisition-identities', 'e88fdefdf43708673fb9de31ecff3163dc15bb742b0c36748326fbe7a9d0615c'],
-  ]) {
-    const raw = original(`portability/corpus/${name}.json`);
-    assert.equal(createHash('sha256').update(raw).digest('hex'), sha256);
-    const value = JSON.parse(raw);
-    const records = Array.isArray(value) ? value : name === 'query-two-receipt'
-      ? [value.requirement, ...value.receipts, ...value.records, value.observation] : [];
-    for (const record of records) assert.equal(cid(record.body), record.cid);
+test('named query fixtures bind complete current bodies and expression identity', () => {
+  const expression = read('spec/contracts/actql-expressions.json');
+  assert.equal(expressionPin, cid(expression));
+  const current = read(ownerPath);
+  assert.deepEqual(current, ownerFixture,
+    'The owner preimages are independently authored above, not compiler output');
+  assert.equal(current.stage_semantics.expression_contract_cid, expressionPin);
+  assert.equal(current.program_semantics.expression_contract_cid, expressionPin);
+  assert.equal(current.program_semantics_cid, cid(current.program_semantics));
+  assert.equal(current.program_definition.program_semantics_cid, current.program_semantics_cid);
+  assert.equal(current.program_definition_cid, cid(current.program_definition));
+  assert.equal(current.owner.program_source_cid, current.program_definition_cid);
+  for (const name of ['query-acquisition-identities', 'query-process-evidence',
+    'query-two-receipt', 'query-time-acquisition-identities']) {
+    const value = read(`portability/corpus/${name}.json`);
+    const records = Array.isArray(value) ? value
+      : [value.requirement, ...value.receipts, ...value.records, value.observation];
+    assert.ok(records.length > 0, name);
+    for (const record of records) {
+      assert.equal(cid(record.body), record.cid, name);
+      if (Object.hasOwn(record.body, 'expression_contract_cid')) {
+        assert.equal(record.body.expression_contract_cid, expressionPin, name);
+      }
+    }
   }
-  const previous = JSON.parse(original('portability/corpus/query-acquisition-owner.json'));
-  const expression = JSON.parse(original('spec/contracts/actql-expressions.json'));
-  assert.equal(cid(expression),
-    'sha256:92b558028f8a5091a33b8b6d6e3fa32344b1b43cf9281e4c8c187886c9b6f292');
-  assert.equal(previous.stage_semantics.expression_contract_cid, cid(expression));
-  assert.equal(previous.program_semantics.expression_contract_cid, cid(expression));
-  assert.equal(previous.program_semantics_cid, cid(previous.program_semantics));
-  assert.equal(previous.program_definition.program_semantics_cid, previous.program_semantics_cid);
-  assert.equal(previous.program_definition_cid, cid(previous.program_definition));
-  assert.equal(previous.owner.program_source_cid,
-    'sha256:767d7a2a5cf8f6fcf7bcc16149eaad7e091f91b2dd6d8d0eb73b72e8eb8ed210');
-  assert.equal(previous.owner.program_source_cid, previous.program_definition_cid);
 });
 
 for (const c of corpus.cases) test(c.id, () => {

@@ -1,13 +1,14 @@
 ///|
-/// Project only an already-retained original semantic refusal. The Request
+/// Project an already-retained original semantic outcome. The Request
 /// facade supplies these typed originals while its parent remains live and
 /// backs this output/working frame before entry. This function has no checker,
 /// binder, Source collector/resolver, compiler or ownership transfer.
 ///
 /// The trusted Host supplies fresh audience metadata AFTER its actual Source
 /// and Account decisions. The visible publication is a disclosure filter, not
-/// a new Source grant. Native originals have no authored text coordinates;
-/// this projection never manufactures a location from another parse.
+/// a new Source grant. Native originals have no authored text coordinates.
+/// A matching retained Parameters representation may explain its existing
+/// scalar key spans; no Program or Parameters document is parsed again.
 pub fn client_program_project_original_check_outcome(
   program : @syntax.Program,
   source : @stage_parameters.Source,
@@ -26,8 +27,11 @@ pub fn client_program_project_original_check_outcome(
   parameters_bytes : Int,
   correlation_ref : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
+  original_parameters? : String? = None,
+  original_document? : String? = None,
+  document_format? : @syntax.Format = Json,
 ) -> String {
-  if outcome is @checked.Checked(_) || !["program", "text"].contains(input_kind) {
+  if !["program", "text"].contains(input_kind) {
     return check_failed_json("check_request_invalid", correlation_ref)
   }
   if selector_namespace is Some(proof) &&
@@ -55,6 +59,16 @@ pub fn client_program_project_original_check_outcome(
     return check_failed_json("check_context_invalid", correlation_ref)
   }
   let findings : Array[CheckFinding] = []
+  let mut original_pointer = None
+  // An authored raw document uses the SAME retained Program cursor/spans.
+  // Captured native values without text keep their existing no-location view.
+  let diagnostic_document = original_document.unwrap_or("")
+  let diagnostic_body = original_document.map(_ => @syntax.program_body(program))
+  let diagnostic_program = if original_document is Some(_) {
+    None
+  } else {
+    Some(program)
+  }
   check_missing_value_findings(
     findings,
     @stage_parameters.declarations(source),
@@ -108,6 +122,39 @@ pub fn client_program_project_original_check_outcome(
       hidden = true
     }
   }
+  // A completed input read before Source resolution is independent of every
+  // private Source's availability. The old later binder keeps its original
+  // disclosure filter; absence of this original never starts another read.
+  let independent = @checked.independent_supplied_binding_issue(
+    outcome, program, supplied,
+  )
+  let supplied_issue = match independent {
+    Some(issue) => Some(issue)
+    None =>
+      if !hidden &&
+        outcome is @checked.Rejected(diagnostic) &&
+        @checked.diagnostic_cause(diagnostic)
+        is Source(SourceView(Binding(Binding(issue)))) {
+        Some(issue)
+      } else {
+        None
+      }
+  }
+  let supplied_refusal = if supplied_issue is Some(issue) &&
+    issue is BindingInput(Supplied, _) &&
+    check_binding_fault(issue) is Invalid {
+    findings.push(
+      check_supplied_type_finding(
+        issue,
+        @stage_parameters.declarations(source),
+        supplied,
+        original_parameters,
+      ),
+    )
+    true
+  } else {
+    false
+  }
   let stop = if hidden {
     // Preserve the existing independent unsupported-declaration limitation,
     // while every unresolved private dependency stays protected.
@@ -117,20 +164,22 @@ pub fn client_program_project_original_check_outcome(
       let _ = check_program_diagnostic(
         findings,
         diagnostic,
-        "",
+        diagnostic_document,
         supplied,
-        None,
-        _ => (),
-        retained_program=Some(program),
+        original_parameters,
+        value => original_pointer = value,
+        format=document_format,
+        original_body=diagnostic_body,
+        retained_program=diagnostic_program,
       )
     }
     findings.push(Unresolved("source_resolution"))
     Report
-  } else if unregistered is Some(_) {
+  } else if unregistered is Some(_) || supplied_refusal {
     Report
   } else {
     match outcome {
-      @checked.Checked(_) => Failed("check_internal")
+      @checked.Checked(_) => Report
       @checked.NeedsInputs(requests) => {
         for index in 0..<@checked.input_request_count(requests) {
           match @checked.input_request_at(requests, index).unwrap().kind {
@@ -157,18 +206,20 @@ pub fn client_program_project_original_check_outcome(
         check_program_diagnostic(
           findings,
           diagnostic,
-          "",
+          diagnostic_document,
           supplied,
-          None,
-          _ => (),
-          retained_program=Some(program),
+          original_parameters,
+          value => original_pointer = value,
+          format=document_format,
+          original_body=diagnostic_body,
+          retained_program=diagnostic_program,
         )
     }
   }
   check_outcome_json(findings, stop, context_ref, correlation_ref, {
     scope: BoundInput,
     structured_program: input_kind == "program",
-    program_pointer: None,
+    program_pointer: original_pointer,
     source_revision: input_revision,
     source_bytes: input_bytes,
     declarations_revision: if input_kind == "program" {

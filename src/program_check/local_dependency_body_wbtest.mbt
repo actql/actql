@@ -97,7 +97,7 @@ test "checked dependency bodies retain exact preimages and owner" {
           100000,
           100,
         )
-        is Err(Encoding),
+        is Err(Encoding(_)),
       )
     }
     assert_true(
@@ -222,7 +222,7 @@ test "checked dependency bodies retain exact preimages and owner" {
       assert_eq(@json.cid_value(preimage, 1000000, 100000, 100), body.cid)
       assert_true(
         checked_local_dependency_body(program, unit, kind, 1, 100000, 100)
-        is Err(Encoding),
+        is Err(Encoding(_)),
       )
     }
   }

@@ -1,4 +1,5 @@
 // Create the two small, independently bound sources used by the public example.
+import assert from 'node:assert/strict';
 import {readFile, mkdir, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {DuckDBInstance} from '@duckdb/node-api';
@@ -14,6 +15,7 @@ const rows = JSON.parse(await readFile(fixture('database-rows.json'), 'utf8'));
 const root = resolve('two-source-example-data');
 await mkdir(root, {recursive: true});
 const sourceProfilePaths = [];
+let hostCapacityPolicy;
 for (const name of ['left', 'right']) {
   const database = resolve(root, `${name}.duckdb`);
   const instance = await DuckDBInstance.create(database);
@@ -25,6 +27,8 @@ for (const name of ['left', 'right']) {
     }
   } finally { connection.closeSync(); instance.closeSync(); }
   const environment = JSON.parse(await readFile(fixture(`${name}.environment.json`), 'utf8'));
+  if (hostCapacityPolicy === undefined) hostCapacityPolicy = environment.host_policy_profile.capacity;
+  else assert.deepEqual(environment.host_policy_profile.capacity, hostCapacityPolicy);
   const profile = resolve(root, `${name}.profile.json`);
   await writeFile(profile, canonical({version: 'actql-installed-duckdb-source/0.1',
     database, schema: 'main', table: 'records',
@@ -41,6 +45,6 @@ for (const name of ['left', 'right']) {
 }
 await writeFile(resolve(root, 'connection.json'), JSON.stringify({
   mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: resolve(root, 'actql-state'), sourceProfilePaths},
+  installation: {directory: resolve(root, 'actql-state'), sourceProfilePaths, hostCapacityPolicy},
 }, null, 2) + '\n');
 console.log('Created two independently bound DuckDB sources');

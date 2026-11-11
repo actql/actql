@@ -1,3 +1,5 @@
+import './graph-equality-source-input.test.mjs';
+import './subgraph-source-input.test.mjs';
 import './unnest-source-input.test.mjs';
 import {encodeRetainedFixture, decodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import assert from 'node:assert/strict';
@@ -14,6 +16,8 @@ import {aggregatePropertySuccesses, aggregatePropertyRefusals}
   from './fixtures/aggregate-property-source-input.mjs';
 import {joinPropertySuccesses, joinPropertyRefusals}
   from './fixtures/join-property-source-input.mjs';
+import {sourceGraphMemberSuccesses, sourceGraphMemberRefusals}
+  from './fixtures/source-graph-member-input.mjs';
 
 import {unnestRefusals} from './fixtures/unnest-source-input.mjs';
 import {windowScalarRefusals} from './fixtures/window-scalar-source-input.mjs';
@@ -27,6 +31,40 @@ const inputs = {successes: [...analyticOrderSuccesses, ...analyticPropertySucces
 const capacity = bytes => ({max_analytic_frame_memberships: 10000,
   max_analytic_input_wire_bytes: bytes, max_analytic_output_wire_bytes: bytes,
   max_analytic_partition_wire_bytes: bytes});
+
+test('Source Graph member strict comparison refines its empty output without changing nullable inputs', () => {
+  const empty = sourceGraphMemberSuccesses.find(item => item.name === 'source-graph-member-typed-empty');
+  assert.match(empty.text, /WHERE a\.payload\.SCORE > 100 \|> SELECT/u);
+  assert.deepEqual(empty.results.matched, {rows: [], columns: [
+    {name: 'id', contract: {type: 'number', nullable: false}},
+    {name: 'score', contract: {type: 'number', nullable: false}},
+  ]});
+  assert.equal(empty.parameterDeclarations.p3.nullable, true);
+  assert.equal(empty.parameterDeclarations.p4.fields.score.nullable, true);
+  assert.equal(empty.parameters.p3, null);
+  assert.deepEqual(empty.parameters.p4, {score: null});
+  for (const item of sourceGraphMemberSuccesses.filter(item => item !== empty)) {
+    assert.equal(item.results.matched.columns[1].contract.nullable, true, item.name);
+  }
+  const nulls = sourceGraphMemberSuccesses.find(item =>
+    item.name === 'source-graph-member-null-receiver-and-member');
+  assert.deepEqual(nulls.results.matched.rows, [{id: 3, score: null}, {id: 4, score: null}]);
+});
+
+test('Source Graph member refinement preserves the original Source inventory and refusal coordinates', () => {
+  assert.equal(sourceGraphMemberSuccesses.length, 7);
+  const originalRows = [{id: 2, amount: 10}, {id: 1, amount: 20},
+    {id: 3, amount: null}, {id: 4, amount: 40}, {id: 0, amount: 99}];
+  for (const item of sourceGraphMemberSuccesses) {
+    assert.deepEqual(item.sourceRows, originalRows);
+    assert.equal(item.sourceReadSessionCount, 1);
+  }
+  assert.deepEqual(sourceGraphMemberRefusals.map(item => item.name), [
+    'source-graph-member-invalid-missing-member', 'source-graph-member-invalid-scalar-receiver',
+    'source-graph-member-invalid-removed-receiver', 'source-graph-member-invalid-same-select-alias',
+  ]);
+  for (const item of sourceGraphMemberRefusals) assert.deepEqual(item.sourceRows, originalRows);
+});
 
 test('Source Graph member selection is narrow while the normal corpus retains its cases', async () => {
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
@@ -276,12 +314,29 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // Retain the accepted 4,221-case corpus, including its five cases missing
   // from the previous pin, then register eleven whole-ARRAY successes, seven
   // refusals and one demanded failure through the active membership selection.
+  // SQL signed-zero grouping, membership and ABS follow the canonical-zero rule:
+  // each original occurrence moves from refusal to an independent success.
+  // All other complete payloads and their relative order remain unchanged.
+  // Seven negated-predicate, six membership and four CONCAT DISTINCT scope
+  // refusals retain InvalidInput; no refusal predicate or bound is widened.
+  // The two invalid statistical forms retain their authored SQL and refusal;
+  // their reviewed InvalidInput projection updates only those corpus preimages.
+  // The complete Graph WALK keeps its original Program, parameters and twenty-row
+  // oracle as a success. Storage sizing does not select a cumulative output cap.
+  // Five grouped ROWS operands fail in the original bounded syntax parser;
+  // their InvalidInput projection does not become a later lowering rejection.
+  // Four grouped LIMIT/OFFSET and five positive LIMIT operands retain that same
+  // syntax phase; distinct declaration and binding rejections stay unchanged.
+  // The complete three-node Subgraph keeps its original Source under the
+  // finite standard planning budget, with independent full rows and schema.
+  // The singleton Graph equality keeps ORDER/LIMIT and its independent
+  // complete Boolean result; this is not an unresolved-order refusal.
   assert.equal(pin.totalCases, 4240);
-  assert.deepEqual(pin.counts, {"successes":2650,"executionFailures":54,"refusals":1536});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2596,"executionFailures":52,"refusals":1497}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  assert.deepEqual(pin.counts, {"successes":2658,"executionFailures":53,"refusals":1529});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2604,"executionFailures":51,"refusals":1490}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
-    {name: 'graph-subtraction-null-is-not-zero', positions: [29, 50]},
-    {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 51]},
+    {name: 'graph-subtraction-null-is-not-zero', positions: [29, 49]},
+    {name: 'graph-subtraction-conflict-needs-policy', positions: [30, 50]},
   ]);
   const {registeredPublicQueryInventory} = await import('./public-query-inventory.mjs');
   const actual = await registeredPublicQueryInventory();
@@ -302,3 +357,5 @@ import './unpivot-multicolumn-source-input.test.mjs';
 
 import './group-order-range-alias-source-input.test.mjs';
 import './distinct-order-receiver-source-input.test.mjs';
+import './grouped-rows-boundary-source-input.test.mjs';
+import './limit-parameter-source-input.test.mjs';

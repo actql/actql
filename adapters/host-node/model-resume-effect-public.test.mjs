@@ -17,6 +17,7 @@ import {salesforceEffectSiteHooks} from '../connectors/salesforce/host/installed
 import {installedEffect, accountConfiguration, recordEntry} from
   '../connectors/salesforce/test/installed-salesforce-effect.fixture.mjs';
 import {modelConfiguration, registerCompositionModel} from '../../scripts/fixtures/composed-infer-effect-input.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {graphResultDataPolicy} from '../../scripts/fixtures/graph-infer-effect-input.mjs';
 
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
@@ -50,7 +51,9 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
   t.after(async () => {
     for (const session of [...sessions]) await session.close();
     setDefaultCACertificates(originalCertificates);
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
@@ -60,6 +63,12 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
   setDefaultCACertificates([...originalCertificates, cert.toString()]);
   const account = accountConfiguration([
     recordEntry(orgId, 'read'), recordEntry(orgId, 'effect', 'delegate'),
+    // Host observation and this named Result have their own read tuples.
+    // Neither permission approves the Model call or downstream Effect write.
+    {entry_id: 'host-run-answer-read', outcome: 'allow', principal: {any_of: [owner]},
+      connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']},
+      operation: {any_of: ['read']}, exclusions: []},
     {entry_id: 'run-acceptance', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}, exclusions: []},
     {entry_id: 'model-invocation', outcome: 'delegate', principal: {all: true},
@@ -78,6 +87,7 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
   const observations = [];
   const writes = () => installed.org.seen.filter(item => ['PATCH', 'POST'].includes(item.method));
   let mapping;
+  const runtimeSource = await readFile(new URL('./infer-operation.mjs', import.meta.url));
   const open = async () => {
     const effect = await installed.load({accountConfigurationWire: account});
     mapping ??= effect.mappings[0];
@@ -87,7 +97,8 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
       authenticate: header => header === 'Bearer fixture-owner' ? owner : undefined,
       effectInstallation: site, modelInstallation: model.installation,
       registerModelProviders: moon => registerCompositionModel(moon, model.taskCid,
-        score => modelInputs.push(score)),
+        score => modelInputs.push(score), {installation: model.installation,
+          runtimeSource, publicationControl: runtimeCore(moon).publicationControl}),
       resultDataPolicy: graphResultDataPolicy,
       authorization: {accountConfiguration: account, leaseMs: 1000,
         reviewers: [{keyId: signer.keyId, reviewerId: signer.reviewerId,

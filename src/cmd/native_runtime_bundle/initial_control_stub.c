@@ -1,6 +1,10 @@
 /* Compile the existing capture implementation into THIS installer image.
  * Its process-lived original and MoonBit external handle belong only to this
  * command; no Resident handle or resource crosses the executable boundary. */
+#if defined(__linux__) && defined(__x86_64__) && defined(ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY)
+#include "initial_control_capture_linux_x64.h"
+#define ACTQL_BUNDLE_ENTRY_CLEANUP_CURRENT(entry) bundle_linux_cleanup_current(entry)
+#endif
 #ifdef ACTQL_BUNDLE_INITIAL_CONTROL_HEADER
 #define ACTQL_RESIDENT_INITIAL_CONTROL_HEADER ACTQL_BUNDLE_INITIAL_CONTROL_HEADER
 #endif

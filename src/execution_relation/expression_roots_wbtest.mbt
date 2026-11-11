@@ -8,7 +8,7 @@ fn retained_expression(
     Map([]),
     [],
     { remaining: 10000, max_frames: 100, },
-    { limit: 10000, live: 0, peak: 0, },
+    row_workspace(10000),
     logical_work=Some(b),
   )
 }

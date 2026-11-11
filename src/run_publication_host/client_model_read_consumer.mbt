@@ -19,6 +19,22 @@ pub fn claim_client_model_read_preparation(
   if !client_model_read_origin_matches(value, compiled, definition, plan) {
     return Err(ForeignRun)
   }
+  if value.consumer is Some(consumer) {
+    if value.consumer_claimed {
+      return Err(Resource(@resources.SpentClaim))
+    }
+    if !@resources.funded_read_consumer_available(
+        consumer,
+        value.origin,
+        retained_bytes,
+        execution_bytes,
+      ) ||
+      value.consumer_claimed {
+      return Err(Resource(@resources.ChangedOriginalState))
+    }
+    value.consumer_claimed = true
+    return Ok({ consumer, })
+  }
   match
     @resources.claim_funded_read_preparation(
       value.claim,
@@ -75,6 +91,23 @@ pub fn enter_client_model_read_consumer(
     retained_bytes,
     execution_bytes,
   ).map_err(issue => Resource(issue))
+}
+
+///|
+/// Borrow the actual Plan's Model allowance on this same original consumer.
+/// This immutable DATA is not remaining capacity or a dispatch permission;
+/// the original input handoff still checks current rows and issues the token.
+pub fn client_model_read_consumer_model_limits(
+  value : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Result[@resources.LedgerLimits?, ClientModelReadPreparationIssue] {
+  guard @resources.funded_read_consumer_origin(value.consumer) is Some(origin) &&
+    client_model_origin_matches(origin, compiled, definition, plan) else {
+    return Err(ForeignRun)
+  }
+  Ok(origin.model_limits)
 }
 
 ///|

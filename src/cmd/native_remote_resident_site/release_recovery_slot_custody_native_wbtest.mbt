@@ -2,6 +2,8 @@
 /// Real descriptor/lock and saved-row controls only, not a prepared installed
 /// Resident, whole Run release, Provider operation or physical child stop.
 test "release recovery busy Slot closes only its original refused description before returning" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (library, journal, request, journal_path, _) = cleanup_test_open(
     "release-busy-slot",
   )
@@ -26,7 +28,14 @@ test "release recovery busy Slot closes only its original refused description be
   }
   let retained : Ref[StoppedReleaseRecovery?] = Ref(None)
   assert_false(
-    recover_stopped_release(matches, environment, request, retained, Ref(0)),
+    recover_stopped_release(
+      matches,
+      environment,
+      request,
+      retained,
+      Ref(0),
+      report_progress=observe_progress,
+    ),
   )
   assert_true(retained.val is None)
   assert_eq(opens.val, 0)
@@ -40,6 +49,7 @@ test "release recovery busy Slot closes only its original refused description be
   assert_true(foreign.close())
   journal.close_checked().unwrap()
   root.close().unwrap()
+  assert_eq(progress_events, [])
 }
 
 ///|
@@ -65,7 +75,7 @@ test "release recovery refuses a locked stale inode and retires that same Slot w
   }
   assert_true(physical_equal(original.slot, original_slot))
   assert_eq(original.failure, "release recovery Slot current hold unconfirmed")
-  assert_eq(original.slot_issue, Some(@slot.Replaced))
+  assert_eq(original.slot.verify_current_hold(), Err(@slot.Replaced))
   assert_true(original.journal.val is None)
   assert_true(original.bundles is None)
   assert_false(original.slot_closed)
@@ -73,7 +83,7 @@ test "release recovery refuses a locked stale inode and retires that same Slot w
   assert_eq(replacement.verify_current_hold(), Ok(()))
   assert_true(retry_release_recovery_open_cleanup(original))
   assert_true(original.slot_closed)
-  assert_eq(original.slot_issue, Some(@slot.Replaced))
+  assert_eq(original.failure, "release recovery Slot current hold unconfirmed")
   assert_false(original.slot_close_unknown)
   assert_true(retry_release_recovery_open_cleanup(original))
   assert_eq(replacement.verify_current_hold(), Ok(()))

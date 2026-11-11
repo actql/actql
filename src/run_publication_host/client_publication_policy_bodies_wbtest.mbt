@@ -1,4 +1,44 @@
 ///|
+test "Effect policy packet retains the exact checked Source closure without issuing a compilation" {
+  let prepared = normalization_source_fixture(true)
+  let original = prepared_client_effect_publication_policy_bodies(
+    prepared, 65536, 8192, 64,
+  ).unwrap()
+  let wire = issue_client_effect_run_policy_originals(prepared).unwrap()
+  let restored = read_client_run_policy_originals(wire).unwrap()
+  assert_eq(
+    restored.map(body => {
+      (
+        @publication.captured_effect_dependency_body_kind(body),
+        @publication.captured_effect_dependency_body_cid(body),
+        @publication.captured_effect_dependency_body_json(body),
+      )
+    }),
+    original,
+  )
+  assert_eq(
+    Some(original[0].1),
+    prepared_client_effect_publication_data_policy_cid(prepared),
+  )
+  assert_true(
+    original.any(body => {
+      body.0 == "data_policy" &&
+      body.1 ==
+      "sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf"
+    }),
+  )
+}
+
+///|
+test "Effect policy packet refuses a missing checked closure instead of inventing a source-free policy" {
+  let (prepared, _, _) = original_effect_materials_fixture()
+  assert_true(
+    issue_client_effect_run_policy_originals(prepared)
+    is Err(PublicationPolicy(@checked.MissingDependency)),
+  )
+}
+
+///|
 // The preimage and identities below were independently derived from the fixed
 // input Catalog and existing normative policy contract, not product output.
 test "Effect-free original policy closure retains exact checked and Catalog identities" {
@@ -99,4 +139,67 @@ test "Effect-free original policy closure is unchanged by a public Result alias"
     prepared_client_publication_policy_bodies(renamed, 65536, 8192, 64).unwrap(),
     original,
   )
+}
+
+///|
+test "checked policy body construction yields exact original dimensions before output and preserves refusal" {
+  let prepared = multi_source_prepared(multi_source_program)
+  let observed : Array[(Int, Int, Int)] = []
+  let bodies = prepared_client_publication_policy_bodies(
+    prepared,
+    65536,
+    8192,
+    64,
+    before_body=Some((bytes, nodes, depth) => {
+      observed.push((bytes, nodes, depth))
+      true
+    }),
+  ).unwrap()
+  // One original combined policy and its two Source response policies emit;
+  // the four Catalog bodies borrow existing originals rather than emit again.
+  assert_eq(observed.length(), 3)
+  assert_eq(observed[0].1, 10)
+  assert_eq(observed[0].2, 2)
+  let root = bodies[0]
+  assert_eq(
+    root.1,
+    "sha256:bfb29a3ad6c5f1f3e72e2a59b17ee8df772f88fa8b37ee0f958d6b07cb20c670",
+  )
+  assert_eq(observed[0].0, @utf8.encode(root.2).length())
+  let calls = Ref(0)
+  assert_true(
+    prepared_client_publication_policy_bodies(
+      prepared,
+      65536,
+      8192,
+      64,
+      before_body=Some((_, _, _) => {
+        calls.val += 1
+        false
+      }),
+    )
+    is Err(@checked.BudgetExceeded),
+  )
+  assert_eq(calls.val, 1)
+  let retained : Map[String, String] = Map([])
+  for (kind, cid, wire) in bodies {
+    retained[kind + "\u0000" + cid] = wire
+  }
+  let original = @strategy.graph_program(prepared.graph)
+  let selected = prepared_client_publication_data_policy_cid(prepared).unwrap()
+  let filtered = checked_client_publication_policy_bodies(
+    original,
+    selected,
+    65536,
+    8192,
+    64,
+    retain_catalog=true,
+    retained_body_keys=Some(retained),
+    before_body=Some((_, _, _) => {
+      calls.val += 1
+      false
+    }),
+  ).unwrap()
+  assert_true(filtered.is_empty())
+  assert_eq(calls.val, 1)
 }

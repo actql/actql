@@ -4,12 +4,8 @@ test "store releases successful intermediate tables at the final branch consumer
     ",{\"derive\":{\"c\":\"a + 1\"},\"as\":\"augmented\"},{\"filter\":\"a > 10\"},{\"from\":\"augmented\",\"select\":[\"c\"]}",
   )
   let control = { remaining: 10000, max_frames: 100, }
-  let wiring = prepare_wiring(owner, ["select_3"], control, {
-    limit: 1000,
-    live: 0,
-    peak: 0,
-  }).unwrap()
-  let workspace = { limit: 23, live: 0, peak: 0, }
+  let wiring = prepare_wiring(owner, ["select_3"], control, row_workspace(1000)).unwrap()
+  let workspace = row_workspace(23)
   let store = table_store(wiring, workspace).unwrap()
   let source = row_capture(owner)
   commit_table(store, 0, source, control).unwrap()
@@ -55,12 +51,8 @@ test "store releases successful intermediate tables at the final branch consumer
 test "failed table adoption preserves existing input and cannot skip operations" {
   let owner = row_owner(",{\"derive\":{\"c\":\"a + 1\"}}")
   let control = { remaining: 10000, max_frames: 100, }
-  let wiring = prepare_wiring(owner, ["derive_1"], control, {
-    limit: 1000,
-    live: 0,
-    peak: 0,
-  }).unwrap()
-  let store = table_store(wiring, { limit: 20, live: 0, peak: 0, }).unwrap()
+  let wiring = prepare_wiring(owner, ["derive_1"], control, row_workspace(1000)).unwrap()
+  let store = table_store(wiring, row_workspace(20)).unwrap()
   let source = row_capture(owner)
   let derived = evaluate_rows(
     row_kernel(owner, 1),

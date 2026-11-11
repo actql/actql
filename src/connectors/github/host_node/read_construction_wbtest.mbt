@@ -1,0 +1,256 @@
+///|
+test "GitHub Source backs initial requests then grows only actual native response geometry" {
+  let initial = github_source_read_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    0,
+    original_node_http_header_bound(),
+  ).unwrap()
+  let small = github_source_read_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    512,
+    original_node_http_header_bound(),
+  ).unwrap()
+  let full = github_source_read_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    4000000,
+    original_node_http_header_bound(),
+  ).unwrap()
+  assert_true(@execution.execution_capacity_retained_bytes(initial) > 0L)
+  assert_true(
+    @execution.execution_capacity_retained_bytes(small) >
+    @execution.execution_capacity_retained_bytes(initial),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(small) >
+    @execution.execution_capacity_retained_bytes(small),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(full) >
+    @execution.execution_capacity_execution_bytes(small),
+  )
+  assert_true(
+    github_source_read_construction_capacity(
+      4000000,
+      400000,
+      32,
+      100,
+      10,
+      100,
+      4000001,
+      original_node_http_header_bound(),
+    )
+    is None,
+  )
+  assert_true(
+    github_source_read_construction_capacity(
+      4000000,
+      400000,
+      32,
+      100,
+      10,
+      100,
+      -1,
+      original_node_http_header_bound(),
+    )
+    is None,
+  )
+  assert_true(
+    github_source_read_construction_capacity(
+      4000000,
+      400000,
+      32,
+      100,
+      0,
+      100,
+      1,
+      original_node_http_header_bound(),
+    )
+    is None,
+  )
+  assert_true(
+    github_source_read_construction_capacity(
+      2147483647,
+      2147483647,
+      32,
+      2147483647,
+      2147483647,
+      2147483647,
+      2147483647,
+      original_node_http_header_bound(),
+    )
+    is None,
+  )
+}
+
+///|
+test "GitHub Source prefix quotes retained occurrences without constructing future pages" {
+  let quote = (responses, bytes) => {
+    github_source_read_prefix_construction_capacity(
+      4000000,
+      400000,
+      32,
+      100,
+      10,
+      100,
+      bytes,
+      original_node_http_header_bound(),
+      responses,
+    ).unwrap()
+  }
+  let initial = quote(0, 0)
+  let first = quote(1, 1153)
+  let second = quote(2, 1153)
+  let all = quote(10, 1153)
+  assert_true(
+    @execution.execution_capacity_retained_bytes(first) >
+    @execution.execution_capacity_retained_bytes(initial),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(second) >
+    @execution.execution_capacity_retained_bytes(first),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(second) >
+    @execution.execution_capacity_execution_bytes(first),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(first) <
+    @execution.execution_capacity_execution_bytes(all),
+  )
+  let original = github_source_read_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    1153,
+    original_node_http_header_bound(),
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(all),
+    @execution.execution_capacity_retained_bytes(original),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(all),
+    @execution.execution_capacity_execution_bytes(original),
+  )
+  for count in [-1, 11] {
+    assert_true(
+      github_source_read_prefix_construction_capacity(
+        4000000,
+        400000,
+        32,
+        100,
+        10,
+        100,
+        1153,
+        original_node_http_header_bound(),
+        count,
+      )
+      is None,
+    )
+  }
+  assert_true(
+    github_source_read_prefix_construction_capacity(
+      4000000,
+      400000,
+      32,
+      100,
+      10,
+      100,
+      1153,
+      original_node_http_header_bound(),
+      0,
+    )
+    is None,
+  )
+}
+
+///|
+test "GitHub first full row page does not quote two pages or a byte per label object" {
+  let page = github_source_read_prefix_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    47562,
+    original_node_http_header_bound(),
+    1,
+  ).unwrap()
+  assert_true(@execution.execution_capacity_execution_bytes(page) < 536870912L)
+  let next = github_source_read_prefix_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    47562,
+    original_node_http_header_bound(),
+    2,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(next) >
+    @execution.execution_capacity_retained_bytes(page),
+  )
+}
+
+///|
+test "GitHub Source request quantity covers original escaped node cursor and all fixed document families" {
+  let node = "\u{1}".repeat(256)
+  let cursor = "\u{2}".repeat(1024)
+  let issue = @catalog.issues_request(node, 100, Some(cursor), {
+    state: "all",
+    labels: [],
+    since: None,
+  }).unwrap()
+  let pull = @catalog.pull_requests_request(node, 100, Some(cursor), {
+    state: "all",
+    labels: [],
+  }).unwrap()
+  let comment = @catalog.issue_comments_request(
+    {
+      node_id: node,
+      number: 1L,
+      native_type: "PullRequest",
+      updated_at: "",
+      repository: { node_id: node, database_id: 1L, name_with_owner: "o/r", },
+    },
+    100,
+    Some(cursor),
+  ).unwrap()
+  let subjects = @catalog.issue_comment_subjects_request(
+    node,
+    "PullRequest",
+    100,
+    Some(cursor),
+  ).unwrap()
+  let quoted = github_read_request_inventory().unwrap()
+  for body in [issue, pull, comment, subjects] {
+    assert_true(quoted.owned_utf16_units >= body.length().to_int64())
+  }
+  assert_true(
+    @catalog.source_read_query_units() >= @catalog.issues_query.length(),
+  )
+  assert_true(
+    @catalog.source_read_query_units() >= @catalog.pull_requests_query.length(),
+  )
+}

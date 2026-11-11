@@ -57,6 +57,8 @@ pub fn effect_batch_rows_share_member(LogicalItemLocator, EffectDispatchKey, Log
 
 pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
 
+pub fn effect_dispatch_key_codec_limits() -> (Int, Int, Int)
+
 pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
@@ -118,6 +120,8 @@ pub fn effect_set_frontier_ready_row(EffectSetFrontier, Int) -> Int
 pub fn issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[LogicalItemLocator], Array[EffectDispatchKey], Array[EffectLedgerBasis], Array[EffectLedgerEntry?], Array[Bool], Array[@run_publication.PublicationContract?], Int, Int, Int, Int) -> Result[@run_publication.PublicationContract, EffectMemberReceiptEvidenceIssue]
 
 pub fn issue_effect_row_receipt_terminal_entry(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, String, Bytes, Int, String, Int, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
+
+pub fn issue_effect_row_receipt_terminal_entry_from_file(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, @run_publication.EffectFileOperationReceipt, String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
 
 pub fn issue_effect_row_receipt_terminal_entry_from_local(@run_publication.EffectPreviewIdentity, Int, Int, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, EffectLedgerEntry, Array[EffectLedgerEntry], String, @run_publication.EffectLocalOperationReceipt, String, Int, Int, Int) -> Result[EffectLedgerEntry, EffectRowReceiptCommitIssue]
 

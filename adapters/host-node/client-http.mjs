@@ -171,7 +171,7 @@ export function createClientHttpHandler({
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
       typeof loopbackHttp !== 'boolean' ||
-      prepareRequest !== undefined && typeof prepareRequest !== 'function' ||
+      typeof prepareRequest !== 'function' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     throw new TypeError('InvalidClientHostInstallation');
   }
@@ -248,22 +248,21 @@ export function createClientHttpHandler({
         ...Object.fromEntries(Object.entries(body)
           .filter(([key]) => key !== 'connection' && key !== 'ref')),
         ...(ref === undefined ? {} : {ref})});
-      requestLifetime = prepareRequest === undefined ? undefined
-        : await prepareRequest(operation, originalRequest);
-      if (prepareRequest !== undefined && (requestLifetime === undefined || requestLifetime === null ||
+      requestLifetime = await prepareRequest(operation, originalRequest);
+      if (requestLifetime === undefined || requestLifetime === null ||
           typeof requestLifetime !== 'object' || requestLifetime.body === null ||
           typeof requestLifetime.body !== 'object' ||
           typeof requestLifetime.beforeReply !== 'function' ||
           typeof requestLifetime.bindRequest !== 'function' ||
-          typeof requestLifetime.finish !== 'function')) invalid('InvalidClientHostPreparation');
-      const admittedRequest = prepareRequest === undefined ? originalRequest : requestLifetime.body;
+          typeof requestLifetime.finish !== 'function') invalid('InvalidClientHostPreparation');
+      const admittedRequest = requestLifetime.body;
       const invoke = async (handler, signal, preparedProgram) => {
         if (typeof handler !== 'function') invalid('ClientOperationUnavailable');
         const original = Object.freeze({...admittedRequest,
           ...(signal === undefined ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         });
-        requestLifetime?.bindRequest(original);
+        requestLifetime.bindRequest(original);
         return handler(original);
       };
       if (operation === 'connect') {
@@ -295,12 +294,15 @@ export function createClientHttpHandler({
       } else if (operation === 'result-describe') {
         const observation = observationAttempt(response);
         try {
-          const answer = await describeAuthorizedResult(resultService, {
+          const resultRequest = {
             indexKey: ref, principalId: principal, purpose: 'inspect',
             resultName: body.resultName, format: body.format,
             attemptId: body.attemptId, maxWireBytes: body.maxWireBytes,
             maxNodes: body.maxNodes, maxDepth: body.maxDepth,
-          }, observation.signal);
+          };
+          requestLifetime.bindRequest(resultRequest);
+          const answer = await describeAuthorizedResult(resultService, resultRequest,
+            observation.signal);
           if (!validResultDescription(answer, body, body)) {
             invalid('InvalidClientHostResultDescription');
           }
@@ -322,12 +324,16 @@ export function createClientHttpHandler({
         }
         sendJson(lookup);
       } else if (operation === 'status') {
-        const state = observeRun === undefined
-          ? await observeClientRunState(runStateObservation, stateService, {
-          indexKey: body.ref,
-          principalId: principal,
-          purpose: 'inspect',
-        }) : await invoke(observeRun);
+        let state;
+        if (observeRun === undefined) {
+          const stateRequest = {
+            indexKey: body.ref,
+            principalId: principal,
+            purpose: 'inspect',
+          };
+          requestLifetime.bindRequest(stateRequest);
+          state = await observeClientRunState(runStateObservation, stateService, stateRequest);
+        } else state = await invoke(observeRun);
         if (!validRunState(state)) {
           invalid('InvalidClientHostRunState');
         }
@@ -444,14 +450,18 @@ export function createClientHttpHandler({
         if (!validRunState(state)) invalid('InvalidClientHostRunState');
         sendJson(state);
       } else if (operation === 'delivery-attempt') {
-        const lookup = deliveryAttempt === undefined
-          ? await inspectAuthorizedDeliveryAttempt(resultService, {
+        let lookup;
+        if (deliveryAttempt === undefined) {
+          const resultRequest = {
             indexKey: body.ref,
             principalId: principal,
             purpose: 'download',
             resultName: body.resultName,
             attemptId: body.attemptId,
-          }) : await invoke(deliveryAttempt);
+          };
+          requestLifetime.bindRequest(resultRequest);
+          lookup = await inspectAuthorizedDeliveryAttempt(resultService, resultRequest);
+        } else lookup = await invoke(deliveryAttempt);
         if (!validDeliveryAttemptLookup(lookup, {
           attemptId: body.attemptId,
           runDefinitionCid: body.ref.runDefinitionCid,
@@ -475,14 +485,16 @@ export function createClientHttpHandler({
         };
         const observer = observationAttempt(response);
         try {
-          await deliverAuthorizedResult(resultService, {
+          const resultRequest = {
             indexKey: body.ref,
             principalId: principal,
             purpose: 'download',
             resultName: body.resultName,
             format: body.format,
             attemptId: body.attemptId,
-          }, {
+          };
+          requestLifetime.bindRequest(resultRequest);
+          await deliverAuthorizedResult(resultService, resultRequest, {
             write: bytes => { begin(); return write(response, bytes); },
             finish: () => { begin(); return finish(response, body.format); },
           }, observer.signal);

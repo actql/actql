@@ -12,7 +12,7 @@ const hint = 'Refresh the original Run under current authorization. This observa
 const expected = (operation, target = ref) => ({kind: 'unavailable', problem: 'observation_unavailable', operation,
   next: {operation: 'status', ref: target},
   summary: 'The Run observation could not be completed. Its execution, Effect, publication and release outcomes are not established by this failure.', hint});
-const running = {version: 'actql-run-state/0.1', run_id: 'run-a', status: 'running',
+const running = {version: 'actql-run-state/0.1', run_id: 'run-a', revision: 31, status: 'running',
   updated_at: '2026-10-07T00:00:00.000Z', next_action: {kind: 'none'},
   result_available: false, result_availability: {answer: {state: 'unavailable',
     reason: 'not_published', observed_at: '2026-10-07T00:00:00.000Z'}}};

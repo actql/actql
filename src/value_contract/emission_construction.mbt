@@ -26,3 +26,20 @@ pub fn checked_emission_construction_extent(
     map_entries: 0L,
   })
 }
+
+///|
+/// Before one transition of this SAME cursor, bound its live pending backing
+/// and one new member/frame family. Field/enum arrays and checked contracts
+/// stay borrowed. Earlier Array capacity survives pop; policy max_frames is
+/// only an admission limit and does not allocate that many frames.
+pub fn checked_emission_next_construction_extent(
+  cursor : CheckedEmission,
+) -> @shape.CollectionConstructionExtent? {
+  if cursor.closed || cursor.pending.capacity() == 2147483647 {
+    None
+  } else {
+    checked_emission_construction_extent(
+      Int::max(1, cursor.pending.capacity() + 1),
+    )
+  }
+}

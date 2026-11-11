@@ -41,7 +41,7 @@ const subsetPrefix = prefix.replace('1 AS node_key, 7 AS p)',
   .replace('1 AS dst_key, 5 AS w', '2 AS dst_key, 5 AS w')
   .replace('1 AS src_key, 1 AS dst_key, 2 AS w', '2 AS src_key, 2 AS dst_key, 2 AS w');
 const peerSelection = ', selected AS (FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id) ' +
-  ', peer AS (FROM g |> subgraph(nodes: {from: selected, id: "id"})) ';
+  ', peer AS (FROM g |> subgraph(nodes: {from: selected, id: `id`})) ';
 export const graphSubtractionSubsetProgram = structuredClone(graphSubtractionProgram);
 graphSubtractionSubsetProgram.id = 'fixture.graph_subtraction_subset';
 const subsetSteps = graphSubtractionSubsetProgram.stages[0].steps;
@@ -87,12 +87,12 @@ export const graphSubtractionSourceSuccesses = [
 
 export const graphSubtractionSourceRefusals = [
   ['string-peer', "subtract_graphs(with: 'g')", 'ClientProgramInvalidInput'],
-  ['list-peer', 'subtract_graphs(with: [g])', 'ClientProgramImplementationLimit'],
-  ['empty-peer-list', 'subtract_graphs(with: [])', 'ClientProgramImplementationLimit'],
-  ['missing-peer', 'subtract_graphs()', 'ClientProgramImplementationLimit'],
+  ['list-peer', 'subtract_graphs(with: [g])', 'ClientProgramInvalidInput'],
+  ['empty-peer-list', 'subtract_graphs(with: [])', 'ClientProgramInvalidInput'],
+  ['missing-peer', 'subtract_graphs()', 'ClientProgramInvalidInput'],
   ['unknown-peer', 'subtract_graphs(with: missing)', 'ClientProgramRejected'],
   ['relation-peer', 'subtract_graphs(with: n)', 'ClientProgramRejected'],
-  ['extra-argument', 'subtract_graphs(with: g, extra: true)', 'ClientProgramImplementationLimit'],
+  ['extra-argument', 'subtract_graphs(with: g, extra: true)', 'ClientProgramInvalidInput'],
   ['lost-graph-scope', 'node_rows() |> subtract_graphs(with: g)', 'ClientProgramInvalidInput'],
 ].map(([name, call, expectedCode]) => ({name: 'graph-subtraction-' + name, format: 'aql-text',
   text: prefix + 'FROM g |> ' + call + output('nodes'), expectedCode})).concat([

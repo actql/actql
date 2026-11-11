@@ -21,6 +21,10 @@ async function fixture(t, {matcher = moon.clientProgramEffectCommandContentMatch
   const counters = {matches: () => matcherCalls, releases: () => releases};
   const control = {...generatedContentFixtureControl,
     reserveWorkspace(original) { assert.equal(original, ledger); return reservation; },
+    growWorkspace(original, handle, maximum, count) {
+      assert.equal(original, ledger); assert.equal(handle, reservation);
+      assert.equal(maximum, 4096); assert.equal(count, 1);
+    },
     releaseWorkspace(original, value) {
       assert.equal(original, ledger); assert.equal(value, reservation); releases++;
     },
@@ -44,7 +48,7 @@ async function fixture(t, {matcher = moon.clientProgramEffectCommandContentMatch
     clientProgramKeyedAcquisitionSourceEvidenceFacts: () => ({$tag: 1,
       _0: ['explicit producer fixture', generated.description.identity, generated.description.identity,
         generated.description.effectiveDataPolicyCid, 'internal', generated.description.identity]}),
-    clientProgramKeyedLookupCapacity: () => ({_1: 1}),
+    clientProgramKeyedLookupCapacity: () => assert.fail('static count is not a workspace prerequisite'),
     clientProgramEffectCommandContentMatchesIssued: matcher === undefined ? undefined : (...args) => {
       matcherCalls++; return matcher(...args);
     },

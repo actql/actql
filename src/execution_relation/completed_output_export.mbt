@@ -364,7 +364,13 @@ pub fn completed_result_export_preparation_matches_receipt(
     receipt.rows.source is Some(source) else {
     return false
   }
-  completed_output_available(source) &&
+  let available = completed_output_available(source)
+  // Availability may synchronously cancel this exact receipt/stream. Its
+  // earlier alias is not a successful observation after that callback.
+  available &&
+  value.closed &&
+  (value.stream is Some(actual) && physical_equal(actual, stream)) &&
+  (receipt.rows.source is Some(actual) && physical_equal(actual, source)) &&
   physical_equal(stream.export_identity, receipt.rows.export_identity)
 }
 
@@ -392,6 +398,25 @@ fn prepare_completed_export(
   schema_limits : RelationSchemaIdentityLimits?,
   max_batch_bytes : Int,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
+  start_completed_export(
+    source, result_view, max_rows, values, wire, logical_wire, schema_limits, max_batch_bytes,
+  ).bind(drain_completed_export_preparation)
+}
+
+///|
+// Same export owner and original validation order, without hiding metadata,
+// schema or writer construction inside a draining constructor. Its caller can
+// back each next transition before advancing this original preparation.
+fn start_completed_export(
+  source : CompletedOutput,
+  result_view : (ManagedResultOccurrence, CompletedResultViewLimits)?,
+  max_rows : Int,
+  values : ValueLimits,
+  wire : RowWireLimits,
+  logical_wire : RowWireLimits?,
+  schema_limits : RelationSchemaIdentityLimits?,
+  max_batch_bytes : Int,
+) -> Result[CompletedOutputExportPreparation, CompletedExportIssue] {
   if !completed_output_available(source) {
     return Err(Unavailable)
   }
@@ -410,8 +435,13 @@ fn prepare_completed_export(
         Err(issue) => return Err(ResultView(issue))
       }
   }
-  prepare_completed_export_rows(
+  guard completed_export_preparation_workspace_slots(wire.max_columns)
+    is Some(slots) else {
+    return Err(Wire(InvalidLimits))
+  }
+  start_completed_export_rows_metadata(
     source, rows, max_rows, values, wire, logical_wire, schema_limits, max_batch_bytes,
+    slots,
   )
 }
 
@@ -735,9 +765,31 @@ pub fn completed_relation_export_matches_output(
   value : CompletedRelationExportReceipt,
   output : CompletedOutput,
 ) -> Bool {
-  completed_output_available(output) &&
-  value.rows.source is Some(source) &&
-  completed_output_same_occurrence(source, output)
+  guard value.rows.source is Some(source) &&
+    completed_output_occurrence_identity_matches(output, source) else {
+    return false
+  }
+  // The expected original and the receipt's converted view have separate
+  // availability. Observe each once, then fence the exact mutable receipt alias.
+  let available = completed_output_available(output) &&
+    completed_output_available(source)
+  available &&
+  value.rows.source is Some(actual) &&
+  physical_equal(actual, source)
+}
+
+///|
+/// Project immutable completion/target identity only, before selecting a
+/// current-aware direct or derived consumer. This observes no availability,
+/// Source, Host or current callback and cannot authorize use of the receipt.
+pub fn completed_relation_export_has_output_identity(
+  value : CompletedRelationExportReceipt,
+  output : CompletedOutput,
+) -> Bool {
+  match value.rows.source {
+    Some(source) => completed_output_occurrence_identity_matches(output, source)
+    None => false
+  }
 }
 
 ///|

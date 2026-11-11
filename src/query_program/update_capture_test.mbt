@@ -103,6 +103,7 @@ fn private_update_static(
         InvalidProgram(_) => "InvalidProgram"
         Headers(_) => "Headers"
         MissingEffects => "MissingEffects"
+        Phase(AlreadyConsumed) => "Phase.AlreadyConsumed"
         Computation(cause) =>
           match cause {
             @check.LocalConstructionFailure::InvalidLimits =>

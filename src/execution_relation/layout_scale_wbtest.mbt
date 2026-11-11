@@ -63,7 +63,7 @@ fn profile_column_sequence(
       count,
       control,
       invocation.output_budget,
-      { limit: limits.operation_entries, live: 0, peak: 0, },
+      { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
       physical,
       logical,
     )

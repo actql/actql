@@ -58,6 +58,7 @@ struct NativeLocalJournalCapture {
   ttl_ms : Double
   max_records : Int
   max_snapshot_bytes : Int64
+  max_retained_intent_bytes : Int64
   mut opening : NativeLocalJournalCaptureOpening
   mut closing : Bool
   mut cleanup_acknowledged : Bool
@@ -74,6 +75,8 @@ struct NativeLocalJournalCaptureReply {
 /// Retain this capture in the caller's original out-slot BEFORE calling open.
 /// Neither valid options nor a successful preparation adopts a Host, Library,
 /// current policy, initial signing original or numerical resource profile.
+/// max_retained_intent_bytes selects cumulative fresh intent storage; it is
+/// carried into this same Journal and never reserves the future policy as RAM.
 pub fn prepare_native_local_journal_capture(
   session : NativeLocalAdoptionSession,
   library : @sqlite.Library,
@@ -81,6 +84,7 @@ pub fn prepare_native_local_journal_capture(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> NativeLocalJournalCapture {
   {
     session,
@@ -105,6 +109,7 @@ pub fn prepare_native_local_journal_capture(
     ttl_ms,
     max_records,
     max_snapshot_bytes,
+    max_retained_intent_bytes,
     opening: JournalNotAttempted,
     closing: false,
     cleanup_acknowledged: false,
@@ -143,6 +148,7 @@ pub fn NativeLocalJournalCapture::open(
             self.ttl_ms,
             self.max_records,
             self.max_snapshot_bytes,
+            max_retained_intent_bytes=self.max_retained_intent_bytes,
           )
         Some(original) => self.open_original_journal(original)
       }

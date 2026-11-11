@@ -12,6 +12,7 @@ import {inventory, unpack} from './package-release.mjs';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
+import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
 const self = fileURLToPath(import.meta.url);
@@ -116,7 +117,7 @@ export async function prepareHealthPackages({repository, root, source, retained,
 }
 let packagesCounter = 0;
 
-export async function distributionMetrics({repository, prepared, root, command, source}) {
+export async function distributionMetrics({repository, prepared, root, command, source, installedInventory}) {
   const artifacts = [], metrics = [];
   for (const pkg of prepared.manifest.packages) {
     const installed = pkg.files.reduce((sum, row) => sum + row.bytes, 0);
@@ -126,7 +127,7 @@ export async function distributionMetrics({repository, prepared, root, command, 
     metrics.push({id: 'tarball:' + pkg.name, kind: 'size', artifactKind: 'npm', target: pkg.name,
       value: pkg.bytes, unit: 'bytes', required: true, fixtureSha256: jsonDigest({kind: 'npm', name: pkg.name}), evidence: prepared.manifestPath});
   }
-  const installed = await inventory(join(prepared.consumer, 'node_modules'));
+  const installed = installedInventory ?? await inventory(join(prepared.consumer, 'node_modules'));
   for (const [target, names] of [['node-local', CLIENT_PACKAGES], ['remote-sdk', ['sdk', 'client-wire']]]) {
     const value = target === 'node-local' ? installed.reduce((sum, row) => sum + row.bytes, 0)
       : prepared.manifest.packages.filter(row => names.includes(row.name.slice(7))).flatMap(row => row.files).reduce((sum, row) => sum + row.bytes, 0);
@@ -134,7 +135,7 @@ export async function distributionMetrics({repository, prepared, root, command, 
       required: true, unit: 'bytes', fixtureSha256: jsonDigest(names), evidence: prepared.manifestPath});
   }
   const browser = join(root, 'browser.mjs'), meta = join(root, 'browser-meta.json');
-  await command(process.execPath, [join(repository, 'node_modules/esbuild/bin/esbuild'),
+  await command(join(repository, 'node_modules/esbuild/bin/esbuild'), [
     join(prepared.consumer, 'node_modules/@actql/sdk/index.mjs'), '--bundle', '--platform=browser',
     '--format=esm', '--target=es2022', '--outfile=' + browser, '--metafile=' + meta], {cwd: repository, name: 'browser-bundle'});
   const metadata = JSON.parse(await readFile(meta));
@@ -331,9 +332,12 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
   return warm;
 }
 
-export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric}) {
+export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
+  template = 'churn-risk-mock', variant = 'readme'}) {
+  assert.ok(variant === 'readme' || variant === 'two-models' && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
-  const files = projectTemplateFiles('churn-risk-mock');
+  const files = variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
+  assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
     unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), files}),
     samples: [], evidence: root};
@@ -347,7 +351,9 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
     try {
       for (const [phase, expected] of [['capture', 9], ['approve', 11], ['recover', 7]]) {
-        const observation = await command(process.execPath, [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json')],
+        const observation = await command(process.execPath, [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
+          ...(template === 'churn-risk-mock' ? [] : [template]),
+          ...(variant === 'readme' ? [] : [variant])],
           {cwd: project, name: `workflow-${iteration}-${phase}`, timeout: 30_000});
         const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
         assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);

@@ -69,7 +69,10 @@ extern "C" fn prepare_store_operation_ffi(
   route : FuncRef[
     (NativeLocalStoreOperationReceiver, @sqlite.Library, Int) -> Int,
   ],
-) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_prepare_store_operation"
+  construction : FuncRef[
+    (NativeLocalStoreOperationReceiver, @sqlite.Library, Int) -> Int,
+  ],
+) -> @sqlite.NativeStoreOperationOriginal = "actql_native_sqlite_prepare_store_operation_with_delivery_construction"
 
 ///|
 extern "C" fn store_operation_control_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
@@ -138,14 +141,93 @@ fn prepare_native_local_store_operation_for_domain(
     primary: None,
     cleanup_issue: None,
   }
-  let bridge = prepare_store_operation_ffi(library, receiver, fn(
-    original,
+  let bridge = prepare_store_operation_ffi(
     library,
-    tag,
-  ) {
-    original.route(library, tag)
-  })
+    receiver,
+    fn(original, library, tag) { original.route(library, tag) },
+    fn(original, library, target) {
+      original.prepare_delivery_window(library, target)
+    },
+  )
   Ok({ receiver, bridge: Some(bridge), })
+}
+
+///|
+/// Exact Buffer(size_hint=target) backing and its to_bytes copy coexist.
+/// The original Read's row/input basis is unchanged and remains additive.
+/// The selected ABI supplies contiguous requests independently of the tariff.
+pub fn native_local_result_delivery_window_construction(
+  target : Int,
+) -> (Int64, Int64, Int64)? {
+  if target < 1 || target > 16777216 {
+    return None
+  }
+  guard @execution.preparation_representation_cost({
+      // Buffer1H1R1W, its exact Byte array1H and returned Bytes1H.
+      record_headers: 3L,
+      reference_slots: 1L,
+      scalar_words: 1L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 2L * target.to_int64(),
+    })
+    is Some(bytes) else {
+    return None
+  }
+  let (header, _, _, _, pointer) = @bootstrap.native_managed_value_layout()
+  if header <= 0L || pointer <= 0L {
+    return None
+  }
+  Some(
+    (
+      bytes,
+      bytes,
+      Int64::max(header + target.to_int64() + 1L, header + pointer + 8L),
+    ),
+  )
+}
+
+///|
+fn NativeLocalStoreOperationReceiver::prepare_delivery_window(
+  self : NativeLocalStoreOperationReceiver,
+  library : @sqlite.Library,
+  target : Int,
+) -> Int {
+  let (_, original) = match self.originals(library, false) {
+    Ok(value) => value
+    Err(issue) => return self.refuse(issue)
+  }
+  guard self.ready &&
+    !self.cleanup &&
+    self.primary is None &&
+    self.phase == StoreRouteRead &&
+    self.origin is Some(_) &&
+    original.active_phase is Some(@arena.HostRead) &&
+    original.store_operation is Some(active) &&
+    physical_equal(active, self) &&
+    native_local_result_delivery_window_construction(target)
+    is Some((retained, execution, contiguous)) else {
+    return self.refuse(StoreOperationUnavailable)
+  }
+  match
+    original.host.prepare_domain_original_read_construction(
+      original.read,
+      retained,
+      execution,
+      contiguous,
+    ) {
+    Err(issue) => self.refuse(StoreOperationResources(@arena.Read(issue)))
+    Ok(_) =>
+      if self.closing ||
+        self.capture.closing ||
+        original.interrupted ||
+        !(original.active_phase is Some(@arena.HostRead)) ||
+        !(original.store_operation is Some(active) &&
+        physical_equal(active, self)) {
+        self.refuse(StoreOperationUnavailable)
+      } else {
+        0
+      }
+  }
 }
 
 ///|
@@ -736,4 +818,123 @@ pub fn NativeLocalStoreOperation::close_checked(
       Ok(())
     }
   }
+}
+
+///|
+/// Use only this command's already-open Journal under its original captured
+/// Read. Keep this operation before entry, including a failed binding/return.
+/// The separate publication Store must retain its own original coordinator.
+pub fn NativeLocalStoreOperation::begin_captured_journal_read(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  let receiver = self.receiver
+  guard receiver.domain is StoreRunObservationDomain &&
+    receiver.capture.read_callback_active &&
+    receiver.capture.read_facts_valid &&
+    !receiver.capture.closing &&
+    !receiver.closing &&
+    !receiver.closed else {
+    return Err(receiver.primary.unwrap_or(StoreOperationUnavailable))
+  }
+  if !receiver.ready {
+    match self.activate() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  let (host, _) = match receiver.originals(receiver.library, false) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  guard self.bridge is Some(bridge) else {
+    return Err(StoreOperationUnavailable)
+  }
+  match bridge.enter_store() {
+    Err(issue) => {
+      let retained = receiver.primary.unwrap_or(StoreOperationSqlite(issue))
+      receiver.refuse(retained) |> ignore
+      return Err(retained)
+    }
+    Ok(_) => ()
+  }
+  if !host.database.matches_original_store_operation(bridge) {
+    match host.database.bind_original_store_operation(bridge) {
+      Err(issue) => {
+        let retained = StoreOperationSqlite(issue)
+        receiver.refuse(retained) |> ignore
+        return Err(retained)
+      }
+      Ok(_) => ()
+    }
+  }
+  Ok(())
+}
+
+///|
+/// Return only the same original flight. This performs the existing captured
+/// Read current check; it is not Database, Session or Library retirement.
+pub fn NativeLocalStoreOperation::finish_captured_journal_read(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  let receiver = self.receiver
+  guard receiver.domain is StoreRunObservationDomain &&
+    receiver.capture.read_callback_active &&
+    receiver.capture.opening is JournalAcquired(host) &&
+    self.bridge is Some(bridge) &&
+    host.database.matches_original_store_operation(bridge) else {
+    return Err(receiver.primary.unwrap_or(StoreOperationUnavailable))
+  }
+  match bridge.leave_store() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      let retained = receiver.primary.unwrap_or(StoreOperationSqlite(issue))
+      receiver.refuse(retained) |> ignore
+      Err(retained)
+    }
+  }
+}
+
+///|
+/// Close the bound original Journal only after its public Read callback has
+/// returned. The capture keeps the same Host/Session for its later descriptor
+/// cleanup; metadata is detached only after actual Database and return ACKs.
+pub fn NativeLocalStoreOperation::close_captured_journal_database(
+  self : NativeLocalStoreOperation,
+) -> Result[Unit, NativeLocalStoreOperationIssue] {
+  let receiver = self.receiver
+  guard receiver.domain is StoreRunObservationDomain &&
+    !receiver.capture.read_callback_active else {
+    return Err(StoreOperationUnavailable)
+  }
+  guard self.bridge is Some(bridge) else { return Ok(()) }
+  match self.retry_scope_cleanup() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if receiver.capture.opening is JournalAcquired(host) &&
+    host.database.matches_original_store_operation(bridge) {
+    // A sibling Store may already have spent this same paired Host's normal
+    // scope. Closing the retained Journal is terminal cleanup regardless of
+    // whether THIS routing carrier previously needed its own cleanup flight.
+    match bridge.enter_cleanup() {
+      Err(issue) => return Err(StoreOperationSqlite(issue))
+      Ok(_) => ()
+    }
+    let closed = match host.close_original_signing_attempts() {
+      Err(issue) => Err(issue)
+      Ok(_) => host.close_journal_database()
+    }
+    let returned = bridge.leave_store()
+    if closed is Err(issue) {
+      receiver.refuse(StoreOperationCapture(issue)) |> ignore
+    }
+    if returned is Err(issue) {
+      receiver.refuse(StoreOperationSqlite(issue)) |> ignore
+    }
+    match (closed, returned) {
+      (Ok(_), Ok(_)) => ()
+      _ => return Err(receiver.primary.unwrap_or(StoreOperationUnavailable))
+    }
+  }
+  self.close_checked()
 }

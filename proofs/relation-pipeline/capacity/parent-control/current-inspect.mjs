@@ -13,7 +13,9 @@ const sizes = {
   advance: parentFields.advance, cancel: parentFields.cancel,
   stopped: parentFields.stopped, cleanup: parentFields.cleanup,
   childWorkIssue: parentFields.childWorkIssue,
-  preparation: ['ref','i32','ref','ref','ref','ref','ref',...Array(6).fill('i32'),'ref','ref','i32'],
+  // sequence, position, five original references, four cursor Ints,
+  // matched/read references and the phase discriminant: fourteen fields.
+  preparation: ['ref','i32','ref','ref','ref','ref','ref',...Array(4).fill('i32'),'ref','ref','i32'],
   read: ['ref','ref','ref',...Array(9).fill('i32'),'ref','ref','i32','i32'],
   producer: ['ref','ref','ref','i32','i32'],
 };
@@ -58,7 +60,7 @@ export function inspectCurrentChain(records) {
     assert.equal(field(f.state,40),f.preparation?.id ?? null,'Actual state does not retain observed preparation');
     if(f.preparation) {
       assert.equal(field(f.preparation,24),f.completed.id,'Preparation loses completed output backing');
-      assert.equal(field(f.preparation,88),f.read?.id ?? null,'Preparation loses its real producer-read cursor');
+      assert.equal(field(f.preparation,80),f.read?.id ?? null,'Preparation loses its real producer-read cursor');
     }
     for(const key of ['children','completed']) {
       const a=f[key];token(a.id);token(a.backing);assert.equal(a.ownerBytes,24);
@@ -122,13 +124,13 @@ export function inspectPreparationChainCustody(records, facts) {
     if(f.phase<=1) {
       assert.equal(pointer(f.preparation,16),start.roots.inputs,'Pending preparation substitutes the chain inputs');
       assert.equal(pointer(f.read,0),pendingBound,'Pending cleanup substitutes the exact producer binding');
-      assert.equal(pointer(f.preparation,88),f.phase===0?f.read.id:null,
+      assert.equal(pointer(f.preparation,80),f.phase===0?f.read.id:null,
         'Pending cursor read is detached or survives cancellation');
     } else {
       checkRecord(f.transferred,'producer');
       token(pointer(f.read,0));
-      assert.equal(pointer(f.preparation,88),null,'Transferred preparation still owns its metadata cursor');
-      assert.equal(pointer(f.preparation,80),null,'Transferred preparation retains a pending matched input');
+      assert.equal(pointer(f.preparation,80),null,'Transferred preparation still owns its metadata cursor');
+      assert.equal(pointer(f.preparation,72),null,'Transferred preparation retains a pending matched input');
       assert.equal(pointer(f.transferred,0),pointer(f.read,0),'Transfer substitutes the exact producer binding');
       assert.equal(pointer(f.transferred,8),schema,'Transfer substitutes the receiving schema');
     }

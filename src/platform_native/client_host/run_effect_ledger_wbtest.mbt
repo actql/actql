@@ -607,9 +607,18 @@ test "Native missing or rewritten row history is refused against independent ori
       )
       is Err(CustodyLost),
     )
+    let corrupt_run = database.read("client_runs", scope).unwrap()
+    let corrupt_witness = database.read("client_effect_custody", scope).unwrap()
     database.close_checked().unwrap()
     let reopened = epoch_test_database(name)
-    assert_true(open_native_client_run_journal(reopened, 8) is Err(CustodyLost))
+    assert_true(open_native_client_run_journal(reopened, 8) is Ok(_))
+    assert_true(run_journal_custody(reopened, 8) is Err(CustodyLost))
+    let after_run = reopened.read("client_runs", scope).unwrap()
+    let after_witness = reopened.read("client_effect_custody", scope).unwrap()
+    assert_eq(after_run.body, corrupt_run.body)
+    assert_eq(after_run.revision, corrupt_run.revision)
+    assert_eq(after_witness.body, corrupt_witness.body)
+    assert_eq(after_witness.revision, corrupt_witness.revision)
     reopened.close_checked().unwrap()
   }
 }
@@ -644,8 +653,20 @@ test "Native retained Checkpoint without its original custody witness is not rep
   .unwrap()
   |> ignore
   assert_true(journal.lookup(request, true) is Err(CustodyLost))
+  assert_true(run_journal_custody(database, 8) is Err(CustodyLost))
+  let scope = @host.client_request_scope_cid(request)
+  let before_initialization = database.read("client_runs", scope).unwrap()
   assert_true(
-    initialize_native_client_run_journal(database) is Err(CustodyLost),
+    journal.transaction(() => {
+      initialize_native_client_run_journal_rows(database)
+    })
+    is Err(CustodyLost),
+  )
+  let after_initialization = database.read("client_runs", scope).unwrap()
+  assert_eq(after_initialization.body, before_initialization.body)
+  assert_eq(after_initialization.revision, before_initialization.revision)
+  assert_true(
+    database.read("client_effect_custody", scope) is Err(@sqlite.NotFound),
   )
   database.close_checked().unwrap()
   source.close_checked().unwrap()

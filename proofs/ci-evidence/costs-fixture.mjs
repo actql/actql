@@ -54,6 +54,6 @@ export function costFixture(reused = false, fullCatalog = false) {
     isolatedPreparationMilliseconds: 3, stagedSourceBytes: 100, comparison: comparison.costs, acquisitionMilliseconds: 7};
   const collectionBytes = bytes(collection), certificate = {context, milliseconds: 13, collectionCostsDigest: hash(collectionBytes)};
   const isolatedExecution = reused ? null : {owner: '30:1:4', costs: {preparationMilliseconds: 3,
-    buildMilliseconds: 4, executionMilliseconds: 6, inspectionMilliseconds: 2, closeMilliseconds: 2}};
+    buildMilliseconds: 4, executionMilliseconds: 6, inspectionMilliseconds: 2, closeMilliseconds: 2, inputInspectionMilliseconds: 0}};
   return {state, catalog, acquisition, comparison, receipts, collectionBytes, certificate, isolatedExecution};
 }

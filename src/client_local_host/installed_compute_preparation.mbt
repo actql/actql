@@ -6,7 +6,23 @@ priv struct ClientInstalledComputePreparation {
   capacity_plan : ClientLocalCapacityPlan
   configuration : ClientPreparedLocalConfiguration
   limits : @resources.LedgerLimits
+  // Preserve the already computed tail envelope before capture peaks are
+  // folded into limits. Later phase composition must not reconstruct a Plan
+  // or try to recover this value by subtracting from an unrelated maximum.
+  tail_execution_bytes : Int64
 }
+
+///|
+// Additional resident scalar of the same transient constructor record. The
+// original Request backs it before that record is built, on both entrances.
+let installed_compute_tail_inventory_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
 
 ///|
 fn prepare_installed_compute_preparation(
@@ -20,8 +36,14 @@ fn prepare_installed_compute_preparation(
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  runtime_admission? : Bool = false,
+  physical_graph? : @strategy.CheckedDAG? = None,
+  whole_sources? : Array[
+    (@row_source_host.RowDeclaration, ClientInstalledWholeSourceCapacity)?,
+  ] = [],
+  whole_capacities? : Array[ClientInstalledWholeSourceCapacity] = [],
 ) -> Result[ClientInstalledComputePreparation, ClientInstalledManagedRunIssue] {
-  let graph = installed_managed_owner_graph(owner)
+  let graph = physical_graph.unwrap_or(installed_managed_owner_graph(owner))
   let (compute_sequences, capacity_plan, local_capacity) = match source_free {
     Some(original) =>
       (
@@ -40,11 +62,29 @@ fn prepare_installed_compute_preparation(
       for task in first..<sequences.length() {
         tail.push(sequences[task])
       }
-      let max_rows = match owner {
+      let mut max_rows = match owner {
         Pure(prepared) =>
           @publication_host.prepared_client_values_max_rows(prepared)
         Effect(_) =>
           @publication_host.client_standard_values_sequence_limits().max_rows
+      }
+      // The same Source policy also bounds its receiving Compute. Preserve
+      // that original input envelope before quoting and configuring this Plan.
+      for source in whole_capacities {
+        max_rows = Int::max(
+          max_rows,
+          @row_source_host.row_input_acquisition_max_rows(source.acquisition),
+        )
+      }
+      for source in whole_sources {
+        if source is Some((_, original)) {
+          max_rows = Int::max(
+            max_rows,
+            @row_source_host.row_input_acquisition_max_rows(
+              original.acquisition,
+            ),
+          )
+        }
       }
       let configuration = client_local_capacity_plan(
         tail,
@@ -69,6 +109,10 @@ fn prepare_installed_compute_preparation(
           capacity_plan=Some(configuration),
           retained_inputs=Some(inputs),
           max_rows~,
+          // Preparation-owned Runs reserve each actual provider/import/output
+          // on their original finite Ledger. A whole-Run maximum is only an
+          // estimate; legacy quote callers keep their strict inventory.
+          runtime_admission~,
         )
         is Some(capacity) else {
         return Err(Unsupported)
@@ -107,16 +151,35 @@ fn prepare_installed_compute_preparation(
       actual_local_capacity.limits
     }
     None => {
-      if @strategy.graph_captured_prefix(graph) == 0 {
+      if !whole_sources.is_empty() && !whole_capacities.is_empty() {
+        return Err(ForeignOriginal)
+      }
+      let complete_inputs = if whole_sources.any(value => value is Some(_)) {
+        whole_sources.filter_map(value => value.map(pair => pair.1))
+      } else {
+        whole_capacities
+      }
+      if @strategy.graph_captured_prefix(graph) == 0 &&
+        complete_inputs.is_empty() {
         return Err(Unsupported)
       }
       guard multi_captured_capacity_limits_selected(
           graph,
-          captures.map(value => (value.retained_bytes, value.execution_bytes)),
+          if !complete_inputs.is_empty() {
+            complete_inputs.map(value => {
+              (
+                @execution.execution_capacity_retained_bytes(value.complete),
+                @execution.execution_capacity_execution_bytes(value.complete),
+              )
+            })
+          } else {
+            captures.map(value => (value.retained_bytes, value.execution_bytes))
+          },
           transport_bytes,
           transport_execution_bytes,
           sequences,
           local_capacity=Some(actual_local_capacity),
+          source_inputs=!complete_inputs.is_empty(),
         )
         is Some(limits) else {
         return Err(Unsupported)
@@ -130,5 +193,6 @@ fn prepare_installed_compute_preparation(
     capacity_plan,
     configuration,
     limits: compute_limits,
+    tail_execution_bytes: actual_local_capacity.limits.execution_bytes,
   })
 }

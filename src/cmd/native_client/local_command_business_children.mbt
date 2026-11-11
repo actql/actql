@@ -62,16 +62,24 @@ fn LocalCommandBusinessPreparation::open_values_work(
     !self.original.closed else {
     stop("LocalBusinessOriginalUnavailable")
   }
+  guard @local_host.native_client_submitted_preparation(self.preparation)
+    is Computation(prepared) &&
+    self.requirements is Some(requirements) else {
+    stop("LocalValuesExecutionProfileNotSupported")
+  }
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
+  let finalization_rounds = requirements
+    .finalization_round_limit(prepared)
+    .unwrap_or_else(() => stop("LocalValuesExecutionProfileNotSupported"))
   match
     self.host.open_original_values_work(
       operation,
       self.principal,
       self.connection,
       request,
-      self.prepared,
+      prepared,
       compiled,
       definition,
       self.installed_contracts,
@@ -79,14 +87,19 @@ fn LocalCommandBusinessPreparation::open_values_work(
       installed.fragment_body,
       installed.ordered_body,
       16,
-      1000,
-      requirements=Some(self.requirements),
+      finalization_rounds,
+      requirements=Some(requirements),
+      managed=business.request_run,
     ) {
     Ok(work) => {
       business.values_work = Some(work)
       work
     }
     Err(failure) => {
+      local_values_failure_tags(
+        @local_host.native_client_values_work_failure_issue(failure),
+        native_timing_amount,
+      )
       business.values_failure = Some(failure)
       stop("LocalOriginalValuesWorkUnavailable")
     }
@@ -180,6 +193,256 @@ fn LocalCommandPreparationOriginal::close_business_children(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  match self.close_saved_effect_file_children() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  // Drop request DATA only after the actual original file children retire.
+  business.saved_effect_rows.clear()
+  business.saved_effect_rows.shrink_to_fit()
+  if !business.model_work.is_empty() || business.effect_model is Some(_) {
+    guard self.host is Some(host) && business.execution is Some(execution) else {
+      return Err(CommandBusinessChildren)
+    }
+    match business.enter_children_cleanup(host) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    if business.effect_model is Some(state) {
+      for target in state.targets {
+        match target.close() {
+          Err(issue) => return Err(issue)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
+      state.targets.clear()
+      state.targets.shrink_to_fit()
+      if state.computation is Some(computation) {
+        if computation.issuer is Some(issuer) {
+          issuer.cancel()
+          computation.issuer = None
+        }
+        computation._retained_captured = None
+        for output in computation.outputs {
+          output.cancel()
+        }
+        for output in computation.managed_outputs {
+          output.close()
+        }
+        state.computation = None
+      }
+      if state.preview is Some(preview) {
+        // Preview borrows the SAME captured pins; proposals below are their
+        // original release owner. Only retire its own verifier continuations.
+        for verifier in preview.verifiers {
+          @strategy.cancel_captured_effect_plan_verifier(verifier)
+        }
+        state.preview = None
+      }
+      // Sever this caller's output alias before the original Model releases it.
+      // This is no physical ACK and does not clear any child obligation.
+      if state.proposals is Some(proposals) {
+        if !proposals.close() {
+          return Err(CommandBusinessChildren)
+        }
+        state.proposals = None
+      }
+      if state.suffix_failure is Some(failure) {
+        if !@local_values.retry_local_values_execution_failure_cleanup(failure) {
+          return Err(CommandBusinessChildren)
+        }
+        state.suffix_failure = None
+      }
+      if state.suffix is Some(suffix) {
+        if !suffix.close() {
+          return Err(CommandBusinessChildren)
+        }
+        state.suffix = None
+      }
+      if business.request_run is Some(run) {
+        match @local_values.retire_installed_effect_captured_consumers(run) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
+      state.effect_host = None
+      state.effect_capture = None
+      state.model_output = None
+      // The observation issuer owns its original publication backing. Cut
+      // this caller alias before Work retires that issuer and its reservation.
+      state._retained_model_observation = None
+      state._retained_local_model_observation = None
+      state._retained_local_model_dependencies = None
+      if state.model_use is Some(held) {
+        @infer.release_output(held) |> ignore
+        state.model_use = None
+      }
+    }
+    for work in business.model_work {
+      match work.close() {
+        Err(issue) => return Err(CommandBusinessModel(issue))
+        Ok(false) => return Err(CommandBusinessChildren)
+        Ok(true) => ()
+      }
+    }
+    // Only actual child acknowledgements sever these references. Unknown or
+    // partial Model/Store/Journal duties keep the same originals for cleanup.
+    business.model_work.clear()
+    // Native clear only resets length. The removed Work slots still retain
+    // the original Journal/Database until their backing buffer is released.
+    // Every Work above has already acknowledged its own child retirement.
+    business.model_work.shrink_to_fit()
+    if business.effect_model is Some(state) {
+      for failure in state.source_failures {
+        match failure.retry_cleanup() {
+          Err(issue) => return Err(CommandBusinessSource(issue))
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
+      state.source_failures.clear()
+      state.source_failures.shrink_to_fit()
+      if state.model_read is Some(held) && held.scan is Some(scan) {
+        if !@query.cancel_captured_source_cell_identity(scan) {
+          return Err(CommandBusinessChildren)
+        }
+        held.scan = None
+      }
+      if state.model_read is Some(held) {
+        for index = held.roots.length() - 1; index >= 0; index = index - 1 {
+          let root = held.roots[index]
+          if root.child is Some(child) {
+            @local_compute.cancel_managed_provider(child) |> ignore
+            match @local_compute.cleanup_managed_provider(child) {
+              Ok(true) => ()
+              _ => return Err(CommandBusinessChildren)
+            }
+          }
+          root.output = None
+          root.completed = None
+          root.child = None
+          root.inputs.clear()
+          root.inputs.shrink_to_fit()
+          root.bindings.clear()
+          root.bindings.shrink_to_fit()
+        }
+        held.roots.clear()
+        held.roots.shrink_to_fit()
+      }
+      // Stop new assembly work without returning its backing. Raw envelopes
+      // borrowed by Source/Store children remain funded by this SAME lookup
+      // until those original physical children have retired and cut aliases.
+      if state.lookup is Some(lookup) {
+        @run_host.stop_client_keyed_lookup_input(lookup)
+      }
+      for source in state.sources {
+        match source.close() {
+          Err(issue) => return Err(CommandBusinessSource(issue))
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => ()
+        }
+      }
+      if state.lookup is Some(lookup) {
+        match @run_host.cleanup_client_keyed_lookup_input(lookup, 31) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => state.lookup = None
+        }
+      }
+      if state.prefix is Some(prefix) {
+        let original = @local_values.client_original_composed_keyed_prefix_execution(
+          prefix,
+        )
+        @local_values.cancel_client_serialization_prefix(original) |> ignore
+        match @local_values.cleanup_client_serialization_prefix(original) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => state.prefix = None
+        }
+      }
+      for read in state.source_reads {
+        match @local_values.retire_installed_source_read(read) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => ()
+        }
+      }
+      for read in state.keyed_reads {
+        match @local_values.retire_installed_keyed_source_read(read) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => ()
+        }
+      }
+      state.keyed_reads.clear()
+      state.keyed_reads.shrink_to_fit()
+      state.model_output = None
+      if state.model_read is Some(held) {
+        held.identities.clear()
+        held.identities.shrink_to_fit()
+        held.logicals.clear()
+        held.logicals.shrink_to_fit()
+        held.observations.clear()
+        held.observations.shrink_to_fit()
+        let read = held.read
+        match
+          @run_host.stop_client_model_read_checked(
+            state.scope.unwrap(),
+            read,
+            state.first.model_compiled.unwrap(),
+            state.first.definition,
+            state.graph,
+          ) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => ()
+        }
+        match
+          @run_host.settle_client_model_read_checked(
+            read,
+            state.first.model_compiled.unwrap(),
+            state.first.definition,
+            state.graph,
+            true,
+          ) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => state.model_read = None
+        }
+      }
+      state.source_reads.clear()
+      state.source_reads.shrink_to_fit()
+      if business.request_run is Some(run) {
+        match @local_values.quiesce_installed_managed_run(run) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(_) => ()
+        }
+      }
+      state.sources.clear()
+      state.sources.shrink_to_fit()
+      state.captured_inputs.clear()
+      state.captured_inputs.shrink_to_fit()
+      state.input_originals.clear()
+      state.input_originals.shrink_to_fit()
+      if state.scope is Some(scope) {
+        match
+          @run_host.finish_client_model_read_scope(
+            scope,
+            state.first.model_compiled.unwrap(),
+            state.first.definition,
+            state.graph,
+            true,
+          ) {
+          Err(_) => return Err(CommandBusinessChildren)
+          Ok(false) => return Err(CommandBusinessChildren)
+          Ok(true) => state.scope = None
+        }
+      }
+      business.effect_model = None
+    }
+    match host.leave_domain_retained_execution(execution) {
+      Err(issue) => return Err(CommandRetainedExecution(issue))
+      Ok(_) => business.active = false
+    }
+  }
   if business.values_work is Some(_) || business.values_failure is Some(_) {
     guard self.host is Some(host) &&
       business.execution is Some(execution) &&
@@ -209,6 +472,42 @@ fn LocalCommandPreparationOriginal::close_business_children(
         host, domain, 14,
       )
     }
+    match host.leave_domain_retained_execution(execution) {
+      Err(issue) => return Err(CommandRetainedExecution(issue))
+      Ok(_) => business.active = false
+    }
+  }
+  if business.request_parent is Some(_) ||
+    business.request_run is Some(_) ||
+    business.request_body is Some(_) {
+    guard self.host is Some(host) && business.execution is Some(execution) else {
+      return Err(CommandBusinessChildren)
+    }
+    match business.enter_children_cleanup(host) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    if business.request_read_failure is Some(failure) {
+      match failure.retry_cleanup() {
+        Err(_) => return Err(CommandBusinessChildren)
+        Ok(_) => business.request_read_failure = None
+      }
+    }
+    if business.request_body is Some(holder) {
+      match @local_host.return_native_client_submitted_request_body(holder) {
+        Err(_) => return Err(CommandBusinessChildren)
+        Ok(_) => business.request_body = None
+      }
+    }
+    // Logical cleanup intentionally stays pending until this SAME Native
+    // initializer has observed its separate physical retirement and report.
+    // The Native close below still refuses any outstanding live reservation.
+    if business.request_run is Some(run) {
+      ignore(@local_values.retire_installed_managed_run(run))
+    } else if business.request_parent is Some(parent) {
+      ignore(@local_values.abort_request_preparation_after_cleanup(parent))
+    }
+    business.request_retiring = true
     match host.leave_domain_retained_execution(execution) {
       Err(issue) => return Err(CommandRetainedExecution(issue))
       Ok(_) => business.active = false

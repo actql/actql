@@ -35,12 +35,13 @@ pub fn inspect_native_client_state(
   max_record_bytes : Int64,
   max_snapshot_bytes : Int64,
   max_records : Int,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeClientStateInspection, NativeClientStateInspectionIssue] {
   if max_record_bytes < 1L ||
     max_record_bytes > 1048576L ||
     max_snapshot_bytes < 0L ||
     max_records < 1 ||
-    max_records > 1024 {
+    max_retained_intent_bytes < 0L {
     return Err(InvalidLimit)
   }
   let mut refusal : NativeClientCustodyIssue? = None
@@ -51,7 +52,12 @@ pub fn inspect_native_client_state(
     max_snapshot_bytes,
     database => {
       guard database is Some(database) else { return Ok(PhysicallyAbsent) }
-      match inspect_native_client_custody_rows(database, max_records) {
+      match
+        inspect_native_client_custody_rows(
+          database,
+          max_records,
+          max_retained_intent_bytes~,
+        ) {
         Ok(value) => Ok(value)
         Err(issue) => {
           refusal = Some(issue)
@@ -78,6 +84,7 @@ fn inspect_native_client_custody_rows(
   database : @sqlite.Database,
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeClientStateInspection, NativeClientCustodyIssue] {
   match read_epoch_custody(database, reads~) {
     Ok(_) => ()
@@ -90,6 +97,7 @@ fn inspect_native_client_custody_rows(
   let journal : NativeClientRunJournal = {
     database,
     max_records,
+    max_retained_intent_bytes,
     append_schema: 0,
     observed_evidence_schema: None,
     fenced: false,

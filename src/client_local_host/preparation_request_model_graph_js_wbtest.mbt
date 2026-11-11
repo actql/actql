@@ -1,15 +1,265 @@
 ///|
+// The real Effect compiler/borrower precedes Model Graph construction. No
+// Graph, Model Plan or Scope is constructed to manufacture these inputs.
+fn request_effect_model_graph_inputs(
+  current? : () -> Bool = () => true,
+) -> (
+  ClientRequestPreparation[Array[Int]],
+  Array[Int],
+  @publication_host.PreparedClientEffectComputation,
+  @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+  @publication_host.ClientInferOccurrence,
+  @environment.ModelExecutionContract,
+) raise {
+  let (environment, document) = effect_model_plan_source()
+  let initial = @resources.add_ledger_limits(
+    client_local_preparation_initial_limits(client_local_resource_policy()).unwrap(),
+    effect_model_plan_limits,
+  ).unwrap()
+  let (parent, child, _, input) = registration_parent_fixture(
+    current~,
+    text=document,
+    environment=Some(environment),
+    effect_limits=Some(
+      @publication_host.client_standard_effect_computation_limits(),
+    ),
+    initial_limits=Some(initial),
+  )
+  finish_effect_program_check_preparation(child).unwrap() |> ignore
+  let prepared = compile_effect_program_check_preparation(child).unwrap()
+  assert_true(
+    physical_equal(
+      continue_request_effect_preparation(parent, input).unwrap(),
+      prepared,
+    ),
+  )
+  let holder = borrow_request_effect_plan_input(parent, input).unwrap()
+  let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
+    prepared,
+  ).unwrap()
+  let wire =
+    #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
+  let execution = @publication_host.read_client_infer_occurrence_model_execution(
+    occurrence,
+    @utf8.encode(wire),
+    "sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da",
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
+    100000,
+  ).unwrap()
+  (parent, input, prepared, holder, occurrence, execution)
+}
+
+///|
+test "Effect Model Graph grows its same Request before measuring and issuing the original component" {
+  let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let capacity = parent.effect_capacity.unwrap()
+  let ledger = parent.ledger
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let graph = prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).unwrap()
+  let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+  assert_true(physical_equal(parent.ledger, ledger))
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  assert_true(
+    parent.compiled_program is None && parent.program_capacity is None,
+  )
+  assert_true(parent.phase == EffectPlanReserved)
+  assert_true(
+    @publication_host.client_infer_occurrence_matches_plan(occurrence, graph),
+  )
+  assert_true(
+    parent.program_domain_compilation_inputs
+    is Some(RequestModelGraph(_, _, _, original)) &&
+    physical_equal(original, graph),
+  )
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "Effect Model Graph refuses current loss before each constructor and retains the same failed child" {
+  for denied in [1, 2] {
+    let armed = Ref(false)
+    let calls = Ref(0)
+    let (parent, input, _, holder, occurrence, execution) = request_effect_model_graph_inputs(current=() => {
+        if !armed.val {
+          return true
+        }
+        calls.val += 1
+        calls.val != denied
+      },
+    )
+    let capacity = parent.effect_capacity.unwrap()
+    armed.val = true
+    assert_true(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        request_program_module_contracts(),
+        manifests=request_program_module_manifests(),
+        compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      )
+      is Err(Preparation(Capacity(_))),
+    )
+    assert_true(parent.phase == EffectBodyFailed)
+    assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+    assert_true(parent.program_domain_quote is Some(_))
+    if denied == 1 {
+      assert_true(parent.program_domain_compilation_inputs is None)
+    } else {
+      assert_true(
+        parent.program_domain_compilation_inputs
+        is Some(RequestModelGraphConstruction(_, _, _, _)),
+      )
+    }
+    armed.val = false
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_true(parent.program_domain_compilation_inputs is None)
+    assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+  }
+}
+
+///|
+test "Effect Model Graph refuses another original occurrence without debiting its Request" {
+  let (parent, input, _, holder, _, _) = request_effect_model_graph_inputs()
+  let (foreign, _, _, foreign_holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let before = request_preparation_accounting(parent)
+  assert_true(
+    prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(request_preparation_accounting(parent), before)
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_false(
+    @resources.return_preparation_body_borrow(foreign_holder).unwrap(),
+  )
+  abort_request_preparation_after_cleanup(foreign).unwrap()
+}
+
+///|
+test "Effect Model Graph transfers its same component to Scope and clears only the adopted Request alias" {
+  let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let graph = prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).unwrap()
+  let compilation = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    request_program_module_manifests(),
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+    infer=Some(graph),
+  ).unwrap()
+  let allowed = @publication_host.issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_effect_run_definition(
+    allowed, "Model-plan", "same-original", "2026-10-26T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let compiled = @publication_host.client_effect_allowed_infer_run_with_policy_body(
+    allowed,
+    Some(
+      "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+    ),
+    Some(
+      "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+    ),
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let model = prepare_installed_effect_model_demand(
+    prepared, compiled, compilation, definition, occurrence, graph, effect_model_plan_limits,
+    500L, 700L, 20, 20, 20,
+  ).unwrap()
+  let request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "effect-graph-original",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let plan = effect_model_plan_fixture(
+    prepared,
+    request,
+    request_program_module_contracts(),
+    model,
+    Ref(0),
+  )
+  let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
+  assert_true(
+    parent.program_domain_compilation_inputs
+    is Some(RequestModelGraph(_, _, _, original)) &&
+    physical_equal(original, graph),
+  )
+  complete_request_effect_preparation(parent, input, plan).unwrap()
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  let run = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_true(parent.program_domain_quote is None)
+  assert_true(physical_equal(plan.model.unwrap().graph, graph))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope, compiled, definition, graph, true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+}
+
+///|
 // Reuse the existing independent execution-contract vector, without issuing
 // a Graph before the Request's new construction reservation.
 fn request_model_graph_inputs(
   prepared : @publication_host.PreparedClientProgram,
+  selected? : @publication_host.ClientInferOccurrence? = None,
 ) -> (
   @publication_host.ClientInferOccurrence,
   @environment.ModelExecutionContract,
 ) {
-  let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
-    prepared,
-  ).unwrap()
+  let occurrence = match selected {
+    Some(original) => original
+    None =>
+      @publication_host.prepared_client_composed_infer_occurrence(prepared).unwrap()
+  }
   let execution_wire =
     #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
   let execution = @publication_host.read_client_infer_occurrence_model_execution(
@@ -337,16 +587,26 @@ priv struct RequestSerializedModelFixture {
 fn request_serialized_model_fixture(
   current? : () -> Bool = () => true,
   single_capture? : Bool = false,
+  two_captures? : Bool = false,
   serialized? : Bool = true,
   nonterminal? : Bool = false,
+  authored? : String? = None,
+  source_declaration? : @row_source_host.RowDeclaration? = None,
 ) -> RequestSerializedModelFixture raise {
-  let declaration = if single_capture {
-    Some(request_model_module_declaration())
+  let declaration = if single_capture || two_captures {
+    Some(
+      match source_declaration {
+        Some(original) => original
+        None => request_model_module_declaration()
+      },
+    )
   } else {
     None
   }
   let (parent, input, prepared) = request_model_input_fixture(
     with_serialization=serialized,
+    authored~,
+    captured=two_captures,
     single_capture~,
     nonterminal~,
     current~,
@@ -545,6 +805,197 @@ test "one acquired serialized Model retains its original Query module and prefix
 }
 
 ///|
+test "single generic acquired Model binds original Request module and Scope without a Node layout" {
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  let provider = @execution.execution_capacity(7L, 9L).unwrap()
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => [],
+    providers=Some([Some(provider)]),
+  ).unwrap()
+  let before = @resources.ledger_usage(f.parent.ledger)
+  assert_true(
+    prepare_request_model_capture_plan(
+      f.parent,
+      f.input.copy(),
+      original,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.occurrence,
+      f.graph,
+      effect_model_plan_limits,
+      500L,
+      700L,
+      20,
+      20,
+      20,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(f.parent.ledger), before)
+  let plan = prepare_request_model_capture_plan(
+    f.parent,
+    f.input,
+    original,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  assert_true(plan.content_prefix is None)
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  assert_true(
+    run.captured_preparation is Some(same) && physical_equal(same, original),
+  )
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "single native Model retains original Request Query capacity without a Row declaration" {
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  let loader = publication_test_loader(publication_test_url())
+  let source_ref = f.declaration.unwrap().views[0].source_ref
+  let capacity = f.parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(
+    capacity,
+    f.input,
+  ).unwrap()
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [],
+    capture_parent_contract(loader, "actql-query-acquisition.json"),
+    capture_parent_contract(loader, "actql-query-process-evidence.json"),
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => [],
+    native_source_ref=Some(source_ref),
+    native_database_schema=Some("main"),
+    native_table=Some("records"),
+    native_receipt_body=Some(
+      capture_parent_contract(loader, "actql-query-two-receipt.json"),
+    ),
+  ).unwrap()
+  let after = @resources.preparation_capacity_working_extents(capacity, f.input).unwrap()
+  let legacy = request_model_material_body_bytes(3, index => {
+    capture_parent_contract(
+      loader,
+      if index == 0 {
+        "actql-query-acquisition.json"
+      } else if index == 1 {
+        "actql-query-process-evidence.json"
+      } else {
+        "actql-query-two-receipt.json"
+      },
+    )
+  }).unwrap()
+  // These actual protocols contain long schema Strings. Preserve the old
+  // live Request debit, without adding a hypothetical node per wire byte.
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_true(after.0 - before.0 < legacy)
+  assert_true(after.1 - before.1 < legacy)
+  let query_peak = request_local_query_construction_bytes().unwrap()
+  // Finished Query writers and native protocol parse frames are absent from
+  // the returned module. The original Query/documents and earlier debit live.
+  assert_true(after.0 - before.0 < query_peak)
+  assert_true(after.1 - before.1 < query_peak)
+  assert_eq(original.captures.length(), 1)
+  let capture = original.captures[0]
+  assert_false(capture.original_input)
+  assert_true(capture.acquisition is None && capture.provider is None)
+  assert_eq(
+    @planning.query_requirement_source(capture.requirement).0,
+    source_ref,
+  )
+  let plan = prepare_request_model_capture_plan(
+    f.parent,
+    f.input,
+    original,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let (requirement, same_capture) = installed_managed_duckdb_capture(
+    run,
+    f.prepared,
+    f.request,
+    0,
+  ).unwrap()
+  assert_true(physical_equal(capture, same_capture))
+  assert_true(physical_equal(capture.requirement, requirement))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
 // Actual accounted RowRun/capture on the SAME Request Model Scope. The
 // installation/profile/Resource and transport verifier remain explicit test
 // ports; these tests issue no normal Account grant, Model send or physical IO.
@@ -555,7 +1006,7 @@ priv struct RequestAcquiredModelCaptureFixture {
   scope : @publication_host.ClientModelReadScope
   run : ClientInstalledManagedRun
   read : ClientInstalledSourceRead
-  source : @row_source_host.RowRun
+  _source : @row_source_host.RowRun
   capture : @row_source_host.RowSourceCapture
   verify_hook : Ref[(() -> Unit)?]
 }
@@ -563,6 +1014,8 @@ priv struct RequestAcquiredModelCaptureFixture {
 ///|
 fn request_acquired_model_capture_fixture(
   current? : () -> Bool = () => true,
+  provider? : @execution.ExecutionCapacity? = None,
+  provider_stopped? : () -> Bool = () => true,
 ) -> RequestAcquiredModelCaptureFixture raise {
   let f = request_serialized_model_fixture(single_capture=true, current~)
   let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
@@ -593,6 +1046,7 @@ fn request_acquired_model_capture_fixture(
     true,
     0,
     _ => [],
+    providers=provider.map(value => [Some(value)]),
   ).unwrap()
   let plan = prepare_installed_mock_model_capture_plan_binding(
     module_plan,
@@ -634,20 +1088,29 @@ fn request_acquired_model_capture_fixture(
     module_plan.ordered_body,
   ).unwrap()
   assert_true(physical_equal(ledger, f.parent.ledger))
-  let source = match
-    start_installed_source_read_rows(
-      read,
-      acquisition,
-      "same-request-acquired-model",
-      _ => {
-        if verify_hook.val is Some(hook) {
-          hook()
-        }
-        true
-      },
-      4096L,
-      2048L,
-    ) {
+  let verify = _ => {
+    if verify_hook.val is Some(hook) {
+      hook()
+    }
+    true
+  }
+  let started = match provider {
+    None =>
+      start_installed_source_read_rows(
+        read, acquisition, "same-request-acquired-model", verify, 4096L, 2048L,
+      )
+    Some(value) =>
+      start_installed_source_read_provider_rows(
+        read,
+        acquisition,
+        Some(value),
+        "same-request-acquired-model",
+        verify,
+        4096L,
+        2048L,
+      )
+  }
+  let source = match started {
     Ok(value) => value
     Err(Acquisition(@row_source_host.Physical(issue))) =>
       fail("same Request managed Source physical: " + @debug.to_string(issue))
@@ -656,6 +1119,14 @@ fn request_acquired_model_capture_fixture(
     Err(_) => fail("same Request managed Source non-physical refusal")
   }
   @row_source_host.begin_row_run(source, 128, 1, 1).unwrap()
+  if provider is Some(_) {
+    let responses = @row_source_host.borrow_row_run_responses(
+      source, acquisition,
+    ).unwrap()
+    @row_source_host.bind_row_run_response_borrow_cleanup(
+      responses, provider_stopped,
+    ).unwrap()
+  }
   assert_eq(
     @row_source_host.accept_row_run_page(
       source,
@@ -687,7 +1158,7 @@ fn request_acquired_model_capture_fixture(
     scope,
     run,
     read,
-    source,
+    _source: source,
     capture,
     verify_hook,
   }
@@ -1491,10 +1962,14 @@ test "Request acquired Node Model binds original provider and physical Plan on t
 // Real checked one-Source occurrence, compiler, provider capacity and shared
 // Scope. Resource admission/physical transport are explicit component ports;
 // no normal Account, Model send, Store operation or ACK is issued here.
-test "plain acquired Model constructs its original Graph module and Source reader on one Request without Content" {
+fn request_plain_captured_model_case(
+  authored? : String? = None,
+  consume_input? : Bool = false,
+) -> Unit raise {
   let f = request_serialized_model_fixture(
     single_capture=true,
     serialized=false,
+    authored~,
   )
   assert_true(f.graph.serialization is None)
   assert_true(
@@ -1600,6 +2075,123 @@ test "plain acquired Model constructs its original Graph module and Source reade
     f.contracts.original.ordered_body,
   ).unwrap()
   assert_true(physical_equal(ledger, f.parent.ledger))
+  if consume_input {
+    let source = start_installed_source_read_rows(
+      read,
+      acquisition,
+      "same-unit-model-input",
+      _ => true,
+      4096L,
+      2048L,
+    ).unwrap()
+    @row_source_host.begin_row_run(source, 128, 1, 1).unwrap()
+    assert_eq(
+      @row_source_host.accept_row_run_page(
+        source,
+        @utf8.encode("[{\"id\":1,\"amount\":7}]"),
+      ).unwrap(),
+      1,
+    )
+    @row_source_host.finish_row_run(source).unwrap()
+    @row_source_host.begin_row_capture(source).unwrap()
+    let mut captured = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(source, 7).unwrap().0 {
+        captured = true
+        break
+      }
+    }
+    assert_true(captured)
+    let original_source = @row_source_host.row_capture_source(
+      @row_source_host.capture_row_run(source).unwrap(),
+    ).unwrap()
+    let prefix = installed_managed_run_model_input_prefix(run, f.prepared).unwrap()
+    let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
+    let mapping : @execution.InferPreparationLimits = {
+      max_items: 1,
+      max_work: 100000,
+      max_frames: 100,
+      max_workspace_slots: 10000,
+      values: { max_nodes: 10000, max_depth: 100, max_text_bytes: 10000, },
+      logical: {
+        max_input_rows: 1L,
+        max_value_bytes: 10000L,
+        max_live_value_bytes: 100000L,
+        max_work: 100000L,
+      },
+    }
+    let before = @resources.ledger_usage(ledger)
+    // The old whole-prefix/empty-input route keeps its exact refusal.
+    assert_true(
+      start_client_composed_infer_input(
+        f.occurrence,
+        prefix,
+        [],
+        execution,
+        measurement,
+        mapping,
+      )
+      is Err(Local(@connector.Execution(@execution.InputSet))),
+    )
+    let child = start_client_composed_infer_input(
+      f.occurrence,
+      prefix,
+      [],
+      execution,
+      measurement,
+      mapping,
+      captured=Some((f.prepared, original_source)),
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        @execution.generated_sequence_owner(child.sequence.unwrap()),
+        @execution.generated_sequence_owner(prefix),
+      ),
+    )
+    assert_true(
+      physical_equal(
+        @execution.generated_prepared_sequence(child.sequence.unwrap()),
+        @execution.generated_prepared_sequence(prefix),
+      ),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    let mut mapped = None
+    for _ in 0..<10000 {
+      match advance_client_infer_input(child, 1).unwrap() {
+        Continue(..) => ()
+        Complete(rows, ..) => {
+          mapped = Some(rows)
+          break
+        }
+        _ =>
+          abort(
+            "the retained capture must reach Model rows without scan replay",
+          )
+      }
+    }
+    let rows = mapped.unwrap()
+    assert_eq(@execution.prepared_infer_rows_count(rows), 1)
+    assert_true(
+      @execution.prepared_infer_rows_value(rows, 0, 0).unwrap().value
+      is @admitted.Text("hello"),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    assert_true(cleanup_client_infer_input(child).unwrap())
+    assert_true(@query.captured_source_statistics(original_source) is Some(_))
+    @row_source_host.close_accounted_row_run(source).unwrap()
+    assert_true(
+      start_client_composed_infer_input(
+        f.occurrence,
+        prefix,
+        [],
+        execution,
+        measurement,
+        mapping,
+        captured=Some((f.prepared, original_source)),
+      )
+      is Err(Capture(@query.Unavailable)),
+    )
+  }
   retire_installed_source_read(read).unwrap()
   assert_true(
     @publication_host.finish_client_model_read_scope(
@@ -1612,6 +2204,18 @@ test "plain acquired Model constructs its original Graph module and Source reade
   )
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "plain acquired Model constructs its original Graph module and Source reader on one Request without Content" {
+  request_plain_captured_model_case()
+}
+
+///|
+test "same Unit captured Model consumes its original generated prefix without replaying Source" {
+  let document =
+    #|{"version":"actql/0.1","id":"same-unit-captured-model","stages":[{"id":"main","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  request_plain_captured_model_case(authored=Some(document), consume_input=true)
 }
 
 ///|
@@ -1926,4 +2530,1445 @@ test "plain Model component factory receives the already backed original input b
   assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
   abort_request_preparation_after_cleanup(f.parent).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "two Source singleton Model component keeps its backed original prefix and suffix before configuration" {
+  for nonterminal in [false, true] {
+    let f = request_serialized_model_fixture(
+      two_captures=true,
+      serialized=false,
+      nonterminal~,
+    )
+    let before = @resources.preparation_capacity_working_extents(
+      f.parent.program_capacity.unwrap(),
+      f.input,
+    ).unwrap()
+    let segments = if nonterminal { 2 } else { 1 }
+    let containers = request_model_module_container_bytes(
+      @strategy.graph_task_count(
+        @publication_host.prepared_client_graph(f.prepared),
+      ),
+      2,
+      1,
+      input_segments=segments,
+      model_components=1,
+    ).unwrap()
+    let protocols = request_model_material_body_bytes(2, index => {
+      if index == 0 {
+        original_row_query_contract_fixture
+      } else {
+        original_row_evidence_contract_fixture
+      }
+    }).unwrap()
+    let queries = request_local_query_construction_bytes().unwrap() * 2L
+    let inputs = program_check_data_extent_cost(f.parent.program_data.unwrap()).unwrap() *
+      segments.to_int64()
+    let required = containers + protocols + queries + inputs
+    let calls = Ref(0)
+    let backed = Ref(false)
+    let prefix : Ref[@execution.GeneratedSequence?] = Ref(None)
+    let suffix : Ref[@execution.GeneratedSequence?] = Ref(None)
+    let original = prepare_request_model_capture_module(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.compilation,
+      [f.declaration.unwrap(), f.declaration.unwrap()],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [4096L, 4096L],
+      [2048L, 2048L],
+      f.contracts,
+      true,
+      1,
+      _ => [],
+      component_factory=Some((capacity, original_prefix, original_suffix) => {
+        let current = @resources.preparation_capacity_working_extents(
+          f.parent.program_capacity.unwrap(),
+          f.input,
+        ).unwrap()
+        backed.val = current.0 >= before.0 + required &&
+          current.1 >= before.1 + required
+        calls.val += 1
+        prefix.val = Some(original_prefix)
+        suffix.val = original_suffix
+        @local.managed_provider(_ => false, _ => Some(capacity), (_, _, _, _, _) => {
+          Err(@connector.ComputeUnsupported)
+        })
+      }),
+    ).unwrap()
+    assert_eq(calls.val, 1)
+    assert_true(backed.val)
+    assert_eq(original.captures.length(), 2)
+    assert_true(physical_equal(f.parent.program_captured.unwrap(), original))
+    assert_true(
+      prefix.val is Some(value) &&
+      physical_equal(value, original.model_input_prefix.unwrap()),
+    )
+    if nonterminal {
+      assert_true(
+        suffix.val is Some(value) &&
+        physical_equal(value, original.model_input_suffix.unwrap()),
+      )
+    } else {
+      assert_true(suffix.val is None && original.model_input_suffix is None)
+    }
+    assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+    abort_request_preparation_after_cleanup(f.parent).unwrap()
+    assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(f.parent.ledger).held_bytes, 0L)
+  }
+}
+
+///|
+test "two Source singleton Model component refuses original current loss before its constructor" {
+  let current = Ref(true)
+  let f = request_serialized_model_fixture(
+    two_captures=true,
+    serialized=false,
+    current=() => current.val,
+  )
+  let calls = Ref(0)
+  current.val = false
+  assert_true(
+    prepare_request_model_capture_module(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.compilation,
+      [f.declaration.unwrap(), f.declaration.unwrap()],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [4096L, 4096L],
+      [2048L, 2048L],
+      f.contracts,
+      true,
+      1,
+      _ => [],
+      component_factory=Some((capacity, _, _) => {
+        calls.val += 1
+        @local.managed_provider(_ => false, _ => Some(capacity), (_, _, _, _, _) => {
+          Err(@connector.ComputeUnsupported)
+        })
+      }),
+    )
+    is Err(Preparation(Capacity(_))),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(f.parent.program_captured is None)
+  current.val = true
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(f.parent.ledger).held_bytes, 0L)
+}
+
+///|
+test "same Request acquired Model prefix keeps live provider backing until original Source cleanup" {
+  let stopped = Ref(false)
+  let f = request_acquired_model_capture_fixture(
+    provider=Some(@execution.execution_capacity(7L, 9L).unwrap()),
+    provider_stopped=() => stopped.val,
+  )
+  let original = f.original
+  let ledger = original.parent.ledger
+  let before = @resources.ledger_usage(ledger)
+  // The captured provider still owns its original scratch/cleanup allowance.
+  // Prefix borrowing is neither physical retirement nor a released byte grant.
+  assert_true(before.reserved_execution_bytes > 0L)
+  let prefix = start_installed_managed_acquired_serialization_prefix(
+    f.run,
+    original.prepared,
+    f.prefix,
+    f.capture,
+  ).unwrap()
+  assert_true(physical_equal(prefix.ledger, ledger))
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_execution_bytes >=
+    before.reserved_execution_bytes,
+  )
+  let mut complete = false
+  for _ in 0..<1000 {
+    match advance_client_serialization_prefix(prefix, 1).unwrap() {
+      @local.Complete(value, ..) => {
+        assert_eq(@execution.completed_row_count(value), 1)
+        complete = true
+        break
+      }
+      @local.Continue(..) | @local.Waiting(..) | @local.Settling(_, ..) => ()
+      _ => fail("retained provider prefix did not complete")
+    }
+  }
+  assert_true(complete)
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(f.run, f.prefix).unwrap(),
+  )
+  assert_true(@row_source_host.row_capture_source(f.capture) is Ok(_))
+  assert_true(retire_installed_source_read(f.read) is Err(_))
+  assert_true(@resources.ledger_usage(ledger).live_reservations > 0)
+  assert_false(stopped.val)
+  stopped.val = true
+  request_acquired_model_capture_close(f)
+}
+
+///|
+// Actual checked Program, native graph constructors and one Request compiler.
+// Synthetic component initial allowances are not an installed Host/provider
+// recipe or normal runtime/physical qualification.
+
+///|
+fn request_two_model_document() -> String {
+  (
+    #|{"version":"actql/0.1","id":"request-two-models","stages":[{"id":"input","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"hello"}]},"as":"items"}],"results":{"rows":{"from":"items","fields":["id","text"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  )
+}
+
+///|
+test "multiple Model graphs retain complete original order on one Request compiler" {
+  let document = request_two_model_document()
+  let (parent, input, prepared) = request_model_input_fixture(
+    authored=Some(document),
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let graphs : Array[@publication_host.ClientInferPlanGraph] = []
+  for occurrence in occurrences {
+    let (_, execution) = request_model_graph_inputs(
+      prepared,
+      selected=Some(occurrence),
+    )
+    graphs.push(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits=limits,
+      ).unwrap(),
+    )
+  }
+  guard parent.program_domain_compilation_inputs
+    is Some(RequestModelGraphs(_, _, _, originals)) else {
+    fail("complete Request-owned graph vector")
+  }
+  assert_eq(originals.length(), 2)
+  assert_true(physical_equal(originals[0], graphs[0]))
+  assert_true(physical_equal(originals[1], graphs[1]))
+  let capacity = parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(
+    prepare_request_models_compilation(
+      parent,
+      input,
+      [graphs[1], graphs[0]],
+      contracts,
+      manifests~,
+      compilation_limits=limits,
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  let compiled = prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  assert_eq(compiled.infers.length(), 2)
+  assert_true(physical_equal(compiled.infers[0], graphs[0]))
+  assert_true(physical_equal(compiled.infers[1], graphs[1]))
+  assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+  let compiled_run = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compiled,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled_run, "two-model-original-module", "same-original", "2026-10-31T00:00:00.000Z",
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "two-model-original-module",
+  ).unwrap()
+  let entries : Array[Int] = []
+  let backed = Ref(true)
+  let before_module = @resources.preparation_capacity_working_extents(
+    capacity, input,
+  ).unwrap()
+  let original_module_value = prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled_run,
+    definition,
+    compiled,
+    contracts,
+    true,
+    0,
+    _ => [],
+    components_factory=Some((index, extent, _, _) => {
+      let during = @resources.preparation_capacity_working_extents(
+        capacity, input,
+      ).unwrap()
+      backed.val = backed.val &&
+        during.0 > before_module.0 &&
+        during.1 > before_module.1
+      entries.push(index)
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  assert_eq(entries, [0, 1])
+  assert_true(backed.val)
+  assert_true(
+    parent.program_source_free is Some(original_module) &&
+    physical_equal(original_module, original_module_value),
+  )
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+// Actual shared Request/check/compiler/module/Plan/Scope/adoption/retirement.
+// The two physical providers remain explicit ports, not ordinary Model IO.
+
+///|
+priv struct RequestTwoModelPlanFixture {
+  parent : ClientRequestPreparation[Array[Int]]
+  input : Array[Int]
+  prepared : @publication_host.PreparedClientProgram
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ]
+  occurrences : Array[@publication_host.ClientInferOccurrence]
+  graphs : Array[@publication_host.ClientInferPlanGraph]
+  compiled : @publication_host.ClientCompiledRun
+  definition : @publication.PublicationContract
+  request : @publication_host.ClientRequestIdentity
+  selected_module : ClientInstalledManagedSourceFreePreparation
+  module_entries : Array[Int]
+}
+
+///|
+fn request_two_model_plan_fixture(
+  current? : () -> Bool = () => true,
+) -> RequestTwoModelPlanFixture raise {
+  let (parent, input, prepared) = request_model_input_fixture(
+    authored=Some(request_two_model_document()),
+    model_copies=2,
+    current~,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let graphs : Array[@publication_host.ClientInferPlanGraph] = []
+  for occurrence in occurrences {
+    let (_, execution) = request_model_graph_inputs(
+      prepared,
+      selected=Some(occurrence),
+    )
+    graphs.push(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits=limits,
+      ).unwrap(),
+    )
+  }
+  let compilation = prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  let compiled = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "two-model-aggregate", "original", "2026-11-04T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "two-model-aggregate",
+  ).unwrap()
+  let module_entries : Array[Int] = []
+  let selected_module = prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    contracts,
+    true,
+    0,
+    _ => [],
+    components_factory=Some((index, extent, _, _) => {
+      module_entries.push(index)
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  {
+    parent,
+    input,
+    prepared,
+    holder,
+    occurrences,
+    graphs,
+    compiled,
+    definition,
+    request,
+    selected_module,
+    module_entries,
+  }
+}
+
+///|
+test "two Model Request adopts one module and all original scopes with one aggregate demand and child first retirement" {
+  let f = request_two_model_plan_fixture()
+  let {
+    parent,
+    input,
+    prepared: _,
+    holder,
+    occurrences,
+    graphs,
+    compiled,
+    definition,
+    request,
+    selected_module,
+    module_entries,
+  } = f
+  let ledger = parent.ledger
+  let before_plan = @resources.preparation_capacity_working_extents(
+    parent.program_capacity.unwrap(),
+    input,
+  ).unwrap()
+  let plan = prepare_request_models_source_free_plan(
+    parent,
+    input,
+    selected_module,
+    request,
+    compiled,
+    definition,
+    occurrences,
+    graphs,
+    [effect_model_plan_limits, effect_model_plan_limits],
+    [7L, 9L],
+    [5L, 6L],
+    40,
+    40,
+    40,
+    bootstrap=Some((31L, 37L)),
+  ).unwrap()
+  assert_eq(module_entries, [0, 1])
+  // This authored graph has three configured tasks and two input edges. Its
+  // retained two-root driver offers 17 work units per task and a 32-unit
+  // search, for 83 per original input binding and 166 for both terminal Models.
+  // The module's whole-Run ceiling remains a ceiling, not additional demand.
+  let configured = selected_module.configuration.unwrap()
+  assert_eq(@strategy.graph_task_count(configured.graph), 3)
+  assert_eq(@strategy.graph_data_count(configured.graph), 2)
+  assert_eq(configured.capacity_plan.graph_offset, 0)
+  assert_true(configured.retained_output)
+  assert_eq(@local_driver.local_dispatch_work_slots(), 5)
+  assert_true(selected_module.limits.planning_work > 166)
+  // One configured module demand, two Model demands, total read partitions,
+  // and the independent same-parent bootstrap exactly once.
+  assert_eq(plan.limits.planning_work, 166 + 34)
+  assert_eq(plan.limits.attempts, selected_module.limits.attempts + 8)
+  assert_eq(
+    plan.limits.retained_bytes,
+    selected_module.limits.retained_bytes + 2000L + 16L + 31L,
+  )
+  assert_eq(
+    plan.limits.execution_bytes,
+    selected_module.limits.execution_bytes + 4000L + 11L + 37L,
+  )
+  let after_plan = @resources.preparation_capacity_working_extents(
+    parent.program_capacity.unwrap(),
+    input,
+  ).unwrap()
+  assert_true(after_plan.0 > before_plan.0 && after_plan.1 > before_plan.1)
+  assert_true(physical_equal(parent.ledger, ledger))
+  assert_true(
+    prepare_request_model_read_scope(parent, input, plan)
+    is Err(ForeignOriginal),
+  )
+  let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
+  assert_eq(scopes.length(), 2)
+  complete_request_model_preparation(parent, input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  // Another group order cannot adopt the first Scope as a proxy for all.
+  assert_true(
+    begin_request_model_managed_run(
+      parent,
+      request,
+      scopes[0],
+      scopes=Some([scopes[1], scopes[0]]),
+    )
+    is Err(ForeignOriginal),
+  )
+  let run = begin_request_model_managed_run(
+    parent,
+    request,
+    scopes[0],
+    scopes=Some(scopes),
+  ).unwrap()
+  assert_true(physical_equal(run.ledger.unwrap(), ledger))
+  let second = @publication_host.prepare_client_model_read(scopes[1], 9L, 6L).unwrap()
+  let first = @publication_host.prepare_client_model_read(scopes[0], 7L, 5L).unwrap()
+  @publication_host.settle_client_model_read(first, true).unwrap()
+  assert_false(
+    @publication_host.finish_client_model_read_scope(
+      scopes[0],
+      compiled,
+      definition,
+      graphs[0],
+      true,
+    ).unwrap(),
+  )
+  assert_true(
+    @publication_host.settle_client_model_read(second, false)
+    is Err(@publication_host.Resource(@resources.CleanupPending)),
+  )
+  @publication_host.settle_client_model_read(second, true).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scopes[1],
+      compiled,
+      definition,
+      graphs[1],
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
+test "two Model Plan current mutation refuses changed original read partition and preserves its failed construction for abort" {
+  let armed = Ref(false)
+  let retained = [7L, 9L]
+  let f = request_two_model_plan_fixture(current=() => {
+    if armed.val {
+      retained[0] = -1L
+    }
+    true
+  })
+  let capacity = f.parent.program_capacity.unwrap()
+  let ledger = f.parent.ledger
+  armed.val = true
+  assert_true(
+    prepare_request_models_source_free_plan(
+      f.parent,
+      f.input,
+      f.selected_module,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.occurrences,
+      f.graphs,
+      [effect_model_plan_limits, effect_model_plan_limits],
+      retained,
+      [5L, 6L],
+      40,
+      40,
+      40,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    f.parent.phase == ProgramBodyFailed && f.parent.program_model is None,
+  )
+  assert_true(physical_equal(f.parent.program_capacity.unwrap(), capacity))
+  assert_true(@resources.ledger_usage(ledger).live_reservations > 0)
+  armed.val = false
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+// Same Request and actual two Source/Model compiler graph. Providers below
+// are explicit pure component ports; no physical read or normal ABI is claimed.
+fn request_captured_models_original_case(native : Bool) -> Unit raise {
+  let row_document =
+    #|{"version":"actql/0.1","id":"request-two-captured-models","stages":[{"id":"left","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"right","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}},{"id":"classify-second","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"classify","result":"rows"}},"second":{"from":{"stage":"classify-second","result":"rows"}}}}
+  let native_document =
+    #|{"version":"actql/0.1","id":"request-native-source-two-models","stages":[{"id":"input","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"from":"rows","derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  let document = if native { native_document } else { row_document }
+  let declaration = request_model_module_declaration()
+  let (parent, input, prepared) = request_model_input_fixture(
+    authored=Some(document),
+    declaration=Some(declaration),
+    model_copies=2,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let graphs : Array[@publication_host.ClientInferPlanGraph] = []
+  for occurrence in occurrences {
+    let (_, execution) = request_model_graph_inputs(
+      prepared,
+      selected=Some(occurrence),
+    )
+    graphs.push(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits=limits,
+      ).unwrap(),
+    )
+  }
+  let compilation = prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  let compiled = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "two-model-captured", "original", "2026-11-04T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "two-model-captured",
+  ).unwrap()
+  let direct = request_model_direct_occurrences(parent, input).unwrap()
+  assert_eq(
+    @publication_host.client_direct_acquisition_occurrence_count(direct),
+    if native {
+      1
+    } else {
+      2
+    },
+  )
+  let loader = publication_test_loader(publication_test_url())
+  let entries : Array[Int] = []
+  let selected = prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    if native {
+      []
+    } else {
+      [declaration, declaration]
+    },
+    if native {
+      capture_parent_contract(loader, "actql-query-acquisition.json")
+    } else {
+      original_row_query_contract_fixture
+    },
+    if native {
+      capture_parent_contract(loader, "actql-query-process-evidence.json")
+    } else {
+      original_row_evidence_contract_fixture
+    },
+    if native {
+      [4096L]
+    } else {
+      [4096L, 4096L]
+    },
+    if native {
+      [2048L]
+    } else {
+      [2048L, 2048L]
+    },
+    contracts,
+    true,
+    0,
+    _ => [],
+    native_source_ref=if native {
+      Some(declaration.views[0].source_ref)
+    } else {
+      None
+    },
+    native_database_schema=if native { Some("main") } else { None },
+    native_table=if native { Some("records") } else { None },
+    native_receipt_body=if native {
+      Some(capture_parent_contract(loader, "actql-query-two-receipt.json"))
+    } else {
+      None
+    },
+    components_factory=Some((index, extent, _, _) => {
+      entries.push(index)
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  assert_eq(entries, [0, 1])
+  assert_true(
+    selected.direct_occurrences is Some(original) &&
+    physical_equal(original, direct),
+  )
+  assert_true(
+    physical_equal(
+      request_model_direct_occurrences(parent, input).unwrap(),
+      direct,
+    ),
+  )
+  let prior_work = @resources.ledger_usage(parent.ledger).planning_work
+  if native {
+    @resources.charge_planning(parent.ledger, 7).unwrap()
+  }
+  let plan = prepare_request_models_capture_plan(
+    parent,
+    input,
+    selected,
+    request,
+    compiled,
+    definition,
+    occurrences,
+    graphs,
+    [effect_model_plan_limits, effect_model_plan_limits],
+    [7L, 9L],
+    [5L, 6L],
+    40,
+    40,
+    40,
+  ).unwrap()
+  assert_true(
+    plan.captured is Some(original) && physical_equal(original, selected),
+  )
+  assert_true(plan.source_free is None)
+  assert_eq(plan.limits.attempts, selected.limits.attempts + 8)
+  if native {
+    let initial = client_local_preparation_initial_limits(
+      client_local_resource_policy(),
+    ).unwrap()
+    // The same finite Local charge path must serve a complete Model group;
+    // its whole-Run policy ceiling is not a per-binding work requirement.
+    assert_true(plan.limits.planning_work <= initial.planning_work)
+  }
+  let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
+  complete_request_model_preparation(parent, input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  let run = begin_request_model_managed_run(
+    parent,
+    request,
+    scopes[0],
+    scopes=Some(scopes),
+  ).unwrap()
+  assert_true(physical_equal(run.ledger.unwrap(), parent.ledger))
+  for index, scope in scopes {
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      compiled,
+      definition,
+      graphs[index],
+      true,
+    ).unwrap()
+    |> ignore
+  }
+  for index, scope in scopes {
+    assert_true(
+      @publication_host.finish_client_model_read_scope(
+        scope,
+        compiled,
+        definition,
+        graphs[index],
+        true,
+      ).unwrap(),
+    )
+  }
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  if native {
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).planning_work,
+      prior_work + 7,
+    )
+  }
+}
+
+///|
+test "two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan" {
+  request_captured_models_original_case(false)
+}
+
+///|
+test "native captured Model Request keeps one original Query and both ordered scopes on its aggregate Plan" {
+  request_captured_models_original_case(true)
+}
+
+///|
+// Real Request/Model Scope, two accounted captures and original dispatch Plan.
+// The provider is an explicit nonexecuting component; no permission or IO ACK.
+test "captured reusable inputs retain one owner and fund only missing import copies" {
+  let f = request_serialized_model_fixture(two_captures=true, serialized=false)
+  let starts = Ref(0)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap(), f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L, 4096L],
+    [2048L, 2048L],
+    f.contracts,
+    false,
+    1,
+    _ => [],
+    component_factory=Some((capacity, _, _) => {
+      @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
+        starts.val += 1
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  let plan = prepare_installed_mock_model_capture_plan_binding(
+    original,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_true(@resources.preparation_body_borrow_value(f.holder) is Some(_))
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let reads = Array::makei(2, index => {
+    begin_installed_managed_capture_read(run, index).unwrap()
+  })
+  let ledger = request_capture_ledger_fixture(run, original).unwrap()
+  assert_true(physical_equal(ledger, f.parent.ledger))
+  let sources = []
+  for index in 0..<2 {
+    let rows = start_installed_source_read_rows(
+      reads[index],
+      original.captures[index].acquisition.unwrap(),
+      "same-original-two-inputs",
+      _ => true,
+      4096L,
+      2048L,
+    ).unwrap()
+    @row_source_host.begin_row_run(rows, 2048, 2, 2).unwrap()
+    let wire = @utf8.encode("[{\"id\":3,\"amount\":7}]")
+    let charged = @row_source_host.charge_row_run_page(rows, wire).unwrap()
+    assert_eq(
+      @row_source_host.accept_charged_row_run_page(rows, charged, wire).unwrap(),
+      1,
+    )
+    @row_source_host.finish_row_run(rows).unwrap()
+    @row_source_host.begin_row_capture(rows).unwrap()
+    let mut completed = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(rows, 256).unwrap().0 {
+        completed = true
+        break
+      }
+    }
+    assert_true(completed)
+    sources.push(
+      @row_source_host.row_capture_source(
+        @row_source_host.capture_row_run(rows).unwrap(),
+      ).unwrap(),
+    )
+  }
+  let task = @strategy.graph_captured_prefix(original.graph)
+  let planned = @local_driver.local_dispatch_preparation_task_capacity(
+    original.configuration.dispatch,
+    task,
+  ).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  let available = @resources.ledger_admission_limits(ledger).execution_bytes -
+    usage.reserved_execution_bytes
+  assert_true(available >= planned.execution_bytes)
+  // Preserve the unchanged full Ledger. A real reservation leaves one byte
+  // less than the future-input quote, while these original reads need no copy.
+  let other = @resources.reserve_capacity(
+    ledger,
+    0L,
+    available - planned.execution_bytes + 1L,
+  ).unwrap()
+  let (host, dag, _) = open_installed_managed_capture_host(
+    run,
+    f.prepared,
+    f.request,
+    sources,
+  ).unwrap()
+  assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
+  for index in 0..<2 {
+    let read = @strategy.captured_task_input(
+      dag,
+      task,
+      10000,
+      10000,
+      input_index=index,
+    ).unwrap()
+    assert_true(@execution.producer_read_has_cell_access(read))
+    assert_true(
+      physical_equal(
+        read,
+        @strategy.captured_task_input(
+          dag,
+          task,
+          10000,
+          10000,
+          input_index=index,
+        ).unwrap(),
+      ),
+    )
+  }
+  assert_eq(@strategy.strategy_report_count(dag), 1)
+  assert_true(@strategy.strategy_report_at(dag, 0).unwrap().rejection is None)
+  let installed = @builtin.configured_local_module(
+    @builtin.configured_host_modules(host),
+  ).unwrap()
+  let setup : @local_driver.LocalManagedDispatchConfiguration[Int] = @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      [
+        @local_driver.local_managed_captured_relation_input(),
+        @local_driver.local_managed_captured_relation_input(),
+      ],
+      @execution.process_managed_obligations(
+        @strategy.graph_task_owner(original.graph, task).unwrap(),
+      ),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  let (_, execution) = @local_driver.local_managed_dispatch_site_capacity(setup).unwrap()
+  assert_true(execution < planned.execution_bytes)
+  assert_eq(starts.val, 0)
+  assert_eq(@resources.ledger_usage(ledger).attempts, usage.attempts)
+  @resources.settle_capacity(ledger, other).unwrap()
+  ignore(reject_client_local_run(dag))
+  for read in reads {
+    retire_installed_source_read(read).unwrap()
+  }
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  @resources.return_preparation_body_borrow(f.holder).unwrap() |> ignore
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "captured unavailable originals receive no missing-copy credit or provider start" {
+  let f = request_serialized_model_fixture(two_captures=true, serialized=false)
+  let starts = Ref(0)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap(), f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L, 4096L],
+    [2048L, 2048L],
+    f.contracts,
+    false,
+    1,
+    _ => [],
+    component_factory=Some((capacity, _, _) => {
+      @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
+        starts.val += 1
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  let plan = prepare_installed_mock_model_capture_plan_binding(
+    original,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_true(@resources.preparation_body_borrow_value(f.holder) is Some(_))
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let reads = Array::makei(2, index => {
+    begin_installed_managed_capture_read(run, index).unwrap()
+  })
+  let ledger = request_capture_ledger_fixture(run, original).unwrap()
+  assert_true(physical_equal(ledger, f.parent.ledger))
+  let sources = []
+  for index in 0..<2 {
+    let rows = start_installed_source_read_rows(
+      reads[index],
+      original.captures[index].acquisition.unwrap(),
+      "same-original-two-inputs",
+      _ => true,
+      4096L,
+      2048L,
+    ).unwrap()
+    @row_source_host.begin_row_run(rows, 2048, 2, 2).unwrap()
+    let wire = @utf8.encode("[{\"id\":3,\"amount\":7}]")
+    let charged = @row_source_host.charge_row_run_page(rows, wire).unwrap()
+    assert_eq(
+      @row_source_host.accept_charged_row_run_page(rows, charged, wire).unwrap(),
+      1,
+    )
+    @row_source_host.finish_row_run(rows).unwrap()
+    @row_source_host.begin_row_capture(rows).unwrap()
+    let mut completed = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(rows, 256).unwrap().0 {
+        completed = true
+        break
+      }
+    }
+    assert_true(completed)
+    sources.push(
+      @row_source_host.row_capture_source(
+        @row_source_host.capture_row_run(rows).unwrap(),
+      ).unwrap(),
+    )
+  }
+  let task = @strategy.graph_captured_prefix(original.graph)
+  let planned = @local_driver.local_dispatch_preparation_task_capacity(
+    original.configuration.dispatch,
+    task,
+  ).unwrap()
+  retire_installed_source_read(reads[0]).unwrap()
+  assert_false(@query.captured_source_available(sources[0]))
+  assert_true(
+    open_installed_managed_capture_host(run, f.prepared, f.request, sources)
+    is Err(_),
+  )
+  assert_true(run.source_free_captured is None)
+  assert_eq(
+    @local_driver.local_dispatch_preparation_task_capacity(
+      original.configuration.dispatch,
+      task,
+    ),
+    Some(planned),
+  )
+  assert_eq(starts.val, 0)
+  retire_installed_source_read(reads[1]).unwrap()
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  @resources.return_preparation_body_borrow(f.holder).unwrap() |> ignore
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "native protocol preflight sizes a long String as one node and retains old refusal fallback" {
+  let wire = "\"" + "x".repeat(12000) + "\""
+  let geometry = request_model_material_source_geometry(wire).unwrap()
+  assert_eq(geometry.0, 12002)
+  assert_eq(geometry.1, 1)
+  let actual = request_model_material_body_bytes(
+    1,
+    _ => wire,
+    source_geometry=true,
+  ).unwrap()
+  let legacy = request_model_material_body_bytes(1, _ => wire).unwrap()
+  assert_true(actual < legacy / 10L)
+  let malformed = String::from_array([(0xd800).unsafe_to_char()])
+  for refused in ["", malformed] {
+    assert_true(request_model_material_source_geometry(refused) is None)
+    assert_eq(
+      request_model_material_body_bytes(1, _ => refused, source_geometry=true),
+      request_model_material_body_bytes(1, _ => refused),
+    )
+  }
+}
+
+///|
+// Real Request/module/Plan/adoption originals, explicit Resource/provider
+// component ports. This getter proves no normal physical capacity or IO.
+test "adopted captured Model reads only its retained original prefix before payload retirement" {
+  let ticks = Ref(0)
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+    current=() => {
+      ticks.val += 1
+      true
+    },
+  )
+  let provider = @execution.execution_capacity(7L, 9L).unwrap()
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => [],
+    providers=Some([Some(provider)]),
+  ).unwrap()
+  let expected = prepared_request_model_input_prefix(original).unwrap()
+  let plan = prepare_installed_mock_model_capture_plan_binding(
+    original,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  assert_true(physical_equal(run.captured_preparation.unwrap(), original))
+  let work = @resources.ledger_usage(f.parent.ledger)
+  let quantities = @resources.quantity_usage(f.parent.ledger)
+  let calls = ticks.val
+  for _ in 0..<2 {
+    assert_true(
+      physical_equal(
+        installed_managed_run_model_input_prefix(run, f.prepared).unwrap(),
+        expected,
+      ),
+    )
+  }
+  assert_eq(ticks.val, calls)
+  assert_eq(@resources.ledger_usage(f.parent.ledger), work)
+  assert_eq(@resources.quantity_usage(f.parent.ledger), quantities)
+  let other = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  assert_true(
+    installed_managed_run_model_input_prefix(run, other.prepared)
+    is Err(ForeignOriginal),
+  )
+  // Equal-looking DATA cannot change this adopted Run's Request association.
+  let copied_request = @publication_host.prepare_source_free_client_request_identity(
+    f.prepared,
+    "sha256:" + "a".repeat(64),
+    "copied-model-prefix-request",
+  ).unwrap()
+  run.captured_preparation = Some({ ..original, request: copied_request, })
+  assert_true(
+    installed_managed_run_model_input_prefix(run, f.prepared)
+    is Err(ForeignOriginal),
+  )
+  run.captured_preparation = Some(original)
+  assert_true(
+    physical_equal(
+      installed_managed_run_model_input_prefix(run, f.prepared).unwrap(),
+      expected,
+    ),
+  )
+  assert_false(@resources.return_preparation_body_borrow(other.holder).unwrap())
+  abort_request_preparation_after_cleanup(other.parent).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_true(
+    installed_managed_run_model_input_prefix(run, f.prepared)
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Request wide Query shape quote funds its same admitted Source before module construction" {
+  let fields : Array[@row_source_host.RowField] = [
+    { name: "id", value_type: "number", nullable: false, },
+    { name: "amount", value_type: "number", nullable: false, },
+  ]
+  for index in 0..<244 {
+    fields.push({
+      name: "extra_" + index.to_string(),
+      value_type: "number",
+      nullable: false,
+    })
+  }
+  let declaration = @row_source_host.generate_row_declaration(
+    "model/source-fixture",
+    "model_fixture",
+    "model_fixture/0.1",
+    [{ resource: "r", resource_kind: "record", fields, }],
+    {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 1,
+      max_fields: 246,
+    },
+  ).unwrap()
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+    source_declaration=Some(declaration),
+  )
+  let direct = request_model_direct_occurrences(f.parent, f.input).unwrap()
+  let (stage, source, task) = @publication_host.client_direct_acquisition_occurrence_at(
+    direct, 0,
+  ).unwrap()
+  assert_eq(task, 0)
+  let query_bytes = request_local_original_query_construction_bytes(
+    f.prepared,
+    stage,
+    source,
+  ).unwrap()
+  assert_true(query_bytes > request_local_query_construction_bytes().unwrap())
+  assert_eq(
+    request_local_original_query_construction_bytes(f.prepared, -1, source),
+    None,
+  )
+  assert_eq(
+    request_local_original_query_construction_bytes(f.prepared, stage, -1),
+    None,
+  )
+  assert_eq(
+    request_local_original_query_construction_bytes(f.prepared, 9999, source),
+    None,
+  )
+  let before = @resources.preparation_capacity_working_extents(
+    f.parent.program_capacity.unwrap(),
+    f.input,
+  ).unwrap()
+  let observed = Ref(false)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [declaration],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => {
+      let live = @resources.preparation_capacity_working_extents(
+        f.parent.program_capacity.unwrap(),
+        f.input,
+      ).unwrap()
+      observed.val = live.0 >= before.0 + query_bytes &&
+        live.1 >= before.1 + query_bytes
+      []
+    },
+    providers=Some([Some(@execution.execution_capacity(7L, 9L).unwrap())]),
+  ).unwrap()
+  let query = @query.query_sequence_requirement(
+    @planning.query_material_owner(
+      @planning.query_requirement_material(original.captures[0].requirement),
+    ),
+  )
+  assert_eq(
+    installed_local_query_requirement_limits(query).unwrap().max_fields,
+    248,
+  )
+  assert_eq(
+    query_bytes,
+    request_local_query_construction_bytes(max_fields=248).unwrap(),
+  )
+  assert_true(observed.val)
+  assert_true(
+    physical_equal(
+      direct,
+      request_model_direct_occurrences(f.parent, f.input).unwrap(),
+    ),
+  )
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Effect Graph admits the installed caller material on its same Request before construction" {
+  let storage : @execution.PreparationRepresentationUnits = {
+    record_headers: 3L,
+    reference_slots: 7L,
+    scalar_words: 11L,
+    owned_utf16_units: 13L,
+    owned_wire_bytes: 17L,
+  }
+  let mut unextended = (0L, 0L)
+  for extended in [false, true] {
+    let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+    let capacity = parent.effect_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
+    let graph = prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      caller_material=if extended { Some(storage) } else { None },
+    ).unwrap()
+    let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+    if extended {
+      let bytes = @execution.preparation_representation_cost(storage).unwrap()
+      assert_eq(after.0 - before.0, unextended.0 + bytes)
+      assert_eq(after.1 - before.1, unextended.1 + bytes)
+    } else {
+      unextended = (after.0 - before.0, after.1 - before.1)
+    }
+    assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+    assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+    assert_true(
+      parent.program_domain_compilation_inputs
+      is Some(RequestModelGraph(_, _, _, selected)) &&
+      physical_equal(selected, graph),
+    )
+    @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+  }
+}
+
+///|
+test "invalid caller material cannot construct an Effect Model Graph or replace its original cleanup" {
+  let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let capacity = parent.effect_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(
+    prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      caller_material=Some({
+        record_headers: -1L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }),
+    )
+    is Err(Preparation(Policy)),
+  )
+  assert_true(parent.phase == EffectBodyFailed)
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
 }

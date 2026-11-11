@@ -33,7 +33,13 @@ pub fn admission_construction_inventory(
   if nodes < 0 || fields < 0 || objects < 0 || arrays < 0 || max_depth < 0 {
     return None
   }
-  guard @shape.key_admission_construction_extent(objects, fields) is Some(keys) else {
+  // ObjectNext alone retains its seen Map. Completing that original frame
+  // drops the Map; OwnedNode/ObjectValue retain only fields and borrowed keys.
+  // Sibling objects therefore reuse the active-ancestry map envelope. Entry
+  // storage remains bounded by ALL fields, including the duplicate refusal.
+  let live_objects = Int::min(objects, max_depth)
+  guard @shape.key_admission_construction_extent(live_objects, fields)
+    is Some(keys) else {
     return None
   }
   let n = nodes.to_int64()
@@ -75,5 +81,90 @@ pub fn admission_construction_inventory(
     },
     ancestry,
     controls,
+  })
+}
+
+///|
+/// The preserving byte parser's original constructor peak, including refusal
+/// and its owned decoded input String. The supplied Bytes remain borrowed.
+/// The Source/UTF8/Map constructors keep their own inventory and tariff.
+pub fn preserving_json_parser_construction_inventory(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @source.JsonLiteralConstructionExtent? {
+  guard @source.json_literal_construction_extent(bytes, nodes, depth)
+    is Some(literal) else {
+    return None
+  }
+  // Source already owns the active key-map peak, including pending-key
+  // refusal and growth. Add only this byte parser's decoded input String and
+  // its wrapper; replacing that same map component again would undercount it.
+  Some({
+    record_headers: literal.record_headers + 1L,
+    reference_slots: literal.reference_slots,
+    scalar_words: literal.scalar_words,
+    owned_utf16_units: literal.owned_utf16_units + bytes.to_int64(),
+  })
+}
+
+///|
+/// Existing preserving byte-JSON parser and indexed admission, including
+/// refusal. Parser and decoder maps are sequential, not two live peaks.
+/// No tariff, resource allowance or physical-backend proof is supplied here.
+pub fn preserving_json_admission_construction_inventory(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @source.JsonLiteralConstructionExtent? {
+  guard preserving_json_parser_construction_inventory(bytes, nodes, depth)
+    is Some(parser) &&
+    admission_construction_inventory(
+      nodes,
+      nodes,
+      nodes,
+      0,
+      Int::min(nodes, depth),
+    )
+    is Some(objects) &&
+    admission_construction_inventory(
+      nodes,
+      nodes,
+      0,
+      nodes,
+      Int::min(nodes, depth),
+    )
+    is Some(arrays) else {
+    return None
+  }
+  // Objects+arrays cannot exceed nodes. Indexed construction is affine in
+  // those counts, so its two homogeneous endpoints bound each coordinate.
+  // The parser's active map peak also covers the decoder's sequential maps.
+  let object_headers = objects.indexed.record_headers +
+    objects.ancestry.record_headers +
+    objects.controls.record_headers
+  let object_refs = objects.indexed.reference_slots +
+    objects.ancestry.reference_slots +
+    objects.controls.reference_slots
+  let object_words = objects.indexed.scalar_words +
+    objects.ancestry.scalar_words +
+    objects.controls.scalar_words
+  let array_headers = arrays.indexed.record_headers +
+    arrays.ancestry.record_headers +
+    arrays.controls.record_headers
+  let array_refs = arrays.indexed.reference_slots +
+    arrays.ancestry.reference_slots +
+    arrays.controls.reference_slots
+  let array_words = arrays.indexed.scalar_words +
+    arrays.ancestry.scalar_words +
+    arrays.controls.scalar_words
+  // Positive Int-bounded inputs keep these fixed linear Int64 sums in range.
+  Some({
+    record_headers: parser.record_headers +
+    Int64::max(object_headers, array_headers),
+    reference_slots: parser.reference_slots +
+    Int64::max(object_refs, array_refs),
+    scalar_words: parser.scalar_words + Int64::max(object_words, array_words),
+    owned_utf16_units: parser.owned_utf16_units,
   })
 }

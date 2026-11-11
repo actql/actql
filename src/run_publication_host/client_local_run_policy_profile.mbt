@@ -92,34 +92,62 @@ pub fn client_local_run_policy_profile(
     run_profile_text(body, "clock_contract_cid") is Some(clock) else {
     return Err(InvalidOriginal)
   }
-  guard run_profile_value(decode_bytes(originals.retention_dependencies))
-    is Some(@canonical.Array(dependencies)) &&
+  let profile = run_profile_wire(policy, retention, metadata, clock).map(wire => {
+    wire,
+    result_policy_cid: policy,
+    retention_contract_cid: retention,
+    metadata_retention_policy_cid: metadata,
+    clock_contract_cid: clock,
+  })
+  profile.bind(value => {
+    client_local_run_policy_retention_bodies(
+      value,
+      originals.retention_dependencies,
+    ).map(_ => value)
+  })
+}
+
+///|
+/// Project the three original dependency bodies selected by this admitted
+/// profile. This is the same admission used at profile construction, not a
+/// renewed Policy, replacement retention or physical holding.
+pub fn client_local_run_policy_retention_bodies(
+  profile : ClientLocalRunPolicyProfile,
+  original : Bytes,
+) -> Result[
+  Array[@publication.CapturedEffectDependencyBody],
+  ClientLocalRunPolicyProfileIssue,
+] {
+  let wire = @utf8.decode(original) catch { _ => return Err(InvalidOriginal) }
+  guard run_profile_value(wire) is Some(@canonical.Array(dependencies)) &&
     @canonical.array_count(dependencies) == 3 else {
     return Err(InvalidOriginal)
   }
+  let bodies : Array[@publication.CapturedEffectDependencyBody] = []
   for
     (kind, expected) in [
-      ("retention_contract", retention),
-      ("metadata_retention_policy", metadata),
-      ("clock_contract", clock),
+      ("retention_contract", profile.retention_contract_cid),
+      ("metadata_retention_policy", profile.metadata_retention_policy_cid),
+      ("clock_contract", profile.clock_contract_cid),
     ] {
     let mut found = 0
     for index in 0..<3 {
       let dependency = @canonical.array_at(dependencies, index).unwrap()
       if run_profile_text(dependency, "kind") == Some(kind) {
         guard run_profile_text(dependency, "cid") == Some(expected) &&
-          run_profile_text(dependency, "wire") is Some(wire) &&
+          run_profile_text(dependency, "wire") is Some(body_wire) &&
           @publication.admit_captured_effect_dependency_body(
             kind,
             Some(expected),
-            wire,
+            body_wire,
             8192,
             512,
             8,
           )
-          is Ok(_) else {
+          is Ok(body) else {
           return Err(InvalidOriginal)
         }
+        bodies.push(body)
         found = found + 1
       }
     }
@@ -127,13 +155,7 @@ pub fn client_local_run_policy_profile(
       return Err(InvalidOriginal)
     }
   }
-  run_profile_wire(policy, retention, metadata, clock).map(wire => {
-    wire,
-    result_policy_cid: policy,
-    retention_contract_cid: retention,
-    metadata_retention_policy_cid: metadata,
-    clock_contract_cid: clock,
-  })
+  Ok(bodies)
 }
 
 ///|

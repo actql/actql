@@ -2,6 +2,14 @@
  * records. The backing and every child extent use the original C adapter.
  * There is no GC cleanup ACK: the MoonBit Host retains all records until explicit
  * child-first cleanup. Unreachable live records cannot release a reservation. */
+/* This package's default POSIX process implementation selects its actual
+ * compiler target. Scoped/imported providers keep their separate source and
+ * recipe. GNU visibility is selected by moon.pkg before any system header. */
+#if defined(__linux__) && defined(__x86_64__) && \
+    !defined(ACTQL_SCOPED_READ_ALLOCATOR) && \
+    !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+#define ACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN 1
+#endif
 #include "moonbit.h"
 #include <stdint.h>
 #include <string.h>
@@ -33,9 +41,23 @@ typedef struct actql_read_context actql_read_context;
 #endif
 #endif
 
+#if defined(ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY)
+/* Same provider's actual static records, co-counted inside the existing
+ * command control envelope. This observes layout, never issues byte capacity. */
+_Static_assert(sizeof(struct stock_file_record) == 24 && sizeof(stock_file_entry) == 8,
+               "Selected Linux bundle stock-File layout");
+_Static_assert(sizeof(stock_files) + sizeof(stock_file_entry) <= ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES,
+               "Selected Linux bundle stock-File control page");
+#endif
+
 typedef struct {
     actql_owned_capacity *lease;
     int status;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    actql_read_context *control_context;
+    bool control_attempted, control_user;
+    size_t control_active;
+#endif
 } actql_bootstrap_backing;
 
 typedef struct {
@@ -43,6 +65,7 @@ typedef struct {
     void *address;
     int status;
     bool domain_storage;
+    bool working_selected;
 } actql_bootstrap_extent;
 
 static void keep_physical_custody(void *record) {
@@ -175,7 +198,7 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire(int64_t bytes,
                                                const unsigned char *recipe) {
     actql_bootstrap_backing *record = moonbit_make_external_object(
         keep_physical_custody, sizeof(*record));
-    record->lease = NULL;
+    memset(record, 0, sizeof(*record));
     record->status = ACTQL_OWNED_INVALID;
     if (bytes > 0 && (uint64_t)bytes <= SIZE_MAX && generation > 0) {
         record->status = actql_native_owned_acquire((size_t)bytes,
@@ -195,7 +218,7 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_fd(int32_t fd, int64_t bytes,
                                                   const unsigned char *recipe) {
     actql_bootstrap_backing *record = moonbit_make_external_object(
         keep_physical_custody, sizeof(*record));
-    record->lease = NULL;
+    memset(record, 0, sizeof(*record));
     record->status = ACTQL_OWNED_INVALID;
     if (fd >= 0 && bytes > 0 && (uint64_t)bytes <= SIZE_MAX && generation > 0) {
         record->status = actql_native_owned_acquire_fd(fd, (size_t)bytes,
@@ -208,6 +231,41 @@ MOONBIT_FFI_EXPORT int64_t actql_bootstrap_control_bytes(actql_bootstrap_backing
     uint64_t bytes = 0;
     return actql_native_owned_control_bytes(record->lease, &bytes) == ACTQL_OWNED_OK &&
         bytes <= INT64_MAX ? (int64_t)bytes : -1;
+}
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_capacity_bytes(actql_bootstrap_backing *record) {
+    uint64_t bytes = 0;
+    return actql_native_owned_capacity_bytes(record->lease, &bytes) == ACTQL_OWNED_OK &&
+        bytes <= INT64_MAX ? (int64_t)bytes : -1;
+}
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_growth_control_bytes(
+    actql_bootstrap_backing *record, int64_t additional) {
+    if (record == NULL || record->lease == NULL || additional <= 0 ||
+        (uint64_t)additional > SIZE_MAX) return -1;
+    uint64_t controls = 0;
+    return actql_native_owned_growth_control_bytes(record->lease, (size_t)additional,
+        &controls) == ACTQL_OWNED_OK && controls <= INT64_MAX ? (int64_t)controls : -1;
+}
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_growth_for_payload_bytes(
+    actql_bootstrap_backing *record, int64_t payload) {
+    if (record == NULL || record->lease == NULL || payload <= 0 ||
+        (uint64_t)payload > PTRDIFF_MAX) return -1;
+    uint64_t total = 0;
+    return actql_native_owned_growth_for_payload_bytes(record->lease, (size_t)payload,
+        &total) == ACTQL_OWNED_OK && total <= INT64_MAX ? (int64_t)total : -1;
+}
+
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_grow(actql_bootstrap_backing *record,
+    int64_t expected, int64_t additional) {
+    if (record == NULL || expected <= 0 || additional <= 0 ||
+        (uint64_t)expected > SIZE_MAX || (uint64_t)additional > SIZE_MAX)
+        return ACTQL_OWNED_INVALID;
+    uint64_t controls = 0;
+    int status = actql_native_owned_grow(record->lease, (size_t)expected,
+                                        (size_t)additional, &controls);
+    return status == ACTQL_OWNED_OK ? (int64_t)controls : status;
 }
 
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_rounded_bytes(actql_bootstrap_backing *record,
@@ -249,6 +307,7 @@ static void *allocate_extent(actql_bootstrap_backing *record,
     extent->address = NULL;
     extent->status = ACTQL_OWNED_INVALID;
     extent->domain_storage = domain_storage;
+    extent->working_selected = false;
     if (bytes > 0 && (uint64_t)bytes <= SIZE_MAX) {
         extent->status = domain_storage
             ? actql_native_owned_allocate_in_process_domain(record->lease,
@@ -294,6 +353,11 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_scope(actql_bootstrap_backing *
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_scope(actql_bootstrap_backing *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    /* The enclosing root cannot leave while its control Read still owns TLS.
+     * Refuse before either scope is mutated so the caller can unwind normally. */
+    if (record != NULL && record->control_active != 0) return ACTQL_OWNED_INVALID;
+#endif
     return actql_native_owned_leave(record->lease);
 }
 
@@ -497,6 +561,7 @@ typedef struct {
     bool read_attempted;
     bool read_user;
     bool read_prepare_scope;
+    bool read_parent_suspended; /* exact completed leave, not a stop ACK */
 #endif
 } actql_bootstrap_domain;
 
@@ -514,6 +579,7 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_domain(actql_bootstrap_view *vi
     record->read_attempted = false;
     record->read_user = false;
     record->read_prepare_scope = false;
+    record->read_parent_suspended = false;
 #endif
     record->status = view->status == ACTQL_OWNED_OK
         ? actql_native_owned_acquire_extent_domain(&view->view, &record->lease)
@@ -719,7 +785,7 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_unentered(
  * ceiling includes allocator control and every occupied/pending extent; it is
  * not a new reservation, a smaller mapping or a parent retirement ACK. */
 static int32_t prepare_read_context_original(actql_bootstrap_domain *record,
-                                             int64_t ceiling, bool bounded) {
+                                             int64_t ceiling, bool bounded, bool working) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
     if (record == NULL || record->read_attempted || record->lease == NULL)
         return ACTQL_OWNED_INVALID;
@@ -731,7 +797,15 @@ static int32_t prepare_read_context_original(actql_bootstrap_domain *record,
         /* Even an invalid original selection consumes this attempt. */
         size_t bytes = ceiling > 0 && (uint64_t)ceiling <= SIZE_MAX
             ? (size_t)ceiling : 0;
-        status = actql_native_owned_bound_allocations(record->lease, bytes);
+        if (working) {
+            uint64_t actual = 0;
+            status = actql_native_owned_capacity_bytes(record->lease, &actual);
+            if (status == ACTQL_OWNED_OK)
+                status = actql_native_owned_bound_working_allocations(record->lease,
+                    actual < bytes ? (size_t)actual : bytes, bytes);
+        } else {
+            status = actql_native_owned_bound_allocations(record->lease, bytes);
+        }
     }
     if (status == ACTQL_OWNED_OK)
         status = actql_read_context_create(record->lease, &record->read_context);
@@ -743,26 +817,31 @@ static int32_t prepare_read_context_original(actql_bootstrap_domain *record,
     if (left == ACTQL_OWNED_OK) record->read_prepare_scope = false;
     return status == ACTQL_OWNED_OK ? left : status;
 #else
-    (void)record; (void)ceiling; (void)bounded;
+    (void)record; (void)ceiling; (void)bounded; (void)working;
     return ACTQL_OWNED_INVALID;
 #endif
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_read_context(
     actql_bootstrap_domain *record) {
-    return prepare_read_context_original(record, 0, false);
+    return prepare_read_context_original(record, 0, false, false);
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_bounded_read_context(
     actql_bootstrap_domain *record, int64_t ceiling) {
-    return prepare_read_context_original(record, ceiling, true);
+    return prepare_read_context_original(record, ceiling, true, false);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_working_read_context(
+    actql_bootstrap_domain *record, int64_t ceiling) {
+    return prepare_read_context_original(record, ceiling, true, true);
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_read_context(
     actql_bootstrap_domain *record) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
     if (record->read_context == NULL || record->read_prepare_scope ||
-        record->read_active == SIZE_MAX) return ACTQL_OWNED_INVALID;
+        record->read_parent_suspended || record->read_active == SIZE_MAX) return ACTQL_OWNED_INVALID;
     int status = actql_native_owned_enter(record->lease);
     if (status != ACTQL_OWNED_OK) return status;
     /* Normal Common entry already requires read_user/current. Once that
@@ -786,6 +865,14 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_read_context(
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_read_context(
     actql_bootstrap_domain *record) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record->read_parent_suspended) {
+        /* Consume this SAME previously acknowledged physical leave once.
+         * The logical consumer cannot resume payload through this receipt. */
+        if (record->read_active != 0 || actql_read_context_current() != NULL ||
+            actql_native_owned_current() != NULL) return ACTQL_OWNED_BUSY;
+        record->read_parent_suspended = false;
+        return ACTQL_OWNED_OK;
+    }
     if (record->read_active == 0) return ACTQL_OWNED_INVALID;
     int status = actql_read_context_leave(record->read_context);
     if (status != ACTQL_OWNED_OK) return status;
@@ -850,7 +937,9 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close_read_context(
         if (status != ACTQL_OWNED_OK) return status;
         record->read_user = false;
     }
-    return actql_read_context_try_close(&record->read_context);
+    int status = actql_read_context_try_close(&record->read_context);
+    if (status == ACTQL_OWNED_OK) record->read_parent_suspended = false;
+    return status;
 #else
     (void)record;
     return ACTQL_OWNED_INVALID;
@@ -866,5 +955,9 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_control_scope_clear(void) {
     return actql_native_owned_control_scope_clear();
 #endif
 }
+
+#include "root_control.inc"
+#include "working_origin.inc"
+#include "backed_domain_growth.inc"
 
 #include "command_platform_unavailable.h"

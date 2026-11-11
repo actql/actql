@@ -14,6 +14,16 @@ priv struct BroadPhysical {
 }
 
 ///|
+/// Borrow the SAME selected Broad receiver's window before physical allocation.
+#export_name("broadHostTransportWindow")
+pub fn broad_host_transport_window(
+  setup : @acquisition_host.BroadHostConfiguration,
+) -> (Int, Int) {
+  let limits = @acquisition_host.configured_broad_host_limits(setup).transport
+  (limits.max_rows, limits.max_bytes)
+}
+
+///|
 #export_name("broadHostCapacity")
 pub fn broad_host_capacity(
   setup : @acquisition_host.BroadHostConfiguration,
@@ -43,8 +53,8 @@ pub fn broad_strategy_host_open(
   release_confirmed : () -> Bool,
 ) -> BroadNodeRun raise NodeHostFailure {
   guard @acquisition_host.configured_broad_capacity(setup) is Some(capacity) &&
-    execution >= 0L &&
-    execution <= 9223372036854775807L - capacity.execution_bytes else {
+    @acquisition_host.configured_broad_physical_capacity(setup, execution)
+    is Some(physical) else {
     raise Physical(InvalidLimits)
   }
   let reservation = match
@@ -52,7 +62,8 @@ pub fn broad_strategy_host_open(
       ledger,
       transfer,
       capacity.retained_bytes,
-      execution + capacity.execution_bytes,
+      physical.execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
     Err(issue) => raise Physical(issue)
@@ -80,6 +91,20 @@ pub fn broad_strategy_host_open(
           dag: None,
         }),
       }
+  }
+}
+
+///|
+#export_name("broadHostPhysicalStart")
+pub fn broad_host_physical_start(
+  run : BroadNodeRun,
+) -> Unit raise NodeHostFailure {
+  guard run.physical is Some(p) && !p.closed else {
+    raise Physical(InvalidCharge)
+  }
+  match @resources.consume_reserved_attempt(p.ledger, p.reservation) {
+    Ok(_) => ()
+    Err(issue) => raise Physical(issue)
   }
 }
 

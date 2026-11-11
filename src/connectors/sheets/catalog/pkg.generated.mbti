@@ -28,6 +28,8 @@ pub fn classify_clear(Int, Bytes, String, GridRange, String, Limits) -> AppendOu
 
 pub fn clear_command_json(String, String, String, Limits) -> Result[String, RangeFailure]
 
+pub fn clear_marker_text_units() -> Int
+
 pub fn clear_range_construction_metadata(ClearRangeBinding) -> RangeConstructionMetadata
 
 pub fn clear_range_recovery_entry(ClearRangeBinding, String, Array[ClearRangeRequest]) -> Result[String, RangeFailure]
@@ -87,6 +89,8 @@ pub fn range_request_body_for(RangeBinding, RangeRequest) -> Result[String, Rang
 pub fn range_request_identity(RangeRequest) -> String
 
 pub fn range_request_json(RangeBinding, RangeRequest) -> Result[String, RangeFailure]
+
+pub fn range_saved_recovery_wire_byte_limit() -> Int
 
 pub fn range_target_matches(RangeBinding, String) -> Bool
 
@@ -188,6 +192,7 @@ pub struct RangeBinding {
   binding_cid : String
   target_wire : String
   limits : Limits
+  // private fields
 }
 
 pub(all) struct RangeConstructionMetadata {
@@ -195,6 +200,7 @@ pub(all) struct RangeConstructionMetadata {
   rows : Int
   name_units : Int64
   schema_bytes : Int64
+  identity_units : Int64
   origin_units : Int
   spreadsheet_units : Int
   target_units : Int
@@ -227,6 +233,7 @@ pub struct RangeRequest {
   path : String
   value_wire : String
   cid : String
+  // private fields
 }
 
 pub(all) struct RangeWriteConstructionBounds {

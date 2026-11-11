@@ -1,0 +1,175 @@
+{
+  "qualification": "Constructor DATA only; not whole Source, Writer, Environment or execution funding",
+  "declarations": [
+    {
+      "module": "src/decode_core/shallow_value_view_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "248d212796787d92b55ff675e2f748766b7b9fd065a81dcb8d9306f7f6b07898",
+      "role": "common-semantics",
+      "owner": "Existing Decode shallow-view and Stage admitted-source traversal constructors",
+      "exports": [],
+      "operations": [
+        {
+          "name": "shallow_value_view_construction_extent",
+          "declaration": "shallow_value_view_construction_extent ( array_items : Int , object_fields : Int , ) - > @ shape . CollectionConstructionExtent ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "shallow_value_view_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/stage_syntax/source_emission_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "38661a0c2eaaed64178868337f9d07c2e369330eab826c6d904b60343ff4d7e2",
+      "role": "common-semantics",
+      "owner": "Existing Decode shallow-view and Stage admitted-source traversal constructors",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admitted_source_emission_construction_extent",
+          "declaration": "admitted_source_emission_construction_extent ( nodes : Int , ) - > @ shape . CollectionConstructionExtent ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admitted_source_emission_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/stage_syntax/source-emission-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

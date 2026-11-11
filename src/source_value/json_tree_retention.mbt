@@ -10,13 +10,19 @@ pub fn json_index_borrowed_construction_extent(
   fields : Int,
   max_text_utf16_units : Int64,
   keep_spans~ : Bool,
+  string_nodes? : Int? = None,
 ) -> JsonConstructionExtent? {
   if nodes < 1 || fields < 0 || fields >= nodes || max_text_utf16_units < 0L {
     return None
   }
+  let values = string_nodes.unwrap_or(nodes)
+  if values < 0 || values > nodes {
+    return None
+  }
   let count = nodes.to_int64() + fields.to_int64()
+  let strings = values.to_int64() + fields.to_int64()
   Some({
-    record_headers: count + (if keep_spans { count } else { 0L }),
+    record_headers: strings + (if keep_spans { count } else { 0L }),
     reference_slots: if keep_spans {
       count
     } else {
@@ -36,12 +42,16 @@ pub fn json_index_borrowed_construction_extent(
 /// Node/Value2H3R2W and Field1H3R borrow the SAME String/Span family above.
 /// Container backing follows the existing shared Array constructor bound;
 /// this is a retained upper envelope, not a minimum or allocator measurement.
+/// Source trees keep spans by default. A caller projecting a proven span-free
+/// Host JSON value may omit only those Source-path/coordinate records; all
+/// original node/value/field/container and String quantities stay present.
 pub fn json_tree_retained_construction_extent(
   nodes : Int,
   fields : Int,
   objects : Int,
   arrays : Int,
   max_text_utf16_units : Int64,
+  keep_spans? : Bool = true,
 ) -> JsonConstructionExtent? {
   if objects < 0 || arrays < 0 || objects > nodes || arrays > nodes - objects {
     return None
@@ -50,7 +60,7 @@ pub fn json_tree_retained_construction_extent(
       nodes,
       fields,
       max_text_utf16_units,
-      keep_spans=true,
+      keep_spans~,
     )
     is Some(borrowed) else {
     return None

@@ -4384,7 +4384,7 @@
     {
       "module": "packages/sdk/check-reason-catalog.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "8ddd721b721a35aa8d6a3552072cf2556dabf9b9139b9308ad22a87c770b1d89",
+      "sha256": "b05301c22af08a972f00f64fa5f38a81250860ed076e88af8be144d79ac85256",
       "exports": [
         "getCheckReasonCatalogEntry",
         "getCheckReasonCatalogInfo",
@@ -6969,7 +6969,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -10413,7 +10413,7 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1bd0d2f032837127baca17a606e56a34bef4c5cff7e15c63738d80bc12bc54b3",
+      "sha256": "2adaf036d30e43cd4685d9232b0a0a81d0d253ae914f0312e33bdc96483d5e4b",
       "exports": [
         "captureSourcePreparation",
         "freezeInput",
@@ -10835,6 +10835,14 @@
               {
                 "path": "packages/sdk/source-preparation-submission.test.mjs",
                 "anchor": "selected Local Source rejects incomplete required methods before connect or caller access"
+              },
+              {
+                "path": "packages/sdk/private-source-preparation.test.mjs",
+                "anchor": "structural in-process wire ports gain no Source preparation while selected bindings stay strict"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "selected Local lifecycle cannot omit its same own preparation receiver before connect"
               }
             ]
           }
@@ -12353,7 +12361,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.mjs",
@@ -13699,7 +13707,7 @@
     {
       "module": "packages/sdk/internal/transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a9d9565bc16c46cef7dc10ede694a2a10677ed2576662cfeba2a8fa5eaa06a35",
+      "sha256": "25c1b0a3db023600248b50f79a2aaa949fe3947c6cb44cba4f80710acb2d0a6c",
       "exports": [
         "createTransport",
         "loadLoopbackTransport"
@@ -13819,6 +13827,10 @@
               {
                 "path": "packages/sdk/internal/transport.mjs",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
+              },
+              {
+                "path": "packages/sdk/internal/transport.mjs",
+                "anchor": "// A structural wire port is not selection of the builtin Local provider."
               }
             ],
             "inputsOutputs": [
@@ -13917,6 +13929,10 @@
               {
                 "path": "packages/sdk/named-submission.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/private-source-preparation.test.mjs",
+                "anchor": "structural in-process wire ports gain no Source preparation while selected bindings stay strict"
               }
             ]
           }

@@ -95,7 +95,8 @@ fn client_local_owner_sequence_limits(
   match value {
     Pure(prepared) =>
       @publication_host.prepared_client_values_sequence_limits(prepared)
-    Effect(_) => @publication_host.client_standard_values_sequence_limits()
+    Effect(prepared) =>
+      @publication_host.prepared_client_effect_sequence_limits(prepared)
   }
 }
 
@@ -555,7 +556,7 @@ fn prepare_client_query_acquisition_prefix(
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
   )? = None,
-) -> @execution.GeneratedSequence? {
+) -> (@execution.GeneratedSequence, @sourceviews.QueryAcquisition)? {
   let query = match (prepared, query_time) {
     (Pure(value), Some((original, request))) =>
       @publication_host.prepare_client_query_acquisition_at_query_time(
@@ -592,6 +593,7 @@ fn prepare_client_query_acquisition_prefix(
   )
   .to_option()
   .bind(sequences => sequences.get(0))
+  .map(sequence => (sequence, query))
 }
 
 ///|
@@ -689,10 +691,8 @@ fn prepare_client_local_sequences_owned(
   let generated = []
   let composed_boundaries = match prepared {
     Effect(value) =>
-      match @publication_host.prepared_client_effect_infer_occurrence(value) {
-        Some(occurrence) => [occurrence]
-        None => []
-      }
+      @publication_host.prepared_client_effect_infer_occurrences(value).unwrap_or([],
+      )
     Pure(value) =>
       @publication_host.prepared_client_composed_infer_occurrences(value).unwrap_or([],
       )
@@ -916,9 +916,24 @@ fn prepare_client_local_sequences_owned(
           // evaluates the whole capture at once (up to 500 KB, the most one
           // acquisition captures), while a compute stage keeps one
           // evaluation's bound so several tasks fit the Run's budget.
+          // Compute uses the same finite row/measurement profile as its
+          // installed consumer. Acquisition keeps its independently selected
+          // query guard; neither path obtains storage or an execution grant.
+          let value_bytes = if acquiring {
+            10000
+          } else {
+            let (values, _, measurement) = client_local_execution_limits()
+            Int::min(
+              client_local_import_limits_for_rows(
+                client_local_default_row_profile(),
+                values,
+              ).row.max_bytes,
+              measurement.max_bytes,
+            )
+          }
           let logical : @lower.FragmentRowLimits = {
             max_input_rows: fragment_rows,
-            max_value_bytes: 10000L,
+            max_value_bytes: value_bytes.to_int64(),
             max_live_value_bytes: if acquiring {
               500000L
             } else {
@@ -931,8 +946,26 @@ fn prepare_client_local_sequences_owned(
             @lower.prepare_fragment_request(
               fragment,
               fragment_rows,
-              10000L,
-              row_limits=if ordered { Some(logical) } else { None },
+              if acquiring {
+                value_bytes.to_int64()
+              } else {
+                local_materialization_policy.relation_wire_bytes.to_int64()
+              },
+              row_limits=if ordered {
+                Some(
+                  if acquiring {
+                    logical
+                  } else {
+                    {
+                      ..logical,
+                      max_value_bytes: local_materialization_policy.relation_wire_bytes.to_int64(),
+                      max_live_value_bytes: local_materialization_policy.execution_bytes,
+                    }
+                  },
+                )
+              } else {
+                None
+              },
             ) {
             Ok(value) => value
             Err(_) => return Err(Unsupported)

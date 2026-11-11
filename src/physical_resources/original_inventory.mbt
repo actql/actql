@@ -27,7 +27,7 @@ priv struct LedgerOriginalInventory {
   holdings : OriginalTokenSlots[Holding]
   delegations : OriginalTokenSlots[ExecutionDelegation]
   // Counts only SAME original live holdings, never consumed work/attempts.
-  mut holding_counts : Map[Int, Int]
+  mut holding_counts : Map[OriginalTokenSerial, Int]
   // One checked Run binding may be installed after preparation, before reads.
   // The same scalar also selects existing bootstrap settlement custody. A
   // preparation census never becomes an independent owner of its reservation.
@@ -366,8 +366,9 @@ fn record_original_holding(ledger : Ledger, value : Holding) -> Unit {
   if ledger.original_inventory is Some(inventory) {
     record_original_non_preparation_token(inventory)
     inventory.holdings.push(value, value.serial)
-    inventory.holding_counts[value.reservation_serial] = inventory.holding_counts
-      .get(value.reservation_serial)
+    let key = OriginalTokenSerial(value.reservation_serial)
+    inventory.holding_counts[key] = inventory.holding_counts
+      .get(key)
       .unwrap_or(0) +
       1
   }
@@ -389,7 +390,10 @@ fn retire_original_reservation(ledger : Ledger, value : Reservation) -> Unit {
   if ledger.original_inventory is Some(inventory) {
     // A retained output still requires the original closed reservation binding.
     // This is live custody, unlike an expired identity retained only as history.
-    if inventory.holding_counts.get(value.serial).unwrap_or(0) != 0 {
+    if inventory.holding_counts
+      .get(OriginalTokenSerial(value.serial))
+      .unwrap_or(0) !=
+      0 {
       return
     }
     inventory.reservations.remove_original(value.serial, value) |> ignore
@@ -402,15 +406,13 @@ fn retire_original_holding(ledger : Ledger, value : Holding) -> Unit {
     if !inventory.holdings.remove_original(value.serial, value) {
       return
     }
-    let remaining = inventory.holding_counts
-      .get(value.reservation_serial)
-      .unwrap_or(0) -
-      1
+    let key = OriginalTokenSerial(value.reservation_serial)
+    let remaining = inventory.holding_counts.get(key).unwrap_or(0) - 1
     if remaining > 0 {
-      inventory.holding_counts[value.reservation_serial] = remaining
+      inventory.holding_counts[key] = remaining
       return
     }
-    inventory.holding_counts.remove(value.reservation_serial)
+    inventory.holding_counts.remove(key)
     if inventory.reservations.by_serial(value.reservation_serial)
       is Some(reservation) &&
       !reservation.open {

@@ -4,6 +4,7 @@ import {mkdir, mkdtemp, readFile, readdir, writeFile} from
   'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {packedClientPackage} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -22,10 +23,11 @@ function run(command, args, cwd) {
   return result.stdout;
 }
 
-run('npm', ['pack', '--pack-destination', installation, '--json'],
-  join(repository, 'packages/run-host-core'));
-run('npm', ['pack', '--pack-destination', installation, '--json'],
-  join(repository, 'packages/client-wire'));
+for (const name of ['run-host-core', 'client-wire']) {
+  await packedClientPackage({repository, name, destination: installation,
+    pack: selected => run('npm', ['pack', '--pack-destination', installation, '--json'],
+      join(repository, 'packages', selected))});
+}
 await writeFile(join(installation, 'package.json'),
   '{"private":true,"type":"module"}\n');
 run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
@@ -71,7 +73,7 @@ const {installResultAccessAuthority} = resultAccess;
 const {exerciseResultDeliveryAcceptance} =
   await import('./result-delivery-acceptance.mjs');
 assert.equal((await exerciseResultDeliveryAcceptance(resultAccess,
-  openResultDeliveryControl)).length, 6);
+  openResultDeliveryControl)).length, 7);
 assert.equal(typeof installResultAccessAuthority, 'function');
 assert.equal(openResultDeliveryControl()
   .beginResultAccessProgress().kind, 'result-access-progress');

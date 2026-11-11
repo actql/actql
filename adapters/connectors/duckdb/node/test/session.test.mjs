@@ -527,3 +527,23 @@ test('another process holding the source lock fails without capture and releases
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+
+test('optional native metadata receiver observes an empty cursor after its actual charge', async () => {
+  const events = [];
+  let charged = 0;
+  const result = await withComputeDatabase(limits, async session => {
+    await session.command('SELECT 1::INTEGER AS id LIMIT 0', [], () => assert.fail('No row batch'),
+      false, 'ordinary', fields => {
+        assert(charged > 0);
+        assert.deepEqual(fields, [{name: 'id', type: {id: 'INTEGER'}}]);
+        events.push('metadata');
+      });
+  }, undefined, {started() {events.push('started');}, chargeTransfer(bytes) {charged += bytes;},
+    settled(confirmed) {events.push(confirmed ? 'stopped' : 'pending');}});
+  assert.equal(charged, result.usage.transportBytes);
+  assert.deepEqual(events, ['started', 'metadata', 'stopped']);
+  await assert.rejects(withComputeDatabase(limits, session => session.command(
+    'SELECT 1::INTEGER AS id LIMIT 0', [], discard, false, 'ordinary', () => {throw new Error('MetadataRefused');})),
+  /MetadataRefused/);
+});

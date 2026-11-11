@@ -6,9 +6,12 @@ import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixture.mjs';
+import {nativeEffectReviewFixture} from './fixtures/native-effect-review-fixture.mjs';
 import {nativeEffectCheckpointReplyFixture} from './fixtures/native-effect-checkpoint-server.mjs';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
+import {failedCoreDriver, diagnoseFailedCoreDriver, observeCoreChildProgress} from './native-compiler-stop-diagnostic.mjs';
+import {redactCommandEvidence} from './packed-query-evidence.mjs';
 const residentMappedCreate = process.argv.includes('--resident-original-mapped-create-write');
 const residentApprovedRow = residentMappedCreate || process.argv.includes('--resident-approved-row-write');
 const adoptedInitialHost = process.argv.includes('--adopted-initial-host-attestation');
@@ -22,12 +25,26 @@ const residentEffectRuntimeCapture = process.argv.includes('--resident-effect-ru
 const residentProposals = residentPreview || residentEffectRuntimeCapture || process.argv.includes('--resident-proposals');
 const coreIndex = process.argv.indexOf('--core-test-json');
 const coreArgs = coreIndex < 0 ? undefined : JSON.parse(process.argv[coreIndex + 1]);
+const countIndex = process.argv.indexOf('--core-test-count');
+const coreExpectedTests = countIndex < 0 ? undefined : Number(process.argv[countIndex + 1]);
+assert(coreExpectedTests === undefined || (coreArgs !== undefined &&
+  Number.isSafeInteger(coreExpectedTests) && coreExpectedTests > 0), 'Invalid Native core test count');
 assert(!directLocalClaimCustody || (!originalLocalReview && !residentProposals && coreArgs === undefined),
   'Direct Local claim custody requires its own finite fixture selection');
 if (coreArgs !== undefined) {
   assert(Array.isArray(coreArgs) && coreArgs.every(arg => typeof arg === 'string') && !residentProposals,
     'Invalid Native core fixture invocation');
 }
+const corePartition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
+assert(!corePartition || coreArgs !== undefined && (corePartition === '1/2' || corePartition === '2/2'),
+  'Native Core partition requires its original selected case inventory');
+// The unchanged write-oracle package belongs to exactly one ordinary
+// partition. Its sibling retains the same peer but must make zero requests.
+const coreTargetOracle = !corePartition ||
+  coreArgs.includes('src/platform_native/salesforce_effect_preview/native_test');
+// The complete file has two authored successful Provider observations: the
+// proposal case and Checkpoint custody. Its revoked-permission case sends none.
+const completeRetainedProposals = residentProposals && !residentPreview && !residentEffectRuntimeCapture;
 
 const scratch = process.env.ACTQL_TEST_SCRATCH_ROOT ?? (coreArgs === undefined ? undefined :
   join(process.cwd(), '_build', 'native-core-physical'));
@@ -49,14 +66,10 @@ openssl('x509', '-req', '-in', 'server.csr', '-CA', 'ca.crt', '-CAkey',
 await writeFile(join(root, 'credential.secret'), 'native-target-test\n',
   {mode: 0o600});
 const paths = [];
-let resolutionRequests = 0;
+const reviewFixture = nativeEffectReviewFixture('Bearer native-target-test');
 let localRejectionRequests = 0;
 let writes = 0;
 let rejectedWrites = 0;
-let reviewUploads = 0;
-let checkpointReportRequests = 0;
-let checkpointReportWire;
-const reviewUploadBodies = [];
 const writeBodies = [];
 const effectCurrentReports = [];
 const expected = '/services/data/v66.0/sobjects/ActQL_Test_Record__c/';
@@ -89,6 +102,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     request.on('data', chunk => {bytes += chunk.length; if (bytes > 65536) request.destroy(); else chunks.push(chunk);});
     request.on('end', async () => {
       try {
+        const {checkpointReportRequests, checkpointReportWire} = reviewFixture.facts();
         assert.equal(checkpointReportRequests, 2);
         assert.notEqual(checkpointReportWire, undefined);
         const body = Buffer.concat(chunks);
@@ -116,65 +130,7 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
     });
     return;
   }
-  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-review-report') {
-    if (request.headers.authorization !== 'Bearer native-target-test' ||
-        request.headers['content-type'] !== 'application/json') {
-      response.writeHead(403); response.end(); return;
-    }
-    const chunks=[]; let bytes=0;
-    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>65536)request.destroy();else chunks.push(chunk);});
-    request.on('end',()=>{
-      try {
-        const wire=Buffer.concat(chunks).toString('utf8');
-        checkpointReportWire ??= wire;
-        if(wire!==checkpointReportWire){response.writeHead(409);response.end();return;}
-        const reply=nativeEffectCheckpointReplyFixture(wire);
-        checkpointReportRequests++;
-        // Bare HTTP success cannot discharge the journal's report custody.
-        // The next explicit retry obtains a fixture typed receipt, not a
-        // production Cloud Owner commit or Effect approval.
-        response.writeHead(200,{'content-type':'application/json'});
-        response.end(checkpointReportRequests===1?'{}':reply);
-      } catch {response.writeHead(422);response.end();}
-    });
-    return;
-  }
-  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-review') {
-    if (request.headers.authorization !== 'Bearer native-target-test' ||
-        request.headers['content-type'] !== 'application/json' ||
-        !/^sha256:[a-f0-9]{64}$/.test(request.headers['actql-dispatch-cid'] ?? '')) {
-      response.writeHead(403); response.end(); return;
-    }
-    const chunks=[]; let bytes=0;
-    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>65536)request.destroy();else chunks.push(chunk);});
-    request.on('end',()=>{
-      assert.equal(checkpointReportRequests,2,'Artifact upload preceded the original typed report receipt');
-      const body=Buffer.concat(chunks).toString('utf8');
-      reviewUploadBodies.push({dispatchCid:request.headers['actql-dispatch-cid'],
-        byteLength:bytes,bodySha256:createHash('sha256').update(Buffer.concat(chunks)).digest('hex')});
-      reviewUploads++;
-      // First response is uncertain from the Site's perspective. The caller
-      // retries its same owned bytes; no approval/report ACK is synthesized.
-      response.writeHead(reviewUploads===1?503:204); response.end();
-    });
-    return;
-  }
-  if (residentOriginalHolder && request.method === 'POST' && request.url === '/fixture/effect-resolution') {
-    if (request.headers.authorization !== 'Bearer native-target-test') {
-      response.writeHead(403); response.end(); return;
-    }
-    const chunks=[];let bytes=0;
-    request.on('data',chunk=>{bytes+=chunk.length;if(bytes>262144)request.destroy();else chunks.push(chunk);});
-    request.on('end',()=>{
-      try {
-        const fixture=nativeResolutionFixture(Buffer.concat(chunks).toString('utf8'));
-        resolutionRequests++;
-        response.writeHead(200,{'content-type':'application/json'});
-        response.end(JSON.stringify(fixture));
-      } catch {response.writeHead(422);response.end();}
-    });
-    return;
-  }
+  if (residentOriginalHolder && reviewFixture.handle(request, response)) return;
   if (request.method === 'PATCH' &&
       [expected + '001000000000001', expected + '001000000000002',
         expected + '001000000000003'].includes(request.url)) {
@@ -364,14 +320,55 @@ try {
       : residentPreview ? ['--filter', 'Native retained consumer*']
       : residentEffectRuntimeCapture ? ['--filter', 'Effect retained consumer completes through Runtime*'] : [])]
     : ['--target', 'native', ...coreArgs];
+  const compilerDriver = coreArgs !== undefined && process.platform === 'darwin' &&
+      process.env.ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC === '1'
+    ? failedCoreDriver(process.cwd(), process.env.MOON_HOME) : undefined;
+  // The full Core child includes cold Native compilation and every selected
+  // test. Its finite budget is separate from the ordinary fixture oracles.
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
-    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 3600000) +
+    ", expectedTests: " + JSON.stringify(coreExpectedTests) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
 
-  {env: testEnv, stdio: 'inherit'});
+  {env: testEnv, stdio: compilerDriver ? ['inherit', 'pipe', 'pipe'] : 'inherit'});
+  if (compilerDriver) {
+    child.stdout.on('data', chunk => {
+      process.stdout.write(chunk);
+      compilerDriver.write(chunk, 'stdout');
+    });
+    child.stderr.on('data', chunk => {
+      process.stderr.write(chunk);
+      compilerDriver.write(chunk, 'stderr');
+    });
+  }
+  // This observer reads only the original live process tree. Keep buffered
+  // nonzero-test evidence and all selected tests/deadlines unchanged.
+  const stopProgress = compilerDriver
+    ? observeCoreChildProgress(child, {root: process.cwd()}) : () => {};
   const [code, signal] = await once(child, 'close');
+  stopProgress();
   child = undefined;
+  if (compilerDriver) {
+    // Child close drains its pipes, not our forwarded writes. Flush those
+    // before a failure assertion can terminate this owner with queued tails.
+    await Promise.all([process.stdout, process.stderr].map(stream =>
+      new Promise(resolve => stream.write('', resolve))));
+  }
+  if (code !== 0 && compilerDriver) {
+    let diagnostic;
+    try {
+      diagnostic = diagnoseFailedCoreDriver({driver: compilerDriver, root: process.cwd(),
+        namespace: root, env: testEnv});
+    } catch {
+      // A failed observation must never replace the original test failure.
+      diagnostic = {attempted: true, cause: 'unobserved', cleanup: 'unobserved'};
+    }
+    console.error('ACTQL_COMPILER_FAILURE_DIAGNOSTIC ' +
+      redactCommandEvidence(JSON.stringify(diagnostic), testEnv));
+  }
+  const {resolutionRequests, reviewUploads, checkpointReportRequests,
+    checkpointReportWire, reviewUploadBodies} = reviewFixture.facts();
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
     code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests, localRejectionRequests, reviewUploads, reviewUploadBodies,
     effectCurrentReports,
@@ -400,9 +397,9 @@ try {
       ? 'Actual retained Native consumer -> physical HTTPS target observation -> checked Preview plan -> computation capture and encrypted Store custody; live Ledger retained; no waiting, approval, apply or Cloud'
       : 'Native HTTPS target observation, signed credential admission and exact bounded Provider write transport; no signed Effect approval, Effect Ledger, Source capture, whole Preview or Cloud apply'}, null, 2) + '\n');
   assert.equal(code, 0, `Native target observation failed: ${signal ?? code}`);
-  const expectedWrites = residentProposals || originalLocalReview || directLocalClaimCustody ? 0 : 2;
+  const expectedWrites = residentProposals || originalLocalReview || directLocalClaimCustody || !coreTargetOracle ? 0 : 2;
   assert.equal(writes, expectedWrites);
-  assert.equal(rejectedWrites, residentProposals || originalLocalReview || directLocalClaimCustody ? 0 : 1);
+  assert.equal(rejectedWrites, residentProposals || originalLocalReview || directLocalClaimCustody || !coreTargetOracle ? 0 : 1);
   assert.deepEqual(writeBodies, Array(expectedWrites).fill('{"Optional_Value__c":"new"}'));
   assert.equal(resolutionRequests,residentOriginalHolder?1:0);
   assert.equal(reviewUploads,residentOriginalHolder?6:0);
@@ -425,11 +422,11 @@ try {
     assert.deepEqual(paths, []);
   } else if (residentProposals) {
     assert.deepEqual(paths, []);
-    assert.deepEqual(bearer.effectTargets(), {reads: residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
+    assert.deepEqual(bearer.effectTargets(), {reads: completeRetainedProposals ? 2 : residentMappedCreate || residentEffectRuntimeCapture ? 0 : 1, writes: residentApprovedRow ? 1 : 0});
     assert.equal(bearer.effectTargetValue(), residentApprovedRow && !residentMappedCreate ? 3 : 7);
     if (residentMappedCreate) assert.deepEqual(bearer.effectCreatedValues(),
       [{Id: '001000000000001AAA', Count__c: 3}]);
-  } else {
+  } else if (coreTargetOracle) {
     assert.deepEqual(paths.filter(value => value.method === 'GET'), [
       {method: 'GET', path: expected + '001000000000001'},
       {method: 'GET', path: expected + '001000000000001'},
@@ -440,6 +437,8 @@ try {
       {method: 'PATCH', path: expected + '001000000000002'},
       {method: 'PATCH', path: expected + '001000000000003'},
     ]);
+  } else {
+    assert.deepEqual(paths, []);
   }
   console.log(`Native Salesforce target observation receipt: ${join(root, 'physical-receipt.json')}`);
 } finally {

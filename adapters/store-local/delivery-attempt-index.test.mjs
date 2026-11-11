@@ -88,6 +88,32 @@ test('a rejected stale physical generation does not settle its pending preparati
   assert.deepEqual(index.physicalObject(original.cid), successor);
 });
 
+test('selected prior physical originals exclude new and retired-then-restored lifetime generations', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-prior-physical-generation-'));
+  const path = join(directory, 'index.sqlite3');
+  const options = {maxEntries: 4, maxWireBytes: 4096};
+  const original = {cid: 'sha256:' + '1'.repeat(64), byte_count: 13, device: '1', inode: '2'};
+  const untouched = {...original, cid: 'sha256:' + '2'.repeat(64), inode: '3'};
+  const fresh = {...original, cid: 'sha256:' + '3'.repeat(64), inode: '4'};
+  let index = await openDeliveryAttemptIndex(path, {...options, create: true});
+  t.after(async () => {index.close(); await rm(directory, {recursive: true});});
+  index.migratePhysicalObjects([original, untouched]); index.migrate([]);
+  assert.equal(index.physicalObject(original.cid, {priorLifetime: true}), undefined);
+  index.close();
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.deepEqual(index.physicalObject(original.cid, {priorLifetime: true}), original);
+  index.beginPhysicalObjectLifetime();
+  index.recordPhysicalObjects([fresh]);
+  assert.equal(index.physicalObject(fresh.cid, {priorLifetime: true}), undefined);
+  index.removePhysicalObjects([original]);
+  index.recordPhysicalObjects([original]);
+  assert.deepEqual(index.physicalObject(original.cid), original);
+  assert.equal(index.physicalObject(original.cid, {priorLifetime: true}), undefined,
+    'restoring equal DATA cannot restore the prior closed allocation generation');
+  assert.deepEqual(index.physicalObject(untouched.cid, {priorLifetime: true}), untouched,
+    'unrelated current changes do not erase the untouched opening original');
+});
+
 test('quota recovery preserves the original pending preparation for the next owned lifetime', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-native-recovery-'));
   const path = join(directory, 'index.sqlite3');

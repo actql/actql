@@ -128,6 +128,7 @@ import {
 options(
   targets: {
     "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+    "row_stream_current_js_wbtest.mbt": [ "js" ],
   },
   link: {
     "native": {

@@ -18,6 +18,16 @@ priv struct NativePhysical {
 }
 
 ///|
+/// The selected receiver's batch window is DATA, not cumulative read capacity.
+#export_name("nativeHostTransportWindow")
+pub fn native_host_transport_window(
+  setup : @acquisition_host.NativeHostConfiguration,
+) -> (Int, Int) {
+  let limits = @acquisition_host.configured_native_host_limits(setup).transport
+  (limits.max_rows, limits.max_bytes)
+}
+
+///|
 #export_name("nativeHostCapacity")
 pub fn native_host_capacity(
   setup : @acquisition_host.NativeHostConfiguration,
@@ -131,6 +141,7 @@ fn open_native_physical(
       transfer,
       capacity.retained_bytes + file_bytes,
       execution + capacity.execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
     Err(issue) => raise Physical(issue)
@@ -185,6 +196,22 @@ fn open_native_physical(
         }),
       }
     }
+  }
+}
+
+///|
+#export_name("nativeHostPhysicalStart")
+pub fn native_host_physical_start(
+  run : NativeNodeRun,
+) -> Unit raise NodeHostFailure {
+  guard run.physical is Some(p) && !p.closed else {
+    raise Physical(InvalidCharge)
+  }
+  // The same reservation accounts for the actual resource-start boundary.
+  // This notice grants neither dispatch permission nor a cleanup acknowledgement.
+  match @resources.consume_reserved_attempt(p.ledger, p.reservation) {
+    Ok(_) => ()
+    Err(issue) => raise Physical(issue)
   }
 }
 

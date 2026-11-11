@@ -54,6 +54,7 @@ priv enum ComputationEvidencePhase {
 struct ComputationEvidenceCheck {
   mut inputs : ComputationEvidenceInputs?
   mut retained_capture : CapturedRunIssuancePreparation?
+  mut retained_snapshots : Array[CapturedResultSnapshot?]?
   max_workspace : Int
   mut prelude : ComputationEvidencePrelude?
   mut values : @json.CanonicalValue?
@@ -74,6 +75,7 @@ fn start_computation_evidence_check(
   {
     inputs: Some(inputs),
     retained_capture: None,
+    retained_snapshots: None,
     max_workspace,
     prelude: None,
     values: None,
@@ -332,9 +334,26 @@ fn ComputationEvidenceCheck::step(
         Ok((done, _)) => {
           self.peak = Int::max(self.peak, self.live + child.peak)
           if done {
-            // No snapshot transfer is required for validation. Retire the child
-            // before releasing the field array it borrowed from this owner.
-            child.cancel()
+            match self.retained_snapshots {
+              None => child.cancel()
+              Some(snapshots) => {
+                // SAME checked rows are borrowed from the original captured
+                // contract. Fund the transferred snapshot/field inventory
+                // before finish; no second parse or Result execution occurs.
+                match self.reserve(12 + child.fields.length()) {
+                  Err(issue) => return Err(issue)
+                  Ok(_) => ()
+                }
+                let snapshot = match child.finish() {
+                  Ok(value) => value
+                  Err(_) =>
+                    return Err(
+                      EvidenceReferenceMismatch("captured_result_values"),
+                    )
+                }
+                snapshots[index] = Some(snapshot)
+              }
+            }
             self.live -= self.fields.length()
             self.fields.clear()
             self.phase = Artifact(index + 1)
@@ -437,6 +456,10 @@ pub fn ComputationEvidenceCheck::cancel(
   }
   self.inputs = None
   self.retained_capture = None
+  if self.retained_snapshots is Some(snapshots) {
+    snapshots.clear()
+  }
+  self.retained_snapshots = None
   self.prelude = None
   self.values = None
   self.field_inventory = None
@@ -444,4 +467,40 @@ pub fn ComputationEvidenceCheck::cancel(
   self.fields.clear()
   self.phase = Done
   self.live = 0
+}
+
+///|
+// Opt-in transfer only after the SAME complete validator succeeds. The exact
+// pre-sized slots cannot grow or escape on a failed later suffix validation.
+fn ComputationEvidenceCheck::retain_result_snapshots(
+  self : ComputationEvidenceCheck,
+) -> Result[Unit, RunEvidenceChainIssue] {
+  guard !self.closed && self.phase is Prelude && self.inputs is Some(inputs) else {
+    return Err(EvidenceEncoding)
+  }
+  match self.reserve(2 + inputs.artifacts.length()) {
+    Err(issue) => {
+      self.cancel()
+      return Err(issue)
+    }
+    Ok(_) => ()
+  }
+  self.retained_snapshots = Some(Array::make(inputs.artifacts.length(), None))
+  Ok(())
+}
+
+///|
+fn ComputationEvidenceCheck::finish_result_snapshots(
+  self : ComputationEvidenceCheck,
+) -> Result[Array[CapturedResultSnapshot?], RunEvidenceChainIssue] {
+  guard !self.closed &&
+    self.phase is Done &&
+    self.retained_snapshots is Some(snapshots) &&
+    !(self.retained_capture is Some(original) && original.closed) else {
+    self.cancel()
+    return Err(EvidenceEncoding)
+  }
+  self.retained_snapshots = None
+  self.cancel()
+  Ok(snapshots)
 }

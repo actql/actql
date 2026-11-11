@@ -21,6 +21,8 @@ pub fn checked_record_rows(CheckedRecordPage) -> Array[Array[@value_admission.Ch
 
 pub fn checked_record_settings(CheckedRecordPage) -> AppNumberSettings?
 
+pub fn form_construction_geometry(FormFieldCatalog) -> FormConstructionGeometry?
+
 pub fn form_field_count(FormFieldCatalog) -> Int
 
 pub fn form_field_definition_matches(FormFieldCatalog, FormFieldCatalog, Array[String]) -> Bool
@@ -92,6 +94,8 @@ pub fn project_record_page(Bytes, FormFieldCatalog, Array[String], RecordPageLim
 pub fn project_record_update_acknowledgement(RecordUpdateRequest, Int, Bytes, RecordMutationLimits) -> Result[RecordUpdateAcknowledgement, RecordMutationIssue]
 
 pub fn project_record_update_effect_outcome(RecordUpdateRequest, RecordUpdateAcknowledgement, RecordMutationLimits) -> Result[RecordUpdateEffectOutcome, RecordMutationIssue]
+
+pub fn recheck_original_record_form(FormFieldCatalog, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
 
 pub fn recheck_record_create_form(RecordCreateRequest, Bytes, FormFieldLimits) -> Result[Unit, RecordMutationIssue]
 
@@ -225,6 +229,8 @@ pub fn record_write_values_body(RecordWriteValues) -> String
 
 pub fn record_write_values_fields(RecordWriteValues) -> Array[String]
 
+pub fn record_write_values_json(RecordWriteValues, Int, Int, Int) -> Result[String, RecordWriteJsonIssue]
+
 pub fn record_write_values_match_catalog(RecordWriteValues, FormFieldCatalog) -> Bool
 
 pub fn require_form_unique_key(FormFieldCatalog, String) -> Result[FormFieldMetadata, FormFieldIssue]
@@ -234,6 +240,8 @@ pub fn restore_record_create_request(FormFieldCatalog, Array[RecordWriteValues],
 pub fn restore_record_create_request_json(FormFieldCatalog, Bytes, String, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
 
 pub fn restore_record_create_request_proposal(FormFieldCatalog, Bytes, String, Int, RecordWriteLimits, RecordMutationLimits) -> Result[RecordCreateRequest, RecordCreateJsonIssue]
+
+pub fn selected_form_construction_geometry(FormFieldCatalog, Array[String]) -> SelectedFormConstructionGeometry?
 
 // Errors
 
@@ -250,6 +258,12 @@ pub struct AppNumberSettings {
 pub struct CheckedRecordPage {
   // private fields
 }
+
+pub(all) struct FormConstructionGeometry {
+  fields : Int
+  path_slots : Int64
+  max_path_depth : Int
+} derive(Eq, @debug.Debug)
 
 pub struct FormFieldCatalog {
   app_id : String
@@ -523,6 +537,14 @@ pub(all) struct RecordWriteLimits {
 pub struct RecordWriteValues {
   // private fields
 }
+
+pub(all) struct SelectedFormConstructionGeometry {
+  fields : Int
+  tables : Int
+  max_children : Int
+  max_code_units : Int
+  code_units : Int64
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

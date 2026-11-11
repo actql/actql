@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
-import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
+import {checkpointApprovalFacts,recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
 
 // Composition-only fixtures. These exercise the original owner's synchronous
 // assertion across real adapter awaits; they do not prove runtime admission,
@@ -21,6 +21,48 @@ const pause = value => {
   return {entered: entered.promise, release: released.resolve,
     async run() { entered.resolve(); await released.promise; return value; }};
 };
+
+// Explicit original Plan/Request ports for the composition-only computation
+// cases below. These preserve identity through the current entrance and stop
+// at the authored await/refusal; they supply no actual runtime funding or Host.
+function managedComposition(acquired, count) {
+  const prepared = acquired.prepared, request = {}, managedRun = {}, operationPlan = {},
+    requirement = {}, selected = {}, ledger = {}, preparedSource = {}, capacity = {};
+  const budget = Object.freeze({managedRun, capacity, transferBytes: 17n, executionBytes: 19n});
+  const same = (parent, actual, identity) => {
+    assert.strictEqual(parent, managedRun); assert.strictEqual(actual, prepared); assert.strictEqual(identity, request);
+  };
+  const moon = {
+    clientProgramEffectAcquisitionCount(actual) {assert.strictEqual(actual, prepared); return count;},
+    clientProgramEffectDirectSourceCoordinates(actual) {assert.strictEqual(actual, prepared);
+      return ok(Array.from({length: count}, (_, index) => [index, 0, index, index]));},
+    clientProgramInstalledEffectManagedOperationPlan(parent, actual, identity) {
+      assert.strictEqual(this, moon); same(parent, actual, identity); return ok(operationPlan);
+    },
+    clientProgramInstalledEffectManagedHostOpen() {assert.fail('Authored refusal cannot reach a Compute Host');},
+    clientProgramSelectInstalledEffectSourceInput(actual, identity, task, input) {
+      assert.strictEqual(actual, prepared); assert.strictEqual(identity, request);
+      assert.equal(count, 1); assert.deepEqual([task, input], [0, 0]); return ok(selected);
+    },
+    clientProgramSelectedSourceInputKind(actual) {assert.strictEqual(actual, selected); return 'query';},
+    clientProgramSelectedSourceInputRef(actual) {assert.strictEqual(actual, selected); return 'fixture';},
+    clientProgramInstalledEffectManagedPlanSource(plan, task) {
+      assert.strictEqual(plan, operationPlan); assert.equal(count, 1); assert.equal(task, 0);
+      return ok({_0: {}, _1: requirement, _2: {}, _3: capacity});
+    },
+    clientProgramQueryRequirementSourceRef(actual) {assert.strictEqual(actual, requirement); return 'fixture';},
+    clientProgramInstalledEffectManagedRunPrepareLedger(parent, actual, identity, capacities, transfer, execution) {
+      same(parent, actual, identity); assert.deepEqual(capacities, [capacity]);
+      assert.deepEqual(transfer, [budget.transferBytes]); assert.deepEqual(execution, [budget.executionBytes]);
+      return ok(ledger);
+    },
+    clientProgramMultiCapturedLedgerUsage(actual) {
+      assert.strictEqual(actual, ledger); return undefined; // No measured Resource DATA in this composition fixture.
+    },
+  };
+  return {managedRun, acquired: {...acquired, requestIdentity: request}, moon, preparedSource,
+    ledgerCapacity(actual) {assert.strictEqual(actual, preparedSource); return budget;}};
+}
 
 function fixture({restoring, selected = true} = {}) {
   let originalCurrent = true, runCurrent = true, claimCurrent = true;
@@ -70,7 +112,9 @@ function fixture({restoring, selected = true} = {}) {
     clientProgramSourceCaptureExportRows: () => [],
     clientProgramRestoreSourceCapture(...args) { captureCurrent = args[8]; return ok({}); },
     clientProgramSourceCaptureSource: () => 'source',
-    clientProgramIdentifyCapturedEffectSourceRelation: () => ok('identity'),
+    clientProgramIdentifyQueryCapturedEffectSourceRelation(source, requirement) {
+      assert.equal(source, 'source'); assert.equal(requirement, 'requirement'); return ok('identity');
+    },
     clientProgramEffectIssueCapturedSourceLogicalAt: () => ok('logical'),
     clientProgramCloseSourceCapture() { calls.push('capture-close'); return true; },
   };
@@ -250,11 +294,11 @@ test('Model prime refusal preserves its original token for cleanup', async () =>
   let current = true, custody, released;
   const token = {snapshot: {}}, record = {inventory: {taskIndex: 0}};
   const paused = pause(token);
+  const ports = managedComposition({prepared: {}, runDefinition: {},
+    control: {runDefinitionRunId: () => 'run'}}, 0);
   const result = openAcquiredEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount: () => 0,
-      clientProgramInferPlanBoundary: () => ({_0: 0})},
-    acquired: {prepared: {}, runDefinition: {},
-      control: {runDefinitionRunId: () => 'run'}},
+    moon: Object.assign(ports.moon, {clientProgramInferPlanBoundary: () => ({_0: 0})}),
+    managedRun: ports.managedRun, acquired: ports.acquired,
     infer: {graph: {}, observeAccount: () => ({})},
     retainComputationOwner(value) { custody = value; },
     assertUpdateSelectionCurrent() { if (!current) throw changed(); },
@@ -295,18 +339,19 @@ for (const boundary of ['prepare', 'open', 'evidence']) {
     const captured = {checkedSource: {sourceDataPolicyCid: 'policy'},
       async issueSourceEvidence() { calls.push('evidence'); return 'evidence'; },
       async close() { calls.push('close'); }};
+    const ports = managedComposition({prepared: {}}, 1);
     const adapter = {admitsSource: () => true,
-      async prepare() { calls.push('prepare'); return {}; },
+      ledgerCapacity: ports.ledgerCapacity,
+      async prepare() { calls.push('prepare'); return ports.preparedSource; },
       async open() { calls.push('open'); return captured; }};
-    const paused = pause(boundary === 'prepare' ? {} : boundary === 'open' ? captured : 'evidence');
+    const paused = pause(boundary === 'prepare' ? ports.preparedSource : boundary === 'open' ? captured : 'evidence');
     if (boundary === 'evidence') captured.issueSourceEvidence = paused.run;
     else adapter[boundary] = paused.run;
     const result = openAcquiredEffectComputation({
-      moon: {clientProgramEffectAcquisitionCount: () => 1,
-        clientProgramEffectPrepareLocalQueryRequirement: () => ok({}),
-        clientProgramQueryRequirementSourceRef: () => 'fixture',
-        clientProgramEffectSerializationOccurrences: () => []},
-      acquired: {prepared: {}}, sourceProfile: adapter, now: () => 1,
+      moon: Object.assign(ports.moon, {clientProgramEffectPrepareLocalQueryRequirement() {
+        assert.fail('The SAME managed Plan already owns its Source requirement');
+      }, clientProgramEffectSerializationOccurrences: () => []}),
+      managedRun: ports.managedRun, acquired: ports.acquired, sourceProfile: adapter, now: () => 1,
       retainComputationOwner(value) { custody = value; },
       assertUpdateSelectionCurrent() { if (!current) throw changed(); },
     });
@@ -334,13 +379,14 @@ async function modelSelectionFixture({selected = true, observer = true} = {}) {
       if (mutateDuringObservation) originalCurrent = false;
       return account;
     }} : {})});
+  const ports = managedComposition({prepared: {}, runDefinition: {}, control: {
+    runDefinitionRunId: () => 'run', adoptCheckedClientEffectInferRun: () => ({}),
+  }}, 0);
   const result = openAcquiredEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount: () => 0,
+    moon: Object.assign(ports.moon, {
       clientProgramInferPlanBoundary: () => ({_0: 0}),
-      clientProgramEffectSerializationOccurrences: () => []},
-    acquired: {prepared: {}, runDefinition: {}, control: {
-      runDefinitionRunId: () => 'run', adoptCheckedClientEffectInferRun: () => ({}),
-    }},
+      clientProgramEffectSerializationOccurrences: () => []}),
+    managedRun: ports.managedRun, acquired: ports.acquired,
     infer: original, now: () => 1,
     retainComputationOwner(value) { custody = value; },
     ...(selected ? {assertUpdateSelectionCurrent() {
@@ -448,13 +494,14 @@ for (const selected of [false, true]) {
 test('outer Source waiting handoff does not reuse a journal-consumed claim', async () => {
   let claimCurrent = true, custody, reads = 0;
   const checkpoint = {};
+  const ports = managedComposition({prepared: {}}, 1);
   const result = await openAcquiredEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount: () => 1,
-      clientProgramEffectPrepareLocalQueryRequirement: () => ok({}),
-      clientProgramQueryRequirementSourceRef: () => 'fixture',
-      clientProgramEffectSerializationOccurrences: () => []},
-    acquired: {prepared: {}}, now: () => 1,
-    sourceProfile: {admitsSource: () => true, prepare: async () => ({}),
+    moon: Object.assign(ports.moon, {clientProgramEffectPrepareLocalQueryRequirement() {
+      assert.fail('The SAME managed Plan already owns its Source requirement');
+    }, clientProgramEffectSerializationOccurrences: () => []}),
+    managedRun: ports.managedRun, acquired: ports.acquired, now: () => 1,
+    sourceProfile: {admitsSource: () => true, prepare: async () => ports.preparedSource,
+      ledgerCapacity: ports.ledgerCapacity,
       async open() { reads++; assert.fail('Waiting is not a read admission'); }},
     sourceContinuation: {accessFor: () => undefined, prepared: async () => {},
       times: () => ({}), close: async () => {},
@@ -549,4 +596,92 @@ test('Source access current hook reuses the same original installation and accou
   f.gate.assertCurrent = () => {};
   f.revoke();
   assert.throws(f.access.assertCurrent, expected);
+});
+
+
+test('retained fresh Source carries its original approved decision into cold current authorization without a new read', async () => {
+  const f=fixture(), scope=f.record.scope;
+  const approval=recordCheckpointApproval(Object.freeze({action:'dispatch',boundary:'acquisition'}),{
+    checkpointCid:'original-source-checkpoint',earlierCheckpointCids:Object.freeze(['earlier-source-checkpoint']),principalId:'principal',readTuple:scope.readTuple,
+    checkedSource:scope.checkedSource,physicalBinding:scope.physicalBinding,
+    occurrence:{...f.source.occurrence,requirement_cid:'original-requirement',selection_cid:'original-selection'}});
+  let stored;
+  f.checkpoints.retainComputationSource=async(run,definition,wire)=>{stored=JSON.parse(wire);return 'retained';};
+  await f.prepare();await f.continuation.captured(f.source,f.captured,'evidence',1,2,approval);
+  const closure=await f.continuation.retainAll();
+  assert.equal(stored.checkpoint_cid,'original-source-checkpoint');assert.deepEqual(stored.earlier_checkpoint_cids,['earlier-source-checkpoint']);assert.equal(closure.sources[0].capture_cid,'retained');
+  assert.equal(f.calls.includes('base-authorize'),false,'No second original authorization at retention');
+  const cold=fixture({restoring:'model'});
+  cold.checkpoints.readComputationSource=async()=>Buffer.from(JSON.stringify(stored));
+  cold.base.authorization.authorize=async()=>({action:'waiting'});
+  let current=true, earlierCurrent=true; cold.checkpoints.journal.committedApprovalAt=cid=>{assert(['original-source-checkpoint','earlier-source-checkpoint'].includes(cid));return {current:cid==='earlier-source-checkpoint'?earlierCurrent:current};};
+  await cold.prepare();assert.equal((await cold.continuation.beforeRead(cold.source)).retained.checkpoint_cid,'original-source-checkpoint');
+  assert.equal(cold.calls.includes('resume'),false);assert.equal(cold.calls.includes('authorize'),false);
+  earlierCurrent=false;await assert.rejects(cold.continuation.beforeRead(cold.source),{code:'ApprovalExpired'});earlierCurrent=true;
+  current=false;await assert.rejects(cold.continuation.beforeRead(cold.source),{code:'ApprovalExpired'});
+  current=true;await cold.continuation.close();await f.continuation.close();
+});
+
+test('fresh Source closure refuses copied or foreign original approval facts before persistence', async () => {
+  for(const changed of ['copy','tuple','source','binding','principal','installation','occurrence']) {
+    const f=fixture(),scope=f.record.scope;
+    const facts={checkpointCid:'original-source-checkpoint',principalId:'principal',readTuple:scope.readTuple,
+      checkedSource:scope.checkedSource,physicalBinding:scope.physicalBinding};
+    if(changed==='tuple')facts.readTuple={source:'foreign'};
+    if(changed==='source')facts.checkedSource={sourceDataPolicyCid:'foreign'};
+    if(changed==='binding')facts.physicalBinding={binding:'foreign'};
+    if(changed==='principal')facts.principalId='foreign';
+    if(changed==='installation')facts.installationBinding={binding:'foreign'};
+    if(changed==='occurrence')facts.occurrence={stage:1,input:0,task:1};
+    const original=recordCheckpointApproval(Object.freeze({action:'dispatch',boundary:'acquisition'}),facts);
+    const approval=changed==='copy'?Object.freeze({...original}):original;
+    await f.prepare();await assert.rejects(f.continuation.captured(f.source,f.captured,'evidence',1,2,approval),{code:'HeldAcquisitionChanged'});
+    assert.equal(f.calls.includes('retain'),false);await f.continuation.close();
+  }
+});
+
+test('fresh Source keeps its installed binding when singular approval has no installation fact', async () => {
+  const f = fixture(), scope = f.record.scope;
+  const binding = Object.freeze({connectorId: 'fixture', connectorRegistration: 'fixture',
+    connectorRevision: 'original', bindingCid: `sha256:${'a'.repeat(64)}`});
+  f.source.adapter.ordinaryRecoveryBinding = prepared => {
+    assert.equal(prepared, f.source.preparedSource);
+    return binding;
+  };
+  const approval = recordCheckpointApproval(Object.freeze({action: 'dispatch', boundary: 'acquisition'}), {
+    checkpointCid: 'original-source-checkpoint', principalId: 'principal', readTuple: scope.readTuple,
+    checkedSource: scope.checkedSource, physicalBinding: scope.physicalBinding});
+  let stored;
+  f.checkpoints.retainComputationSource = async (run, definition, wire) => {
+    stored = JSON.parse(wire); return 'retained';
+  };
+  await f.prepare();
+  await f.continuation.captured(f.source, f.captured, 'evidence', 1, 2, approval);
+  const closure = await f.continuation.retainAll();
+  assert.deepEqual(stored.scope.installationBinding, binding);
+  assert.deepEqual(closure.sources[0].scope.installationBinding, binding);
+  assert.equal(stored.checkpoint_cid, 'original-source-checkpoint');
+  assert.equal(checkpointApprovalFacts(approval).installationBinding, undefined,
+    'Retention must not add a binding to the original singular approval');
+  assert.equal(f.calls.includes('base-authorize'), false);
+  await f.continuation.close();
+});
+
+test('fresh Source checks a present installation approval fact against its actual installed binding', async () => {
+  for (const foreign of [false, true]) {
+    const f = fixture(), scope = f.record.scope;
+    const binding = {connectorId: 'fixture', connectorRegistration: 'fixture',
+      connectorRevision: 'original', bindingCid: `sha256:${'a'.repeat(64)}`};
+    f.source.adapter.ordinaryRecoveryBinding = () => binding;
+    const approval = recordCheckpointApproval(Object.freeze({action: 'dispatch', boundary: 'acquisition'}), {
+      checkpointCid: 'original-source-checkpoint', principalId: 'principal', readTuple: scope.readTuple,
+      checkedSource: scope.checkedSource, physicalBinding: scope.physicalBinding,
+      installationBinding: {...binding, connectorRevision: foreign ? 'foreign' : 'original'}});
+    await f.prepare();
+    const result = f.continuation.captured(f.source, f.captured, 'evidence', 1, 2, approval);
+    if (foreign) await assert.rejects(result, {code: 'HeldAcquisitionChanged'});
+    else await result;
+    assert.equal(f.calls.includes('retain'), false);
+    await f.continuation.close();
+  }
 });

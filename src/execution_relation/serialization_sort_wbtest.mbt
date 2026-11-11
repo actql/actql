@@ -188,3 +188,49 @@ test "serialization sort runs inside the existing generated sequence" {
     assert_true(producer_read_available(input))
   }
 }
+
+///|
+test "serialization metadata row proof does not shrink its original hundred-row sort" {
+  let rows = Array::makei(100, index => "{\"id\":" + index.to_string() + "}").join(
+    ",",
+  )
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
+    rows +
+    "]},\"as\":\"seed\"},{\"serialize\":{\"format\":\"jsonl\",\"fields\":[\"id\"],\"order_by\":[{\"id\":\"desc\"}],\"name\":\"out.jsonl\"}}]",
+  )
+  let prepared = @lower.bound_preparation(owner)
+  assert_eq(
+    @lower.node_row_count_bound(@lower.node_at(prepared, 1).unwrap(), [100]),
+    Some(1),
+  )
+  assert_eq(@lower.prepared_closed_row_bound(prepared, 10000).unwrap().0, 100)
+  let barrier = @lower.prepare_serialization(owner, 1, max_work=3).unwrap()
+  let kernel = @lower.prepare_serialization_sort_kernel(
+    barrier,
+    max_bindings=1,
+    max_name_bytes=2,
+    max_work=1,
+  ).unwrap()
+  let input : Table = {
+    owner,
+    id: @lower.kernel_input(kernel),
+    names: ["id"],
+    rows: Array::makei(100, index => [Number(index.to_double())]),
+  }
+  let sorted = evaluate_rows(
+    kernel,
+    input,
+    100,
+    { remaining: 100000, max_frames: 100, },
+    value_budget(run_limits().output_values).unwrap(),
+  ).unwrap()
+  assert_eq(sorted.rows.length(), 100)
+  assert_eq(@schema.field_count(@lower.kernel_output_schema(kernel)), 1)
+  for index in 0..<100 {
+    assert_true(
+      sorted.rows[index][0] is Number(value) &&
+      value == (99 - index).to_double(),
+    )
+  }
+}

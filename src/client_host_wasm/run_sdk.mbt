@@ -238,6 +238,15 @@ pub fn prepare_sdk_run(nonce : Int64, handle : Int, submission : Int) -> Int {
     stored_preparation_input(preparation) is Some(input) else {
     return -2
   }
+  let source_submission = if preparation.source is Some(_) {
+    guard stored_preparation_source_submission(value, record.preparation)
+      is Some(original) else {
+      return -35
+    }
+    Some(original)
+  } else {
+    None
+  }
   match run_configuration_current(value, configuration) {
     Ok(_) => ()
     Err(code) => return code
@@ -264,12 +273,21 @@ pub fn prepare_sdk_run(nonce : Int64, handle : Int, submission : Int) -> Int {
     return 2
   }
   let prepared = @preparation.local_prepared_program(input)
-  let request = match
-    @host.prepare_source_free_client_request_identity(
-      prepared,
-      configuration.authority_scope_cid,
-      @host.client_submission_reference_record_request_id(retained.reference),
-    ) {
+  let request_result = match source_submission {
+    Some(original) =>
+      @preparation.local_submitted_preparation_request(
+        original,
+        configuration.authority_scope_cid,
+        @host.client_submission_reference_record_request_id(retained.reference),
+      )
+    None =>
+      @host.prepare_source_free_client_request_identity(
+        prepared,
+        configuration.authority_scope_cid,
+        @host.client_submission_reference_record_request_id(retained.reference),
+      )
+  }
+  let request = match request_result {
     Ok(request) => request
     Err(_) => return -31
   }
@@ -349,6 +367,7 @@ pub fn prepare_sdk_run(nonce : Int64, handle : Int, submission : Int) -> Int {
       at,
       until,
       policy,
+      submitted=source_submission,
     ) {
     Ok(value) => value
     Err(issue) => {

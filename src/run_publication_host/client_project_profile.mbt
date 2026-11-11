@@ -97,6 +97,25 @@ pub fn ClientProjectProfileSelection::selected_profile(
 ///|
 /// Mock locators are visible only under this original mock choice. They do
 /// not supply records, answers, Contracts, currentness or resource coverage.
+pub fn ClientProjectProfileSelection::mock_catalog_file(
+  self : Self,
+) -> Result[String?, ClientProjectProfileIssue] {
+  match self.require_original() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if self.selected != Some("mock") {
+    return Ok(None)
+  }
+  Ok(
+    match self.configuration {
+      Some(value) => value.mock_catalog_file()
+      None => None
+    },
+  )
+}
+
+///|
 pub fn ClientProjectProfileSelection::mock_data_file(
   self : Self,
 ) -> Result[String?, ClientProjectProfileIssue] {

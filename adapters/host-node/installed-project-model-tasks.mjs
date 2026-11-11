@@ -1,8 +1,8 @@
 import {open} from 'node:fs/promises';
-import {extname, resolve} from 'node:path';
+import {extname} from 'node:path';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
-import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
+import {installedProjectOriginalsForRuntime, resolveInstalledProjectTaskPath} from './installed-project-configuration.mjs';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
 import {assertInstalledModelDefaultsPreparation,
   assertInstalledModelDefaultsAdoption} from './installed-model.mjs';
@@ -98,7 +98,7 @@ async function loadProjectModelTasks(moon, project, providers,
     const format = extension === '.json' ? 'json' :
       extension === '.yaml' || extension === '.yml' ? 'yaml' : undefined;
     if (format === undefined) fail('InstalledProjectTaskFormatUnavailable');
-    const path = resolve(project.directory, file);
+    const path = resolveInstalledProjectTaskPath(project, moon, file);
     const wire = await readBoundedConfigurationUtf8(path,
       {maxBytes: bounds.maxBytes, openFile});
     // Read/close success is not current installation, funding or send admission.

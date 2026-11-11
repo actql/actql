@@ -110,11 +110,15 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       throw new TypeError('InvalidInstalledContentRun');
     }
     const {task, step} = plan.serializationGraph;
-    const compiledLimits = publications.checkedClientSerializationGenerationLimits(
-      plan.compiled, plan.serializationGraph);
-    const selectedGenerationLimits = Object.freeze({...generationLimits,
-      maxRows: Math.min(generationLimits.maxRows, compiledLimits.maxRows),
-      maxBytes: Math.min(generationLimits.maxBytes, compiledLimits.maxBytes)});
+    let selectedOutputLimits = localOutputLimits, selectedIdentitySlots = identitySlots;
+    let selectedGenerationLimits;
+    if (!intermediate) {
+      const compiledLimits = publications.checkedClientSerializationGenerationLimits(
+        plan.compiled, plan.serializationGraph);
+      selectedGenerationLimits = Object.freeze({...generationLimits,
+        maxRows: Math.min(generationLimits.maxRows, compiledLimits.maxRows),
+        maxBytes: Math.min(generationLimits.maxBytes, compiledLimits.maxBytes)});
+    }
     const definition = JSON.parse(plan.runDefinition.wire);
     const key = {namespaceId, authorityScopeCid, runDefinitionCid: plan.runDefinition.identity};
     let retired = false;
@@ -136,6 +140,12 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           typeof acquiredContent.captured?.capture?.originalRowCapture !== 'function' ||
           typeof control.startRequestAcquiredPrefix !== 'function')) {
         throw new TypeError('InstalledModelCapturedContentPreparationUnavailable');
+      }
+      if (intermediate) {
+        if (original.generationLimits === undefined) throw new TypeError('InstalledContentRunPreparationUnavailable');
+        selectedGenerationLimits = original.generationLimits;
+        selectedOutputLimits = original.outputLimits;
+        selectedIdentitySlots = original.identitySlots;
       }
       original.attempted = true;
       assertRunCurrent();
@@ -280,7 +290,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       const encoder = control.encoder(barrier, selectedGenerationLimits);
       input = control.bindInput(barrier, output, encoder);
       const inputEvidence = await identifyGeneratedContentInput({control, compiled: plan.compiled,
-        input, limits: localOutputLimits, maxWorkspaceSlots: identitySlots,
+        input, limits: selectedOutputLimits, maxWorkspaceSlots: selectedIdentitySlots,
         identityLimits: localContractLimits, remainingWork, chargeWork, signal, captured: capturedProof});
       await faultInjection?.('content_input_identified', {work, signal});
       signal?.throwIfAborted();
@@ -405,11 +415,53 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     preparedRunCount++;
     const original = {prepared: preparedProgram, plan, request, model, attempted: false,
       capacity: undefined, managed: undefined, inputHolder: undefined, localPreparation: undefined,
-      releaseSelection: undefined, contentControl: control, prefixLimits, workspace,
-      retired: false, failed: false, failure: undefined};
+      releaseSelection: undefined, contentControl: control, prefixLimits,
+      generationLimits: undefined, outputLimits: undefined, identitySlots: undefined,
+      workspace: undefined, retired: false, failed: false, failure: undefined};
     preparedRuns.set(preparedProgram, original);
     try {
       retainOriginalPreparation(preparedProgram, original);
+      const compiledLimits = publications.checkedClientSerializationGenerationLimits(
+        plan.compiled, plan.serializationGraph);
+      assertRunCurrent();
+      if (preparedRuns.get(preparedProgram) !== original || original.retired ||
+          original.plan !== plan || original.request !== request || original.model !== model) {
+        throw new TypeError('ForeignInstalledContentRun');
+      }
+      // Select once from the same nominal compilation before constructing the
+      // workspace. Execution uses this retained bound and cannot reissue it.
+      original.generationLimits = Object.freeze({...generationLimits,
+        maxRows: Math.min(generationLimits.maxRows, compiledLimits.maxRows),
+        maxBytes: Math.min(generationLimits.maxBytes, compiledLimits.maxBytes)});
+      // Only the SAME checked JSON-leaf input permits a closed row/column
+      // node bound. This never constrains the preceding prefix's input rows,
+      // and recursive/opaque inputs keep their original separate profile.
+      const rows = original.generationLimits.maxRows;
+      const fields = compiledLimits.jsonLeafFields;
+      const wireNodes = fields === undefined ? undefined : 1 + rows * (1 + fields);
+      const valueNodes = fields === undefined ? undefined : 1 + rows * (1 + 2 * fields);
+      if (fields !== undefined && (!Number.isSafeInteger(fields) || fields < 0 ||
+          !Number.isSafeInteger(wireNodes) || !Number.isSafeInteger(valueNodes))) {
+        throw new TypeError('InvalidInstalledContentInputShape');
+      }
+      original.outputLimits = fields === undefined ? localOutputLimits : Object.freeze({...localOutputLimits,
+        maxRows: rows, maxValueNodes: Math.min(localOutputLimits.maxValueNodes, valueNodes),
+        maxWireNodes: Math.min(localOutputLimits.maxWireNodes, wireNodes),
+        maxLogicalWireNodes: Math.min(localOutputLimits.maxLogicalWireNodes, wireNodes + 3),
+        maxColumns: Math.min(localOutputLimits.maxColumns, fields)});
+      // Three existing writer quotas, column summaries and the live stepped
+      // measure/key continuation are distinct. No row-sized JSON copy exists.
+      original.identitySlots = fields === undefined ? identitySlots
+        : 2 * original.outputLimits.maxWireNodes + original.outputLimits.maxLogicalWireNodes +
+          8 * original.outputLimits.maxColumns + 2 * original.outputLimits.maxValueDepth + 4;
+      original.workspace = control.workspaceCapacity({generation: original.generationLimits,
+        reference: referenceLimits, contract: localContractLimits,
+        output: original.outputLimits, identitySlots: original.identitySlots});
+      assertRunCurrent();
+      if (preparedRuns.get(preparedProgram) !== original || original.retired ||
+          original.plan !== plan || original.request !== request || original.model !== model) {
+        throw new TypeError('ForeignInstalledContentRun');
+      }
       model.contentPreparation = original;
       original.managed = prepareModelManagedRun(preparedProgram, request, model);
       if (original.managed?.value === undefined || original.managed.serialization === undefined) {
@@ -544,9 +596,26 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       inventory: original, verifyRead});
     return frame;
   };
-  run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup}) =>
+  run.prepareEffectFamily = ({facts, store, principalId, retainCleanup}) => {
+    // The Model compilation already retains this same serialization component.
+    // Reuse its original holder instead of issuing a second compiled Run.
+    const compiled = facts.modelCompiled ??
+      publications.adoptCheckedClientEffectSerializationRun(facts.allowed, facts.runDefinition);
+    const plan = Object.freeze({kind: 'effect', compiled, runDefinition: facts.runDefinition,
+      serializationGraph: publications.compiledSerializationGraph(compiled)});
+    const managedOriginal = Object.freeze({
+      inputRows: publications.checkedClientSerializationInputRows(compiled, plan.serializationGraph),
+      prepare(workspace, physical, retain) {
+      return publications.prepareCheckedClientEffectContentOriginal(facts.prepared, compiled,
+        facts.compilation, facts.runDefinition, plan.serializationGraph, bodies, workspace, physical, retain);
+    }});
+    const family = run.effectFamily({prepared: facts.prepared, plan, store, principalId,
+      retainCleanup, managedOriginal});
+    return Object.freeze({family, plan, preparation: family.preparation});
+  };
+  run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup, managedOriginal}) =>
     installEffectContentFamily({moon, control, publications, bodies,
-      prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,
+      prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal, managedOriginal,
       namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
       referenceLimits, completionLimits,
       outputLimits: localOutputLimits, faultInjection, restored, retainCleanup});

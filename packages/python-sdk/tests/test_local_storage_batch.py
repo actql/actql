@@ -63,7 +63,7 @@ class AtomicByteBatchTests(unittest.TestCase):
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-local-batch-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=RefuseSecondInsert)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': RefuseSecondInsert}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store.compare_exchange('original', None, b'old')
                     store._connection.refuse = True
@@ -117,7 +117,7 @@ class AtomicByteBatchTests(unittest.TestCase):
         connect = sqlite3.connect
         with TemporaryDirectory(prefix='actql-python-local-batch-') as directory:
             with patch('actql_sdk._local_storage.sqlite3.connect',
-                       side_effect=lambda *a, **k: connect(*a, **k, factory=LostCommit)):
+                       side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store._connection.lose = True
                     with self.assertRaises(OSError):

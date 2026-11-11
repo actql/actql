@@ -7,22 +7,19 @@ pub fn installed_listing_row_capture_capacity(
   selected : @row_source_host.RowAcquisition,
   declaration : @execution.ExecutionCapacity?,
 ) -> ClientInstalledCaptureCapacity? {
-  guard @row_source_host.row_acquisition_is_listing(selected) &&
-    installed_row_capture_capacity(selected) is Some(original) &&
-    declaration is Some(report) else {
-    return None
-  }
-  let retained = @execution.execution_capacity_retained_bytes(report)
-  let executing = @execution.execution_capacity_execution_bytes(report)
-  if retained <= 0L ||
-    executing < retained ||
-    retained > 9223372036854775807L - original.retained_bytes ||
-    executing > 9223372036854775807L - original.execution_bytes {
+  guard declaration is Some(report) &&
+    @row_source_host.row_acquisition_listing_capacity(selected, declaration)
+    is Some(complete) else {
     return None
   }
   Some({
-    ..original,
-    retained_bytes: original.retained_bytes + retained,
-    execution_bytes: original.execution_bytes + executing,
+    requirement: @row_source_host.row_acquisition_requirement(selected),
+    original_input: true,
+    acquisition: Some(selected),
+    // Same original provider-pair layout as ordinary Query captures. Row's
+    // own composition includes its actual report/original binding once.
+    provider: Some((selected, report)),
+    retained_bytes: @execution.execution_capacity_retained_bytes(complete),
+    execution_bytes: @execution.execution_capacity_execution_bytes(complete),
   })
 }

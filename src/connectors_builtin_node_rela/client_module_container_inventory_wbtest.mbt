@@ -7,7 +7,7 @@ test "provider-free RelA factory supplies empty installed snapshot dimension" {
   let quote = @local.local_module_container_inventory(1, factory.length()).unwrap()
   assert_eq(
     (quote.record_headers, quote.reference_slots, quote.scalar_words),
-    (8L, 11L, 8L),
+    (10L, 13L, 9L),
   )
   // DATA correspondence only. This package has no Node initial Root bridge.
 }

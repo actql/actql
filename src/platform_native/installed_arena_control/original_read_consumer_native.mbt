@@ -17,8 +17,12 @@ struct InstalledArenaOriginalReadConsumer {
   read : InstalledArenaOriginalRead
   consumer : @resources.FundedReadConsumer[InstalledArenaOriginalRead]
   workspace : @buffers.WorkspaceLoan
-  retained_bytes : Int64
-  execution_bytes : Int64
+  initial_retained_bytes : Int64
+  initial_execution_bytes : Int64
+  mut retained_bytes : Int64
+  mut execution_bytes : Int64
+  // A control relocation duty, never a physical retirement acknowledgement.
+  mut working_snapshot_pending : Bool
   mut scope : InstalledArenaOriginalReadConsumerScope
 }
 
@@ -57,8 +61,11 @@ pub fn InstalledArenaHost::prepare_domain_original_read_consumer(
     read,
     consumer,
     workspace,
-    retained_bytes,
-    execution_bytes,
+    initial_retained_bytes: retained_bytes,
+    initial_execution_bytes: execution_bytes,
+    retained_bytes: read.funded_retained_bytes,
+    execution_bytes: read.funded_execution_bytes,
+    working_snapshot_pending: false,
     scope: ConsumerScopeNew,
   }
   read.consumer = Some(view)
@@ -220,4 +227,179 @@ pub fn InstalledArenaHost::resume_domain_original_read_consumer_scope(
     return Err(Read(@resources.SpentClaim))
   }
   self.enter_original_consumer_scope(view)
+}
+
+///|
+/// Extend this SAME entered Read consumer before constructing its complete
+/// next coexistence envelope. Core mutates the original reservation, not a
+/// second token/Root or a handed-off capacity. This does not acquire a mapping:
+/// the actual Native domain and constructor backing remain separate duties.
+pub fn InstalledArenaHost::grow_domain_original_read_consumer_capacity(
+  self : InstalledArenaHost,
+  view : InstalledArenaOriginalReadConsumer,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  match self.original_domain_read_consumer(view) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let read = view.read
+  if view.scope != ConsumerScopeOpen ||
+    !read.ready ||
+    read.closing ||
+    read.closed ||
+    view.workspace.closing ||
+    view.workspace.stopped ||
+    view.workspace.cleaned ||
+    view.workspace.settled {
+    return Err(Read(@resources.CleanupPending))
+  }
+  if retained_bytes < view.retained_bytes ||
+    execution_bytes < view.execution_bytes {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  // Retain this cleanup duty before the fallible Resource call can construct
+  // or publish a child-owned snapshot, including a partial/refused outcome.
+  view.working_snapshot_pending = true
+  // The imported original's current callback is inside the one Resource
+  // mutation. Do not repeat it in a pre-check or replace its nominal binding.
+  match
+    @resources.grow_funded_read_consumer_capacity(
+      view.consumer,
+      read,
+      retained_bytes,
+      execution_bytes,
+    ) {
+    Err(issue) => return Err(Read(issue))
+    Ok(_) => ()
+  }
+  view.retained_bytes = retained_bytes
+  view.execution_bytes = execution_bytes
+  read.funded_retained_bytes = retained_bytes
+  read.funded_execution_bytes = execution_bytes
+  Ok(())
+}
+
+///|
+/// Fund the next original constructor peak, then obtain actual backing on its
+/// SAME Native domain. Repeated phases take a maximum over the original base;
+/// they do not accumulate temporary peaks or refund an earlier reservation.
+pub fn InstalledArenaHost::prepare_domain_original_read_construction(
+  self : InstalledArenaHost,
+  read : InstalledArenaOriginalRead,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  guard physical_equal(read.domain.host, self) &&
+    read.consumer is Some(view) &&
+    read.domain.domain is Some(_) &&
+    retained_bytes >= 0L &&
+    execution_bytes >= 0L &&
+    contiguous_bytes > 0L &&
+    retained_bytes <= 9223372036854775807L - view.initial_retained_bytes &&
+    execution_bytes <= 9223372036854775807L - view.initial_execution_bytes else {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  let retained = Int64::max(
+    view.retained_bytes,
+    view.initial_retained_bytes + retained_bytes,
+  )
+  let execution = Int64::max(
+    view.execution_bytes,
+    view.initial_execution_bytes + execution_bytes,
+  )
+  self.prepare_original_read_absolute_construction(
+    read, retained, execution, contiguous_bytes,
+  )
+}
+
+///|
+/// Back one new simultaneously retained frame on this SAME current Read.
+/// Unlike a replaceable temporary peak, its constructor overlaps everything
+/// already funded. Existing reservations are neither refunded nor reissued.
+pub fn InstalledArenaHost::prepare_domain_original_read_retained_construction(
+  self : Self,
+  read : InstalledArenaOriginalRead,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  guard physical_equal(read.domain.host, self) &&
+    read.consumer is Some(view) &&
+    view.retained_bytes >= 0L &&
+    view.execution_bytes >= 0L &&
+    retained_bytes >= 0L &&
+    execution_bytes >= 0L &&
+    contiguous_bytes > 0L &&
+    retained_bytes <= 9223372036854775807L - view.retained_bytes &&
+    execution_bytes <= 9223372036854775807L - view.execution_bytes else {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  self.prepare_original_read_absolute_construction(
+    read,
+    view.retained_bytes + retained_bytes,
+    view.execution_bytes + execution_bytes,
+    contiguous_bytes,
+  )
+}
+
+///|
+// Shared actual-backing mutation for temporary peaks and simultaneous frames.
+// No extra imported current callback is added by either projection above.
+fn InstalledArenaHost::prepare_original_read_absolute_construction(
+  self : Self,
+  read : InstalledArenaOriginalRead,
+  retained : Int64,
+  execution : Int64,
+  contiguous_bytes : Int64,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  guard physical_equal(read.domain.host, self) &&
+    read.consumer is Some(view) &&
+    read.domain.domain is Some(_) else {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  guard read.ledger is Some(ledger) && read.live is Some(live) else {
+    return Err(Read(@resources.IncompleteInventory))
+  }
+  let usage = @resources.ledger_usage(ledger)
+  if usage.reserved_retention_bytes < read.funded_retained_bytes ||
+    usage.reserved_execution_bytes < read.funded_execution_bytes {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  let reserved_retained = usage.reserved_retention_bytes -
+    read.funded_retained_bytes
+  if usage.held_bytes < 0L ||
+    usage.held_bytes > 9223372036854775807L - reserved_retained {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  let other_retained = usage.held_bytes + reserved_retained
+  let other_execution = usage.reserved_execution_bytes -
+    read.funded_execution_bytes
+  if other_retained < 0L ||
+    other_execution < 0L ||
+    retained > 9223372036854775807L - other_retained ||
+    execution > 9223372036854775807L - other_execution {
+    return Err(Read(@resources.Resource(@resources.InvalidCharge)))
+  }
+  // Non-grant policy/current check -> real same-domain acquisition -> SAME
+  // child window publication. The original Read reservation grows only after
+  // this actual backing exists; constructor geometry is never a logical sum.
+  match
+    read.domain.backing.prepare_backed_original_read_working(
+      self,
+      live,
+      read,
+      other_retained + retained,
+      other_execution + execution,
+      contiguous_bytes,
+    ) {
+    Err(issue) => {
+      view.scope = ConsumerScopeCleanupOnly
+      return Err(Domain(issue))
+    }
+    Ok(_) => ()
+  }
+  self.grow_domain_original_read_consumer_capacity(view, retained, execution)
 }

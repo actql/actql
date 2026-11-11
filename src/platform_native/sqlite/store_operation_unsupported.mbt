@@ -16,6 +16,14 @@ pub fn NativeStoreOperationOriginal::enter_store(
 }
 
 ///|
+pub fn NativeStoreOperationOriginal::prepare_delivery_window(
+  _self : NativeStoreOperationOriginal,
+  _target : Int,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn NativeStoreOperationOriginal::enter_cleanup(
   _self : NativeStoreOperationOriginal,
 ) -> Result[Unit, NativeSqliteIssue] {
@@ -113,4 +121,12 @@ pub fn Database::matches_original_store_operation(
   _original : NativeStoreOperationOriginal,
 ) -> Bool {
   false
+}
+
+///|
+pub fn Database::bind_original_store_operation(
+  _self : Database,
+  _original : NativeStoreOperationOriginal,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
 }

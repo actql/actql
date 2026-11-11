@@ -3,7 +3,7 @@ fn ext_test_batch_plan(owner : @lower.BoundPrepared) -> ExtBatchPlan {
   ext_prepare_batch(
     row_kernel(owner, 1),
     { remaining: 1000000, max_frames: 100, },
-    { limit: 1000000, live: 0, peak: 0, },
+    row_workspace(1000000),
   )
   .unwrap()
   .unwrap()
@@ -215,7 +215,7 @@ test "batch selection checks undemanded vocabulary before execution" {
     ext_prepare_batch(
       row_kernel(owner, 1),
       { remaining: 100000, max_frames: 100, },
-      { limit: 100000, live: 0, peak: 0, },
+      row_workspace(100000),
     )
     is Ok(None),
   )
@@ -223,7 +223,7 @@ test "batch selection checks undemanded vocabulary before execution" {
     ext_prepare_batch(
       row_kernel(owner, 1),
       { remaining: 0, max_frames: 100, },
-      { limit: 100000, live: 0, peak: 0, },
+      row_workspace(100000),
     )
     is Err(RowLimit),
   )
@@ -360,7 +360,7 @@ test "preselected batch and ordinary row operation share one owned private chain
     ext_choose_batch(
       row_kernel(owner, step),
       { remaining: 100000, max_frames: 100, },
-      { limit: 100000, live: 0, peak: 0, },
+      row_workspace(100000),
     ).unwrap()
   }
   let first = choose(1)

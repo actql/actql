@@ -5,12 +5,12 @@ const parent='_M0FP45actql5actql10connectors5local42bounded__relation__chain__ex
 const owner='_M0FP45actql5actql10connectors5local54managed__provider__execution__with__child__work__issue';
 const roles=['startNext','advance','cancel','stopped','cleanup','childWorkIssue'];
 // Independent reviewed fixture: do not import the checker's expected layouts.
-const fields=[[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'measurement',8],[32,'maxValueBytes',4],[40,'execution',8],[48,'state',8],[56,'sequence',8],[64,'count',4]],
- [[8,'startNext',8],[16,'reclaimsScratch',4],[24,'terminal',8],[32,'cancelled',8],[40,'used',8],[48,'maxValueBytes',4],[56,'execution',8],[64,'inputs',8],[72,'state',8],[80,'sequence',8],[88,'count',4]],
+const fields=[[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'maxValueBytes',4],[32,'measurement',8],[40,'execution',8],[48,'state',8],[56,'sequence',8],[64,'count',4]],
+ [[8,'startNext',8],[16,'reclaimedPrefix',4],[24,'terminal',8],[32,'cancelled',8],[40,'used',8],[48,'execution',8],[56,'inputs',8],[64,'state',8],[72,'sequence',8],[80,'count',4]],
  [[8,'terminal',8],[16,'cancelled',8],[24,'state',8]],[[8,'terminal',8]],
  [[8,'cleanupIndex',8],[16,'reclaimed',8],[24,'terminal',8],[32,'state',8]],[[8,'state',8]]];
-const sizes=[72,96,32,16,40,16],registers=['rbx','r12','rbx','r13','r14','r15'];
-const slots={parent:'0x90',state:'0x50',used:'0x60',cancelled:'0x68',terminal:'0x70',reclaimed:'0x78',cleanupIndex:'0x80',sequence:'0x8',inputs:'0x10',execution:'0x18',measurement:'0x20',numeric:'0x30',family:'0x38',count:'0x3c',maxValueBytes:'0x24',reclaimsScratch:'0x84'};
+const sizes=[72,88,32,16,40,16],registers=['rbx','r12','rbx','r13','r14','r15'];
+const slots={parent:'0x90',state:'0x50',used:'0x60',cancelled:'0x68',terminal:'0x70',reclaimed:'0x78',cleanupIndex:'0x80',sequence:'0x8',inputs:'0x10',execution:'0x18',measurement:'0x20',numeric:'0x30',family:'0x38',count:'0x3c',maxValueBytes:'0x24',reclaimedPrefix:'0x84'};
 const symbols=new Map([['moonbit_malloc',0x7000],['moonbit_incref',0x7100],['moonbit_decref',0x7200],[owner,0x8000],['actql_proof_current_chain_start',0x8100],...roles.slice(1).map((r,k)=>[parent+'C'+(k+1),0x9000+k*0x100])]);
 const nm=[...symbols].map(([n,a])=>a.toString(16)+' T '+n).join('\n');
 const ops=[];
@@ -24,7 +24,7 @@ for(const [k,role] of roles.entries()) {
 }
 ops.push('mov rdi,r12','mov rsi,rbx','mov rdx,r13','mov rcx,r14','mov r8,r15',{call:owner},'mov QWORD PTR [rbp-0x90],rax');
 for(const register of ['r12','rbx','r13','r14','r15'])ops.push('mov rdi,'+register,{call:'moonbit_decref'});
-for(const [k,role] of ['cleanupIndex','sequence','inputs','execution','measurement','numeric','family','count','maxValueBytes','reclaimsScratch'].entries()) {
+for(const [k,role] of ['cleanupIndex','sequence','inputs','execution','measurement','numeric','family','count','maxValueBytes','reclaimedPrefix'].entries()) {
  const wide=k<7;ops.push('mov '+(wide?'rax,QWORD':'eax,DWORD')+' PTR [rbp-'+slots[role]+']','mov '+(wide?'QWORD':'DWORD')+' PTR [rsp'+(k?'+0x'+(k*8).toString(16):'')+'],'+(wide?'rax':'eax'));
 }
 for(const [k,role] of ['parent','state','used','cancelled','terminal','reclaimed'].entries())ops.push('mov '+['rdi','rsi','rdx','rcx','r8','r9'][k]+',QWORD PTR [rbp-'+slots[role]+']');
@@ -47,7 +47,7 @@ function observation() {
 const check=(objectOps=ops,linkedOps=objectOps,start=observation(),table=nm)=>inspectParentCaptureCode(start,table,assembly(objectOps,true),assembly(linkedOps,false));
 test('six object and linked construction allocations bind each capture to its observer role',()=>{
  const r=check();assert.equal(r.captureRolesEstablished,true);assert.equal(r.completePhysicalLifetimeUpper,false);
- assert.deepEqual(r.points.map(p=>p.requestedBytes),[80,104,40,24,48,24]);
+ assert.deepEqual(r.points.map(p=>p.requestedBytes),[80,96,40,24,48,24]);
  assert.deepEqual(r.points[1].fields.filter(([,r])=>['terminal','cancelled'].includes(r)),[[24,'terminal',8],[32,'cancelled',8]]);
 });
 test('same identity set cannot hide reordered callback or environment captures',()=>{

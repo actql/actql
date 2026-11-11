@@ -34,6 +34,13 @@ enum {
 void actql_native_timing_begin(int32_t tag);
 void actql_native_timing_end(int32_t tag);
 void actql_native_timing_count(int32_t tag);
+/* Acceptance metadata is separate from numeric timing counters and authority. */
+int32_t actql_native_acceptance_enabled(void);
+void actql_native_acceptance_identity(int32_t tag, int32_t ordinal,
+    const uint16_t *identity, int32_t length);
+void actql_native_acceptance_incomplete(void);
+void actql_native_acceptance_mutation(int32_t tag);
+
 /* Add one already-observed nonnegative amount. Cumulative observations require
  * caller-selected deltas; this diagnostic neither reads nor owns a resource. */
 void actql_native_timing_amount(int32_t tag, int64_t amount);

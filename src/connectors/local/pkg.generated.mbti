@@ -128,6 +128,8 @@ pub fn local_module_max_work(LocalComputeModule) -> Int
 
 pub fn local_module_measurement_limits(LocalComputeModule) -> @execution_relation.FixedInputGuardMeasureLimits
 
+pub fn local_module_metered_output_start_capacity(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?
+
 pub fn local_module_sequence_contains_carrier_step(LocalComputeModule, Int) -> Bool
 
 pub fn local_module_sequence_has_carrier_input(LocalComputeModule, Int) -> Bool
@@ -158,11 +160,15 @@ pub fn managed_provider_cumulative_work(ManagedProviderExecution) -> Result[Int6
 
 pub fn managed_provider_execution((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue]) -> ManagedProviderExecution
 
+pub fn managed_provider_execution_with_retained_completion((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue], () -> Bool) -> ManagedProviderExecution
+
 pub fn managed_provider_failed(@connector_sdk.FixedComputeIssue, Int64, Int64) -> ManagedProviderPoll
 
 pub fn managed_provider_record_handoff_work(ManagedProviderExecution, Int64) -> Result[Unit, ManagedProviderWorkIssue]
 
 pub fn managed_provider_relation_input(@execution_relation.ProducerRead) -> ManagedProviderInput
+
+pub fn managed_provider_retained_completion(ManagedProviderExecution) -> Bool
 
 pub fn managed_provider_runs_numeric(ManagedProvider) -> Bool
 

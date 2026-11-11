@@ -69,6 +69,18 @@ for (const mode of ['local', 'remote']) {
     options = {mode, owner: 'local', installation: {directory}};
   } else {
     host = await openInstalledRemoteHttpHost({directory,
+      // The authenticated synthetic principal needs explicit protected reads;
+      // a Program submission's write grant does not authorize observation.
+      authorization: {accountConfiguration: JSON.stringify({
+        version: 'actql-execution-account-config/0.1', account_id: 'description',
+        entries: [{entry_id: 'owner-read', outcome: 'allow',
+          principal: {any_of: [userInfo().username]},
+          connection: {any_of: ['actql-remote-host']},
+          resource: {any_of: ['result/answer', 'run']},
+          operation: {any_of: ['read']}, exclusions: []},
+        {entry_id: 'write', outcome: 'allow', principal: {all: true},
+          connection: {all: true}, resource: {all: true},
+          operation: {any_of: ['write']}, exclusions: []}]})},
       authenticate: token => token === 'Bearer description-token'
         ? userInfo().username : undefined,
       beforeDispatch: async () => {

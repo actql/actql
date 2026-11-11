@@ -54,9 +54,19 @@ for (const entrance of ['local', 'https']) {
         assert.equal(sdk.getSubmissionInput(absent), undefined);
         assert.deepEqual(fixture.counts, {admissions: 0, readers: 0, computes: 1, definitions: 1},
           '[check-mutation:request-record-loss-passive]');
-        // The publication owner still knows this completed Run and Result.
-        // Missing request metadata cannot undo that independent observation.
-        assert.equal((await run.status()).status, 'succeeded');
+        // Deleting this journal row also loses its authoritative state/control
+        // revision. The original RunRef and publication remain, but the Store
+        // cannot reconstruct that missing current Run observation.
+        let unavailable;
+        try {await run.status();} catch (error) {unavailable = error;}
+        assert.ok(unavailable instanceof sdk.ClientError);
+        const stateObservation = sdk.explainRunObservationFailure(unavailable);
+        assert.equal(stateObservation.kind, 'unavailable');
+        assert.equal(stateObservation.problem, 'observation_unavailable');
+        assert.equal(stateObservation.operation, 'status');
+        assert.deepEqual(stateObservation.next, {operation: 'status', ref: run.ref});
+        // The independent Result owner still reads this same publication under
+        // current authorization, without a new submission or synthetic state.
         assert.deepEqual(await run.result('answer').all(), [{id: 1}, {id: 2}]);
         await host.settled();
         assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});

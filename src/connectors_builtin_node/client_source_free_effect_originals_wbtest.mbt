@@ -282,3 +282,69 @@ test "source-free Content originals never replace the independently selected Pla
     is Err(_),
   )
 }
+
+///|
+test "Request Effect material bridge retains the same original compiler and complete Content policy" {
+  let (prepared, compilation, allowed, definition, request) = source_free_effect_originals_fixture()
+  let wire = client_program_issue_prepared_effect_run_materials(
+    allowed,
+    definition,
+    Some(request),
+  ).unwrap()
+  let restored = client_program_admit_effect_run_materials_with_compilation(
+    wire,
+    @publication.publication_contract_identity(definition),
+    compilation,
+    request,
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+  ).unwrap()
+  assert_true(physical_equal(restored.prepared, prepared))
+  assert_true(physical_equal(restored.compilation, compilation))
+  assert_eq(restored.request, Some(request))
+  assert_eq(
+    client_program_issue_prepared_effect_run_materials(
+      restored.allowed,
+      restored.run_definition,
+      Some(request),
+    ).unwrap(),
+    wire,
+  )
+}
+
+///|
+test "Request Effect material bridge refuses a foreign Request without issuing another compiler" {
+  let (prepared, compilation, allowed, definition, request) = source_free_effect_originals_fixture()
+  let wire = client_program_issue_prepared_effect_run_materials(
+    allowed,
+    definition,
+    Some(request),
+  ).unwrap()
+  let foreign = client_program_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "foreign-retained-request",
+    client_program_source_free_input_intent_cid(),
+  ).unwrap()
+  assert_true(
+    client_program_admit_effect_run_materials_with_compilation(
+      wire,
+      @publication.publication_contract_identity(definition),
+      compilation,
+      foreign,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+    )
+    is Err(Materials(Request(IdentityMismatch))),
+  )
+}

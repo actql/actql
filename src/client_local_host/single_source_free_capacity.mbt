@@ -31,6 +31,8 @@ pub fn prepare_source_free_local_requirements(
 ///|
 /// Retain the exact single captured-Source Compute tail. The Source acquisition
 /// and its physical backing remain borrowed from their existing Owner.
+/// The simultaneous quote includes only this Compute suffix; it must be
+/// composed with the Source owner's actual live footprint before admission.
 pub fn prepare_captured_local_requirements(
   prepared : @publication_host.PreparedClientProgram,
   installed_contracts : ClientInstalledSequenceContracts,
@@ -62,13 +64,13 @@ fn prepare_local_requirements(
     count <= first {
     return None
   }
-  for task in 0..<count {
-    if @publication_host.prepared_client_infer_execution_occurrence(
-        prepared, task,
-      )
-      is Some(_) {
-      return None
-    }
+  // The legacy infer-execution selector takes a step of task zero, not a
+  // task index. Inspect the original composed graph so later-stage Model
+  // occurrences cannot be quoted as an ordinary Common suffix.
+  guard @publication_host.prepared_client_composed_infer_occurrences(prepared)
+    is Some(occurrences) &&
+    occurrences.is_empty() else {
+    return None
   }
   guard prepare_client_local_sequences(
       prepared, installed_contracts, values_body, fragment_body, ordered_body,
@@ -116,7 +118,7 @@ fn prepare_local_requirements(
     capacity_plan=Some(capacity_plan),
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
-    include_simultaneous=first == 0,
+    include_simultaneous=true,
     simultaneous_graph=Some(graph),
   ).map(capacity => {
     prepared,
@@ -167,4 +169,60 @@ pub fn ClientLocalRequirements::matches(
   self.values == values_body &&
   self.fragment == fragment_body &&
   self.ordered == ordered_body
+}
+
+///|
+// Every nonterminal successful finalization poll must report positive work.
+// The existing driver debits semantic steps from execution.max_work. After its
+// receipt transfers, mandatory scratch retirement is separate: two admitted
+// row/cell arrays, one reference-row/cell array, at most one reference per
+// admitted value node, three column arrays and two closing transitions.
+// This is a finite scheduling bound, never additional fuel, memory or authority.
+fn local_finalization_round_bound(
+  work : Int,
+  rows : Int,
+  fields : Int,
+  nodes : Int,
+) -> Int? {
+  if work < 0 || rows < 0 || fields < 0 || nodes < 0 {
+    return None
+  }
+  // The poll index is Int, but these conservative roles can overestimate a
+  // small actual output. Saturate only this scheduling counter; never reject
+  // an otherwise admissible task or change its separate work/size quotas.
+  guard @execution.checked_preparation_add_product(
+      3L,
+      rows.to_int64(),
+      3L * (fields.to_int64() + 1L),
+    )
+    is Some(bound) &&
+    @execution.checked_preparation_add_product(bound, fields.to_int64(), 3L)
+    is Some(bound) &&
+    @execution.checked_preparation_add_product(bound, nodes.to_int64(), 1L)
+    is Some(bound) &&
+    @execution.checked_preparation_add_product(bound, work.to_int64(), 1L)
+    is Some(bound) else {
+    return Some(2147483647)
+  }
+  Some(Int64::min(bound, 2147483647L).to_int())
+}
+
+///|
+/// Poll the same already-quoted task through finalization and its finite
+/// scratch retirement. This metadata neither supplies its Ledger nor raises
+/// the unchanged execution work or output admission limits.
+pub fn ClientLocalRequirements::finalization_round_limit(
+  self : ClientLocalRequirements,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Int? {
+  if !physical_equal(self.prepared, prepared) {
+    return None
+  }
+  let plan = self.capacity_plan
+  local_finalization_round_bound(
+    plan.execution.max_work,
+    plan.execution.rows.max_rows,
+    plan.imports.wire.max_columns,
+    plan.execution.rows.output_values.max_nodes,
+  )
 }

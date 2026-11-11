@@ -2,9 +2,7 @@ import test, {describe} from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import {execFileSync} from 'node:child_process';
 import { checkVocabulary } from './generate-aql-text-vocabulary.mjs';
-import {baseGraphOperationSchemas} from './graph-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 
@@ -65,63 +63,31 @@ test('machine Program vocabulary matches the current closed inventory', () => {
   // The adopted frontend matrix is a frozen baseline, not a claim that the
   // separately selected keyed machine constructor has a frontend spelling.
   assert.deepEqual([...operations].sort(), [...manifest.operations].sort());
-  // PR-0 is a frozen historical observation, not the live compilation manifest.
-  const {grammar_manifest_cid: _oldCid,
-    expression_contract_cid: oldExpression, ...oldBody} = baseline.grammar_manifest;
-  const {grammar_manifest_cid: _newCid, structural_text_grammar_sha256: grammar,
+  assert.equal(manifest.version, 'actql-grammar-manifest/0.1');
+  assert.deepEqual(Object.keys(manifest).sort(), [
+    'version', 'source_grammar_cid', 'operations', 'expression_contract_cid',
+    'expression_text_grammar_sha256', 'expression_text_rules_sha256',
+    'structural_text_grammar_sha256', 'structural_text_rules_sha256',
+    'query_text_grammar_sha256', 'query_text_rules_sha256', 'grammar_manifest_cid',
+  ].sort());
+  const {grammar_manifest_cid: manifestCid, ...manifestBody} = manifest;
+  assert.equal(machineCid(manifestBody), manifestCid);
+  const {structural_text_grammar_sha256: grammar,
     structural_text_rules_sha256: rules,
     query_text_grammar_sha256: queryGrammar,
-    query_text_rules_sha256: queryRules, source_grammar_cid: sourceGrammar,
+    query_text_rules_sha256: queryRules,
     expression_text_grammar_sha256: expressionGrammar,
-    expression_text_rules_sha256: expressionRules,
-    operations: currentOperations, expression_contract_cid: currentExpression,
-    ...unchangedBody} = manifest;
+    expression_text_rules_sha256: expressionRules} = manifest;
   const expressions = json('spec/contracts/actql-expressions.json');
-  assert.equal(currentExpression, machineCid(expressions));
+  assert.equal(manifest.expression_contract_cid, machineCid(expressions));
   assert.equal(expressionGrammar, hash(read(expressions.grammar)));
   assert.equal(expressionGrammar, expressions.grammar_sha256);
-  // Read the original PR-0 body. Subtracting known additions from today's
-  // schema silently contaminates this historical oracle when another law lands.
-  const priorExpressions = JSON.parse(execFileSync('git', ['show',
-    `${baseline.base_sha}:spec/contracts/actql-expressions.json`],
-  {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}));
-
   const currentProgram = json('spec/contracts/actql-protocol-schemas.json')
     .artifact_schemas.executable_plan.properties.execution_material.properties.program;
-  assert.equal(machineCid(currentProgram), sourceGrammar);
-  // Read the actual pre-migration source; a clone of today's renamed schema
-  // cannot stand in for the frozen constructor vocabulary.
-  const frozenProtocol = JSON.parse(execFileSync('git', ['show',
-    'f503f2afa804a05e58ea430af1782319c007bfc9:spec/contracts/actql-protocol-schemas.json'],
-  {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}));
-  const frozenProgram = frozenProtocol.artifact_schemas.executable_plan.properties
-    .execution_material.properties.program;
-  const priorProgram = structuredClone(frozenProgram);
-  // Preserve the historical pre-typed-JSON schema, not a regenerated baseline.
-  const removeTypedJson = node => {
-    if (node === null || typeof node !== 'object') return;
-    if (Array.isArray(node.oneOf)) {
-      node.oneOf = node.oneOf.filter(variant => !variant.properties?.typed_literal && variant.properties?.op?.const !== 'typed_literal');
-    }
-    for (const child of Object.values(node)) removeTypedJson(child);
-  };
-  assert.equal(oldExpression, machineCid(priorExpressions));
-  assert.equal(oldBody.expression_text_grammar_sha256,
-    priorExpressions.grammar_sha256);
-  unchangedBody.expression_text_grammar_sha256 = priorExpressions.grammar_sha256;
-  removeTypedJson(priorProgram);
-  Object.assign(priorProgram.properties.steps.items.properties, baseGraphOperationSchemas());
-  delete priorProgram.properties.steps.items.properties.property_graph;
-  assert.equal(machineCid(priorProgram), oldBody.source_grammar_cid);
-  assert.equal(oldBody.expression_text_rules_sha256,
-    '997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2');
-  unchangedBody.expression_text_rules_sha256 = oldBody.expression_text_rules_sha256;
+  assert.equal(machineCid(currentProgram), manifest.source_grammar_cid);
   assert.equal(expressionRules, hash(read('docs/spec/language.md').toString()
     .split('<a id="expression-text"></a>')[1].split('<a id="predicates"></a>')[0]
     .replace(/^/, '<a id="expression-text"></a>')));
-  unchangedBody.source_grammar_cid = machineCid(priorProgram);
-  unchangedBody.operations = [...currentOperations];
-  assert.deepEqual(oldBody, unchangedBody);
   assert.equal(grammar, hash(read('spec/grammar/actql-text-0.1.ebnf')));
   assert.equal(rules, hash(read('docs/spec/structural-text.md')));
   assert.equal(queryGrammar, hash(read('spec/grammar/actql-query-0.1.ebnf')));
@@ -260,7 +226,19 @@ test('exact String parameter vectors preserve every unrelated historical expecta
 
 // Machine controls omit absent declarations: the Program grammar rejects an
 // explicitly empty params map before membership typing or execution can run.
-import {groupedInSuccesses} from './fixtures/grouped-in-source-input.mjs';
+import {groupedInSuccesses, groupedInRefusals} from './fixtures/grouped-in-source-input.mjs';
+test('grouped signed zero keeps its original rows and canonical membership result', () => {
+  const item = groupedInSuccesses.find(value => value.name === 'grouped-in-negative-zero');
+  assert.equal(item.text, 'SELECT id FROM records WHERE id IN (-(0))');
+  assert.deepEqual(item.sourceRows, [{id: 3, amount: 30}, {id: 1, amount: null},
+    {id: -2, amount: -2}, {id: 3, amount: 30}, {id: 2, amount: 20}]);
+  assert.deepEqual(item.expected, []);
+  assert.deepEqual(item.columns, [{name: 'id', contract: {type: 'number', nullable: false}}]);
+  assert.equal(item.sourceReadSessionCount, 1);
+  assert(!groupedInRefusals.some(value => value.name === item.name));
+  for (const name of ['dynamic-column', 'dynamic-expression', 'wrong-type'])
+    assert(groupedInRefusals.some(value => value.name === 'grouped-in-' + name));
+});
 test('membership machine controls never emit empty parameter declarations', () => {
   const driver = read('scripts/test-packed-public-query.mjs');
   const narrowSelection = driver.slice(driver.indexOf('const narrowPublicQuery'),

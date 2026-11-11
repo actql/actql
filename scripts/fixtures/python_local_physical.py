@@ -48,17 +48,11 @@ class PhysicalFixture:
                 ('publisher_finish', [i32], self.publisher_finish),
                 ('journal_current', [i32], self.journal_refuse),
                 ('journal_current_operation', [i32], self.journal_refuse),
-                ('journal_begin', [i32, i32, i32, i32], self.journal_refuse),
-                ('journal_query_byte', [i32, i32, i32], self.journal_refuse),
-                ('journal_query', [i32], self.journal_refuse),
-                ('journal_length', [i32, i32], self.journal_refuse),
-                ('journal_byte', [i32, i32, i32], self.journal_refuse),
-                ('journal_revision', [i32], self.journal_refuse),
-                ('journal_release', [i32], self.journal_refuse)):
+                ('journal_schema', [i32], self.journal_refuse)):
 
                 self.linker.define_func('actql_host', name,
                     wasmtime.FuncType(params, [wasmtime.ValType.i64() if _IMPORT_SIGNATURES.get(name, ('', 'i32'))[1] == 'i64' else i32]), callback)
-            for name in ('input_copy', 'publisher_copy', 'journal_query_copy', 'journal_copy'):
+            for name in ('input_copy', 'publisher_copy', 'journal_query_header', 'journal_copy_row'):
                 params, result = _IMPORT_SIGNATURES[name]
                 self.linker.define_func('actql_host', name, wasmtime.FuncType(
                     [i32 for _ in params.split()], [i32]),
@@ -72,6 +66,9 @@ class PhysicalFixture:
                 self.linker.define_func('actql_host', name, wasmtime.FuncType(
                     [scalar[p]() for p in params.split()], [scalar[result]()]),
                     self.execution_child_unavailable)
+            self.linker.define_func('actql_host', 'platform_vm_observation',
+                wasmtime.FuncType([wasmtime.ValType.i64(), i32], [wasmtime.ValType.i64()]),
+                self.platform_vm_observation, access_caller=True)
             self.instance = self.linker.instantiate(self.store, self.module)
             self.exports = self.instance.exports(self.store)
             if self.exports['actql_host_abi_version'](self.store) != LOCAL_CORE_ABI:
@@ -87,6 +84,10 @@ class PhysicalFixture:
         return self.exports['actql_buffer_' + name](self.store, self.nonce, *args)
 
     def execution_child_unavailable(self, *args):
+        return -42
+
+    def platform_vm_observation(self, caller, nonce, ordinal):
+        # Raw diagnostic fixtures never promote scalar limits to this original.
         return -42
 
     def read(self, ticket, index):
@@ -126,10 +127,10 @@ class PhysicalFixture:
     def publisher_copy(self, *args):
         return -2
 
-    def journal_query_copy(self, *args):
+    def journal_query_header(self, *args):
         return -41
 
-    def journal_copy(self, *args):
+    def journal_copy_row(self, *args):
         return -41
 
     def journal_refuse(self, *args):

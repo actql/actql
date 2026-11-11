@@ -73,7 +73,11 @@ fn local_saved_run_explain(
   let plan = @json.parse(plan_wire) catch {
     _ => stop("LocalOriginalRunPlanUnavailable")
   }
-  local_explain_computation(output, plan)
+  local_explain_computation(
+    output,
+    plan,
+    verbose=child.flags.get("verbose").unwrap_or(false),
+  )
   output.text.to_string()
 }
 

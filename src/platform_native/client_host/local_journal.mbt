@@ -118,7 +118,10 @@ fn NativeLocalAdoptionSession::prepare_journal_file(
 
 ///|
 /// Finalize a new Host exactly once, or reopen its original adoption. The
-/// initializing marker precedes every schema/key write. Missing custody after
+/// retained-intent byte selection limits fresh admission only; 64 MiB is the
+/// compatibility default, not a reservation of future RAM. Existing history
+/// stays readable at a lower selection. The initializing marker precedes
+/// every schema/key write. Missing custody after
 /// that point stays unresolved and cannot regenerate keys or permissions.
 pub fn NativeLocalAdoptionSession::open_journal(
   self : NativeLocalAdoptionSession,
@@ -127,6 +130,7 @@ pub fn NativeLocalAdoptionSession::open_journal(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   self.open_journal_selected(
     library,
@@ -135,6 +139,7 @@ pub fn NativeLocalAdoptionSession::open_journal(
     max_records,
     max_snapshot_bytes,
     [],
+    max_retained_intent_bytes~,
   )
 }
 
@@ -152,8 +157,14 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   signing : Array[NativeLocalSigningInstallationSelection],
   initial_signing? : NativeLocalInitialSigningMaterial? = None,
   initial_policy? : @host.ClientLocalSigningBootstrapPolicy? = None,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
-  if !valid_local_journal_options(ttl_ms, max_records, max_snapshot_bytes) {
+  if !valid_local_journal_options(
+      ttl_ms,
+      max_records,
+      max_snapshot_bytes,
+      max_retained_intent_bytes~,
+    ) {
     return Err(InvalidInput)
   }
   let (ownership, adoption_body) = match self.prepare_journal_file(crypto) {
@@ -185,8 +196,17 @@ fn NativeLocalAdoptionSession::open_journal_selected(
     Err(issue) => return Err(Physical(issue))
   }
   let connected = self.bind_journal(
-    database, crypto, ownership, adoption_body, first, ttl_ms, max_records, signing,
-    initial_signing, initial_policy,
+    database,
+    crypto,
+    ownership,
+    adoption_body,
+    first,
+    ttl_ms,
+    max_records,
+    signing,
+    initial_signing,
+    initial_policy,
+    max_retained_intent_bytes~,
   )
   match connected {
     Ok(value) => Ok(value)
@@ -208,6 +228,7 @@ fn NativeLocalAdoptionSession::bind_journal(
   signing : Array[NativeLocalSigningInstallationSelection],
   initial_signing : NativeLocalInitialSigningMaterial?,
   initial_policy : @host.ClientLocalSigningBootstrapPolicy?,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   let initial = match (initial_signing, initial_policy) {
     (None, None) => None
@@ -223,7 +244,14 @@ fn NativeLocalAdoptionSession::bind_journal(
   }
   let (epoch, journal) = match
     self.bind_journal_sqlite_originals(
-      database, crypto, adoption_body, first, initial, ttl_ms, max_records,
+      database,
+      crypto,
+      adoption_body,
+      first,
+      initial,
+      ttl_ms,
+      max_records,
+      max_retained_intent_bytes~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -231,6 +259,20 @@ fn NativeLocalAdoptionSession::bind_journal(
   let adoption_cid = match local_adoption_digest(crypto, adoption_body) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  // The SAME physical adoption row/epoch has now acknowledged persistence.
+  // Bind its actual identity to the installed profile, never a fresh record
+  // fabricated by the caller or an acknowledgement before COMMIT. The Native
+  // Session keeps that exact configuration and custody through current reads.
+  if self.configuration.bootstrap_profile() is Some(profile) {
+    if @authorization.bind_bootstrap_adoption(self.configuration, {
+        record_id: adoption_cid,
+        account_id: self.configuration.account_id(),
+        profile,
+      })
+      is Err(_) {
+      return Err(UninstalledBootstrapProfile)
+    }
   }
   let connected = {
     session: self,
@@ -356,6 +398,23 @@ pub fn NativeLocalHostConnection::close(
   self : NativeLocalHostConnection,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   self.closed = true
+  match self.close_original_signing_attempts() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.close_journal_database() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.close_journal_session()
+}
+
+///|
+// The same Host retains both attempts before any fallible signing callback.
+// Only their original physical close ACKs cut those aliases, including errors.
+fn NativeLocalHostConnection::close_original_signing_attempts(
+  self : NativeLocalHostConnection,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.reviewer_signing_attempt is Some(original) {
     match original.close_checked() {
       Err(issue) => return Err(Crypto(issue))
@@ -368,11 +427,7 @@ pub fn NativeLocalHostConnection::close(
       Ok(_) => self.host_attestation_signing_attempt = None
     }
   }
-  match self.close_journal_database() {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  self.close_journal_session()
+  Ok(())
 }
 
 ///|
@@ -408,12 +463,48 @@ fn valid_local_journal_options(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Bool {
   !(!valid_epoch_clock(ttl_ms) ||
   ttl_ms < 1.0 ||
   ttl_ms > 86400000.0 ||
   max_records < 1 ||
-  max_records > 1024 ||
+  max_retained_intent_bytes < 0L ||
   max_snapshot_bytes < 0L ||
   max_snapshot_bytes > 536870912L)
+}
+
+///|
+// Read/grant history permits at most 64 entries per selected Run. The policy
+// product is Int64; the actual stored counter remains the existing Int wire.
+fn local_journal_related_issuance_count(
+  body : Bytes,
+  revision : Int64,
+  max_records : Int,
+) -> Result[Int, NativeClientRunJournalIssue] {
+  if max_records < 1 {
+    return Err(CustodyLost)
+  }
+  let count = match @host.client_journal_issuance_count(body, 2147483647) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  if count.to_int64() > max_records.to_int64() * 64L ||
+    revision != count.to_int64() {
+    return Err(CustodyLost)
+  }
+  Ok(count)
+}
+
+///|
+// Refuse an actual exhausted Int counter BEFORE insertion or issued CAS.
+// A larger future policy product alone is not a reason to reject the policy.
+fn local_journal_related_append_available(
+  count : Int,
+  max_records : Int,
+) -> Bool {
+  max_records > 0 &&
+  count >= 0 &&
+  count < 2147483647 &&
+  count.to_int64() < max_records.to_int64() * 64L
 }

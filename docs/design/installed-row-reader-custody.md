@@ -1,3 +1,43 @@
+# Original composed keyed Model prefix
+
+The existing Model Scope and admitted Effect Plan may borrow two original Row
+captures to execute their checked keyed JOIN left prefix once. The prefix keeps
+its existing reservation and actual completed input receipt. Its keyed request,
+response, observation and Model suffix remain bound to those same captures,
+checked graph, compiled Run, Definition and Ledger. Planned Source metadata
+does not satisfy live input admission. Imported Result positions and Source
+inventory positions are distinct; the original JOIN right port selects the
+runtime response schema and input without changing the Catalog coordinate.
+
+The Node composition retains cleanup before asynchronous work. A failed or
+pending original reader keeps its child and prefix until real cleanup completes;
+undefined failure remains the primary failure and cannot imply an ACK or retry.
+The prefix and assembly reserve their actual finite workspaces on the same
+Ledger without spending Model quantities. The Model input reports the prefix's
+already completed work and runs only its remaining suffix. Existing standalone
+keyed readers keep their original owner, current, capacity and cleanup checks.
+
+The Model execution retains that same prefix receipt's work as a private,
+immutable entry baseline before constructing its input. Initial bindings require
+the input phase and both existing work reports to remain at that baseline.
+The Local component reports new deltas from entry, while cumulative work and
+first-poll cancellation preserve the producer's already completed history.
+
+An adopted Effect Run may retain preparation and control originals beside its
+Source captures. Its borrowed input checks each actual reservation and holding
+through the existing serial index and physical identity; a serial alone is not
+proof. The standalone capture-only census remains separate. The adopted Run
+retains the prefix in its existing one-use prefix slot before provider start,
+and selects the sequence from its actual retained Effect Plan. Early selection
+metadata, whole-Ledger purity and an absent prepared segment cannot substitute
+for that original. All other live children keep their original cleanup duties.
+
+The completed keyed input adds a runtime slot without replacing the checked
+preparation graph. Its existing opaque captured Effect owner binds that exact
+runtime Run to the original Local dispatch preparation; generic graph binding
+still requires physical identity. This association grants no input, budget or
+cleanup authority, and every retained Source keeps its existing owner.
+
 # Original installed row reader custody
 
 ## Original installation preparation read
@@ -96,6 +136,37 @@ once and rechecks current read authority after preparation and before read.
 Failure of the factory, method access or current check retains the original
 RowRun and its reservation; it never retries preparation to reconstruct them.
 
+The factory's existing second argument retains its original preparation before
+fallible constructor work. A failed factory or returned-method getter leaves
+that same preparation and its captured own synchronous `retire` method in the
+existing reader slots. Its managed alias retirement waits for its own partial
+children; only exact `true` lets the original RowRun continue cleanup. Reentry,
+replacement, truthy values and Promise settlement supply no acknowledgement.
+One unexpected Promise remains the entered flight until it settles, without
+repeating retirement while it is pending. The preparation is replaced by the
+returned reader only after all returned methods have been captured and checked.
+The original options receiver and third capacity-growth argument are preserved.
+This connection adds no Run, physical cleanup owner, budget or permission.
+
+The same private factory uses its third callback with the fixed
+`announced-body` phase for native construction before any response exists. It
+admits the fixed reader's complete cumulative constructor overlap on the
+original Query or whole-input RowRun reservation.
+The callback is usable only during that original read, after cleanup binding,
+with no outstanding response ticket. It rechecks original Resource current and
+the same reader after the callback, including when the declared peak is reused.
+A copied borrow, smaller declaration, pending/closed reservation, insufficient
+backing or reentrant stop cannot enter a constructor. A successful debit stays
+held if subsequent construction or its current check fails.
+
+This entry creates no page ticket, transfer allowance, attempt, permission or
+physical acknowledgement. Charged response decoding keeps the one-argument
+callback and exact latest-ticket requirement. Missing construction capability stays
+absent; a native reader requiring it must refuse before allocation. The actual
+native caller still supplies its justified request, parser, retained output
+and failed-child overlap before each constructor. The callback alone does not
+establish that recipe or qualify an installed native reader.
+
 The reader's `observe().cleanupConfirmed === true` must represent actual
 retirement of that same reader and all escaped custody. It is not inferred
 from method return, Promise settlement, cancellation acceptance, credential
@@ -111,6 +182,16 @@ logical rows can have their own downstream custody without retiring provider
 raw history. A driver that still exposes success/error response aliases and
 cannot observe their retirement must keep `cleanupConfirmed` false. It cannot
 enable normal retirement merely by supplying a finite byte declaration.
+
+A completed acquired Model's Content prefix borrows the same Source reservation
+and holding on its original Request Ledger. A provider's still-open reservation
+keeps all remaining retention and scratch beside the prefix's own reservation;
+starting the prefix does not settle or refund it. The Core prerequisite checks
+the exact ordered tokens, holding-to-reservation association, one-shot attempt
+history and absence of cleanup pending, both before reservation and after input
+callbacks. Foreign tokens, read issuance, extra children and spent opportunities
+still refuse. Prefix cleanup retires only its own child; Source cleanup must
+observe and retire the original provider before the parent can finish.
 
 The original Host/Run inventory includes the retained declaration and planner
 pair, preparer and receiver, reader and three method references, request and

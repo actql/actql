@@ -53,6 +53,32 @@ int main(int argc, char **argv) {
     return 0;
   }
   assert(actql_native_client_measure_prearguments(256,4096,65536,8192) == 0);
+  if (strcmp(argv[1], "argument-currentness") == 0) {
+    int original_argc = 0;
+    const char *const *original_argv = NULL;
+    assert(actql_command_raw_arguments(&original_argc, &original_argv));
+    assert(original_argc == argc && original_argv == (const char *const *)argv);
+    assert(actql_command_original_arguments_current());
+    char original = argv[1][0];
+    argv[1][0] = 'X';
+    assert(!actql_command_original_arguments_current());
+    argv[1][0] = original;
+    char *retained = argv[1];
+    argv[1] = NULL;
+    assert(!actql_command_original_arguments_current());
+    argv[1] = retained;
+    assert(actql_command_original_arguments_current());
+#if defined(__linux__) && defined(__x86_64__) && defined(__GLIBC__)
+    assert(actql_native_client_compiled_platform() == 2);
+    actql_command_capture_linux_arguments(1, NULL, NULL);
+    assert(actql_command_raw_arguments(&original_argc, &original_argv));
+    assert(original_argc == argc && original_argv == (const char *const *)argv);
+#else
+    assert(actql_native_client_compiled_platform() == 1);
+#endif
+    puts("original entry record passed");
+    return 0;
+  }
   actql_native_client_capture_command_entry();
   assert(atomic_load(&actql_command_entry_state) == 2);
   actql_native_command_platform_original *entry =

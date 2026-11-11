@@ -556,6 +556,12 @@ priv enum ClientLocalManagedBoundaryProfile {
 }
 
 ///|
+let client_local_adaptive_revisions : Int = 10
+
+///|
+let client_local_estimate_work : Int = 1000
+
+///|
 /// Pure selected Local module and immutable policies retained before a Run.
 /// The actual driver binds this original instead of reconstructing providers
 /// or selecting another module from equal numerical limits.
@@ -598,7 +604,7 @@ fn prepare_client_local_configuration(
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows,
-    max_value_bytes: 10000,
+    max_value_bytes: capacity_plan.max_value_bytes,
     common_fragment: None,
   }
   let providers = match
@@ -653,6 +659,9 @@ fn prepare_client_local_configuration(
       managed_providers=local_configuration.managed_providers,
       inputs=Some((capacity_plan.imports, Some(0L))),
       metadata=Some(capacity_plan.metadata),
+      // The explicit retained-output selection keeps the original row-file
+      // exporter and its full simultaneous backing. Default managed consumers
+      // do not select that separate exporter.
       output=if retained_output {
         Some((capacity_plan.exports, Some(0L)))
       } else {
@@ -666,6 +675,34 @@ fn prepare_client_local_configuration(
 }
 
 ///|
+// Preserve the existing Local implementation's original typed failure. This
+// private carrier is diagnostic data, never a new execution or cleanup owner.
+priv suberror ClientLocalImplementationFailure {
+  Dispatch(@local_driver.LocalDispatchIssue)
+  Estimate(@local_driver.LocalEstimateIssue)
+}
+
+///|
+fn client_local_dispatch_run_issue(
+  issue : @local_driver.LocalDispatchIssue,
+) -> @strategy.RunIssue {
+  match issue {
+    Execution(original) => original
+    _ => Implementation(ClientLocalImplementationFailure::Dispatch(issue))
+  }
+}
+
+///|
+fn client_local_estimate_run_issue(
+  issue : @local_driver.LocalEstimateIssue,
+) -> @strategy.RunIssue {
+  match issue {
+    Dispatch(original) => client_local_dispatch_run_issue(original)
+    _ => Implementation(ClientLocalImplementationFailure::Estimate(issue))
+  }
+}
+
+///|
 fn bind_client_local_configuration(
   run : @strategy.CapturedDAG,
   original : ClientPreparedLocalConfiguration,
@@ -673,6 +710,7 @@ fn bind_client_local_configuration(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  captured_effect? : @strategy.CapturedEffectRunDAG? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   let graph = original.graph
   let capacity_plan = original.capacity_plan
@@ -681,13 +719,25 @@ fn bind_client_local_configuration(
   let registry = original.registry
   let capacity = original.capacity
   let retained_output = original.retained_output
-  if !physical_equal(@strategy.captured_dag_graph(run), graph) ||
-    @strategy.captured_compute_first_task(run) != first_compute {
+  let same_graph = match captured_effect {
+    None => physical_equal(@strategy.captured_dag_graph(run), graph)
+    Some(value) =>
+      @strategy.captured_effect_run_matches_preparation(value, run, graph)
+  }
+  if !same_graph || @strategy.captured_compute_first_task(run) != first_compute {
     return reject_client_local_run(run)
   }
   let driver = @host_driver.open_dispatch_driver(run)
-  let installed = match
-    @local_driver.bind_local_dispatch_plan(driver, original.dispatch) {
+  let binding = match captured_effect {
+    None => @local_driver.bind_local_dispatch_plan(driver, original.dispatch)
+    Some(value) =>
+      @local_driver.bind_local_effect_dispatch_plan(
+        driver,
+        original.dispatch,
+        value,
+      )
+  }
+  let installed = match binding {
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }
@@ -699,9 +749,7 @@ fn bind_client_local_configuration(
       _ => @strategy.RunIssue::ForeignCandidate,
       with_local=Some(
         (
-          installed,
-          _ => @strategy.RunIssue::ForeignCandidate,
-          _ => @strategy.RunIssue::ForeignCandidate,
+          installed, client_local_dispatch_run_issue, client_local_estimate_run_issue,
         ),
       ),
     ) {
@@ -731,7 +779,9 @@ fn bind_client_local_configuration(
     schedule,
   )
   let estimate = match
-    @local_driver.prepare_local_estimate_module(installed, schedules, 1000) {
+    @local_driver.prepare_local_estimate_module(
+      installed, schedules, client_local_estimate_work,
+    ) {
     Ok(value) => value
     Err(_) => return reject_client_local_run(run)
   }
@@ -762,9 +812,9 @@ fn bind_client_local_configuration(
               max_offers: 100,
               max_strategies: 100,
               max_work: 10000,
-              max_revisions: 10,
+              max_revisions: client_local_adaptive_revisions,
             },
-            1000,
+            client_local_estimate_work,
           ) {
           Ok(_) => ()
           Err(_) => return reject_client_local_run(run)
@@ -775,6 +825,11 @@ fn bind_client_local_configuration(
         // capture's statistics describe all independent input roots.
         let offers = []
         for task in first_compute..<task_count {
+          if @strategy.captured_task_completed(run, task) {
+            // A borrowed completed Model task has already spent its work.
+            // Offer only its actual downstream tasks, never rerun the prefix.
+            continue
+          }
           let proposed = match
             @local_driver.estimate_local_installed_offers(installed, task, {
               rows: None,
@@ -790,6 +845,11 @@ fn bind_client_local_configuration(
           for offer in proposed {
             offers.push(offer)
           }
+        }
+        if offers.is_empty() {
+          // Every remaining task is an actual typed completion. This Host
+          // still owns Result/Effect consumers, but has no Compute to select.
+          return Some(value)
         }
         match
           @strategy.configure_strategy_search(run, {

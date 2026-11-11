@@ -10,6 +10,7 @@ pub struct RangeBinding {
   command_cid : String
   binding_cid : String
   target_wire : String
+  priv target : Json
   limits : Limits
 }
 
@@ -19,7 +20,15 @@ pub struct RangeRequest {
   body : String
   path : String
   value_wire : String
+  priv value : Json
   cid : String
+}
+
+///|
+/// The existing saved range-entry rejection bound. Constructor quotation
+/// borrows this same guard; it is not a Run allowance or caller setting.
+pub fn range_saved_recovery_wire_byte_limit() -> Int {
+  100000
 }
 
 ///|
@@ -149,6 +158,7 @@ pub fn admit_range_binding(
     command_cid,
     binding_cid,
     target_wire,
+    target,
     limits,
   })
 }
@@ -161,6 +171,7 @@ pub(all) struct RangeConstructionMetadata {
   rows : Int
   name_units : Int64
   schema_bytes : Int64
+  identity_units : Int64
   origin_units : Int
   spreadsheet_units : Int
   target_units : Int
@@ -192,6 +203,8 @@ pub fn range_construction_metadata(
       1L
     ) +
     6L * name_units,
+    identity_units: binding.command_cid.length().to_int64() +
+    binding.binding_cid.length().to_int64(),
     origin_units: binding.origin.length(),
     spreadsheet_units: binding.spreadsheet_id.length(),
     target_units: binding.target_wire.length(),
@@ -277,7 +290,9 @@ pub fn prepare_range_request(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ binding, body, path, value_wire, cid, })
+  // Retain the SAME admitted native value for later facts projection. Its
+  // canonical wire remains identity DATA, not a replacement parse source.
+  Ok({ binding, body, path, value_wire, value, cid, })
 }
 
 ///|
@@ -303,20 +318,6 @@ pub fn range_request_json(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let value = match
-    range_parse(request.value_wire, binding.limits, "InvalidSheetsRangeInput") {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let target = match
-    range_parse(
-      binding.target_wire,
-      binding.limits,
-      "SheetsRangeReferenceUnavailable",
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
   range_canonical(
     {
       "origin": binding.origin.to_json(),
@@ -324,8 +325,8 @@ pub fn range_request_json(
       "spreadsheetId": binding.spreadsheet_id.to_json(),
       "sheetId": binding.range.sheet_id.to_json(),
       "acknowledgedRows": (binding.range.end_row - binding.range.start_row).to_json(),
-      "value": value,
-      "target": target,
+      "value": request.value,
+      "target": binding.target,
       "requestCid": request.cid.to_json(),
     },
     binding.limits,
@@ -436,13 +437,14 @@ pub fn recover_range_requests(
     guard entries.length() == 1 &&
       entries[0] is Object(entry) &&
       entry.get("wire") is Some(String(wire)) &&
-      @utf8.encode(wire).length() <= 100000 &&
+      @utf8.encode(wire).length() <= range_saved_recovery_wire_byte_limit() &&
       entry.get("observationCid") is Some(String(cid)) &&
-      range_parse(wire, limits, "SheetsRangeRecoveryMismatch") is Ok(value) &&
-      range_canonical(value, limits) == Ok(wire) &&
-      range_content_cid(value, limits) == Ok(cid) &&
+      // Exact equality with the original constructor's canonical metadata
+      // establishes the supplied wire as that SAME complete document. Do not
+      // parse/canonicalize/hash an unrelated supplied tree before rejecting it.
       range_recovery_value(binding, effect_id) is Ok(expected) &&
-      range_canonical(expected, limits) == Ok(wire) else {
+      range_canonical(expected, limits) == Ok(wire) &&
+      range_content_cid(expected, limits) == Ok(cid) else {
       return Err(range_failure("SheetsRangeRecoveryMismatch"))
     }
     let requests = []

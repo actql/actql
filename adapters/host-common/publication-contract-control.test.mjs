@@ -50,6 +50,7 @@ import {
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 import {createClientHttpHandler} from '../host-node/client-http.mjs';
+import {fundedClientPreparation} from '../host-node/funded-client-preparation.fixture.mjs';
 import {openClientRequestJournal} from '../host-node/client-request-journal.mjs';
 import {installNodeClientRunStateObservation, observeClientRunState} from
   '../host-node/client-run-state.mjs';
@@ -3008,7 +3009,15 @@ test('portable control validates Receipt and Captured Run references',
     stateService, stateRequest);
   assert.equal(availableClientState.status, 'succeeded');
   assert.deepEqual(availableClientState.result_availability, availableState.result_availability);
+  const environmentWire = await readFile(new URL(
+    '../../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const environment = moon.clientProgramCheckEnvironment(environmentWire.trimEnd(),
+    JSON.parse(environmentWire).evidence_bundle_cid,
+    false, false, true, true, false, false, false);
+  assert.ok(environment);
+  const funded = await fundedClientPreparation(t, {moon, environment, http: true});
   const clientHost = createServer(createClientHttpHandler({
+    prepareRequest: funded.prepareRequest,
     authenticate: authorization => authorization === 'Bearer scoped-token'
       ? 'principal-a' : undefined,
     authorizeConnection: facts => facts.connection.mode === 'local' &&
@@ -3871,6 +3880,7 @@ test('portable control validates Receipt and Captured Run references',
       const attemptCid = JSON.parse(attempted[0]).delivery_attempt_cid;
       const latest = () => deliveryStore.latestDeliveryRecord(attemptCid);
       assert.equal((await latest()).state, 'streaming');
+      assert.deepEqual(failure.cleanupErrors, [terminalFailure]);
       const first = failure.cleanupHandle.retry();
       await arrived;
       const second = failure.cleanupHandle.retry();
@@ -3880,6 +3890,7 @@ test('portable control validates Receipt and Captured Run references',
       assert.equal(first, second);
       assert.equal(firstStatus, secondStatus);
       assert.equal(firstStatus.pending, true);
+      assert.deepEqual(firstStatus.errors, [terminalFailure, terminalFailure]);
       assert.equal(retries, 1);
       assert.equal((await latest()).state, 'streaming');
       terminalAvailable = true;
@@ -3890,7 +3901,8 @@ test('portable control validates Receipt and Captured Run references',
       assert.equal(failure.cleanupPending, false);
       assert.equal(failure.cause, original);
       assert.equal(failure.primaryFailure, original);
-      assert.deepEqual(failure.cleanupErrors, [terminalFailure, terminalFailure, terminalReplyLost]);
+      assert.deepEqual(failure.cleanupErrors, [terminalFailure, terminalReplyLost],
+        'bounded diagnostics retain the first and latest original failures');
       assert.equal(attempted.length, 4);
       for (const wire of attempted) assert.equal(wire, attempted[0]);
       assert.equal((await latest()).delivery_record_cid,

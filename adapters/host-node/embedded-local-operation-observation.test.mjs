@@ -3,6 +3,7 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
+import {checked} from '../host-common/runtime-result.mjs';
 
 // Original Host expressions with explicit execution/observation ports. This
 // supplies no Account grant, Run claim, Store receipt or physical capacity.
@@ -99,7 +100,9 @@ assert.equal(effectFunctions.size, 2);
 
 function effectCancellationFixture() {
   const ref = Object.freeze({namespaceId: 'namespace', authorityScopeCid: 'scope', runDefinitionCid: 'run'});
-  const prepared = {}, work = deferred(), entered = deferred();
+  const prepared = {}, identity = {}, managedRun = {}, operationPlan = {};
+  const managedEffect = Object.freeze({value: managedRun});
+  const work = deferred(), entered = deferred();
   const counts = {legacyLookups: 0, observers: 0, probes: 0, target: 0, resume: 0};
   let row = Object.freeze({revision: 1, cancellationRequested: false});
   let targetCurrent, sourceCurrent, originalCurrent;
@@ -109,6 +112,10 @@ function effectCancellationFixture() {
     clientProgramEffectAcquisitionCount: () => 0,
     clientProgramEffectCompilationUnitId: () => 'unit',
     clientProgramEffectCompilationResultNames: () => ['updates'],
+    clientProgramInstalledEffectManagedOperationPlan(owner, actualPrepared, actualIdentity) {
+      assert.strictEqual(owner, managedRun); assert.strictEqual(actualPrepared, prepared);
+      assert.strictEqual(actualIdentity, identity); return {$tag: 1, _0: operationPlan};
+    },
   };
   const control = {runDefinitionRunId: () => 'original-run'};
   const journal = {
@@ -122,7 +129,11 @@ function effectCancellationFixture() {
     },
   };
   const selection = Object.freeze({targetReadInventory: () => []});
-  const ports = {moon, control, journal, installedEffect: undefined,
+  const ports = {moon, control, journal, checked, installedEffect: undefined,
+    preparation: {effectManagedPlanRun(actualMoon, actualPrepared, actualIdentity) {
+      assert.strictEqual(actualMoon, moon); assert.strictEqual(actualPrepared, prepared);
+      assert.strictEqual(actualIdentity, identity); return managedEffect;
+    }},
     selectedInstalledEffect: () => selection, principalId: 'actor',
     checkpoints: {}, effectSubmissions: new WeakMap(), inferSelections: new WeakMap(),
     effectTargetReadContinuation(options) {targetCurrent = options.assertCurrent; return {assertCurrent: targetCurrent};},
@@ -138,9 +149,14 @@ function effectCancellationFixture() {
       return Promise.resolve().then(() => options.run({signal: new AbortController().signal,
         retainExecution() {}, beginPhysicalWork() {}, observePreEffectFailure() {}}));
     }},
-    selectAcquiredEffectSources: () => [], sourceProfile: {}, registry: {}, values: {}, fragment: {}, ordered: {},
+    selectAcquiredEffectSources(options) {
+      assert.strictEqual(options.preparedEffect, prepared);
+      assert.strictEqual(options.requestIdentity, identity);
+      assert.strictEqual(options.managedPlan, operationPlan); return [];
+    }, sourceProfile: {}, registry: {}, values: {}, fragment: {}, ordered: {},
     acquiredEffectContinuation(options) {sourceCurrent = options.currentRun; return {};},
     async openAcquiredEffectComputation(options) {
+      assert.strictEqual(options.managedRun, managedRun);
       originalCurrent = options.assertUpdateSelectionCurrent;
       originalCurrent(); options.assertContinuationCurrent();
       entered.resolve(); return work.promise;
@@ -154,7 +170,7 @@ function effectCancellationFixture() {
   const install = name => compileFunction(`return ${effectFunctions.get(name)};`, Object.keys(ports))(...Object.values(ports));
   ports.openEffectTargetReads = install('openEffectTargetReads');
   const execute = install('executeEffectComputation');
-  const facts = Object.freeze({ref, prepared, runDefinition: {}, compilation: {}, preparedExecution: {},
+  const facts = Object.freeze({ref, prepared, identity, runDefinition: {}, compilation: {}, preparedExecution: {},
     updateTargetSelections: {}, assertUpdateSelectionCurrent() {counts.target++;}});
   const resume = Object.freeze({active: false, assertCurrent() {counts.resume++;}});
   return {counts, facts, entered: entered.promise, execute: () => execute(facts, resume),

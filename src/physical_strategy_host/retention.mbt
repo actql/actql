@@ -554,12 +554,50 @@ pub fn captured_any_result_borrows_share_view(
 }
 
 ///|
+/// Select the existing physical exporter from this original borrow's retained
+/// representation. This immutable projection does not check or grant liveness;
+/// the selected exporter still validates the original pin, owner and current.
+pub fn captured_any_result_borrow_requires_managed_export(
+  borrow : CapturedAnyResultBorrow,
+) -> Bool {
+  match borrow.kind {
+    Resident(_) => true
+    Cells(_) | Source(_) => false
+  }
+}
+
+///|
 pub fn captured_any_result_borrow_cell_output(
   borrow : CapturedAnyResultBorrow,
 ) -> @execution.CompletedOutput? {
   match borrow.kind {
     Cells(value) if captured_result_borrow_available(value) =>
       Some(captured_result_borrow_output(value))
+    _ => None
+  }
+}
+
+///|
+/// Inventory of this exact pinned producer. Unknown or unavailable material
+/// remains absent; this never runs a count query or reads a second row stream.
+pub fn captured_any_result_borrow_row_count(
+  borrow : CapturedAnyResultBorrow,
+) -> Int? {
+  match borrow.kind {
+    Cells(value) if value.pin.live =>
+      if @execution.completed_output_available(value.pin.output) {
+        Some(@execution.completed_row_count(value.pin.output))
+      } else {
+        None
+      }
+    Resident(value) if value.pin.live =>
+      match value.pin.reference {
+        Managed(reference) =>
+          @execution.managed_completed_reference_row_count(reference)
+        Carrier(_) => None
+      }
+    Source(value) if value.live =>
+      @query.captured_source_row_count(value.source)
     _ => None
   }
 }
@@ -801,6 +839,25 @@ pub fn retain_captured_task_allocation(
   resource.holding = Some(holding)
   resource.release_confirmed = release_confirmed
   Ok(())
+}
+
+///|
+// A borrowed current observation of the SAME allocation transferred by Row.
+// It issues neither a holding nor cleanup permission.
+pub fn captured_task_allocation_matches(
+  run : CapturedDAG,
+  task : Int,
+  holding : @resources.Holding,
+) -> Bool {
+  run.resources
+  .get(task)
+  .bind(value => value)
+  .bind(resource => resource.holding)
+  .map(original => {
+    physical_equal(original, holding) &&
+    @resources.holding_available(run.ledger, holding)
+  })
+  .unwrap_or(false)
 }
 
 ///|

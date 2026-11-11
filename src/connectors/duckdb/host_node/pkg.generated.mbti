@@ -42,6 +42,8 @@ pub fn broad_host_finish(BroadNodeRun) -> Unit raise NodeHostFailure
 
 pub fn broad_host_issue_source_evidence(@host.BroadHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> String raise NodeHostFailure
 
+pub fn broad_host_issue_source_evidence_original(@host.BroadHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> @run_publication.RunEvidenceValue raise NodeHostFailure
+
 pub fn broad_host_max_name_bytes(BroadNodeRun) -> Int
 
 pub fn broad_host_metadata(BroadNodeRun, Int, String, String) -> Unit raise NodeHostFailure
@@ -58,6 +60,8 @@ pub fn broad_host_physical_refresh(BroadNodeRun) -> Unit
 
 pub fn broad_host_physical_settle(BroadNodeRun, Bool) -> Unit raise NodeHostFailure
 
+pub fn broad_host_physical_start(BroadNodeRun) -> Unit raise NodeHostFailure
+
 pub fn broad_host_retain_captured_task(BroadNodeRun, @physical_strategy_host.CapturedDAG, Int, @acquisition.DuckDBBroadObservation) -> Unit raise NodeHostFailure
 
 pub fn broad_host_source_capture(BroadNodeRun, @acquisition.DuckDBBroadObservation) -> @host.BroadHostSourceCapture raise NodeHostFailure
@@ -69,6 +73,8 @@ pub fn broad_host_source_capture_source(@host.BroadHostSourceCapture) -> @execut
 pub fn broad_host_source_capture_source_ref(@host.BroadHostSourceCapture) -> String?
 
 pub fn broad_host_sql(BroadNodeRun, Bool) -> String
+
+pub fn broad_host_transport_window(@host.BroadHostConfiguration) -> (Int, Int)
 
 pub fn broad_strategy_host_open(@host.BroadHostConfiguration, @physical_resources.Ledger, String, (@acquisition.DuckDBBroadAttempt) -> Bool, Int64, Int64, () -> Bool) -> BroadNodeRun raise NodeHostFailure
 
@@ -147,6 +153,8 @@ pub fn compute_host_parameter(ComputeNodeRun, Int, Int, Bool, Int) -> String rai
 pub fn compute_host_physical_charge(ComputeNodeRun, Int64) -> Unit raise NodeHostFailure
 
 pub fn compute_host_physical_settle(ComputeNodeRun, Bool) -> Unit raise NodeHostFailure
+
+pub fn compute_host_physical_start(ComputeNodeRun) -> Unit raise NodeHostFailure
 
 pub fn compute_host_query_parameter_count(ComputeNodeRun) -> Int
 
@@ -388,6 +396,8 @@ pub fn native_host_finish(NativeNodeRun) -> Unit raise NodeHostFailure
 
 pub fn native_host_issue_source_evidence(@host.NativeHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> String raise NodeHostFailure
 
+pub fn native_host_issue_source_evidence_original(@host.NativeHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> @run_publication.RunEvidenceValue raise NodeHostFailure
+
 pub fn native_host_measurement_usage(@acquisition.DuckDBNativeObservation) -> Array[Int]
 
 pub fn native_host_metadata(NativeNodeRun, Int, String, String) -> Unit raise NodeHostFailure
@@ -405,6 +415,8 @@ pub fn native_host_physical_charge(NativeNodeRun, Int64) -> Unit raise NodeHostF
 pub fn native_host_physical_refresh(NativeNodeRun) -> Unit
 
 pub fn native_host_physical_settle(NativeNodeRun, Bool) -> Unit raise NodeHostFailure
+
+pub fn native_host_physical_start(NativeNodeRun) -> Unit raise NodeHostFailure
 
 pub fn native_host_receipt_document(@acquisition.DuckDBNativeObservation, Int) -> String raise NodeHostFailure
 
@@ -435,6 +447,8 @@ pub fn native_host_stream_prepare(NativeNodeRun, Int) -> Unit raise NodeHostFail
 pub fn native_host_stream_readable(@execution_relation.RetainedOutputHandle[NativeStreamNodeReceipt], @execution_relation.ProducerRead) -> Bool
 
 pub fn native_host_stream_retain(NativeNodeRun, NativeStreamNodeReceipt, () -> Bool) -> @execution_relation.RetainedOutputHandle[NativeStreamNodeReceipt] raise NodeHostFailure
+
+pub fn native_host_transport_window(@host.NativeHostConfiguration) -> (Int, Int)
 
 pub fn native_retained_host_capacity(@host.NativeHostConfiguration, Bool) -> Int64 raise NodeHostFailure
 

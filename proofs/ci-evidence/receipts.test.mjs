@@ -323,3 +323,12 @@ test('Bridge receipt sealing and authenticated archive reading require actual pe
   }
   assert.deepEqual((await consume(original, log)).receipt, original);
 });
+
+test('scheduled receipt authenticates fresh main provenance without permitting arbitrary branch or event substitution', async () => {
+  const scheduled = sealReceipt({origin: {...origin, event: 'schedule'}, action, inputs: inputs(), output, status: 0, milliseconds: 15});
+  const sameRun = {...expected, candidateRevision: revision, runHeadRevision: revision, runId: 3, runAttempt: 4};
+  const request = api('1'.repeat(64), ({run}) => { run.event = 'schedule'; });
+  await authenticateOrigin({receipt: scheduled, artifactId: 6, expected: sameRun, request, acquisition: 'fresh'});
+  await assert.rejects(authenticateOrigin({receipt: scheduled, artifactId: 6, expected: sameRun, request: api(), acquisition: 'fresh'}));
+  assert.throws(() => sealReceipt({origin: {...origin, event: 'schedule', branch: 'feature'}, action, inputs: inputs(), output, status: 0, milliseconds: 15}));
+});

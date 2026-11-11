@@ -175,3 +175,69 @@ test "Infer execution owns the suffix across completion and cancellation" {
     assert_eq(calls.val, 1)
   }
 }
+
+///|
+test "original Result selection refuses raw Model output and accepts its same checked suffix completion" {
+  let source = infer_fixture_program
+    .replace(
+      old="\"as\":\"captured\"}],",
+      new="\"as\":\"captured\"},{\"select\":[\"id\",\"outcome\",\"value\"]},{\"select\":[\"id\",\"outcome\"],\"as\":\"projected\"}],",
+    )
+    .replace(
+      old="\"from\":\"captured\",\"fields\":[\"id\",\"outcome\",\"value\"]",
+      new="\"from\":\"projected\",\"fields\":[\"id\",\"outcome\"]",
+    )
+  for selected_suffix in [false, true] {
+    let prepared = fixture_prepared(source~)
+    let selected = @publication_host.prepare_client_result_transformation(
+      prepared, 0, 10000, 1000, 64,
+    ).unwrap()
+    let calls = Ref(0)
+    let active = fixture_start(prepared, () => calls.val += 1)
+    if selected_suffix {
+      let full = @input.prepare_client_local_sequences(
+          prepared,
+          infer_fixture_installed_contracts(),
+          infer_fixture_values,
+          None,
+          None,
+        ).unwrap()[0]
+      let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+        active.occurrence,
+      )
+      let last = @publication_host.client_infer_occurrence_output_step(
+        active.occurrence,
+      ).unwrap()
+      let suffix = @relation.select_generated_sequence_range(
+        full,
+        step + 1,
+        last,
+      ).unwrap()
+      assert_true(
+        physical_equal(
+          @relation.generated_sequence_owner(full),
+          @relation.generated_sequence_owner(suffix),
+        ),
+      )
+      bind_compute_suffix(active, suffix).unwrap()
+    }
+    guard fixture_finish(active) is Complete(output, ..) else {
+      abort("same checked execution must complete")
+    }
+    let publication = @publication_host.start_client_result_transformation(
+      selected,
+      output,
+      publication_result_limits(),
+    )
+    if selected_suffix {
+      let publication = publication.unwrap()
+      assert_eq(@relation.completed_column_count(output), 2)
+      assert_true(publication.cancel())
+    } else {
+      assert_eq(@relation.completed_column_count(output), 3)
+      assert_true(publication is Err(@publication_host.Output(_)))
+    }
+    assert_eq(calls.val, 1)
+    assert_true(cleanup(active).unwrap())
+  }
+}

@@ -230,3 +230,20 @@ fn effect_relation_source_artifact_preview_binding(
   }
   Ok((artifact.identity, binding))
 }
+
+///|
+/// Read the original captured physical source's selected retention identity.
+/// Full computation-chain admission remains with its original caller. This
+/// borrowed DATA is neither a new retention contract nor a Store holding.
+pub fn captured_run_effect_source_retention_cid(
+  captured : PublicationContract,
+  effect_id : String,
+) -> String? {
+  guard captured.name == "captured_run" &&
+    @json.object_field(captured.value, "effect_context") is Some(context) &&
+    @json.object_field(context, "effect_source_artifacts") is Some(sources) &&
+    @json.object_field(sources, effect_id) is Some(source) else {
+    return None
+  }
+  optional_string(@json.object_field(source, "effective_retention_policy_cid"))
+}

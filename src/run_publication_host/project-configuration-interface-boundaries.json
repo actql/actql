@@ -1,0 +1,940 @@
+{
+  "qualification": "Project metadata source correspondence only; not Catalog admission, installed execution or target acceptance",
+  "declarations": [
+    {
+      "module": "src/run_publication_host/client_project_catalog.mbt",
+      "sha256": "8a105f7835e62bc71434f9c30dc715b5a1ac65b473d3a2c095d0654307b3d777",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_client_project_catalog",
+          "declaration": "admit_client_project_catalog ( wire : String , ) - > Result [ ClientProjectCatalog , ClientProjectCatalogIssue ]"
+        },
+        {
+          "name": "ClientProjectCatalog::at",
+          "declaration": "ClientProjectCatalog : : at ( self : Self , index : Int ) - > ( String , String ) ?"
+        },
+        {
+          "name": "ClientProjectCatalog::count",
+          "declaration": "ClientProjectCatalog : : count ( self : Self ) - > Int"
+        },
+        {
+          "name": "ClientProjectCatalog::original_wire",
+          "declaration": "ClientProjectCatalog : : original_wire ( self : Self ) - > String"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Project configuration and profile metadata Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_client_project_catalog",
+            "ClientProjectCatalog::at",
+            "ClientProjectCatalog::count",
+            "ClientProjectCatalog::original_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_project_configuration.mbt",
+      "sha256": "e4de31054488846ff65af2ca7c91714e9c91067b4bd5ca788f88f781a5e2d249",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_client_project_configuration",
+          "declaration": "admit_client_project_configuration ( wire : String , ) - > Result [ ClientProjectConfiguration , ClientProjectConfigurationIssue ]"
+        },
+        {
+          "name": "ClientProjectConfiguration::connectors_file",
+          "declaration": "ClientProjectConfiguration : : connectors_file ( self : Self ) - > String ?"
+        },
+        {
+          "name": "ClientProjectConfiguration::lock_file",
+          "declaration": "ClientProjectConfiguration : : lock_file ( self : Self ) - > String ?"
+        },
+        {
+          "name": "ClientProjectConfiguration::mock_answer_at",
+          "declaration": "ClientProjectConfiguration : : mock_answer_at ( self : Self , index : Int , ) - > ( String , String ) ?"
+        },
+        {
+          "name": "ClientProjectConfiguration::mock_answer_count",
+          "declaration": "ClientProjectConfiguration : : mock_answer_count ( self : Self ) - > Int"
+        },
+        {
+          "name": "ClientProjectConfiguration::mock_catalog_file",
+          "declaration": "ClientProjectConfiguration : : mock_catalog_file ( self : Self ) - > String ?"
+        },
+        {
+          "name": "ClientProjectConfiguration::mock_data_file",
+          "declaration": "ClientProjectConfiguration : : mock_data_file ( self : Self ) - > String ?"
+        },
+        {
+          "name": "ClientProjectConfiguration::model_tasks_file",
+          "declaration": "ClientProjectConfiguration : : model_tasks_file ( self : Self ) - > String ?"
+        },
+        {
+          "name": "ClientProjectConfiguration::selected_profile",
+          "declaration": "ClientProjectConfiguration : : selected_profile ( self : Self ) - > String ?"
+        },
+        {
+          "name": "ClientProjectConfiguration::state_directory",
+          "declaration": "ClientProjectConfiguration : : state_directory ( self : Self ) - > String"
+        },
+        {
+          "name": "project_configuration_optional_text",
+          "declaration": "project_configuration_optional_text ( object : @ decode . ObjectView , key : String , ) - > Result [ String ? , ClientProjectConfigurationIssue ]"
+        },
+        {
+          "name": "project_configuration_text",
+          "declaration": "project_configuration_text ( value : @ decode . Cursor ) - > String ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Project configuration and profile metadata Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_client_project_configuration",
+            "ClientProjectConfiguration::connectors_file",
+            "ClientProjectConfiguration::lock_file",
+            "ClientProjectConfiguration::mock_answer_at",
+            "ClientProjectConfiguration::mock_answer_count",
+            "ClientProjectConfiguration::mock_catalog_file",
+            "ClientProjectConfiguration::mock_data_file",
+            "ClientProjectConfiguration::model_tasks_file",
+            "ClientProjectConfiguration::selected_profile",
+            "ClientProjectConfiguration::state_directory",
+            "project_configuration_optional_text",
+            "project_configuration_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_project_profile.mbt",
+      "sha256": "f70eb7509682fa75003420c7363fb9bcd1329ca4faf1ca7e111fc2bef765f426",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_project_profile_matches",
+          "declaration": "client_project_profile_matches ( selection : ClientProjectProfileSelection , configuration : ClientProjectConfiguration ? , requested : String ? , ) - > Bool"
+        },
+        {
+          "name": "ClientProjectProfileSelection::mock_answer_at",
+          "declaration": "ClientProjectProfileSelection : : mock_answer_at ( self : Self , index : Int , ) - > Result [ ( String , String ) ? , ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "ClientProjectProfileSelection::mock_answer_count",
+          "declaration": "ClientProjectProfileSelection : : mock_answer_count ( self : Self , ) - > Result [ Int , ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "ClientProjectProfileSelection::mock_catalog_file",
+          "declaration": "ClientProjectProfileSelection : : mock_catalog_file ( self : Self , ) - > Result [ String ? , ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "ClientProjectProfileSelection::mock_data_file",
+          "declaration": "ClientProjectProfileSelection : : mock_data_file ( self : Self , ) - > Result [ String ? , ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "ClientProjectProfileSelection::require_original",
+          "declaration": "ClientProjectProfileSelection : : require_original ( self : Self , ) - > Result [ Unit , ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "ClientProjectProfileSelection::selected_profile",
+          "declaration": "ClientProjectProfileSelection : : selected_profile ( self : Self , ) - > Result [ String ? , ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "retire_client_project_profile",
+          "declaration": "retire_client_project_profile ( selection : ClientProjectProfileSelection , ) - > Result [ Unit , ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "select_client_project_profile",
+          "declaration": "select_client_project_profile ( configuration : ClientProjectConfiguration ? , requested : String ? , max_work : Int , ) - > Result [ ClientProjectProfileSelection , ClientProjectProfileIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Project configuration and profile metadata Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_project_profile_matches",
+            "ClientProjectProfileSelection::mock_answer_at",
+            "ClientProjectProfileSelection::mock_answer_count",
+            "ClientProjectProfileSelection::mock_catalog_file",
+            "ClientProjectProfileSelection::mock_data_file",
+            "ClientProjectProfileSelection::require_original",
+            "ClientProjectProfileSelection::selected_profile",
+            "retire_client_project_profile",
+            "select_client_project_profile"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_project_configuration_bridge.mbt",
+      "sha256": "24b1ff8fc5daef8335d95210e75c744070052c8f6e1511224dce16f75ff3837a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_project_catalog_admit",
+          "declaration": "client_project_catalog_admit ( wire : String , ) - > Result [ @ publication_host . ClientProjectCatalog , @ publication_host . ClientProjectCatalogIssue , ]"
+        },
+        {
+          "name": "client_project_catalog_count",
+          "declaration": "client_project_catalog_count ( value : @ publication_host . ClientProjectCatalog , ) - > Int"
+        },
+        {
+          "name": "client_project_catalog_entry_original_json",
+          "declaration": "client_project_catalog_entry_original_json ( value : @ publication_host . ClientProjectCatalog , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_catalog_name",
+          "declaration": "client_project_catalog_name ( value : @ publication_host . ClientProjectCatalog , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_catalog_original_wire",
+          "declaration": "client_project_catalog_original_wire ( value : @ publication_host . ClientProjectCatalog , ) - > String"
+        },
+        {
+          "name": "client_project_configuration_admit",
+          "declaration": "client_project_configuration_admit ( wire : String , ) - > Result [ @ publication_host . ClientProjectConfiguration , @ publication_host . ClientProjectConfigurationIssue , ]"
+        },
+        {
+          "name": "client_project_configuration_connectors_file",
+          "declaration": "client_project_configuration_connectors_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_lock_file",
+          "declaration": "client_project_configuration_lock_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_mock_answer_count",
+          "declaration": "client_project_configuration_mock_answer_count ( value : @ publication_host . ClientProjectConfiguration , ) - > Int"
+        },
+        {
+          "name": "client_project_configuration_mock_answer_file",
+          "declaration": "client_project_configuration_mock_answer_file ( value : @ publication_host . ClientProjectConfiguration , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_mock_answer_task",
+          "declaration": "client_project_configuration_mock_answer_task ( value : @ publication_host . ClientProjectConfiguration , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_mock_catalog_file",
+          "declaration": "client_project_configuration_mock_catalog_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_mock_data_file",
+          "declaration": "client_project_configuration_mock_data_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_model_tasks_file",
+          "declaration": "client_project_configuration_model_tasks_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_selected_profile",
+          "declaration": "client_project_configuration_selected_profile ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_state_directory",
+          "declaration": "client_project_configuration_state_directory ( value : @ publication_host . ClientProjectConfiguration , ) - > String"
+        },
+        {
+          "name": "client_project_connections_admit",
+          "declaration": "client_project_connections_admit ( wire : String , ) - > Result [ @ publication_host . ClientProjectConnections , @ publication_host . ClientProjectBindingsIssue , ]"
+        },
+        {
+          "name": "client_project_connections_connector",
+          "declaration": "client_project_connections_connector ( value : @ publication_host . ClientProjectConnections , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_connections_count",
+          "declaration": "client_project_connections_count ( value : @ publication_host . ClientProjectConnections , ) - > Int"
+        },
+        {
+          "name": "client_project_connections_entry_original_json",
+          "declaration": "client_project_connections_entry_original_json ( value : @ publication_host . ClientProjectConnections , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_connections_name",
+          "declaration": "client_project_connections_name ( value : @ publication_host . ClientProjectConnections , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_connections_original_wire",
+          "declaration": "client_project_connections_original_wire ( value : @ publication_host . ClientProjectConnections , ) - > String"
+        },
+        {
+          "name": "client_project_model_registry_admit",
+          "declaration": "client_project_model_registry_admit ( wire : String , ) - > Result [ @ publication_host . ClientProjectModelRegistry , @ publication_host . ClientProjectBindingsIssue , ]"
+        },
+        {
+          "name": "client_project_model_registry_default_provider",
+          "declaration": "client_project_model_registry_default_provider ( value : @ publication_host . ClientProjectModelRegistry , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_original_wire",
+          "declaration": "client_project_model_registry_original_wire ( value : @ publication_host . ClientProjectModelRegistry , ) - > String"
+        },
+        {
+          "name": "client_project_model_registry_provider_count",
+          "declaration": "client_project_model_registry_provider_count ( value : @ publication_host . ClientProjectModelRegistry , ) - > Int"
+        },
+        {
+          "name": "client_project_model_registry_provider_key_environment",
+          "declaration": "client_project_model_registry_provider_key_environment ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_provider_name",
+          "declaration": "client_project_model_registry_provider_name ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_provider_type",
+          "declaration": "client_project_model_registry_provider_type ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_task_count",
+          "declaration": "client_project_model_registry_task_count ( value : @ publication_host . ClientProjectModelRegistry , ) - > Int"
+        },
+        {
+          "name": "client_project_model_registry_task_file",
+          "declaration": "client_project_model_registry_task_file ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_task_name",
+          "declaration": "client_project_model_registry_task_name ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_profile_matches",
+          "declaration": "client_project_profile_matches ( value : @ publication_host . ClientProjectProfileSelection , configuration : @ publication_host . ClientProjectConfiguration ? , requested : String ? , ) - > Bool"
+        },
+        {
+          "name": "client_project_profile_mock_answer_count",
+          "declaration": "client_project_profile_mock_answer_count ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ Int , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_mock_answer_file",
+          "declaration": "client_project_profile_mock_answer_file ( value : @ publication_host . ClientProjectProfileSelection , index : Int , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_mock_answer_task",
+          "declaration": "client_project_profile_mock_answer_task ( value : @ publication_host . ClientProjectProfileSelection , index : Int , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_mock_catalog_file",
+          "declaration": "client_project_profile_mock_catalog_file ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_mock_data_file",
+          "declaration": "client_project_profile_mock_data_file ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_retire",
+          "declaration": "client_project_profile_retire ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ Unit , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_select",
+          "declaration": "client_project_profile_select ( configuration : @ publication_host . ClientProjectConfiguration ? , requested : String ? , max_work : Int , ) - > Result [ @ publication_host . ClientProjectProfileSelection , @ publication_host . ClientProjectProfileIssue , ]"
+        },
+        {
+          "name": "client_project_profile_selected_name",
+          "declaration": "client_project_profile_selected_name ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing Common project metadata; RelA is its generated bridge mirror",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_project_catalog_admit",
+            "client_project_catalog_count",
+            "client_project_catalog_entry_original_json",
+            "client_project_catalog_name",
+            "client_project_catalog_original_wire",
+            "client_project_configuration_admit",
+            "client_project_configuration_connectors_file",
+            "client_project_configuration_lock_file",
+            "client_project_configuration_mock_answer_count",
+            "client_project_configuration_mock_answer_file",
+            "client_project_configuration_mock_answer_task",
+            "client_project_configuration_mock_catalog_file",
+            "client_project_configuration_mock_data_file",
+            "client_project_configuration_model_tasks_file",
+            "client_project_configuration_selected_profile",
+            "client_project_configuration_state_directory",
+            "client_project_connections_admit",
+            "client_project_connections_connector",
+            "client_project_connections_count",
+            "client_project_connections_entry_original_json",
+            "client_project_connections_name",
+            "client_project_connections_original_wire",
+            "client_project_model_registry_admit",
+            "client_project_model_registry_default_provider",
+            "client_project_model_registry_original_wire",
+            "client_project_model_registry_provider_count",
+            "client_project_model_registry_provider_key_environment",
+            "client_project_model_registry_provider_name",
+            "client_project_model_registry_provider_type",
+            "client_project_model_registry_task_count",
+            "client_project_model_registry_task_file",
+            "client_project_model_registry_task_name",
+            "client_project_profile_matches",
+            "client_project_profile_mock_answer_count",
+            "client_project_profile_mock_answer_file",
+            "client_project_profile_mock_answer_task",
+            "client_project_profile_mock_catalog_file",
+            "client_project_profile_mock_data_file",
+            "client_project_profile_retire",
+            "client_project_profile_select",
+            "client_project_profile_selected_name"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_project_configuration_bridge.mbt",
+      "sha256": "964961bbbdbd97fc21896b7df3197a29dfdc508444ebdb847c3805026a3aad20",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_project_catalog_admit",
+          "declaration": "client_project_catalog_admit ( wire : String , ) - > Result [ @ publication_host . ClientProjectCatalog , @ publication_host . ClientProjectCatalogIssue , ]"
+        },
+        {
+          "name": "client_project_catalog_count",
+          "declaration": "client_project_catalog_count ( value : @ publication_host . ClientProjectCatalog , ) - > Int"
+        },
+        {
+          "name": "client_project_catalog_entry_original_json",
+          "declaration": "client_project_catalog_entry_original_json ( value : @ publication_host . ClientProjectCatalog , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_catalog_name",
+          "declaration": "client_project_catalog_name ( value : @ publication_host . ClientProjectCatalog , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_catalog_original_wire",
+          "declaration": "client_project_catalog_original_wire ( value : @ publication_host . ClientProjectCatalog , ) - > String"
+        },
+        {
+          "name": "client_project_configuration_admit",
+          "declaration": "client_project_configuration_admit ( wire : String , ) - > Result [ @ publication_host . ClientProjectConfiguration , @ publication_host . ClientProjectConfigurationIssue , ]"
+        },
+        {
+          "name": "client_project_configuration_connectors_file",
+          "declaration": "client_project_configuration_connectors_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_lock_file",
+          "declaration": "client_project_configuration_lock_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_mock_answer_count",
+          "declaration": "client_project_configuration_mock_answer_count ( value : @ publication_host . ClientProjectConfiguration , ) - > Int"
+        },
+        {
+          "name": "client_project_configuration_mock_answer_file",
+          "declaration": "client_project_configuration_mock_answer_file ( value : @ publication_host . ClientProjectConfiguration , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_mock_answer_task",
+          "declaration": "client_project_configuration_mock_answer_task ( value : @ publication_host . ClientProjectConfiguration , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_mock_catalog_file",
+          "declaration": "client_project_configuration_mock_catalog_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_mock_data_file",
+          "declaration": "client_project_configuration_mock_data_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_model_tasks_file",
+          "declaration": "client_project_configuration_model_tasks_file ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_selected_profile",
+          "declaration": "client_project_configuration_selected_profile ( value : @ publication_host . ClientProjectConfiguration , ) - > String ?"
+        },
+        {
+          "name": "client_project_configuration_state_directory",
+          "declaration": "client_project_configuration_state_directory ( value : @ publication_host . ClientProjectConfiguration , ) - > String"
+        },
+        {
+          "name": "client_project_connections_admit",
+          "declaration": "client_project_connections_admit ( wire : String , ) - > Result [ @ publication_host . ClientProjectConnections , @ publication_host . ClientProjectBindingsIssue , ]"
+        },
+        {
+          "name": "client_project_connections_connector",
+          "declaration": "client_project_connections_connector ( value : @ publication_host . ClientProjectConnections , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_connections_count",
+          "declaration": "client_project_connections_count ( value : @ publication_host . ClientProjectConnections , ) - > Int"
+        },
+        {
+          "name": "client_project_connections_entry_original_json",
+          "declaration": "client_project_connections_entry_original_json ( value : @ publication_host . ClientProjectConnections , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_connections_name",
+          "declaration": "client_project_connections_name ( value : @ publication_host . ClientProjectConnections , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_connections_original_wire",
+          "declaration": "client_project_connections_original_wire ( value : @ publication_host . ClientProjectConnections , ) - > String"
+        },
+        {
+          "name": "client_project_model_registry_admit",
+          "declaration": "client_project_model_registry_admit ( wire : String , ) - > Result [ @ publication_host . ClientProjectModelRegistry , @ publication_host . ClientProjectBindingsIssue , ]"
+        },
+        {
+          "name": "client_project_model_registry_default_provider",
+          "declaration": "client_project_model_registry_default_provider ( value : @ publication_host . ClientProjectModelRegistry , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_original_wire",
+          "declaration": "client_project_model_registry_original_wire ( value : @ publication_host . ClientProjectModelRegistry , ) - > String"
+        },
+        {
+          "name": "client_project_model_registry_provider_count",
+          "declaration": "client_project_model_registry_provider_count ( value : @ publication_host . ClientProjectModelRegistry , ) - > Int"
+        },
+        {
+          "name": "client_project_model_registry_provider_key_environment",
+          "declaration": "client_project_model_registry_provider_key_environment ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_provider_name",
+          "declaration": "client_project_model_registry_provider_name ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_provider_type",
+          "declaration": "client_project_model_registry_provider_type ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_task_count",
+          "declaration": "client_project_model_registry_task_count ( value : @ publication_host . ClientProjectModelRegistry , ) - > Int"
+        },
+        {
+          "name": "client_project_model_registry_task_file",
+          "declaration": "client_project_model_registry_task_file ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_model_registry_task_name",
+          "declaration": "client_project_model_registry_task_name ( value : @ publication_host . ClientProjectModelRegistry , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_project_profile_matches",
+          "declaration": "client_project_profile_matches ( value : @ publication_host . ClientProjectProfileSelection , configuration : @ publication_host . ClientProjectConfiguration ? , requested : String ? , ) - > Bool"
+        },
+        {
+          "name": "client_project_profile_mock_answer_count",
+          "declaration": "client_project_profile_mock_answer_count ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ Int , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_mock_answer_file",
+          "declaration": "client_project_profile_mock_answer_file ( value : @ publication_host . ClientProjectProfileSelection , index : Int , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_mock_answer_task",
+          "declaration": "client_project_profile_mock_answer_task ( value : @ publication_host . ClientProjectProfileSelection , index : Int , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_mock_catalog_file",
+          "declaration": "client_project_profile_mock_catalog_file ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_mock_data_file",
+          "declaration": "client_project_profile_mock_data_file ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_retire",
+          "declaration": "client_project_profile_retire ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ Unit , @ publication_host . ClientProjectProfileIssue ]"
+        },
+        {
+          "name": "client_project_profile_select",
+          "declaration": "client_project_profile_select ( configuration : @ publication_host . ClientProjectConfiguration ? , requested : String ? , max_work : Int , ) - > Result [ @ publication_host . ClientProjectProfileSelection , @ publication_host . ClientProjectProfileIssue , ]"
+        },
+        {
+          "name": "client_project_profile_selected_name",
+          "declaration": "client_project_profile_selected_name ( value : @ publication_host . ClientProjectProfileSelection , ) - > Result [ String ? , @ publication_host . ClientProjectProfileIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing Common project metadata; RelA is its generated bridge mirror",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_project_catalog_admit",
+            "client_project_catalog_count",
+            "client_project_catalog_entry_original_json",
+            "client_project_catalog_name",
+            "client_project_catalog_original_wire",
+            "client_project_configuration_admit",
+            "client_project_configuration_connectors_file",
+            "client_project_configuration_lock_file",
+            "client_project_configuration_mock_answer_count",
+            "client_project_configuration_mock_answer_file",
+            "client_project_configuration_mock_answer_task",
+            "client_project_configuration_mock_catalog_file",
+            "client_project_configuration_mock_data_file",
+            "client_project_configuration_model_tasks_file",
+            "client_project_configuration_selected_profile",
+            "client_project_configuration_state_directory",
+            "client_project_connections_admit",
+            "client_project_connections_connector",
+            "client_project_connections_count",
+            "client_project_connections_entry_original_json",
+            "client_project_connections_name",
+            "client_project_connections_original_wire",
+            "client_project_model_registry_admit",
+            "client_project_model_registry_default_provider",
+            "client_project_model_registry_original_wire",
+            "client_project_model_registry_provider_count",
+            "client_project_model_registry_provider_key_environment",
+            "client_project_model_registry_provider_name",
+            "client_project_model_registry_provider_type",
+            "client_project_model_registry_task_count",
+            "client_project_model_registry_task_file",
+            "client_project_model_registry_task_name",
+            "client_project_profile_matches",
+            "client_project_profile_mock_answer_count",
+            "client_project_profile_mock_answer_file",
+            "client_project_profile_mock_answer_task",
+            "client_project_profile_mock_catalog_file",
+            "client_project_profile_mock_data_file",
+            "client_project_profile_retire",
+            "client_project_profile_select",
+            "client_project_profile_selected_name"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/project-configuration-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

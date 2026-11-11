@@ -4,6 +4,7 @@
 #include "moonbit.h"
 #include "initial_control_capture.h"
 #include <errno.h>
+#include <stdio.h>
 typedef struct { resident_entry *entry; } resident_entry_handle;
 static void keep_entry_custody(void *handle) { (void)handle; }
 
@@ -74,7 +75,11 @@ MOONBIT_FFI_EXPORT int64_t actql_resident_initial_entry_quantity(
 MOONBIT_FFI_EXPORT int32_t actql_resident_retire_initial_entry(resident_entry_handle *handle) {
     if (!handle || handle->entry != &original_entry || !handle->entry->attempted ||
         handle->entry->retired) return 0;
-#if defined(__APPLE__)
+#if defined(ACTQL_BUNDLE_ENTRY_CLEANUP_CURRENT)
+    if (!ACTQL_BUNDLE_ENTRY_CLEANUP_CURRENT(handle->entry)) return 0;
+#elif defined(__linux__) && defined(__x86_64__) && defined(ACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY)
+    if (!bundle_linux_cleanup_current(handle->entry)) return 0;
+#elif defined(__APPLE__)
     /* Normal argv/image/loader currentness must not block same-original cleanup. */
     if (handle->entry->process != getpid() || !pthread_main_np() ||
         !pthread_equal(handle->entry->thread, pthread_self())) return 0;
@@ -102,10 +107,18 @@ MOONBIT_FFI_EXPORT void actql_resident_initial_control_exit_failure(void) { exit
  * only the original command, not a remote Run/holding/publication release.
  * Use fixed bytes after its managed Read has closed; no managed allocation. */
 MOONBIT_FFI_EXPORT int32_t actql_resident_controller_retired(resident_entry_handle *handle) {
-#if defined(__APPLE__)
+#if defined(ACTQL_BUNDLE_ENTRY_CLEANUP_CURRENT) || \
+    (defined(__linux__) && defined(__x86_64__) && defined(ACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY)) || \
+    defined(__APPLE__)
     if (!handle || handle->entry != &original_entry || !handle->entry->retired ||
+#if defined(ACTQL_BUNDLE_ENTRY_CLEANUP_CURRENT)
+        !ACTQL_BUNDLE_ENTRY_CLEANUP_CURRENT(handle->entry)) return -1;
+#elif defined(__linux__) && defined(__x86_64__) && defined(ACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY)
+        !bundle_linux_cleanup_current(handle->entry)) return -1;
+#else
         handle->entry->process != getpid() || !pthread_main_np() ||
         !pthread_equal(handle->entry->thread, pthread_self())) return -1;
+#endif
     static const char message[] = "{\"kind\":\"stopped\",\"scope\":\"original-command-retired\"}\n";
     size_t sent = 0;
     while (sent < sizeof(message) - 1) {

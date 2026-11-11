@@ -40,6 +40,16 @@ pub fn issue_client_effect_prepared_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let infer_native_read_profile = match
+    client_effect_original_infer_native_read_profile(compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let infer_inputs_wire = match
+    client_effect_original_infer_inputs(compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let source_free_policy_input = match
     client_effect_original_source_free_policy_input(compilation) {
     Ok(value) => value
@@ -58,6 +68,14 @@ pub fn issue_client_effect_prepared_original(
       @encode.key(writer, "infer_execution_contract_cid")
       @encode.string_value(writer, cid)
       @encode.key(writer, "infer_execution_contract_json")
+      @encode.string_value(writer, wire)
+    }
+    if infer_inputs_wire is Some(wire) {
+      @encode.key(writer, "infer_execution_contracts_json")
+      @encode.string_value(writer, wire)
+    }
+    if infer_native_read_profile is Some(wire) {
+      @encode.key(writer, "infer_native_read_profile_json")
       @encode.string_value(writer, wire)
     }
     if compilation.normalization_profile is Some(inventory) {
@@ -105,6 +123,10 @@ pub fn admit_client_effect_prepared_original(
   manifests : ClientCompilationManifests,
   limits : ClientValuesRunMaterialsLimits,
   effect_limits : ClientEffectComputationLimits,
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    ClientEffectComputationIssue,
+  ])? = None,
 ) -> Result[ClientEffectPreparedOriginal, ClientEffectRunMaterialsIssue] {
   if !valid_client_request_cid(expected_compiled_plan_cid) {
     return Err(TargetSelection(InvalidMaterials))
@@ -135,9 +157,9 @@ pub fn admit_client_effect_prepared_original(
   let object = match
     @decode.closed_object(root, [
       "check_environment", "check_environment_cid", "effect_target_selections_json",
-      "infer_execution_contract_cid", "infer_execution_contract_json", "normalization_profile_cid",
-      "normalization_profile_key", "parameters", "program", "source_free_result_policy_cid",
-      "source_free_result_policy_json",
+      "infer_execution_contract_cid", "infer_execution_contract_json", "infer_execution_contracts_json",
+      "infer_native_read_profile_json", "normalization_profile_cid", "normalization_profile_key",
+      "parameters", "program", "source_free_result_policy_cid", "source_free_result_policy_json",
     ]) {
     Ok(value) => value
     Err(_) => return Err(Input(MaterialsMalformed))
@@ -181,6 +203,7 @@ pub fn admit_client_effect_prepared_original(
       supplied,
       [],
       effect_limits,
+      request_value_policies~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Program(issue))
@@ -199,10 +222,41 @@ pub fn admit_client_effect_prepared_original(
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
+  let infer_native_read_profile = match
+    read_client_effect_original_native_read_profile(
+      @decode.lookup(object, "infer_native_read_profile_json"),
+      infer_input,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Input(issue))
+  }
   let infer = match
-    restore_client_effect_original_infer(prepared, infer_input, limits) {
+    restore_client_effect_original_infer(
+      prepared,
+      infer_input,
+      limits,
+      native_read_profile=infer_native_read_profile,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  let infers = match @decode.lookup(object, "infer_execution_contracts_json") {
+    None => []
+    Some(value) => {
+      guard infer_input is None && @decode.text(value) is Ok(wire) else {
+        return Err(Input(MaterialsMalformed))
+      }
+      match
+        read_plural_client_infer_run_graphs(
+          client_effect_program_view(prepared),
+          wire,
+          limits,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+      }
+    }
   }
   let source_free_policy_input = match
     read_client_effect_original_source_free_policy_input(
@@ -254,6 +308,7 @@ pub fn admit_client_effect_prepared_original(
       limits.max_evidence_depth,
       normalization_profile,
       infer~,
+      infers~,
       source_free_policy~,
     ) {
     Ok(value) => value

@@ -7,14 +7,7 @@ fn closed_values_program_arrays(
   items : Int64,
   growing : Bool,
 ) -> @execution.PreparationRepresentationUnits {
-  {
-    record_headers: (if growing { 3L } else { 2L }) * count,
-    reference_slots: count +
-    (if growing { 12L * count + 3L * items } else { 8L * count + 2L * items }),
-    scalar_words: 2L * count,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }
+  @execution.preparation_array_representation(count, items, growing).unwrap()
 }
 
 ///|

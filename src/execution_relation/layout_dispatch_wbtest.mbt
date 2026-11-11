@@ -136,7 +136,7 @@ test "layout dispatcher preserves inherited total order through projection and t
         3,
         control,
         output,
-        { limit: 100000, live: 0, peak: 0, },
+        row_workspace(100000),
         physical,
         None,
       ).unwrap()
@@ -159,12 +159,13 @@ test "every scoped row operation composes through one layout sequence loop" {
   let sequence = prepared_sequence(owner)
   for candidate in [RowLayout, ValueColumns, TypedColumns] {
     let control = { remaining: 100000, max_frames: 100, }
-    let wiring = prepare_wiring(owner, ["limit_8"], control, {
-      limit: 10000,
-      live: 0,
-      peak: 0,
-    }).unwrap()
-    let store = table_store(wiring, { limit: 10000, live: 0, peak: 0, }).unwrap()
+    let wiring = prepare_wiring(
+      owner,
+      ["limit_8"],
+      control,
+      row_workspace(10000),
+    ).unwrap()
+    let store = table_store(wiring, row_workspace(10000)).unwrap()
     let output = row_output()
     let physical = layout_allocation(100000, 100000, 100000)
     run_sequence_steps(
@@ -187,7 +188,7 @@ test "every scoped row operation composes through one layout sequence loop" {
             2,
             control,
             output,
-            { limit: 100000, live: 0, peak: 0, },
+            row_workspace(100000),
             physical,
             None,
           ) {

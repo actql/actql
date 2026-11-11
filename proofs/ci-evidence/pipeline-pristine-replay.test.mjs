@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {hash, gitTree} from './inputs.mjs';
-import {pipelinePristineSourcePaths, checkLocalImageDefinition, localIsolatedRunArguments, isolatedCoreBuildMetadata} from './isolation.mjs';
-import {checkIsolatedInputs, imageRuntime} from './isolated-runtime.mjs';
+import {checkLocalImageDefinition, localIsolatedRunArguments, isolatedCoreBuildMetadata} from './isolation.mjs';
+import {checkIsolatedInputs} from './isolated-runtime.mjs';
 import {pristineScientificObservation} from '../relation-pipeline/pristine-replay.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {join} from 'node:path';
@@ -19,8 +19,8 @@ const bytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-
 assert.equal(hash(bytes), '8623af4522c4e1d1394eb5511194404c2b668b9bce5d9919c36a2ad9b151e012');
 const original = JSON.parse(bytes);
 const tree = gitTree(root, '346f9274cccb5d617d48c99ad1efc4576cad29e2');
-tree.prefetch(pipelinePristineSourcePaths(tree));
 const consumer = await historicalPipelineFixture(root, tree.revision);
+tree.prefetch(consumer.pipelinePristineSourcePaths(tree));
 const source = consumer.snapshotFromGit(tree, 'pipeline-pristine');
 
 test('four captured real pristine JS executions retain original source, compiled fixtures, inputs, logs and independent values', () => {
@@ -62,8 +62,9 @@ test('captured real output tampering changes a value even when the first indepen
 const imageBytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-10-08-local-isolated-pipeline-pristine-f2a191b51.json.gz', import.meta.url)), {maxOutputLength: 8 * 1024 * 1024});
 assert.equal(hash(imageBytes), 'bd87e6234f3620945f04a1d7a2af5d595b92b319e8b547643d163aa61ccc468a');
 const imageOriginal = JSON.parse(imageBytes), imageRevision = 'f2a191b51fd6ecd7b70486c6e8fa33204fa8964e';
-const imageTree = gitTree(root, imageRevision); imageTree.prefetch(pipelinePristineSourcePaths(imageTree));
+const imageTree = gitTree(root, imageRevision);
 const imageConsumer = await historicalPipelineFixture(root, imageRevision);
+imageTree.prefetch(imageConsumer.pipelinePristineSourcePaths(imageTree));
 const imageSource = imageConsumer.snapshotFromGit(imageTree, 'pipeline-pristine');
 const normalImageBytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-10-08-pipeline-pristine-normal-f2a191b51.json.gz', import.meta.url)), {maxOutputLength: 4 * 1024 * 1024});
 assert.equal(hash(normalImageBytes), '0a81ea5af7e6c061696c486a3615262a512d67d8edd3c3d9d9c1e304bbbef68f');
@@ -120,8 +121,8 @@ for (const path of isolatedCoreBuildMetadata) test(`the real pipeline cohort rej
   altered.prepared.manifest.root.entries.push({path: `runtime/moonbit/${path}`, kind: 'file', mode: 0o644, bytes: 1, digest: 'a'.repeat(64)});
   // Keep the altered runtime identity internally consistent so this negative
   // copy reaches the explicit exclusion, beyond the root-digest check.
-  altered.prepared.runtime = imageRuntime(altered.prepared.manifest, {local: true, profile: 'pipeline-pristine'});
-  assert.throws(() => checkIsolatedInputs({runtime: altered.prepared.runtime, manifest: altered.prepared.manifest,
+  altered.prepared.runtime = imageConsumer.imageRuntime(altered.prepared.manifest, {local: true, profile: 'pipeline-pristine'});
+  assert.throws(() => imageConsumer.checkIsolatedInputs({runtime: altered.prepared.runtime, manifest: altered.prepared.manifest,
     tree: imageTree, local: true, profile: 'pipeline-pristine'}), /core build metadata must be absent/u);
 });
 

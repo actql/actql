@@ -47,13 +47,6 @@
       "expected_cid": "sha256:b5d29e9f6f601888bee4ac32962fdb718e431b408e6c259a9ad7f250905fe021"
     }
   ],
-  "current_schema_pins": {
-    "source": "22b74125f1c8e2fe0a0ea0a2f17c160de1a2b424; normally integrated by 549cdabcc1bf50372cbfada665962a7ca346e541",
-    "scope": "Existing published-store Command target alternative changes the whole Plan schema; this selection extension changes no structural schema bytes. Earlier UPDATE schema pins remain historical evidence in their unchanged corpus.",
-    "executable_plan": "sha256:03140e5d625b0920743897036673dd719ecd5fa902a7119e3d419b10d793b7bf",
-    "plan_document": "sha256:871a6544a468089cea446356a5af8fef9268deec405e4650ca3f6aa36922e250",
-    "artifact_registry": "sha256:b3f1ff0d70f0d460b0578d6a0d4b540647c6df5baed1887ac10efe0128769179"
-  },
   "installation_owners": [
     {
       "id": "store-owner",

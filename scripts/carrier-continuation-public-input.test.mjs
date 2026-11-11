@@ -11,7 +11,7 @@ test('F01/F02 recipes retain independent ordered schema and the valid Graph-to-E
   const rows=[{node_key:1,occurred_ms:0}];
   const columns=['node_key','occurred_ms'].map(name=>({name,contract:{type:'number',nullable:false}}));
   for(const item of successes) {
-    assert.deepEqual(item.results.answer,{rows,columns});
+    assert.deepEqual(item.results,{[item.format==='json'?'answer':'main']:{rows,columns}});
     if(item.format==='json') continue;
     assert.match(item.text,/KEY \(node_key\) PROPERTIES \(occurred_ms\)/u);
     assert.doesNotMatch(item.text,/PROPERTIES \(node_key/u);

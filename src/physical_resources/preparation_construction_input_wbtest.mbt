@@ -22,6 +22,28 @@ fn construction_input_fixture(
 }
 
 ///|
+test "original preparation debit observation covers Ready without a borrower or new allowance" {
+  let (ledger, owner, input) = construction_input_fixture()
+  assert_eq(preparation_capacity_reserved_extents(owner, input), Ok((20L, 10L)))
+  assert_true(
+    preparation_capacity_reserved_extents(owner, [1]) is Err(ForeignOriginal),
+  )
+  reserve_working_preparation_phase(owner, input, 60L, 20L).unwrap()
+  let body = [2]
+  complete_preparation_capacity(owner, input, body, 60L, 20L).unwrap()
+  let before = ledger_usage(ledger)
+  assert_eq(preparation_capacity_reserved_extents(owner, input), Ok((60L, 20L)))
+  assert_true(
+    preparation_capacity_working_extents(owner, input) is Err(WorkActive),
+  )
+  assert_eq(owner.borrowers, 0)
+  assert_eq(ledger_usage(ledger), before)
+  assert_true(retire_preparation_capacity(owner).unwrap())
+  assert_true(preparation_capacity_reserved_extents(owner, input) is Err(_))
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+}
+
+///|
 test "construction input uses the same slots across working complete Run retirement and actual returns" {
   let (ledger, owner, input) = construction_input_fixture()
   let data = ["original compiler"]
@@ -35,7 +57,17 @@ test "construction input uses the same slots across working complete Run retirem
   )
   assert_false(preparation_body_usage_isolated(holder, ledger))
   assert_true(
-    (holder.reserve_publication_original)(data, 100L, 80L)
+    (holder.reserve_phase_original)(data, 0L, 0L, EnterRunningInventory)
+    is Err(ForeignOriginal),
+  )
+  assert_false(owner.inventory_growth_active)
+  assert_true(
+    (holder.reserve_phase_original)(data, 0L, 0L, EnterRunningInventory)
+    is Err(ForeignOriginal),
+  )
+  assert_false(owner.inventory_growth_active)
+  assert_true(
+    (holder.reserve_phase_original)(data, 100L, 80L, Publication)
     is Err(ForeignOriginal),
   )
   assert_true(
@@ -79,6 +111,10 @@ test "construction input reserve and borrow observes current once and immutable 
     report: (_, _) => 0,
     stop: _ => 0,
     fixed_capacities: false,
+    working: None,
+    current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,
@@ -148,6 +184,10 @@ test "construction input failed grow and retired reentrant borrow preserve one o
     report: (_, _) => 0,
     stop: _ => 0,
     fixed_capacities: false,
+    working: None,
+    current_window: None,
+    acquire_window: None,
+    acquiring_window: false,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,

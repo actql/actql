@@ -58,6 +58,7 @@ await mkdir(fixtureDirectory, {recursive: true});
 const support = [
   'adapters/host-node/client-read-opening.test.mjs',
   'adapters/host-node/client-read-opening.fixture.mjs',
+  'adapters/host-node/funded-client-preparation.fixture.mjs',
   'adapters/host-node/client-read-opening-restart.fixture.mjs',
   'adapters/host-node/client-read-run-capacity.test.mjs',
   'adapters/host-node/client-read-run-capacity.fixture.mjs',
@@ -118,8 +119,14 @@ for (const path of support) {
       if (specifier.startsWith('node:') || specifier.startsWith('@actql/')) return original;
       const target = relative(repository, resolve(repository, path, '..', specifier));
       if (support.includes(target)) return original;
+      if (target === 'packages/node/index.mjs') return `from ${quote}@actql/node${quote}`;
+      if (target === 'packages/local-node/http-host.mjs') return `from ${quote}@actql/local-node/http-host${quote}`;
+      if (target === 'packages/client-wire/index.mjs') return `from ${quote}@actql/client-wire${quote}`;
       if (target === 'packages/sdk/index.mjs') return `from ${quote}@actql/sdk${quote}`;
       if (target === 'packages/sdk/host-port.mjs') return `from ${quote}@actql/sdk/host-port${quote}`;
+      if (target === 'packages/sdk/internal/private-source-preparation.mjs') {
+        return `from ${quote}@actql/sdk/_internal/source-preparation${quote}`;
+      }
       if (target === '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js') {
         return `from ${quote}@actql/local-node/runtime${quote}`;
       }
@@ -144,7 +151,7 @@ environment.ACTQL_SUBMISSION_CUSTODY_ACCEPTANCE_INPUTS = custodyInputs;
 const groups = [
   {name: 'opening-and-receipt', file: 'client-read-opening.test.mjs', count: 8},
   {name: 'interrupted-121-run', file: 'client-read-run-capacity.test.mjs', count: 4},
-  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 5},
+  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 10},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
   {name: 'typed-cancellation', file: 'client-cancellation-attempt-installed.test.mjs', count: 2},
   {name: 'effect-cancellation', file: 'client-effect-cancellation-public.test.mjs', count: 2},
@@ -180,7 +187,7 @@ for (const group of selectedGroups) {
   passed += checked.counts.passed;
 }
 assert.equal(passed, cancellationOnly ? 8 : submissionCustodyOnly ? 6 : submissionRefusalOnly ? 11
-  : effectReconciliationOnly ? 3 : ownerObservationsOnly ? 5 : 47);
+  : effectReconciliationOnly ? 3 : ownerObservationsOnly ? 5 : 52);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -198,7 +205,9 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
     : ownerObservationsOnly ? {scopedOwnerSnapshots:2,originalEffectReconciliation:3}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
-      installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4, typedCancellationRecovery: 2,
+      installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1,
+      finitePolicyOriginals: 1, publicRowPolicyAdmission: 2, publicHttpRowPolicyInstallation: 2,
+      originalCancellationRecovery: 4, typedCancellationRecovery: 2,
       unknownEffectCancellationRecovery: 2,
       submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
       explicitSubmissionRestart: 3, explicitSubmissionRestartProcessRecovery: 2,

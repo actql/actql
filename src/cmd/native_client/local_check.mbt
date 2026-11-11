@@ -113,7 +113,7 @@ fn local_check_context(
     configuration_body,
     environment_name,
     environment_body,
-    environment,
+    environment: local_command_project_environment(environment),
     audience: settings.principal,
     connection: settings.connection,
   }
@@ -373,9 +373,9 @@ fn local_check_for_host(
   }
   let wire = context.project(input)
   command_check_invalid_exit.val = local_check_invalid_exit(wire)
-  if child.flags.get("json").unwrap_or(false) {
-    wire
-  } else {
-    "Local check (no Run admitted):\n" + wire
-  }
+  local_check_reply(
+    wire,
+    child.flags.get("json").unwrap_or(false),
+    input.document,
+  )
 }

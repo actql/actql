@@ -18,6 +18,7 @@ pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, Nativ
 type Database
 pub fn Database::begin_deferred(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::begin_immediate(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn Database::bind_original_store_operation(Self, NativeStoreOperationOriginal) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::capacity_usage(Self, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
 pub fn Database::claim_ordinal(Self, String, String, Int64) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::claim_ordinal_action(Self, String, String, Int64) -> Result[NativeOrdinalClaim, NativeSqliteIssue]
@@ -30,21 +31,25 @@ pub fn Database::close(Self) -> Unit
 pub fn Database::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::commit(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::compare_exchange(Self, String, String, Int64, Bytes) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::compare_exchange_with_body_extent(Self, String, String, Int64, Bytes, Int64) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::current_component_matches_heap(Self, Int64) -> Bool
 pub fn Database::database_usage(Self) -> Result[NativeDatabaseUsage, NativeSqliteIssue]
 pub fn Database::diagnostic_ceiling(Self) -> Int?
 pub fn Database::fence_transactions(Self) -> Unit
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::insert_original_store_cleanup(Self, NativeStoreOperationOriginal, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::insert_with_body_extent(Self, String, String, Bytes, Int64) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::inspection_status(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::install_client_read_evidence_schema(Self, Int64) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::install_client_run_definition_schema(Self, Int64) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, NativeSqliteIssue]
 pub fn Database::matches_original_store_operation(Self, NativeStoreOperationOriginal) -> Bool
+pub fn Database::observe_body_extent(Self, String, String) -> Result[NativeJournalHeader, NativeSqliteIssue]
 pub fn Database::owns_lookup_read(Self, NativeLookupRead) -> Bool
 pub fn Database::prepare_lookup_read(Self) -> Result[NativeLookupReadAcquisition, NativeSqliteIssue]
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::read_capacity(Self, String, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
+pub fn Database::read_exact_body_extent(Self, String, String, NativeJournalHeader) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::read_header(Self, String, String) -> Result[NativeJournalHeader, NativeSqliteIssue]
 pub fn Database::read_with_body_limit(Self, String, String, Int64) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::release_capacity(Self, String, String, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
@@ -171,6 +176,7 @@ pub fn NativeStoreOperationOriginal::enter_cleanup_work(Self) -> Result[Unit, Na
 pub fn NativeStoreOperationOriginal::enter_store(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::leave_store(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::pending_scope(Self) -> Result[Bool, NativeSqliteIssue]
+pub fn NativeStoreOperationOriginal::prepare_delivery_window(Self, Int) -> Result[Unit, NativeSqliteIssue]
 pub fn NativeStoreOperationOriginal::primary_code(Self) -> Int
 
 // Type aliases

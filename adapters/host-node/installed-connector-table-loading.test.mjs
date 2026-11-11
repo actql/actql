@@ -4,12 +4,9 @@ import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
-import {canonicalJson, contentCid} from './local-account-config.mjs';
-import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-row-source.mjs';
-import {createInstalledRowEffect} from './installed-row-effect.mjs';
+import {contentCid} from './local-account-config.mjs';
+import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 import {installedSourceIdentity, publishInstalledSourceProfile,
   loadInstalledSource, loadInstalledSources, installedSourcePublicationFacts} from './installed-source.mjs';
 import {installedEffectIdentity, publishInstalledEffectProfile,
@@ -47,7 +44,9 @@ function identity(parts) {
 
 async function installation(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-connector-table-loading-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
+  const parent = createInstalledLoaderParent({root, principalId: 'table-fixture', moon});
+  parent.open();
+  t.after(async () => {await parent.close(); await rm(root, {recursive: true, force: true});});
   let sequence = 0;
   const path = async value => {
     const target = join(root, `profile-${sequence++}.json`);
@@ -56,30 +55,7 @@ async function installation(t) {
   };
   const unexpected = () => { throw new Error('UnexpectedProviderOrCredentialOperation'); };
   return {path, options: {root, principalId: 'table-fixture', moon, runtimeUrl,
-    baseEnvironmentWire, resolveSecret: unexpected}};
-}
-
-function effectPublication(name) {
-  const body = JSON.parse(baseEnvironmentWire);
-  const target = `connector://${name}/records`;
-  const schema = {type: 'object', nullable: false, additional_properties: false,
-    fields: {Id: {type: 'string', nullable: false}, Name: {type: 'string', nullable: true}}};
-  const mappingBody = {schema: 'actql.mapping_contract/0.1', version: 'fixture',
-    connector_manifest_cid: withFixtureConnector(body, target),
-    mapping_ref: `mapping:${name}.records.v1`, target_ref: target,
-    target_schema: schema, target_schema_identity: contentCid(schema),
-    resource_identity_cid: 'sha256:' + 'b'.repeat(64), primary_identity: 'Id',
-    minimum_approval: 'required', conversions: [], required_fields: [],
-    writable_fields: ['Name'], required_permissions: [],
-    row_mapping: {Name: {field: 'name', null_behavior: 'reject'}},
-    permission_rules: [{effect_kind: 'create', selector_class: 'none',
-      write_fields: ['Name'], permissions: ['scope:create']}]};
-  const mapping = {...mappingBody, mapping_contract_cid: contentCid(mappingBody)};
-  body.mapping_contracts = [mapping];
-  delete body.evidence_bundle_cid;
-  return {environmentWire: canonicalJson({...body, evidence_bundle_cid: contentCid(body)}),
-    mappings: [{resource: 'records', mappingRef: mapping.mapping_ref,
-      mappingCid: mapping.mapping_contract_cid, body: canonicalJson(mapping)}]};
+    baseEnvironmentWire, installationServices: parent.services, resolveSecret: unexpected}};
 }
 
 // Trusted application code authors ordinary installation descriptors. The
@@ -87,7 +63,7 @@ function effectPublication(name) {
 // replacement or production dependency-injection hook participates here.
 function connector(registration, {providerBundle, providerMoon, profileVersions = versions} = {}) {
   const revision = `${registration}/0.1`;
-  const events = [], entries = [], owners = new Map();
+  const events = [], entries = [], owners = new Map(), authoredProfiles = new WeakMap();
   const closeFailure = new Error('FixtureClosePending');
   const touch = () => { throw new Error('UnexpectedProviderOperation'); };
   const descriptor = role => ({profileVersion: profileVersions[role], load: async () => {
@@ -96,7 +72,9 @@ function connector(registration, {providerBundle, providerMoon, profileVersions 
       check(profile) {
         assert.equal(profile.version, profileVersions[role]);
         events.push([role, 'check', profile.name]);
-        return profile;
+        const checked = Object.freeze({...profile, connectorId: profile.name});
+        authoredProfiles.set(checked, profile);
+        return checked;
       },
       identityParts(profile, providerProfile, read) {
         events.push([role, 'identity', profile.name]);
@@ -104,7 +82,7 @@ function connector(registration, {providerBundle, providerMoon, profileVersions 
           assert.equal(providerProfile.queryAliases, undefined);
           assert.equal(typeof read, 'function');
         } else assert.equal(typeof providerProfile, 'function');
-        return [profile, {registration, revision, role}];
+        return [authoredProfiles.get(profile) ?? profile, {registration, revision, role}];
       },
       publish(profile, options) {
         select(options);
@@ -124,27 +102,34 @@ function connector(registration, {providerBundle, providerMoon, profileVersions 
         owners.set(`${role}:${profile.name}`, owner);
         const authorization = {authorize: touch, accountConfiguration: '{}',
           context: {contextCid: 'fixture-context'}};
-        const common = {moon: options.moon, connectorId: profile.name,
-          connectorRegistration: registration, connectorRevision: revision,
-          site, authorization, bindingCid: contentCid({registration, name: profile.name})};
-        let adapter;
-        if (role === 'source') {
-          const views = {views: [{resource: 'records', resource_kind: 'record',
-            fields: [{name: 'id', type: 'number', nullable: false}]}]};
-          const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
-            profile.name, registration, revision, JSON.stringify(views), undefined));
-          const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-          adapter = await createInstalledRowSource({...common, declaration, declared,
-            environmentWire: rowSourceCheckEnvironment(baseEnvironmentWire, declared).wire,
+        const construction = options.construction;
+        assert.equal(typeof construction?.prepareAuthoredDeclaration, 'function');
+        assert.equal(typeof construction.openSpecializedSite, 'function');
+        const fields = role === 'source'
+          ? [{name: 'id', type: 'number', nullable: false}]
+          : [{name: 'Id', type: 'string', nullable: false}, {name: 'Name', type: 'string', nullable: true}];
+        construction.prepareAuthoredDeclaration(JSON.stringify({views: [
+          {resource: 'records', resource_kind: 'record', fields}]}));
+        if (role === 'effect') {
+          construction.prepareMappings(JSON.stringify({writes: [{resource: 'records',
+            resource_kind: 'record', primary_identity: 'Id', fields,
+            create: {fields: ['Name'], required: [], permission: 'scope:create', approval: 'required'}}]}),
+          Object.freeze([Object.freeze({resource: 'records', sources: Object.freeze([
+            Object.freeze({target: 'Name', field: 'name', null_behavior: 'reject'})])})]));
+        }
+        await construction.openSpecializedSite({
+          authorizationConstructor: () => authorization,
+          siteConstructor: () => site,
+        });
+        const common = {bindingCid: contentCid({registration, name: profile.name}), connection: site.connection};
+        const adapter = role === 'source'
+          ? await construction.createRowSource({...common,
             readOperation: 'read', physicalTarget: touch, readPages: touch,
-            limits: {maxPages: 1, maxPageBytes: 1024, maxPageRows: 10, maxCaptureRows: 10}});
-        } else {
-          adapter = await createInstalledRowEffect({...common, ...effectPublication(profile.name),
-            installation: options.installation, connection: site.connection,
-            runtimeBundleCid: options.runtimeBundleCid, ledgerRoot: options.ledgerRoot,
+            limits: {maxPages: 1, maxPageBytes: 1024, maxPageRows: 10, maxCaptureRows: 10}})
+          : await construction.createRowEffect({...common,
+            installation: options.installation, runtimeBundleCid: options.runtimeBundleCid, ledgerRoot: options.ledgerRoot,
             driver: {kinds: ['create'], prepareRequest: touch, requestFacts: touch,
               writeOperation: touch, send: touch, project: touch, footprint: touch}});
-        }
         owner.adapter = adapter;
         return profile.defect === undefined ? adapter : {...adapter,
           [profile.defect === 'registration' ? 'connectorRegistration' : 'connectorRevision']:
@@ -282,7 +267,9 @@ for (const role of ['source', 'effect']) {
         assert.equal(owner.completed, failClose ? 0 : 1);
         const primary = failure.primaryFailure;
         if (failClose) {
-          assert.deepEqual(failure.cleanupHandle.status().owners, [`${role}-profile`]);
+          // Both bound roles route their actual registered adapter through
+          // retainBoundInstalledSourceFailure's sourceProfile custody field.
+          assert.deepEqual(failure.cleanupHandle.status().owners, ['source-profile']);
           assert.ok(failure.cleanupErrors.some(item => item.error === selected.closeFailure));
           await Promise.all([failure.cleanupHandle.retry(), failure.cleanupHandle.retry()]);
           assert.equal(owner.attempts, 2);

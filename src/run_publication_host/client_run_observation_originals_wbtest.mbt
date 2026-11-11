@@ -1,4 +1,50 @@
 ///|
+test "Effect observation retains the same compiler originals without an Effect-free compilation" {
+  let (owner, allowed, definition) = original_effect_materials_fixture()
+  let original = capture_client_effect_run_observation_originals(
+    owner, allowed, definition,
+  ).unwrap()
+  assert_true(physical_equal(original.prepared(), allowed.prepared))
+  assert_true(physical_equal(original.authorization(), allowed.authorization))
+  let restored = restore_client_run_observation_originals_wire(
+    definition,
+    original.wire().unwrap(),
+    131072,
+    8192,
+    64,
+  ).unwrap()
+  assert_eq(restored.wire().unwrap(), original.wire().unwrap())
+}
+
+///|
+test "Effect observation refuses foreign owner Run and authorization originals" {
+  let (owner, allowed, definition) = original_effect_materials_fixture()
+  let (foreign_owner, foreign, foreign_definition) = original_effect_materials_fixture(
+    alternate=true,
+  )
+  assert_true(
+    capture_client_effect_run_observation_originals(
+      foreign_owner, allowed, definition,
+    )
+    is Err(_),
+  )
+  assert_true(
+    capture_client_effect_run_observation_originals(
+      owner, allowed, foreign_definition,
+    )
+    is Err(_),
+  )
+  assert_true(
+    capture_client_effect_run_observation_originals(
+      owner,
+      { ..allowed, authorization: foreign.authorization, },
+      definition,
+    )
+    is Err(_),
+  )
+}
+
+///|
 test "saved observation envelope retains original evidence strings only" {
   let (_, compiled, definition) = local_values_invocation_fixture(false)
   let original = capture_client_run_observation_originals(compiled, definition).unwrap()

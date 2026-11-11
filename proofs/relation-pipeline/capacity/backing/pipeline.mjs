@@ -29,8 +29,22 @@ export function inspectPipelineBacking(testCase, observation, registry, requeste
   assert(events.length > 0, 'Missing actual container-capacity observations');
   const selectedArrayExtents = [];
   for (const e of events) {
-    assert.deepEqual(e.metadataPreparation, { stepped: false, lookup: false, source: false, generatedField: -1, generatedSeen: 0, termColumn: false, nameCharge: false,
+    const { portPreparation, pendingPortNames, completedPortNames, ...metadataPreparation } = e.metadataPreparation;
+    assert.deepEqual(metadataPreparation, { stepped: false, lookup: false, source: false, generatedField: -1, generatedSeen: 0, termColumn: false, nameCharge: false,
       snapshotEntries: 0, sourceEntries: 0 }, 'Metadata preparation lies outside the admitted DISTINCT pilot');
+    // The reviewed completionPreparationScope keeps port-name backing outside
+    // this selected Array census. Check its existing width/transfer law without
+    // weakening the exact refusal of other unmodeled metadata work above.
+    assert.equal(typeof portPreparation, 'boolean', 'Missing completion-port preparation state');
+    for (const count of [pendingPortNames, completedPortNames]) {
+      assert(Number.isSafeInteger(count) && count >= 0, 'Invalid completion-port name count');
+    }
+    assert(BigInt(pendingPortNames) + BigInt(completedPortNames) <= bounds.outputNames,
+      'Completion-port names exceed independent schema width');
+    assert(portPreparation ? completedPortNames === 0 : pendingPortNames === 0,
+      'Completion-port names have overlapping preparation/finished owners');
+    assert(completedPortNames === 0 || BigInt(completedPortNames) === bounds.outputNames,
+      'Finished completion-port names differ from independent schema width');
     assert(e.arrayCapacity, 'Missing real state Array capacity');
     assert.deepEqual(Object.keys(e.arrayCapacity).sort(), Object.keys(bounds).sort());
     for (const [name, ceiling] of Object.entries(bounds)) {

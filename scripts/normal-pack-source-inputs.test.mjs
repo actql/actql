@@ -59,7 +59,12 @@ test('normal pack copied sources satisfy the original required interface entranc
   assert(!paths.includes('docs/not-an-input.md'));
   f.copy(paths);
   const before = paths.map(path => readFileSync(join(f.producer, path)).toString('hex'));
-  await assert.rejects(checkInterfaceOwners(f.producer), /git ls-files/u);
+  // CI places this unindexed copy under the checkout's ignored _build root.
+  // Parent Git discovery can return an empty listing instead of failing;
+  // neither case may admit the copied interfaces before their own index exists.
+  await assert.rejects(checkInterfaceOwners(f.producer), error =>
+    /git ls-files/u.test(error.message) ||
+    error.code === 'ERR_ASSERTION' && error.message === 'No normal product interfaces discovered');
   initializeNormalPackSourceIndex(f.producer, paths);
   assert.deepEqual(repositoryFiles(f.producer), [...paths].sort());
   assert.notEqual(spawnSync('git', ['rev-parse', '--verify', 'HEAD'], {cwd: f.producer}).status, 0);

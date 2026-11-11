@@ -65,6 +65,8 @@ fn local_client_effect_source_original(
       // Independently authored initial custody in this test-owned fresh DB only.
       // No production adoption/grant or Submission/Run receipt is synthesized.
       // The real epoch Owner issues and authenticates every reference below.
+      database.begin_immediate().unwrap()
+      database.install_client_run_definition_schema(8L).unwrap()
       let key = @base64.encode(crypto.random_bytes(32).unwrap())
       database
       .insert(
@@ -85,6 +87,11 @@ fn local_client_effect_source_original(
       .insert("client_submitted_intent_custody", "issued", b"0")
       .unwrap()
       |> ignore
+      database
+      .insert("client_submitted_intent_usage", "retained", b"0:0")
+      .unwrap()
+      |> ignore
+      database.commit().unwrap()
       let journal = @client.open_native_client_run_journal(database, 8).unwrap()
       let authority = @client.open_native_client_epoch_authority(
         database, crypto, 100.0,
@@ -510,7 +517,7 @@ fn native_local_effect_capture_acceptance(
     name,
     () => {
       if initial_reviewer is Some(fixture) && fixture.attest_host {
-        @values.epoch_milliseconds_timestamp(@env.now().to_int64()).unwrap_or(
+        @values.epoch_milliseconds_timestamp(@env.now().reinterpret_as_int64()).unwrap_or(
           "",
         )
       } else {

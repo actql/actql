@@ -39,9 +39,9 @@ export const graphDefinitionCid = cid({constructor:definitionConstructor,
 const identity = (definition, key) => ({definition,domain:graphDefinitionCid,
   key:['a',key],key_types:[{kind:'string'},{kind:'number'}]});
 const classified = definition => [
-  {id:1,graph_identity:identity(definition,1),tenant_key:'a',note:7,
+  {id:1,graph_identity:{$json:identity(definition,1)},tenant_key:'a',note:7,
     left_amount:10,right_amount:100,risk:'low'},
-  {id:2,graph_identity:identity(definition,2),tenant_key:'a',note:null,
+  {id:2,graph_identity:{$json:identity(definition,2)},tenant_key:'a',note:null,
     left_amount:20,right_amount:200,risk:'high'},
 ];
 const columns = [
@@ -51,7 +51,9 @@ const columns = [
   {name:'note',contract:{type:'number',nullable:true}},
   {name:'left_amount',contract:{type:'number',nullable:false}},
   {name:'right_amount',contract:{type:'number',nullable:false}},
-  {name:'risk',contract:{type:'string',nullable:true}},
+  // The same INFER outcome/value survives the inner join; outcome='ok'
+  // restores the non-null output object and its declared non-null risk field.
+  {name:'risk',contract:{type:'string',nullable:false}},
 ];
 export function graphCompositionExpectations(family) {
   assert.ok(['node','edge'].includes(family));

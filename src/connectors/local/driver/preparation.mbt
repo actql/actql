@@ -57,18 +57,6 @@ pub fn prepare_local_dispatch_plan(
   if first < 0 || first > count || sequences.length() != count - first {
     return Err(Configuration(ForeignPreparation))
   }
-  let input_counts = Array::make(sequences.length(), 0)
-  for index in 0..<@strategy.graph_data_count(graph) {
-    let edge = @strategy.graph_data_at(graph, index).unwrap()
-    if edge.consumer >= first && edge.consumer < count {
-      let slot = edge.consumer - first
-      if input_counts[slot] == 2147483647 {
-        return Err(Configuration(InvalidLimits))
-      }
-      // Count actual input occurrences, including two ports of one producer.
-      input_counts[slot] += 1
-    }
-  }
   let physical_sequences = []
   for index, sequence in sequences {
     if !(@strategy.graph_task_owner(graph, index + first) is Some(owner) &&
@@ -105,6 +93,26 @@ pub fn prepare_local_dispatch_plan(
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))
   }
+  let input_counts = Array::make(sequences.length(), 0)
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    if edge.consumer >= first &&
+      edge.consumer < count &&
+      !(edge.producer >= first &&
+      @local.local_module_sequence_outputs_carrier(
+        implementation,
+        edge.producer - first,
+      )) {
+      let slot = edge.consumer - first
+      if input_counts[slot] == 2147483647 {
+        return Err(Configuration(InvalidLimits))
+      }
+      // Count the same row-import occurrences as managed dispatch. Carrier
+      // predecessors supply their original managed material, never a row wire
+      // importer. Repeated Relation ports still own separate import storage.
+      input_counts[slot] += 1
+    }
+  }
   let capacities = Array::makei(physical_sequences.length(), index => {
     @local.local_module_capacity(implementation, index)
   })
@@ -127,6 +135,53 @@ pub fn prepare_local_dispatch_plan(
       original, inputs, selected_metadata, output,
     ),
   )
+}
+
+///|
+// The same frozen policy quote for future inputs and actual missing copies.
+// Borrowed cell-access reads keep their existing holding; no importer exists.
+fn local_dispatch_copy_capacity(
+  base : @execution.ExecutionCapacity,
+  metadata_bytes : Int64,
+  imported : Int64,
+  exported : Int64,
+  wire_bytes : Int64,
+  copies : Int,
+  alongside : Bool,
+) -> @strategy.PhysicalEnvelope? {
+  if copies < 0 ||
+    metadata_bytes < 0L ||
+    imported < 0L ||
+    exported < 0L ||
+    wire_bytes < 0L {
+    return None
+  }
+  guard @execution.execution_capacity_inventory(
+      [
+        { unit: QuotedBytes, count: base.retained_bytes, copies: 1, },
+        { unit: QuotedBytes, count: metadata_bytes, copies: 1, },
+        { unit: QuotedBytes, count: imported, copies, },
+        { unit: QuotedBytes, count: exported, copies: 1, },
+      ],
+      [{ unit: QuotedBytes, count: base.execution_bytes, copies: 1, }],
+      if alongside {
+        RetainedAlongsideExecution
+      } else {
+        SeparateDimensions
+      },
+    )
+    is Some(capacity) &&
+    @execution.execution_capacity_inventory_bytes([
+      { unit: QuotedBytes, count: wire_bytes, copies, },
+    ])
+    is Some(transfer_bytes) else {
+    return None
+  }
+  Some({
+    transfer_bytes,
+    retained_bytes: capacity.retained_bytes,
+    execution_bytes: capacity.execution_bytes,
+  })
 }
 
 ///|
@@ -158,33 +213,15 @@ fn local_dispatch_preparation_policies(
       } else {
         0
       }
-      guard @execution.execution_capacity_inventory(
-          [
-            { unit: QuotedBytes, count: base.retained_bytes, copies: 1, },
-            { unit: QuotedBytes, count: metadata_bytes, copies: 1, },
-            { unit: QuotedBytes, count: imported, copies: ports, },
-            { unit: QuotedBytes, count: exported, copies: 1, },
-          ],
-          [{ unit: QuotedBytes, count: base.execution_bytes, copies: 1, }],
-          if inputs is Some(_) || output is Some(_) {
-            RetainedAlongsideExecution
-          } else {
-            SeparateDimensions
-          },
-        )
-        is Some(capacity) else {
-        return None
-      }
-      let wire_bytes = inputs
-        .map(value => value.0.wire.max_bytes.to_int64())
-        .unwrap_or(0L)
-      @execution.execution_capacity_inventory_bytes([
-        { unit: QuotedBytes, count: wire_bytes, copies: ports, },
-      ]).map(transfer_bytes => {
-        transfer_bytes,
-        retained_bytes: capacity.retained_bytes,
-        execution_bytes: capacity.execution_bytes,
-      })
+      local_dispatch_copy_capacity(
+        base,
+        metadata_bytes,
+        imported,
+        exported,
+        inputs.map(value => value.0.wire.max_bytes.to_int64()).unwrap_or(0L),
+        ports,
+        inputs is Some(_) || output is Some(_),
+      )
     },
   )
   let retained : Array[@execution.ExecutionCapacityItem] = []
@@ -287,13 +324,39 @@ pub fn bind_local_dispatch_plan(
 }
 
 ///|
+// A completed keyed-input view borrows its original checked Effect graph.
+// Only that same opaque Effect owner can bind the pre-Run configuration.
+pub fn bind_local_effect_dispatch_plan(
+  driver : @host.DispatchDriver,
+  original : LocalDispatchPreparation,
+  captured : @strategy.CapturedEffectRunDAG,
+) -> Result[LocalDispatchModule, LocalDispatchIssue] {
+  bind_local_dispatch_original(
+    driver,
+    original,
+    true,
+    captured_effect=Some(captured),
+  )
+}
+
+///|
 fn bind_local_dispatch_original(
   driver : @host.DispatchDriver,
   original : LocalDispatchPreparation,
   freeze_policy : Bool,
+  captured_effect? : @strategy.CapturedEffectRunDAG? = None,
 ) -> Result[LocalDispatchModule, LocalDispatchIssue] {
   let run = @host.dispatch_driver_run(driver)
-  if !physical_equal(@strategy.captured_dag_graph(run), original.graph) {
+  let same = match captured_effect {
+    None => physical_equal(@strategy.captured_dag_graph(run), original.graph)
+    Some(value) =>
+      @strategy.captured_effect_run_matches_preparation(
+        value,
+        run,
+        original.graph,
+      )
+  }
+  if !same {
     return Err(Configuration(ForeignPreparation))
   }
   let carrier_paths = local_dispatch_carrier_path_table(

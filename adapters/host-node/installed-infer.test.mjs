@@ -11,7 +11,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import test from 'node:test';
 import {inspect} from 'node:util';
-import {connect, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
+import {connect, getSubmissionInput, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -19,6 +19,24 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {loadPrivateEvidenceKey} from './local-continuation-evidence.mjs';
+
+// Publish Model declarations under the SAME explicit operator policy as the
+// Host. The ordinary Local default now selects its own nominal row ceiling;
+// these fixtures retain their original spec policy and business assertions.
+const fixtureHostCapacityPolicy = Object.freeze(JSON.parse(await readFile(new URL(
+  '../../spec/local-check-environment.json', import.meta.url), 'utf8')).host_policy_profile.capacity);
+
+function retainModelFixtureOriginals(installation) {
+  // Freeze the same authored entries after each case finishes its mutations.
+  // An absent optional inventory stays empty, never a fabricated contract.
+  installation.executionContracts ??= [];
+  installation.dependencyBodies ??= [];
+  for (const entries of [installation.executionContracts, installation.dependencyBodies]) {
+    for (const entry of entries) Object.freeze(entry);
+    Object.freeze(entries);
+  }
+  return Object.freeze(installation);
+}
 
 const oneRowInfer = (objectProjection = false, keep = false) => {
   const program = {version: 'actql/0.1', id: 'installed-infer',
@@ -121,6 +139,7 @@ function assertPreparationRefusal(error, kind, code) {
 
 async function installedHost(t, options = {}) {
   const {initializeRoot, ...hostOptions} = options;
+  if (hostOptions.modelInstallation !== undefined) retainModelFixtureOriginals(hostOptions.modelInstallation);
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-infer-'));
   const priorCertificates = getCACertificates('default');
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
@@ -138,7 +157,9 @@ async function installedHost(t, options = {}) {
       await host?.close();
     } finally {
       setDefaultCACertificates(priorCertificates);
-      await rm(root, {recursive: true, force: true});
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+        await rm(root, {recursive: true, force: true});
+      }
     }
   });
   const certificate = await readFile(join(root, 'host.crt'));
@@ -148,6 +169,7 @@ async function installedHost(t, options = {}) {
     await initializeRoot?.(join(root, 'state'));
     host = await openInstalledRemoteHttpHost({directory: join(root, 'state'),
       authenticate: () => userInfo().username,
+      hostCapacityPolicy: fixtureHostCapacityPolicy,
       beforeDispatch: () => { physicalStarts++; }, ...hostOptions});
   } catch (cause) {
     t.diagnostic(inspect(cause, {depth: 4}));
@@ -201,7 +223,9 @@ test('installed ModelTask reaches normal public preparation but cannot bypass mi
         })});
     await assert.rejects(client.start(oneRowInfer(),
       {submissionRef: client.newSubmission({nonce: 'infer-installed'})}),
-      error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
+      // The original empty execution inventory refuses before the Journal
+      // retains a preparing intent; the existing service law is not_accepted.
+      error => assertPreparationRefusal(error, 'not_accepted', 'ClientProgramUnsupported'));
     assert.equal(observations.length, 1);
     assert.equal(observations[0].boundary, 'model_execution');
     assert.equal(observations[0].code,
@@ -238,7 +262,7 @@ for (const variant of ['valid', 'wrong-self-cid', 'foreign-task']) {
           })});
       await assert.rejects(client.start(oneRowInfer(),
         {submissionRef: client.newSubmission({nonce: `infer-${variant}`})}),
-        error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
+        error => assertPreparationRefusal(error, 'not_accepted', 'ClientProgramUnsupported'));
       assert.equal(observations.length, 1);
       const observed = observations[0];
       if (variant === 'valid') {
@@ -346,7 +370,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
     let calls = 0;
     let failedWrite = false;
     let failedObservation = false;
-    let observationSteps = 0;
+    let publicationWrites = 0;
     let cancelledDuringExecution = false;
     const injectedFailure = boundary.endsWith('-failure');
     const restarting = boundary.startsWith('restart-');
@@ -374,11 +398,12 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         await startedRun;
         await run.cancel();
       }
-      if (name === 'infer_observation_advanced') {
-        observationSteps++;
+      if (name === 'infer_private_holding_commit' &&
+          ['observation_set', 'run_invocation'].includes(detail.role)) {
+        publicationWrites++;
         if (!failedObservation &&
-            ((boundary === 'observation-step-failure' && !detail.complete) ||
-             (boundary === 'observation-complete-failure' && detail.complete))) {
+            ((boundary === 'observation-step-failure' && detail.role === 'observation_set') ||
+             (boundary === 'observation-complete-failure' && detail.role === 'run_invocation'))) {
           failedObservation = true;
           throw new Error('InjectedObservationBoundaryFailure');
         }
@@ -440,8 +465,10 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           import {openInstalledRemoteHttpHost} from ${JSON.stringify(new URL('./embedded-local.mjs', import.meta.url).href)};
           const input = JSON.parse(readFileSync(0, 'utf8'));
           const {directory, installation, taskCid, authorization, boundary} = input;
+          const retainModelFixtureOriginals = ${retainModelFixtureOriginals.toString()};
+          retainModelFixtureOriginals(installation);
           const {providerBindingOriginals} = await import(${JSON.stringify(new URL('../../scripts/fixtures/model-provider-binding-fixture.mjs', import.meta.url).href)});
-          const checked = ${checked.toString()};
+          const {checked} = await import(${JSON.stringify(new URL('../host-common/runtime-result.mjs', import.meta.url).href)});
           const oneRowInfer = ${oneRowInfer.toString()};
           let calls = 0;
           const registerModelProviders = ${registerModelProviders.toString()};
@@ -455,6 +482,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           };
           const host = await openInstalledRemoteHttpHost({directory,
             authenticate: () => userInfo().username, authorization,
+            hostCapacityPolicy: ${JSON.stringify(fixtureHostCapacityPolicy)},
             modelInstallation: installation, registerModelProviders});
           const certificate = readFileSync(join(dirname(directory), 'host.crt'));
           setDefaultCACertificates([certificate.toString()]);
@@ -495,7 +523,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         assert.equal(terminal.status, 'needs_reconciliation');
         await assert.rejects(run.result('answer').all());
         assert.equal(calls, 0, 'unknown response custody cannot redispatch');
-        assert.equal(observationSteps, 0);
+        assert.equal(publicationWrites, 0);
         return;
       }
       // A failed private write can be observed before retained cleanup has
@@ -515,10 +543,13 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       assert.equal(failedWrite, boundary === 'private-write-failure' ||
         boundary === 'usage-overflow-write-failure');
       assert.equal(failedObservation, boundary.startsWith('observation-'));
-      // Begin, one slot, and finalize: retries retain the issuer
-      // rather than starting another observation or advancing a terminal one.
+      // The composed owner seals its original Observation synchronously before
+      // Local transfers completed output. Its two real async Store writers,
+      // rather than the retired single-operation codec's three steps, expose
+      // the partial/complete publication failures and SAME-writer retry.
       const failedBeforeAggregate = failedBeforeCapture || boundary === 'private-write-failure';
-      assert.equal(observationSteps, failedBeforeAggregate ? 0 : 3);
+      assert.equal(publicationWrites, failedBeforeAggregate ? 0 :
+        boundary === 'observation-step-failure' ? 1 : 2);
       if (successful) {
         assert.deepEqual(await run.result('answer').all(),
           keepProjection
@@ -539,13 +570,14 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         version: 'actql-local-store-owner/0.1', root: join(root, 'state'),
         principalId: userInfo().username})).digest('hex')}`;
       for (const [role, slot] of [
-        ...(!failedBeforeAggregate ? [['model_capture_bundle', -1], ['observation_set', -1],
-          ['run_invocation', -1], ['model_slot_capture', 0]] : []),
+        ...(!failedBeforeAggregate ? [['model_capture_bundle', 0], ['observation_set', -1],
+          ...(boundary === 'observation-step-failure' ? [] : [['run_invocation', -1]]),
+          ['model_slot_capture', 0]] : []),
         ...(boundary === 'private-write-failure' ? [['model_slot_capture', 0], ['model_capture_bundle', 0]] : []),
         ['model_call_attempt', 0], ['model_attempt_accounting', 0],
         ['model_attempt_outcome', 0], ['model_dispatch_authority', 0],
       ]) {
-        const identity = failedBeforeAggregate
+        const identity = role.startsWith('model_')
           ? scopedModelHolding(join(root, 'state'), run.ref.runDefinitionCid, storeCid, role, slot)
           : contentCid({role, slot,
           run_definition_cid: run.ref.runDefinitionCid,
@@ -622,11 +654,29 @@ for (const [variant, boundary, typedCause] of [
   ['media-invalid', 'model_dependencies', 'invalid_body'],
   ['media-substituted', 'model_dependencies', 'identity_mismatch'],
   ['unsupported-payload', 'model_provider', 'unsupported_prompt'],
+  ['validator-throw', 'model_provider', undefined],
 ]) {
   test(`public INFER checks dependency bodies and selected provider before accepting a Run: ${variant}`,
     async t => {
       const {installation, taskCid} = await installedDependencyConfiguration(variant);
       const observations = [];
+      const validatorFailure = Object.assign(new Error('Original prompt validator failure'),
+        {code: 'FixtureValidatorFailure'});
+      const externalValidation = boundary !== 'model_dependencies';
+      const authorization = diagnosticAuthorization((name, detail) => {
+        if (name === 'infer_preparation_rejected') observations.push(detail);
+      });
+      if (externalValidation) {
+        // This distinct fixture also observes the original uncertain submission;
+        // explicitly authorize its read instead of relying on write permission.
+        const entry = (entry_id, operation) => ({entry_id, outcome: 'allow',
+          principal: {any_of: [userInfo().username]}, connection: {all: true},
+          resource: {any_of: ['run']}, operation: {any_of: [operation]}, exclusions: []});
+        authorization.accountConfiguration = canonicalJson({
+          version: 'actql-execution-account-config/0.1', account_id: 'model-validation',
+          entries: [entry('read-original', 'read'), entry('run', 'write')],
+        });
+      }
       let validations = 0, calls = 0;
       const {client, root, physicalStarts} = await installedHost(t, {
         modelInstallation: installation,
@@ -637,27 +687,46 @@ for (const [variant, boundary, typedCause] of [
             validations++;
             assert.equal(actualTask, taskCid);
             assert.equal(selector, 'fixture-risk-model');
+            if (variant === 'validator-throw') throw validatorFailure;
             const payload = JSON.parse(wire);
             return payload !== null &&
               Object.keys(payload).sort().join(',') === 'format,instructions' &&
               payload.format === 'fixture-risk/0.1' &&
               payload.instructions === 'Classify the text.';
           }}],
-        authorization: diagnosticAuthorization((name, detail) => {
-          if (name === 'infer_preparation_rejected') observations.push(detail);
-        }),
+        authorization,
       });
-      await assert.rejects(client.start(oneRowInfer(),
-        {submissionRef: client.newSubmission({nonce: `dependencies-${variant}`})}),
-        error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
+      const submissionRef = client.newSubmission({nonce: `dependencies-${variant}`});
+      await assert.rejects(client.start(oneRowInfer(), {submissionRef}), error => {
+        if (!externalValidation) {
+          return assertPreparationRefusal(error, 'not_accepted', 'ClientProgramUnsupported');
+        }
+        // Once this external callback has run, its return or throw cannot
+        // attest that no work occurred. Keep the public uncertainty distinct
+        // from the exact private typed rejection and this fixture's counters.
+        assert.equal(error.code, 'SubmissionUnknown');
+        assert.equal(getSubmissionOutcome(error), undefined);
+        assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
+        return true;
+      });
+      if (externalValidation) {
+        const original = await client.lookupSubmission(submissionRef);
+        assert.equal(original.kind, 'unresolvable');
+        assert.deepEqual(original.submissionRef, submissionRef);
+        assert.equal(original.problem.code, 'submission_history_unresolvable');
+      }
       assert.equal(observations.length, 1);
       assert.equal(observations[0].boundary, boundary);
       assert.equal(observations[0].typedCause, typedCause);
       if (variant === 'valid') {
         assert.equal(observations[0].code, 'InstalledInferDispatchNotConnected');
       }
+      if (variant === 'validator-throw') {
+        assert.equal(observations[0].code, validatorFailure.code);
+        assert.strictEqual(observations[0].cause, validatorFailure);
+      }
       assert.equal(validations,
-        ['valid', 'unsupported-payload'].includes(variant) ? 1 : 0);
+        externalValidation ? 1 : 0);
       assert.equal(calls, 0);
       assertNoAcceptedRun(root, physicalStarts);
     });
@@ -708,6 +777,9 @@ for (const reason of ['timeout', 'abort']) {
       }), decisionTimeoutMs: reason === 'timeout' ? 25 : 30000,
       accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
         account_id: 'model-cleanup', entries: [entry('model', 'infer', 'delegate'),
+          {entry_id: 'read-original-run', outcome: 'allow',
+            principal: {any_of: [userInfo().username]}, connection: {all: true},
+            resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []},
           entry('run', 'write', 'allow')]}),
       decide(view, {signal}) {
         assert.equal(view.tuple.operation, 'infer');

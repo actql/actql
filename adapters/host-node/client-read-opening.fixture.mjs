@@ -1,4 +1,3 @@
-import {publicationOriginalFixture} from './fixtures/local-publication-original.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 // Real checked Program, physical Run, publication Store and Delivery custody.
 // The injected fault loses only attempt admission's reply, never retries it.
@@ -7,9 +6,11 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createServer} from 'node:https';
+import {types} from 'node:util';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {connect} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
+import {prepareClientHostRequest} from '../../packages/client-wire/index.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -17,7 +18,9 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installRunStateAuthority, installRunStateService,
   inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
+import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
@@ -25,7 +28,7 @@ import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {runPublishedCapturedStrategy} from './entry.mjs';
 import {localContractLimits, localOutputLimits, sourceFreeValuesPlan,
-  sourceFreeValuesAdmissionEvidence} from './local-values-plan.mjs';
+  sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal} from './local-values-plan.mjs';
 import {installNodeResultAccessService, installResultAccessAuthority} from './result-access.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -34,14 +37,39 @@ const scope = {namespaceId: 'opening-fixture', authorityScopeCid: cid('a')};
 const control = runtimeCore(moon).publicationControl;
 export const openingProgram = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
 export const openingExpected = [{id: 1}, {id: 2}];
+
+// The original registry invokes this light continuation after returning its
+// actual handler/dispatch borrowers. Its lexical scope retains no Prepared.
+function finishManagedReadRetirement(run, manager, liveManaged) {
+  return () => {
+    checked(moon.clientProgramInstalledManagedRunRetire(run.value));
+    manager.retireSeveredPreparation(run.original);
+    liveManaged.delete(run);
+    for (const name of Object.keys(run)) run[name] = undefined;
+    run.retired = true;
+  };
+}
 export function traceReadRecovery(phase, facts = {}) {
   if (process.env.ACTQL_READ_RECOVERY_TRACE !== '1') return;
   console.error('ACTQL_READ_RECOVERY_TRACE ' + JSON.stringify({
     phase, pid: process.pid, at: Date.now(), ...facts}));
 }
+function traceReadRecoveryFailure(phase, cause) {
+  if (process.env.ACTQL_READ_RECOVERY_TRACE !== '1') return;
+  const fields = {};
+  if (cause !== null && typeof cause === 'object' && !types.isProxy(cause)) {
+    for (const name of ['name', 'message', 'code']) {
+      const field = Object.getOwnPropertyDescriptor(cause, name);
+      if (field !== undefined && Object.hasOwn(field, 'value') && typeof field.value === 'string') {
+        fields[name] = field.value.slice(0, 1024);
+      }
+    }
+  }
+  traceReadRecovery(phase, {failure: fields});
+}
 export async function openReadOpeningFixture(directory, loss,
   {valuesMaxRows, expectedRowCount = 2, expressionFragment = false,
-    observeSubmission = () => {}, reverseRereads = false} = {}) {
+    observeSubmission = () => {}, reverseRereads = false, environment: selectedEnvironment} = {}) {
   assert.equal(typeof reverseRereads, 'boolean');
   if (reverseRereads) assert.equal(expectedRowCount, 2);
   traceReadRecovery('store-open:start', {expectedRowCount});
@@ -135,57 +163,126 @@ export async function openReadOpeningFixture(directory, loss,
   const stateService = installRunStateService({store, control,
     authority: installRunStateAuthority({authorizeRunState: () => true, resultPolicyAvailable: () => true}), now, limits: localContractLimits});
   const environmentWire = await readFile(new URL('../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8');
-  const environment = moon.clientProgramCheckEnvironment(environmentWire.trimEnd(),
+  const environment = selectedEnvironment ?? moon.clientProgramCheckEnvironment(environmentWire.trimEnd(),
     'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904',
     false, false, true, false, false, false, false);
   assert.ok(environment);
-  const registry = await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
   const contracts = JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
   const values = JSON.stringify(contracts.execution_contracts['REL.values']);
   const fragment = expressionFragment ? JSON.stringify(
     contracts.execution_contracts['ACTQL.expression_fragment/0.1']) : undefined;
-  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
-    registry, values, fragment, undefined));
-  const startRun = installNodeClientRunStart({journal, requestControl: moon, publicationControl: control, authorizeRunStart: () => true});
+  const funded = await openFundedClientPreparation({moon, environment, valuesMaxRows, http: true,
+    sequenceContracts: {values, fragment, ordered: undefined}});
+  const managed = new WeakMap(), liveManaged = new Set(), reservations = new WeakMap();
+  // Use the ordinary registry's real Core siblings and dispatch retirement.
+  // This private fixture supplies no Root, capacity packet or no-op borrower.
+  const preparationCustody = installLocalPreparationRegistry(prepared =>
+    funded.prepare.kindOf(prepared) === 'effect_free' &&
+      moon.clientProgramAcquisitionCount(prepared) === 0 &&
+      moon.clientProgramSerializationOccurrences(prepared).length === 0 &&
+      checked(moon.clientProgramComposedInferOccurrences(prepared)).length === 0,
+  prepared => {
+    const run = managed.get(prepared);
+    if (run === undefined) return;
+    if (run.retired) return run.finish;
+    try {checked(moon.clientProgramInstalledManagedRunRetire(run.value));}
+    catch (cause) {
+      if (moon.clientProgramInstalledPreparationPayloadSevered(run.value, run.request) !== true) throw cause;
+    }
+    run.plan = undefined;
+    funded.retireOriginal(prepared);
+    funded.manager.severPreparation(prepared, run.original);
+    run.prepared = undefined;
+    run.retired = true;
+    run.finish = finishManagedReadRetirement(run, funded.manager, liveManaged);
+    return run.finish;
+  }, {runtime: moon, borrow: (prepared, request) =>
+    funded.manager.borrowPreparation(prepared, funded.originalRequest(request))});
+  const startRun = installNodeClientRunStart({journal, requestControl: moon, publicationControl: control,
+    authorizeRunStart: () => true});
+  const dispatch = installNodeClientDispatchOwner({moon, control, journal, store,
+    registry: funded.installedContracts, values, fragment,
+    namespaceId: scope.namespaceId, authorityScopeCid: scope.authorityScopeCid,
+    storeAuthorityCid: cid('7'), now, hostConnection: () => true,
+    startRun: async facts => {
+      const started = await startRun(facts);
+      reservations.set(facts.identity, started);
+      return started;
+    },
+    preparationCustody, managedComputeRequired: true,
+    beforePublication: prepared => funded.manager.reservePublication(prepared),
+    observed: (phase, detail) => traceReadRecovery(phase, Object.fromEntries(
+      ['code', 'primaryCode', 'issueTag', 'nestedIssueTag']
+        .filter(name => typeof detail?.[name] === 'string')
+        .map(name => [name, detail[name]]))),
+    planFor: ({preparedProgram}, retainedWire) => {
+      const run = managed.get(preparedProgram);
+      assert.ok(run && !run.retired);
+      assert.equal(run.plan.runDefinition.wire, retainedWire);
+      return run.plan;
+    },
+    faultInjection: stage => {
+      if (stage === 'dispatch_reserved') counts.computes++;
+      if (stage === 'physical_start_reserved') observeSubmission('opened');
+      if (stage === 'computed') observeSubmission('published');
+    },
+    runPublished: async (...args) => {
+      let published;
+      try {published = await runPublishedCapturedStrategy(...args);}
+      catch (error) {observeSubmission('publication_failed', error); throw error;}
+      assert.equal(published.status, 'published');
+      assert.equal(published.execution.status, 'host-tasks-completed');
+      assert.equal(published.execution.completed[0].outputRows, expectedRowCount);
+      assert.equal(published.publication.publication.state, 'succeeded');
+      return published;
+    }});
   const services = {
     authenticate: () => 'principal', authorizeConnection: () => true,
     negotiate: async () => ({version: 'actql-client-host/0.1', mode: 'local', owner: 'local', durability: 'durable', scopeRef: 'principal', capabilities: ['result-jsonl'],
       submissionEpoch: journal.issueSubmissionEpoch({...scope, currentAuthorization: true}, moon),
       limits: {maxReadWireBytes: 65536, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536, maxRows: 256, maxBatchRows: 16, maxBatchRetainedValueBytes: 8192}}),
-    prepareSubmit: installNodeClientProgramPreparation({moon, environment, valuesMaxRows}),
+    prepareSubmit: funded.prepareSubmit, prepareRequest: funded.prepareRequest,
+    bindOwnedRequest: funded.submission.bindOwnedRequest,
     attach: installNodeClientRunAttach({journal, requestControl: moon, publicationControl: control, authorizedScope: () => scope, authorizeRun: () => true}),
     lookupRequest: installNodeClientRequestLookup({journal, control: moon,
       authorizedScope: () => allowed ? scope : undefined}),
-    async submit({preparedProgram, requestId, principalId, connection, submission}) {
+    async submit(submission) {
+      try {
+      const {preparedProgram, requestId} = submission;
       observeSubmission('prepared');
       const identity = moon.clientProgramRequestIdentity(preparedProgram, cid('a'), requestId, cid('b'));
-      let plan;
-      const admitted = await journal.admitOrLookupDefinition(identity, {...scope, submission, lookupExpiresAt: '2099-01-01T00:00:00.000Z', issueDefinition() {
+      const adopted = funded.manager.adoptPreparation(preparedProgram,
+        funded.originalRequest(submission), identity);
+      assert.ok(adopted);
+      const run = {prepared: preparedProgram, request: identity, original: adopted.original,
+        value: adopted.value, plan: undefined, retired: false};
+      managed.set(preparedProgram, run);liveManaged.add(run);
+      checked(moon.clientProgramInstalledManagedRunCheck(run.value, preparedProgram, identity));
+      traceReadRecovery('managed-plan-original-check:start');
+      const acquisitionResult = checked(moon.clientProgramInstalledManagedRequiresAcquisitionResultPublication(
+        run.value, preparedProgram, identity));
+      traceReadRecovery('managed-plan-original-check:finished', {requiresAcquisitionResult: acquisitionResult});
+      const admitted = await journal.admitOrLookupDefinition(identity, {...scope, submission: submission.submission,
+        lookupExpiresAt: '2099-01-01T00:00:00.000Z', issueDefinition() {
         counts.definitions++;
-        plan = sourceFreeValuesPlan({moon, control, preparedProgram, publicationOriginal: publicationOriginalFixture(moon, preparedProgram), ...scope, storeAuthorityCid: cid('7'), now});
-        const evidence = sourceFreeValuesAdmissionEvidence(plan);
-        return evidence === undefined ? plan.runDefinition : {
-          runDefinition: plan.runDefinition, runAdmissionEvidence: evidence};
+        run.plan = sourceFreeValuesPlan({moon, control, preparedProgram,
+          requestIdentity: identity, ...scope, storeAuthorityCid: cid('7'), now,
+          compilationOriginal: funded.manager.compilationOriginal(preparedProgram),
+          publicationOriginal: {kind: 'installed_run', value: run.value},
+          publicationPreparation: funded.manager.publicationPreparation(preparedProgram)});
+        const evidence = sourceFreeValuesAdmissionEvidence(run.plan);
+        return evidence === undefined ? run.plan.runDefinition : {
+          runDefinition: run.plan.runDefinition, runAdmissionEvidence: evidence,
+          originalPlan: sourceFreePlanOriginal(run.plan)};
       }}, moon, control);
       observeSubmission('admitted');
-      const started = await startRun({identity, namespaceId: scope.namespaceId, principalId, connection});
+      await dispatch.start(submission, identity, admitted, {plan: run.plan, managedRun: run.value});
+      await dispatch.operation(admitted.ref);
+      const started = reservations.get(identity);
+      assert.ok(started);
       assert.deepEqual(started.ref, admitted.ref);
-      if (started.kind !== 'reserved') return {ref: started.ref,
-        durability: started.durability, revision: started.revision};
-      counts.computes++;
-      const setup = moon.clientProgramOpenSourceFreeLocalHost(preparedProgram, installedContracts, values, 1n, 0n, 0n, 0n, fragment);
-      assert.ok(setup);
-      observeSubmission('opened');
-      let published;
-      try {published = await runPublishedCapturedStrategy(setup, {store, plan});}
-      catch (error) {observeSubmission('publication_failed', error); throw error;}
-      observeSubmission('published');
-      assert.equal(published.status, 'published');
-      assert.equal(published.execution.status, 'host-tasks-completed');
-      assert.equal(published.execution.completed[0].outputRows, expectedRowCount);
-      assert.equal(published.publication.publication.state, 'succeeded');
-      await published.close(); assert.equal(published.cleanupPending(), false);
       return {ref: started.ref, durability: started.durability, revision: started.revision};
+      } catch (cause) {traceReadRecoveryFailure('submit:failed', cause); throw cause;}
     },
     async observeRun({ref, principalId}) {
       // Match the ordinary Host: only the same original journal frame and
@@ -210,8 +307,8 @@ export async function openReadOpeningFixture(directory, loss,
   };
   const submission = installNodeClientSubmission({journal, moon,
     authorizedScope: () => allowed ? scope : undefined,
-    prepareSubmit: request => services.prepareSubmit(request), submit: services.submit,
-    lookupRequest: services.lookupRequest});
+    prepareSubmit: services.prepareSubmit, submit: services.submit,
+    lookupRequest: services.lookupRequest, preparationCustody, ...funded.submission});
   services.submitIntent = submission.submitAttempt;
   services.lookupSubmission = submission.lookupSubmission;
   return {services, counts, store, journal, deliveryOrders,
@@ -221,7 +318,13 @@ export async function openReadOpeningFixture(directory, loss,
     afterDeliveryLookup: callback => {afterDeliveryLookup = callback;},
     arm: phase => {armed = phase;}, authorize: value => {allowed = value;},
     loseReply: callback => {loseReply = callback;},
-    async close() {journal.close(); await store.close();}};
+    async close() {
+      await dispatch.drain();
+      preparationCustody.retireQuiescentUndispatched();
+      await funded.close();
+      assert.equal(liveManaged.size, 0);
+      journal.close(); await store.close();
+    }};
 }
 
 export async function connectOpeningHost(fixture, entrance, tlsDirectory,
@@ -229,8 +332,20 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory,
   let armed = loseReadTerminator, terminatorLosses = 0;
   if (entrance === 'local') {
     const host = createNodeInProcessClientHost(fixture.services);
-    const port = {async perform(operation, ...args) {
-      const response = await host.perform(operation, ...args);
+    const port = {async perform(operation, body, signal) {
+      let original;
+      let terminal = 'failed';
+      try {
+      // Match HTTP's already-captured immutable connection. This existing
+      // connect-only wire check observes no Program or Parameters and must
+      // precede the Request parent's own source snapshot.
+      const connection = prepareClientHostRequest('connect', {connection: body.connection})?.connection;
+      assert.ok(connection, 'Existing wire owner must admit the original connection');
+      original = fixture.services.prepareRequest(operation, Object.freeze({...body, connection}));
+      original.bindRequest(original.body);
+      const response = await host.perform(operation, original.body, signal);
+      original.beforeReply();
+      terminal = 'returned';
       if (operation === 'status' && runObservationReply) {
         const replacement = runObservationReply(response);
         if (replacement === undefined) throw new Error('InjectedRunObservationLoss');
@@ -250,6 +365,8 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory,
         terminatorLosses++;
         throw new Error('InjectedReadTerminatorLoss');
       }}};
+      } catch (cause) {traceReadRecoveryFailure('local-request:failed', cause); throw cause;}
+      finally {original?.finish(terminal);}
     }};
     const client = await connectInProcess({mode: 'local', owner: 'local'},
       port);

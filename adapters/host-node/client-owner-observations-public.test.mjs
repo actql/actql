@@ -17,7 +17,10 @@ for(const entrance of ['local','https']) {
     let computes=0,client,host,server;
     const authorization={accountConfiguration:JSON.stringify({version:'actql-execution-account-config/0.1',
       account_id:'owner-observation',entries:[{entry_id:'execution',outcome:'allow',principal:{all:true},
-        connection:{all:true},resource:{all:true},operation:{any_of:['write']},exclusions:[]}]}),
+        connection:{all:true},resource:{all:true},operation:{any_of:['write']},exclusions:[]},
+        {entry_id:'host-read',outcome:'allow',principal:{any_of:[principalId]},
+          connection:{any_of:['actql-remote-host']},resource:{any_of:['result/main','run']},
+          operation:{any_of:['read']},exclusions:[]}]}),
       reviewers:[{keyId:'reviewer',reviewerId:'reviewer',principalId,publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
       hostKey:{keyId:'host',privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'})},
       observe(name){if(name==='computed')computes++;}};
@@ -36,7 +39,7 @@ for(const entrance of ['local','https']) {
     }
     const run=await client.startSource('SELECT 1 AS n',{format:'sql',submissionRef:client.newSubmission({nonce:'observe-original'})});
     const state=await run.wait({signal:AbortSignal.timeout(15000)});
-    assert.equal(state.status,'succeeded');assert.deepEqual(await run.result('answer').all(),[{n:1}]);
+    assert.equal(state.status,'succeeded');assert.deepEqual(await run.result('main').all(),[{n:1}]);
     const first=await run.observeOwners();
     assert.equal(first.consistency,'non_atomic');assert.equal(first.ordering,'owner_local');
     assert.deepEqual(first.ref,run.ref);assert.equal(first.owners.length,1);

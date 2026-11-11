@@ -1,9 +1,64 @@
 ///|
 fn writer_custody_root() -> Root raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+  guard filesystem_custody_fixture_path() is Some(path) else {
     fail("selected Writer custody requires an owned fresh Root")
   }
   open_private_root(path).unwrap()
+}
+
+///|
+test "Writer failure retains original conflict under the Root diagnostic bound" {
+  let path = filesystem_custody_fixture_path().unwrap()
+  let root = open_private_root(path, diagnostic_ceiling=Some(8)).unwrap()
+  let first = root.create_writer("writer-bounded-conflict", 1L).unwrap()
+  first.append(b"x").unwrap()
+  let generation = root
+    .inspect_generation("writer-bounded-conflict")
+    .unwrap()
+    .unwrap()
+  let failed = match
+    root.create_writer_with_custody("writer-bounded-conflict", 1L) {
+    Err(original) => original
+    Ok(_) => fail("second Writer acquired an existing original name")
+  }
+  let retained = failed.writer.unwrap()
+  let detail_bytes = writer_error_ffi(retained).length()
+  let original_conflict = failed.issue() is Conflict
+  failed.retry_cleanup().unwrap()
+  let original_unchanged = root.verify_generation(
+    "writer-bounded-conflict", generation,
+  )
+  first.cancel().unwrap()
+  root.close().unwrap()
+  // Complete all actual original cleanup even while this counter is red.
+  assert_true(original_conflict)
+  assert_true(original_unchanged)
+  assert_true(detail_bytes <= 8)
+}
+
+///|
+test "Writer seal failure keeps the original generation with bounded diagnostics" {
+  let path = filesystem_custody_fixture_path().unwrap()
+  let root = open_private_root(path, diagnostic_ceiling=Some(8)).unwrap()
+  let writer = root
+    .create_writer_with_custody("writer-bounded-seal", 1L)
+    .unwrap()
+  writer.append(b"y").unwrap()
+  test_fail_root_sync(root, 1)
+  let terminal_result = writer.seal("writer-bounded-terminal")
+  let detail_bytes = writer_error_ffi(writer).length()
+  let pending = writer.cleanup_pending()
+  let generation = root.inspect_generation("writer-bounded-terminal").unwrap()
+  let not_sealed = !writer.is_sealed()
+  writer.cancel().unwrap()
+  let removed = root.inspect_generation("writer-bounded-terminal").unwrap()
+    is None
+  root.close().unwrap()
+  assert_true(terminal_result is Err(Seal(_)))
+  assert_true(detail_bytes <= 8)
+  assert_true(pending && not_sealed)
+  assert_true(generation is Some(original) && original.size == 1L)
+  assert_true(removed)
 }
 
 ///|

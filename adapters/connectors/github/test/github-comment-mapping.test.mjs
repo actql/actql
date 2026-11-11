@@ -8,8 +8,6 @@ import test from 'node:test';
 import * as moon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {installNodeClientEffectProgramPreparation} from
-  '../../../host-node/client-program-preparation.mjs';
 import {rowSourceCheckEnvironment, rowSourceMapping} from
   '../../../host-node/installed-row-source.mjs';
 
@@ -34,8 +32,10 @@ const prepare = mappings => {
     environment.wire, environment.evidenceCid,
     false, false, true, false, false, false, false);
   assert.ok(checkedEnvironment);
-  return installNodeClientEffectProgramPreparation({moon,
-    environment: checkedEnvironment});
+  // Raw JSON checker fixture only; no installed Request or execution owner.
+  return request => moon.clientProgramEffectPreparationReady(
+    moon.clientProgramPrepareEffectComputationWithParameters(
+      JSON.stringify(request.input), 'json', checkedEnvironment, undefined, []));
 };
 
 const request = input => ({kind: 'program', input, parameters: null});
@@ -81,13 +81,11 @@ test('a Program is refused when its Mapping is not declared or not its target',
   () => {
     const mapping = rowSourceMapping(moon, declaration, writes,
       'issue_comments', sources);
-    assert.throws(() => prepare([])(
-      request(commentProgram(mapping.target, mapping.mappingRef))),
-    {code: 'ClientProgramRejected'});
-    assert.throws(() => prepare([mapping.body])(
+    assert.equal(prepare([])(
+      request(commentProgram(mapping.target, mapping.mappingRef))), undefined);
+    assert.equal(prepare([mapping.body])(
       request(commentProgram('connector://gh-hello/issues',
-        mapping.mappingRef))),
-    {code: 'ClientProgramRejected'});
+        mapping.mappingRef))), undefined);
   });
 
 test('undeclared or incomplete writes are refused before any Mapping exists',

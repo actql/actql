@@ -59,7 +59,8 @@ function originalConfiguration({ca=true, mutate=false, failure}={}) {
     sourceReaderImplementationProfile(input){assert.equal(this,installationServices);
       assert.equal(input.installation,installation);assert.equal(input.sourceInitialization,sourceInitialization);
       assert.equal(input.metadataResponses,0);assert.equal(input.originUnits,site.apiOrigin.length);
-      return Object.freeze({maxDeclarationBytes:limits.maxDeclarationBytes,maxDeclarationNodes:limits.maxDeclarationNodes});},
+      return Object.freeze({maxDeclarationBytes:limits.maxDeclarationBytes,maxDeclarationNodes:limits.maxDeclarationNodes,
+        pageSize:2,maxTotalRows:10,maxTotalResponseBytes:16384,maxCursorBytes:512,maxTargetBytes:4096});},
     sourceReaderImplementation(input){assert.equal(this,installationServices);
       assert.equal(input.installation,installation);assert.equal(input.sourceInitialization,sourceInitialization);
       assert.equal(input.columnCount,1);return Object.freeze({original:'unexecuted implementation'});},

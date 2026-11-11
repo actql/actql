@@ -25,6 +25,21 @@ succeeds. This state is established before the syscall, not inferred from a
 negative descriptor after a close attempt. Unknown close remains sticky under
 the original close Owner and cannot retry the raw FD.
 
+## Child construction backing
+
+`native_filesystem_read_layout` and `native_filesystem_write_layout` expose
+only this compiled implementation's static payload and external-object header
+sizes. They perform no filesystem operation and create no physical child. The
+Writer borrows its original Root; its names, diagnostics, input bytes and any
+co-held verification Reader need separate backing before their constructors.
+Unsupported targets return no Native layout facts.
+
+A positive diagnostic ceiling selected on the original Root also bounds its
+Writer's construction, write, seal and cleanup details. The same limit bounds
+the copied error bytes. Oversized detail is omitted without changing the typed
+failure, original generation or pending cleanup. Omitting the Root ceiling
+retains the existing unbounded diagnostic behavior and does not prove funding.
+
 ## Focused conformance
 
 `child_custody_native_wbtest.mbt` checks the real typed unselected constructor,

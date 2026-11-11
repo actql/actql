@@ -188,7 +188,7 @@ test "shared original Mock preserves Model attempts wire and retention caps desp
 }
 
 ///|
-test "shared original Mock publication keeps its own live bytes and planning cap on the same Run" {
+test "shared original Mock publication keeps parent live bytes and its own planning cap on the same Run" {
   let base = standard_limits().model.ledger
   let purpose = {
     ..base,
@@ -221,8 +221,19 @@ test "shared original Mock publication keeps its own live bytes and planning cap
   // Retain 1000 request + 65536 response + 81920 Entry/evidence bytes, in
   // addition to Model startup 100, bootstrap/read 3+7 and sibling 20.
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 148586L)
+  // Original bootstrap2 + read5 + Model startup5 + independent sibling10.
+  // This fixture has no physical preflight workspace on its Mock attempt.
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 22L)
+  let parent = shared_mock_test_parent()
+  // Publication is a separate original Host lifetime on the SAME parent. Its
+  // bytes do not consume Model call/output ceilings (300000/6 above), while
+  // the existing publication planning step still has that purpose's cap1.
+  // Fill exactly the independently inventoried parent remainder, then reject
+  // one extra byte without changing usage. No ceiling is raised here.
+  let retained = parent.retained_bytes - 148586L
+  let workspace = parent.execution_bytes - 22L
   let grant = @model.reserve_original_model_publication_capacity(
-    model, scope, 151444L, 1L,
+    model, scope, retained, workspace,
   ).unwrap()
   let before = @resources.ledger_usage(ledger)
   assert_true(
@@ -245,12 +256,17 @@ test "shared original Mock publication keeps its own live bytes and planning cap
   )
   let before = @resources.ledger_usage(ledger)
   assert_true(
-    @model.reserve_original_model_publication_capacity(model, scope, 1L, 2L)
+    @model.reserve_original_model_publication_capacity(
+      model,
+      scope,
+      1L,
+      workspace + 1L,
+    )
     is Err(@model.Ledger(@resources.ExecutionLimit)),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   let next = @model.reserve_original_model_publication_capacity(
-    model, scope, 1L, 1L,
+    model, scope, 1L, workspace,
   ).unwrap()
   assert_true(@model.release_original_model_publication_capacity(next).unwrap())
   shared_mock_test_finish(

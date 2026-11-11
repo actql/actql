@@ -1,12 +1,30 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {startInstalledRowRun} from './installed-row-run.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
 
+const rowSource = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+const rowSourceProgram = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const rowSourceConstructor = rowSourceProgram.body.map(node => node.declaration ?? node)
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createInstalledRowSource');
+assert(rowSourceConstructor);
+const prepareDeclaration = rowSourceConstructor.body.body.find(node =>
+  node.type === 'FunctionDeclaration' && node.id.name === 'prepare');
+const describePreparedSourceDeclaration = rowSourceConstructor.body.body.find(node =>
+  node.type === 'FunctionDeclaration' && node.id.name === 'describePreparedSource');
+const sourceBodyDeclaration = rowSourceConstructor.body.body.find(node =>
+  node.type === 'VariableDeclaration' && node.declarations.some(value => value.id.name === 'sourceBody'));
+const sourceBody = sourceBodyDeclaration?.declarations.find(value => value.id.name === 'sourceBody').init;
+const closeMethod = sourceBody?.properties.find(value => value.type === 'Property' && value.key.name === 'close');
+assert(prepareDeclaration && describePreparedSourceDeclaration &&
+  sourceBody?.type === 'ObjectExpression' && closeMethod?.method);
+
 test('whole input consumes the same Run/reader/evidence originals without Query or output transfer', async () => {
   const acquisition = {}, originalRead = {}, ledger = {}, provider = {}, capacity = {};
-  const run = {}, attempt = {}, borrow = {}, capture = {}, source = {}, identity = {}, logical = {}, evidence = {};
+  const run = {}, attempt = {}, borrow = {}, capture = {}, source = {}, identity = {}, logical = {}, evidence = {}, originalInput = {};
   const checkedOwner = {}, dag = {}, calls = [];
   let settled, observeStop, stopped = false, retired = false;
   const moon = {
@@ -30,10 +48,15 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     clientProgramRowSourceCaptureAdvance: () => ok({_0: true, _1: 1n}),
     clientProgramRowSourceCapture: () => ok(capture),
     clientProgramRowSourceCaptureSource(actual) {assert.equal(actual, capture); return ok(source);},
+    clientProgramWholeSourceCaptureInput(actual) {
+      assert.equal(actual, capture); return ok(originalInput);
+    },
     clientProgramCapturedTaskSourceMatches(prepared, actual, task) {
       assert.equal(prepared, checkedOwner); assert.equal(actual, source); assert.equal(task, 0); return true;
     },
-    clientProgramIdentifyCapturedSourceRelation: () => ok(identity),
+    clientProgramIdentifyRowCaptureSourceRelation(actual, original) {
+      assert.strictEqual(actual, source); assert.strictEqual(original, capture); return ok(identity);
+    },
     clientProgramIssueWholeSourceInputLogical(prepared, actual, measured, selected) {
       assert.equal(prepared, checkedOwner); assert.equal(actual, source);
       assert.equal(measured, identity); assert.equal(selected, capacity); calls.push('logical'); return ok(logical);
@@ -70,10 +93,14 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     providerCaptureCapacity: capacity, occurrence: {stage: 0, input: 0, task: 0}},
   prepared: {checkedSource: {}}, currentRead});
   assert.equal(result.logicalInput, logical);
+  assert.equal(result.inputKind, 'whole-input');
+  assert.strictEqual(result.wholeCapacity, capacity);
   assert.equal(Object.hasOwn(result, 'requirement'), false);
   assert.equal(result.capture.originalWholeInput(), capture);
+  assert.strictEqual(result.capture.originalCapturedInput(), originalInput);
   const copied = {...result.capture};
   assert.throws(() => copied.originalWholeInput(), {code: 'ForeignInstalledSourceCapture'});
+  assert.throws(() => copied.originalCapturedInput(), {code: 'ForeignInstalledSourceCapture'});
   result.capture.retainTask(dag, 0);
   await result.prepareSourceEvidenceOriginal({authorityScopeCid: 'scope', effectiveDataPolicyCid: 'policy'});
   assert.equal(result.capture.takeSourceEvidenceOriginal(), evidence);
@@ -83,10 +110,43 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
   assert.equal(await session.cleanup(), true);
   assert.equal(retired, true);
   assert.throws(() => result.capture.originalWholeInput(), {code: 'ForeignInstalledSourceCapture'});
+  assert.throws(() => result.capture.originalCapturedInput(), {code: 'ForeignInstalledSourceCapture'});
   assert.equal(calls.filter(value => value === 'start').length, 1);
   assert.equal(calls.filter(value => value === 'read').length, 1);
   assert.equal(calls.filter(value => value === 'logical').length, 1);
   assert.equal(calls.filter(value => value === 'evidence').length, 1);
+});
+
+test('whole Host-backed read starts on its checked original without a managed provider reader', () => {
+  const originalRead = {}, acquisition = {}, ledger = {}, run = {};
+  let checkedLedger = false, starts = 0, retirements = 0, stopped = false;
+  const moon = {
+    clientProgramInstalledSourceReadCheckLedger(read, selectedLedger) {
+      assert.strictEqual(read, originalRead); assert.strictEqual(selectedLedger, ledger);
+      checkedLedger = true; return ok();
+    },
+    clientProgramInstalledWholeSourceReadStartRows(read, selected, nonce, verify, transfer, scratch) {
+      assert.equal(checkedLedger, true); assert.strictEqual(read, originalRead);
+      assert.strictEqual(selected, acquisition); assert.equal(nonce, 'host-backed');
+      assert.equal(verify({}), false); assert.equal(transfer, 1024n); assert.equal(scratch, 512n);
+      starts++; return ok(run);
+    },
+    clientProgramRowSourceCloseAccounted(selected) {
+      assert.strictEqual(selected, run);
+      return stopped ? ok() : {$tag: 0, _0: 'physical-stop-pending'};
+    },
+    clientProgramRowSourceCaptureCleanup: () => ok(true),
+    clientProgramInstalledSourceReadRetire(read) {
+      assert.strictEqual(read, originalRead); retirements++; return ok();
+    },
+  };
+  const session = startInstalledRowRun({moon, acquisition, originalRead, ledger, wholeInput: true,
+    nonce: 'host-backed', capacity: {transferBytes: 1024n, executionBytes: 512n}});
+  assert.strictEqual(session.run, run); assert.equal(starts, 1);
+  assert.throws(() => session.close(), error => error.cause === 'physical-stop-pending');
+  assert.equal(retirements, 0);
+  stopped = true; session.close();
+  assert.equal(retirements, 1); assert.equal(starts, 1);
 });
 
 test('whole input cannot select a bare, keyed or listing RowRun', () => {
@@ -98,26 +158,42 @@ test('whole input cannot select a bare, keyed or listing RowRun', () => {
   }
 });
 
-async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization} = {}) {
-  const {readFile} = await import('node:fs/promises');
+async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization, effectful = false} = {}) {
   const {types} = await import('node:util');
   const {runtimeField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
   const {checked} = await import('../host-common/runtime-result.mjs');
-  const source = await readFile(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('  async function prepare({preparedProgram, preparedEffect, registry, values,');
-  const end = source.indexOf('\n  async function open(options)', start);
-  const closeStart = source.lastIndexOf('    close() {');
-  const closeEnd = source.indexOf('\n  });', closeStart);
-  assert(start > 0 && end > start && closeStart > end && closeEnd > closeStart);
+  // Capture this constructor's actual prepare and public close methods. A
+  // later Credential/Site close in the same module is a different owner.
+  const source = rowSource;
+  const start = prepareDeclaration.start, end = prepareDeclaration.end;
+  const closeStart = closeMethod.start, closeEnd = closeMethod.end;
   const read = {}, managedRun = {}, preparedProgram = {}, declaration = {};
   let retireCalls = 0, siteCloses = 0;
   const moon = {
+    clientProgramDirectSourceCoordinates(actual) {
+      assert.equal(actual, preparedProgram); return ok([[0, 0, 0, 0]]);
+    },
+    clientProgramEffectDirectSourceCoordinates(actual) {
+      assert.equal(actual, preparedProgram);return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);
+    },
+    clientProgramInstalledEffectManagedRunCheck(actual, owner) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);return ok();
+    },
+    clientProgramInstalledEffectManagedSourceInputKind(actual, owner, request, slot) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(slot, 1);return ok('whole-input');
+    },
+    clientProgramInstalledEffectManagedSourceRead() {assert.fail('whole Effect input cannot borrow a Query acquisition');},
+    clientProgramInstalledEffectManagedWholeSourceRead(actual, owner, request, declared, slot) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(declared, declaration);assert.equal(slot, 1);
+      return ok({_0: read, _1: {}, _2: {}, _3: {}});
+    },
     clientProgramInstalledManagedSourceInputKind(actual, owner) {
       assert.equal(actual, managedRun); assert.equal(owner, preparedProgram); return ok('whole-input');
     },
     clientProgramInstalledManagedCaptureSourceRead() {assert.fail('whole Source must retain its own acquisition');},
-    clientProgramInstalledManagedWholeSourceRead(actual, owner, request, declared) {
+    clientProgramInstalledManagedWholeSourceReadAt(actual, owner, request, declared, slot) {
       assert.equal(actual, managedRun); assert.equal(owner, preparedProgram); assert.equal(declared, declaration);
+      assert.equal(slot, 0);
       return ok({_0: read, _1: {}, _2: {}, _3: {}});
     },
     // This deliberately malformed DATA observation fails AFTER the same
@@ -125,6 +201,7 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
     clientProgramWholeSourceFacts: () => validFacts ? ['source', 'contract', 'carrier', 'policy', 'class', 'view'] : [],
     clientProgramWholeSourceTarget: () => ['resource', 'field'],
     clientProgramWholeSourceInputIdentity: () => identity,
+    clientProgramEffectWholeSourceInputIdentity: () => identity,
     clientProgramInstalledSourceReadBindProgram(actual, owner) {
       assert.equal(actual, read); assert.equal(owner, preparedProgram); return ok();
     },
@@ -137,18 +214,42 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
   const bindings = {moon, declaration, runtimeField, runtimeIsOk, runtimeIsBoxedSome, checked,
     fail(code) {throw Object.assign(new Error(code), {code});},
     sourceAccess: {}, directReadIdentity: undefined, originalReader: {retire: () => true, receiver: {}},
+    immutableTargets: undefined, physicalTargetGeneration: undefined,
     prepareSourceRead: undefined, sourceInitialization: undefined,
     site: {close() {siteCloses++;}}, nodeTypes: types,
     preparingSourceReads: new Set(), sourceRefs: new Set(['source']), preparations: new WeakMap(),
     cidPattern: /^sha256:[0-9a-f]{64}$/u,
     physicalTarget: (resource, fields) => ({resource, fields}), valueCid: value => JSON.stringify(value),
     decideRead: async () => authorization === undefined ? {action: 'dispatch'} : await authorization, ordinaryRecoveryBinding() {}};
-  const fixture = new Function(...Object.keys(bindings), source.slice(start, end) +
+  const fixture = new Function(...Object.keys(bindings),
+    source.slice(describePreparedSourceDeclaration.start, describePreparedSourceDeclaration.end) + '\n' +
+    source.slice(start, end) +
     '\nreturn {prepare,' + source.slice(closeStart, closeEnd) + '};')(...Object.values(bindings));
-  return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: {preparedProgram, managedRun},
+  return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: effectful
+    ? {preparedEffect: preparedProgram, managedRun, occurrence: {stage: 0, input: 1, task: 1, computeTask: 0}}
+    : {preparedProgram, managedRun},
     retireCalls: () => retireCalls, siteCloses: () => siteCloses,
     allowRetirement() {pendingRetirement = false;}, retireOriginal() {checked(moon.clientProgramInstalledSourceReadRetire(read));}};
 }
+
+test('whole Effect preparation retains its second Source read on the first Compute task before a fallible observation', async () => {
+  const f = await failedPreparationFixture({effectful: true, pendingRetirement: true});
+  await assert.rejects(f.fixture.prepare(f.input), {code: 'InstalledSourceEvidenceFactsUnavailable'});
+  assert.equal(f.retireCalls(), 1);
+  assert(f.pendingReads.has(f.originalRead));
+  assert.throws(() => f.fixture.close(), error => error.cause === 'original-read-still-pending');
+  f.allowRetirement();
+  f.fixture.close();
+  assert(!f.pendingReads.has(f.originalRead));
+});
+
+test('whole Effect preparation refuses a substituted Compute task before retaining a read', async () => {
+  const f = await failedPreparationFixture({effectful: true});
+  await assert.rejects(f.fixture.prepare({...f.input, occurrence: {...f.input.occurrence, computeTask: 1}}),
+    {code: 'InstalledSourcePreparationMismatch'});
+  assert.equal(f.retireCalls(), 0);
+  assert.equal(f.pendingReads.size, 0);
+});
 
 test('whole Source failed preparation retires the same unopened read before parent cleanup', async () => {
   const f = await failedPreparationFixture();
@@ -236,8 +337,7 @@ test('whole Source closes an original prepared read which was never given to a R
 
 
 test('whole Source transfers its original reference only after the RowRun constructor returns', async () => {
-  const {readFile} = await import('node:fs/promises');
-  const source = await readFile(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  const source = rowSource;
   const begin = source.indexOf('    const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity,');
   const end = source.indexOf('    let externalClosed', begin);
   assert(begin > 0 && end > begin);

@@ -76,10 +76,10 @@ export const limitParameterRefusals = [
   {name: 'nullable-offset', parameterDeclarations: {count: number, skip: nullableNumber},
     parameters: {count: 1, skip: null}},
   {name: 'row-operand', text: sql.replace('@count', 'id')},
-  {name: 'grouped-row-operand', text: sql.replace('@count', '(id)'), expectedCode: 'ClientProgramRejected'},
-  {name: 'grouped-arithmetic', text: sql.replace('@count', '(@count + 1)'), expectedCode: 'ClientProgramRejected'},
-  {name: 'grouped-zero-count', text: sql.replace('@count', '((0))'), expectedCode: 'ClientProgramRejected'},
-  {name: 'grouped-overflow', text: sql.replace('@skip', '(9007199254740992)'), expectedCode: 'ClientProgramRejected'},
+  {name: 'grouped-row-operand', text: sql.replace('@count', '(id)'), expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'grouped-arithmetic', text: sql.replace('@count', '(@count + 1)'), expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'grouped-zero-count', text: sql.replace('@count', '((0))'), expectedCode: 'ClientProgramInvalidInput'},
+  {name: 'grouped-overflow', text: sql.replace('@skip', '(9007199254740992)'), expectedCode: 'ClientProgramInvalidInput'},
   {name: 'grouped-null-binding', text: sql.replace('@count', '(@count)'),
     parameterDeclarations: {count: nullableNumber, skip: number}, parameters: {count: null, skip: 1}},
 ].map(item => ({format: 'sql', text: sql,
@@ -188,7 +188,7 @@ limitParameterSuccesses.push(...[
     + ' |> WHERE records.id > 0 |> WHERE keys.k = 3' + selectCurrentRow + ' |> ORDER BY id',
     {parameterDeclarations: undefined, parameters: undefined,
       expected: [{amount: 30, id: 3}, {amount: 30, id: 3}]}],
-  ['join-prefix-fresh-as', currentRowJoin + ' |> AS current'
+  ['join-prefix-fresh-as', currentRowJoin + ' |> AS `current`'
     + ' |> ORDER BY current.id |> LIMIT @count OFFSET @skip'
     + ' |> SELECT current.amount AS amount, current.id AS id', {}],
   ['join-prefix-quoted-as-nullable', currentRowJoin + ' |> AS `current`'

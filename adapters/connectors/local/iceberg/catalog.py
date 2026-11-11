@@ -130,7 +130,20 @@ class TableCatalog(SqlCatalog):
         return path
 
     def generation(self, location):
-        return "sha256:" + hashlib.sha256(self.local_path(location).read_bytes()).hexdigest()
+        # Generation identity covers the exact original bytes. Hash on one
+        # original FD with fixed scratch, without a metadata-sized byte copy.
+        # Read/allocation failure closes that FD and preserves its original
+        # error; a partial digest is never returned as a generation.
+        with self.local_path(location).open("rb", buffering=0) as stream:
+            digest = hashlib.sha256()
+            scratch = bytearray(64 * 1024)
+            view = memoryview(scratch)
+            while True:
+                count = stream.readinto(view)
+                if count == 0:
+                    break
+                digest.update(view[:count])
+            return "sha256:" + digest.hexdigest()
 
     def reconcile(self, request):
         # Missing receipt is not proof of noncommit and never authorizes resend.

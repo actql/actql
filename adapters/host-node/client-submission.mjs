@@ -114,19 +114,35 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       acknowledgement: retained.unresolvedHistory.acknowledgement}});
   const storedOutcome = retained => withRestart(retained.outcome ?? immutable({kind: 'preparing',
     submissionRef: retained.submissionRef, intentCid: retained.intentCid}), retained);
-  const discloseOutcome = async (value, outcome, fields, retained) => {
+  // Match the existing SDK observation input contract. Other Source formats
+  // retain their actual preparation outcome without an unsupported report.
+  const supportsCheckObservation = intent => intent.kind === 'program' ||
+    intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format);
+  const discloseOutcome = async (value, outcome, fields, retained, originalObservation) => {
     if (!['not_accepted', 'preparation_failed'].includes(outcome.kind)) return outcome;
     const projectsProblem = ['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit',
       'ClientProgramImplementationLimit'].includes(outcome.problem.code);
-    if (!projectsProblem) return outcome;
+    if (!projectsProblem && originalObservation === undefined) return outcome;
     // The durable problem describes the original preparation, not a new check.
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
     const intent = immutable(JSON.parse(retained.intentWire));
-    if (!(intent.kind === 'program' || intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format))) return outcome;
+    if (!supportsCheckObservation(intent)) {
+      if (originalObservation !== undefined) {
+        const current = await authorize(value);
+        if (current.authorityScopeCid !== fields.authorityScopeCid ||
+            current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+      }
+      return outcome;
+    }
     let disclosable = !projectsProblem;
     try {
-      const report = await checkSubmissionInput?.({principalId: value.principalId,
+      // A fresh failed Request still owns its original checked result. Null
+      // means its projection is unavailable, never permission to check again.
+      // Only a later retained lookup has no such original and uses the existing
+      // current-audience check-only boundary; it never prepares or starts a Run.
+      const report = originalObservation !== undefined ? originalObservation :
+        !projectsProblem ? undefined : await checkSubmissionInput?.({principalId: value.principalId,
         connection: value.connection, kind: intent.kind === 'program' ? 'program' : 'text',
         scope: 'bound_input', input: intent.input, parameters: intent.parameters});
       const observed = report?.report ?? report?.partial_report;
@@ -138,7 +154,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       // A protected Program dependency can change preparation's coarse cause.
       // Keep the original operation terminal, but do not reveal that private
       // distinction through its Problem even when independent input facts exist.
-      if (intent.kind === 'program' && observed?.coverage.unresolved.length > 0) disclosable = false;
+      if (projectsProblem && intent.kind === 'program' && observed?.coverage.unresolved.length > 0) disclosable = false;
     } catch {
       // A failed reporting attempt neither changes acceptance nor establishes
       // disclosure. No error text or HTTP status supplies a check verdict.
@@ -312,15 +328,34 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (!isClientSubmitRejection(issuedCode ?? error?.code)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';
       const current = await authorize(value);
-      // A protected resolution failure may coexist with an independently
-      // invalid supplied value. Ask the same installed public checker before
-      // storing a reason; do not let private resolution order choose its code.
-      const code = issuedCode ?? (prepareSubmit.sourceCheckFailure?.(error) === true
-        ? 'ClientProgramInvalidInput' : error.code);
+      // Preserve the actual typed exception. The same failed Request may also
+      // supply a completed audience-bound Source violation before this first
+      // durable outcome; neither a later check nor a Source marker supplies it.
+      const code = issuedCode ?? error.code;
+      const originalObservation = async () => {
+        if (observeOriginalPreparationFailure !== undefined) {
+          try {
+            const report = await observeOriginalPreparationFailure(error, value);
+            // Keep the same original callback and its current/lifetime fences
+            // even when this input format has no public observation binding.
+            if (validCheckOutcome(report) && supportsCheckObservation(value)) return report;
+          } catch {
+            // Reporting cannot replace the primary failure or acknowledge its
+            // original Request/physical cleanup. Missing is not a recheck port.
+          }
+        }
+        return null;
+      };
+      let checkObservation = await originalObservation();
+      const problemCode = issuedCode === undefined && code === 'ClientProgramRejected' &&
+          value.kind === 'aql' && checkObservation?.outcome === 'completed' &&
+          checkObservation.report.scope.kind === 'bound_input' &&
+          checkObservation.report.verdict === 'invalid'
+        ? 'ClientProgramInvalidInput' : code;
       const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
-        problem: {code, classification: classification(code)}};
+        problem: {code: problemCode, classification: classification(problemCode)}};
       const projected = await discloseOutcome(value, candidate, current,
-        {intentWire: moon.clientSubmittedIntentWire(input)});
+        {intentWire: moon.clientSubmittedIntentWire(input)}, checkObservation);
       const {checkObservation: transientObservation, ...outcome} = projected;
       void transientObservation;
       const result = retained === undefined
@@ -329,21 +364,12 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
           : attempt.record(value.submissionRef, input, {...restartFields(current), phase: kind, outcome}))
         : journal.completeSubmittedIntent(value.submissionRef, outcome,
           {...current, connection: value.connection, expectedRevision: retained.revision}, moon);
-      const disclosed = await discloseOutcome(value, storedOutcome(result), current, result);
-      let checkObservation;
-      if (observeOriginalPreparationFailure !== undefined) {
-        try {
-          const original = await observeOriginalPreparationFailure(error, value);
-          if (validCheckOutcome(original)) checkObservation = original;
-        } catch {
-          // Optional reporting neither replaces the original refusal nor
-          // acknowledges its Request/physical cleanup. There is no recheck.
-        }
-        const after = await authorize(value);
-        if (after.authorityScopeCid !== current.authorityScopeCid ||
-            after.namespaceId !== current.namespaceId) fail('ClientRequestLookupDenied');
-      }
-      return immutable({...disclosed, ...(checkObservation === undefined ? {} : {checkObservation})});
+      // The durable write is an actual external boundary. Re-project the SAME
+      // original result for its current audience after it; do not parse/check
+      // the Program again. Each projection retains the existing current fence.
+      checkObservation = await originalObservation();
+      const disclosed = await discloseOutcome(value, storedOutcome(result), current, result, checkObservation);
+      return immutable({...disclosed, ...(checkObservation === null ? {} : {checkObservation})});
     };
     let preparedProgram;
     try {

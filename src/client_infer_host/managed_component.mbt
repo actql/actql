@@ -13,14 +13,16 @@ pub fn local_component(
     active.cancelled ||
     active.advancing ||
     !(active.phase is Input) ||
-    active.work != 0L ||
+    !execution_input_unadvanced(active) ||
     active.local_component_bound {
     return Err(InvalidAdvance)
   }
   active.local_component_bound = true
-  let charged = Ref(0L)
+  // The original producer's completed work stays in the cumulative report.
+  // Local owns only new deltas from this fresh component entrance onward.
+  let charged = Ref(active.entry_work)
   Ok(
-    @local.managed_provider_execution(
+    @local.managed_provider_execution_with_retained_completion(
       quantum => {
         let poll = match advance(active, quantum) {
           Ok(value) => value
@@ -82,6 +84,17 @@ pub fn local_component(
           cleanup(active).map_err(project_issue)
         }
       },
+      () => completed_original_component_scratch_retained(active),
     ),
   )
+}
+
+///|
+// The actual nominal output borrow keeps the SAME original Model, Read and
+// their backing alive. Local can detach only its temporary driver roots; this
+// does not reclaim the Model or settle evidence, publication or physical IO.
+fn completed_original_component_scratch_retained(active : Execution) -> Bool {
+  active.local_component_bound &&
+  active.output_uses > 0 &&
+  original_infer_publication_owner_current(active)
 }

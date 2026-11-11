@@ -117,3 +117,13 @@ Provider transport follows the official [jobs.insert](https://docs.cloud.google.
 and [Job status/configuration](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/Job)
 contracts. SQL identifiers use the original names under GoogleSQL quoted-identifier
 escaping; neither names nor tokens are trimmed or normalized.
+
+Owned reads expose Common's existing bounded acquisition capture through
+`begin_result_capture` and `advance_result_capture(read, quantum)`. Callers
+finish page admission first, drive that same child to completion, then obtain
+its checked evidence with `capture_result_read`. The legacy synchronous path
+still refuses unsupported shapes; it does not execute later Program stages.
+Borrowed readers cannot use these owned capture entries. A close that retains a
+pending child can retry `advance_result_capture_cleanup` on the same original;
+this cannot resume pages or computation, confirm physical stop, or create a
+replacement attempt.

@@ -11,6 +11,30 @@ pub fn client_program_check_source_selector_range(
   environment : @checked.CheckEnvironment,
   registrations : Array[@checked.CheckEnvironment],
 ) -> ClientCheckSourceSelectorRange? {
+  source_selector_range(environment, registrations, None)
+}
+
+///|
+/// Bind disclosure coverage to the SAME installed Catalog that the original
+/// Request reuses. Equality of wire/CID cannot replace this nominal join.
+pub fn client_program_check_prepared_source_selector_range(
+  environment : @checked.CheckEnvironment,
+  prepared : @publication.PreparedPublishedQueryEnvironment,
+  registrations : Array[@checked.CheckEnvironment],
+) -> ClientCheckSourceSelectorRange? {
+  guard @publication.prepared_published_query_catalog(prepared, environment)
+    is Ok(catalog) else {
+    return None
+  }
+  source_selector_range(environment, registrations, Some(catalog))
+}
+
+///|
+fn source_selector_range(
+  environment : @checked.CheckEnvironment,
+  registrations : Array[@checked.CheckEnvironment],
+  original : @checked.PreparedSourceCatalog?,
+) -> ClientCheckSourceSelectorRange? {
   if registrations.length() > 128 {
     return None
   }
@@ -27,7 +51,29 @@ pub fn client_program_check_source_selector_range(
       @checked.source_catalog_contracts(value)
     })
   }
-  guard prepare(environment) is Some(catalog) else { return None }
+  let catalog = match original {
+    None => {
+      guard prepare(environment) is Some(catalog) else { return None }
+      catalog
+    }
+    Some(prepared) => {
+      guard physical_equal(@checked.source_catalog_owner(prepared), environment) else {
+        return None
+      }
+      // Reuse preserves every original reader dimension; current usage is
+      // DATA, and a looser admitted depth cannot claim the old tighter bound.
+      let limits = @checked.source_catalog_replay_limits(prepared)
+      let spent = limits.max_work
+      if spent > remaining ||
+        limits.max_bytes > 1000000 ||
+        limits.max_nodes > 100000 ||
+        limits.max_depth > 64 {
+        return None
+      }
+      remaining -= spent
+      @checked.source_catalog_contracts(prepared)
+    }
+  }
   let count = @environment.source_request_usage(catalog).2
   if count > 1024 || count > remaining {
     return None

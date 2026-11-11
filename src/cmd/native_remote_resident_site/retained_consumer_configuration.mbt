@@ -175,23 +175,3 @@ fn retained_consumer_input_limits() -> @output.NativeRemoteStandardTransferSourc
     wire: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
   }
 }
-
-///|
-// The same immutable installed closure feeds both ordinary and retained runs.
-// Invalid operator DATA never becomes a run permission or a replacement pin.
-fn resident_installed_contracts(
-  registry_body : String,
-  values_body : String,
-  fragment_body : String?,
-) -> @local_values.ClientInstalledSequenceContracts? {
-  match
-    @local_values.prepare_installed_sequence_contracts(
-      registry_body,
-      values_body,
-      fragment_body,
-      None,
-    ) {
-    Ok(value) => Some(value)
-    Err(_) => None
-  }
-}

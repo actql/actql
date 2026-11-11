@@ -3,11 +3,19 @@ import {releasePreparedResults} from '../host-common/completed-run-publication.m
 // The existing capture retains this original child before any fallible current
 // check or asynchronous preparation. A fulfilled request is not retirement of
 // its reader, backing, borrowed Content or pending physical cleanup.
-export async function prepareInstalledRowCaptureChild({children, create,
+export async function prepareInstalledRowCaptureChild(options) {
+  return retainInstalledRowCaptureChild(options).prepare();
+}
+
+// The SAME retainer can hold an original constructor before its actual data
+// exists. Preparation is still the captured original method, never a new child,
+// callback producer or cleanup owner. Immediate callers use the wrapper above.
+export function retainInstalledRowCaptureChild({children, create,
   assertCurrent, signal}) {
   signal?.throwIfAborted();
   assertCurrent?.();
   let child = create();
+  create = undefined;
   let methods;
   let preparing = false;
   let retired = false;
@@ -32,6 +40,8 @@ export async function prepareInstalledRowCaptureChild({children, create,
             retired = true;
             child = undefined;
             methods = undefined;
+            assertCurrent = undefined;
+            signal = undefined;
           }
         })().finally(() => { flight = undefined; });
       } finally {openingFlight = false;}
@@ -47,15 +57,20 @@ export async function prepareInstalledRowCaptureChild({children, create,
     status: child.status, prepare: child.prepare};
   if (Object.values(methods).some(method => typeof method !== 'function') ||
       typeof Reflect.apply(methods.status, child, [])?.pending !== 'boolean') throw invalid();
-  assertCurrent?.();
-  signal?.throwIfAborted();
-  preparing = true;
-  let prepared;
-  try { prepared = await Reflect.apply(methods.prepare, child, []); }
-  finally { preparing = false; }
-  assertCurrent?.();
-  signal?.throwIfAborted();
-  return prepared;
+  return Object.freeze({async prepare() {
+    if (retired || preparing) throw invalid();
+    // The original current callback may synchronously invoke this same
+    // retained method. Latch before it, without another current observation.
+    preparing = true;
+    try {
+      assertCurrent?.();
+      signal?.throwIfAborted();
+      const prepared = await Reflect.apply(methods.prepare, child, []);
+      assertCurrent?.();
+      signal?.throwIfAborted();
+      return prepared;
+    } finally { preparing = false; }
+  }});
 }
 
 // Adapt the original capture's existing Result and input-release owners into

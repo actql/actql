@@ -11,6 +11,8 @@ pub struct PreparedPublishedQueryEnvironment {
   priv store_targets : @query_program.StoreTargetPublication?
   priv command_targets : @query_program.CommandTargetPublication?
   priv catalog : @program_check.PreparedSourceCatalog
+  priv request_copy_nodes : Int
+  priv request_copy_utf16 : Int64
 }
 
 ///|
@@ -212,6 +214,20 @@ fn prepare_published_query_environment_with_readers(
       command_targets,
       catalog,
     ) = parts
+    let mut request_copy_nodes = 0
+    let mut request_copy_utf16 = 0L
+    for input in context.inputs {
+      if input.source is @query_program.Captured(body) &&
+        @decode.open_object(body) is Ok(object) &&
+        @decode.lookup(object, "request") is Some(request) {
+        let geometry = @decode.observe_subtree_construction_geometry(request)
+        request_copy_nodes = Int::max(request_copy_nodes, geometry.nodes)
+        request_copy_utf16 = Int64::max(
+          request_copy_utf16,
+          geometry.total_utf16,
+        )
+      }
+    }
     {
       environment,
       publication,
@@ -221,6 +237,8 @@ fn prepare_published_query_environment_with_readers(
       store_targets,
       command_targets,
       catalog,
+      request_copy_nodes,
+      request_copy_utf16,
     }
   })
 }
@@ -428,4 +446,19 @@ fn lower_prepared_query_in_context(
   )
   .map(pair => (pair.0, prepared.catalog, pair.1))
   .map_err(issue => Frontend(issue))
+}
+
+///|
+/// Largest retained literal Request geometry in this exact installation. These
+/// independent maxima bound every alias occurrence, not Catalog bytes or work.
+/// The caller must fund repeated copies before lowering through its original
+/// Request owner. This projection supplies no capacity or execution authority.
+pub fn prepared_published_request_copy_geometry(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+) -> Result[(Int, Int64), PreparedPublicationIssue] {
+  if !prepared_published_query_environment_matches(prepared, environment) {
+    return Err(ForeignEnvironment)
+  }
+  Ok((prepared.request_copy_nodes, prepared.request_copy_utf16))
 }

@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/source_value" @source,
   "actql/actql/connectors/kintone/catalog",
   "actql/actql/client_row_source_host" @rows,
   "actql/actql/query_planning" @planning,
@@ -21,7 +22,5 @@ import {
 } for "wbtest"
 
 options(
-  targets: {
-    "record_create_standard_js_wbtest.mbt": [ "js" ],
-  },
+  targets: { "record_create_standard_js_wbtest.mbt": [ "js" ] },
 )

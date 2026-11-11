@@ -149,7 +149,7 @@ test "binary row counts preserve repeated operands and unknown is not zero" {
 }
 
 ///|
-test "row count expansion counts repeated columns and rejects safe integer overflow" {
+test "row count expansion preserves repeated columns and leaves overflowing estimates unknown" {
   let p = @pipeline_typing.check_carriers(
     cursor(
       "[" +
@@ -163,7 +163,7 @@ test "row count expansion counts repeated columns and rejects safe integer overf
   ).unwrap()
   assert_count(p, 1, 6L, true)
   let seed = "{\"time_series\":{\"start\":\"0000-01-01T00:00:00.000Z\",\"end\":\"9999-12-31T23:59:59.999Z\",\"step\":1},\"as\":\"grid\"}"
-  let bad = @pipeline_typing.check_carriers(
+  let large = @pipeline_typing.check_carriers(
     cursor(
       "[" +
       seed +
@@ -173,9 +173,9 @@ test "row count expansion counts repeated columns and rejects safe integer overf
     None,
     None,
     limits(),
-  ).unwrap_err()
-  assert_eq(bad.kind, RowBoundOverflow)
-  assert_eq(bad.path, [@source.Index(1)])
+  ).unwrap()
+  assert_true(@pipeline_typing.row_count(large, Step(0)) is Some(_))
+  assert_true(@pipeline_typing.row_count(large, Step(1)) is None)
   let steps = [seed]
   for i in 0..<5 {
     let previous = if i == 0 { "grid" } else { "double" + (i - 1).to_string() }
@@ -187,14 +187,15 @@ test "row count expansion counts repeated columns and rejects safe integer overf
       "\"}",
     )
   }
+  let appended = @pipeline_typing.check_carriers(
+    cursor("[" + steps.join(",") + "]"),
+    [],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(@pipeline_typing.row_count(appended, Step(0)) is Some(_))
   assert_true(
-    @pipeline_typing.check_carriers(
-      cursor("[" + steps.join(",") + "]"),
-      [],
-      None,
-      None,
-      limits(),
-    )
-    is Err({ kind: RowBoundOverflow, .. }),
+    @pipeline_typing.row_count(appended, Step(steps.length() - 1)) is None,
   )
 }

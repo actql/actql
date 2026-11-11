@@ -472,15 +472,27 @@ test('check protocol discriminants derive from the registered schema without ano
   assert.throws(() => buildClientHostWire(registry, changed), /InvalidCheckOutcomeDiscriminants/);
 });
 
-test('Requirement fact identities follow their referenced checked-contract schema', async () => {
-  const {applyCheckOutcomeSchema} = await import('./check-outcome-contract.mjs');
+test('Requirement fact identities require a coherent checked-contract and catalog update', async () => {
+  const {applyCheckOutcomeSchema, checkOutcomeSchema} = await import('./check-outcome-contract.mjs');
+  const {readCheckReasonCatalog, checkReasonSchemaFromCatalog} = await import('./check-reason-catalog.mjs');
+  const {machineCid} = await import('./actql-spec-family.mjs');
   const changed = structuredClone(protocol);
   changed.schemas.canonical_value_contract.title += '-independent-fixture';
-  applyCheckOutcomeSchema(changed);
-  assert.notEqual(changed.artifact_schema_cids.check_reason, protocol.artifact_schema_cids.check_reason);
-  assert.notEqual(changed.artifact_schema_cids.check_outcome, protocol.artifact_schema_cids.check_outcome);
+  assert.throws(() => applyCheckOutcomeSchema(changed), /StaleCheckReasonParameterContractSchema/);
+  // The owned catalog is the reason-schema source. An intentional schema
+  // change must update that explicit reference too; generation cannot hide it.
+  const catalog = readCheckReasonCatalog();
+  const pin = machineCid(changed.schemas.canonical_value_contract);
+  for (const facts of catalog.reason_schema.properties.facts.oneOf) {
+    if (facts.properties.admission) facts.properties.admission.properties.contract_schema_cid.const = pin;
+  }
+  changed.artifact_schemas.check_reason = checkReasonSchemaFromCatalog(catalog, pin);
+  changed.artifact_schemas.check_outcome = checkOutcomeSchema(changed.artifact_schemas.check_reason);
+  for (const name of ['check_reason', 'check_outcome']) {
+    changed.artifact_schema_cids[name] = machineCid(changed.artifact_schemas[name]);
+    assert.notEqual(changed.artifact_schema_cids[name], protocol.artifact_schema_cids[name]);
+  }
   assert.notEqual(buildClientHostWire(registry, changed).module, buildClientHostWire(registry, protocol).module);
-
 });
 
 test('Run observation vocabulary derives from the registered state schema', async () => {
@@ -514,4 +526,31 @@ test('wait correlation and Common projection follow the same registered rule', a
     const invalid = structuredClone(registry); mutate(invalid);
     assert.throws(() => buildClientHostWire(invalid, protocol), /InvalidClientHostRequestResponseRule/);
   }
+});
+
+
+test('text Program envelopes have no independent 65536 UTF-16 ceiling', async () => {
+  const {validClientBody, snapshotClientRequest} = await import('../packages/client-wire/index.mjs');
+  const connection = {mode: 'local', owner: 'local', consentRefs: [], runners: []};
+  for (const length of [65535, 65536, 65537]) {
+    for (const text of ['x'.repeat(length), '日'.repeat(length),
+      '😀'.repeat(Math.floor(length / 2)) + (length % 2 ? 'x' : ''),
+      '\n'.repeat(length)]) {
+      assert.equal(text.length, length);
+      const input = {text, format: 'sql'};
+      assert.equal(validClientBody('submit', {connection, requestId: 'text-demand',
+        kind: 'aql', input, parameters: null}), true);
+      assert.equal(validClientBody('check', {connection, scope: 'template_only',
+        kind: 'text', input}), true);
+      assert.equal(snapshotClientRequest({input}).input.text, text);
+    }
+  }
+  for (const text of ['', 'a\0b']) {
+    assert.equal(validClientBody('submit', {connection, requestId: 'invalid',
+      kind: 'aql', input: {text, format: 'sql'}, parameters: null}), false);
+    assert.equal(validClientBody('check', {connection, scope: 'template_only',
+      kind: 'text', input: {text, format: 'sql'}}), false);
+  }
+  assert.throws(() => snapshotClientRequest({input: {text: 'x'.repeat(65537)},
+    parameters: {value: Number.POSITIVE_INFINITY}}), /UnrepresentableClientNumber/);
 });

@@ -171,3 +171,155 @@ fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata_with_operatio
   )
   .map_err(issue => Journal(issue))
 }
+
+///|
+priv enum NativeLocalOwnedEffectCheckpoint {
+  DispatchCheckpoint(NativeClientEffectDispatchClaim)
+  PublicationCheckpoint(NativeLocalPublisherBinding)
+}
+
+///|
+// Only a retained dispatch or original publisher can join this same Journal's
+// transaction. Ordinary lookup/reentry stays refused. Account, epoch, original
+// Submission/Run and current Checkpoint remain actual, never supplied as DATA.
+fn NativeLocalHostConnection::lookup_effect_checkpoint_metadata_in_owned_transaction(
+  self : Self,
+  original : NativeLocalOwnedEffectCheckpoint,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+  operations : NativeClientJournalOperationAccess,
+  capture : NativeLocalJournalCapture,
+) -> Result[
+  NativeClientOriginalCheckpointMetadata?,
+  NativeClientOriginalCheckpointLookupIssue,
+] {
+  let journal = self.journal
+  let publication = match original {
+    DispatchCheckpoint(dispatch) => {
+      if !physical_equal(journal, dispatch.journal) ||
+        dispatch.request != request ||
+        journal.publication_read_locked {
+        return Err(Journal(Checkpoint(InvalidMaterial)))
+      }
+      None
+    }
+    PublicationCheckpoint(publisher) => {
+      if publisher.request != request ||
+        !publisher.matches_owned_journal(
+          journal,
+          @host.client_request_authority_scope_cid(request),
+        ) {
+        return Err(Journal(Checkpoint(InvalidMaterial)))
+      }
+      Some(publisher)
+    }
+  }
+  if !journal.transaction_active ||
+    journal.fenced ||
+    !physical_equal(journal.database, self.epoch.database) ||
+    !physical_equal(journal.database, self.database) {
+    return Err(Journal(Checkpoint(InvalidMaterial)))
+  }
+  let authority = match
+    native_local_policy_authority_for(
+      self,
+      crypto,
+      principal,
+      connection,
+      request,
+      ReadRunMaterials,
+      capture=Some(capture),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let allowed = authority.current_for(journal, request)
+  match
+    self.epoch.verify_epoch_in_journal_transaction(
+      journal,
+      reference.epoch,
+      authority.scope,
+      allowed,
+      now,
+      Some(operations),
+      publication~,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(Epoch(issue)))
+  }
+  let submitted = match
+    journal.retained_submission(reference, reads=Some(operations.reads)) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(UnresolvedHistory)
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard submitted.run_admission is Some(admission) else {
+    return Err(MissingRunAdmission)
+  }
+  if @host.client_request_identity_relation(admission.request, request) !=
+    @host.SameRequest {
+    return Err(Journal(ChangedIntent))
+  }
+  let retained = fn() -> Result[
+    NativeClientRunRecord,
+    NativeClientRunJournalIssue,
+  ] {
+    match original {
+      DispatchCheckpoint(dispatch) =>
+        journal.require_effect_dispatch_locked(dispatch)
+      PublicationCheckpoint(publisher) => {
+        let record = match
+          journal.retained(request, reads=Some(operations.reads)) {
+          Ok(Some(value)) => value
+          Ok(None) => return Err(CustodyLost)
+          Err(issue) => return Err(issue)
+        }
+        if !journal.transaction_active ||
+          !publisher.matches_owned_journal(journal, authority.scope) ||
+          record.publication_binding != Some(publisher.store_binding) ||
+          @publication.publication_contract_identity(record.definition) !=
+          @publication.publication_contract_identity(publisher.definition) {
+          return Err(CustodyLost)
+        }
+        Ok(record)
+      }
+    }
+  }
+  let record = match retained() {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let definition = @publication.publication_contract_identity(record.definition)
+  if definition != admission.run_definition_cid {
+    return Err(Journal(ForeignRun))
+  }
+  if !authority.current_for(journal, request) ||
+    !journal.transaction_active ||
+    (journal.publication_read_locked && publication is None) ||
+    journal.fenced {
+    return Err(Journal(AuthorizationDenied))
+  }
+  // The Account callback cannot retire this same dispatch or replace its row.
+  let current = match retained() {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard current.checkpoint is Some(checkpoint) &&
+    current.revision == record.revision &&
+    @publication.publication_contract_identity(current.definition) == definition else {
+    return Err(Journal(CustodyLost))
+  }
+  Ok(
+    Some({
+      checkpoint_cid: checkpoint.artifact.checkpoint_cid,
+      run_definition_cid: definition,
+      revision: current.revision,
+      cancellation_requested: current.cancellation_requested,
+      state: checkpoint.state,
+    }),
+  )
+}

@@ -5,6 +5,7 @@ import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 export function nativeCompletedRestorationBundle() {
   const hash = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
   const component = Buffer.from('native-runtime');
+  const target = 'aarch64-apple-darwin';
   // Independently authored canonical fixture, admitted and verified by Native.
   // Its target matches the opaque test component; no platform executable is run.
   const body = JSON.stringify({
@@ -16,7 +17,7 @@ export function nativeCompletedRestorationBundle() {
     issuer_authority: 'bundle-authority-a',
     revision: 'native/1',
     strategy_revision: 'strategy/1',
-    target_triple: 'aarch64-apple-darwin',
+    target_triple: target,
     version: 'actql-remote-runtime-bundle/0.1',
   });
   const cid = hash(body);
@@ -25,6 +26,7 @@ export function nativeCompletedRestorationBundle() {
     `actql-remote-runtime-bundle-signature/0.1\0${cid}\0${body}`,
   ), keys.privateKey).toString('base64url');
   return {
+    ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: target,
     ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
       keys.publicKey.export({type: 'spki', format: 'pem'}),
     ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: body,

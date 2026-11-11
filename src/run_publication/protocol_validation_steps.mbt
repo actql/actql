@@ -3,6 +3,8 @@ priv enum ProtocolValidationFrame {
   Visit(@json.CanonicalValue, Int)
   ArrayNext(@json.FrozenArray[@json.CanonicalValue], Int, Int)
   ArrayResult(@json.FrozenArray[@json.CanonicalValue], Int, Int)
+  ContainsNext(@json.FrozenArray[@json.CanonicalValue], Int, Int)
+  ContainsResult(@json.FrozenArray[@json.CanonicalValue], Int, Int)
   TupleNext(@json.FrozenArray[@json.CanonicalValue], Array[Int], Int)
   TupleResult(@json.FrozenArray[@json.CanonicalValue], Array[Int], Int)
   Required(@json.FrozenArray[(String, @json.CanonicalValue)], Int, Int, Int)
@@ -131,6 +133,13 @@ fn ProtocolValidationCursor::step(self : ProtocolValidationCursor) -> Unit {
             }
             _ => self.result = false
           }
+        ContainsRule(item) =>
+          match value {
+            @json.Array(values) => pending.push(ContainsNext(values, item, 0))
+            // JSON Schema's contains keyword constrains arrays only. Its
+            // sibling type/items rules still apply independently.
+            _ => self.result = true
+          }
         TupleRule(items) =>
           match value {
             @json.Array(values) =>
@@ -179,6 +188,17 @@ fn ProtocolValidationCursor::step(self : ProtocolValidationCursor) -> Unit {
     ArrayResult(values, items, index) =>
       if self.result {
         pending.push(ArrayNext(values, items, index + 1))
+      }
+    ContainsNext(values, item, index) =>
+      if index == @json.array_count(values) || self.budget.remaining < 1 {
+        self.result = false
+      } else {
+        pending.push(ContainsResult(values, item, index))
+        pending.push(Visit(@json.array_at(values, index).unwrap(), item))
+      }
+    ContainsResult(values, item, index) =>
+      if !self.result {
+        pending.push(ContainsNext(values, item, index + 1))
       }
     TupleNext(values, items, index) =>
       if index == items.length() {

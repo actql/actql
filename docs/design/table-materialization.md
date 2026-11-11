@@ -362,6 +362,14 @@ remains separate. The installed Source caller must check current read authority
 before and after I/O and admit decoded rows through the common presence-aware
 Relation owner; this physical primitive alone is not public Source acceptance.
 
+Generation identity hashes the exact published metadata bytes on one original
+FD with one reusable 64 KiB scratch buffer. It does not retain a complete
+metadata byte copy, parse or canonicalize the input, or impose a new metadata
+size policy. The same FD closes on EOF or failure, and an interrupted hash
+never returns a partial generation. This fixed hashing workspace is separate
+from the still-required metadata parser, Arrow, output and failed-child peak;
+a transport frame limit supplies none of those Native allocations.
+
 The installed Table row adapter restores SourceViews from the exact saved
 logical schema and an explicit Table selector, without Catalog I/O during
 installation or Check. Selector identity preserves namespace/name data bytes;
@@ -385,6 +393,22 @@ mandatory approval. The existing capture, approval, Effect Ledger and receipt
 owners remain the runtime path. Source installation derives its schema from
 the saved contract and only admits opaque current read decisions or a
 Checkpoint decision for its exact physical target, field subset and principal.
+The bound Source Site owns the original Authorization acquired by that same
+initializer. It captures the scope's own synchronous close and receiver before
+returning. Retirement refuses new grants before entering that callback; false,
+throwing, Promise and foreign thenable results keep the same pending scope.
+A returned Native Promise remains the one entered close flight until it
+settles; retries do not enter a second close while it is unresolved. Its
+settlement permits retry only, never acknowledgment. Only synchronous true
+cuts the Site's scope/target/approval aliases. Repeated
+close is idempotent and callback reentry cannot close a replacement scope.
+Target and issued-decision callbacks are followed by the same Site's current
+check before granting. The existing initialization-failure cleanup retains this
+Site until its original scope acknowledges; it does not reconstruct the Source.
+An explicitly borrowed low-level Site retires its own aliases without closing
+the borrowed Authorization. These fixed Site controls remain inside the bound
+Table constructor, not a substitute for Native Arrow/data/failed-child backing.
+
 
 The selected Local installation also binds its reviewed implementation bytes,
 not only a Python executable path or a revision label. The existing adapter
@@ -405,6 +429,46 @@ and immutable while operations run: a content observation is not a sandbox or
 an atomic filesystem/executable attestation. Changes to external Python library
 bytes behind the same executable path are outside this package inventory; the
 Host installs the supplied hashed lock explicitly and governs that environment.
+
+The private IPC reader can enter the caller's original synchronous body backing
+after checking an announced length and before allocating the body Buffer,
+decoded String or JSON tree. The prepared process captures this entry once.
+The Table bridge forwards the same entry with each read or original prepared
+write, target inspection, reconciliation and cleanup; it is not serialized in
+operation DATA. The entry must complete synchronously and return no value.
+It issues no permission, Plan or capacity. Its installing caller must bind the
+actual original Request/Run and admit the simultaneous constructor material
+before returning. Omitting the optional transport entry preserves the existing
+transport behavior but does not establish managed Table backing.
+
+The separate original `bodyReceived` entry receives only the fully arrived
+Buffer before UTF8/JSON decoding, including a subsequently refused payload.
+An announced length or successful parser return cannot manufacture that
+received-byte fact. The original response Buffer is neither copied nor
+re-encoded for this observation. The caller must consume each actual RowRun
+ticket at its corresponding original observation/page boundary; this transport
+entry itself issues no ticket or row and cannot infer a business outcome.
+Both synchronous entries use the SAME process callback custody and original
+cleanup. An asynchronous received-body result is refused and remains retained
+until its original task settles; foreign unjoined results stay pending.
+The Table bridge captures the original callbacks outside wire DATA, forwarding
+them unchanged through live reads and the original prepared operation.
+
+
+A refused entry dispatches no body. Its original cause, including immutable
+errors and thrown undefined, remains attached to the same process cleanup.
+A mistakenly returned task cannot stand in for backing: the existing process
+owner keeps that original task pending through process exit and joins its
+settlement before reporting cleanup complete. An unjoined foreign task remains
+pending. The Table bridge observes the SAME cleanup handle's actual pending
+state before publishing its writer-stopped observation. A completed exit wait
+or retry is insufficient when that original handle still retains callback or
+service duties. Pure preparation refusals before launcher selection have no
+physical child; once launch is selected, a missing or pending original cleanup
+observation cannot authorize staged-file cleanup. No receipt or successful
+response is synthesized from either case. Process exit, capacity admission,
+Catalog cleanup and durable outcome
+evidence remain separate obligations.
 
 The adapter package carries only the reviewed Python worker modules and pinned
 requirements. It carries no virtualenv, Catalog, credential, fixture data or

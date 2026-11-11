@@ -154,6 +154,17 @@ pub fn client_compiled_run_infers(
 }
 
 ///|
+/// Observe the compiler-retained Model component list without copying it.
+/// This is a shape check, not admission, permission or a selected component.
+pub fn client_compiled_run_has_infers(value : ClientCompiledRun) -> Bool {
+  match value.compilation {
+    Values(_) => false
+    Tasks(compilation) => !compilation.infers.is_empty()
+    Effects(allowed) => !allowed.compilation.compiled.infers.is_empty()
+  }
+}
+
+///|
 pub fn client_compiled_run_has_infer(
   value : ClientCompiledRun,
   plan : ClientInferPlanGraph,
@@ -932,4 +943,27 @@ pub fn issue_client_compiled_captured_invocation(
     max_nodes,
     max_depth,
   )
+}
+
+///|
+/// Exact immutable compiler inventory, without copying the retained Array.
+/// A recovery consumer cannot bind a subset, reorder or equal graph copy.
+pub fn client_compiled_run_infer_originals_match(
+  value : ClientCompiledRun,
+  plans : Array[ClientInferPlanGraph],
+) -> Bool {
+  let originals = match value.compilation {
+    Values(_) => return false
+    Tasks(compilation) => compilation.infers
+    Effects(allowed) => allowed.compilation.compiled.infers
+  }
+  if plans.length() != originals.length() || plans.is_empty() {
+    return false
+  }
+  for index in 0..<plans.length() {
+    if !physical_equal(plans[index], originals[index]) {
+      return false
+    }
+  }
+  true
 }

@@ -5,7 +5,7 @@ const moon=await import(process.env.ACTQL_TEST_COMMON_RUNTIME??new URL(
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner,
   observeNodeRestoredModelStop, confirmNodeRunCancellation,
-  cancelNodeRunContinuation} from './client-dispatch-owner.mjs';
+  observeNodeRunCancellation, cancelNodeRunContinuation} from './client-dispatch-owner.mjs';
 const commonDecision = runtimeCore(moon).publicationControl.runCancellationConfirmed;
 
 for (const boundary of ['confirmed', 'current owner', 'stop receipt', 'owner race', 'revision race']) {
@@ -132,6 +132,41 @@ for (const changed of ['fence', 'lifecycle']) {
       }},
     }), false);
   });
+}
+
+for (const outcome of ['confirmed frame', 'changed fence', 'another publication']) {
+test(`cancellation fully reinspects a proven state-publication-only observation change: ${outcome}`, async () => {
+  const before = Object.freeze({cancellationRequested: true, revision: 1,
+    physicalCloseConfirmed: true, runDefinition: {wire: 'original'}});
+  const after = Object.freeze({...before, revision: 2});
+  let retained = before, inspections = 0, comparisons = 0;
+  const observation = await observeNodeRunCancellation({
+    ref: {runDefinitionCid: 'definition'},
+    journal: {lookupRunDefinition: () => retained,
+      lookupReconciliationState: () => undefined,
+      canReinspectRunStopAfterStatePublication(first, second) {
+        comparisons++;
+        assert.equal(first, before);
+        assert.equal(second, after);
+        return true;
+      }},
+    control: {runDefinitionRunId: () => 'run', runCancellationConfirmed: commonDecision},
+    cleanupConfirmed: true, physicalStopConfirmed: true,
+    checkpoints: {journal: {discoverModelCallSets: () => [{}],
+      modelCancellationFenced: () => outcome !== 'changed fence' || inspections < 2,
+      hasUnresolvedModelCalls: () => false}},
+    store: {async confirmCommittedIndex() {
+      inspections++;
+      retained = inspections === 2 && outcome === 'another publication'
+        ? Object.freeze({...after, revision: 3}) : after;
+      return undefined;
+    }},
+  });
+  assert.equal(observation.cancelled, outcome === 'confirmed frame');
+  assert.equal(observation.frame, retained, 'return the actual last Journal observation');
+  assert.equal(inspections, 2, 'publication and all cancellation facts are collected again');
+  assert.equal(comparisons, 1, 'only one proven metadata change can trigger reinspection');
+});
 }
 
 test('a changed cancellation revision retains the same stop owner for retry', async () => {

@@ -517,7 +517,7 @@ pub fn start_bounded_cross_join(
     width != @schema.field_count(output_schema) {
     return Err(Rows(RowLimit))
   }
-  let workspace = row_workspace(max_entries)
+  let workspace = working_row_workspace(generated, max_entries)
   if !reserve_slots(workspace, 2) {
     return Err(Rows(RowLimit))
   }
@@ -527,8 +527,8 @@ pub fn start_bounded_cross_join(
     return Err(InvalidExecution)
   }
   let output = match
-    prepare_bounded_admitted_output(
-      owner,
+    prepare_bounded_sequence_admitted_output(
+      generated,
       @pipeline.Step(step),
       ceiling,
       output_values,

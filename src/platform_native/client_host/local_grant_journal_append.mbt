@@ -9,6 +9,7 @@ fn append_local_owned_grant_original_locked(
   current : () -> Result[Unit, NativeClientRunJournalIssue],
   target? : NativeLocalPreparationOriginalTarget? = None,
   host_prepared? : String? = None,
+  resolution_proof? : @checkpoint.PreparedResolutionProof? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if (original.grant is PreparationGrant(_)) != (target is Some(_)) {
     return Err(ChangedIntent)
@@ -57,7 +58,8 @@ fn append_local_owned_grant_original_locked(
     }
   }
   if original.grant is SigningGrant(_) {
-    match grant_host.same_signing_operation_locked(original) {
+    match
+      grant_host.same_signing_operation_locked(original, resolution_proof~) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -150,7 +152,12 @@ fn append_local_owned_grant_original_locked(
   let appended_bytes = packet.length() +
     target_packet.map(body => body.length()).unwrap_or(0) +
     prepared_packet.map(body => body.length()).unwrap_or(0)
-  if entries >= 64 || appended_bytes > 65536 - bytes {
+  if !local_journal_related_append_available(
+      count,
+      grant_host.journal.max_records,
+    ) ||
+    entries >= 64 ||
+    appended_bytes > 65536 - bytes {
     return Err(CapacityExceeded)
   }
   // Recheck actual authority and the typed original fence after finite

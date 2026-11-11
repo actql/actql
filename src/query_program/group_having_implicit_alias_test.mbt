@@ -282,3 +282,97 @@ test "GROUP HAVING implicit aliases compare implicit object receivers in their o
     assert_eq(body.split("\"$param\":").length() - 1, 1)
   }
 }
+
+///|
+fn group_having_collision_bound_cte(
+  used_only : Bool,
+  qualified : Bool,
+) -> (@program.Program, @wire.Cursor) {
+  let admitted = text => {
+    @wire.admit(
+      @source.parse_json(text, construction_limits().source.source).unwrap(),
+      construction_limits().source.tree,
+    ).unwrap()
+  }
+  // Preserve the original failed packed input, including its unused fields,
+  // independently of the corrected fixture's two used Parameters.
+  let declarations = @parameters.read_declarations(
+    Some(
+      admitted(
+        if used_only {
+          "{\"a\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"b\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}}}"
+        } else {
+          "{\"a\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"b\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"c\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"d\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"e\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":true}}},\"oa\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":false}}},\"ob\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":false}}},\"oc\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":false}}},\"od\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":false}}},\"oe\":{\"type\":\"object\",\"nullable\":false,\"fields\":{\"score\":{\"type\":\"number\",\"nullable\":false}}}}"
+        },
+      ),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  let values = admitted(
+    if used_only {
+      "{\"a\":{\"score\":10},\"b\":{\"score\":20}}"
+    } else {
+      "{\"a\":{\"score\":10},\"b\":{\"score\":20},\"c\":null,\"d\":{\"score\":20},\"e\":{\"score\":null},\"oa\":{\"score\":100},\"ob\":{\"score\":200},\"oc\":{\"score\":300},\"od\":{\"score\":400},\"oe\":{\"score\":500}}"
+    },
+  )
+  let condition = if qualified { "colliding.score > 10" } else { "score > 10" }
+  let program = compile_query_script(
+    @query.parse_query_script(
+      "WITH colliding AS (SELECT 1 AS id, 100 AS score, @a AS payload UNION ALL SELECT 2 AS id, 0 AS score, @b AS payload) SELECT payload.score, COUNT(*) AS n FROM colliding GROUP BY score, colliding.score HAVING " +
+      condition +
+      " ORDER BY score",
+      syntax_limits(),
+    ).unwrap(),
+    {
+      ..pair_context(),
+      inputs: [],
+      parameter_declarations: Some(declarations),
+    },
+    construction_limits(),
+  ).unwrap()
+  (program, values)
+}
+
+///|
+test "CTE collision keeps the original unused declaration refusal" {
+  let (program, values) = group_having_collision_bound_cte(false, false)
+  match
+    @check.check_parsed(
+      program,
+      check_environment(),
+      Some(values),
+      check_limits(),
+    ) {
+    Rejected(error) =>
+      match @check.diagnostic_cause(error) {
+        Source(Identity(References(Usage(UnusedParameter(declaration))))) =>
+          assert_eq(declaration.name, "c")
+        cause => raise cause
+      }
+    _ => fail("unused declarations remain invalid across the complete CTE")
+  }
+}
+
+///|
+test "CTE parameter GROUP HAVING checks only its used collision declarations" {
+  for qualified in [false, true] {
+    let (program, values) = group_having_collision_bound_cte(true, qualified)
+    match
+      @check.check_parsed(
+        program,
+        check_environment(),
+        Some(values),
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(error) => graph_rows_rejected(error)
+      _ =>
+        fail("the complete CTE retains its grouped alias and qualified input")
+    }
+  }
+}

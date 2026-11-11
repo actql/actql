@@ -214,6 +214,12 @@ fn append_admitted_buffer_values(
     }
     row.push(value)
   }
+  if !input.open {
+    return Err(ClosedCapture)
+  }
+  if !fund_output_retention(budget, budget.nodes, budget.text) || !input.open {
+    return Err(CaptureLimit)
+  }
   input.rows.push(row)
   Ok(())
 }
@@ -252,6 +258,14 @@ fn append_admitted_row(
     }
     row.push(checked.value)
   }
+  // Reference measurement can revoke this buffer through its Host callback.
+  // A retired row must not request more funding before its commit is refused.
+  if !input.open {
+    return Err(ClosedCapture)
+  }
+  if !fund_output_retention(budget, budget.nodes, budget.text) || !input.open {
+    return Err(CaptureLimit)
+  }
   input.rows.push(row)
   Ok(())
 }
@@ -279,6 +293,44 @@ pub fn finish_admitted_input(
       work: buffer.budget.work,
     },
   })
+}
+
+///|
+/// Seal the same unpublished input in an explicitly supplied original-row
+/// order. Validate the complete permutation before touching either buffer;
+/// immutable Values, original owner, schema, presence and consumed work stay
+/// unchanged. The caller backs the two outer arrays and validation bitmap
+/// before entry. No row admission, authorization or logical hashing is repeated.
+pub fn finish_ordered_admitted_input(
+  input : AdmittedInput,
+  order : Array[Int],
+) -> Result[CapturedRows, CaptureIssue] {
+  let buffer = input.buffer
+  if !buffer.open || buffer.reading {
+    return Err(ClosedCapture)
+  }
+  let present = !buffer.presence_rows.is_empty()
+  let count = if present {
+    buffer.presence_rows.length()
+  } else {
+    buffer.rows.length()
+  }
+  if order.length() != count {
+    return Err(InvalidCheckedRow)
+  }
+  let seen = Array::make(count, false)
+  for index in order {
+    if index < 0 || index >= count || seen[index] {
+      return Err(InvalidCheckedRow)
+    }
+    seen[index] = true
+  }
+  if present {
+    buffer.presence_rows = order.map(index => buffer.presence_rows[index])
+  } else {
+    buffer.rows = order.map(index => buffer.rows[index])
+  }
+  finish_admitted_input(input)
 }
 
 ///|
@@ -325,6 +377,9 @@ fn append_admitted_buffer_presence(
   budget.nodes += copied.usage.nodes
   budget.text += copied.usage.text_bytes
   budget.work += copied.usage.work
+  if !fund_output_retention(budget, budget.nodes, budget.text) || !buffer.open {
+    return Err(CaptureLimit)
+  }
   buffer.presence_rows.push(copied)
   Ok(())
 }

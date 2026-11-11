@@ -8,3 +8,29 @@ extern "C" fn native_timing_end(tag : Int) -> Unit = "actql_native_timing_end"
 
 ///|
 extern "C" fn native_timing_count(tag : Int) -> Unit = "actql_native_timing_count"
+
+///|
+extern "C" fn native_acceptance_enabled() -> Bool = "actql_native_acceptance_enabled"
+
+///|
+#borrow(identity)
+extern "C" fn native_acceptance_identity_raw(
+  tag : Int,
+  ordinal : Int,
+  identity : String,
+  length : Int,
+) -> Unit = "actql_native_acceptance_identity"
+
+///|
+extern "C" fn native_acceptance_incomplete() -> Unit = "actql_native_acceptance_incomplete"
+
+///|
+// Borrow original CID DATA; the fixed C recorder validates and copies <=71
+// UTF16 units. No payload allocation, authority or cleanup ACK is introduced.
+fn native_acceptance_identity(
+  tag : Int,
+  ordinal : Int,
+  identity : String,
+) -> Unit {
+  native_acceptance_identity_raw(tag, ordinal, identity, identity.length())
+}

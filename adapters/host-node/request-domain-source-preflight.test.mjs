@@ -10,7 +10,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 function binding(file,name,ports,{property=false}={}){
   const source=readFileSync(new URL(file,import.meta.url),'utf8');let node;
   const walk=n=>{if(!n||typeof n!=='object')return;
-    if(property?n.type==='Property'&&n.key?.name===name:n.type==='VariableDeclarator'&&n.id?.name===name){assert(!node);node=property?n:n.init;}
+    if(property?n.type==='Property'&&n.key?.name===name:(n.type==='VariableDeclarator'||n.type==='FunctionDeclaration')&&n.id?.name===name){assert(!node);node=property||n.type==='FunctionDeclaration'?n:n.init;}
     for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
   walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(node,name);
   const helpers = file === './ordinary-source-managed.mjs' ? source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({')) : '';
@@ -22,6 +22,7 @@ function fixture(family){
   const prepared={},identity={},keyed={},occurrence={},calls=[],selections=[],identities=new WeakMap();let issued=0,queries=0;
   const reference='connector://original/rows',adapter={prepareKeyed(){},managedWholeSourceCapacity(){}};
   const moon={clientProgramAcquisitionCount:p=>{assert.equal(p,prepared);return 2;},
+    clientProgramDirectSourceCoordinates:p=>{assert.equal(p,prepared);return ok([[0,0,0,0],[1,0,1,1]]);},
     clientProgramSelectSingleKeyedAcquisition:()=>ok(family==='content'?keyed:undefined),
     clientProgramKeyedDirectAcquisitionCoordinates:k=>{assert.equal(k,keyed);return{_0:0,_1:0};},
     clientProgramSourceFreeInputIntentCid:()=> 'intent',clientProgramRequestIdentity(p,a,id,intent){
@@ -34,7 +35,11 @@ function fixture(family){
     clientProgramKeyedAcquisitionSourceEvidenceFacts:()=>ok([reference]),
     clientProgramComposedInferOccurrences:()=>ok(family==='model'?[occurrence]:[]),
     clientProgramResultCount:()=>1,clientProgramResultName:()=> 'rows'};
-  const preparation={selectManagedDomainSourceInput(runtime,p,r,stage,index){assert.equal(runtime,moon);
+  const sourceCoordinates = Object.freeze([Object.freeze([0,0,0]), Object.freeze([1,0,1])]);
+  const preparation={managedModelSourceCoordinates(runtime,p){
+    assert.equal(runtime,moon);assert.equal(p,prepared);
+    return family==='model'?sourceCoordinates:undefined;
+  },selectManagedDomainSourceInput(runtime,p,r,stage,index){assert.equal(runtime,moon);
     calls.push([p,r,stage,index]);return checked(moon.clientProgramSelectInstalledSourceInput(p,r,stage,index));}};
   const ports={moon,preparation,prepareSubmit:{assertOwned:p=>assert.equal(p,prepared),kindOf:()=> 'effect_free'},
     sourceProfile:{},sourceFreeRequestIdentities:identities,earlyContentPlans:new WeakMap(),inferSelections:new WeakMap(),
@@ -42,10 +47,12 @@ function fixture(family){
     runtimeOptionalField:(v,n)=>v?.['_'+n],runtimeTag:()=>undefined,clientOperationError:(code,cause)=>Object.assign(new Error(code,{cause}),{code}),
     installedSourceFor:()=>adapter,installedSourceReadBindings:()=>[reference],prepareInferSelection(){},diagnostic(){},
     registry:'registry',values:'values',fragment:'fragment',ordered:'ordered'};
+  ports.installedDirectSourceCoordinates=binding('./embedded-local.mjs','installedDirectSourceCoordinates',ports);
   ports.originalSourceFreeRequest=binding('./embedded-local.mjs','originalSourceFreeRequest',ports);
   const request=binding('./embedded-local.mjs','requestOf',ports);
   return{prepared,identity,calls,selections,preparation,moon,request:()=>request({preparedProgram:prepared,requestId:'request'}),
-    counts:()=>({issued,queries}),installSelection:fn=>{preparation.selectManagedDomainSourceInput=fn;}};
+    sourceCoordinates,counts:()=>({issued,queries}),installSelection:fn=>{preparation.selectManagedDomainSourceInput=fn;},
+    installCoordinates:fn=>{preparation.managedModelSourceCoordinates=fn;}};
 }
 for(const family of ['model','content'])test(`same Request ${family} caller uses the backed nominal selection without another unowned Query constructor`,()=>{
   const f=fixture(family),r=f.request();assert.equal(r.requested,f.identity);
@@ -64,14 +71,29 @@ function managedFixture(family){
     current(){events.push('current');if(decline)throw decline;},
     producerForRequest:r=>{assert.equal(r,sdkRequest);return producer;},fail,checked,runs,
   },{property:true});
-  const manager={selectDomainSourceInput(...args){assert.equal(this,manager);return method(...args);}};
+  let coordinateReads=0;
+  f.moon.clientProgramRequestModelDirectSourceCoordinates=function(p,r){
+    assert.equal(this,f.moon);assert.equal(p,parent);assert.equal(r,receipt);
+    coordinateReads++;return ok(f.sourceCoordinates);
+  };
+  const coordinates=binding('./ordinary-source-managed.mjs','modelSourceCoordinates',{
+    current(){events.push('current');if(decline)throw decline;},
+    producerForRequest:r=>{assert.equal(r,sdkRequest);return producer;},fail,checked,
+  },{property:true});
+  const manager={selectDomainSourceInput(...args){assert.equal(this,manager);return method(...args);},
+    modelSourceCoordinates(...args){assert.equal(this,manager);return coordinates(...args);}};
+  f.installCoordinates(binding('./embedded-local.mjs','managedModelSourceCoordinates',{
+    sourceManaged:manager,computeManaged:undefined,moon:f.moon,originals:{},
+    originalSourceManagedHostRequest:(_o,p)=>{assert.equal(p,f.prepared);return sdkRequest;},
+    clientOperationError:code=>Object.assign(new Error(code),{code}),
+  },{property:true}));
   const host=binding('./embedded-local.mjs','selectManagedDomainSourceInput',{
     sourceManaged:manager,computeManaged:undefined,moon:f.moon,originals:{},
     originalSourceManagedHostRequest:(_o,p)=>{assert.equal(p,f.prepared);return sdkRequest;},
     clientOperationError:code=>Object.assign(new Error(code),{code}),
   },{property:true});
   f.installSelection(host);
-  return{...f,state,producer,events,holder,parent,runs,
+  return{...f,state,producer,events,holder,parent,runs,coordinateReads:()=>coordinateReads,
     adopt(){state.adopting=true;const run={prepared:f.prepared,request:sdkRequest,producer,original:state.original,value:{}};runs.set(f.prepared,run);return run;},
     foreign(){wrongHolder=true;},decline(cause){decline=cause;}};
 }
@@ -86,6 +108,7 @@ test('fixed Host and manager select from the same actual Model or Content Core b
     assert.equal(f.request().requested,f.identity);assert.deepEqual(f.counts(),{issued:1,queries:0});
     assert.equal(f.selections.length,2);assert.equal(f.state.holder,f.holder);assert.equal(f.state.preparing,false);
     assert.equal(f.state.preparationFailed,undefined);
+    assert.equal(f.coordinateReads(),family==='model'?1:0);
   }
 });
 
@@ -97,7 +120,7 @@ test('fixed domain preflight preserves original refusal and pure Query path with
   assert.equal(f.state.preparationFailure,primary);assert.equal(f.state.preparing,false);
   assert.deepEqual(f.counts(),{issued:1,queries:0});assert.equal(f.selections.length,1);
   const foreign=managedFixture('model');foreign.foreign();
-  assert.throws(foreign.request,e=>e.cause?.code==='ForeignInstalledSourceProducer');assert.equal(foreign.selections.length,0);
+  assert.throws(foreign.request,e=>e.code==='ForeignInstalledSourceProducer'&&e.cause===undefined);assert.equal(foreign.selections.length,0);
   assert.equal(foreign.counts().queries,0);
   const pure=managedFixture('pure');pure.request();assert.equal(pure.counts().queries,2);
   const missing=fixture('content');missing.installSelection(undefined);
@@ -110,6 +133,7 @@ test('post-adoption Request source preflight revisits only its same original liv
     const f=managedFixture(family);f.request();const run=f.adopt();
     f.request();assert.deepEqual(f.counts(),{issued:1,queries:0});assert.equal(f.selections.length,4);
     assert.equal(f.state.adopting,true);assert.equal(f.state.preparing,false);
+    assert.equal(f.coordinateReads(),family==='model'?1:0,'same original coordinates are retained across adoption');
     const select=f.moon.clientProgramSelectInstalledSourceInput;
     f.moon.clientProgramSelectInstalledSourceInput=function(...args){const value=Reflect.apply(select,this,args);
       f.runs.set(f.prepared,{...run});return value;};

@@ -8,6 +8,8 @@ import {
 // Values
 pub fn native_filesystem_read_layout() -> NativeFilesystemReadLayout?
 
+pub fn native_filesystem_write_layout() -> NativeFilesystemWriteLayout?
+
 pub fn open_private_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
 pub fn open_private_root_in_current_read_context_with_custody(String, Int) -> Result[Root, NativeRootOpenFailure]
@@ -88,6 +90,13 @@ pub(all) enum NativeFilesystemIssue {
 pub(all) struct NativeFilesystemReadLayout {
   root_payload_bytes : Int64
   reader_payload_bytes : Int64
+  observation_payload_bytes : Int64
+  acquisition_payload_bytes : Int64
+  external_object_overhead_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NativeFilesystemWriteLayout {
+  writer_payload_bytes : Int64
   external_object_overhead_bytes : Int64
 } derive(Eq, @debug.Debug)
 
@@ -127,6 +136,7 @@ pub fn Root::close(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::create_directory(Self, String) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
 pub fn Root::create_writer_with_custody(Self, String, Int64) -> Result[Writer, NativeWriterOpenFailure]
+pub fn Root::diagnostic_ceiling(Self) -> Int?
 pub fn Root::inspect_directory(Self, String) -> Result[NativeFileOwnership?, NativeFilesystemIssue]
 pub fn Root::inspect_file_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
@@ -154,6 +164,7 @@ pub fn Writer::cleanup_pending(Self) -> Bool
 pub fn Writer::close_retaining_files(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Writer::is_sealed(Self) -> Bool
 pub fn Writer::ownership(Self) -> NativeFileOwnership
+pub fn Writer::replace_observed_file(Self, NativeFileObservation, Lock) -> Result[NativeFileGeneration, NativeFilesystemIssue]
 pub fn Writer::seal(Self, String) -> Result[NativeFileGeneration, NativeFilesystemIssue]
 pub fn Writer::seal_file(Self, String) -> Result[NativeFileGeneration, NativeFilesystemIssue]
 pub fn Writer::written(Self) -> Int64

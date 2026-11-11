@@ -43,6 +43,12 @@ fn worker_resource_fixture(
     .issue_worker_provisioning(selection, "operator", "local")
     .unwrap()
   let parent_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let root = @filesystem.open_private_root(parent_path).unwrap()
+  let writer = root.create_writer(label + ".backing.stage", bytes).unwrap()
+  writer.append(Bytes::make(bytes.to_int(), 0)).unwrap()
+  writer.seal(label + ".backing").unwrap() |> ignore
+  writer.close_retaining_files().unwrap()
+  root.close().unwrap()
   let name = @utf8.encode(parent_path + "/" + label + ".backing\u{0000}")
   // The bounded fixture owns this precreated 0600 regular file. These two libc
   // calls are test transport only, not a new installed allocator/provider.

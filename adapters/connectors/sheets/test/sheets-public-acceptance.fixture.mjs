@@ -41,6 +41,12 @@ const tls = await fixtureCertificates(tlsRoot);
 setDefaultCACertificates([...getCACertificates('default'), tls.ca.toString('utf8')]);
 after(() => closeSheetsAcceptanceCustody({root: tlsRoot}));
 const owner = userInfo().username;
+const resumeLeaseMs = 10000;
+const pollIntervalMs = 25;
+const outcomePolls = 400;
+// A busy first resume schedules the existing retry after leaseMs + 100.
+// Give that retry the same outcome-observation window as an immediate resume.
+const resumedOutcomePolls = outcomePolls + Math.ceil((resumeLeaseMs + 100) / pollIntervalMs);
 const secret = async () => 'fixture-only-secret';
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
 const reviewerKeys = generateKeyPairSync('ed25519'), hostKeys = generateKeyPairSync('ed25519');
@@ -58,6 +64,11 @@ const configuration = (connection, commit = 'delegate', rangeCommand = false) =>
     entry('read', 'allow', connection, 'rows', 'read'),
     ...(rangeCommand ? [entry('range-read', 'allow', connection, 'range_target', 'read'),
       entry('range-effect', commit, connection, 'range_target', 'effect')] : []),
+    // Status and Named Result inspection have their own Account tuples;
+    // the business Source read and Run acceptance write grant neither.
+    {entry_id: 'host-read', outcome: 'allow', exclusions: [],
+      principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}},
     {entry_id: 'run', outcome: 'allow', exclusions: [], principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}},
   ].sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0)});
@@ -65,7 +76,7 @@ const authorization = (accountConfiguration, reviewerPrincipal = 'reviewer-princ
   reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
     principalId: reviewerPrincipal, publicKey: pem(reviewerKeys.publicKey)}],
   reviewReaders: [reviewerPrincipal], hostKey: {keyId: 'host-key', privateKey: pem(hostKeys.privateKey)},
-  leaseMs: 10000, resumeAfterAnswer: false});
+  leaseMs: resumeLeaseMs, resumeAfterAnswer: false});
 
 const readProgram = JSON.stringify({version: 'actql/0.1', id: 'sheets-read', stages: [{
   id: 'read', inputs: {sheet: {connector: 'sheet-book', resource: 'rows'}},
@@ -84,11 +95,11 @@ const appendProgram = (mapping, rows) => JSON.stringify({version: 'actql/0.1', i
   effects: {append: {create: {target: mapping.target, mapping: mapping.mappingRef,
     from: {result: 'rows'}}}},
 }], results: {answer: {from: {stage: 'write', result: 'rows'}}}});
-async function until(read) {
-  for (let index = 0; index < 400; index++) {
+async function until(read, polls = outcomePolls) {
+  for (let index = 0; index < polls; index++) {
     const result = await read();
     if (result) return result;
-    await new Promise(resolve => setTimeout(resolve, 25));
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
   }
   assert.fail('Sheets public execution did not reach its expected boundary');
 }
@@ -292,7 +303,7 @@ test('Sheets clear Command retains original requests through Local and HTTPS app
 });
 
 test('Sheets clear keeps a lost response Unknown after cold restart without resend', async t => {
-  const setup = await installation(t, {rangeCommand: 'clear', reviewerPrincipal: owner,
+  const setup = await installation(t, {rangeCommand: 'clear', reviewerPrincipal: owner, resumeAfterAnswer: true,
     faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
   const [command] = (await setup.publish(true)).commands;
   const first = await setup.open(true, true), client = first.client;
@@ -302,10 +313,25 @@ test('Sheets clear keeps a lost response Unknown after cold restart without rese
   assert.equal(setup.state.cleared.length, 0);
   await approve(first, execution);
   await execution.reconcile();
+  let lastStatus;
   const unknown = await until(async () => {
     const current = await execution.status();
-    return current.status === 'needs_reconciliation' ? current : undefined;
+    lastStatus = current.status;
+    return current.status === 'needs_reconciliation' || terminal.has(current.status) ||
+      setup.observations.some(([name]) => name === 'effect_resume_failed') ? current : undefined;
+  }, resumedOutcomePolls).catch(error => {
+    t.diagnostic(JSON.stringify({phase: 'clear-post-approval', status: lastStatus,
+      clearedBatches: setup.state.cleared.length,
+      resumeClaims: setup.observations.filter(([name]) => name === 'resume_claimed').length,
+      resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
+        .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
+          ? detail.code : 'UnavailableErrorTag')}));
+    throw error;
   });
+  assert.equal(unknown.status, 'needs_reconciliation', JSON.stringify({status: unknown.status,
+    resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
+      .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
+        ? detail.code : 'UnavailableErrorTag')}));
   assert.equal(unknown.result_available, false);
   assert.equal(setup.state.cleared.length, 1);
   const before = setup.api.seen().length;
@@ -361,7 +387,7 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
 });
 
 test('Sheets range Command retains an unknown acknowledgement across process restart without resend', async t => {
-  const setup = await installation(t, {rangeCommand: true, reviewerPrincipal: owner,
+  const setup = await installation(t, {rangeCommand: true, reviewerPrincipal: owner, resumeAfterAnswer: true,
     faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
   const [command] = (await setup.publish(true)).commands;
   const first = await setup.open(true, true);
@@ -373,10 +399,25 @@ test('Sheets range Command retains an unknown acknowledgement across process res
   assert.equal(setup.state.updated.length, 0);
   await approve(first, execution);
   await execution.reconcile();
+  let lastStatus;
   const unknown = await until(async () => {
     const value = await execution.status();
-    return value.status === 'needs_reconciliation' ? value : undefined;
+    lastStatus = value.status;
+    return value.status === 'needs_reconciliation' || terminal.has(value.status) ||
+      setup.observations.some(([name]) => name === 'effect_resume_failed') ? value : undefined;
+  }, resumedOutcomePolls).catch(error => {
+    t.diagnostic(JSON.stringify({phase: 'range-post-approval', status: lastStatus,
+      updatedBatches: setup.state.updated.length,
+      resumeClaims: setup.observations.filter(([name]) => name === 'resume_claimed').length,
+      resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
+        .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
+          ? detail.code : 'UnavailableErrorTag')}));
+    throw error;
   });
+  assert.equal(unknown.status, 'needs_reconciliation', JSON.stringify({status: unknown.status,
+    resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
+      .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
+        ? detail.code : 'UnavailableErrorTag')}));
   assert.equal(unknown.result_available, false);
   assert.equal(setup.state.updated.length, 1);
   const before = setup.api.seen().length;

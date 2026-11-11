@@ -215,7 +215,7 @@ export async function readActionRuntimes({zip, state, tree}) {
   const cidIndex = execution.arguments.indexOf('--cidfile'); assert(cidIndex >= 0);
   assert.deepEqual(execution.arguments, isolatedRunArguments({imageId: execution.imageId,
     cidFile: execution.arguments[cidIndex + 1], owner}), 'Changed isolation configuration');
-  assert.deepEqual(Object.keys(execution.costs).sort(), ['preparationMilliseconds', 'buildMilliseconds', 'executionMilliseconds', 'inspectionMilliseconds', 'closeMilliseconds'].sort());
+  assert.deepEqual(Object.keys(execution.costs).sort(), ['preparationMilliseconds', 'buildMilliseconds', 'executionMilliseconds', 'inspectionMilliseconds', 'closeMilliseconds', 'inputInspectionMilliseconds'].sort());
   assert(Object.values(execution.costs).every(value => Number.isSafeInteger(value) && value >= 0));
   const result = await zip.json('results/mutations-js.json');
   assert.equal(encode(result), encode({...payload.report, sourceRestored: true, revision: state.context.candidateRevision}), 'Wrong original isolated mutation report');

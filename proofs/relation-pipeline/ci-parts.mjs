@@ -1,7 +1,7 @@
 // Four independently owned fresh producers. Original report/receipt bytes are
 // immutable; only the complete, audited union is a scientific success claim.
 import assert from 'node:assert/strict';
-import {constants, copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSync, linkSync, unlinkSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {hash, snapshot} from './inventory.mjs';
@@ -10,7 +10,7 @@ import {validate} from './evidence.mjs';
 import {fixedCorpus} from './corpus.mjs';
 import {baseRegistry, registry} from './registry.mjs';
 import {registrations} from './obligations.mjs';
-import {canonicalJson, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
+import {canonicalJson, canonicalExecutionReceipt, maxCapacityReportBytes, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
 import {partIds, planDigest, partFamily} from './proof-parts.mjs';
 import {validateCapacityPart, unionCapacityParts} from './capacity/parts.mjs';
 import {inspectMutationPart, joinMutationParts} from './mutation-parts.mjs';
@@ -32,8 +32,11 @@ function reader(directory) {
     return join(directory, safePath(path.slice(prefix.length)));
   };
   const read = path => readFileSync(path.startsWith(prefix) ? local(path) : join(fileURLToPath(new URL('../../',import.meta.url)),safePath(path)));
+  // Native inspection tools need the SAME verified physical input that this
+  // reader opens, including before relocated parts have been joined.
+  Object.defineProperty(read,'resolveArtifact',{value:local});
   const report = path => canonicalJson(join(directory, safePath(path)),
-    /^capacity\/parts\/L-C[01]\.json$/u.test(path) ? 256 * 1024 ** 2 : 32 * 1024 ** 2);
+    /^capacity\/parts\/L-C[01]\.json$/u.test(path) ? maxCapacityReportBytes : 32 * 1024 ** 2);
   return {local, read, report};
 }
 export function partState(root, env = process.env) {
@@ -45,16 +48,80 @@ export function partState(root, env = process.env) {
 export function capacityPartExecutions(report) {
   assert(['L-C0','L-C1'].includes(report.part));
   assert(Array.isArray(report.executions));
-  if(report.part==='L-C0') {
-    assert(report.parentStartup?.execution,'Missing independent native-parent execution');
-    return [...report.executions,report.parentStartup.execution];
-  }
+  if(report.part==='L-C0') currentNativeParent(report);
+  // The independent Native diagnostic has its own audited schema, not a
+  // generic fixture/workspace receipt. Never manufacture a second execution.
   return [...report.executions];
+}
+function currentNativeParent(report) {
+  const parent=report.parentStartup;
+  assert.equal(parent?.version,'actql-current-chain-native-diagnostic/0.1','Missing current native parent execution');
+  assert.equal(parent.target,'native','Foreign native parent target');
+  assert.equal(parent.exit,0,'Failed native parent execution');
+  assert.deepEqual(parent.source,report.source,'Foreign native parent source');
+  assert.deepEqual(parent.command,['moon','test','--target','native',
+    'src/connectors/local/current_chain_capacity_wbtest.mbt','--deny-warn'],'Foreign native parent command');
+  return parent;
+}
+// Production calls this only after validateCapacityPart has performed the
+// existing full Native audit (one actual case, log/binary/platform, original
+// Source and ledger/custody facts). This binds its distinct transport files;
+// it is not another scientific validator or a generic receipt adapter.
+export function capacityNativeParentInputs(report,read) {
+  assert.equal(report.part,'L-C0');
+  const parent=currentNativeParent(report),directory=prefix+'current-chain-native/';
+  const paths=new Set();
+  const input=path=>{safePath(path.slice(prefix.length));paths.add(path);return read(path);};
+  const json=(path,value,message)=>assert.deepEqual(input(path),Buffer.from(encode(value)),message);
+  json(prefix+'capacity/parent-control-probe/all.json',parent,'Changed native parent report');
+  assert(hex.test(parent.logDigest),'Invalid native parent log identity');
+  assert.equal(parent.logPath,directory+'logs/'+parent.logDigest+'.log','Foreign native parent log path');
+  const log=input(parent.logPath);
+  assert.equal(hash(log),parent.logDigest,'Changed native parent log');
+  assert.deepEqual(input(directory+'native.log'),log,'Changed native parent original log');
+  json(directory+'source.json',parent.executedSource,'Changed native parent executed source');
+  assert(Object.hasOwn(parent,'providerConstruction'),'Missing native parent construction audit');
+  const {providerConstruction:ignored,...original}=parent;void ignored;
+  for(const value of [original,parent]) json(directory+'originals/'+hash(JSON.stringify(value))+'.json',
+    value,'Changed native parent sealed original');
+  assert(Object.keys(parent.artifacts).length>0,'Missing native parent binary');
+  assert.deepEqual(Object.keys(parent.archives).sort(),Object.keys(parent.artifacts).sort(),'Foreign native parent archive');
+  for(const [artifact,digest] of Object.entries(parent.artifacts)) {
+    assert(hex.test(digest),'Invalid native parent binary identity');
+    const path=directory+'binaries/'+digest;
+    assert.equal(parent.archives[artifact],path,'Foreign native parent binary path');
+    assert.equal(hash(input(path)),digest,'Changed native parent binary');
+  }
+  // The caller's mandatory Native audit already regenerates and checks these
+  // observations against the same executed object/executable and tools.
+  // Claim only those exact original inputs, never the whole code directory.
+  const scalar=parent.providerCallbackCode,references=parent.parentReferenceCode;
+  assert.equal(scalar?.status,'established','Missing native parent scalar code');
+  assert.equal(references?.status,'established','Missing native parent reference code');
+  assert.equal(references.objectDigest,scalar.objectDigest,'Different native parent code object');
+  assert.equal(references.archive,scalar.archive,'Different native parent code object');
+  const code=directory+'code/';
+  for(const [proof,keys,extension] of [
+    [scalar,['symbols','disassembly','linkedDisassembly'],''],
+    [references,['symbols','object','linked'],'parent-ref-'],
+  ]) {
+    assert.equal(proof.platform,parent.runtime.platform,'Foreign native parent code platform');
+    assert(hex.test(proof.objectDigest),'Invalid native parent code object identity');
+    assert.equal(proof.archive,code+proof.objectDigest+'.o','Foreign native parent code object path');
+    assert.equal(hash(input(proof.archive)),proof.objectDigest,'Changed native parent code object');
+    for(const key of keys) {
+      const entry=proof.logs[key];
+      assert(hex.test(entry.digest),'Invalid native parent code log identity');
+      assert.equal(entry.path,code+entry.digest+'.'+extension+key,'Foreign native parent code log path');
+      assert.equal(hash(input(entry.path)),entry.digest,'Changed native parent code log');
+    }
+  }
+  return [...paths].sort();
 }
 export function inspectPart(directory, partId, expected) {
   assert(partIds.includes(partId));
   const {local, read, report} = reader(directory);
-  const reports = [], refs = [];
+  const reports = [], refs = [], nativeParentPaths = new Set();
   const acceptReport = (path, value = report(path)) => {
     assert.equal(value.revision, expected.context.testedSha, 'Report from another checkout');
     assert.equal(value.source.digest, expected.source.digest, 'Report from another source');
@@ -75,8 +142,13 @@ export function inspectPart(directory, partId, expected) {
     validateCapacityPart(value,value.source,targets,read);
     refs.push(...capacityPartExecutions(value));
     if (partId === 'L-C0') {
-      // The native-parent child has an independent executor and immutable
-      // root-level receipt; it is not one of the capacity primary executions.
+      assert.equal(value.parentStartup.revision,value.revision,'Foreign native parent revision');
+      const path='capacity/parent-control-probe/all.json';
+      assert.deepEqual(report(path),value.parentStartup,'Changed native parent report');
+      for(const path of capacityNativeParentInputs(value,read)) nativeParentPaths.add(path.slice(prefix.length));
+      reports.push({path,sha256:fileDigest(join(directory,path))});
+      // Keep the independently audited Native report and exact payloads in
+      // their original schema, separate from these final corpus receipts.
       for (const target of targets) normal(`${target}.json`,registry,target);
     }
   } else {
@@ -96,7 +168,7 @@ export function inspectPart(directory, partId, expected) {
     assert(execution.path.startsWith(prefix)); const path = safePath(execution.path.slice(prefix.length));
     assert(receiptPattern.test(path) && path.startsWith(`${partId}-`), 'Foreign part receipt namespace');
     assert(!paths.has(path),'Repeated receipt obligation'); paths.add(path);
-    const receipt = report(path);
+    const receipt = canonicalExecutionReceipt(join(directory, path));
     assert.deepEqual(receipt,execution.receipt,'Receipt bytes differ from report');
     assert.equal(hash(JSON.stringify(receipt)),execution.digest);
     assert(targets.includes(receipt.target)); assert.equal(receipt.boundary.target,receipt.target);
@@ -120,7 +192,7 @@ export function inspectPart(directory, partId, expected) {
       || /^sources\/[0-9a-f]{64}\.json$/u.test(file.path)
       || new RegExp(`^${partId}-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\\.(json|inputs\\.json|fixture\\.mbt|log)$`,'u').test(file.path);
     const owned=partFamily(partId)==='capacity'
-      ? (partId==='L-C0' ? file.path.startsWith('capacity/') : file.path.startsWith('capacity/binaries/') || file.path===`capacity/parts/${partId}.json`) || (partId==='L-C0' && (targets.some(t=>file.path===`${t}.json`) || file.path.startsWith('final-artifacts/')))
+      ? (partId==='L-C0' ? file.path.startsWith('capacity/') || nativeParentPaths.has(file.path) : file.path.startsWith('capacity/binaries/') || file.path===`capacity/parts/${partId}.json`) || (partId==='L-C0' && (targets.some(t=>file.path===`${t}.json`) || file.path.startsWith('final-artifacts/')))
       : ['exploration-decision.json',`base-js-${partId}.json`,`fixed-mutations-${partId}.json`,...(expected.exploration.required?[`mutations-${partId}.json`]:[])].includes(file.path);
     assert(common||owned,'Unexpected part evidence file');
     if(file.path.startsWith('capacity/parts/')) assert.equal(file.path,`capacity/parts/${partId}.json`,'Foreign capacity part report');
@@ -191,6 +263,37 @@ export function validatePartInputs(inputs) {
     for (const key of ['artifactDigest','archiveDigest','manifestDigest']) assert(hex.test(input[key]),`Invalid ${key}`);
   }
 }
+export function materializeVerifiedMember(from,to,sha256) {
+  // All part seals and scientific bindings are checked before this transfer.
+  // Consume only the private extraction name; the original TAR stays exact.
+  const before=lstatSync(from,{bigint:true});
+  assert(before.isFile()&&before.nlink===1n,'Evidence must be an unlinked regular file');
+  assert.equal(fileDigest(from),sha256,'Verified member bytes changed');
+  noLinks(dirname(to));
+  linkSync(from,to); // Exclusive, same-volume name creation; never copy on error.
+  try {
+    const source=lstatSync(from,{bigint:true}),target=lstatSync(to,{bigint:true});
+    for(const key of ['dev','ino','mode','size','mtimeNs']) {
+      assert.equal(source[key],before[key],'Verified source identity changed');
+      assert.equal(target[key],before[key],'Verified target identity changed');
+    }
+    assert.equal(source.nlink,2n);assert.equal(target.nlink,2n);
+    unlinkSync(from);
+  } catch(cause) {
+    // Remove our new link only while the original source name still owns the
+    // SAME inode. An uncertain removal retains the canonical bytes for failure.
+    let source,target;
+    try {source=lstatSync(from,{bigint:true});target=lstatSync(to,{bigint:true});} catch {}
+    if(source?.dev===before.dev&&source.ino===before.ino&&
+        target?.dev===before.dev&&target.ino===before.ino) {
+      try {unlinkSync(to);}
+      catch(cleanup) {throw new AggregateError([cause,cleanup],'Verified member link cleanup failed',{cause});}
+    }
+    throw cause;
+  }
+  chmodSync(to,0o444);
+  assert.equal(fileDigest(to),sha256,'Materialized member bytes changed');
+}
 export function joinParts({inputs,expected,destination}) {
   validatePartInputs(inputs); assert(!existsSync(destination),'Union destination exists');
   const files=new Map(), owners=new Set(), observations=new Set(), manifests=[];
@@ -212,8 +315,7 @@ export function joinParts({inputs,expected,destination}) {
   mkdirSync(dirname(destination),{recursive:true});noLinks(dirname(destination));mkdirSync(destination);
   for (const {file,directory} of files.values()) {
     const to=join(destination,file.path);mkdirSync(dirname(to),{recursive:true});
-    copyFileSync(join(directory,file.path),to,constants.COPYFILE_EXCL);chmodSync(to,0o444);
-    assert.equal(fileDigest(to),file.sha256);
+    materializeVerifiedMember(join(directory,file.path),to,file.sha256);
   }
   const {read,report}=reader(destination);
   const capacity=unionCapacityParts(['L-C0','L-C1'].map(id=>({path:`${prefix}capacity/parts/${id}.json`,report:report(`capacity/parts/${id}.json`)})),read);

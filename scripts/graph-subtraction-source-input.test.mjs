@@ -45,3 +45,25 @@ test('normal corpus and narrow subtraction run retain the same installed public 
   assert.match(driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||')),
     /process\.argv\.includes\('--graph-subtraction-only'\).*?return;/su);
 });
+
+
+test('binary subtraction shape refusals retain the typed invalid-input boundary', () => {
+  const invalid = [
+    ['list-peer', 'subtract_graphs(with: [g])'],
+    ['empty-peer-list', 'subtract_graphs(with: [])'],
+    ['missing-peer', 'subtract_graphs()'],
+    ['extra-argument', 'subtract_graphs(with: g, extra: true)'],
+  ];
+  for (const [name, call] of invalid) {
+    const matches = graphSubtractionSourceRefusals.filter(value =>
+      value.name === 'graph-subtraction-' + name);
+    assert.equal(matches.length, 1, name);
+    assert.ok(matches[0].text.includes(call), name);
+    assert.equal(matches[0].expectedCode, 'ClientProgramInvalidInput', name);
+  }
+  for (const name of ['unknown-peer', 'relation-peer', 'forward-peer']) {
+    assert.equal(graphSubtractionSourceRefusals.find(value =>
+      value.name === 'graph-subtraction-' + name).expectedCode,
+    'ClientProgramRejected', name);
+  }
+});

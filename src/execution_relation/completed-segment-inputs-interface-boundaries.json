@@ -1,0 +1,105 @@
+{
+  "qualification": "Reviewed source and semantic correspondence only; not installed funding, composed workflow or artifact acceptance",
+  "declarations": [
+    {
+      "module": "src/execution_relation/completed_segment_inputs.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "090ef6fa1e6be86486b5aad38f22f69b80373ea0bffd55671691cbc71797246e",
+      "role": "common-semantics",
+      "owner": "Existing execution completion, provider input and physical prefix lifetime owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "completed_segment_inputs_construction_inventory",
+          "declaration": "completed_segment_inputs_construction_inventory ( input_count : Int , ) - > PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "completed_segment_inputs_output",
+          "declaration": "completed_segment_inputs_output ( value : CompletedSegmentInputs , sequence : GeneratedSequence , inputs : Array [ ( Int , Int , ProducerRead ) ] , ) - > CompletedOutput ?"
+        },
+        {
+          "name": "completed_segment_inputs_shape",
+          "declaration": "completed_segment_inputs_shape ( output : CompletedOutput , sequence : GeneratedSequence , inputs : Array [ ( Int , Int , ProducerRead ) ] , max_work : Int , ) - > Bool"
+        },
+        {
+          "name": "retain_completed_segment_inputs",
+          "declaration": "retain_completed_segment_inputs ( output : CompletedOutput , sequence : GeneratedSequence , inputs : Array [ ( Int , Int , ProducerRead ) ] , max_work : Int , ) - > CompletedSegmentInputs ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "completed_segment_inputs_construction_inventory",
+            "completed_segment_inputs_output",
+            "completed_segment_inputs_shape",
+            "retain_completed_segment_inputs"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/execution_relation/completed-segment-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

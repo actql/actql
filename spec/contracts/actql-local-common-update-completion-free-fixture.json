@@ -1,0 +1,6 @@
+{
+  "catalog_preimage": "{\"applicability\":{\"actual_completions\":\"zero; nonempty-or-unconnected-completion-refuses\",\"audit_work_limit\":10000,\"change_sources\":[\"field\",\"scalar_literal\"],\"compatibility\":\"existing-catalogs-and-saved-original-recipe-bytes-unchanged\",\"computation\":\"existing-common-original-occurrence-normalization-audit; execution-requirements-retained\",\"effect_kind\":\"mapped_update\",\"mapping_conversions\":\"none\",\"parameter_origins\":[\"supplied\",\"default\"],\"proof\":\"same-original-CheckedProgram-complete-requirement-closure-and-static-update-Mapping-owners\",\"scope\":\"fresh-normalization-only; no-operation-support-Model-Effect-approval-resource-or-current-grant\",\"selector_classes\":[\"id\"],\"source_selection\":\"explicit-original-resolver-selection; no-Source-authority\"},\"profile\":\"actql-local-common-update-completion-free/0.1\",\"rules\":[],\"version\":\"actql-normalization-rule-catalog/0.1\"}",
+  "catalog_cid": "sha256:1263116a02d125a0c66f2445a175075d4ec333e56f3d003d35e9d51065fecf8f",
+  "journal_preimage": "{\"entries\":[],\"rule_catalog_cid\":\"sha256:1263116a02d125a0c66f2445a175075d4ec333e56f3d003d35e9d51065fecf8f\",\"version\":\"actql-normalization-journal/0.1\"}",
+  "journal_cid": "sha256:8b5172ca35db5cd4f35b8e6bbde52243d92b9e9027c2fc4568b8d66a5334ffb1"
+}

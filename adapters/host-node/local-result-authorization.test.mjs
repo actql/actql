@@ -365,6 +365,47 @@ test('a retained Result decision invalidates after the same owner observes a pol
     'an already observed policy revision is not unchanged operation state');
 });
 
+test('Delivery lookup consumes a changed Account observed by another public operation', async t => {
+  const account = await fixture(t, {}, deliverySubject);
+  let enter, release, paused = false, lookups = 0;
+  const entered = new Promise(resolve => {enter = resolve;});
+  const gate = new Promise(resolve => {release = resolve;});
+  const delivery = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+    authorize: account.authorize,
+    async lookup(found) {
+      lookups++;
+      if (paused) {enter(); await gate;}
+      return found;
+    },
+  });
+  await delivery.deliver();
+  const input = {...deliverySubject, attemptId: 'same-logical-attempt'};
+  const before = account.evaluations();
+  assert.equal((await resultAccess.inspectAuthorizedDeliveryAttempt(delivery.service, input)).kind, 'found');
+  assert.equal(account.admissions(), 1);
+  assert.equal(account.evaluations(), before + 1,
+    'unchanged same-operation checks retain one heavy Account evaluation');
+  const beforePending = account.evaluations();
+  paused = true;
+  const pending = resultAccess.inspectAuthorizedDeliveryAttempt(delivery.service, input);
+  try {
+    await entered;
+    assert.equal(account.evaluations(), beforePending + 1);
+    await account.change('deny');
+    // A distinct real public lookup observes current Deny before Store I/O.
+    await assert.rejects(resultAccess.inspectAuthorizedDeliveryAttempt(delivery.service, input),
+      {code: 'ResultAccessDenied'});
+    assert.equal(lookups, 2);
+    release();
+    await assert.rejects(pending, {code: 'ResultAccessDenied'});
+    assert.equal(account.admissions(), 2, 'only original Allow and changed Account are admitted');
+    assert.equal(account.evaluations(), beforePending + 3,
+      'only the changed policy is re-evaluated for each affected public operation');
+    assert.equal(lookups, 2);
+    assert.equal(delivery.state.grantUses, 1, 'lookup refusal does not refund or issue a delivery claim');
+  } finally {release(); await pending.catch(() => {});}
+});
+
 test('Local Result Delegate needs the existing immediate configured answer', async t => {
   const f = await fixture(t);
   await f.change('delegate');

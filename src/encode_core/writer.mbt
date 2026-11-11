@@ -7,21 +7,23 @@ pub(all) suberror EncodeFailure {
   InvalidNumber
   OutputLimit
   ClosedWriter
-} derive(Debug)
+} derive(Eq, Debug)
 
 ///|
 priv enum Frame {
+  RetiredFrame
   ArrayItems(Bool)
   ObjectKey(Bool, Map[String, Unit])
   ObjectValue(Map[String, Unit])
-  OrderedObjectKey(String?)
-  OrderedObjectValue(String)
+  OrderedObjectKey(String?, Int)
+  OrderedObjectValue(String, Int)
 }
 
 ///|
 priv enum OutputSink {
   TextOutput(StringBuilder)
   MeasureOutput
+  GeometryOutput(ConstructionGeometryState)
   HashOutput(@sha256.Hasher)
   BufferedHashOutput(BufferedHash)
   BufferedTextOutput(BufferedText)
@@ -86,7 +88,7 @@ priv struct BufferedHash {
 ///|
 // Exact bounded comparison fragments need text and usage, not a digest.
 priv struct BufferedText {
-  text : StringBuilder
+  mut text : StringBuilder
   limit : Int
   mut bytes : Int
 }
@@ -221,7 +223,9 @@ pub fn drain_buffered_output(w : Writer) -> String raise EncodeFailure {
     fail(w, InvalidStructure)
   }
   let text = buffer.text.to_string()
-  buffer.text.reset()
+  // A drained native String can share the old backing. Replace the builder
+  // with its one-slot initial state rather than zeroing the old capacity.
+  buffer.text = StringBuilder()
   buffer.bytes = 0
   text
 }
@@ -265,6 +269,9 @@ pub fn drain_hash_output(w : Writer) -> String raise EncodeFailure {
 pub fn cancel_writer(w : Writer) -> Unit {
   w.closed = true
   w.string_active = false
+  for index in 0..<w.frames.length() {
+    w.frames[index] = RetiredFrame
+  }
   w.frames.clear()
   match w.output {
     TextOutput(text) => text.reset()
@@ -273,11 +280,11 @@ pub fn cancel_writer(w : Writer) -> Unit {
       buffer.bytes = 0
     }
     BufferedTextOutput(buffer) => {
-      buffer.text.reset()
+      buffer.text = StringBuilder()
       buffer.bytes = 0
     }
     CompareOutput(output) => output.expected = ""
-    MeasureOutput | HashOutput(_) => ()
+    MeasureOutput | GeometryOutput(_) | HashOutput(_) => ()
   }
 }
 
@@ -377,7 +384,7 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
   w.remaining_bytes -= text.length()
   match w.output {
     TextOutput(output) => output.write_string(text)
-    MeasureOutput => ()
+    MeasureOutput | GeometryOutput(_) => ()
     CompareOutput(output) => compare_range(output, text, 0, text.length())
     BufferedTextOutput(buffer) => buffer.text.write_string(text)
     HashOutput(h) => hash_ascii_range(w, h, text, 0, text.length())
@@ -475,7 +482,7 @@ fn quoted_contents(
         w.remaining_bytes -= bytes
         match w.output {
           TextOutput(output) => output.write_char(scalar.unsafe_to_char())
-          MeasureOutput => ()
+          MeasureOutput | GeometryOutput(_) => ()
           CompareOutput(output) =>
             if scalar < 65536 {
               compare_unit(output, scalar)
@@ -499,10 +506,15 @@ fn quoted_contents(
 }
 
 ///|
-fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
+fn quoted(
+  w : Writer,
+  text : String,
+  key? : Bool = false,
+) -> Unit raise EncodeFailure {
   ascii(w, "\"")
   quoted_contents(w, text, 0, text.length()) |> ignore
   ascii(w, "\"")
+  observe_construction_text(w, text.length(), value=!key)
 }
 
 ///|
@@ -523,7 +535,7 @@ fn ascii_span(
   reserve_buffer(w, size)
   w.remaining_bytes -= size
   match w.output {
-    MeasureOutput => ()
+    MeasureOutput | GeometryOutput(_) => ()
     CompareOutput(output) => compare_range(output, text, start, end)
     TextOutput(output) =>
       output.write_view(text.view(start_offset=start, end_offset=end))
@@ -557,10 +569,11 @@ fn value_start(w : Writer) -> Unit raise EncodeFailure {
         }
         w.frames[index] = ArrayItems(false)
       }
-      ObjectKey(_, _) | OrderedObjectKey(_) => fail(w, InvalidStructure)
+      RetiredFrame | ObjectKey(_, _) | OrderedObjectKey(_, _) =>
+        fail(w, InvalidStructure)
       ObjectValue(keys) => w.frames[index] = ObjectKey(false, keys)
-      OrderedObjectValue(previous) =>
-        w.frames[index] = OrderedObjectKey(Some(previous))
+      OrderedObjectValue(previous, fields) =>
+        w.frames[index] = OrderedObjectKey(Some(previous), fields)
     }
   }
   w.remaining_nodes -= 1
@@ -706,6 +719,7 @@ pub fn advance_string_value(
     ascii(w, "\"")
     w.string_active = false
     cursor.done = true
+    observe_construction_text(w, length, value=true)
     true
   } else {
     false
@@ -730,6 +744,7 @@ pub fn begin_array(w : Writer) -> Unit raise EncodeFailure {
   }
   ascii(w, "[")
   w.frames.push(ArrayItems(true))
+  observe_construction_container(w, object=false)
   w.peak_depth = w.peak_depth.max(w.frames.length())
 }
 
@@ -741,6 +756,7 @@ pub fn begin_object(w : Writer) -> Unit raise EncodeFailure {
   }
   ascii(w, "{")
   w.frames.push(ObjectKey(true, Map([])))
+  observe_construction_container(w, object=true)
   w.peak_depth = w.peak_depth.max(w.frames.length())
 }
 
@@ -754,7 +770,8 @@ pub fn begin_ordered_object(w : Writer) -> Unit raise EncodeFailure {
     fail(w, OutputLimit)
   }
   ascii(w, "{")
-  w.frames.push(OrderedObjectKey(None))
+  w.frames.push(OrderedObjectKey(None, 0))
+  observe_construction_container(w, object=true)
   w.peak_depth = w.peak_depth.max(w.frames.length())
 }
 
@@ -774,7 +791,7 @@ pub fn start_ordered_key(
   name : String,
 ) -> OrderedKeyEmitCursor raise EncodeFailure {
   idle(w)
-  guard w.frames.last() is Some(OrderedObjectKey(previous)) else {
+  guard w.frames.last() is Some(OrderedObjectKey(previous, _)) else {
     fail(w, InvalidStructure)
   }
   // Reject the UTF-16 lower bound before touching the previous key. Exact
@@ -783,6 +800,7 @@ pub fn start_ordered_key(
     fail(w, OutputLimit)
   }
   w.string_active = true
+  observe_construction_field(w)
   { writer: w, text: name, previous, position: 0, phase: 0, done: false, }
 }
 
@@ -844,12 +862,13 @@ pub fn advance_ordered_key(
       if cursor.position == cursor.text.length() {
         ascii(w, "\":")
         let index = w.frames.length() - 1
-        guard index >= 0 && w.frames[index] is OrderedObjectKey(_) else {
+        guard index >= 0 && w.frames[index] is OrderedObjectKey(_, fields) else {
           fail(w, InvalidStructure)
         }
-        w.frames[index] = OrderedObjectValue(cursor.text)
+        w.frames[index] = OrderedObjectValue(cursor.text, fields + 1)
         w.string_active = false
         cursor.done = true
+        observe_construction_text(w, cursor.text.length(), value=false)
         true
       } else {
         false
@@ -897,15 +916,17 @@ pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
       if !first {
         ascii(w, ",")
       }
-      quoted(w, name)
+      quoted(w, name, key=true)
       ascii(w, ":")
       keys[name] = ()
       w.frames[index] = ObjectValue(keys)
+      observe_construction_field(w)
     }
-    ArrayItems(_)
+    RetiredFrame
+    | ArrayItems(_)
     | ObjectValue(_)
-    | OrderedObjectKey(_)
-    | OrderedObjectValue(_) => fail(w, InvalidStructure)
+    | OrderedObjectKey(_, _)
+    | OrderedObjectValue(_, _) => fail(w, InvalidStructure)
   }
 }
 
@@ -914,13 +935,17 @@ pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
   idle(w)
   match w.frames.last() {
     Some(ArrayItems(_)) => {
+      // Native pop retains its backing slot. Retire the payload before the
+      // O(1) pop so completed Maps and borrowed keys are no longer retained.
+      w.frames[w.frames.length() - 1] = RetiredFrame
       ignore(w.frames.pop())
       ascii(w, "]")
     }
-    Some(ObjectKey(_, _))
+    Some(RetiredFrame)
+    | Some(ObjectKey(_, _))
     | Some(ObjectValue(_))
-    | Some(OrderedObjectKey(_))
-    | Some(OrderedObjectValue(_))
+    | Some(OrderedObjectKey(_, _))
+    | Some(OrderedObjectValue(_, _))
     | None => fail(w, InvalidStructure)
   }
 }
@@ -929,13 +954,23 @@ pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
 pub fn end_object(w : Writer) -> Unit raise EncodeFailure {
   idle(w)
   match w.frames.last() {
-    Some(ObjectKey(_, _)) | Some(OrderedObjectKey(_)) => {
+    Some(ObjectKey(_, _)) | Some(OrderedObjectKey(_, _)) => {
+      let fields = match w.frames[w.frames.length() - 1] {
+        ObjectKey(_, keys) => keys.length()
+        OrderedObjectKey(_, count) => count
+        _ => 0
+      }
+      observe_construction_object_end(w, fields)
+      // Native pop retains its backing slot. Retire the payload before the
+      // O(1) pop so completed Maps and borrowed keys are no longer retained.
+      w.frames[w.frames.length() - 1] = RetiredFrame
       ignore(w.frames.pop())
       ascii(w, "}")
     }
-    Some(ArrayItems(_))
+    Some(RetiredFrame)
+    | Some(ArrayItems(_))
     | Some(ObjectValue(_))
-    | Some(OrderedObjectValue(_))
+    | Some(OrderedObjectValue(_, _))
     | None => fail(w, InvalidStructure)
   }
 }
@@ -976,7 +1011,9 @@ pub fn finish_measurement_usage(
   w : Writer,
 ) -> (Int, Int, Int) raise EncodeFailure {
   active(w)
-  guard w.output is MeasureOutput else { fail(w, InvalidStructure) }
+  guard w.output is MeasureOutput || w.output is GeometryOutput(_) else {
+    fail(w, InvalidStructure)
+  }
   finish_state(w)
   (
     w.max_bytes - w.remaining_bytes,
@@ -1056,8 +1093,11 @@ pub fn finish_hash_metrics(
       }
       buffer.hash
     }
-    TextOutput(_) | MeasureOutput | BufferedTextOutput(_) | CompareOutput(_) =>
-      fail(w, InvalidStructure)
+    TextOutput(_)
+    | MeasureOutput
+    | GeometryOutput(_)
+    | BufferedTextOutput(_)
+    | CompareOutput(_) => fail(w, InvalidStructure)
   }
   finish_state(w)
   let hex = @sha256.finish_hex(h) catch {

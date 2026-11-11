@@ -489,7 +489,9 @@ test('ordinary Journal serializes the same-root writer before SQLite and keeps o
 
 test('ordinary Journal forwards only its prepared Store exclusion once and closes after its own native ACK', async () => {
   const a = await fixture();
-  assert.throws(() => a.view.publicationOwnership());
+  const unadmitted = await prepareHostJournalInstallation({...a.originals, host: {}, generation: {}});
+  assert.throws(() => unadmitted.publicationOwnership());
+  assert.equal((await unadmitted.close()).pending, false);
   await assert.rejects(a.view.openRequestJournal(join(a.root, 'foreign'), {}));
   const journal = await a.view.openRequestJournal(join(a.root, 'requests'), {});
   const ownership = a.view.publicationOwnership();

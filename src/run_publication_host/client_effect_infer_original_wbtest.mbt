@@ -492,6 +492,23 @@ test "serialized Model original reconstruction retains the Content component" {
   ).unwrap()
   let wire = issue_prepared_client_effect_run_materials(allowed, definition).unwrap()
   let (_, _, effect_limits) = client_composed_effect_base_fixture()
+  let construction : Ref[ClientEffectCompilationConstruction?] = Ref(None)
+  let calls = Ref(0)
+  let refused = admit_client_effect_run_materials(
+    wire,
+    @publication.publication_contract_identity(definition),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    run_materials_manifests(),
+    bounds,
+    { ..effect_limits, program: client_standard_program_preparation_limits(), },
+    before_compilation=Some(_ => {
+      calls.val += 1
+      Err(Binding(ForeignCompilation))
+    }),
+  )
+  assert_true(refused is Err(Binding(ForeignCompilation)))
+  assert_eq(calls.val, 1)
   let restored = admit_client_effect_run_materials(
     wire,
     @publication.publication_contract_identity(definition),
@@ -500,7 +517,50 @@ test "serialized Model original reconstruction retains the Content component" {
     run_materials_manifests(),
     bounds,
     { ..effect_limits, program: client_standard_program_preparation_limits(), },
+    before_compilation=Some(input => {
+      calls.val += 1
+      let codec = {
+        max_facts: bounds.max_sequence_steps,
+        max_witnesses: bounds.max_sequence_work,
+        max_wire_bytes: bounds.max_evidence_bytes,
+        max_nodes: bounds.max_evidence_nodes,
+        max_depth: bounds.max_evidence_depth,
+      }
+      // The component's original owner funds observation/measurement first;
+      // the opaque callback exposes actual originals rather than caller counts.
+      match prepared_client_effect_measurement_storage(input, codec) {
+        Err(_) => return Err(Compilation(Encoding))
+        Ok(_) => ()
+      }
+      match
+        measure_prepared_client_effect_compilation_construction(
+          input,
+          run_materials_manifests(),
+          bounds.sequence,
+          codec,
+        ) {
+        Err(_) => Err(Compilation(Encoding))
+        Ok(value) => {
+          construction.val = Some(value)
+          Ok(())
+        }
+      }
+    }),
   ).unwrap()
+  assert_eq(calls.val, 2)
+  let measured = construction.val.unwrap()
+  assert_true(
+    client_effect_compilation_construction_matches(measured, restored.prepared),
+  )
+  let capacity = @local_query_time.request_model_recovery_effect_compiler_capacity(
+    measured,
+  ).unwrap()
+  assert_true(@execution.execution_capacity_retained_bytes(capacity) > 0L)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(capacity) >
+    @execution.execution_capacity_retained_bytes(capacity),
+  )
+  assert_false(client_effect_compilation_construction_matches(measured, owner))
   let (graph, restored_occurrence) = client_effect_compilation_infer_original(
     restored.compilation,
   ).unwrap()

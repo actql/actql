@@ -102,7 +102,11 @@ export function admitNativeOwnerObservations(observations, taskHoldings, selecte
     const environments = after.environments - before.environments;
     const imports = after.imports - before.imports;
     assert(environments >= 0 && imports >= 0, 'NativeOwnerCounterRetreat');
-    assert.equal(after.attempts - before.attempts, 1 + environments + imports,
+    // These registered cases import already-owned cells, not a retained wire.
+    // Environment capacity and cell-import scratch settle their unused attempt
+    // slots; their observation counts do not add consumed parent attempts.
+    // Keep one exact task debit, independently of those cold/reuse counters.
+    assert.equal(after.attempts - before.attempts, 1,
       'UnattributedNativePhysicalAttempt');
     assert.equal(after.holdings - before.holdings, 1,
       'NativeTaskHoldingCorrespondence');

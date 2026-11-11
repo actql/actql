@@ -31,17 +31,18 @@ assert.ok(method?.method && method.value.params.length === 0);
 // This does not load a Common runtime or issue the selected preload admission.
 // The real private Owner below tests original scope/current/custody semantics;
 // its test instance cannot add membership to the operational preload instance.
-function route({scope, originals, readAsset, select = (moon, wire) => wire} = {}) {
+function route({scope, originals, readAsset, select = (moon, wire) => wire,
+  selectRemote = (moon, wire) => wire} = {}) {
   const readEnvironmentSource = compileFunction(
     'return function () {' + source.slice(method.value.body.start + 1, method.value.body.end - 1) + '};',
     ['readInitialControlInstallationAsset', 'control', 'originals'],
   )(readAsset, scope, originals);
-  const read = compileFunction('return async function (preparation, moon, hostCapacityPolicy, hostLookupExecutionPolicy) {' +
+  const read = compileFunction('return async function (preparation, moon, hostCapacityPolicy, hostLookupExecutionPolicy, mode = "local", effectInstallation, selectedEffectPaths = []) {' +
     source.slice(entryGuard.start, entryGuard.end) + '\n' +
     source.slice(environmentSource.start, environmentSource.end) + '\n' +
     source.slice(selectedLookupPolicy.start, selectedLookupPolicy.end) + '\n' +
     source.slice(environmentWire.start, environmentWire.end) + '\nreturn baseEnvironmentWire;};',
-  ['selectInstalledLocalMaterializationEnvironment'])(select);
+  ['selectInstalledLocalMaterializationEnvironment', 'selectInstalledHostEnvironment'])(select, selectRemote);
   return {preparation: Object.freeze({readEnvironmentSource,
     fundedPreparation() {assert.fail('No Request compile in this routing component');},
     requestPreparation() {assert.fail('No Request issuance in this routing component');}}), read};
@@ -136,4 +137,57 @@ test('installed environment rejects an absent preparation owner before asset or 
   const r = route({readAsset() {assets++;}, select() {selections++;}});
   await assert.rejects(r.read(undefined, {}, {}, {}), /InstalledRequestPreparationUnavailable/u);
   assert.equal(assets, 0); assert.equal(selections, 0);
+});
+
+
+test('Remote supplied Effect environment retains the original generic selector before publication composition', async () => {
+  const f = fixture(), moon = {}, policy = {}, lookup = {}, selected = {};
+  let selections = 0;
+  const r = route({...f, readAsset: f.owner.readAsset,
+    select() {assert.fail('A Remote Host must not replace published policy with Local row materialization');},
+    selectRemote(runtime, wire, capacity, lookupPolicy) {
+      selections++;
+      assert.strictEqual(runtime, moon); assert.equal(wire, f.source.trimEnd());
+      assert.strictEqual(capacity, policy); assert.strictEqual(lookupPolicy, lookup);
+      return selected;
+    }});
+  assert.strictEqual(await r.read(r.preparation, moon, policy, lookup, 'remote', Object.freeze({environmentWire: 'original published Effect'})), selected);
+  assert.equal(selections, 1); assert.equal(f.assetReads, 1);
+  assert.equal((await f.scope.close()).pending, false);
+});
+
+
+test('Remote ordinary materialization retains its original Local selector without an independent Effect', async () => {
+  const f = fixture(), moon = {}, policy = {}, lookup = {}, selected = {};
+  let selections = 0;
+  const r = route({...f, readAsset: f.owner.readAsset,
+    select(runtime, wire, capacity, lookupPolicy) {
+      selections++;
+      assert.strictEqual(runtime, moon); assert.equal(wire, f.source.trimEnd());
+      assert.strictEqual(capacity, policy); assert.strictEqual(lookupPolicy, lookup);
+      return selected;
+    }, selectRemote() {assert.fail('An ordinary Remote caller retains the installed Local materialization selector');}});
+  assert.strictEqual(await r.read(r.preparation, moon, policy, lookup, 'remote'), selected);
+  assert.equal(selections, 1); assert.equal(f.assetReads, 1);
+  assert.equal((await f.scope.close()).pending, false);
+});
+
+
+test('profile-loaded Effects preserve their published generic policy on Local and Remote Hosts', async () => {
+  for (const mode of ['local', 'remote']) {
+    const f = fixture(), moon = {}, capacity = {}, lookup = {}, selected = {};
+    let selections = 0;
+    const r = route({...f, readAsset: f.owner.readAsset,
+      select() {assert.fail('Loading a published Effect must not select a different Local row policy');},
+      selectRemote(runtime, wire, originalCapacity, originalLookup) {
+        selections++;
+        assert.strictEqual(runtime, moon); assert.equal(wire, f.source.trimEnd());
+        assert.strictEqual(originalCapacity, capacity); assert.strictEqual(originalLookup, lookup);
+        return selected;
+      }});
+    assert.strictEqual(await r.read(r.preparation, moon, capacity, lookup, mode, undefined,
+      Object.freeze(['/original-effect-profile.json'])), selected);
+    assert.equal(selections, 1); assert.equal(f.assetReads, 1);
+    assert.equal((await f.scope.close()).pending, false);
+  }
 });

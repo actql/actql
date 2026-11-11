@@ -250,3 +250,69 @@ pub fn NativeLocalJournalCapture::lookup_run_policy_in_original_read(
     .map_err(issue => Journal(issue))
   })
 }
+
+///|
+/// Bind the already selected finite Policy to the SAME first Effect originals.
+/// This uses the existing acceptance transaction and preserves its inner
+/// material result separately from the captured Read's return/current result.
+pub fn NativeLocalJournalCapture::accept_issued_effect_policy_run_in_original_read(
+  self : NativeLocalJournalCapture,
+  binding : NativeLocalRunPolicyBinding,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  request : @host.ClientRequestIdentity,
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  issued : @host.ClientEffectIssuedNormalizationMaterials,
+  retention : @publication.PublicationContract,
+  issued_at : String,
+  now : Double,
+) -> Result[
+  Result[
+    NativeClientSubmittedIntentRecord,
+    NativeClientSubmittedEffectMaterialsIssue,
+  ],
+  NativeLocalAdoptionIssue,
+] {
+  let original = match
+    binding.issued_policy_original(
+      reference, request, definition, retention, issued_at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  self.accept_submitted_effect_material_original_in_original_read(
+    binding.principal,
+    binding.connection,
+    binding.scope,
+    reference,
+    preparation,
+    request,
+    allowed,
+    definition,
+    issued,
+    now,
+    local_policy=Some((binding, original)),
+  )
+}
+
+///|
+/// Borrow only the exact retention originals retained by this binding under
+/// its original captured Read. No selected filename is guessed and no Policy,
+/// Store custody or physical holding is created by this projection.
+pub fn NativeLocalRunPolicyBinding::retention_dependency_bodies_in_original_read(
+  self : NativeLocalRunPolicyBinding,
+  capture : NativeLocalJournalCapture,
+  request : @host.ClientRequestIdentity,
+) -> Result[
+  Array[@publication.CapturedEffectDependencyBody],
+  NativeLocalAdoptionIssue,
+] {
+  if !self.current_in_original_read(capture, Some(request), false) {
+    return Err(CustodyLost)
+  }
+  @host.client_local_run_policy_retention_bodies(
+    self.profile,
+    self.retention_file.body,
+  ).map_err(_ => CustodyLost)
+}

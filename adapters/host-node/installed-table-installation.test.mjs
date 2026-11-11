@@ -13,8 +13,11 @@ import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mj
 import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
 import {canonicalJson, contentCid, sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {installRowSourceAuthorization} from './installed-row-source.mjs';
-import {installedSourceIdentity, loadInstalledSource} from './installed-source.mjs';
-import {installedEffectIdentity, loadInstalledEffect} from './installed-effect.mjs';
+import {installedSourceIdentity, loadInstalledSource, loadInstalledSources} from './installed-source.mjs';
+import {installedEffectIdentity, loadInstalledEffect, loadInstalledEffects} from './installed-effect.mjs';
+import {composeInstalledEffects} from './installed-effect-inventory.mjs';
+import {isInstalledSourceInitializationRetired, retireInstalledSourceInitialization}
+  from './installed-host-services.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
 import {checkInstalledTableSourceProfile, checkInstalledTableEffectProfile,
@@ -22,6 +25,7 @@ import {checkInstalledTableSourceProfile, checkInstalledTableEffectProfile,
   from '../connectors/local/host/installed-local-table.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
+import {createInstalledLoaderParent, installedFailureCode} from './fixtures/installed-loader-parent.fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -34,21 +38,23 @@ async function directory(t) {
   t.after(() => rm(root, {recursive: true, force: true}));
   return root;
 }
-const common = root => ({connectorId: 'table', connection,
+const common = (root, connectorId = 'table') => ({connectorId,
+  connection: connectorId === 'table' ? connection : `${connectorId}-local`,
   // Deliberately nonexistent: installation cannot invoke Python or open files.
   python: join(root, 'uninstalled-python'),
   catalog: {database: join(root, 'catalog.db'), warehouse: join(root, 'warehouse'),
     catalogCid: cid('3'), limits: {bytes: 16777216, files: 256, operations: 32}},
-  accountConfigurationWire: sourceReadAccountConfiguration({connection, resource: 'rows'})});
-const sourceProfile = root => ({...common(root), version: 'actql-installed-local-table-source/0.1',
+  accountConfigurationWire: sourceReadAccountConfiguration({
+    connection: connectorId === 'table' ? connection : `${connectorId}-local`, resource: 'rows'})});
+const sourceProfile = (root, connectorId = 'table') => ({...common(root, connectorId), version: 'actql-installed-local-table-source/0.1',
   targets: [{resource: 'rows', schemaWire, selector: {catalog_identity_cid: cid('3'),
     namespace: ['test'], table_name: 'rows',
     table_uuid: '00000000-0000-0000-0000-000000000001', schema_cid: schemaCid}}],
   limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}});
 
-function effectProfile(root, approval = 'required') {
+function effectProfile(root, approval = 'required', connectorId = 'table') {
   const body = JSON.parse(baseEnvironmentWire);
-  const targetRef = 'connector://table/catalog', mappingRef = 'mapping:table.catalog.v1';
+  const targetRef = `connector://${connectorId}/catalog`, mappingRef = `mapping:${connectorId}.catalog.v1`;
   const manifestCid = withFixtureConnector(body, targetRef);
   const schema = {additional_properties: false, fields: {
     Id: {nullable: false, type: 'number'}, Name: {nullable: true, type: 'number'}},
@@ -64,19 +70,92 @@ function effectProfile(root, approval = 'required') {
   body.mapping_contracts = [mapping];
   delete body.evidence_bundle_cid;
   const environmentWire = canonicalJson({...body, evidence_bundle_cid: contentCid(body)});
-  return {...common(root), version: 'actql-installed-local-table-effect/0.1', environmentWire,
+  return {...common(root, connectorId), version: 'actql-installed-local-table-effect/0.1', environmentWire,
     targets: [{effectId: 'save', resource: 'rows', targetRef, mappingRef,
       mappingCid: mapping.mapping_contract_cid, action: 'create', catalogCid: cid('3'),
       namespace: ['test'], tableName: 'rows', expectedTable: null,
       permissions: ['scope:store'], footprint: {version: 'fixture-only'}}], limits: {}};
 }
 async function installedProfile(t, value) {
-  const root = await directory(t), path = join(root, 'profile.json');
+  const root = await mkdtemp(join(tmpdir(), 'actql-table-installation-'));
+  const path = join(root, 'profile.json');
+  const parent = createInstalledLoaderParent({root, principalId, moon});
+  t.after(async () => {await parent.close(); await rm(root, {recursive: true, force: true});});
+  parent.open();
   const profile = value(root);
   await writeFile(path, JSON.stringify(profile));
-  return {root, path, profile, options: {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
+  return {root, path, profile, parent, options: {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
+    installationServices: parent.services,
     resolveSecret() { assert.fail('Local Table installation needs no external credential'); }}};
 }
+
+for (const [role, make, load, members] of [
+  ['Source', sourceProfile, loadInstalledSources, 'sources'],
+  ['Effect', (root, name) => effectProfile(root, 'required', name), loadInstalledEffects, 'effects'],
+]) {
+  test(`funded plural Table ${role} loading keeps one real Source parent through retirement`, async t => {
+    const f = await installedProfile(t, root => make(root, 'first'));
+    const secondPath = join(f.root, 'second-profile.json');
+    await writeFile(secondPath, JSON.stringify(make(f.root, 'second')));
+    const inventory = await f.parent.load(load, [f.path, secondPath], f.options);
+    assert.equal(inventory[members].length, 2);
+    assert.equal(inventory.environmentOriginal.runtime, moon);
+    assert.equal(inventory.environmentOriginal.wire, inventory.environmentWire);
+    assert.deepEqual(inventory.connectorBindings.map(value => value.connectorId), ['first', 'second']);
+    assert.deepEqual(JSON.parse(inventory.environmentWire).connector_catalogs
+      .map(value => value.connector_id).sort(), ['first', 'second']);
+    assert.equal(retireInstalledSourceInitialization(f.parent.services), false,
+      'open genuine Table adapters still retain the same Source material');
+    await inventory.close();
+    await f.parent.close();
+    assert.equal(isInstalledSourceInitializationRetired(f.parent.services), true);
+  });
+}
+
+test('funded Table Effect composition retains the original child while partial cleanup is pending', async t => {
+  const f = await installedProfile(t, root => effectProfile(root, 'required', 'first'));
+  const laterFailure = new Error('FixtureLaterEffectLoadFailure');
+  const closeFailure = new Error('FixtureOriginalEffectClosePending');
+  let blocked = true, loads = 0, closes = 0, original, failure;
+  const compose = (paths, options) => composeInstalledEffects(paths, options,
+    async (path, captured, retain) => {
+      loads++;
+      if (path === 'later') throw laterFailure;
+      assert.equal(path, f.path, 'a failed second load must not reach another member');
+      assert.equal(captured.installationServices, f.parent.services);
+      assert.ok(Object.isFrozen(captured));
+      original = await loadInstalledEffect(path, captured);
+      // Fault only the aggregate's close attempt. The actual adapter and its
+      // Source construction remain live until their own close succeeds.
+      const member = Object.freeze({...original, async close() {
+        closes++;
+        if (blocked) throw closeFailure;
+        await original.close();
+      }});
+      retain(member);
+      return member;
+    });
+  await assert.rejects(f.parent.load(compose, [f.path, 'later', 'unreached'], f.options), error => {
+    failure = error;
+    assert.equal(error.primaryFailure, laterFailure);
+    assert.equal(error.cleanupPending, true);
+    return true;
+  });
+  assert.ok(original);
+  assert.equal(loads, 2);
+  assert.equal(closes, 1);
+  assert.equal(retireInstalledSourceInitialization(f.parent.services), false);
+  await assert.rejects(f.parent.close(), {message: 'InstalledLoaderChildrenCleanupPending'});
+  assert.equal(isInstalledSourceInitializationRetired(f.parent.services), false);
+  assert.equal(closes, 2);
+  blocked = false;
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(failure.primaryFailure, laterFailure);
+  assert.equal(closes, 3);
+  await f.parent.close();
+  assert.equal(isInstalledSourceInitializationRetired(f.parent.services), true);
+});
 
 test('explicit tables preserve real Local Table identity and generic loading', async t => {
   const connectorTable = createInstalledConnectorTable(installedConnectors);
@@ -86,7 +165,7 @@ test('explicit tables preserve real Local Table identity and generic loading', a
   ]) {
     const f = await installedProfile(t, make);
     assert.equal(await identity(f.path, {connectorTable}), await identity(f.path));
-    const adapter = await load(f.path, {...f.options, connectorTable});
+    const adapter = await f.parent.load(load, f.path, {...f.options, connectorTable});
     try {
       assert.equal(adapter.connectorBindings[0].connectorId, 'table');
       assert.match(adapter.connectorBindings[0].bindingCid, /^sha256:[0-9a-f]{64}$/u);
@@ -94,7 +173,9 @@ test('explicit tables preserve real Local Table identity and generic loading', a
         assert.equal(adapter.connectorRegistration, 'local');
         assert.equal(adapter.connectorRevision, 'local/0.1');
       } else {
-        assert.deepEqual(adapter.effectSelectors, [{kind: 'store',
+        const [{capabilityCid, ...selector}] = adapter.effectSelectors;
+        assert.match(capabilityCid, /^sha256:[0-9a-f]{64}$/u);
+        assert.deepEqual([selector], [{kind: 'store',
           target: 'connector://table/catalog', mappingRef: 'mapping:table.catalog.v1',
           mappingCid: f.profile.targets[0].mappingCid, effectId: 'save'}]);
       }
@@ -109,7 +190,7 @@ test('Table Source loads through the generic Host without physical I/O', async t
   const f = await installedProfile(t, sourceProfile);
   const identity = await installedSourceIdentity(f.path);
   assert.match(identity, /^sha256:[0-9a-f]{64}$/u);
-  const adapter = await loadInstalledSource(f.path, f.options);
+  const adapter = await f.parent.load(loadInstalledSource, f.path, f.options);
   try {
     assert.equal(adapter.connectorRegistration, 'local');
     assert.equal(adapter.connectorRevision, 'local/0.1');
@@ -125,16 +206,19 @@ test('Table Source loads through the generic Host without physical I/O', async t
   } finally { await adapter.close(); }
 });
 
-test('Local Table cannot load without the selected Connector implementation declaration', async t => {
+test('Local Table cannot bypass the common bound construction even with claimed implementation DATA', async t => {
   const f = await installedProfile(t, sourceProfile);
   await assert.rejects(loadInstalledTableSource(f.profile, f.options),
-    {code: 'InstalledConnectorRegistrationMismatch'});
+    {code: 'InstalledTableSourceConstructionUnavailable'});
   const effect = effectProfile(f.root);
   await assert.rejects(loadInstalledTableEffect(effect, {...f.options, ledgerRoot: join(f.root, 'ledger')}),
-    {code: 'InstalledConnectorRegistrationMismatch'});
+    {code: 'InstalledTableEffectConstructionUnavailable'});
+  // Domain-only refusal test: this facade is never invoked and establishes
+  // no lifecycle success. Actual construction is covered by the tests above.
+  const construction = Object.freeze({createTableSource() {assert.fail('invalid inventory reached construction');}});
   for (const installation of [{registration: 'local', revision: 'local/0.1'},
     {registration: 'local', revision: 'local/0.1', implementationFiles: []}]) {
-    await assert.rejects(loadInstalledTableSource(f.profile, {...f.options, installation}),
+    await assert.rejects(loadInstalledTableSource(f.profile, {...f.options, installation, construction}),
       {code: 'InvalidConnectorImplementationInventory'});
   }
   assert.deepEqual((await readdir(f.root)).sort(), ['profile.json'],
@@ -144,7 +228,7 @@ test('Local Table cannot load without the selected Connector implementation decl
 test('Table Effect loads its admitted Mapping and existing runtime hooks without publication', async t => {
   const f = await installedProfile(t, effectProfile);
   assert.match(await installedEffectIdentity(f.path), /^sha256:[0-9a-f]{64}$/u);
-  const adapter = await loadInstalledEffect(f.path, f.options);
+  const adapter = await f.parent.load(loadInstalledEffect, f.path, f.options);
   try {
     assert.equal(typeof adapter.prepareCaptured, 'function');
     assert.equal(typeof adapter.prepareRecovered, 'function');
@@ -186,7 +270,7 @@ test('Table Effect refuses absent or non-required approval Mappings before insta
       if (variation === 'mapping') f.profile.targets[0].mappingCid = cid('f');
       if (variation === 'target') f.profile.targets[0].targetRef = 'connector://foreign/catalog';
       await writeFile(f.path, JSON.stringify(f.profile));
-      await assert.rejects(loadInstalledEffect(f.path, f.options), {code: 'InstalledTableMappingNotInstalled'});
+      await assert.rejects(f.parent.load(loadInstalledEffect, f.path, f.options), installedFailureCode('InstalledTableMappingNotInstalled'));
       assert.deepEqual(await readdir(f.root), ['profile.json']);
     });
   }

@@ -5,9 +5,14 @@
 /// Promise engine/backing implementation is opaque runtime support, not RSS.
 /// Module WeakMap owners and this immutable tariff recipe are installation-owned.
 let managed_cleanup_control_units : @execution.PreparationRepresentationUnits = {
-  record_headers: 10L,
-  reference_slots: 25L,
-  scalar_words: 1L,
+  // Completed-scratch continuation adds two original method closures, one
+  // availability thunk, and the helper/caller async contexts (5H,10R), plus the SAME retained result owner (1R).
+  // Three progress words, one same-Run flight latch, and the Model cleanup's
+  // continuation-selection/sticky-failure words add6W. This is one fixed
+  // original cleanup inventory, not a per-wrapper fee or new allowance.
+  record_headers: 10L + 5L,
+  reference_slots: 25L + 11L,
+  scalar_words: 1L + 6L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

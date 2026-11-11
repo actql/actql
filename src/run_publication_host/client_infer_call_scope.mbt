@@ -418,6 +418,15 @@ pub fn client_infer_call_scope_unit_id(value : ClientInferCallScope) -> String? 
 }
 
 ///|
+/// Pure semantic coordinate of the same checked INFER. No Run, physical
+/// capture or replacement task/step is selected by this DATA projection.
+pub fn client_infer_call_scope_local_coordinate(
+  value : ClientInferCallScope,
+) -> (String, Int) {
+  (value.unit_definition_cid, value.source_ordinal)
+}
+
+///|
 /// Exact private originals for a completed fixed input. This record is not
 /// a public artifact or permission; authenticated Store custody is required
 /// before it can be used by the saved-scope reader below.
@@ -532,6 +541,12 @@ fn infer_scope_expected_sources(
 ] {
   let owner = occurrence.owner
   let graph = owner.graph
+  match infer_scope_expected_whole_sources(occurrence) {
+    Ok(Some(expected)) => return Ok(expected)
+    Ok(None) => ()
+    Err(issue) => return Err(issue)
+  }
+
   if plan is Some(selected) && selected.serialization is Some(component) {
     if @strategy.graph_source_free_inputs_complete(graph) {
       return Ok([])
@@ -626,6 +641,13 @@ fn infer_scope_expected_sources(
   if count < 1 || count > 2 || occurrence.task < count {
     return Err(UnsupportedBindings)
   }
+  guard client_infer_composed_source_origin(occurrence) is Some(original) else {
+    return Err(ForeignInput)
+  }
+  if client_infer_occurrence_coordinates(original) !=
+    client_infer_occurrence_coordinates(occurrence) {
+    return infer_scope_expected_sources(original)
+  }
   let pipeline = @lower.pipeline(
     @lower.bound_preparation(occurrence.preparation),
   )
@@ -659,7 +681,129 @@ fn infer_scope_expected_sources(
     }
     expected.push((name, facts))
   }
+  match client_composed_keyed_source_coordinates(owner) {
+    Ok(None) => ()
+    Ok(Some((stage, input, join))) => {
+      guard stage == occurrence.stage &&
+        join < occurrence.step &&
+        prepare_client_keyed_acquisition(
+          owner,
+          stage,
+          input,
+          1000000,
+          join_step=Some(join),
+        )
+        is Ok(keyed) &&
+        client_keyed_acquisition_coordinates(keyed) is Some((_, task, _)) &&
+        task == occurrence.task &&
+        @planning.keyed_source_evidence_facts(keyed.facts) is Some(facts) else {
+        return Err(ForeignInput)
+      }
+      // Source declaration ordinals and lowered input slots are distinct. Use
+      // the same original declared name as the live composed lookup projection.
+      let subject = @checked.source_execution_subject(keyed.check)
+      let name = @acquisition.declaration(subject.source).input_name
+      guard @pipeline.lookup(pipeline, name) is Some(@pipeline.Input(_)) &&
+        !expected.any(item => item.0 == name) else {
+        return Err(ForeignInput)
+      }
+      expected.push((name, facts))
+    }
+    Err(_) => return Err(ForeignInput)
+  }
   Ok(expected)
+}
+
+///|
+// Current checked Source selections for the same saved provenance reader.
+// This is immutable original metadata, never a query, capture or fresh read.
+fn infer_scope_expected_whole_sources(
+  occurrence : ClientInferOccurrence,
+) -> Result[
+  Array[(String, @planning.QuerySourceEvidenceFacts)]?,
+  ClientInferCallScopeIssue,
+] {
+  let owner = occurrence.owner
+  guard select_client_direct_acquisition_occurrences(owner, 1000000)
+    is Ok(direct) else {
+    return Ok(None)
+  }
+  let expected : Array[(String, @planning.QuerySourceEvidenceFacts)] = []
+  let mut whole = 0
+  for slot in 0..<client_direct_acquisition_occurrence_count(direct) {
+    guard client_direct_acquisition_occurrence_at(direct, slot)
+      is Some((stage, input, _)) &&
+      @context.program_identity_stage_requests(
+        @checked.source_identity(@strategy.graph_program(owner.graph)),
+        stage,
+      )
+      is Some(requests) else {
+      return Err(ForeignInput)
+    }
+    match
+      @acquisition.select_source_acquisition_route(requests, input, 1000000) {
+      Ok(@acquisition.QueryRoute(_)) => ()
+      Ok(@acquisition.WholeInputRoute(original)) => {
+        guard @planning.source_acquisition_evidence_facts(original)
+          is Some(facts) else {
+          return Err(ForeignInput)
+        }
+        let name = @acquisition.declaration(
+            @acquisition.mode_input(
+              @acquisition.source_acquisition_mode(original),
+            ),
+          ).input_name
+        if expected.any(entry => entry.0 == name) {
+          return Err(ForeignInput)
+        }
+        expected.push((name, facts))
+        whole += 1
+      }
+      Err(_) => return Err(ForeignInput)
+    }
+  }
+  if whole == 0 {
+    return Ok(None)
+  }
+  if whole != client_direct_acquisition_occurrence_count(direct) {
+    return Err(UnsupportedBindings)
+  }
+  guard client_infer_composed_source_origin(occurrence) is Some(original) else {
+    return Err(ForeignInput)
+  }
+  if client_infer_occurrence_coordinates(original) !=
+    client_infer_occurrence_coordinates(occurrence) {
+    return infer_scope_expected_whole_sources(original)
+  }
+  match client_composed_keyed_source_coordinates(owner) {
+    Ok(None) => ()
+    Ok(Some((stage, input, join))) => {
+      guard stage == occurrence.stage &&
+        join < occurrence.step &&
+        prepare_client_keyed_acquisition(
+          owner,
+          stage,
+          input,
+          1000000,
+          join_step=Some(join),
+        )
+        is Ok(keyed) &&
+        client_keyed_acquisition_coordinates(keyed) is Some((_, task, _)) &&
+        task == occurrence.task &&
+        @planning.keyed_source_evidence_facts(keyed.facts) is Some(facts) else {
+        return Err(ForeignInput)
+      }
+      let name = @acquisition.declaration(
+          @checked.source_execution_subject(keyed.check).source,
+        ).input_name
+      if expected.any(entry => entry.0 == name) {
+        return Err(ForeignInput)
+      }
+      expected.push((name, facts))
+    }
+    Err(_) => return Err(ForeignInput)
+  }
+  Ok(Some(expected))
 }
 
 ///|
@@ -834,6 +978,15 @@ pub fn client_infer_saved_call_scope_matches_run(
   definition : @publication.PublicationContract,
 ) -> Bool {
   (value.available)() &&
+  infer_saved_call_scope_run_originals(value, compiled, definition)
+}
+
+///|
+fn infer_saved_call_scope_run_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
   physical_equal(value.compiled, compiled) &&
   @publication.publication_contract_identity(value.definition) ==
   @publication.publication_contract_identity(definition)
@@ -846,10 +999,34 @@ pub fn client_infer_saved_call_scope_matches_occurrence(
   plan : ClientInferPlanGraph,
 ) -> Bool {
   (value.available)() &&
+  infer_saved_call_scope_occurrence_originals(value, occurrence, plan)
+}
+
+///|
+fn infer_saved_call_scope_occurrence_originals(
+  value : ClientInferSavedCallScope,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Bool {
   client_infer_occurrence_matches(value.occurrence, occurrence.owner) &&
   client_infer_occurrence_coordinates(value.occurrence) ==
   client_infer_occurrence_coordinates(occurrence) &&
   physical_equal(value.plan, plan)
+}
+
+///|
+/// One current observation for the same synchronous Run/occurrence borrow.
+/// Both original identity laws remain owned by the same private predicates.
+pub fn client_infer_saved_call_scope_matches_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  infer_saved_call_scope_run_originals(value, compiled, definition) &&
+  infer_saved_call_scope_occurrence_originals(value, occurrence, plan) &&
+  (value.available)()
 }
 
 ///|
@@ -933,4 +1110,32 @@ pub fn restore_client_infer_call_scope(
     source_ordinal: occurrence.step,
     generation: None,
   })
+}
+
+///|
+/// Borrow only this original saved Scope's already-admitted Source leaves.
+/// The combined identity/current predicate observes custody once at entry.
+pub fn client_infer_saved_source_originals(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Result[
+  Array[(@publication.RunEvidenceValue, @publication.RunEvidenceValue)],
+  ClientInferCallScopeIssue,
+] {
+  if !client_infer_saved_call_scope_matches_originals(
+      value, compiled, definition, occurrence, plan,
+    ) {
+    return Err(ForeignOwner)
+  }
+  Ok(
+    value.named_sources.map(item => {
+      let (source, input, _, _) = @publication.model_source_observation_originals(
+        item.1,
+      )
+      (source, input)
+    }),
+  )
 }

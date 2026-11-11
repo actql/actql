@@ -49,17 +49,38 @@ export function admitIcebergStorageMapping({control, mappingWire, limits}) {
   return control.admitLocalTableStorageMapping(mappingWire, limits);
 }
 
+// Pure shape checks for an already-owned JSON profile. These do not snapshot,
+// retain a physical bridge, prepare a process, or issue read authority. The
+// actual bridge below still snapshots before checking and retaining its data.
+export function validateIcebergPhysicalConfiguration({python, catalog}) {
+  if (!(python instanceof URL) || python.protocol !== 'file:' ||
+      !keys(catalog, ['database', 'warehouse', 'catalogCid', 'limits']) ||
+      !['database', 'warehouse'].every(key => typeof catalog[key] === 'string' && isAbsolute(catalog[key])) ||
+      !cid(catalog.catalogCid) || !keys(catalog.limits, ['bytes', 'files', 'operations']) ||
+      Object.values(catalog.limits).some(value => !Number.isSafeInteger(value) || value < 1)) {
+    fail('InvalidTablePhysicalConfiguration');
+  }
+}
+
+export function validateIcebergReadSelector(selector, catalogCid) {
+  if (!keys(selector, ['catalog_identity_cid', 'namespace', 'table_name', 'table_uuid', 'schema_cid']) ||
+      selector.catalog_identity_cid !== catalogCid || !cid(selector.schema_cid) ||
+      !Array.isArray(selector.namespace) || selector.namespace.length < 1 ||
+      selector.namespace.length > 32 || selector.namespace.some(part =>
+        typeof part !== 'string' || part.length < 1 || part.length > 256 || /[.\0\r\n]/u.test(part)) ||
+      typeof selector.table_name !== 'string' || selector.table_name.length < 1 ||
+      selector.table_name.length > 256 || /[\0\r\n]/u.test(selector.table_name) ||
+      typeof selector.table_uuid !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(selector.table_uuid)) {
+    fail('InvalidTableReadSelector');
+  }
+}
+
 export function createIcebergPhysicalBridge({python, run, catalog,
   implementation,
   entry = new URL('../iceberg/process_worker.py', import.meta.url)}) {
   const config = snapshot(catalog);
-  if (!(python instanceof URL) || python.protocol !== 'file:' ||
-      !keys(config, ['database', 'warehouse', 'catalogCid', 'limits']) ||
-      !['database', 'warehouse'].every(key => typeof config[key] === 'string' && isAbsolute(config[key])) ||
-      !cid(config.catalogCid) || !keys(config.limits, ['bytes', 'files', 'operations']) ||
-      Object.values(config.limits).some(value => !Number.isSafeInteger(value) || value < 1)) {
-    fail('InvalidTablePhysicalConfiguration');
-  }
+  validateIcebergPhysicalConfiguration({python, catalog: config});
   if (implementation !== undefined && (!cid(implementation.identity) ||
       typeof implementation.assertCurrent !== 'function')) fail('InvalidTableImplementationBinding');
   const assertImplementation = () => {
@@ -78,15 +99,18 @@ export function createIcebergPhysicalBridge({python, run, catalog,
   const preflight = (command, payload) => snapshot({protocol: 'actql-local-execution/0.1',
     session: '00000000-0000-0000-0000-000000000000', run,
     kind: 'execute', sequence: 1, body: {catalog: config, command, payload}});
-  const invoke = async (command, payload, signal, stopped) => {
+  const invoke = async (command, payload, signal, stopped, beforeBodyAllocation, bodyReceived) => {
     assertImplementation();
-    let channel, error;
+    let channel, error, launchSelected = false;
     // A bounded physical I/O wait does not certify cancellation/noncommit.
     // Deadline failure still waits for actual exit and requires reconciliation.
     const deadline = AbortSignal.timeout(60000);
     const cancellation = signal === undefined ? deadline : AbortSignal.any([signal, deadline]);
     try {
-      channel = await startManagedExecution(prepareManagedExecution(configuration()), cancellation);
+      const prepared = prepareManagedExecution({...configuration(), beforeBodyAllocation, bodyReceived});
+      cancellation.throwIfAborted();
+      launchSelected = true;
+      channel = await startManagedExecution(prepared, cancellation);
       return await channel.request({catalog: config, command, payload}, cancellation);
     } catch (caught) {
       error = caught;
@@ -97,7 +121,9 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       // kill-and-wait where cooperative stop is impossible.
       if (channel) await channel.close();
       else if (error?.cleanupHandle) await error.cleanupHandle.retry();
-      stopped?.();
+      // Process exit cannot discharge an unresolved original callback duty.
+      const cleanup = channel?.cleanupHandle ?? error?.cleanupHandle;
+      if (!launchSelected || cleanup !== undefined && cleanup.status().pending === false) stopped?.();
     }
   };
   const own = prepared => {
@@ -105,13 +131,24 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     if (!owned || owned.bridge !== bridge) fail('ForeignTablePhysicalPreparation');
     return owned;
   };
-  const reconcileOperation = (operation, signal) => {
+  const reconcileOperation = (operation, signal, beforeBodyAllocation, bodyReceived) => {
     const payload = snapshot({operation});
     if (!cid(payload.operation?.request_cid)) fail('InvalidTablePhysicalPreparation');
     preflight('reconcile', payload);
-    return invoke('reconcile', payload, signal);
+    return invoke('reconcile', payload, signal, undefined, beforeBodyAllocation, bodyReceived);
   };
   const bridge = Object.freeze({
+    frameLimits: frames,
+    // Original implementation geometry for the installed managed Plan. This
+    // is constructor DATA, never a process, reservation or permission. The
+    // retained payload, preflight/request snapshots and response projection
+    // can overlap; each uses this same finite framing implementation.
+    effectPlanConstruction: Object.freeze({
+      retained: Object.freeze({nodes: 4n * BigInt(frames.maxNodes),
+        text: 8n * BigInt(frames.maxBytes), wire: 2n * BigInt(frames.maxBytes)}),
+      workspace: Object.freeze({nodes: 2n * BigInt(frames.maxNodes) + 2n * BigInt(frames.maxDepth),
+        text: 4n * BigInt(frames.maxBytes), wire: 2n * BigInt(frames.maxBytes) + 8n}),
+    }),
     supportsOperation(values) { assertImplementation(); return supportsIcebergTableOperation(values); },
     issueStorageMapping(values) { assertImplementation(); return issueIcebergStorageMapping(values); },
     admitStorageMapping(values) { assertImplementation(); return admitIcebergStorageMapping(values); },
@@ -120,21 +157,11 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     // grant or a generation; only the authorized resolver freezes a head.
     checkReadSelector(selector) {
       const payload = snapshot({selector});
-      if (!keys(payload.selector, ['catalog_identity_cid', 'namespace', 'table_name', 'table_uuid', 'schema_cid']) ||
-          payload.selector.catalog_identity_cid !== config.catalogCid || !cid(payload.selector.schema_cid) ||
-          !Array.isArray(payload.selector.namespace) || payload.selector.namespace.length < 1 ||
-          payload.selector.namespace.length > 32 || payload.selector.namespace.some(part =>
-            typeof part !== 'string' || part.length < 1 || part.length > 256 || /[.\0\r\n]/u.test(part)) ||
-          typeof payload.selector.table_name !== 'string' || payload.selector.table_name.length < 1 ||
-          payload.selector.table_name.length > 256 || /[\0\r\n]/u.test(payload.selector.table_name) ||
-          typeof payload.selector.table_uuid !== 'string' ||
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(payload.selector.table_uuid)) {
-        fail('InvalidTableReadSelector');
-      }
+      validateIcebergReadSelector(payload.selector, config.catalogCid);
       Object.freeze(payload.selector.namespace);
       return Object.freeze(payload.selector);
     },
-    prepareWrite({operation, mapping, rows, reservation, schemaWire}) {
+    prepareWrite({operation, mapping, rows, reservation, schemaWire, beforeBodyAllocation, bodyReceived}) {
       assertImplementation();
       if (typeof schemaWire !== 'string') fail('InvalidTableLogicalSchema');
       const payload = snapshot({operation, mapping, rows, reservation, schema_wire: schemaWire});
@@ -155,7 +182,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       // a substitute for common input admission/retention accounting.
       preflight('write', payload);
       const prepared = Object.freeze({});
-      preparations.set(prepared, {bridge, payload, attempted: false, stopped: false});
+      preparations.set(prepared, {bridge, payload, attempted: false, stopped: false, beforeBodyAllocation, bodyReceived});
       return prepared;
     },
     async execute(prepared, {useCid, signal} = {}) {
@@ -165,7 +192,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       assertImplementation();
       if (owned.attempted) fail('TablePhysicalReconcileOnly');
       owned.attempted = true;
-      const result = await invoke('write', owned.payload, signal, () => { owned.stopped = true; });
+      const result = await invoke('write', owned.payload, signal, () => { owned.stopped = true; }, owned.beforeBodyAllocation, owned.bodyReceived);
       if (typeof result?.ok !== 'boolean' || !(keys(result, ['ok', 'result']) ||
           (!result.ok && keys(result, ['ok', 'code']) && typeof result.code === 'string'))) {
         fail('InvalidTablePhysicalReply');
@@ -176,7 +203,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     },
     async reconcile(prepared, signal) {
       const owned = own(prepared);
-      return reconcileOperation(owned.payload.operation, signal);
+      return reconcileOperation(owned.payload.operation, signal, owned.beforeBodyAllocation, owned.bodyReceived);
     },
     // Recovery needs the original sealed operation, not live input, a new
     // writer preparation or recreated payload. Caller owns evidence authority.
@@ -185,24 +212,24 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       const owned = own(prepared);
       const payload = {operation: owned.payload.operation};
       preflight('inspect', payload);
-      return invoke('inspect', payload, signal);
+      return invoke('inspect', payload, signal, undefined, owned.beforeBodyAllocation, owned.bodyReceived);
     },
     async cleanup(prepared, signal) {
       const owned = own(prepared);
       if (!owned.attempted || !owned.stopped) fail('TableWriterNotStopped');
       // The Catalog checks original-operation publication and fences commit in
       // the same transaction before deleting only this operation's staged files.
-      return invoke('cleanup', {operation: owned.payload.operation}, signal);
+      return invoke('cleanup', {operation: owned.payload.operation}, signal, undefined, owned.beforeBodyAllocation, owned.bodyReceived);
     },
-    async read(receipt, mapping, signal) {
+    async read(receipt, mapping, signal, beforeBodyAllocation, bodyReceived) {
       const payload = snapshot({receipt, mapping});
       preflight('read', payload);
-      return invoke('read', payload, signal);
+      return invoke('read', payload, signal, undefined, beforeBodyAllocation, bodyReceived);
     },
-    async resolveGeneration(selector, signal) {
+    async resolveGeneration(selector, signal, beforeBodyAllocation, bodyReceived) {
       const payload = {selector: bridge.checkReadSelector(selector)};
       preflight('resolve_generation', payload);
-      return invoke('resolve_generation', payload, signal);
+      return invoke('resolve_generation', payload, signal, undefined, beforeBodyAllocation, bodyReceived);
     },
     status(prepared) {
       const owned = own(prepared);

@@ -74,16 +74,48 @@ class NativeTimingProtocol(unittest.TestCase):
                         str(ROOT / 'scripts/fixtures/native_timings_protocol.c'),
                         '-lsqlite3', '-o', str(cls.binary)], check=True, timeout=60)
 
-    def run_protocol(self,mode,selection):
+    def run_protocol(self,mode,selection,acceptance=None):
         env=dict(os.environ);env.pop('ACTQL_NATIVE_TIMINGS',None)
+        env.pop('ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS',None)
+        if acceptance is not None:env['ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS']=acceptance
         if selection is not None:env['ACTQL_NATIVE_TIMINGS']=selection
         result=subprocess.run([str(self.binary),mode],env=env,text=True,capture_output=True,timeout=60)
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual(result.stdout,'')
         rows=[]
         for line in result.stderr.splitlines():
-            prefix,body=line.split(' ',1);self.assertIn(prefix,('ACTQL_NATIVE_TIMINGS','ACTQL_NATIVE_PHASE','ACTQL_NATIVE_COUNTER'));rows.append((prefix,json.loads(body)))
+            prefix,body=line.split(' ',1);self.assertIn(prefix,('ACTQL_NATIVE_TIMINGS','ACTQL_NATIVE_PHASE','ACTQL_NATIVE_COUNTER','ACTQL_NATIVE_ACCEPTANCE_BEGIN','ACTQL_NATIVE_ACCEPTANCE_EVENT','ACTQL_NATIVE_ACCEPTANCE_END'));rows.append((prefix,json.loads(body)))
         return rows
+    def test_acceptance_is_opt_in_bounded_metadata_with_owned_original_identity(self):
+        for selection in (None,'0','true','01'):
+            rows=self.run_protocol('acceptance','1',selection)
+            self.assertFalse(any(k.startswith('ACTQL_NATIVE_ACCEPTANCE') for k,x in rows))
+        self.assertEqual(self.run_protocol('acceptance',None,'1'),[])
+        rows=self.run_protocol('acceptance','1','1')
+        begin=next(x for k,x in rows if k=='ACTQL_NATIVE_ACCEPTANCE_BEGIN')
+        end=next(x for k,x in rows if k=='ACTQL_NATIVE_ACCEPTANCE_END')
+        events=[x for k,x in rows if k=='ACTQL_NATIVE_ACCEPTANCE_EVENT']
+        self.assertTrue(begin['complete']);self.assertEqual(begin['count'],7)
+        self.assertEqual(end,{'pid':begin['pid'],'count':7})
+        self.assertEqual([x['tag'] for x in events],[0,1,2,5,6,7,8])
+        self.assertEqual([x['seq'] for x in events],list(range(7)))
+        for event in events:
+            self.assertEqual(event['pid'],begin['pid'])
+            self.assertEqual(event['identity'],'' if event['tag'] in (6,7) else 'sha256:'+'1'*64)
+    def test_actual_c_acceptance_stream_is_admitted_by_the_same_cli_parser(self):
+        env={**os.environ,'ACTQL_NATIVE_TIMINGS':'1','ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS':'1'}
+        result=subprocess.run([str(self.binary),'acceptance'],env=env,text=True,capture_output=True,timeout=10)
+        self.assertEqual(result.returncode,0);self.assertEqual(result.stdout,'')
+        program="import{nativeMockAcceptanceObservations as parse}from'./packages/native-cli/lib/project-scaffold.mjs';let s='';for await(const b of process.stdin)s+=b;const g=parse(s);if(g.length!==1||g[0].events.length!==7)throw Error('C event correspondence');console.log('7');"
+        checked=subprocess.run(['node','--input-type=module','-e',program],cwd=ROOT,input=result.stderr,text=True,capture_output=True,timeout=10)
+        self.assertEqual(checked.returncode,0,checked.stderr);self.assertEqual(checked.stdout,'7\n')
+    def test_acceptance_invalid_and_overflow_are_incomplete_not_zero(self):
+        for mode in ('acceptance-invalid','acceptance-overflow'):
+            rows=self.run_protocol(mode,'1','1')
+            begin=next(x for k,x in rows if k=='ACTQL_NATIVE_ACCEPTANCE_BEGIN')
+            events=[x for k,x in rows if k=='ACTQL_NATIVE_ACCEPTANCE_EVENT']
+            self.assertFalse(begin['complete']);self.assertGreater(len(events),0);self.assertLessEqual(len(events),32)
+            self.assertNotIn('XXX',json.dumps(rows));self.assertNotIn('Pha256',json.dumps(rows))
     def test_disabled_and_nonliteral_selection_emit_nothing(self):
         for selection in (None,'true','01','0'):self.assertEqual(self.run_protocol('sql',selection),[])
     def test_actual_sql_calls_preserve_results_and_nested_exclusive_times(self):

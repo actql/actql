@@ -3,9 +3,10 @@ import test from 'node:test';
 import './effect-cleanup-composition.test.mjs';
 import './effect-authorization-cleanup.test.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
+import {salesforceEffectSiteHooks} from '../connectors/salesforce/host/installed-salesforce-effect-hooks.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
-import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {openAcquiredEffectComputation} from './fixtures/acquired-effect-computation.fixture.mjs';
 import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
 import {checkedEffectPreparation as checked} from
   '../host-common/effect-preparation-result.mjs';
@@ -79,7 +80,7 @@ for (const outcome of ['not_started', 'stopped', 'unknown']) {
         observeStopped: value => observations.push(value),
         run: context => site.execute({...context,
           openComputation: ({retainComputationOwner}) =>
-            openAcquiredEffectComputation({acquired: {prepared: {}},
+            openAcquiredEffectComputation({sourceRefs: ['source'], acquired: {prepared: {}},
               moon: {clientProgramEffectAcquisitionCount: () => 1,
                 clientProgramEffectPrepareLocalQueryRequirement: () => ({$tag: 1, _0: 'source'}),
                 clientProgramQueryRequirementSourceRef: ref => ref},
@@ -221,6 +222,88 @@ test('installed Effect releases its consumer pins before Compute reclamation', a
   assert.equal(await retained.cleanup(), true);
   assert.deepEqual(order, ['pins-release', 'compute-close', 'compute-cleanup',
     'stage-dispose']);
+});
+
+test('installed Effect retains a failed constructor before its first await', async () => {
+  let retained, finish;
+  let running = true, pending = true, closes = 0;
+  const primary = new Error('ReferenceCaptureUnavailable');
+  const original = {close() {
+    closes++;
+    if (running) return false;
+    pending = false;
+    return true;
+  }, status: () => ({pending})};
+  const execution = {close() {}, cleanup: async () => true, cleanupPending: () => false};
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    async prepareCaptured({retainConstructionOwner}) {
+      retainConstructionOwner(original);
+      assert.throws(() => retainConstructionOwner({...original}),
+        {code: 'InstalledEffectCleanupOwnerAlreadySet'});
+      await new Promise(resolve => { finish = resolve; });
+      running = false;
+      throw primary;
+    }, prepareRecovered() { assert.fail('No replacement constructor'); }});
+  const opening = site.execute({openComputation: () => ({execution, checkedHost: {}}),
+    retainExecution: value => { retained = value; }});
+  const rejected = assert.rejects(opening, error => error === primary);
+  while (finish === undefined) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(await retained.cleanup(), false);
+  assert.equal(retained.cleanupPending(), true);
+  finish();
+  await rejected;
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(closes, 2, 'retirement consumes the same constructor once');
+  assert.equal(retained.cleanupPending(), false);
+});
+
+test('installed Effect constructor retirement follows actual input and physical cleanup', async () => {
+  const order = [];
+  let retained, pending = true, inputsReleased = false, disposed = false;
+  const execution = {close() {}, cleanup: async () => {order.push('physical');return true;},
+    cleanupPending: () => false};
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured({retainConstructionOwner}) {
+      retainConstructionOwner({close() {
+        assert.equal(inputsReleased, true);
+        assert.equal(disposed, true);
+        order.push('constructor');
+        return true;
+      }, status: () => ({pending})});
+      return {releaseInputs() {inputsReleased = true;order.push('inputs');},
+        dispose() {disposed = true;order.push('dispose');}};
+    }, prepareRecovered() {assert.fail('No replacement constructor');}});
+  await assert.rejects(site.execute({openComputation: () => ({execution, checkedHost: {}}),
+    retainExecution: value => {retained = value;}}), {code: 'InvalidInstalledEffectCapture'});
+  assert.equal(await retained.cleanup(), false, 'close alone cannot acknowledge pending custody');
+  assert.equal(retained.cleanupPending(), true);
+  pending = false;
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.deepEqual(order, ['inputs', 'physical', 'dispose', 'constructor', 'constructor']);
+});
+
+test('installed Effect constructor cleanup failure preserves the same retry', async () => {
+  let retained, pending = true, closes = 0;
+  const primary = new Error('ReferenceConstructorCleanupUnavailable');
+  const execution = {close() {}, cleanup: async () => true, cleanupPending: () => false};
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured({retainConstructionOwner}) {
+      retainConstructionOwner({close() {
+        if (++closes === 1) throw primary;
+        pending = false;
+        return true;
+      }, status: () => ({pending})});
+      throw new Error('ReferenceCaptureUnavailable');
+    }, prepareRecovered() {assert.fail('No replacement constructor');}});
+  await assert.rejects(site.execute({openComputation: () => ({execution, checkedHost: {}}),
+    retainExecution: value => {retained = value;}}), {message: 'ReferenceCaptureUnavailable'});
+  await assert.rejects(retained.cleanup(), error => error === primary);
+  assert.equal(retained.cleanupPending(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(closes, 2);
 });
 
 for (const mismatch of ['Preview', 'Unit', 'missing Unit']) {
@@ -385,6 +468,24 @@ test('outer Effect commit continuation preserves target and provider data', asyn
   assert.deepEqual(saved.provider, f.provider);
 });
 
+test('ordinary recovered CREATE checks its same original continuation and resume claim before provider work', async () => {
+  const moon={},store={},preview={},computation={},storedResults={},claim={};
+  const control={effectComputationPreviewSemanticCid:()=>cid('a')};
+  const recovered={computation:{computation,storedResults,preview}};
+  const stop=new Error('StopAfterOriginalResumeCurrent');let current=0,admitted=0,prepared=0;
+  const site=createInstalledEffectSite({environmentWire:'{}',prepareCaptured(){assert.fail('no new Compute');},
+    prepareRecovered(facts){prepared++;assert.equal(typeof facts.assertContinuationCurrent,'function');facts.assertContinuationCurrent();throw stop;}});
+  const facts=Object.freeze({moon,store,control,retainExecution(){},ref:{runDefinitionCid:cid('b')},
+    view:{runId:'run-a',checkpointCid:'checkpoint',subject:{kind:'run_unit',unit_id:'effect'}},
+    continuation:{version:'actql-installed-effect-continuation/0.1',unit_id:'effect',run_definition_cid:cid('b'),preview_cid:cid('a'),provider:{provider:'bound'}},
+    recoverCapture:async()=>recovered,
+    assertContinuationCurrent(){assert.equal(this,facts);current++;},
+    checkpointJournal:{claimResume:()=>({action:'claimed',claim}),admitResume(original,{checkpointCid}){
+      assert.equal(original,claim);assert.equal(checkpointCid,'checkpoint');admitted++;}}});
+  await assert.rejects(site.resume(facts),cause=>cause===stop);
+  assert.deepEqual([prepared,current,admitted],[1,1,1]);
+});
+
 for (const retained of [false, true]) {
   test(`Effect authorization forwards its same original Run lifetime subject: retained=${retained}`, async () => {
     const f = continuationFixture();
@@ -420,3 +521,38 @@ for (const changed of ['target binding', 'provider']) {
     assert.equal(authorizations, 0); assert.equal(dispatchStarts, 0);
   });
 }
+
+
+test('independent Salesforce Effect Site retains the same original managed Plan callback without preparing it', () => {
+  const originalPlan = {}, facts = {}, inputs = {};
+  let selections = 0;
+  const prepareManagedPlan = (actualFacts, actualInputs) => {
+    selections++;
+    assert.strictEqual(actualFacts, facts); assert.strictEqual(actualInputs, inputs);
+    return originalPlan;
+  };
+  const effect = Object.freeze({environmentWire: '{}', prepareManagedPlan,
+    targetReadAuthorization: {}, // Explicit unused paired metadata port; no read or grant.
+    prepareCaptured() {assert.fail('No execution at installation');},
+    prepareRecovered() {assert.fail('No recovery at installation');}});
+  const hooks = salesforceEffectSiteHooks(effect);
+  const site = createInstalledEffectSite(hooks);
+  assert.equal(selections, 0);
+  assert.strictEqual(hooks.prepareManagedPlan, prepareManagedPlan);
+  assert.strictEqual(site.prepareManagedPlan, prepareManagedPlan);
+  assert.strictEqual(site.prepareManagedPlan(facts, inputs), originalPlan);
+  assert.equal(selections, 1);
+  assert.equal(createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured() {}, prepareRecovered() {}}).prepareManagedPlan, undefined);
+});
+
+
+test('independent Effect Site refuses an invalid Plan callback without invoking execution or recovery', () => {
+  let called = 0;
+  for (const prepareManagedPlan of [null, {}, 0, 'callback']) {
+    assert.throws(() => createInstalledEffectSite({environmentWire: '{}', prepareManagedPlan,
+      prepareCaptured() {called++;}, prepareRecovered() {called++;}}),
+    {code: 'InvalidInstalledEffectSiteFactory'});
+  }
+  assert.equal(called, 0);
+});

@@ -32,7 +32,7 @@ fn window_group_scale_sample(count : Int) -> (Int, Int) raise {
   let owner = window_group_scale_owner()
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace = { limit: count * 100 + 1000, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 100 + 1000), live: 0, peak: 0, }
   let table = match
     evaluate_rows_with_workspace(
       row_kernel(owner, 2),
@@ -189,7 +189,7 @@ fn numeric_window_group_workspace_attempt(
       ),
     )
   })
-  let workspace = { limit, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(limit), live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 2),
     input,

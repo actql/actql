@@ -5,7 +5,7 @@ import {runtimeFailure, runtimeField, runtimeTriple} from '../host-common/compil
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {types as utilTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {claimInferIoNotification} from './infer-io-notification.mjs';
+import {claimInferIoNotification, createInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
   selectedInferOriginalPublicationCapacity, selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';
 import {originalModelRawTransportPersistenceMatches, bindOriginalModelRawTransportPersistence}
@@ -34,6 +34,42 @@ export function retireNodeInferOriginalRead({control, compiled, runDefinition, g
     control.stopCheckedClientInferOriginalReadPreparation(compiled, runDefinition, graph, scope, read);
   }
   control.settleCheckedClientInferOriginalReadPreparation(compiled, runDefinition, graph, read, true);
+}
+// Finish the native closed group only after all actual read children retired.
+// This is a shared caller continuation, not a cleanup ACK or another owner.
+export function finishNodeInferOriginalReadScopes(model) {
+  const members = model?.components, scopes = model?.scopes, graph = model?.graph,
+    control = model?.control, compiled = model?.compiled, definition = model?.runDefinition;
+  const finish = control?.finishCheckedClientInferOriginalReadScope;
+  const current = () => {
+    if (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
+        !Array.isArray(scopes) || !Object.isFrozen(scopes) || scopes.length !== members.length ||
+        !Array.isArray(graph) || !Object.isFrozen(graph) || graph.length !== members.length ||
+        typeof finish !== 'function' || control.finishCheckedClientInferOriginalReadScope !== finish ||
+        model.components !== members || model.scopes !== scopes || model.graph !== graph ||
+        model.control !== control || model.compiled !== compiled || model.runDefinition !== definition ||
+        model.scope !== scopes[0] || model.closed || model.scopeFinished ||
+        members.some((member, index) => member.group !== model || member.control !== control ||
+          member.compiled !== compiled || member.runDefinition !== definition || member.graph !== graph[index] ||
+          member.scope !== scopes[index] || member.read !== undefined || member.closed || member.scopeFinished)) {
+      throw new TypeError('InvalidInstalledRequestModelPreparation');
+    }
+  };
+  current();
+  // The last actual Scope can close the group. Earlier pending members must not
+  // prevent reaching it. A second closed observation is callback-free in Core.
+  for (let index = 0; index < members.length; index++) {
+    Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    current();
+  }
+  for (let index = 0; index < members.length; index++) {
+    const closed = Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    current();
+    if (closed !== true) return false;
+  }
+  for (const member of members) {member.scopeFinished = true; member.closed = true;}
+  model.scopeFinished = true;
+  return true;
 }
 // This is nominal membership in the existing operation, not a resource Owner.
 // Escaped handles weakly borrow its retained record and cannot keep the original
@@ -95,12 +131,16 @@ export function startCompleteInferObservation({moon, operations, ledger, maxSlot
     return value;
   });
   if (operations.some(operation => originalOperations.has(operation))) {
-    if (operations.length !== 1 || ledger !== undefined || content !== undefined) {
+    if (ledger !== undefined || content !== undefined ||
+        operations.some(operation => !originalOperations.has(operation))) {
       throw new TypeError('InferOriginalPublicationCapacityUnavailable');
     }
     // The actual operation retains its original opaque publication borrow.
     // A Source Ledger or a matching caller object cannot select that issuer.
-    return operations[0].startObservation({maxSlots, maxWireBytes, maxWork});
+    const funding = operations.filter(operation => operation.publicationCapacityPending());
+    if (funding.length !== 1) throw new TypeError('InferOriginalPublicationCapacityUnavailable');
+    return funding[0].startObservation({maxSlots, maxWireBytes, maxWork,
+      ...(operations.length === 1 ? {} : {operations})});
   }
   if (content !== undefined) {
     return content.control.startCheckedClientContentInferObservation(content.compiled,
@@ -117,8 +157,37 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput, keyedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
-  ioNotification, originalPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer,
+  ioNotification, originalPreparation, restoredPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer,
   assertRuntimeCurrent, bindComputeSuffix}) {
+  const restoringOriginal = restoredPreparation !== undefined;
+  if (restoringOriginal) {
+    if (originalPreparation !== undefined || restoredInput?.savedScope === undefined ||
+        composedInput === undefined || serializedInput !== undefined || keyedInput !== undefined) {
+      throw new TypeError('InvalidInferOriginalPreparation');
+    }
+    originalPreparation = restoredPreparation;
+  }
+  // A composed input is not necessarily a Local-scheduled component: the
+  // existing installed one-Unit caller supplies its original checked Program.
+  // Bind that choice once to the same opaque compiled Owner before entry;
+  // subsequent driving still uses this operation's original current/Run gates.
+  const originalComposedRun = composedInput !== undefined &&
+    preparedProgram !== undefined && originalPreparation !== undefined;
+  if (originalComposedRun) {
+    const control = originalPreparation.control;
+    if (typeof control?.checkClientCompiledRunOwner !== 'function' ||
+        serializedInput !== undefined ||
+        !restoringOriginal && (!Array.isArray(composedInput.inputs) ||
+          composedInput.inputs.length !== 0 || composedInput.sources === undefined)) {
+      throw new TypeError('InvalidInferOriginalComposedRun');
+    }
+    control.checkClientCompiledRunOwner(originalPreparation.compiled, preparedProgram);
+    const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
+    if (moon.clientProgramTaskCount(preparedProgram) !== 1 ||
+        (restoringOriginal ? sourceCount !== 0 && sourceCount !== 1 : sourceCount !== 1)) {
+      throw new TypeError('InvalidInferOriginalComposedRun');
+    }
+  }
   if (rawCaptureBinder !== undefined && typeof rawCaptureBinder !== 'function') {
     throw new TypeError('InvalidInferRawCaptureBinder');
   }
@@ -150,7 +219,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let originalPublicationReceiver;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || keyedInput !== undefined ||
-        restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
+        (!restoringOriginal && restoredInput !== undefined) || savedCapture !== undefined || savedSlots !== undefined ||
         originalPreparation === null || typeof originalPreparation !== 'object' ||
         typeof originalPreparation.readRetainedBytes !== 'bigint' ||
         originalPreparation.readRetainedBytes <= 0n ||
@@ -177,7 +246,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // The original read owner retains the issued ticket if a later constructor
     // fails. No JS ownership map, claim reset or unowned-start fallback exists.
     if (composedInput !== undefined &&
-        typeof originalPreparation.control?.startCheckedClientOriginalComposedInferExecution !== 'function') {
+        typeof originalPreparation.control?.[restoringOriginal
+          ? 'startCheckedClientOriginalRestoredComposedInferExecution'
+          : 'startCheckedClientOriginalComposedInferExecution'] !== 'function') {
       throw new TypeError('InferOriginalComposedControlUnavailable');
     }
     if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
@@ -281,7 +352,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         : 'startCheckedClientRestoredGeneratedInferExecution'] !== 'function')) {
     throw new TypeError('InvalidSerializedInferInput');
   }
-  if (ioNotification !== undefined && (provider === undefined || composedInput !== undefined)) {
+  if (ioNotification !== undefined && (provider === undefined ||
+      composedInput !== undefined && !originalComposedRun && !restoringOriginal)) {
     throw new TypeError('InvalidInferIoNotificationProfile');
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
@@ -315,6 +387,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes,
           originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes)
 
+    : restoringOriginal
+    ? originalPreparation.control.startCheckedClientOriginalRestoredComposedInferExecution(
+      originalPreparation.compiled, originalPreparation.runDefinition,
+      composedInput.occurrence, graph, composedInput.prefix, provider,
+      restoredInput.snapshot, () => restoredInput.token.available, restoredInput.savedScope,
+      originalConsumer, originalPreparation.readRetainedBytes,
+      originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
+      originalPreparation.modelExecutionBytes, restoredReferenceIssuer)
     : originalPreparation !== undefined && composedInput !== undefined
     ? originalPreparation.control.startCheckedClientOriginalComposedInferExecution(
       originalPreparation.compiled, originalPreparation.runDefinition,
@@ -509,7 +589,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   function run() {
-    if (composedInput !== undefined || serializedInput?.inputs !== undefined) {
+    if (composedInput !== undefined && !originalComposedRun && !restoringOriginal || serializedInput?.inputs !== undefined) {
       return Promise.reject(new Error('InferComponentDrivenByLocal'));
     }
     if (closing || reclaimed) {
@@ -593,8 +673,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     contentGenerations: () => serializedInput === undefined ? undefined
       : Object.freeze([serializedInput.generation]),
     contentRecovery: () => serializedInput?.recovery,
-    capturedContentRecovery: () => serializedInput?.capturedRecovery ?? keyedInput?.capturedRecovery,
-    capturedContentBinding: () => serializedInput?.capturedBinding ?? keyedInput?.capturedBinding,
+    capturedContentRecovery: () => serializedInput?.capturedRecovery ?? keyedInput?.capturedRecovery ?? composedInput?.capturedRecovery,
+    capturedContentBinding: () => serializedInput?.capturedBinding ?? keyedInput?.capturedBinding ?? composedInput?.capturedBinding,
     installSettlementCleanup(callback) {
       if (cleanupSettlement !== undefined || typeof callback !== 'function') {
         throw new TypeError('InvalidInferSettlementCleanup');
@@ -977,8 +1057,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         } catch { /* Optional observation has no execution authority. */ }
       });
     },
-    restoreCall: (preparedCallSet, slot, record, proof, bundle) => checked(
-      moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle)),
+    restoreCall: (preparedCallSet, slot, record, proof, bundle, attachmentAdmission) => checked(
+      moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle, attachmentAdmission)),
     restoreUnknown: (preparedCallSet, slot, attempt, authority) => checked(
       moon.clientProgramRestoreInferPreparedUnknown(preparedCallSet, slot, attempt, authority)),
     prepareResponseReconciliation: (preparedCallSet, slot, attempt, authority) => checked(
@@ -1044,14 +1124,35 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (released) originalPublicationCapacity = undefined;
       return released;
     },
-    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork}) => {
+    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork, operations}) => {
       if (originalConsumer !== undefined) {
         if (ledger !== undefined || originalPublicationCapacity === undefined) {
           throw new Error('InferOriginalPublicationCapacityUnavailable');
         }
-        return checked(moon.clientProgramStartOriginalInferObservationIssuance(active,
-          originalPublicationCapacity, maxSlots, maxWireBytes, maxWork,
-          serializedInput === undefined ? [] : [serializedInput.generation]));
+        if (operations !== undefined) {
+          if (!Array.isArray(operations) || operations.length < 2 || !operations.includes(operation) ||
+              operations.some(owner => !originalOperations.has(owner) || !activeOperations.has(owner)) ||
+              new Set(operations).size !== operations.length ||
+              typeof moon.clientProgramStartCompleteOriginalInferObservationIssuance !== 'function') {
+            throw new TypeError('InferOriginalPublicationCapacityUnavailable');
+          }
+          // Core checks every original Run/Plan/current and the SAME parent
+          // Ledger against this existing borrow before constructing metadata.
+          // No operation's opaque Ledger or capacity is exposed to the caller.
+          const owners = operations.map(owner => activeOperations.get(owner));
+          return serializedInput !== undefined
+            ? serializedInput.control.startCheckedClientOriginalContentInferObservation(
+              owners, [serializedInput.generation], originalPublicationCapacity,
+              {maxSlots, maxWireBytes, maxWork})
+            : checked(moon.clientProgramStartCompleteOriginalInferObservationIssuance(
+              owners, originalPublicationCapacity, maxSlots, maxWireBytes, maxWork, []));
+        }
+        return serializedInput !== undefined
+          ? serializedInput.control.startCheckedClientOriginalContentInferObservation(
+            [active], [serializedInput.generation], originalPublicationCapacity,
+            {maxSlots, maxWireBytes, maxWork})
+          : checked(moon.clientProgramStartOriginalInferObservationIssuance(active,
+            originalPublicationCapacity, maxSlots, maxWireBytes, maxWork, []));
       }
       // Preserve the explicit legacy diagnostic/publication path. The original
       // installation never creates this separate Ledger as a funding fallback.
@@ -1124,26 +1225,42 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 }
 
 // One original Model component is opened by the common Local task driver,
-// after it has bound actual producer reads. Local alone advances it. The
-// installing Run retains physical custody before binding current admissions.
+// after it has bound actual producer reads. Local advances fresh components;
+// the genuine restored entrance can drive its retained input before Host open.
+// The installing Run retains custody before binding current admissions.
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
-  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent}) {
+  deferredGeneratedInput = false, capturedInput,
+  inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent, prepareInputSegments}) {
   if (selected?.occurrence === undefined ||
-      typeof deferred !== 'boolean' || !deferred && typeof retainOperation !== 'function' ||
+      typeof deferred !== 'boolean' || typeof deferredGeneratedInput !== 'boolean' ||
+      deferredGeneratedInput && !deferred || !deferred && typeof retainOperation !== 'function' ||
       deferred && (generatedInput !== undefined || originalPreparation !== undefined || retainOperation !== undefined)) {
     throw new TypeError('InvalidComposedInferProvider');
   }
   if (bindComputeSuffix !== undefined && typeof bindComputeSuffix !== 'function') {
     throw new TypeError('InvalidInferOriginalSuffixBinding');
   }
-  let prepareRead = originalPreparation?.prepareRead;
-  let deferredRead = prepareRead !== undefined;
-  if (deferredRead && (typeof prepareRead !== 'function' ||
-      generatedInput !== undefined || restoredInput !== undefined)) {
-    throw new TypeError('InvalidComposedInferOriginalPreparation');
+  if (prepareInputSegments !== undefined && (typeof prepareInputSegments !== 'function' ||
+      originalPreparation === undefined || inputPrefix !== undefined || bindComputeSuffix !== undefined)) {
+    throw new TypeError('InvalidComposedInferInputPreparation');
   }
+  const selectRead = (preparation, restored) => {
+    if (restored !== undefined && preparation !== undefined) {
+      if (typeof preparation?.restoreRead !== 'function' || generatedInput !== undefined || deferredGeneratedInput) {
+        throw new TypeError('InvalidComposedInferOriginalPreparation');
+      }
+      return preparation.restoreRead;
+    }
+    const prepare = preparation?.prepareRead;
+    if (prepare !== undefined && typeof prepare !== 'function') {
+      throw new TypeError('InvalidComposedInferOriginalPreparation');
+    }
+    return prepare;
+  };
+  let prepareRead = selectRead(originalPreparation, restoredInput);
+  let deferredRead = prepareRead !== undefined;
   let readAttempted = false;
   let operation;
   let failure;
@@ -1154,11 +1271,12 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let bound = !deferred, attempted = false;
   // A Request module can supply its already-backed original before this
   // native component selects input-dependent capacity. Never reprepare it.
-  const computePrefix = inputPrefix;
-  const selectProvider = generatedInput === undefined
-    ? moon.clientProgramComposedInferLocalProvider : moon.clientProgramGeneratedInferLocalProvider;
-  const provider = selectProvider(
-    selected.occurrence, inputs => {
+  let computePrefix = inputPrefix;
+  let computeSuffix = selected.computeSuffix;
+  const generated = generatedInput !== undefined || deferredGeneratedInput;
+  const selectProvider = generated
+    ? moon.clientProgramGeneratedInferLocalProvider : moon.clientProgramComposedInferLocalProvider;
+  const openOriginal = (inputs, ioNotification) => {
       try {
         if (attempted || operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
           if (failureRecorded) throw failure;
@@ -1171,7 +1289,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           // The parent already retains the Scope. Claim its read only after
           // Local has supplied the actual inputs, with no intervening await.
           readAttempted = true;
-          try { preparation = Reflect.apply(prepareRead, originalPreparation, []); }
+          try { preparation = Reflect.apply(prepareRead, originalPreparation,
+            restoredInput === undefined ? [] : [restoredInput]); }
           finally {
             // Retire only these callback aliases, never the original parent's
             // read/Scope duty or a failed issuance's pending cleanup.
@@ -1188,18 +1307,31 @@ export function openNodeComposedInferProvider({moon, selected, sources,
             throw new TypeError('InvalidComposedInferOriginalPreparation');
           }
         }
+        if (prepareInputSegments !== undefined) {
+          // The same parent already retains this actual fallible Read. Lower
+          // its checked segments once, before the existing consumer claims it;
+          // saved rows are never a GeneratedSequence or a new Source read.
+          const segments = prepareInputSegments();
+          computePrefix = runtimeField(segments, 0);
+          computeSuffix = runtimeField(segments, 1);
+        }
         operation = openNodeInferOperation({moon, graph: selected.graph,
-          composedInput: generatedInput !== undefined ? undefined : {occurrence: selected.occurrence,
-            prefix: computePrefix, inputs, sources},
-          serializedInput: generatedInput === undefined ? undefined : {
+          composedInput: generated ? undefined : {occurrence: selected.occurrence,
+            prefix: computePrefix, inputs, sources,
+            capturedRecovery: capturedInput?.recovery, capturedBinding: capturedInput?.binding},
+          serializedInput: !generated ? undefined : {
             control, compiled: plan.compiled, definition: plan.runDefinition,
             generation: generatedInput.generation(), inputs,
             recovery: generatedInput.recovery?.()},
-          computeSuffix: generatedInput === undefined ? selected.computeSuffix : undefined, provider: selected.provider,
+          // The Request module's original binder already owns this suffix.
+          // An earlier query-selection suffix is not a second issuer for it.
+          computeSuffix: !generated && bindComputeSuffix === undefined
+            ? computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
-          originalPreparation: preparation, bindComputeSuffix, assertRuntimeCurrent,
+          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput, ioNotification,
+          ...(restoredInput === undefined ? {originalPreparation: preparation}
+            : {restoredPreparation: preparation}), bindComputeSuffix, assertRuntimeCurrent,
           retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
@@ -1210,7 +1342,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
         recordFailure(error);
         return undefined;
       }
-    }, issue => {
+    };
+  const provider = selectProvider(
+    selected.occurrence, openOriginal, issue => {
       recordFailure(Object.assign(new Error('ComposedInferComponentFailed'),
         {code: 'MoonBitHostFailure', cause: issue}));
     }, active => {
@@ -1226,23 +1360,40 @@ export function openNodeComposedInferProvider({moon, selected, sources,
     }, active => operation !== undefined &&
       activeOperations.get(operation) === active &&
       operation.cleanupPending() === false,
-    ...(generatedInput === undefined ? [computePrefix] : []));
+    ...(!generated ? [computePrefix] : []));
   const component = Object.freeze({provider, operation: () => operation,
     failure: () => failure, hasFailure: () => failureRecorded,
+    startRestored() {
+      if (failureRecorded) throw failure;
+      if (attempted) throw new Error('ComposedInferAlreadyOpened');
+      if (!bound || generated || restoredInput?.savedScope === undefined || !deferredRead) {
+        throw new Error('RestoredComposedInferOriginalUnavailable');
+      }
+      // The typed restored entrance uses the original retained input/Saved
+      // Scope. No Local input array or second provider read is substituted.
+      openOriginal([], selected.entryPersistence === 'async' ? createInferIoNotification() : undefined);
+      if (failureRecorded) throw failure;
+      if (operation === undefined) throw new Error('RestoredComposedInferOriginalUnavailable');
+      return operation;
+    },
     ...(deferred ? {bindOriginal(context) {
       if (bound || attempted) throw new Error('ComposedInferAlreadyBound');
       const read = name => Object.getOwnPropertyDescriptor(context ?? {}, name)?.value;
       if (read('selected') !== selected || typeof read('retainOperation') !== 'function') {
         throw new TypeError('InvalidComposedInferOriginalContext');
       }
-      const preparation = read('originalPreparation'), prepare = preparation?.prepareRead;
-      if (prepare !== undefined && (typeof prepare !== 'function' || read('restoredInput') !== undefined)) {
-        throw new TypeError('InvalidComposedInferOriginalPreparation');
-      }
+      const generatedOriginal = read('generatedInput');
+      if (generated ? generatedOriginal === null || typeof generatedOriginal !== 'object' ||
+          typeof Object.getOwnPropertyDescriptor(generatedOriginal, 'generation')?.value !== 'function'
+        : generatedOriginal !== undefined) throw new TypeError('InvalidComposedInferOriginalContext');
+      const preparation = read('originalPreparation');
+      const prepare = selectRead(preparation, read('restoredInput'));
       sources = read('sources'); control = read('control'); plan = read('plan');
       principalId = read('principalId'); now = read('now'); signal = read('signal');
       retainOperation = read('retainOperation'); retainCompleted = read('retainCompleted');
       durableCalls = read('durableCalls') === true; restoredInput = read('restoredInput');
+      generatedInput = generatedOriginal;
+      capturedInput = read('capturedInput');
       assertRuntimeCurrent = read('assertRuntimeCurrent');
       if (assertRuntimeCurrent !== undefined && typeof assertRuntimeCurrent !== 'function') {
         throw new TypeError('InferTrustedRuntimeScopeUnavailable');

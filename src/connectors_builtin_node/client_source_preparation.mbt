@@ -47,7 +47,114 @@ fn client_source_preparation_issue_code(
             | UnsupportedSet
             | UnsupportedJoin
             | UnsupportedCte
-            | UnsupportedGraph => "source_unsupported"
+            | UnsupportedGraph
+            | Expression({ issue: UnsupportedFunction | UnsupportedCast, .. }) =>
+              "source_implementation_limit"
+            // The same checked selector cause survives Local or published-Catalog
+            // preparation; the wrapper does not change its support category.
+            // Malformed Graph bodies and incomplete bindings retain rejection.
+            BindingPreparation(
+              LocalProgram(
+                Pipeline(
+                  _,
+                  { kind: GraphMatch(Structure(UnsupportedGraphOperation)), .. }
+                )
+              )
+            )
+            | BindingPreparationSource(
+              LocalProgram(
+                Pipeline(
+                  _,
+                  { kind: GraphMatch(Structure(UnsupportedGraphOperation)), .. }
+                )
+              ),
+              _
+            )
+            | BindingPreparation(
+              SourceProgram(
+                Program(
+                  Pipeline(
+                    _,
+                    {
+                      kind: GraphMatch(Structure(UnsupportedGraphOperation)),
+                      ..
+                    }
+                  )
+                )
+              )
+            )
+            | BindingPreparationSource(
+              SourceProgram(
+                Program(
+                  Pipeline(
+                    _,
+                    {
+                      kind: GraphMatch(Structure(UnsupportedGraphOperation)),
+                      ..
+                    }
+                  )
+                )
+              ),
+              _
+            ) => "source_implementation_limit"
+            // Only the original frontend's typed construction/admission
+            // budget is an analysis limit. Opaque Source/array limits above
+            // retain their existing protected fallback.
+            Construction(
+              InputLimit
+              | NodeLimit
+              | DepthLimit
+              | StringLimit
+              | OriginLimit
+              | OutputLimit
+              | Admission({ kind: BudgetExceeded, .. })
+            )
+            | Admission(
+              Structure(StageLimit, ..)
+              | RetentionLimit(_, ..)
+              | Decode({ kind: BudgetExceeded, .. })
+            ) => "source_analysis_limit"
+            // Closed strategy values are authored DATA, not case-folded field
+            // names. Preserve the Common owner's exact invalid-input cause.
+            BindingPreparation(
+              LocalProgram(
+                Pipeline(_, { kind: Graph(InvalidPropertyStrategy(_)), .. })
+              )
+            )
+            | BindingPreparationSource(
+              LocalProgram(
+                Pipeline(_, { kind: Graph(InvalidPropertyStrategy(_)), .. })
+              ),
+              _
+            )
+            | BindingPreparation(
+              SourceProgram(
+                Program(
+                  Pipeline(_, { kind: Graph(InvalidPropertyStrategy(_)), .. })
+                )
+              )
+            )
+            | BindingPreparationSource(
+              SourceProgram(
+                Program(
+                  Pipeline(_, { kind: Graph(InvalidPropertyStrategy(_)), .. })
+                )
+              ),
+              _
+            ) => "source_invalid_input"
+            // The published-Catalog wrapper retains this exact authored
+            // missing Event field from the common pipeline owner.
+            BindingPreparation(
+              SourceProgram(
+                Program(Pipeline(_, { kind: Event(Decode(MissingField)), .. }))
+              )
+            )
+            | BindingPreparationSource(
+              SourceProgram(
+                Program(Pipeline(_, { kind: Event(Decode(MissingField)), .. }))
+              ),
+              _
+            ) => "source_invalid_input"
             // These typed facts come from the existing lowerer. The public
             // submission projection must still establish audience disclosure.
             InvalidQuery
@@ -85,7 +192,7 @@ fn client_source_preparation_issue_code(
               "source_rejected"
             _ => "source_rejected"
           }
-        QuerySyntax({ issue: Limit(_), .. }) => "source_limit"
+        QuerySyntax({ issue: Limit(_), .. }) => "source_analysis_limit"
         _ => "source_invalid_input"
       }
   }

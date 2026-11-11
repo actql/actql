@@ -2,6 +2,35 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {limitParameterProgram, joinLimitTailProgram, joinCurrentRowAfterTakeProgram, joinCurrentRowBeforeTakeProgram, joinCurrentRowVisibleProgram, limitParameterSuccesses, limitParameterRefusals}
   from './fixtures/limit-parameter-source-input.mjs';
+import {positiveLimitRefusals} from './fixtures/positive-limit-source-input.mjs';
+
+test('integer-slot syntax refusals retain complete original LIMIT and OFFSET inputs', () => {
+  const prefix = 'SELECT amount, id FROM records WHERE id > 0 ORDER BY id';
+  const number = {type: 'number', nullable: false};
+  const original = (name, text) => ({format: 'sql', text,
+    parameterDeclarations: {count: number, skip: number},
+    parameters: {count: 2, skip: 1}, name, expectedCode: 'ClientProgramInvalidInput'});
+  const grouped = [
+    ['grouped-row-operand', prefix + ' LIMIT (id) OFFSET @skip'],
+    ['grouped-arithmetic', prefix + ' LIMIT (@count + 1) OFFSET @skip'],
+    ['grouped-zero-count', prefix + ' LIMIT ((0)) OFFSET @skip'],
+    ['grouped-overflow', prefix + ' LIMIT @count OFFSET (9007199254740992)'],
+  ].map(([name, text]) => original('limit-parameter-refuse-' + name, text));
+  assert.deepEqual(grouped.map(expected => limitParameterRefusals.find(item =>
+    item.name === expected.name)), grouped);
+  assert.deepEqual(positiveLimitRefusals.slice(0, 5),
+    ['+id', '+(@count + 1)', '+NULL', '+0', '+2.5'].map((operand, index) =>
+      original('positive-limit-refuse-operand-' + index,
+        prefix + ` LIMIT ${operand} OFFSET +@skip`)));
+  assert.deepEqual(limitParameterRefusals.find(item =>
+    item.name === 'limit-parameter-refuse-ambiguous-source-declarations'), {
+    format: 'sql', text: prefix + ' LIMIT @count OFFSET @skip',
+    parameterDeclarations: {count: number, COUNT: number, skip: number},
+    parameters: {count: 2, COUNT: 2, skip: 1},
+    expectedCode: 'ClientProgramRejected',
+    name: 'limit-parameter-refuse-ambiguous-source-declarations',
+  });
+});
 
 test('LIMIT fixture binds different take roles in an independent Program', () => {
   assert.deepEqual(limitParameterProgram.stages[1].steps[2].take,

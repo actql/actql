@@ -109,6 +109,10 @@ pub fn captured_any_result_borrow_matches_run(CapturedAnyResultBorrow, CapturedD
 
 pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
+pub fn captured_any_result_borrow_requires_managed_export(CapturedAnyResultBorrow) -> Bool
+
+pub fn captured_any_result_borrow_row_count(CapturedAnyResultBorrow) -> Int?
+
 pub fn captured_any_result_borrows_share_view(CapturedAnyResultBorrow, CapturedAnyResultBorrow) -> Bool
 
 pub fn captured_any_result_output_set_borrow_at(CapturedAnyResultOutputSet, Int) -> CapturedAnyResultBorrow?
@@ -161,11 +165,19 @@ pub fn captured_effect_input_stage(CapturedEffectInput) -> Int
 
 pub fn captured_effect_input_task(CapturedEffectInput) -> Int
 
+pub fn captured_effect_inputs_acquired_source_matches(CapturedEffectInputs, Int, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_inputs_match_captured_run(CapturedEffectInputs, CapturedDAG) -> Bool
 
 pub fn captured_effect_inputs_match_computation(CapturedEffectInputs, @physical_strategy.CheckedEffectComputationDAG) -> Bool
 
 pub fn captured_effect_inputs_match_run(CapturedEffectInputs, CapturedEffectRunDAG) -> Bool
+
+pub fn captured_effect_inputs_retained(CapturedEffectInputs) -> Bool
+
+pub fn captured_effect_inputs_row_inventory(CapturedEffectInputs, Int) -> Int?
 
 pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String?
 
@@ -178,6 +190,10 @@ pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEff
 pub fn captured_effect_local_result_borrow(CapturedEffectLocalResult) -> CapturedAnyResultBorrow
 
 pub fn captured_effect_local_result_count(CapturedEffectInputs) -> Int
+
+pub fn captured_effect_local_result_export_matches_computed_unit(CapturedEffectLocalResultExport, @physical_strategy.CheckedEffectComputationDAG, Int) -> Bool
+
+pub fn captured_effect_local_result_export_matches_model_suffix(CapturedEffectLocalResultExport, CapturedEffectInputs, @physical_strategy.CheckedEffectComputationDAG, Int, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt) -> Bool
 
 pub fn captured_effect_local_result_export_matches_receipt(CapturedEffectInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
 
@@ -196,6 +212,8 @@ pub fn captured_effect_local_result_original_row_available(CapturedEffectInputs,
 pub fn captured_effect_local_result_stage(CapturedEffectLocalResult) -> Int
 
 pub fn captured_effect_local_result_task(CapturedEffectLocalResult) -> Int
+
+pub fn captured_effect_local_unit_acquired_source_matches(CapturedEffectLocalUnitInputs, @execution_query.CapturedSourceRelationIdentity) -> Bool
 
 pub fn captured_effect_local_unit_inputs_match_computation(CapturedEffectLocalUnitInputs, @physical_strategy.CheckedEffectComputationDAG) -> Bool
 
@@ -244,6 +262,8 @@ pub fn captured_effect_result_import_producer(CapturedEffectResultImport) -> Cap
 pub fn captured_effect_run_dag(CapturedEffectRunDAG) -> CapturedDAG
 
 pub fn captured_effect_run_matches_checked(CapturedEffectRunDAG, @physical_strategy.CheckedEffectRunDAG) -> Bool
+
+pub fn captured_effect_run_matches_preparation(CapturedEffectRunDAG, CapturedDAG, @physical_strategy.CheckedDAG) -> Bool
 
 pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @effect_program_binding.EffectProgramRunCandidate
 
@@ -331,6 +351,8 @@ pub fn[T] captured_table_input_borrow_matches_managed(CapturedTableInputBorrow, 
 
 pub fn captured_table_input_borrow_occurrence(CapturedTableInputBorrow) -> @execution_relation.ManagedTableInputOccurrence
 
+pub fn captured_table_input_borrow_row_count(CapturedTableInputBorrow) -> Int?
+
 pub fn captured_table_input_borrows_share_view(CapturedTableInputBorrow, CapturedTableInputBorrow) -> Bool
 
 pub fn captured_table_input_output_set_borrow_at(CapturedTableInputOutputSet, Int) -> CapturedTableInputBorrow?
@@ -344,6 +366,8 @@ pub fn captured_task_aggregate_output_at(CapturedDAG, Int, Int) -> @connector_sd
 pub fn captured_task_aggregate_output_count(CapturedDAG, Int) -> Int?
 
 pub fn captured_task_aggregate_output_limit(CapturedDAG, Int, Int, String, @connector_sdk.AggregateOutputUnit) -> Int64?
+
+pub fn captured_task_allocation_matches(CapturedDAG, Int, @physical_resources.Holding) -> Bool
 
 pub fn captured_task_analytic_envelope_at(CapturedDAG, Int, Int) -> @connector_sdk.AnalyticEnvelope?
 
@@ -521,6 +545,8 @@ pub fn graph_data_at(@physical_strategy.CheckedDAG, Int) -> @physical_strategy.D
 
 pub fn graph_data_count(@physical_strategy.CheckedDAG) -> Int
 
+pub fn graph_keyed_model_plan_inputs_complete(@physical_strategy.CheckedDAG, Int, Int) -> Bool
+
 pub fn graph_ordered_inputs_complete(@physical_strategy.CheckedDAG) -> Bool
 
 pub fn graph_program(@physical_strategy.CheckedDAG) -> @program_check.CheckedProgram
@@ -569,6 +595,10 @@ pub fn graph_task_target(@physical_strategy.CheckedDAG, Int) -> @pipeline_typing
 
 pub fn graph_task_unit_index(@physical_strategy.CheckedDAG, Int) -> Int?
 
+pub fn graph_with_completed_keyed_model_input(@physical_strategy.CheckedDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> @physical_strategy.CheckedDAG?
+
+pub fn grow_task_execution_workspace(CapturedDAG, TaskExecution, Int64, retained? : Int64?) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
 
 pub fn host_cleanup_runtime_action_code(HostCleanupRuntimeAction) -> Int
@@ -597,6 +627,12 @@ pub fn open_multi_captured_dag(@physical_strategy.CheckedDAG, Array[(Int, @execu
 
 pub fn open_multi_captured_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn open_multi_captured_effect_run_keyed_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, Int, Int, @execution_relation.SuppliedRelationRead) -> Result[CapturedEffectRunDAG, RunIssue]
+
+pub fn open_multi_captured_effect_run_retained_model_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, Int, Int, @execution_relation.CompletedOutput) -> Result[CapturedEffectRunDAG, RunIssue]
+
+pub fn open_multi_captured_effect_run_retained_models_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, Array[(Int, Int, @execution_relation.CompletedOutput)]) -> Result[CapturedEffectRunDAG, RunIssue]
+
 pub fn open_retained_effect_task_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn open_retained_task_dag(@physical_strategy.RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedDAG, RunIssue]
@@ -606,6 +642,10 @@ pub fn open_source_free_dag(@physical_strategy.CheckedDAG, @physical_resources.L
 pub fn open_source_free_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn open_source_input_dag(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_source_inputs_dag(@physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
+
+pub fn open_source_inputs_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, keyed? : (Int, Int, @execution_relation.SuppliedRelationRead)?, models? : Array[(Int, Int, @execution_relation.CompletedOutput)], source_results? : Array[(Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs)]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn operational_candidate_positions(PolicyCandidateSet) -> Result[Array[Int], SearchIssue]
 
@@ -684,6 +724,8 @@ pub fn prepare_retained_task_projection(@physical_strategy.CheckedDAG, Int) -> R
 pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
 
 pub fn prepare_source_input_dag(@physical_strategy.CheckedDAG, @sourceview_resolution.SourceAcquisition) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
+
+pub fn prepare_source_inputs_dag(@physical_strategy.CheckedDAG, Array[@sourceview_resolution.SourceAcquisition]) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
 
 pub fn prepare_strategy_choices(CapturedDAG, Array[TaskOffer], @connector_sdk.CapabilityRegistry, Array[Int]?) -> Result[StrategyChoiceSet, SearchIssue]
 
@@ -821,6 +863,8 @@ pub fn retained_task_projection_target(@physical_strategy.RetainedTaskProjection
 
 pub fn retire_captured_effect_checked_proposal_row(CapturedEffectCheckedProposalRow) -> Unit
 
+pub fn retire_captured_task_outputs(CapturedDAG) -> Bool
+
 pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -844,6 +888,10 @@ pub fn settle_task_execution(CapturedDAG, TaskExecution, Bool) -> Result[Unit, @
 pub fn shared_work_duration(SharedWorkEstimate) -> @physical_cost.DurationEstimate
 
 pub fn source_input_dag_matches_read(CapturedDAG, @execution_relation.SuppliedRelationRead) -> Bool
+
+pub fn source_input_dag_matches_read_at(CapturedDAG, @execution_relation.SuppliedRelationRead, Int) -> Bool
+
+pub fn source_inputs_dag_matches_original(@physical_strategy.CheckedDAG, @physical_strategy.CheckedDAG) -> Bool
 
 pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
 

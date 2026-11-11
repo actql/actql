@@ -131,7 +131,7 @@ pub fn[T] prepare_installed_arena_supplier(
     recipe.length() != 32 ||
     generation <= 0L ||
     bytes <= 0L ||
-    limits.execution_bytes != bytes ||
+    limits.execution_bytes < bytes ||
     limits.retained_bytes != 0L ||
     limits.attempts < 1 ||
     control_envelope_bytes <= 0L {
@@ -156,6 +156,8 @@ struct NativeHostBootstrap[T] {
   capacity : @resources.SharedCapacity
   backing : Backing
   mut control : @resources.SharedAllocation?
+  mut growth : @resources.SharedCapacityGrowth?
+  mut root_control : NativeRootControl[T]?
   children : Array[NativeBootstrapAllocation[T]]
   delegations : Array[NativeBootstrapDelegation[T]]
   mut claimed : Bool
@@ -232,6 +234,8 @@ fn[T] NativeInstalledArenaSupplier::acquire_original(
     capacity,
     backing,
     control: None,
+    growth: None,
+    root_control: None,
     children: [],
     delegations: [],
     claimed: false,
@@ -281,7 +285,7 @@ pub fn[T] NativeHostBootstrap::require_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !self.claimed {
+  if !self.claimed || self.growth is Some(_) {
     return Err(Unavailable)
   }
   Ok(())
@@ -668,12 +672,27 @@ pub fn[T] NativeHostBootstrap::try_close(
       Ok(_) => ()
     }
   }
+  // Every original child has now acknowledged physical and logical retirement.
+  // Drop only these completed internal aliases before asking the enclosing Read
+  // to close. Escaped child wrappers remain live and still block its real ACK.
+  self.children.clear()
+  self.children.shrink_to_fit()
+  match self.close_root_control(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if !self.physical_closed {
     let status = close_ffi(self.backing)
     if status != 0 {
       return Err(Physical(status))
     }
     self.physical_closed = true
+  }
+  if self.growth is Some(growth) {
+    match @resources.abort_shared_capacity_growth_after_cleanup(growth) {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => self.growth = None
+    }
   }
   if self.control is Some(control) {
     match @resources.retire_shared_capacity(control) {
@@ -702,7 +721,6 @@ pub fn[T] NativeHostBootstrap::try_close(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => self.closed = true
   }
-  self.children.clear()
   self.delegations.clear()
   Ok(())
 }
@@ -740,15 +758,50 @@ pub fn[T] NativeHostBootstrap::initial_payload_capacity(
   guard self.control is Some(control) else { return Err(Unavailable) }
   let actual = control_bytes_ffi(self.backing)
   let allocation = @resources.shared_allocation_usage(control)
+  let control_bytes = match self.root_control {
+    None => 0L
+    Some(control) => {
+      let selected = @resources.shared_allocation_usage(control.claim)
+      if control.closing ||
+        control.closed ||
+        selected.retiring ||
+        selected.released ||
+        selected.bytes != control.bytes {
+        return Err(Unavailable)
+      }
+      control.bytes
+    }
+  }
+  if control_bytes > 9223372036854775807L - actual {
+    return Err(Unavailable)
+  }
+  // One next bookkeeping block remains on this original Host. It is neither
+  // another allocation nor a child grant; its actual acquisition still checks
+  // capacity and the C supplier. Other consumers may cause a later refusal.
+  let next_control = if self.root_control is Some(_) {
+    let maximum = root_control_basis_maximum_ffi(self.backing)
+    let bytes = root_control_quote_ffi(self.backing, maximum, 64L, 0)
+    if bytes <= 0L {
+      return Err(Unavailable)
+    }
+    bytes
+  } else {
+    0L
+  }
+  if next_control > 9223372036854775807L - actual - control_bytes {
+    return Err(Unavailable)
+  }
+  let committed = actual + control_bytes
+  let payload_boundary = committed + next_control
   let usage = self.capacity_usage()
   if actual <= 0L ||
     allocation.bytes != actual ||
     allocation.retiring ||
     allocation.released ||
     usage.closing ||
-    usage.allocated != actual ||
-    usage.capacity <= actual {
+    usage.allocated != committed ||
+    usage.capacity <= payload_boundary {
     return Err(Unavailable)
   }
-  Ok(usage.capacity - actual)
+  Ok(usage.capacity - payload_boundary)
 }

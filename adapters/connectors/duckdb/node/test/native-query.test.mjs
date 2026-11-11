@@ -1,8 +1,10 @@
 import test from 'node:test';
+import {ledgerUsageFields} from '../../../../host-common/ledger-contract.generated.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {inspect} from 'node:util';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeQuery } from '../native-query.mjs';
@@ -97,7 +99,8 @@ test('native coordinator requires both exact settled receipts and revokes failed
     const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
     const events = [];
     let transferred = 0;
-    const captured = await runNativeQuery(grant, factory(events, 'success'), limits, undefined, {
+    const captured = await runNativeQuery(grant, factory(events, 'success'),
+      {...limits, maxSourceRows: 3}, undefined, {
       started() { assert.deepEqual(events, []); },
       chargeTransfer(bytes) { transferred += bytes; assert(!events.includes('complete')); },
       settled(confirmed) {
@@ -114,6 +117,26 @@ test('native coordinator requires both exact settled receipts and revokes failed
     captured.close(); captured.close();
     assert.throws(() => captured.bindInput(false), { code: 'IssuerClosed' });
     assert.equal(events.filter(event => event === 'close').length, 1);
+    const sourceRefused = [];
+    const sourceLimits = {...limits, maxSourceRows: 2};
+    const prepareSourceRefusal = verify => {
+      const same = factory(sourceRefused, 'success')(verify);
+      return {...same, port: {...same.port,
+        acceptMetadata(...args) {
+          sourceLimits.maxSourceRows = 3;
+          return same.port.acceptMetadata(...args);
+        },
+        nativeSql() { assert.fail('Source overflow must precede native filtering'); },
+      }};
+    };
+    await assert.rejects(runNativeQuery(grant, prepareSourceRefusal, sourceLimits), error => {
+      assert.equal(error.code, 'SourceRows');
+      assert.equal(acquisitionOutcome(error).outcome, 'stopped');
+      return true;
+    });
+    assert.deepEqual(sourceRefused.slice(-2), ['attempt-abort', 'close']);
+    assert(!sourceRefused.includes('native_result-begin'));
+    assert(!sourceRefused.includes('complete'));
     for (const mode of ['foreign-validation_scan', 'foreign-native_result',
       'cancel-validation_scan', 'cancel-native_result', 'completion-failure', 'async-completion']) {
       const failed = [];
@@ -152,24 +175,62 @@ test('native coordinator requires both exact settled receipts and revokes failed
 
     const dispatching = open => {
       const ref = {runDefinitionCid: 'physical-source-cleanup'};
+      const preparedProgram = {};
+      const preparedSource = {checkedSource: {sourceRef: 'fixture-source'}};
+      const capacity = {}, ledger = {};
+      const transferBytes = BigInt(limits.maxTransportBytes);
+      const executionBytes = BigInt(limits.memoryBytes);
       const stopped = [];
       let computes = 0;
       let cancellationRequested = false, revision = 1, physicalCloseConfirmed = false;
+      let frame;
+      const lookupRunDefinition = () => {
+        if (frame === undefined || frame.revision !== revision ||
+            frame.physicalCloseConfirmed !== physicalCloseConfirmed) {
+          frame = Object.freeze({cancellationRequested, revision,
+            physicalCloseConfirmed, runDefinition: {wire: 'definition'}});
+        }
+        return frame;
+      };
       const access = {};
       const owner = installNodeClientDispatchOwner({
-        moon: {clientProgramAcquisitionCount: () => 1},
+        moon: {clientProgramAcquisitionCount: () => 1,
+          clientProgramRequiresAcquisitionResultPublication(actual) {
+            assert.strictEqual(actual, preparedProgram);
+            // Lifecycle-only fixture: acquisition never publishes a Result.
+            return false;
+          },
+          clientProgramPrepareSingleCapturedLocalInstalledLedger(program, selected, transfer, execution) {
+            assert.strictEqual(program, preparedProgram);
+            assert.strictEqual(selected, capacity);
+            assert.equal(transfer, transferBytes);
+            assert.equal(execution, executionBytes);
+            return ledger;
+          },
+          clientProgramMultiCapturedLedgerUsage(actual) {
+            assert.strictEqual(actual, ledger);
+            return ledgerUsageFields.map(() => 0n);
+          }},
         control: {runDefinitionRunId: () => 'physical-source-cleanup',
           runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
         journal: {reservePhysicalStart: () => true,
-          lookupRunDefinition: () => ({cancellationRequested, revision,
-            physicalCloseConfirmed, runDefinition: {wire: 'definition'}}),
+          lookupRunDefinition,
           lookupReconciliationState: () => undefined,
-          markPhysicalClose(...args) { stopped.push(args); physicalCloseConfirmed = true; }},
+          markPhysicalClose(actualRef, outcome, original) {
+            assert.strictEqual(original, lookupRunDefinition());
+            stopped.push([actualRef, outcome]); physicalCloseConfirmed = true;
+          }},
         store: {confirmCommittedIndex: async () => undefined},
         startRun: async () => ({kind: 'reserved', ref}),
         hostConnection: () => true, observed: () => {},
         planFor: () => ({runDefinition: {wire: 'definition'}}),
         sourceProfile: {sourceAccess: access,
+          // This existing dispatch oracle checks lifecycle, not Core admission.
+          // Bind its capacity/usage ports to this exact fixture before opening.
+          ledgerCapacity(actual) {
+            assert.strictEqual(actual, preparedSource);
+            return {capacity, transferBytes, executionBytes};
+          },
           admitsSource: source => source === 'fixture-source', async open(options) {
           try { return await open(options); }
           catch (error) { options.reportAcquisitionFailure(error); throw error; }
@@ -183,11 +244,11 @@ test('native coordinator requires both exact settled receipts and revokes failed
         return owner.cancel(ref);
       }}, ref, stopped, computes: () => computes,
         async start() {
-          assert.equal(await owner.start({preparedProgram: {}, principalId: 'owner',
+          assert.equal(await owner.start({preparedProgram, principalId: 'owner',
             connection: {}, requestId: 'source-cleanup'}, {},
           {ref, runDefinition: {wire: 'definition'}, dispatchReserved: false},
           {preparedSourceAccess: access,
-            preparedSource: {checkedSource: {sourceRef: 'fixture-source'}}}), 'started');
+            preparedSource}), 'started');
           return owner.operation(ref);
         }};
     };
@@ -197,7 +258,9 @@ test('native coordinator requires both exact settled receipts and revokes failed
       return runNativeQuery(grant, factory([], 'success'), {...limits, maxRows: 1}, signal);
     });
     await over.start();
-    await over.owner.drain();
+    try {await over.owner.drain();} catch (cause) {
+      throw new Error(inspect(cause.failures, {depth: 5}), {cause});
+    }
     assert.deepEqual(over.stopped, [[over.ref, 'failed']]);
     assert.equal(opens, 1);
     assert.equal(over.computes(), 0);
@@ -281,7 +344,7 @@ test('native coordinator requires both exact settled receipts and revokes failed
       successfulReads++;
       const capture = await runNativeQuery(grant, factory([], 'success'), limits, signal);
       return {setup: {}, checkedSource: {},
-        issueSourceEvidence: () => { throw new Error('PostAcquisitionEvidenceFailed'); },
+        prepareSourceEvidenceOriginal: () => { throw new Error('PostAcquisitionEvidenceFailed'); },
         async close() {
           if (!permitCaptureClose) throw new Error('CaptureCloseInjected');
           capture.close(); physicalCloses++;

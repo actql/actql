@@ -87,8 +87,41 @@ pub fn client_duckdb_capture_capacity_accepts(
   envelope : ClientDuckDBCaptureCapacity,
   selected : @duckdb_host.CaptureConfiguration,
 ) -> Bool {
-  if !client_duckdb_capture_capacity_matches_requirement(
-      envelope,
+  duckdb_capture_capacity_accepts(
+    envelope.requirement,
+    envelope.retained_bytes,
+    envelope.execution_bytes,
+    selected,
+  )
+}
+
+///|
+/// The installed Plan retains this original envelope; borrowing it must not
+/// recalculate a pending quote or turn a Row capacity into a DuckDB capacity.
+pub fn installed_duckdb_capture_capacity_accepts(
+  envelope : ClientInstalledCaptureCapacity,
+  selected : @duckdb_host.CaptureConfiguration,
+) -> Bool {
+  !envelope.original_input &&
+  envelope.acquisition is None &&
+  envelope.provider is None &&
+  duckdb_capture_capacity_accepts(
+    envelope.requirement,
+    envelope.retained_bytes,
+    envelope.execution_bytes,
+    selected,
+  )
+}
+
+///|
+fn duckdb_capture_capacity_accepts(
+  requirement : @planning.QueryRequirement,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  selected : @duckdb_host.CaptureConfiguration,
+) -> Bool {
+  if @planning.query_requirement_cid(requirement) !=
+    @planning.query_requirement_cid(
       @duckdb_host.configured_capture_requirement(selected),
     ) {
     return false
@@ -98,8 +131,8 @@ pub fn client_duckdb_capture_capacity_accepts(
   }
   capacity.retained_bytes >= 0L &&
   capacity.execution_bytes >= 0L &&
-  capacity.retained_bytes <= envelope.retained_bytes &&
-  capacity.execution_bytes <= envelope.execution_bytes
+  capacity.retained_bytes <= retained_bytes &&
+  capacity.execution_bytes <= execution_bytes
 }
 
 ///|

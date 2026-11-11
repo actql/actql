@@ -32,15 +32,16 @@ typedef struct curl_slist curl_slist;
 typedef struct actql_read_context actql_read_context;
 typedef struct actql_owned_capacity actql_owned_capacity;
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+#include "owned_capacity.h"
 extern void *actql_bootstrap_current_read_context(void);
 extern int actql_read_context_retain(actql_read_context *);
 extern int actql_read_context_release_after_owner_ack(actql_read_context *);
-extern void *actql_native_file_scoped_allocate(size_t);
-extern void actql_native_file_scoped_free(void *);
+extern void *actql_native_private_scoped_allocate(size_t);
+extern int actql_native_private_scoped_free(void *);
+extern int actql_native_private_scoped_contains_allocation(actql_read_context *, actql_owned_capacity *, const void *, size_t);
 extern actql_owned_capacity *actql_native_owned_current(void);
 extern int actql_native_owned_enter(actql_owned_capacity *);
 extern int actql_native_owned_leave(actql_owned_capacity *);
-extern int actql_native_owned_contains_live_span(actql_owned_capacity *, const void *, size_t);
 extern int actql_read_context_enter(actql_read_context *);
 extern int actql_read_context_leave(actql_read_context *);
 #endif
@@ -92,6 +93,7 @@ enum {
   ACTQL_CURLINFO_RESPONSE_CODE = 0x200002,
   ACTQL_CURL_ERROR_SIZE = 256,
   ACTQL_CURL_GLOBAL_ALL = 3,
+  ACTQL_CURL_VERSION_SSL = 1U << 2,
   ACTQL_CURL_VERSION_THREADSAFE = 1U << 30
 };
 
@@ -177,7 +179,7 @@ static void *actql_http_component_allocate(void *read, void *lease, size_t bytes
   // Resolver callbacks enter the SAME retained Read on their own thread. A
   // foreign current lease/Read refuses; neither entry creates a new grant.
   actql_http_component_allocation *header =
-    actql_native_file_scoped_allocate(sizeof(*header) + bytes);
+    actql_native_private_scoped_allocate(sizeof(*header) + bytes);
   if (actql_read_context_leave(read) != 0 || actql_native_owned_leave(lease) != 0) abort();
 #else
   (void)read; (void)lease;
@@ -188,13 +190,15 @@ static void *actql_http_component_allocate(void *read, void *lease, size_t bytes
   return header + 1;
 }
 
-static actql_http_component_allocation *actql_http_component_header(void *lease, void *pointer) {
+static actql_http_component_allocation *actql_http_component_header(void *read, void *lease, void *pointer) {
   actql_http_component_allocation *header = (actql_http_component_allocation *)pointer - 1;
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
   // Classify against the original physical provider before reading metadata.
-  if (!lease || actql_native_owned_contains_live_span(lease, header, sizeof(*header)) != 0) abort();
+  if (!read || !lease || actql_native_private_scoped_contains_allocation(read, lease, header, sizeof(*header)) != 0) abort();
+  if (header->bytes > SIZE_MAX - sizeof(*header) ||
+      actql_native_private_scoped_contains_allocation(read, lease, header, sizeof(*header) + header->bytes) != 0) abort();
 #else
-  (void)lease;
+  (void)read; (void)lease;
 #endif
   return header;
 }
@@ -207,9 +211,10 @@ static void actql_http_component_retire(void *read, void *lease, void *pointer) 
 #else
   (void)read;
 #endif
-  actql_http_component_allocation *header = actql_http_component_header(lease, pointer);
+  actql_http_component_allocation *header = actql_http_component_header(read, lease, pointer);
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
-  actql_native_file_scoped_free(header);
+  int status = actql_native_private_scoped_free(header);
+  if (status != 0 && status != ACTQL_OWNED_BUSY && status != ACTQL_OWNED_PHYSICAL_FAILURE) abort();
   if (actql_read_context_leave(read) != 0 || actql_native_owned_leave(lease) != 0) abort();
 #else
   free(header);
@@ -226,7 +231,7 @@ static void *actql_http_component_reallocate(void *read, void *lease, void *poin
     return NULL;
   }
 #endif
-  actql_http_component_allocation *header = actql_http_component_header(lease, pointer);
+  actql_http_component_allocation *header = actql_http_component_header(read, lease, pointer);
   void *replacement = actql_http_component_allocate(read, lease, bytes);
   if (replacement) {
     memcpy(replacement, pointer, header->bytes < bytes ? header->bytes : bytes);
@@ -249,7 +254,7 @@ static bool actql_http_read_current(actql_native_http_library *library) {
 
 static void *actql_http_allocate(actql_native_http_library *library, size_t bytes) {
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
-  return actql_http_read_current(library) ? actql_native_file_scoped_allocate(bytes) : NULL;
+  return actql_http_read_current(library) ? actql_native_private_scoped_allocate(bytes) : NULL;
 #else
   (void)library;
   return malloc(bytes);
@@ -263,7 +268,8 @@ static void actql_http_free(actql_native_http_library *library, void *pointer) {
   // leave as well. Pending physical extents stay in that provider's same Read;
   // returning an alias here cannot acknowledge the Read/domain/parent close.
   if (!library || !library->scoped_allocator || library->original_process != getpid()) abort();
-  actql_native_file_scoped_free(pointer);
+  int status = actql_native_private_scoped_free(pointer);
+  if (status != 0 && status != ACTQL_OWNED_BUSY && status != ACTQL_OWNED_PHYSICAL_FAILURE) abort();
 #else
   (void)library;
   free(pointer);
@@ -790,10 +796,14 @@ static void *actql_native_http_load_library_impl(
   } else {
     library->load_failed = false;
     library->init_owned = true;
-    library->tls_backend_pending = true;
     library->global_cleanup = (actql_curl_global_cleanup_fn)dlsym(library->dynamic_library, "curl_global_cleanup");
     actql_curl_version_info_fn version_info = (actql_curl_version_info_fn)dlsym(library->dynamic_library, "curl_version_info");
     const actql_curl_version_info *info = version_info ? version_info(0) : NULL;
+    // An acquired TLS original always owes its own release. Unknown capability
+    // or an SSL image without that original remains pending; a known no-SSL
+    // image has no TLS backend to retire after its actual global cleanup.
+    library->tls_backend_pending = library->tls_owned || !info ||
+      (info->features & ACTQL_CURL_VERSION_SSL) != 0;
     library->cleanup_threadsafe = info && (info->features & ACTQL_CURL_VERSION_THREADSAFE) != 0;
   }
   return library;
@@ -879,6 +889,17 @@ int64_t actql_native_http_test_live_children(actql_native_http_library *library)
   int64_t count = library->live_children > INT64_MAX ? -1 : (int64_t)library->live_children;
   actql_http_library_unlock(library);
   return count;
+}
+
+// Test expectation DATA from this exact admitted image, not a cleanup result
+// or permission to unload a different/system TLS backend.
+int32_t actql_native_http_test_has_tls_cleanup(actql_native_http_library *library) {
+  if (!library || library->original_process != getpid()) return false;
+  actql_http_library_lock(library);
+  bool available = actql_http_library_current(library) &&
+    library->tls_owned && library->tls_api != NULL;
+  actql_http_library_unlock(library);
+  return available;
 }
 
 moonbit_bytes_t actql_native_http_library_error(actql_native_http_library *library) {

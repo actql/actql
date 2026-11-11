@@ -22,6 +22,8 @@ options(
     "runtime_bundle_native_wbtest.mbt": [ "native" ],
     "runtime_bundle_unsupported_wbtest.mbt": [ "not", "native" ],
     "store_native.mbt": [ "native" ],
+    "store_trust.mbt": [ "native" ],
+    "store_trust_wbtest.mbt": [ "native" ],
     "store_open_custody_native.mbt": [ "native" ],
     "store_open_custody_native_wbtest.mbt": [ "native" ],
     "retention_native.mbt": [ "native" ],

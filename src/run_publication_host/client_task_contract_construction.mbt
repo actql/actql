@@ -4,6 +4,9 @@
 /// extents cannot be replaced by those fixed identity widths. Nothing here
 /// grants capacity or replaces real contract/graph/Run admission.
 pub(all) struct ClientTaskFragmentConstruction {
+  pipeline_geometry : @encode.EncodingConstructionGeometry?
+  fragment_geometry : @encode.EncodingConstructionGeometry?
+  output_contract_geometry : @encode.EncodingConstructionGeometry?
   initial_pipeline : (Int, Int, Int)
   pipeline : (Int, Int, Int)
   fragment : (Int, Int, Int)

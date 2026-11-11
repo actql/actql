@@ -65,7 +65,7 @@ test "layout imports cannot bypass key or owner admission before physical conver
                 3,
                 control,
                 invocation.output_budget,
-                { limit: 100000, live: 0, peak: 0, },
+                row_workspace(100000),
                 physical,
                 None,
               ) {
@@ -199,7 +199,7 @@ test "generated layout execution shares values capture and cumulative limits" {
             limits.max_rows,
             control,
             invocation.output_budget,
-            { limit: limits.operation_entries, live: 0, peak: 0, },
+            { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
             physical,
             logical,
           )

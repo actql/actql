@@ -1,0 +1,90 @@
+# Existing initialization producer quantities
+
+These interfaces describe demand for the existing producer named below. They
+neither replace that producer nor admit a Source, Effect, Site or declaration.
+The common `execution_relation` representation model issues the typed quantity.
+
+| Existing owner | Bounded producer |
+| --- | --- |
+| Common row declaration | One relation with actual schema/facts geometry and default request/acquisition; not custom GCS acquisition |
+| BigQuery Catalog | Original table metadata, column/schema construction and the Common relation declaration |
+| HubSpot Catalog | Original account projection/recheck or one original properties catalog and selected schema |
+| Kintone Host | Original Form metadata, recursive subtable contracts, selected Records schema and fixed `$id` facts |
+| Snowflake Description | Each original SQL metadata response, including invalid-header conversion prefixes, and its relation declaration |
+| Salesforce Catalog | One genuine observation recovery/static-declaration pass, or one actual execution Mapping; never a generic replacement declaration |
+| GCS Catalog | Existing upload catalog/collection Mapping, or fixed listing/content/lookup facts from original carrier CIDs |
+
+- Responsibility: each named provider owns its concrete parser/generator demand
+  recipe. Common owns representation composition, capacity identity and actual
+  reservation. The shared relation helper exposes representation DATA only.
+  Thin Node/RelA bridges preserve these calls and their existing typed read
+  ports without interpreting provider metadata or creating a parallel owner.
+- Inputs and outputs: original byte/String extents, actual selected identifiers,
+  existing decoder/writer limits and producer-derived shape bounds yield an
+  optional same-runtime `ExecutionCapacity`, or representation units for Common
+  composition. The Salesforce JavaScript helper only measures already-owned
+  publication/evidence/Site/write data; it validates base64 without decoding.
+  Salesforce's original-body entry passes those exact Base64 strings to the
+  shared MoonBit issuer. Its constant-space canonical Base64 scan counts JSON
+  punctuation even inside strings and escapes, without allocating decoded
+  bytes/text or admitting grammar. Only parser/index node demand uses this
+  structural bound; complete input text, normalization, field bounds, hashes,
+  independent provider/Common restores and writer limits remain charged. The
+  length-only entry remains available as the conservative fallback.
+  Installed Salesforce restoration funds its existing recovery and declaration
+  producers separately on that same initialization parent. Only the completed
+  original recovery can supply field/text dimensions from its immutable typed
+  observation; provider and Common observations remain in distinct runtimes.
+  Each constructor keeps its complete peak on failure and may select retained
+  outputs only after its original synchronous return/current checks. Metadata
+  retains primitive literal text plus possible borrowed source backing, not
+  normalized keys or parser workspaces. Declaration retains its native export
+  graph/text and typed arrays, not temporary Json forests or writer cursors.
+  The outer Site binding and fixed evidence projection remain conservatively
+  funded until the original owner retires.
+  Both callbacks are one-shot and must return the actual constructor output;
+  equal replacement records cannot supply the correspondence. Direct restoration
+  keeps the original complete path. This introduces no permission or live-use
+  memo and does not weaken Site lifetime, original binding or final Catalog CID.
+- Identity: quantities are issued in the same compiled Common runtime that
+  accepts them. Provider observations/declarations stay in their original
+  runtime. Matching CIDs, numeric dimensions, JSON or copied object properties
+  cannot reconstruct an original or authorize a Source. GCS facts measure the
+  exact original preliminary carrier CID strings, not a replacement hash.
+- Ownership: the existing initialization holder reserves before the synchronous
+  producer callback and retains its returned originals. The conservative native
+  quantities preserve complete construction peaks for failed prefixes until
+  holder retirement. GCS catalog and Mapping quantities separately describe
+  the escaped output graph: Common may retain that portion only after successful
+  synchronous output validation and freezing, never on failure. Their workspace
+  still includes the complete original constructor peak. Other native recipes
+  conservatively retain their complete peaks. Physical Sites, journals and credentials remain under Common
+  custody and require their own real child-first retirement.
+- Synchronization: measurement is pure and synchronous. It does not invoke the
+  parser, provider callback, credential resolver or I/O. Each real Salesforce
+  restore is reserved independently. RelA mirrors are generated by the existing
+  assembly producer, not independently maintained semantic implementations.
+- Failure: invalid/overflowing dimensions return no quantity. A valid quantity
+  does not promise producer success; malformed metadata and writer-limit
+  failures preserve their original refusal and already-allocated prefixes.
+  Raw object assembly is not clipped to a later writer ceiling.
+- Cancellation: these pure recipes issue no cancellation or cleanup ACK. The
+  original initialization owner handles interruption and pending physical
+  children; a quantity, zero result or garbage-collection assumption cannot
+  retire a physical child.
+- Resources: recipes use existing collection/parser/encoder/contract inventories
+  and actual input-derived geometry. Profile maxima bound admission, not the
+  actual size of a tiny schema. GCS fixed facts count their 36 nodes, seven
+  objects, eight original decimal slots, canonical intermediates and all view
+  copies; Common separately funds its resulting view snapshot/stringify.
+  These interfaces neither enlarge the operator budget nor establish physical
+  backing by themselves.
+- Extension: a changed parser, schema family, compound field, export wrapper,
+  callback result or emitted template requires reviewing the matching inventory
+  and failure prefixes. The shared relation helper is not universal for custom
+  requests, acquisitions or Salesforce's distinct static declaration issuer.
+- Verification: adjacent construction white-box tests cover actual small-input
+  quantities, malformed prefixes, nested/compound schemas and unchanged budget
+  ceilings. The real installed-entry tests exercise the same common issuer and
+  existing producers. Syntax/hash responsibility pins are source correspondence
+  only, not a full runtime, artifact or release acceptance claim.

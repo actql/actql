@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/decode_shape" @shape,
   "actql/actql/capacity_arithmetic" @preparation_counts,
   "actql/actql/expression_typing" @typing,
   "actql/actql/text_time_policy" @text_policy,
@@ -48,3 +49,10 @@ import {
   "moonbitlang/core/env",
   "actql/actql/parameter_binding" @parameter,
 } for "wbtest"
+
+options(
+  targets: {
+    "text_workspace_growth_js.mbt": [ "js" ],
+    "text_workspace_growth_nonjs.mbt": [ "not", "js" ],
+  },
+)

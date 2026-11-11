@@ -21,6 +21,9 @@ const acquired = (name, text, expected, extra = {}) => success(name, text, expec
   });
 export const absSuccesses = [
   success('json-control', JSON.stringify(control), [{value: 9}], [column('value')], {format: 'json'}),
+  // A signed SQL expression normalizes zero; canonical JSON and Parameter
+  // negative-zero inputs retain their separate admission refusal.
+  success('authored-negative-zero', 'SELECT ABS(-0.0) AS value', [{value: 0}], [column('value')]),
   success('finite-values',
     'SELECT ABS(0) AS zero, ABS(-0.25) AS fractional, ABS(-2.25) AS exact, ABS(0 * -1) AS negative_zero',
     [{zero: 0, fractional: 0.25, exact: 2.25, negative_zero: 0}],
@@ -48,7 +51,6 @@ export const absSuccesses = [
   success('quoted-spelling', 'SELECT `AbS`(9) AS value', [{value: 9}], [column('value')]),
 ];
 export const absRefusals = [
-  {name: 'authored-negative-zero', text: 'SELECT ABS(-0.0) AS value'},
   {name: 'zero-arguments', text: 'SELECT ABS() AS value'},
   {name: 'two-arguments', text: 'SELECT ABS(1, 2) AS value'},
   {name: 'string-literal', text: "SELECT ABS('secret-value') AS value"},
@@ -63,4 +65,4 @@ export const absExecutionFailures = [
   {name: 'demanded-operand', text: 'SELECT ABS(1 / 0) AS value', sourceReadSessionCount: 0},
   {name: 'failure-after-valid-row', text: 'SELECT id, ABS(1 / amount) AS value FROM records ORDER BY id',
     sourceRows: [{id: 1, amount: -2}, {id: 2, amount: 0}], sourceReadSessionCount: 1},
-].map(value => ({...value, name: 'abs-' + value.name, format: 'sql', resultNames: ['answer']}));
+].map(value => ({...value, name: 'abs-' + value.name, format: 'sql', resultNames: ['main']}));

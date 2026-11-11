@@ -1222,6 +1222,10 @@ pub fn async_strategy_remote_runtime_owned_failure_plan(@remote_site_protocol.Di
 
 pub fn async_strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise AsyncHostFailure
 
+pub fn async_strategy_remote_runtime_restore_completed_cleanup_custody(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> @remote_site_protocol.RemoteRuntimeCustody raise AsyncHostFailure
+
+pub fn async_strategy_remote_runtime_restore_failed_partial_custody(@remote_site_protocol.DispatchRecord, Int, String, String, String, String, @remote_site_protocol.RemoteManagedOutputMeasurement, String, String, String, String, String, String) -> @remote_site_protocol.RemoteRuntimeCustody raise AsyncHostFailure
+
 pub fn async_strategy_remote_runtime_startable(@remote_site_protocol.DispatchRecord) -> Bool
 
 pub fn async_strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int
@@ -1400,6 +1404,8 @@ pub fn async_strategy_run_publication_admit(@run_publication.RunEvidenceValue, @
 
 pub fn async_strategy_run_publication_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
+pub fn async_strategy_site_acquire_restored_holding(@execution_site.SiteHoldingRestoration) -> @execution_site.SiteHolding?
+
 pub fn async_strategy_site_available(@execution_site.ExecutionSite) -> Bool
 
 pub fn async_strategy_site_begin_failed_operation_progress(Bool, Bool) -> @execution_site.FailedSiteOperationProgress
@@ -1423,6 +1429,8 @@ pub fn async_strategy_site_managed_candidate_fallback(Int, Array[Int]) -> Int
 pub fn async_strategy_site_operation_available(@execution_site.SiteOperation) -> Bool
 
 pub fn async_strategy_site_plan_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> (Int, Int64)
+
+pub fn async_strategy_site_prepare_holding_restoration(@execution_site.ExecutionSite, Int64) -> @execution_site.SiteHoldingRestoration?
 
 pub fn async_strategy_site_record_failed_operation_settlement(@execution_site.FailedSiteOperationProgress) -> Bool
 
@@ -2764,6 +2772,10 @@ pub fn strategy_remote_runtime_owned_failure_plan(@remote_site_protocol.Dispatch
 
 pub fn strategy_remote_runtime_reclaim_unknown_plan(@remote_site_protocol.DispatchRecord) -> @remote_site_protocol.RemoteRuntimeStep raise NodeHostFailure
 
+pub fn strategy_remote_runtime_restore_completed_cleanup_custody(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> @remote_site_protocol.RemoteRuntimeCustody raise NodeHostFailure
+
+pub fn strategy_remote_runtime_restore_failed_partial_custody(@remote_site_protocol.DispatchRecord, Int, String, String, String, String, @remote_site_protocol.RemoteManagedOutputMeasurement, String, String, String, String, String, String) -> @remote_site_protocol.RemoteRuntimeCustody raise NodeHostFailure
+
 pub fn strategy_remote_runtime_startable(@remote_site_protocol.DispatchRecord) -> Bool
 
 pub fn strategy_remote_runtime_step_action(@remote_site_protocol.RemoteRuntimeStep) -> Int
@@ -2942,6 +2954,8 @@ pub fn strategy_run_publication_admit(@run_publication.RunEvidenceValue, @run_pu
 
 pub fn strategy_run_publication_chain_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
+pub fn strategy_site_acquire_restored_holding(@execution_site.SiteHoldingRestoration) -> @execution_site.SiteHolding?
+
 pub fn strategy_site_available(@execution_site.ExecutionSite) -> Bool
 
 pub fn strategy_site_begin_failed_operation_progress(Bool, Bool) -> @execution_site.FailedSiteOperationProgress
@@ -2965,6 +2979,8 @@ pub fn strategy_site_managed_candidate_fallback(Int, Array[Int]) -> Int
 pub fn strategy_site_operation_available(@execution_site.SiteOperation) -> Bool
 
 pub fn strategy_site_plan_candidate(Int64?, Int64?, Bool, Bool, Bool, Int64?, Array[Bool], Array[Bool], Array[Bool], Array[Bool], Array[Int64], Array[Int64], Array[Int64]) -> (Int, Int64)
+
+pub fn strategy_site_prepare_holding_restoration(@execution_site.ExecutionSite, Int64) -> @execution_site.SiteHoldingRestoration?
 
 pub fn strategy_site_record_failed_operation_settlement(@execution_site.FailedSiteOperationProgress) -> Bool
 

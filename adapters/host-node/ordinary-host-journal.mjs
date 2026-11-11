@@ -147,6 +147,14 @@ export function prepareOrdinaryHostJournal(originals) {
         const error = Object.assign(new Error('InstalledHostJournalCleanupPending', {cause}),
           {code: 'InstalledHostJournalCleanupPending', cleanupPending: true});
         error.cleanupHandle = Object.freeze({status, retry: close});
+        // Preserve the original acquisition failure across this additional
+        // custody carrier. Diagnostic observation cannot discard its cleanup.
+        error.primaryFailure = cause;
+        try {
+          if (cause !== null && (typeof cause === 'object' || typeof cause === 'function') &&
+              Object.hasOwn(cause, 'primaryFailure')) error.primaryFailure = cause.primaryFailure;
+          if (Array.isArray(cause?.cleanupErrors)) error.cleanupErrors = cause.cleanupErrors;
+        } catch { /* Keep the original cause and same cleanup owner. */ }
         throw error;
       }});
       openingFlight = work;
@@ -154,7 +162,10 @@ export function prepareOrdinaryHostJournal(originals) {
     },
     publicationOwnership() {
       current();
-      if (journal === undefined || ownership === undefined || ownershipForwarded) {
+      // Explicit pre-start publication adopts the Store without opening SQLite.
+      // The same acquired exclusion and its native/key dependencies still own
+      // the one transfer; an absent Journal supplies no additional authority.
+      if (ownership === undefined || ownershipForwarded) {
         throw new TypeError('ForeignInstalledHostPublicationOwnership');
       }
       ownershipForwarded = true; return ownership;

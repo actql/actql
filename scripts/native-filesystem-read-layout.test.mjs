@@ -23,8 +23,8 @@ test('original filesystem layout projection performs no acquisition or allocatio
   assert.equal(run.status, 0, `${scratch}\n${run.error ?? ''}\n${run.stderr}`);
   assert.throws(() => process.kill(run.pid, 0), {code: 'ESRCH'});
   const result = JSON.parse(run.stdout);
-  assert.equal(result.cases, 7);
-  for (const field of ['rootPayload', 'readerPayload', 'externalOverhead']) {
+  assert.equal(result.cases, 9);
+  for (const field of ['rootPayload', 'readerPayload', 'externalOverhead', 'observationPayload', 'acquisitionPayload']) {
     assert(Number.isSafeInteger(result[field]) && result[field] > 0);
   }
   assert.equal(result.heapEntries, 0);

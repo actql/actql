@@ -62,7 +62,11 @@ test "result envelope derives row workspace and rejects representation overflow"
     assert_eq(envelope.order_terms, 6)
     assert_eq(envelope.workspace_entries, workspace)
   }
-  for rows in [-1, 0, 2147483647] {
+  assert_eq(
+    client_local_result_envelope(graph, 2147483647).unwrap().workspace_entries,
+    2147483647,
+  )
+  for rows in [-1, 0] {
     assert_true(client_local_result_envelope(graph, rows) is None)
   }
 }
@@ -74,28 +78,34 @@ test "result publication limits reuse the checked graph envelope and payload cap
   // Empty original Values has the checked one-row floor, not the identity profile.
   let rows = 1
   let envelope = client_local_result_envelope(graph, rows).unwrap()
+  let original = publication_plan_fixture(prepared)
+  let exported = original.capacity_plan.exports
   let limits = prepared_installed_managed_publication_limits(
-    publication_plan_fixture(prepared),
-    prepared,
-    4096,
+    original, prepared, 4096,
   ).unwrap()
   assert_eq(limits.max_rows, 1)
   assert_eq(limits.values.max_depth, 64)
-  assert_eq(limits.values.max_work, 1000000)
-  assert_eq(limits.values.max_nodes, 1000000)
-  assert_eq(limits.values.max_text_bytes, 10000000)
+  assert_eq(limits.values.max_work, exported.values.max_work)
+  assert_eq(limits.values.max_nodes, exported.values.max_nodes)
+  assert_eq(limits.values.max_text_bytes, exported.values.max_text_bytes)
   assert_eq(limits.max_result_order_work, 10000)
-  assert_eq(limits.payload_wire.max_nodes, 1000000)
-  assert_eq(limits.payload_wire.max_depth, 64)
+  assert_eq(limits.payload_wire.max_nodes, exported.wire.max_nodes)
+  assert_eq(
+    limits.payload_wire.max_depth,
+    Int::min(exported.wire.max_depth, 64),
+  )
   assert_eq(limits.payload_wire.max_columns, envelope.fields)
-  assert_eq(limits.payload_wire.max_order_work, 1000000)
-  assert_eq(limits.logical_wire.max_nodes, 1000003)
-  assert_eq(limits.logical_wire.max_depth, 66)
+  assert_eq(limits.payload_wire.max_order_work, exported.wire.max_order_work)
+  assert_eq(limits.logical_wire.max_nodes, exported.wire.max_nodes + 3)
+  assert_eq(
+    limits.logical_wire.max_depth,
+    Int::min(exported.wire.max_depth, 64) + 2,
+  )
   assert_eq(limits.schema.max_fields, envelope.fields)
   assert_eq(limits.schema.max_bytes, 79)
   assert_eq(limits.schema.max_nodes, 10000)
   assert_eq(limits.schema.max_depth, 64)
-  assert_eq(limits.max_batch_bytes, 65536)
+  assert_eq(limits.max_batch_bytes, exported.max_batch_bytes)
   assert_eq(limits.max_result_mapping_work, envelope.mapping_work)
   assert_eq(limits.max_result_fields, envelope.fields)
   assert_eq(
@@ -273,4 +283,65 @@ test "unordered Result publication row work follows original 10001 and 100000 ro
     assert_eq(projected.max_result_order_work, rows)
     assert_true(projected.max_result_workspace_entries >= 2 * rows)
   }
+}
+
+///|
+test "Node publication consumes the same export demand beyond old fixed limits" {
+  let prepared = result_envelope_fixture()
+  let original = publication_plan_fixture(prepared).capacity_plan
+  // Inert checked-Plan projection inputs isolate the old boundary. They do not
+  // create a Resource owner, Run, allocation or accepted installed publication.
+  for bytes in [9999999, 10000000, 10000001] {
+    let exported = {
+      ..original.exports,
+      values: {
+        ..original.exports.values,
+        max_nodes: 1000001,
+        max_text_bytes: bytes,
+      },
+      wire: { ..original.exports.wire, max_bytes: bytes, max_nodes: 1000001, },
+    }
+    let plan = { ..original, exports: exported, }
+    let projected = client_node_publication_limits_original(bytes, plan).unwrap()
+    assert_eq(projected.values.max_nodes, 1000001)
+    assert_eq(projected.values.max_text_bytes, bytes)
+    assert_eq(projected.payload_wire.max_bytes, bytes)
+    assert_eq(projected.payload_wire.max_nodes, 1000001)
+    assert_eq(projected.logical_wire.max_nodes, 1000004)
+    // An explicitly narrower Store-object policy still wins. Neither row nor
+    // value budgets are reissued, and no total-store quantity is added here.
+    let narrow = client_node_publication_limits_original(4096, plan).unwrap()
+    assert_eq(narrow.payload_wire.max_bytes, 4096)
+    assert_eq(narrow.values.max_text_bytes, bytes)
+  }
+  assert_true(client_node_publication_limits_original(0, original) is None)
+  for (nodes, depth) in [(2147483645, 64), (100, 2147483646)] {
+    let overflow = {
+      ..original,
+      exports: {
+        ..original.exports,
+        wire: { ..original.exports.wire, max_nodes: nodes, max_depth: depth, },
+      },
+    }
+    assert_true(client_node_publication_limits_original(4096, overflow) is None)
+  }
+}
+
+///|
+test "Node publication keeps an already tighter original codec depth and finite batch" {
+  let original = publication_plan_fixture(result_envelope_fixture()).capacity_plan
+  let plan = {
+    ..original,
+    exports: {
+      ..original.exports,
+      values: { ..original.exports.values, max_depth: 7, },
+      wire: { ..original.exports.wire, max_depth: 8, },
+      max_batch_bytes: 1024,
+    },
+  }
+  let limits = client_node_publication_limits_original(4096, plan).unwrap()
+  assert_eq(limits.values.max_depth, 7)
+  assert_eq(limits.payload_wire.max_depth, 8)
+  assert_eq(limits.logical_wire.max_depth, 10)
+  assert_eq(limits.max_batch_bytes, 1024)
 }

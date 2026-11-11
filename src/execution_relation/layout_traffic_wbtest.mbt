@@ -133,7 +133,7 @@ fn prepare_traffic_rows(
     fn(captured) {
       traffic_row_result(
         table_from_capture_bounded(captured, control, {
-          limit: limits.operation_entries,
+          ..row_workspace(limits.operation_entries),
           live: 0,
           peak: 0,
         }),
@@ -160,7 +160,7 @@ fn prepare_traffic_rows(
               limits.max_rows,
               control,
               output_budget,
-              { limit: limits.operation_entries, live: 0, peak: 0, },
+              { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
             ),
             true,
             traffic,
@@ -186,7 +186,7 @@ fn run_traffic_rows(
     fn(captured) {
       traffic_row_result(
         table_from_capture_bounded(captured, control, {
-          limit: limits.operation_entries,
+          ..row_workspace(limits.operation_entries),
           live: 0,
           peak: 0,
         }),
@@ -195,7 +195,11 @@ fn run_traffic_rows(
       )
     },
     fn(kernel, input, logical) {
-      let workspace = { limit: limits.operation_entries, live: 0, peak: 0, }
+      let workspace = {
+        ..row_workspace(limits.operation_entries),
+        live: 0,
+        peak: 0,
+      }
       evaluate_rows_dispatch(
         kernel,
         input,
@@ -382,22 +386,23 @@ test "row traffic preserves reference sharing instead of claiming cell copies" {
   let traffic = layout_traffic()
   let control = { remaining: 100000, max_frames: 100, }
   let input = traffic_row_result(
-    table_from_capture_bounded(captured, control, {
-      limit: 10000,
-      live: 0,
-      peak: 0,
-    }),
+    table_from_capture_bounded(captured, control, row_workspace(10000)),
     true,
     traffic,
   ).unwrap()
   assert_eq(traffic.data_arrays, 3L)
   assert_eq(traffic.row_cell_transfers, 4L)
   let selected = traffic_row_result(
-    evaluate_take_rows(input, "taken", 1L, 0L, 2, control, row_output(), {
-      limit: 10000,
-      live: 0,
-      peak: 0,
-    }),
+    evaluate_take_rows(
+      input,
+      "taken",
+      1L,
+      0L,
+      2,
+      control,
+      row_output(),
+      row_workspace(10000),
+    ),
     false,
     traffic,
   ).unwrap()

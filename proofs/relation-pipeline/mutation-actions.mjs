@@ -15,7 +15,7 @@ const targets = ['js', 'wasm', 'native'];
 const phases = ['mutated', 'pristine', 'post-restore'];
 const directories = ['src', 'vendor', 'proofs/bounded-session', 'proofs/relation-chain',
   'proofs/relation-capacity', 'proofs/relation-pipeline'];
-const snapshotFiles = ['scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh',
+const snapshotFiles = ['adapters/host-node/ordinary-node-resource-runtime.cjs', 'scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh',
   'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
   '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md'];
 const checkerFiles = ['proofs/ci-evidence/check.mjs', 'proofs/ci-evidence/Reuse.lean',

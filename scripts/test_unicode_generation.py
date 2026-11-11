@@ -23,6 +23,30 @@ SPEC.loader.exec_module(GENERATOR)
 
 
 class UnicodeCoverageTests(unittest.TestCase):
+    def test_pinned_recursive_canonical_expansion_counts_actual_utf16(self):
+        ucd = ROOT / "vendor" / "unicode" / "16.0.0"
+        _, decompositions, compositions = GENERATOR.read_canonical_tables(
+            (ucd / "UnicodeData.txt").read_text(encoding="utf-8").splitlines(),
+            GENERATOR.read_exclusions(ucd / "CompositionExclusions.txt"),
+        )
+        self.assertEqual(len(decompositions), 2081)
+        self.assertEqual(len(compositions), 961)
+        self.assertEqual(GENERATOR.canonical_decomposition_bounds(
+            decompositions, compositions), (4, 4))
+        # This real BMP input expands to supplementary output. The proof must
+        # count units, rather than assume all BMP inputs remain in the BMP.
+        self.assertEqual(decompositions[0xFA6C], [0x242EE])
+        self.assertEqual(GENERATOR.canonical_decomposition_bounds(
+            {0x41: [0x10000, 0x10001]}, []), (3, 4))
+
+    def test_recursive_canonical_bound_rejects_cycles_and_invalid_scalars(self):
+        for mappings in [{0x41: [0x42], 0x42: [0x41]}, {0x41: []},
+                         {0x41: [0xD800]}, {0x110000: [0x41]}]:
+            with self.subTest(mappings=mappings), self.assertRaises(ValueError):
+                GENERATOR.canonical_decomposition_bounds(mappings, [])
+        with self.assertRaises(ValueError):
+            GENERATOR.canonical_decomposition_bounds({}, [(0x41, 0x42, 0xD800)])
+
     def test_pinned_nfc_quick_check_values(self):
         no, maybe = GENERATOR.read_nfc_quick_check(
             ROOT / "vendor" / "unicode" / "16.0.0" /

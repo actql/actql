@@ -280,3 +280,167 @@ test "prepared execution still rejects foreign completed output and keeps holdin
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_true(@strategy.captured_task_output(other, 1, Step(1)) is Some(_))
 }
+
+///|
+// Actual Strategy/Resource/connector lifecycle with explicit prepared ports.
+// This wrapper starts no Model call; Model's per-attempt accounting is covered
+// separately by the original Model quantity/composed-start controls.
+test "non-Model task wrapper keeps same configured parent and consumes no Model quantities" {
+  let ledger = @resources.create_ledger({
+    planning_work: 10000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 300000L,
+    retained_bytes: 32000000L,
+    execution_bytes: 134217728L,
+  }).unwrap()
+  @resources.configure_quantities(ledger, {
+    tokens: 33L,
+    cost_units: 0L,
+    duration_ms: 500L,
+  }).unwrap()
+  let (run, _) = captured_graph_fixture(original_ledger=Some(ledger))
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), ledger))
+  let (_, choice, candidate) = synchronous_test_choice(run)
+  let calls = Ref(0)
+  let prepared = @connector.bind_prepared_materializing_execution(
+    choice,
+    candidate,
+    {
+      transfer_bytes: 100L,
+      retained_bytes: 100L,
+      scratch_bytes: 10L,
+      execution_bytes: 100L,
+    },
+    [],
+    fn(payload) {
+      calls.val += 1
+      let operations : @connector.ExecutionLifecycleOperations[
+        @strategy.RunIssue,
+      ] = {
+        cancel: fn() {  },
+        dispose: fn() {  },
+        settled: fn() {  },
+        scratch_released: fn() { true },
+        retention_released: fn() { true },
+        released: fn() {  },
+        ready: fn() { Ok(()) },
+      }
+      Ok((payload, operations))
+    },
+  ).unwrap()
+  let before = @resources.quantity_usage(ledger)
+  let resources_before = @resources.ledger_usage(ledger)
+  assert_true(
+    @resources.reserve_attempt(ledger, 0L, 0L, 0L)
+    is Err(@resources.InvalidCharge),
+  )
+  assert_eq(@resources.ledger_usage(ledger), resources_before)
+  let (payload, execution) = @strategy.start_captured_materializing_execution(
+    run, 1, prepared,
+  ).unwrap()
+  assert_eq(payload, 17)
+  assert_eq(calls.val, 1)
+  assert_eq(@resources.quantity_usage(ledger), before)
+  @strategy.close_task_execution(run, execution)
+  assert_false(
+    @strategy.refresh_task_execution_cleanup(run, execution).unwrap(),
+  )
+  @strategy.settle_task_execution(run, execution, true).unwrap()
+  assert_true(@strategy.refresh_task_execution_cleanup(run, execution).unwrap())
+  assert_eq(@resources.quantity_usage(ledger), before)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
+}
+
+///|
+test "completed original execution returns witnessed scratch while preserving live output and holding" {
+  let (run, _) = captured_graph_fixture()
+  let (_, choice, candidate) = synchronous_test_choice(run)
+  let ledger = @strategy.captured_dag_ledger(run)
+  let owner = @strategy.graph_task_owner(@strategy.captured_dag_graph(run), 1).unwrap()
+  let input = @strategy.captured_task_input(run, 1, 100, 10000).unwrap()
+  let completed = @execution.execute_fixed_producer_input(
+    task_test_generated(owner),
+    input,
+    compute_test_limits(),
+  ).unwrap()
+  let output = @execution.completed_output(completed, Step(1)).unwrap()
+  let scratch_released = Ref(false)
+  let released = Ref(0)
+  let disposed = Ref(0)
+  let original : Ref[@strategy.TaskExecution?] = Ref(None)
+  let nested_pending = Ref(false)
+  let prepared = @connector.bind_prepared_materializing_execution(
+    choice,
+    candidate,
+    {
+      transfer_bytes: 100L,
+      retained_bytes: 100L,
+      scratch_bytes: 10L,
+      execution_bytes: 100L,
+    },
+    [],
+    payload => {
+      let operations : @connector.ExecutionLifecycleOperations[
+        @strategy.RunIssue,
+      ] = {
+        cancel: () => (),
+        dispose: () => disposed.val += 1,
+        settled: () => (),
+        scratch_released: () => {
+          if scratch_released.val && original.val is Some(active) {
+            nested_pending.val = @strategy.refresh_task_execution_cleanup(
+                run, active,
+              )
+              is Ok(false)
+          }
+          scratch_released.val
+        },
+        retention_released: () => true,
+        released: () => released.val += 1,
+        ready: () => Ok(()),
+      }
+      Ok((payload, operations))
+    },
+    retained_bytes=() => Ok(40L),
+  ).unwrap()
+  let (_, execution) = @strategy.start_captured_materializing_execution(
+    run, 1, prepared,
+  ).unwrap()
+  original.val = Some(execution)
+  @strategy.charge_task_execution_transfer(run, execution, 23L).unwrap()
+  @strategy.settle_task_execution(run, execution, true).unwrap()
+  @strategy.complete_materializing_task_execution(run, execution, output).unwrap()
+  let pending = @resources.ledger_usage(ledger)
+  assert_eq(pending.reserved_execution_bytes, 10L)
+  assert_eq(pending.held_bytes, 40L)
+  assert_false(
+    @strategy.refresh_task_execution_cleanup(run, execution).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger), pending)
+  scratch_released.val = true
+  // This is scratch-only accounting after the original witness. The false
+  // result still reports output/retention custody, never a physical close ACK.
+  assert_false(
+    @strategy.refresh_task_execution_cleanup(run, execution).unwrap(),
+  )
+  assert_true(nested_pending.val)
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.reserved_execution_bytes, 0L)
+  assert_eq(after.held_bytes, pending.held_bytes)
+  assert_eq(after.transferred_bytes, pending.transferred_bytes)
+  assert_eq(after.attempts, pending.attempts)
+  assert_eq(disposed.val, 0)
+  assert_eq(released.val, 0)
+  assert_true(
+    @strategy.captured_task_output(run, 1, Step(1)) is Some(live) &&
+    @execution.completed_output_available(live),
+  )
+  assert_false(
+    @strategy.refresh_task_execution_cleanup(run, execution).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger), after)
+  @strategy.close_task_execution(run, execution)
+  assert_eq(disposed.val, 1)
+  assert_eq(released.val, 1)
+}

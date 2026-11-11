@@ -810,7 +810,8 @@ test('Site reads the exact prospective target with separate read authority',
     assert.equal(observed.versionCid, `sha256:${createHash('sha256')
       .update(canonicalJson({
         object_cid: salesforceMoon.salesforceWriteTargetObjectCid(target),
-        response_sha256: createHash('sha256').update(observed.body)
+        record_state_policy: 'actql-salesforce-read-history-values/0.1',
+        record_state_sha256: createHash('sha256').update(observed.body)
           .digest('hex'),
         version: 'actql-salesforce-target-observation/0.1',
       })).digest('hex')}`);

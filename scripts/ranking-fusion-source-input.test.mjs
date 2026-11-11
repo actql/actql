@@ -10,8 +10,10 @@ test('independent RRF controls preserve input occurrences, exact weights, rank w
  assert.equal(body.k,3); assert.equal(body.score_policy.rrf.rank_window,2);
  assert.deepEqual(repeat.results.answer.rows,[{id:2,score:2.833333333333333,rank:1},{id:3,score:1.6666666666666665,rank:2},{id:1,score:0.5,rank:3}]);
  for(const c of normal) {
+  const resultName=c.format==='json'?'answer':'main';
+  assert.deepEqual(Object.keys(c.results),[resultName]);
   assert.equal(c.sourceReadCount,0);
-  assert.deepEqual(c.results.answer.columns.map(x=>[x.name,x.contract]),['id','score','rank'].map(name=>[name,{type:'number',nullable:false}]));
+  assert.deepEqual(c.results[resultName].columns.map(x=>[x.name,x.contract]),['id','score','rank'].map(name=>[name,{type:'number',nullable:false}]));
  }
  const one=normal.find(c=>c.name==='ranking-fusion-json-single-peer');
  assert.notEqual(one.results.answer.rows[0].score,repeat.results.answer.rows[0].score);

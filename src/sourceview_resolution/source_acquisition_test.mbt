@@ -188,3 +188,29 @@ test "Source acquisition charges exact original input lookup and refuses missing
     derive_source_acquisition(requests, 1, work) is Err(UnsupportedMode),
   )
 }
+
+///|
+test "Source original Request document retains its exact writer bytes without reparsing" {
+  let requests = source_acquisition_fixture(
+    "[{\"select\":[\"id\"],\"as\":\"selected\"}]", "selected", "{\"p\":7}",
+  )
+  let source = derive_source_acquisition(requests, 0, 1000000).unwrap()
+  let request = source_acquisition_request(source)
+  let expected = "{\"id\":7,\"tenant\":null}"
+  let document = parameterized_request_document(
+    request,
+    expected.length(),
+    100,
+    20,
+  ).unwrap()
+  assert_eq(@encode.document_text(document), expected)
+  assert_eq(@encode.document_bytes(document), expected.length())
+  assert_true(
+    parameterized_request_document(request, expected.length() - 1, 100, 20)
+    is Err(Encoding(_)),
+  )
+  assert_eq(
+    parameterized_request_wire(request, 1000, 100, 20).unwrap(),
+    expected,
+  )
+}

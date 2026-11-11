@@ -132,11 +132,24 @@ test "failed physical region lend retains the same logical quota and original bo
   }
   assert_eq(region.loans.length(), 1)
   assert_true(physical_equal(region.loans[0], loan))
+  let loan_capacity = region.loans.capacity()
+  assert_true(loan_capacity > 0)
+  assert_true(
+    host.close_backed_region({ identity: 23, }, region)
+    is Err(Bootstrap(ForeignOriginal)),
+  )
+  assert_eq(region.loans.length(), 1)
+  assert_eq(region.loans.capacity(), loan_capacity)
+  assert_true(physical_equal(region.loans[0], loan))
   assert_eq(
     @resources.shared_allocation_usage(allocation.allocation).readers,
     2,
   )
   assert_false(host.close_backed_region(original, region).unwrap())
+  assert_eq(region.loans.length(), 1)
+  assert_eq(region.loans.capacity(), loan_capacity)
+  assert_true(physical_equal(region.loans[0], loan))
+  assert_false(loan.physical_returned || loan.settled)
   assert_true(host.try_close(original) is Err(ReadersPending))
   // The negative C lend has never published a view or child. No process
   // termination is inferred for a successfully entered worker here.
@@ -146,6 +159,14 @@ test "failed physical region lend retains the same logical quota and original bo
   assert_true(loan.physical_returned && loan.settled)
   assert_eq(host.usage().uncertain_transfer_bytes, 3L)
   assert_true(host.close_backed_region(original, region).unwrap())
+  assert_eq(region.loans.length(), 0)
+  // A zero length alone leaves the old Native backing slots and the
+  // loan -> region cycle alive. Successful original close must release them.
+  assert_eq(region.loans.capacity(), 0)
+  assert_true(host.close_backed_region(original, region).unwrap())
+  assert_eq(region.loans.length(), 0)
+  assert_eq(region.loans.capacity(), 0)
+  assert_true(loan.physical_returned && loan.settled)
   host.leave_borrow_scope(original, scope).unwrap()
   host.return_borrow(original, scope).unwrap()
   host.try_close(original).unwrap()

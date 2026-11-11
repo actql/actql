@@ -4,17 +4,29 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile, stat} from 'node:fs/promises';
 import {connect} from '@actql/node';
+import {getSubmissionCheckObservation} from '@actql/sdk';
 
-const [phase, handoffPath] = process.argv.slice(2);
+const [phase, handoffPath, template = 'churn-risk-mock', variant = 'readme'] = process.argv.slice(2);
 assert.ok(['capture', 'approve', 'recover'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
+assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
+const dealReview = template === 'deal-review-mock';
+assert.ok(variant === 'readme' || variant === 'two-models' && dealReview);
+const twoModels = variant === 'two-models';
 const C = /^sha256:[0-9a-f]{64}$/u;
-const expected = Object.freeze({
+const expected = Object.freeze(dealReview ? {
+  '006Acme': {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'},
+  '006Globex': {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'},
+} : {
   '001Acme': {level: 'high', reason: 'falling usage and a competitor evaluation'},
   '001Globex': {level: 'high', reason: 'support tickets about pricing'},
 });
 const originalRisk = Object.freeze({'001Acme': 'low', '001Globex': 'medium'});
-let client, firstFailedStep, activeStep, primary, failed = false;
+const originalDeal = Object.freeze({
+  '006Acme': {StageName: 'Proposal', NextStep: null},
+  '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
+});
+let client, firstFailedStep, activeStep, primary, checkDiagnostic, failed = false;
 async function step(name, operation) {
   activeStep = name;
   try {
@@ -25,6 +37,38 @@ async function step(name, operation) {
     firstFailedStep ??= name;
     throw cause;
   }
+}
+// Read this exact call's retained SDK observation, never check or submit again.
+// Facts, input bodies, context/revision IDs and submission references stay private.
+function submissionCheckDiagnostic(error) {
+  try {
+    const original = getSubmissionCheckObservation(error);
+    if (original === undefined) return {available: false};
+    const report = original.report ?? original.partial_report;
+    const token = value => typeof value === 'string' && /^[a-z][a-z0-9_.-]{0,127}$/u.test(value);
+    const entries = [...(report?.reasons ?? []), ...(report?.requirements ?? []),
+      ...(report?.coverage?.limits ?? []), ...(report?.coverage?.unresolved ?? [])];
+    const reasons = entries.slice(0, 32).filter(entry => token(entry.code)).map(entry => {
+      const result = {code: entry.code}, source = entry.location;
+      if (!source || !['text', 'structured'].includes(source.kind)) return result;
+      const location = {kind: source.kind};
+      if (['program', 'source', 'parameters', 'parameter_declarations'].includes(source.document_id)) {
+        location.document = source.document_id;
+      }
+      if (source.kind === 'text' && Number.isSafeInteger(source.start_byte) && source.start_byte >= 0 &&
+          Number.isSafeInteger(source.end_byte) && source.end_byte >= source.start_byte) {
+        location.start_byte = source.start_byte; location.end_byte = source.end_byte;
+      }
+      if (source.kind === 'structured' && typeof source.pointer === 'string' &&
+          source.pointer.length <= 512 && /^(?:\/[A-Za-z0-9_~.-]*)*$/u.test(source.pointer)) {
+        location.pointer = source.pointer;
+      }
+      result.location = location;
+      return result;
+    });
+    return {available: true, ...(token(original.outcome) ? {outcome: original.outcome} : {}),
+      ...(token(report?.verdict) ? {verdict: report.verdict} : {}), reasons, truncated: entries.length > 32};
+  } catch {return {available: false};} // Diagnostics never replace the original refusal or close.
 }
 const snapshot = info => ({dev: String(info.dev), ino: String(info.ino),
   size: String(info.size), mtimeNs: String(info.mtimeNs)});
@@ -38,9 +82,21 @@ function checkRows(rows) {
   assert.equal(rows.length, 2);
   assert.deepEqual(rows.map(row => row.id).sort(), Object.keys(expected).sort());
   for (const row of rows) {
-    assert.equal(row.risk.outcome, 'ok');
-    assert.deepEqual(row.risk.value, expected[row.id]);
-    assert.equal(row.active_users, row.id === '001Acme' ? '4' : '12');
+    if (dealReview) {
+      assert.equal(row.review.outcome, 'ok');
+      assert.deepEqual(row.review.value, expected[row.id]);
+      assert.equal(row.StageName, originalDeal[row.id].StageName);
+      assert.equal(row.NextStep, originalDeal[row.id].NextStep);
+      if (twoModels) {
+        assert.equal(row.confirmation.outcome, 'ok');
+        assert.deepEqual(row.confirmation.value, {confirmed: true,
+          stage: expected[row.id].stage, next_step: expected[row.id].next_step});
+      }
+    } else {
+      assert.equal(row.risk.outcome, 'ok');
+      assert.deepEqual(row.risk.value, expected[row.id]);
+      assert.equal(row.active_users, row.id === '001Acme' ? '4' : '12');
+    }
   }
 }
 function checkReview(review, summary, ref) {
@@ -58,7 +114,8 @@ function checkReview(review, summary, ref) {
   assert.equal(review.retention_class, 'approval-evidence');
   assert.equal(review.encryption_required, true);
   assert.deepEqual(review.displayed_scope.effects.map(({kind, target, count}) =>
-    ({kind, target, count})), [{kind: 'update', target: 'connector://salesforce/Account', count: 2}]);
+    ({kind, target, count})), [{kind: 'update', target: dealReview
+      ? 'connector://salesforce/Opportunity' : 'connector://salesforce/Account', count: 2}]);
   assert.equal(review.displayed_rows.length, 2);
   assert.deepEqual(review.displayed_rows.map(row => row.target_row_identity).sort(),
     Object.keys(expected).sort());
@@ -70,17 +127,41 @@ function checkReview(review, summary, ref) {
     assert.match(row.target_guard.version_cid, C);
     assert.equal(row.before.state, 'present');
     assert.equal(row.before.value.id, id);
-    assert.equal(row.before.value.Churn_Risk__c, originalRisk[id]);
-    assert.equal(row.before.value.Risk_Reason__c, null);
-    assert.deepEqual(row.intended_changes, {state: 'present', value: {
-      Churn_Risk__c: answer.level, Risk_Reason__c: answer.reason}});
-    // The original full-diff after/change omits unchanged fields. The sealed
-    // review preserves that original value rather than expanding the row.
-    assert.deepEqual(row.after, {state: 'present', value: {
-      Churn_Risk__c: answer.level, Risk_Reason__c: answer.reason}});
+    if (dealReview) {
+      assert.equal(row.before.value.StageName, originalDeal[id].StageName);
+      assert.equal(row.before.value.NextStep, originalDeal[id].NextStep);
+      const changes = {StageName: answer.stage, NextStep: answer.next_step};
+      assert.deepEqual(row.intended_changes, {state: 'present', value: changes});
+      assert.deepEqual(row.after, {state: 'present', value: changes});
+    } else {
+      assert.equal(row.before.value.Churn_Risk__c, originalRisk[id]);
+      assert.equal(row.before.value.Risk_Reason__c, null);
+      assert.deepEqual(row.intended_changes, {state: 'present', value: {
+        Churn_Risk__c: answer.level, Risk_Reason__c: answer.reason}});
+      // The original full-diff after/change omits unchanged fields. The sealed
+      // review preserves that original value rather than expanding the row.
+      assert.deepEqual(row.after, {state: 'present', value: {
+        Churn_Risk__c: answer.level, Risk_Reason__c: answer.reason}});
+    }
   }
 }
 function expectedBytes(before) {
+  if (dealReview) {
+    // Select each edit in the original authored bytes. Acme's new stage is
+    // Globex's old stage; a sequential search in changed bytes would edit it twice.
+    const edits = [];
+    for (const id of Object.keys(expected)) {
+      for (const [field, value] of Object.entries({StageName: expected[id].stage,
+        NextStep: expected[id].next_step})) {
+        const prior = JSON.stringify(field) + ': ' + JSON.stringify(originalDeal[id][field]);
+        assert.equal(before.split(prior).length, 2);
+        edits.push({start: before.indexOf(prior), length: prior.length,
+          next: JSON.stringify(field) + ': ' + JSON.stringify(value)});
+      }
+    }
+    return edits.sort((a, b) => b.start - a.start).reduce((bytes, edit) =>
+      bytes.slice(0, edit.start) + edit.next + bytes.slice(edit.start + edit.length), before);
+  }
   let result = before;
   for (const id of Object.keys(expected)) {
     const prior = `"Churn_Risk__c": "${originalRisk[id]}"`;
@@ -98,9 +179,10 @@ try {
     installation: {directory: '.actql'}, profile: 'mock'}));
   if (phase === 'capture') {
     const before = await step('read authored target before submission', targetState);
-    const source = await step('read original README program', () => readFile('churn-risk.aql', 'utf8'));
+    const source = await step('read original README program', () =>
+      readFile(twoModels ? 'deal-review.program.json' : dealReview ? 'deal-review.aql' : 'churn-risk.aql', 'utf8'));
     const execution = await step('README startSource', () =>
-      client.startSource(source, {format: 'aql', stopBefore: 'commit'}));
+      client.startSource(source, {format: twoModels ? 'json' : 'aql', stopBefore: 'commit'}));
     const state = await step('wait for original Checkpoint', async () => {
       const state = await execution.wait();
       assert.equal(state.status, 'waiting_checkpoint');
@@ -125,10 +207,14 @@ try {
       {ref: execution.ref, runId: state.run_id,
       checkpointId: state.checkpoint.id, summary,
       reviewBase64: Buffer.from(review.bytes).toString('base64'), before,
-      expectedBytes: expectedBytes(before.bytes)}));
+      expectedBytes: expectedBytes(before.bytes), ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
   } else {
-    const captured = await step('read original public recovery reference', async () =>
-      JSON.parse(await readFile(handoffPath, 'utf8')));
+    const captured = await step('read original public recovery reference', async () => {
+      const captured = JSON.parse(await readFile(handoffPath, 'utf8'));
+      assert.equal(captured.template ?? 'churn-risk-mock', template);
+      assert.equal(captured.variant ?? 'readme', variant);
+      return captured;
+    });
     const execution = await step('attach same original Run', async () => {
       const execution = await client.attach(captured.ref);
       assert.deepEqual(execution.ref, captured.ref);
@@ -175,10 +261,12 @@ try {
         assert.equal(after.bytes, captured.expectedBytes); return after;
       });
       await step('retain approved recovery reference', () => save(handoffPath + '.approved.json',
-        {ref: execution.ref, runId: terminal.run_id, rows, after}));
+        {ref: execution.ref, runId: terminal.run_id, rows, after, ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
     } else {
       const approved = await step('read approved public recovery reference', async () => {
         const approved = JSON.parse(await readFile(handoffPath + '.approved.json', 'utf8'));
+        assert.equal(approved.template ?? 'churn-risk-mock', template);
+        assert.equal(approved.variant ?? 'readme', variant);
         assert.deepEqual(execution.ref, approved.ref);
         return approved;
       });
@@ -197,7 +285,10 @@ try {
         assert.deepEqual(await targetState(), approved.after));
     }
   }
-} catch (cause) {failed = true; primary = cause; firstFailedStep ??= activeStep;}
+} catch (cause) {
+  failed = true; primary = cause; firstFailedStep ??= activeStep;
+  checkDiagnostic = submissionCheckDiagnostic(cause);
+}
 let closeFailure, closeFailed = false;
 if (client !== undefined) {
   try {await client.close();}
@@ -205,6 +296,7 @@ if (client !== undefined) {
 }
 console.log(JSON.stringify({phase, firstFailedStep: firstFailedStep ?? null,
   status: failed || closeFailed ? 'failed' : 'passed',
-  code: primary?.code, cleanupCode: closeFailure?.code}));
+  code: primary?.code, cleanupCode: closeFailure?.code,
+  ...(checkDiagnostic === undefined ? {} : {checkObservation: checkDiagnostic})}));
 if (failed) throw primary;
 if (closeFailed) throw closeFailure;

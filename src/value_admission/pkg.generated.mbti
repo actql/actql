@@ -122,6 +122,8 @@ pub fn complete_order_key(CheckedValue, Limits) -> Result[String, CompleteOrderI
 
 pub fn contract_value_body_construction_inventory(@value_contract.Contract, @decode_core.SubtreeConstructionGeometry) -> ParameterValueBodyConstructionInventory?
 
+pub fn contract_value_phase_construction_inventory(@value_contract.Contract, @decode_core.SubtreeConstructionGeometry, Int64, Int) -> ParameterValuePhaseConstructionInventory?
+
 pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
@@ -190,6 +192,8 @@ pub fn reference_compatible(ReferenceValue, @value_contract.Contract) -> Bool
 
 pub fn reference_content_metadata(ReferenceValue) -> (String, @canonical_json.CanonicalValue)?
 
+pub fn reference_contract_value_node_bound(@value_contract.Contract) -> Int?
+
 pub fn reference_identity_cid(ReferenceValue) -> String
 
 pub fn reference_same_domain(ReferenceValue, ReferenceValue) -> Bool
@@ -246,9 +250,15 @@ pub fn timestamp_order_text(String) -> String?
 
 pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
 
+pub fn wire_emit_fragment_byte_bound() -> Int
+
+pub fn wire_emit_next_construction_inventory(WireEmitCursor) -> WireEmitConstructionInventory?
+
 pub fn wire_emit_next_reference(WireEmitCursor) -> ReferenceValue?
 
 pub fn wire_emit_pending_frames(WireEmitCursor) -> Int
+
+pub fn wire_emit_start_construction_inventory() -> WireEmitConstructionInventory
 
 // Errors
 
@@ -486,6 +496,13 @@ pub enum Value {
 }
 
 type VectorBuilder
+
+pub(all) struct WireEmitConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 type WireEmitCursor
 

@@ -183,6 +183,27 @@ fn issue_client_task_plan_graph(
   }
   let graph = value.graph
   let count = @strategy.graph_task_count(graph)
+  if infer is Some(_) && !infers.is_empty() {
+    return Err(UnsupportedGraph)
+  }
+  let components = match infer {
+    Some(component) => [component]
+    None => infers
+  }
+  let mut planned_inputs = @strategy.graph_ordered_inputs_complete(graph)
+  if !planned_inputs {
+    for component in components {
+      if physical_equal(component.owner, value) &&
+        @strategy.graph_keyed_model_plan_inputs_complete(
+          graph,
+          component.task,
+          component.source_ordinal,
+        ) {
+        planned_inputs = true
+        break
+      }
+    }
+  }
   if count == 0 ||
     count > max_nodes ||
     (
@@ -194,7 +215,7 @@ fn issue_client_task_plan_graph(
       )
     ) ||
     (@strategy.graph_program_has_effects(graph) && !effects) ||
-    !@strategy.graph_ordered_inputs_complete(graph) {
+    !planned_inputs {
     return Err(UnsupportedGraph)
   }
   let fragments : Array[ClientTaskFragmentNode] = []
@@ -204,13 +225,6 @@ fn issue_client_task_plan_graph(
   let transformations : Array[ClientResultTransformation] = []
   let result_plans : Array[ClientResultPlanIdentity] = []
   let nodes : Array[@canonical.CanonicalValue] = []
-  if infer is Some(_) && !infers.is_empty() {
-    return Err(UnsupportedGraph)
-  }
-  let components = match infer {
-    Some(component) => [component]
-    None => infers
-  }
   if serialization is Some(component) &&
     (
       !components.is_empty() ||
@@ -253,7 +267,11 @@ fn issue_client_task_plan_graph(
       Some(infer) if task == infer.task =>
         match infer.serialization {
           Some(component) => component.input
-          None => infer.input
+          None =>
+            match infer.keyed {
+              Some(component) => component.left
+              None => infer.input
+            }
         }
       _ if content is Some(component) => component.input
       _ => fragment
@@ -429,15 +447,39 @@ fn issue_client_task_plan_graph(
             is Some(@canonical.String(input_contract_cid)) else {
             return Err(InvalidEdge)
           }
-          if input_contract_cid != source.output_contract_cid {
+          let projection = if input_contract_cid != source.output_contract_cid {
+            match
+              issue_client_task_result_input_projection(
+                graph, edge, index, source, max_wire_bytes, max_nodes, max_depth,
+              ) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+          } else {
+            None
+          }
+          let (source_node, source_port, source_contract) = match projection {
+            None =>
+              (source.node_id, source.output_port, source.output_contract_cid)
+            Some(projection) => {
+              nodes.push(projection.node)
+              result_edges.push(projection.edge)
+              (
+                projection.node_id,
+                projection.output_port,
+                projection.output_contract_cid,
+              )
+            }
+          }
+          if input_contract_cid != source_contract {
             return Err(ContractMismatch)
           }
           emit_client_compilation_data_edge(
             writer,
             source.output_carrier,
-            source.output_contract_cid,
-            source.node_id,
-            source.output_port,
+            source_contract,
+            source_node,
+            source_port,
             destination.node_id,
             input_name,
             (value, writer) => @encode.string_value(writer, value),
@@ -448,15 +490,20 @@ fn issue_client_task_plan_graph(
               if name != input_name {
                 continue
               }
-              if cid != source.output_contract_cid {
+              if cid != source_contract {
                 return Err(ContractMismatch)
               }
-              guard client_serialization_plan_edge(
-                  source, node_id, port, max_wire_bytes, max_nodes, max_depth,
-                )
-                is Some(extra) else {
-                return Err(Encoding)
+              let extra = match projection {
+                None =>
+                  client_serialization_plan_edge(
+                    source, node_id, port, max_wire_bytes, max_nodes, max_depth,
+                  )
+                Some(projected) =>
+                  client_task_result_input_projection_edge(
+                    projected, node_id, port, max_wire_bytes, max_nodes, max_depth,
+                  )
               }
+              guard extra is Some(extra) else { return Err(Encoding) }
               @canonical.emit_value(extra, writer)
             }
           }
@@ -482,19 +529,12 @@ fn issue_client_task_plan_graph(
           guard fragments.get(task) is Some(fragment) else {
             return Err(InvalidEdge)
           }
-          @encode.begin_object(writer)
-          @encode.key(writer, "name")
-          @encode.string_value(writer, name)
-          @encode.key(writer, "ref")
-          @encode.begin_object(writer)
-          @encode.key(writer, "node_id")
-          @encode.string_value(writer, fragment.node_id)
-          @encode.key(writer, "port")
-          @encode.string_value(writer, fragment.output_port)
-          @encode.end_object(writer)
-          @encode.key(writer, "role")
-          @encode.string_value(writer, "effect_result")
-          @encode.end_object(writer)
+          emit_client_compilation_effect_root(
+            writer,
+            name,
+            fragment.node_id,
+            fragment.output_port,
+          )
         }
         Ok(())
       },
@@ -543,4 +583,27 @@ pub fn admit_prepared_client_task_plan_graph(
     return Err(MismatchedGraph)
   }
   Ok(issued)
+}
+
+///|
+// The actual Effect graph issuer and its construction measurement share bytes.
+fn emit_client_compilation_effect_root(
+  writer : @encode.Writer,
+  name : String,
+  node_id : String,
+  port : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "name")
+  @encode.string_value(writer, name)
+  @encode.key(writer, "ref")
+  @encode.begin_object(writer)
+  @encode.key(writer, "node_id")
+  @encode.string_value(writer, node_id)
+  @encode.key(writer, "port")
+  @encode.string_value(writer, port)
+  @encode.end_object(writer)
+  @encode.key(writer, "role")
+  @encode.string_value(writer, "effect_result")
+  @encode.end_object(writer)
 }

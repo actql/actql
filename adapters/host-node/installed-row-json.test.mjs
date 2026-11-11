@@ -19,7 +19,6 @@ import * as moon from '../../_build/js/release/build/connectors_builtin_node/con
 import {effectHost} from './fixtures/installed-row-effect.fixture.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {createLocalAuthorizationGate} from './local-account-config.mjs';
-import {installNodeClientEffectProgramPreparation} from './client-program-preparation.mjs';
 import {currentEffectLiteralKeyVectors} from '../../scripts/effect-literal-key-vectors.mjs';
 
 const target = 'connector://fixture/records';
@@ -532,7 +531,17 @@ async function literalPreparation(payloadContract) {
     JSON.parse(environmentWire).evidence_bundle_cid,
     false, false, true, false, false, false, false);
   assert.ok(environment);
-  return installNodeClientEffectProgramPreparation({moon, environment});
+  // Only the authored JSON checker vectors below use this raw input port.
+  // This returns no Request/Run owner or provider permission.
+  return request => {
+    const document = request.kind === 'program'
+      ? JSON.stringify(request.input) : request.input.text;
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, undefined, []);
+    const original = moon.clientProgramEffectPreparationReady(outcome);
+    assert.ok(original, moon.clientProgramEffectPreparationIssueCode(outcome));
+    return original;
+  };
 }
 
 test('raw Effect literal source identities match independent Stage and Program vectors', async () => {

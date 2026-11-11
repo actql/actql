@@ -3,6 +3,7 @@ package "actql/actql/connectors/bigquery/catalog"
 
 import {
   "actql/actql/client_row_source_host",
+  "actql/actql/execution_relation",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -64,6 +65,8 @@ pub fn query_page_response_sha256(QueryPage) -> String
 pub fn query_page_row_count(QueryPage) -> Int
 
 pub fn query_page_total_rows(QueryPage) -> Int64
+
+pub fn read_declaration_construction_capacity(Int, Int, Int, Int, Int, Int, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn read_projection_fields(ReadProjection) -> Array[String]
 

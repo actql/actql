@@ -19,27 +19,105 @@ pub fn json_construction_extent(
   max_depth : Int,
   normalize_keys~ : Bool,
 ) -> JsonConstructionExtent? {
-  if max_input_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+  json_construction_extent_owned(
+    max_input_bytes,
+    max_nodes,
+    max_depth,
+    max_nodes,
+    max_nodes,
+    max_nodes,
+    max_nodes,
+    max_nodes,
+    normalize_keys~,
+  )
+}
+
+///|
+/// SAME Parser constructor with independently supplied upper bounds for the
+/// emitted tree's fields, containers and objects. These are sizing DATA, not
+/// admission, syntax validation or permission. General callers without those
+/// original observations keep json_construction_extent's whole-node bounds.
+pub fn json_shaped_construction_extent(
+  max_input_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  fields : Int,
+  containers : Int,
+  objects : Int,
+  largest_object : Int,
+  strings : Int,
+  normalize_keys~ : Bool,
+) -> JsonConstructionExtent? {
+  json_construction_extent_owned(
+    max_input_bytes,
+    max_nodes,
+    max_depth,
+    fields,
+    containers,
+    objects,
+    largest_object,
+    strings,
+    normalize_keys~,
+  )
+}
+
+///|
+fn json_construction_extent_owned(
+  max_input_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  fields : Int,
+  containers : Int,
+  objects : Int,
+  largest_object : Int,
+  strings : Int,
+  normalize_keys~ : Bool,
+) -> JsonConstructionExtent? {
+  if max_input_bytes < 1 ||
+    max_nodes < 1 ||
+    max_depth < 1 ||
+    fields < 0 ||
+    fields > max_nodes ||
+    containers < 0 ||
+    containers > max_nodes ||
+    objects < 0 ||
+    objects > containers ||
+    largest_object < 0 ||
+    largest_object > fields ||
+    strings < 0 ||
+    strings > max_nodes {
     return None
   }
-  guard @shape.key_admission_construction_extent(max_nodes, max_nodes)
+  // ObjectFields owns KeyAdmission only while its original Frame is open.
+  // Completing that Frame drops the Map; the returned Object retains fields,
+  // not the seen-key owner. All parsed entries, including discarded duplicate
+  // values, remain covered separately by the full node bound.
+  let live_objects = Int::min(objects, max_depth)
+  let live_keys = Int64::min(
+    fields.to_int64(),
+    live_objects.to_int64() * largest_object.to_int64(),
+  ).to_int()
+  guard @shape.key_admission_construction_extent(live_objects, live_keys)
     is Some(keys) else {
     return None
   }
   let bytes = max_input_bytes.to_int64()
   let nodes = max_nodes.to_int64()
+  let f = fields.to_int64()
+  let c = containers.to_int64()
+  let string_headers = fields.to_int64() + strings.to_int64()
   let edges = nodes - 1L
   let depth = Int::min(max_nodes, max_depth).to_int64() + 1L
   // Node/Value/Span:3H4R8W; Field/key Span:2H4R6W; at most
   // two decoded key/value Strings per node. Each container owns its wrapper
   // and backing. Fields and containers are each bounded by all parsed nodes.
-  let tree_headers = 3L * nodes + 2L * nodes + 2L * nodes + 2L * nodes
-  let tree_refs = 4L * nodes + 4L * nodes + 9L * nodes + 2L * edges
-  let tree_words = 8L * nodes + 6L * nodes + 2L * nodes
+  let tree_headers = 3L * nodes + 2L * f + 2L * c + string_headers
+  let tree_refs = 4L * nodes + 4L * f + 9L * c + 2L * edges
+  let tree_words = 8L * nodes + 6L * f + 2L * c
   // Old/new array backing and the existing exact-key map construction/growth.
   // All object keys, even a discarded duplicate's parsed value, stay charged.
-  let growth_headers = nodes + keys.record_headers
-  let growth_refs = 4L * nodes + edges + keys.reference_slots
+  let growth_headers = c + keys.record_headers
+  let growth_refs = 4L * c + edges + keys.reference_slots
   let growth_words = keys.scalar_words
   // Frame/Container/Point/pending tuple+Some/PathSegment, two growing ancestry
   // vectors and one current leaf. No complete path is copied per success node.
@@ -111,10 +189,89 @@ pub fn json_source_grammar_construction_extent(
     is Some(grammar) else {
     return None
   }
-  Some({
+  Some(json_source_grammar_controls(grammar))
+}
+
+///|
+/// SAME original preflight geometry before the first grammar transition.
+/// Text bytes do not substitute for nodes, fields, containers or the largest
+/// normalized key. Quoted raw UTF16 bounds decoded key input even with Unicode
+/// and escapes; including value quotes is a conservative cumulative envelope,
+/// not an ASCII eligibility assertion or another text/count traversal.
+pub fn json_source_geometry_construction_extent(
+  geometry : JsonSourceGeometry,
+  max_nodes : Int,
+  max_depth : Int,
+) -> JsonConstructionExtent? {
+  if geometry.input_bytes < 0 ||
+    geometry.fields < 0 ||
+    geometry.objects < 0 ||
+    geometry.arrays < 0 ||
+    geometry.quoted_tokens < 0 ||
+    geometry.quoted_raw_utf16_units < 0 ||
+    geometry.longest_quoted_raw_utf16 < 0 ||
+    geometry.longest_quoted_raw_utf16 > geometry.quoted_raw_utf16_units ||
+    max_nodes < 1 ||
+    max_depth < 1 {
+    return None
+  }
+  let fields = Int::min(geometry.fields, max_nodes)
+  let containers = Int64::min(
+    geometry.objects.to_int64() + geometry.arrays.to_int64(),
+    max_nodes.to_int64(),
+  ).to_int()
+  guard json_shaped_construction_extent(
+      Int::max(1, geometry.input_bytes),
+      max_nodes,
+      max_depth,
+      fields,
+      containers,
+      Int::min(geometry.objects, containers),
+      fields,
+      Int::min(geometry.quoted_tokens, max_nodes),
+      normalize_keys=false,
+    )
+    is Some(common) &&
+    @canonical.nfc_lf_construction_scratch_extent(
+      geometry.longest_quoted_raw_utf16,
+    )
+    is Some(normalization) &&
+    @canonical.nfc_lf_retained_output_units(
+      geometry.quoted_raw_utf16_units.to_int64(),
+    )
+    is Some(output) &&
+    @counts.checked_nonnegative_add_product(
+      common.owned_utf16_units,
+      normalization.owned_utf16_units,
+      1L,
+    )
+    is Some(text) &&
+    @counts.checked_nonnegative_add_product(text, output, 1L) is Some(text) else {
+    return None
+  }
+  // Key normalization is sequential. Its one workspace and cumulative output
+  // keep the canonical Owner's exact expansion rule. Returned key headers are
+  // counted alongside the original decoded text, without one workspace for
+  // every field or a whole-document-sized key buffer.
+  let grammar : JsonConstructionExtent = {
+    record_headers: common.record_headers +
+    normalization.record_headers +
+    fields.to_int64(),
+    reference_slots: common.reference_slots + normalization.reference_slots,
+    scalar_words: common.scalar_words + normalization.scalar_words,
+    owned_utf16_units: text,
+  }
+  Some(json_source_grammar_controls(grammar))
+}
+
+///|
+fn json_source_grammar_controls(
+  grammar : JsonConstructionExtent,
+) -> JsonConstructionExtent {
+  {
     record_headers: grammar.record_headers + 6L,
     reference_slots: grammar.reference_slots + 4L,
     scalar_words: grammar.scalar_words + 37L,
     owned_utf16_units: grammar.owned_utf16_units,
-  })
+  }
 }

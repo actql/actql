@@ -81,7 +81,7 @@ export const havingAggregateRefusals = [
 export const havingAggregateExecutionFailures = [{
   name: 'having-aggregate-demanded-expression-failure', format: 'sql',
   text: 'SELECT id FROM records GROUP BY id HAVING SUM(1 / 0) > 0',
-  resultNames: ['answer'], sourceReadSessionCount: 1,
+  resultNames: ['main'], sourceReadSessionCount: 1,
 }];
 
 havingAggregateSuccesses.push(
@@ -104,7 +104,7 @@ havingAggregateRefusals.push(...[
   ...(index === 0 ? {expectedCode: 'ClientProgramImplementationLimit'} : {})})));
 havingAggregateExecutionFailures.push({name: 'single-join-group-authored-ceiling', format: 'sql',
   text: 'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 3 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 1 GROUP BY records.id ORDER BY id',
-  resultNames: ['answer'], sourceReadSessionCount: 1});
+  resultNames: ['main'], sourceReadSessionCount: 1});
 
 // Reuse the unchanged authored object/NULL input fixture, not product output.
 // Selected aggregate orders see input payload; HAVING orders prefer its alias.

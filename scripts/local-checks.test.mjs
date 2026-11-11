@@ -59,6 +59,127 @@ test('heavy jobs require deliberate override; light lint remains usable', t => {
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'from workflow\nfrom workflow\n');
 });
 
+function coreBudget(fixture, value) {
+  const path = join(fixture.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs.core['timeout-minutes'] = value;
+  writeFileSync(path, JSON.stringify(workflow));
+}
+
+const nativeMatrixBudget = "${{ matrix.target == 'native' && 75 || 30 }}";
+
+test('local Core adapter runs complete unpartitioned coverage for the hosted Native partition expression', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs.core.steps = [{name: 'original full selection',
+    env: {TARGET: '${{ matrix.target }}', ACTQL_TEST_NATIVE_CORE_PARTITION:
+      "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}"},
+    run: 'printf "%s:%s\\n" "$TARGET" "$ACTQL_TEST_NATIVE_CORE_PARTITION" >> calls'}];
+  writeFileSync(path, JSON.stringify(workflow));
+  for (const target of ['native', 'js', 'wasm']) {
+    const result = f.run(['run', 'core', '--target', target, '--allow-heavy']);
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
+});
+
+test('local Core adapter keeps full coverage without inventing or inheriting a hosted Moon plan', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs.core.steps = [{name:'original full local selection',
+    env:{CI_PLAN:'${{ needs.select-targets.outputs.plan }}'},
+    run:'if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then exit 99; fi\n' +
+      'printf "%s:%s\\n" "${{ matrix.target }}" "$CI_PLAN" >> calls'}];
+  writeFileSync(path, JSON.stringify(workflow));
+  for (const target of ['native', 'js', 'wasm']) {
+    const result = f.run(['run', 'core', '--target', target, '--allow-heavy'],
+      {CI_PLAN:'{"selection":{"moonTests":{"foreign":true}}}'});
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
+  for (const value of ['${{ needs.other.outputs.plan }}', '{"selection":{"moonTests":{}}}']) {
+    workflow.jobs.core.steps[0].env.CI_PLAN = value;
+    writeFileSync(path, JSON.stringify(workflow));
+    const refused = f.run(['run', 'core', '--target', 'js', '--allow-heavy']);
+    assert.equal(refused.status, 2);
+    assert.match(refused.stderr, /local CI must retain complete coverage/u);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'native:\njs:\nwasm:\n');
+});
+
+test('local Core adapter refuses a literal half or unfamiliar partition instead of narrowing coverage', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  for (const value of ['1/2', '2/2', '${{ matrix.partition }}/2']) {
+    workflow.jobs.core.steps = [{name: 'must not run half',
+      env: {ACTQL_TEST_NATIVE_CORE_PARTITION: value}, run: 'printf bad >> calls'}];
+    writeFileSync(path, JSON.stringify(workflow));
+    const result = f.run(['run', 'core', '--target', 'native', '--allow-heavy']);
+    assert.equal(result.status, 2); assert.match(result.stderr, /complete coverage/u);
+    assert.equal(existsSync(join(f.root, 'calls')), false);
+  }
+});
+
+test('Core job matrix budgets preserve Native and portable workflow rows', t => {
+  const f = fixture(t);
+  coreBudget(f, nativeMatrixBudget);
+  for (const [target, seconds] of [['native', 4500], ['js', 1800], ['wasm', 1800]]) {
+    const result = f.run(['run', 'core', '--allow-heavy', '--target', target]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, new RegExp(`budget: ${seconds}s`, 'u'));
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'from workflow\n'.repeat(3));
+});
+
+test('focused Moon matrix budgets preserve the exact target and test/build arguments', t => {
+  const f = fixture(t);
+  coreBudget(f, nativeMatrixBudget);
+  const expected = [];
+  for (const [flag, target, seconds] of [['--target', 'native', 4500], ['--target=js', 'js', 1800]]) {
+    const args = [flag, ...(flag === '--target' ? [target] : []), '-p', 'query_integration'];
+    const result = f.run(['test', 'moon', '--', ...args]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, new RegExp(`budget: ${seconds}s`, 'u'));
+    expected.push(['test', ...args]);
+  }
+  const build = f.run(['build', 'moon', '--', '--target=native', 'src/query_integration']);
+  assert.equal(build.status, 0, build.stderr);
+  assert.match(build.stderr, /budget: 4500s/u);
+  expected.push(['build', '--target=native', 'src/query_integration']);
+  assert.deepEqual(readFileSync(join(f.root, 'moon-args'), 'utf8').trim().split('\n').map(JSON.parse), expected);
+});
+
+test('unknown workflow expressions require an explicit budget and are never evaluated', t => {
+  const f = fixture(t);
+  coreBudget(f, "${{ matrix.target == 'native' && 40 || process.exit(99) }}");
+  for (const args of [['run', 'core', '--allow-heavy', '--target', 'native'],
+    ['test', 'moon', '--', '--target', 'js', '-p', 'query_integration']]) {
+    const denied = f.run(args);
+    assert.equal(denied.status, 2);
+    assert.match(denied.stderr, /supply --timeout-seconds/u);
+  }
+  assert.equal(existsSync(join(f.root, 'calls')), false);
+  assert.equal(existsSync(join(f.root, 'moon-args')), false);
+  assert.equal(existsSync(join(f.root, '_build')), false);
+  for (const args of [['run', 'core', '--allow-heavy', '--target', 'native', '--timeout-seconds', '7'],
+    ['test', 'moon', '--timeout-seconds', '7', '--', '--target', 'js', '-p', 'query_integration']]) {
+    const result = f.run(args);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /budget: 7s/u);
+  }
+});
+
+test('ambiguous and unsupported Moon matrix targets keep explicit-budget admission', t => {
+  const f = fixture(t);
+  coreBudget(f, nativeMatrixBudget);
+  for (const args of [['--target', 'js', '--target', 'native'], ['--target=all']]) {
+    const result = f.run(['test', 'moon', '--', ...args, '-p', 'query_integration']);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /supply --timeout-seconds/u);
+  }
+  assert.equal(existsSync(join(f.root, 'moon-args')), false);
+});
+
 test('CI-only pipeline wrappers refuse even heavy overrides and supplied GitHub metadata without side effects', t => {
   const f = fixture(t);
   for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {

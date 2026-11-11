@@ -31,6 +31,7 @@ formatter(
 )
 
 import {
+  "actql/actql/sourceview_input" @source_inputs,
   "actql/actql/stage_local_inputs" @local_inputs,
   "actql/actql/decode_shape" @shape,
   "actql/actql/frontend_source_map" @frontend_origin,

@@ -22,6 +22,10 @@ test "Native Client state inspection distinguishes absence from retained custody
     inspect_native_client_state(library, path, 131072L, 1048576L, 8)
     is Ok(Retained),
   )
+  assert_true(
+    inspect_native_client_state(library, path, 131072L, 1048576L, 1025)
+    is Ok(Retained),
+  )
   let after_epoch = database
     .read("client_submission_epoch", "authority")
     .unwrap()
@@ -96,7 +100,7 @@ test "Native Client state inspection rejects invalid limits before copying" {
   ).unwrap()
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
     "/client-inspection-limits.sqlite3"
-  for limits in [(0L, 8), (1048577L, 8), (131072L, 0), (131072L, 1025)] {
+  for limits in [(0L, 8), (1048577L, 8), (131072L, 0), (131072L, -1)] {
     assert_true(
       inspect_native_client_state(library, path, limits.0, 1048576L, limits.1)
       is Err(InvalidLimit),

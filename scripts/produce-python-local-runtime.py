@@ -251,7 +251,8 @@ def verify_original_core(root: Path, core: dict[str, Any], source: str) -> str:
             'Core contract receipt did not confirm the same module with nonzero cases')
     cohort = contract.get('cohort')
     require(type(cohort) is dict, 'Original selected-image physical cohort is unavailable')
-    selected = _recipe_from_original(recipe.image_recipe_original(root, source), source_sha=source,
+    original_recipe = recipe.module_image_recipe_original(root, source, Path(core['module']), digest)
+    selected = _recipe_from_original(original_recipe, source_sha=source,
         package_version=recipe.read_cohort(root), module_sha256=digest)
     expected = physical_core_cohort(selected, cohort.get('image_sha256'))
     for name in ('contract', 'result', 'physical', 'workspace'):
@@ -320,13 +321,13 @@ def produce_platform(core_receipt: Path, duckdb_receipt: Path,
         and duckdb['workspace_selection'] is False and duckdb['public_local_acceptance'] is False
         and duckdb['wheel_acceptance'] is False and duckdb['library_version'] == DUCKDB_VERSION,
         'Standalone DuckDB original component does not match')
-    original = recipe.image_recipe_original(ROOT, source, runtime_allocation='platform')
+    original = recipe.module_image_recipe_original(ROOT, source, Path(core['module']), digest,
+        runtime_allocation='platform')
     version = recipe.read_cohort(ROOT)
     selected = _recipe_from_original(original, source_sha=source,
         package_version=version, module_sha256=digest)
     image_path, image_item = verify_original_image(image, selected, source, digest)
     module, library = Path(core['module']), Path(duckdb['library'])
-    recipe_path = ROOT / 'packages/python-local-runtime/selected-platform-image-recipe.json'
     recipe_hash = hashlib.sha256(original).hexdigest()
     image_body = {'source_sha': source, 'package_version': version,
         'module_sha256': digest, 'core_abi': LOCAL_CORE_ABI,
@@ -344,16 +345,16 @@ def produce_platform(core_receipt: Path, duckdb_receipt: Path,
         'duckdb': component(library, duckdb['library_sha256'], 128 * 1024 * 1024, 'libduckdb.dylib'),
         'duckdb_version': DUCKDB_VERSION, 'notices': notice_hashes,
         'compiled_image': image_body,
-        'engine_recipe': component(recipe_path, recipe_hash, 65536, 'engine-recipe.json')}
+        'engine_recipe': {'file': 'engine-recipe.json', 'bytes': len(original), 'sha256': recipe_hash}}
     recipe.library_target(library)
     destination.mkdir()
     copies = {'client_host_wasm.wasm': (module, 32 * 1024 * 1024, digest),
         'client_host_wasm.cwasm': (image_path, selected.image_bytes_limit, image_item['sha256']),
-        'engine-recipe.json': (recipe_path, 65536, recipe_hash),
         'libduckdb.dylib': (library, 128 * 1024 * 1024, duckdb['library_sha256'])}
     copies.update({name: (path, 1024 * 1024, notice_hashes[name]) for name, path in notices.items()})
     for name, (path, maximum, checksum) in copies.items():
         copy_original(path, destination / name, maximum, checksum)
+    (destination / 'engine-recipe.json').write_bytes(original)
     wire = (json.dumps(body, indent=2) + '\n').encode('utf-8')
     require(len(wire) <= 65536, 'Ordinary component manifest exceeds its limit')
     (destination / 'artifact.json').write_bytes(wire)
@@ -403,8 +404,7 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
     # This source-original is deliberately unavailable until the selected
     # recipe is reviewed/adopted. Never fill missing limits from a fixture,
     # Wasmtime defaults, or the image receipt supplied on the command line.
-    recipe_relative = 'packages/python-local-runtime/selected-image-recipe.json'
-    original = recipe.image_recipe_original(ROOT, source)
+    original = recipe.module_image_recipe_original(ROOT, source, module, digest)
     selected = _recipe_from_original(original, source_sha=source,
         package_version=sdk['version'], module_sha256=digest)
     image_path, image_item = verify_original_image(image, selected, source, digest)
@@ -423,8 +423,8 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
             'module': component(module, digest, 32 * 1024 * 1024, 'client_host_wasm.wasm'),
             'duckdb': component(library, duckdb['library_sha256'], 128 * 1024 * 1024, 'libduckdb.dylib'),
             'duckdb_version': version, 'notices': {}, 'compiled_image': image_body,
-            'engine_recipe': component(ROOT / recipe_relative, hashlib.sha256(original).hexdigest(),
-                                       65536, 'engine-recipe.json')}
+            'engine_recipe': {'file': 'engine-recipe.json', 'bytes': len(original),
+                              'sha256': hashlib.sha256(original).hexdigest()}}
     notices = recipe.notice_originals()
     notice_hashes = {name: hashlib.sha256(_read_file(path, maximum=1024 * 1024)).hexdigest()
                      for name, path in notices.items()}
@@ -432,14 +432,15 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
     recipe.library_target(library)
     destination.mkdir()
     for name, path in {'client_host_wasm.wasm': module, 'client_host_wasm.cwasm': image_path,
-                       'engine-recipe.json': ROOT / recipe_relative, 'libduckdb.dylib': library, **notices}.items():
+                       'libduckdb.dylib': library, **notices}.items():
         maximum = selected.image_bytes_limit if name == 'client_host_wasm.cwasm' else (
-            65536 if name == 'engine-recipe.json' else 32 * 1024 * 1024 if name == 'client_host_wasm.wasm' else (
+            32 * 1024 * 1024 if name == 'client_host_wasm.wasm' else (
             128 * 1024 * 1024 if name == 'libduckdb.dylib' else 1024 * 1024))
         expected = image['image_sha256'] if name == 'client_host_wasm.cwasm' else (
-            hashlib.sha256(original).hexdigest() if name == 'engine-recipe.json' else digest if name == 'client_host_wasm.wasm' else (
+            digest if name == 'client_host_wasm.wasm' else (
             duckdb['library_sha256'] if name == 'libduckdb.dylib' else notice_hashes[name]))
         copy_original(path, destination / name, maximum, expected)
+    (destination / 'engine-recipe.json').write_bytes(original)
     wire = (json.dumps(body, indent=2) + '\n').encode('utf-8')
     require(len(wire) <= 65536, 'Python Local artifact metadata exceeds its fixed envelope')
     (destination / 'artifact.json').write_bytes(wire)

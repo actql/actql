@@ -149,7 +149,16 @@ test "Native Host original material read refuses foreign Host principal connecti
   let (host, reference, preparation, request, allowed, definition, issued) = local_original_effect_material_fixture(
     "local-material-authority", true, true,
   )
-  let foreign = policy_host_fixture("local-material-foreign-host")
+  // Both live Hosts retain distinct exclusive Adoption parents.
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(path).unwrap()
+  let state_name = "local-material-foreign-parent"
+  parent.create_directory(state_name).unwrap() |> ignore
+  parent.close().unwrap()
+  let foreign = policy_host_fixture(
+    "local-material-foreign-host",
+    state_parent=Some(path + "/" + state_name),
+  )
   let before = run_record_body(host.journal.retained(request).unwrap().unwrap()).unwrap()
   for (principal, connection) in [("other", "cli"), ("operator", "other")] {
     assert_true(

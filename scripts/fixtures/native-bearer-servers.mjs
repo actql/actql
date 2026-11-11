@@ -7,6 +7,7 @@ import {once} from 'node:events';
 import {createServer} from 'node:https';
 import {chmod, mkdir, rename, symlink, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {nativeResolutionFixture} from './native-effect-resolution-fixture.mjs';
 
 const tokenA = 'bearer-token-a';
 const tokenB = 'bearer-token-b.~+/==';
@@ -46,7 +47,7 @@ async function listen(server, host) {
   return `https://${host}:${address.port}`;
 }
 
-export async function startNativeBearerServers({host, key, cert, root, allowEffectWrite = false, allowEffectCreate = false}) {
+export async function startNativeBearerServers({host, key, cert, root, allowEffectWrite = false, allowEffectCreate = false, allowLocalEffectRejection = false}) {
   const directory = join(root, 'bearer');
   await mkdir(directory, {recursive: true, mode: 0o700});
   const files = {
@@ -70,6 +71,7 @@ export async function startNativeBearerServers({host, key, cert, root, allowEffe
   let effectTargetWrites = 0;
   const effectCreatedValues = [];
   let effectTargetValue = 7;
+  let localEffectRejections = 0;
   const foreignRequests = [];
   const foreign = createServer({key, cert}, async (request, response) => {
     await readBody(request);
@@ -88,6 +90,21 @@ export async function startNativeBearerServers({host, key, cert, root, allowEffe
     const body = await readBody(request);
     const authorization = request.headers.authorization;
     const control = authorization === `Bearer ${controlToken}`;
+    if (allowLocalEffectRejection && request.method === 'POST' &&
+        request.url === '/fixture/native-local-effect-rejection') {
+      if (!control || request.headers['content-type'] !== 'application/json') {
+        reply(response, 403, {refused: true}); return;
+      }
+      try {
+        // Sign this actual original Checkpoint independently. Native/common
+        // Resolution admission still checks its binding, authority and current.
+        const rejected = nativeResolutionFixture(body.toString('utf8'),
+          {decision: 'rejected'});
+        localEffectRejections++;
+        reply(response, 200, rejected);
+      } catch {reply(response, 422, {refused: true});}
+      return;
+    }
     if (request.url === '/services/data/v66.0/sobjects/ActQL_Test_Record__c/' &&
         request.method === 'POST' && allowEffectCreate) {
       if (!control || request.headers['content-type'] !== 'application/json') {
@@ -173,6 +190,7 @@ export async function startNativeBearerServers({host, key, cert, root, allowEffe
     foreignOrigin,
     directory,
     effectTargets() { return {reads: effectTargetReads, writes: effectTargetWrites}; },
+    localEffectRejections() { return localEffectRejections; },
     effectTargetValue() { return effectTargetValue; },
     effectCreatedValues() { return effectCreatedValues.map(value => ({...value})); },
     // Authorization header value expected by the mutual TLS server's

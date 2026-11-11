@@ -6081,7 +6081,7 @@
             "native"
           ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
-          "fixture": "ordinary keyed count chain admits exact workspace and one-short limit"
+          "fixture": "ordinary keyed count chain grows prepaid workspace and preserves one-short physical limits"
         },
         {
           "role": "keyed_count_same_stage_overlap_capacity",
@@ -7833,13 +7833,13 @@
           "fixture": "finalize-failure"
         },
         {
-          "role": "retained_chain_pre_execution_rejection",
+          "role": "retained_chain_producer_limit_refusal",
           "suite": "node:duckdb_standard_host",
           "targets": [
             "node"
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "unsupported-chain"
+          "fixture": "append-chain-work-short"
         },
         {
           "role": "append_chain_timer",

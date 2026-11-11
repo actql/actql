@@ -31,7 +31,9 @@ ordinary declaration reader. Equal source text or a matching CID is insufficient
 `prepare_bindings` retains the existing completed `BindingReadInput` in a new
 immutable Source snapshot. The parameter owner matches the exact declaration
 owner, supplied tree and node, and current value limits. An accepted binding may
-be forwarded under equal or relaxed resource ceilings; a failed outcome is
+be forwarded under fitting node/text ceilings measured by its original
+cumulative preflight and per-value admissions. Depth remains equal or relaxed;
+no smaller-depth proof is inferred from these scalar measurements. A failed outcome is
 forwarded only under identical limits because a different budget can change the
 first refusal. Absent input remains distinct from supplied NULL. Pending readers
 are never advanced by reuse. Other inputs use the same semantic binding engine.

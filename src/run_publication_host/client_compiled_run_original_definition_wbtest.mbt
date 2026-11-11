@@ -30,6 +30,11 @@ test "compiled Run original definition projection never binds or accepts same CI
     issuer_prepared, issuer_compilation, execution_context, host_policy, "2099-01-01T00:00:00.000Z",
   ).unwrap()
 
+  assert_eq(client_compiled_run_has_infers(allowed), false)
+  assert_eq(
+    client_compiled_run_has_infers(allowed),
+    !client_compiled_run_infers(allowed).is_empty(),
+  )
   let unbound = issue_client_values_compiled_run(
     issuer_prepared, issuer_compilation, execution_context, host_policy, "2099-01-01T00:00:00.000Z",
   ).unwrap()

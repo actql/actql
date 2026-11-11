@@ -7,12 +7,17 @@ fn request_content_compile_fixture(
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientProgram,
-  SplitKeyedContentLimitsFixture,
+  (
+    SplitKeyedContentLimitsFixture,
+    String,
+    @checked.CheckEnvironment,
+    @row_source_host.RowDeclaration,
+  ),
 ) raise {
   let original = split_keyed_content_limits_fixture()
   let (parent, child, _, input) = registration_parent_fixture(
-    text=original.document,
-    environment=Some(original.environment),
+    text=original.1,
+    environment=Some(original.2),
     current~,
   )
   guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
@@ -73,7 +78,7 @@ fn request_content_fixture(
     None,
   ).unwrap()
   let acquisition = @row_source_host.prepare_row_acquisition(
-    original.declaration,
+    original.3,
     requirement,
     original_row_query_contract_fixture,
     original_row_evidence_contract_fixture,
@@ -99,7 +104,7 @@ fn request_content_fixture(
     prepared,
     direct,
     keyed,
-    original.declaration,
+    original.3,
     original_keyed_child_limits(),
     [8192L, 8192L],
     [4096L, 4096L],

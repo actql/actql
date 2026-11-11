@@ -12,6 +12,25 @@ internals. This is not a general promise that arbitrary arrays are immutable.
 A plan is an optimization proof and configuration, never execution permission,
 physical supply, a Ledger, or a replacement for original admission evidence.
 
+For a Source-free managed Run, summing the maximum provider, import and export
+for every future task is an optional whole-Run estimate. It does not reject
+execution merely because that sum exceeds the finite Host retained-byte policy.
+The original Run Ledger keeps that same finite policy; each actual task and its
+live inputs, metadata and output must reserve their simultaneous demand before
+construction. Failed admission stops that original Run and retains its cleanup
+responsibilities. Consumers requiring a simultaneous envelope still require
+that envelope; this does not turn its absence into an admission witness.
+
+The same distinction applies to acquired Effect operation controls. A checked
+JOIN or TAKE row ceiling after an external Source remains the original Plan's
+rejection bound; it does not establish that those rows or their per-row control
+payloads are resident before Source execution. Initial retention funds fixed
+member controls. The existing completed-input/Preview witness then retains the
+actual row inventory on that same adopted Run and grows its original control
+reservation before row-dependent construction. A finite policy can still refuse
+that growth without changing its ceiling, granting an operation or returning
+pending cleanup. Source-free closed material keeps its existing prepaid route.
+
 ## Separate units
 
 Value-node and text demand come from the original checked schema/occurrence
@@ -48,6 +67,65 @@ intermediate. Only enumerated basic row kernels, Values and Append qualify;
 other families keep the evaluator fallback even if their final schema is scalar.
 Field-name accounting includes UTF-8 names, every port, every original output,
 and external-input projection. It is not zero for numeric-only tables.
+
+## Closed Carrier demand
+
+The optional closed-item proof follows original checked Graph, Events and
+Vectors nodes and the exact producer targets of their original input edges.
+Graph construction counts every node/edge definition input occurrence, even
+when two roles use the same rows. A checked match emits at most one row per
+candidate element. Rows-to-Events, watermark mark/drop, rows-to-Vectors,
+normalization and their explicit record projections do not expand item counts.
+Other Carrier transforms, open inputs, ambiguous producer bindings and exhausted
+work or depth retain the general profile. No source text, sampled row or fixed
+three-row assumption supplies a bound.
+
+This proof changes the same configured value, evaluator, import and export
+profiles consumed by the Local constructors; it does not subtract from a quote
+while retaining larger allocations. Relation input/output schemas are still
+inventoried at every occurrence. Intermediate Carrier values do not acquire a
+synthetic row schema: their original provider storage, generations, constructor
+and failed-child limits remain separate and unchanged. Fixed-dimension Vector
+fields contribute one JSON array node and their original Number components.
+The complete graph, both independent consumers and all task occurrences remain
+retained in the Plan. Carrier graphs keep the general metadata layout and the
+existing expression-text fallback.
+
+The traversal borrows the original graph and retains no certificate cache.
+Temporary positional item arrays spend proof work before each appended result;
+the existing work bound therefore bounds all coexisting array entries, including
+ancestor frames. The existing compilation depth bounds recursion. Their header,
+reference and scalar representations are added to the original pre-Plan scratch
+admission using the shared representation-cost helper. Neither a successful
+count nor this configuration is backing, execution permission, publication
+acceptance or a physical release acknowledgement.
+
+## Captured record measurement
+
+A captured Compute suffix retains the original complete Relation and Event
+record schemas in its value-node inventory. The fixed-input guard measures all
+input records and the selected output, sharing one node budget across both
+sides. Twice that same inventory bounds their simultaneous successful scan;
+row objects and omitted cells are included. The configured measurement and the
+selected provider's quote consume this same bound. Byte, text, depth, work and
+row policies remain independent and unchanged. Unknown or incomplete schemas
+retain the general measurement profile.
+
+This does not reinterpret Event storage as a Relation, alter Carrier constructor
+limits, or release predecessor reservations. Every task's original retained and
+execution envelopes still contributes to the coexisting installed Plan. The
+proof applies to physical record measurement, not evaluator intermediates or
+arbitrary external values.
+
+The installed dispatch Plan counts wire import occurrences from its SAME selected
+Local module. A predecessor whose selected physical target is a Carrier takes
+`PreparedCarrier` and its original managed view; it never constructs the Relation
+bridge/importer. Such an edge keeps its provider, completion metadata and Carrier
+storage but has no row-wire transfer or importer holding. Every Relation edge,
+including repeated ports of the same producer, keeps its separate import quote.
+The existing `local_module_sequence_outputs_carrier` decision is also used by the
+runtime predecessor selector; no operation label or new schema reconstruction
+selects this path.
 
 ## Metadata funding
 
@@ -202,9 +280,14 @@ not reused as its funding evidence.
 
 For non-scalar source-free Results, the original generic wire/value allowance is
 preserved. Newly admitted Result field/view/snapshot metadata is additionally
-funded by `(24F + 2R + O + 64) * 256 + 8 * schemaByteCeiling`. Scalar metadata
-already includes these categories and is not charged twice. A plan carrying
-nonzero metadata cannot be quoted without the retained-input inventory.
+funded by `(24F + 2R + O + 64) * 256 + 8 * schemaByteCeiling`. Here R is the
+initial funded metadata window, one row, rather than the executor's maximum
+allowed rows. Before Named Result projection and ordering construct indices,
+the same task grows its original execution reservation for two index slots per
+additional actual row. That workspace remains owned until its real retirement;
+it is not a second Ledger or a new input-count proof. Scalar metadata already
+includes these categories and is not charged twice. A plan carrying nonzero
+fixed metadata cannot be quoted without the retained-input inventory.
 
 The physical memory representation retains its reader across both row access
 and awaited commit. Closing waits for readers; the Site holding releases only

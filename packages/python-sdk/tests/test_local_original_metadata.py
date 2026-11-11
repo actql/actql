@@ -12,7 +12,7 @@ from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class OriginalMetadataTests(unittest.TestCase):
-    def bridge(self):
+    def bridge(self, *, kind=4, payload=None):
         core = LocalCore.__new__(LocalCore)
         core._lock = RLock()
         core._identity = object()
@@ -24,14 +24,15 @@ class OriginalMetadataTests(unittest.TestCase):
         core._closing = False
         calls = []
         codes = {}
-        payload = b'{"body":"e\xcc\x81\\r\\n","cid":"original"}'
+        if payload is None:
+            payload = b'{"body":"e\xcc\x81\\r\\n","cid":"original"}'
 
         def call(family, name, *args):
             calls.append((family, name, args))
             if name in codes:
                 return codes[name]
             if (family, name) == ('original', 'reserve'):
-                self.assertEqual(args[:3], (10, 4, 2))
+                self.assertEqual(args[:3], (10, kind, 2))
                 self.assertGreaterEqual(args[3], 2 * 65536)
                 self.assertEqual(core._inputs[2].payload, b'')
                 return 19
@@ -47,6 +48,16 @@ class OriginalMetadataTests(unittest.TestCase):
         core._call = original_byte_fixture_port(call)
         return core, source, calls, codes, payload
 
+    def test_project_configuration_uses_same_bounded_original_metadata_loan(self):
+        core, source, calls, _, payload = self.bridge(kind=5)
+        value = core.reserve_original_metadata(source, 5, cleanup=lambda: True)
+        core.produce_original_metadata(value)
+        self.assertEqual(core.read_original_metadata(value), payload)
+        self.assertIs(core._loans[source.ticket], source)
+        self.assertTrue(core.close_original_metadata(value))
+        self.assertEqual(sum(name == 'reserve' for _, name, _ in calls), 1)
+        self.assertTrue(all(family in ('original', 'buffer') for family, _, _ in calls))
+
     def test_original_projection_preserves_bytes_and_source_without_adoption(self):
         core, source, calls, _, payload = self.bridge()
         value = core.reserve_original_metadata(source, 4, cleanup=lambda: True)
@@ -60,7 +71,7 @@ class OriginalMetadataTests(unittest.TestCase):
 
     def test_copies_wrong_kind_closing_and_wrong_family_refuse_before_abi(self):
         core, source, calls, _, _ = self.bridge()
-        for kind in (False, True, 0, 5, '4'):
+        for kind in (False, True, 0, 6, '4'):
             with self.assertRaises(ValueError):
                 core.reserve_original_metadata(source, kind, cleanup=lambda: True)
         with self.assertRaises(ValueError):

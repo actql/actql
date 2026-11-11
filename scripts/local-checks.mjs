@@ -24,7 +24,7 @@ const ciOnly = new Map([
   ['native-separated-network', 'needs root network namespaces'],
   ['performance-matrix', 'registered performance runs'],
   ['check', 'aggregates the other jobs'],
-  ['client', 'aggregates client-packages, client-distribution, client-packed and client-salesforce'],
+  ['client', 'aggregates all required Client producers and consumers'],
   ...Object.entries(ciOnlyPipelineJobs),
 ]);
 const jobs = Object.entries(workflow.jobs)
@@ -56,15 +56,34 @@ function commands(name, target, raw = false) {
   const scratch = join(root, '_build', 'local-checks', name);
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
+    .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false')
     .replaceAll('${{ github.workspace }}', root.replace(/\/$/u, ''))
     .replaceAll('${{ runner.temp }}', scratch)
     .replaceAll('${{ github.sha }}', 'local');
+  const environment = ([key, value]) => {
+    if (!raw && name === 'core' && key === 'CI_PLAN') {
+      if (value !== '${{ needs.select-targets.outputs.plan }}') {
+        fail('Unsupported Core selection expression; local CI must retain complete coverage');
+      }
+      // Local job execution has no authenticated PR plan. Keep full coverage,
+      // including when the developer's parent shell contains a CI_PLAN value.
+      return [key, ''];
+    }
+    if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PARTITION') {
+      if (value !== "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}") {
+        fail('Unsupported Native Core partition expression; local CI must retain complete coverage');
+      }
+      // One local runner keeps the complete original campaign, rather than
+      // silently selecting one half of the hosted two-runner matrix.
+      return [key, ''];
+    }
+    return [key, resolve(value)];
+  };
   return job.steps.filter(step => typeof step.run === 'string' &&
     !preparation(step)).map(step => ({
     name: step.name ?? step.run.split('\n')[0],
     run: resolve(step.run),
-    env: Object.fromEntries(Object.entries(step.env ?? {})
-      .map(([key, value]) => [key, resolve(value)])),
+    env: Object.fromEntries(Object.entries(step.env ?? {}).map(environment)),
     scratch,
   }));
 }
@@ -92,6 +111,35 @@ function requireHeavy(classification, options) {
     fail(`${classification.reason}\n${classification.alternatives.join('\n')}\n` +
       'For a deliberate local run, supply --allow-heavy. It is friction, not human approval.');
   }
+}
+
+// Resolve only the workflow's literal two-branch Native matrix budget. This
+// is not an Actions expression evaluator; unfamiliar expressions require an
+// explicit local budget, just like missing/non-numeric workflow values.
+function workflowMinutes(name, target) {
+  const value = workflow.jobs[name]?.['timeout-minutes'];
+  if (typeof value === 'number') return value;
+  if (name !== 'core' || typeof value !== 'string' || target === undefined) return undefined;
+  const match = /^\$\{\{\s*matrix\.target\s*==\s*'native'\s*&&\s*([1-9][0-9]*)\s*\|\|\s*([1-9][0-9]*)\s*\}\}$/u.exec(value);
+  if (!match) return undefined;
+  const minutes = Number(match[target === 'native' ? 1 : 2]);
+  return Number.isSafeInteger(minutes) ? minutes : undefined;
+}
+
+// A missing target uses Moon's ordinary non-Native default. Ambiguous or
+// unsupported target selections cannot infer one matrix row's time budget.
+function selectedMoonTarget(args) {
+  let target = null;
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === '--') break;
+    if (arg === '--target' || arg.startsWith('--target=')) {
+      if (target !== null) return undefined;
+      target = arg === '--target' ? args[++index] : arg.slice('--target='.length);
+      if (!['js', 'wasm', 'native'].includes(target)) return undefined;
+    }
+  }
+  return target;
 }
 
 async function execute(steps, classification, options, defaultMinutes) {
@@ -127,7 +175,7 @@ async function runJob(name, args) {
   return execute(selected.map(step => ({name: `${name}: ${step.name}`,
     command: 'bash', args: ['-eo', 'pipefail', '-c', step.run], scratch: step.scratch,
     env: {RUNNER_TEMP: step.scratch, ...step.env},
-  })), classification, options, workflow.jobs[name]['timeout-minutes']);
+  })), classification, options, workflowMinutes(name, target));
 }
 
 async function runSelected(command, kind, args) {
@@ -140,7 +188,7 @@ async function runSelected(command, kind, args) {
     {heavy: false, classification: 'focused'};
   requireHeavy(classification, options);
   const defaultMinutes = classification.heavy ? undefined :
-    workflow.jobs[kind === 'moon' ? 'core' : 'lint']?.['timeout-minutes'];
+    workflowMinutes(kind === 'moon' ? 'core' : 'lint', kind === 'moon' ? selectedMoonTarget(selected) : null);
   // Reuse the existing summary/evidence guard unchanged, in an owned child so
   // its synchronous test capture cannot block timeout or parent-death handling.
   const step = command === 'test' ? {name: `selected ${kind} tests`, command: process.execPath,
@@ -154,18 +202,18 @@ async function runSelected(command, kind, args) {
 // are advisory references, not a requirement to run full jobs locally.
 const areas = [
   [/^proofs\/relation-pipeline\//u, Object.keys(ciOnlyPipelineJobs)],
-  [/^scripts\/packed-client-packages/u, ['client-packages', 'client-distribution', 'client-packed']],
+  [/^scripts\/packed-client-packages/u, ['client-packages', 'client-distribution', 'client-packed', 'client-packed-composition']],
   [/^scripts\/(build-runtime-packages|test-runtime-package-build|build-local-node|build-run-host-core|build-remote-(coordinator|transfer)-package)|^packages\/(run-host-core|coordinator-core|transfer-core)\//u, ['host']],
   [/^\.github\/|^scripts\/local-checks(?:[-.])/u, ['lint']],
   [/^src\//u, ['lint', 'core']],
   [/^(spec|docs)\/|\.md$/u, ['spec']],
-  [/^adapters\/connectors\/salesforce\//u, ['client-distribution', 'client-packed', 'client-salesforce']],
+  [/^adapters\/connectors\/salesforce\//u, ['client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce']],
   [/^adapters\/connectors\/duckdb\/node\//u, ['duckdb-node']],
   [/^adapters\/workers\/|workers/u, ['workers']],
   [/^packages\/(sdk|client-wire|node|local-node)\/|^scripts\/test-(packed(?!-resident-materials)|node-client|native-client)/u,
-    ['client-distribution', 'client-packed', 'client-salesforce']],
+    ['client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce']],
   [/^adapters\/host-node\/(client|embedded-local|remote|captured|installed)/u,
-    ['client-distribution', 'client-packed', 'client-salesforce', 'host']],
+    ['client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce', 'host']],
   [/^adapters\/(host-common|host-node|store-local|site-node|local-node)\//u,
     ['host']],
   [/^(src\/cmd|src\/platform_native)\/|^scripts\/test-native|^scripts\/test-packed-resident-materials/u, ['native']],

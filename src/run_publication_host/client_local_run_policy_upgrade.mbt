@@ -64,8 +64,17 @@ pub fn client_local_finite_read_selection_wire(
     fields.all(field => {
       [
         "enabled", "principal", "connection", "result_names", "formats", "purpose",
-        "sink", "data_policy_cids", "max_bytes", "max_uses", "expires_at",
+        "sink", "data_policy_cids", "accepted_run_policy", "max_bytes", "max_uses",
+        "expires_at",
       ].contains(field.0)
+    }) &&
+    (match
+      (
+        @canonical.object_field(read, "data_policy_cids"),
+        @canonical.object_field(read, "accepted_run_policy"),
+      ) {
+      (Some(_), None) | (None, Some(@canonical.Bool(true))) => true
+      _ => false
     }) &&
     run_profile_text(read, "expires_at") is Some(expiry) &&
     @values.timestamp_epoch_milliseconds(expiry) is Some(_) &&

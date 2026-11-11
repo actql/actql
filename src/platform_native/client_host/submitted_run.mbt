@@ -217,9 +217,13 @@ pub fn NativeClientRunJournal::accept_submitted_effect_run(
     identity.parameter_values_cid {
     return Err(ChangedIntent)
   }
-  match @host.bind_client_effect_compiled_run(prepared, allowed, definition) {
-    Ok(_) => ()
-    Err(@host.ForeignCompilation) => return Err(ChangedIntent)
+  let observation = match
+    @host.capture_client_effect_run_observation_originals(
+      prepared, allowed, definition,
+    ) {
+    Ok(value) => value
+    Err(@host.Compilation(EffectBinding(ForeignCompilation))) =>
+      return Err(ChangedIntent)
     Err(_) => return Err(ForeignRun)
   }
   self.accept_original_submitted_run(
@@ -230,6 +234,7 @@ pub fn NativeClientRunJournal::accept_submitted_effect_run(
     definition,
     authority_scope_cid,
     current_authorization,
+    run_observation_originals=Some(observation),
   )
 }
 
@@ -399,6 +404,8 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       }
       let before = if original.run_admission is Some(_) {
         "ready"
+      } else if original.preparation_problem is Some(_) {
+        "preparation_failed"
       } else {
         "preparing"
       }
@@ -549,6 +556,10 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       }
       let body = match
         submitted_intent_body(
+          before_construction=submitted_encode_construction(
+            self.database,
+            operations,
+          ),
           reference,
           original.intent,
           run_admission=Some(run_admission),

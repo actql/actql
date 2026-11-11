@@ -829,11 +829,11 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
 // holdings can still be derived without re-running Compute or an Effect.
 export async function retireCompletedEffectfulCapture(options, recoveryResources) {
   return withCaptureRecoveryResources(recoveryResources, beforeRead =>
-    retireCompletedEffectfulCaptureOwned(options, beforeRead));
+    retireCompletedEffectfulCaptureOwned(options, beforeRead, recoveryResources));
 }
 
 async function retireCompletedEffectfulCaptureOwned({store, control,
-  runDefinition, contractLimits}, beforeRead) {
+  runDefinition, contractLimits}, beforeRead, recoveryResources) {
   if (!contract(runDefinition) ||
       typeof store?.storeAuthorityCid !== 'string' ||
       !['inspectPhysicalHolding', 'inspectPhysicalHoldingForRetirement',
@@ -866,7 +866,7 @@ async function retireCompletedEffectfulCaptureOwned({store, control,
         if (consuming) fail('InvalidCompletedEffectfulCaptureRecord');
         consuming = true;
         return prepareCompletedEffectfulCaptureRetirement(store, control, run,
-          contractLimits, record, recordCid, captureCid, read.releaseBytes());
+          contractLimits, record, recordCid, captureCid, read.releaseBytes(), recoveryResources);
       }, beforeRead);
   } catch (error) {
     if (!consuming) fail('InvalidCompletedEffectfulCaptureRecord', error);
@@ -890,7 +890,8 @@ async function retireCompletedEffectfulCaptureOwned({store, control,
 // Validate the complete remaining original inventory while its encrypted
 // record is still protected. Deletion starts only after this reader returns.
 async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
-  contractLimits, record, recordCid, captureCid, wire) {
+  contractLimits, record, recordCid, captureCid, wire, recoveryResources) {
+  recoveryResources?.reserveDecoded?.(wire);
   let body;
   try { body = JSON.parse(wire); }
   catch (error) { fail('InvalidCompletedEffectfulCaptureRecord', error); }
@@ -1105,10 +1106,12 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
   let captured, captureRecordWire;
   try {
     captureRecordWire = read.releaseBytes();
-    captured = JSON.parse(captureRecordWire);
   } catch (error) {
     fail('InvalidCompletedEffectfulCaptureRecord', error);
   }
+  recoveryResources?.reserveDecoded?.(captureRecordWire);
+  try {captured = JSON.parse(captureRecordWire);}
+  catch (error) {fail('InvalidCompletedEffectfulCaptureRecord', error);}
   if (!exactKeys(captured, [
     'version', 'store_authority_cid', 'run_definition', 'invocation',
     'definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
@@ -1331,6 +1334,11 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
       }
     });
   }
+  // The returned owners retain their typed contracts, schemas/member handles
+  // and original record wire. None borrows this complete parsed container.
+  // Cut it before the Store returns and the SAME frame refines its backing;
+  // failed construction keeps its original peak and cleanup duties.
+  captured = undefined;
   return Object.freeze({execution: null, storedResults, computation,
     preview, invocation, connectorRecovery: Object.freeze(connectorRecovery),
     // These are the exact already admitted and Store-confirmed member handles,

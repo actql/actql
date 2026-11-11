@@ -141,10 +141,13 @@ fn prepare_local_query_requirement_owned(
       ordered_body,
       query_time~,
     )
-    is Some(sequence) else {
+    is Some((sequence, query)) else {
     return Err(Sequences)
   }
-  let limits = installed_local_query_material_limits()
+  let limits = match installed_local_query_requirement_limits(query) {
+    Ok(value) => value
+    Err(issue) => return Err(Requirement(@publication_host.Requirement(issue)))
+  }
   let guards : @planning.QueryLogicalGuards = {
     max_rows: 100,
     max_value_bytes: 10000,
@@ -167,4 +170,59 @@ fn prepare_local_query_requirement_owned(
         value, sequence, stage, source_index, guards, limits,
       ).map_err(issue => Requirement(issue))
   }
+}
+
+///|
+// The same checked acquisition borrows the input/output schemas and request
+// already admitted by this Program's Source/Environment. Their actual shape,
+// not the private standard collection default, supplies the traversal bound.
+// Other material policies and the full original issuers remain unchanged.
+fn installed_local_query_requirement_limits(
+  query : @sourceviews.QueryAcquisition,
+) -> Result[@planning.QueryMaterialLimits, @planning.QueryRequirementIssue] {
+  let limits = installed_local_query_material_limits()
+  let pipeline = @sourceviews.query_acquisition_pipeline(query)
+  guard @pipeline.schema_at(
+      pipeline,
+      @sourceviews.query_acquisition_input(query),
+    )
+    is Some(input) &&
+    @pipeline.schema_at(pipeline, @sourceviews.query_acquisition_capture(query))
+    is Some(output) &&
+    @sourceviews.pipeline_request_at(
+      @sourceviews.query_acquisition_owner(query),
+      @sourceviews.query_acquisition_source_index(query),
+    )
+    is Some(@sourceviews.Direct(_, request)) else {
+    return Err(InvalidQuery)
+  }
+  guard installed_local_query_field_bound(
+      @schema.field_count(input),
+      @schema.field_count(output),
+      @sourceviews.parameterized_request_field_count(request),
+    )
+    is Some(fields) else {
+    return Err(FieldLimit)
+  }
+  Ok({ ..limits, max_fields: fields, })
+}
+
+///|
+// Scalar geometry only. A caller cannot issue a Query, Source or permission
+// from these counts. Both schema traversals coexist; a request collection may
+// be wider. Keep the former default as a conservative floor, not eligibility.
+fn installed_local_query_field_bound(
+  input : Int,
+  output : Int,
+  request : Int,
+) -> Int? {
+  guard input >= 0 && output >= 0 && request >= 0 else { return None }
+  let schemas = input.to_int64() + output.to_int64()
+  guard schemas <= 2147483647L else { return None }
+  Some(
+    Int::max(
+      installed_local_query_material_limits().max_fields,
+      Int::max(schemas.to_int(), request),
+    ),
+  )
 }

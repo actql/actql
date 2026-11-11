@@ -64,21 +64,29 @@ test('a real Events theorem edit invalidates all Bridge obligations without inva
   }
 });
 
-test('reviewed inventory and runner extension preserve eager Session isolation and retained history', () => {
+test('reviewed current inventory and runner extension preserve eager Session isolation', () => {
   const path = pipelineInventoryBoundary.path;
   const old = execFileSync('git', ['--no-replace-objects', 'show', `38f7801241a0a5ce32a2861a8603960016a29769^:${path}`], {cwd: root}).toString();
   const current = original.read(path).toString();
+  const introduced = execFileSync('git', ['--no-replace-objects', 'show',
+    `6e1955f4a2d9598e0292f603a1d928b8d631b108:${path}`], {cwd: root}).toString();
   assert.equal(hash(old), '9a7c1ffef354d2ba1cd60b70f7bbac7c68b49aac378a60cb5a0f66cb4b937e43');
   assert.equal(hash(current), pipelineInventoryBoundary.digest);
-  // The two builtin imports, exact reviewed helper and separately invoked
-  // checkBaseline changed. Snapshot/hash and eager declarations are identical.
+  // Retain the earlier exact import-isolation comparison independently. The
+  // current source adds only lazy current-HEAD validation; it does not restore
+  // a per-commit declaration ledger or eagerly read historical proof inputs.
   const prefix = text => text.slice(0, text.indexOf('export function checkBaseline('));
-  assert.deepEqual(prefix(current)
+  assert.deepEqual(prefix(introduced)
     .replace("import { spawnSync } from 'node:child_process';\n", '')
     .replace("import assert from 'node:assert/strict';\n", '')
     .replace("import {checkProofRunnerExtension} from './proof-runner-extension.mjs';\n", ''), prefix(old));
-  const introduced = execFileSync('git', ['--no-replace-objects', 'show', `6e1955f4a2d9598e0292f603a1d928b8d631b108:${path}`], {cwd: root});
-  assert.equal(hash(introduced), hash(current), 'Unreviewed function or top-level change');
+  // This reviewed source adds the existing CJS runtime to snapshotFiles.
+  // Keep the earlier import-isolation and lazy baseline checks above/below.
+  const reviewed = execFileSync('git', ['--no-replace-objects', 'show',
+    `d6f427871e58fc1770dedfee4237dba5d7ca329d:${path}`], {cwd: root});
+  assert.equal(hash(reviewed), hash(current), 'Unreviewed function or top-level change');
+  const baseline = text => text.slice(text.indexOf('export function checkBaseline('));
+  assert.equal(baseline(current), baseline(introduced), 'Changed separately invoked model checker');
   const helperPath = 'proofs/relation-pipeline/proof-runner-extension.mjs';
   const helper = original.read(helperPath).toString();
   assert.equal(hash(helper), 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb');

@@ -64,7 +64,7 @@ for (const entrance of ['local', 'https']) {
           const state = await error.execution.status();
           assert.equal(state.status, 'succeeded');
           assert.equal(state.result_available, true);
-          assert.deepEqual(await error.execution.result('answer').all(), [{id: 1}]);
+          assert.deepEqual(await error.execution.result('main').all(), [{id: 1}]);
           await host.settled();
           assert.equal(fixture.counts.computes, 1);
           assert.equal(fixture.counts.definitions, 1);

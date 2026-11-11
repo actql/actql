@@ -4,25 +4,25 @@
     {
       "name": "selected_relation_provider",
       "path": "src/connectors/local/selected_relation_provider.mbt",
-      "sourceDigest": "b917b4a66a1a27b6513d12d9d842ab97df90dc0621b4cfcd8a303c2c46271274",
+      "sourceDigest": "e42963ae653cff94ddd089a2c33a5f02d5da1a56efde8567f9a0caf7fbc20d55",
       "binding": "managed_provider_with_numeric"
     },
     {
       "name": "cross_join_provider",
       "path": "src/connectors/local/cross_join_provider.mbt",
-      "sourceDigest": "74bd36805e65a2340a49d7c554cfea4b807a45676867560a3dd654a14ae89218",
+      "sourceDigest": "0e2b820abd78a4391861332f8748682cb1b70c536dd05f9bc7126531bd197942",
       "binding": "managed_provider"
     },
     {
       "name": "append_provider",
       "path": "src/connectors/local/append_provider.mbt",
-      "sourceDigest": "c91d2ca2040a317c67bae774b2c0b6a73a893bd0bf71e73b5e7b5267f082782c",
+      "sourceDigest": "63023b5cdcfc8f3a0ace1d1321224b953bf370aac7ce246a1e7b5c8b4ae156a2",
       "binding": "managed_provider"
     },
     {
       "name": "set_provider",
       "path": "src/connectors/local/set_provider.mbt",
-      "sourceDigest": "8fbb2829e812b1d7e09a2bcf9d3d05958acbb72ee8fd25c8fa2d445c90002d7d",
+      "sourceDigest": "4701d7aea4306368b4823e6850bcd385555fcc9d4341bc6db16b399cfb7e9296",
       "binding": "managed_provider"
     },
     {
@@ -34,7 +34,7 @@
     {
       "name": "global_count_provider",
       "path": "src/connectors/local/global_count_provider.mbt",
-      "sourceDigest": "77ab701f6dbd8974eab545bca95b7453e2f494f96450b855b911a87649e5deef",
+      "sourceDigest": "386e945152eaba517fc7778a39a811f5a1ea7fce902051e0c3a909120edf68f8",
       "binding": "managed_provider_with_inputs"
     },
     {
@@ -58,19 +58,19 @@
     {
       "name": "unnest_provider",
       "path": "src/connectors/local/unnest_provider.mbt",
-      "sourceDigest": "73ef7e256f5fc062cad8c00a3e39341a0e138493cbb01a7b9c6a45a05a2e986b",
+      "sourceDigest": "c3419b508e8f462e89f17d121293e0619e257fe0d1d5ba1f9114df64363bc62a",
       "binding": "managed_provider_with_inputs"
     },
     {
       "name": "values_provider",
       "path": "src/connectors/local/values_provider.mbt",
-      "sourceDigest": "e75999f60ce316da45c86abbcbdfbb920938c7ed2183d46ee2aa507f6189f738",
+      "sourceDigest": "511a6e49d3545ba26c79922d0ce6275232c0b59d08b87d90f03ee7195b7662ea",
       "binding": "managed_provider"
     }
   ],
   "sourcePremises": {
-    "src/connectors/local/managed_provider.mbt": "8fb17b1b340baeb343b1f9d9037f8db0e132fd5055fea5ce64d0cc271535aec4",
-    "src/execution_relation/generated_sequence.mbt": "c6ee6afc5adcda37f708444eac28645cd19269b76e3377602da874f17c3ee673"
+    "src/connectors/local/managed_provider.mbt": "c71bfd51bf16313deb4eb1f6d197ce618a5f4db4d24d963bdef92f941e401dc0",
+    "src/execution_relation/generated_sequence.mbt": "0e348f1ad56fa689a1121dc24f7909a43ea2bbd50e381afa052b10d6de4ae883"
   },
   "bounds": {
     "providerRecords": 11,
@@ -81,5 +81,10 @@
   },
   "scope": "one simultaneous eleven-candidate Relation selection construction; borrowed configuration and callback execution excluded",
   "completeParentUpper": false,
-  "completePipelineUpper": false
+  "completePipelineUpper": false,
+  "wrapperDigests": {
+    "managed_provider": "97c7881276b3a72486a9095b5c320496b231e97ef7aef148f6e3a45f8e52128b",
+    "managed_provider_with_inputs": "1161662194fc637d95e72e00c78f059787a45ae204270ff7ce60aa5a4f397134",
+    "managed_provider_with_numeric": "6fbdba5a2ad1efbb95bd7e3f8da81861b7d48c9de7c7a2155f2e4de53e29ef7e"
+  }
 }

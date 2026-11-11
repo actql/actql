@@ -33,7 +33,8 @@ for (const entrance of ['local', 'https']) {
         return answer;
       }});
       try {
-        const run = await host.client.start(openingProgram, {requestId: 'delivery-lookup-failure-run'});
+        const run = await host.client.start(openingProgram,
+          {submissionRef: host.client.newSubmission({nonce: 'delivery-lookup-failure-run'})});
         const result = run.result('answer'), reader = result.rows();
         assert.deepEqual(await Array.fromAsync(reader), [{id: 1}, {id: 2}]);
         await host.settled();

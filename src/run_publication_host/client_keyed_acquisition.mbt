@@ -318,7 +318,8 @@ pub fn client_keyed_acquisition_matches_effect_program(
 /// port. This is neither a copied Relation nor an acquisition completion.
 struct ClientKeyedLeftRead {
   acquisition : ClientKeyedAcquisition
-  source : @query.CapturedInputSource
+  source : @query.CapturedInputSource?
+  composed : ClientComposedKeyedOriginal?
   read : @execution.ProducerRead
   mut requests : Int64
   mut attempts : Int64
@@ -342,10 +343,15 @@ pub(all) enum ClientKeyedRequestIssue {
   LookupLimit(String)
   LookupIncomplete
   InvalidObservation
+  Identity(@publication.AcquisitionRelationIssue)
   Assembly(String)
   Physical(@resources.LedgerIssue)
   Row(@execution.AdmittedOutputRowIssue)
   InputCapture(@execution.CaptureIssue)
+  CompletedIdentity(@execution.CompletedExportIssue)
+  SourceLogical(ClientCapturedSourceLogicalIssue)
+  SourceObservation(@row_host.RowHostIssue)
+  Derivation(@publication.ResultEvidenceIssuanceIssue)
 }
 
 ///|
@@ -383,7 +389,8 @@ pub fn prepare_client_keyed_capture_left_read(
   )
   .map(read => {
     acquisition,
-    source,
+    source: Some(source),
+    composed: None,
     read,
     requests: 0L,
     attempts: 0L,
@@ -400,7 +407,7 @@ pub fn prepare_client_keyed_capture_left_read(
 
 ///|
 pub fn client_keyed_left_read_rows(left : ClientKeyedLeftRead) -> Int? {
-  if @execution.producer_read_available(left.read) {
+  if client_keyed_left_available(left) {
     Some(@execution.producer_read_row_count(left.read))
   } else {
     None
@@ -413,7 +420,7 @@ pub fn client_keyed_left_matches_acquisition(
   acquisition : ClientKeyedAcquisition,
 ) -> Bool {
   physical_equal(left.acquisition, acquisition) &&
-  @execution.producer_read_available(left.read)
+  client_keyed_left_available(left)
 }
 
 ///|
@@ -485,7 +492,7 @@ pub fn cancel_client_keyed_row_request(
 pub fn advance_client_keyed_row_request(
   preparation : ClientKeyedRequestPreparation,
 ) -> ClientKeyedRequestPoll {
-  if !@execution.producer_read_available(preparation.left.read) {
+  if !client_keyed_left_available(preparation.left) {
     cancel_client_keyed_row_request(preparation)
     return ClientKeyedRequestFailed(
       ForeignLeft,
@@ -520,7 +527,7 @@ pub fn client_keyed_request_matches_acquisition(
   acquisition : ClientKeyedAcquisition,
 ) -> Bool {
   physical_equal(request.left.acquisition, acquisition) &&
-  @execution.producer_read_available(request.left.read) &&
+  client_keyed_left_available(request.left) &&
   @execution.producer_read_matches_operation_input(
     request.left.read,
     acquisition.owner,

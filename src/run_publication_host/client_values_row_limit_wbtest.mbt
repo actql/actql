@@ -76,3 +76,54 @@ test "selected Values row limit preserves checker identity and other budgets" {
   assert_true(with_prepared_client_values_row_limit(prepared, -1) is None)
   assert_eq(prepared_client_values_sequence_limits(prepared).max_rows, 121)
 }
+
+///|
+test "task compilation uses checked authored demand beyond the old Local default" {
+  let environment = admit_client_check_environment(
+    run_materials_environment_wire,
+    run_materials_environment_cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  for count in [101, 1000] {
+    let rows = Array::makei(count, index => "{\"id\":" + index.to_string() + "}").join(
+      ",",
+    )
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"compile-demand\",\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
+      rows +
+      "]},\"as\":\"v\"}],\"results\":{\"r\":{\"from\":\"v\",\"fields\":[\"id\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"s\",\"result\":\"r\"}}}}"
+    let prepared = prepare_effect_free_client_program(
+      document,
+      Json,
+      environment,
+      None,
+      client_standard_program_preparation_limits(),
+    ).unwrap()
+    let limits = prepared_client_values_sequence_limits(prepared)
+    assert_eq(limits.max_rows, count)
+    let compilation = issue_prepared_client_task_compilation(
+      prepared,
+      run_materials_manifests(),
+      limits,
+      1000,
+      1000,
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    assert_eq(client_task_compilation_result_names(compilation), ["answer"])
+    assert_true(
+      issue_prepared_client_task_compilation(
+        prepared,
+        run_materials_manifests(),
+        { ..limits, max_rows: count - 1, },
+        1000,
+        1000,
+        65536,
+        8192,
+        64,
+      )
+      is Err(_),
+    )
+  }
+}

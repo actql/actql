@@ -83,6 +83,22 @@
     {
       "path": "actql/actql/calendar_profile",
       "alias": "calendar_profile"
+    },
+    {
+      "path": "actql/actql/connectors/gcs/catalog",
+      "alias": "gcs_catalog"
+    },
+    {
+      "path": "actql/actql/connectors/hubspot/catalog",
+      "alias": "hubspot_catalog"
+    },
+    {
+      "path": "actql/actql/relation_schema",
+      "alias": "schema"
+    },
+    {
+      "path": "actql/actql/connectors/duckdb/adapter",
+      "alias": "duckdb_input"
     }
   ]
 }

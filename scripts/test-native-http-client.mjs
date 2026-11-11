@@ -1,5 +1,8 @@
+import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
+import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
+import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
-import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture} from './native-private-host-fixture.mjs';
+import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {
@@ -24,6 +27,7 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {startNativeEffectCheckpointServer} from './fixtures/native-effect-checkpoint-server.mjs';
+import {nativeEffectReviewFixture} from './fixtures/native-effect-review-fixture.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
@@ -39,7 +43,11 @@ import {pinnedEngineContracts} from
   '../adapters/connectors/duckdb/node/test/pinned-engine-contracts.mjs';
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
-if (focus !== undefined && focus !== 'remote-client-poll') {
+if (focus !== undefined &&
+    !['effect-control-replay', 'remote-client-poll', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
+      'http-constructor-retirement', 'resident-review-regressions',
+      'resident-review-provider', 'resident-review-checkpoint',
+      'resident-review-write'].includes(focus)) {
   throw new Error('unsupported native HTTP test focus');
 }
 const focusedRequests = [];
@@ -124,7 +132,7 @@ const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
 );
 // The full runner owns DuckDB prerequisites. The focused remote-client case
 // only uses libcurl and SQLite; it does not build or execute a DuckDB consumer.
-if (focus === undefined) {
+if (focus === undefined || focus === 'core-source' || focus.startsWith('resident-review-')) {
   assert(existsSync(nativeTestDuckDBLibrary),
     `native DuckDB test library unavailable: ${nativeTestDuckDBLibrary}`);
 }
@@ -136,7 +144,7 @@ const remotePublicationRoot = join(root, 'remote-publication');
 await mkdir(storeRoot, {recursive: true});
 await mkdir(retainedTaskRoot, {recursive: true});
 await mkdir(multiBundleStoreRoot, {recursive: true});
-await mkdir(sqliteRoot, {recursive: true});
+await mkdir(sqliteRoot, {recursive: true, mode: 0o700});
 await mkdir(standardRoot, {recursive: true});
 await mkdir(transferStandardRoot, {recursive: true});
 await mkdir(remotePublicationRoot, {recursive: true});
@@ -207,6 +215,7 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
 let server;
 let bearerServers;
 let effectCheckpointServer;
+let effectReviewServer;
 let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
@@ -1014,11 +1023,27 @@ verification: try {
     throw new Error('native HTTP test listener has no TCP address');
   }
   const nativeHttpOrigin = `https://${nativeHttpHost}:${address.port}`;
+  let effectReviewOrigin;
+  if (focus === undefined || focus === 'core-source' || focus.startsWith('resident-review-')) {
+    const review = nativeEffectReviewFixture('Bearer native-secret');
+    // Review upload uses its original bearer Client, not the separate mTLS
+    // transport peer. Keep its same secret/CA and existing server cleanup.
+    effectReviewServer = createServer({key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+      if (!review.handle(request, response)) response.writeHead(404).end();
+    });
+    effectReviewServer.listen(0, nativeHttpHost);
+    await once(effectReviewServer, 'listening');
+    effectReviewOrigin = `https://${nativeHttpHost}:${effectReviewServer.address().port}`;
+  }
   bearerServers = await startNativeBearerServers({
     host: nativeHttpHost,
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
     root,
+    allowLocalEffectRejection: true,
+    allowEffectCreate: focus === undefined || focus === 'core-source' || focus === 'resident-review-write' ||
+      focus === 'resident-review-regressions',
   });
   effectCheckpointServer = await startNativeEffectCheckpointServer({
     host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
@@ -1040,6 +1065,15 @@ verification: try {
           '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib',
         ].find(existsSync) ?? 'libcrypto.3.dylib'
       : 'libcrypto.so.3');
+  const sqliteLibrary = process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
+    (process.platform === 'darwin'
+      ? '/usr/lib/libsqlite3.dylib'
+      : 'libsqlite3.so.0');
+  // The construction fixture needs a real non-curl handle before its missing
+  // symbol and lost-unload observations. Use the same selected SQLite input;
+  // this is no replacement HTTP backend or successful Library retirement.
+  const nonCurlLibrary = process.env.ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY ??
+    sqliteLibrary;
   const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
     ? 'aarch64-apple-darwin'
     : process.platform === 'linux' && process.arch === 'x64'
@@ -1049,6 +1083,82 @@ verification: try {
     throw new Error(
       `unsupported native HTTP test target ${process.platform}/${process.arch}`,
     );
+  }
+  const runCheckpointControlReplay = async environment => {
+    // Both replay cases borrow the existing Client/Slot cleanup fixture. Keep
+    // its fresh Slot directory under this invocation's original cleanup root.
+    const executorSlotRoot = await mkdtemp(join(root, 'checkpoint-executor-slot-'));
+    const selectedEnvironment = {...environment,
+      ...nativeHttpLifetimeFixture(executorSlotRoot),
+      ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: executorSlotRoot};
+    const selected = ['--target', 'native', '--jobs', '1',
+      'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt'];
+    // Prepare only this exact Native test input before its finite replay timer.
+    // Compilation is not protocol execution or a nonzero-test pass. The later
+    // original command reuses these unchanged inputs and retains its 90s bound.
+    const started = performance.now();
+    console.error('Native Checkpoint control compile started');
+    execFileSync(moon, ['test', ...selected, '--build-only'], {
+      cwd: new URL('../', import.meta.url), env: selectedEnvironment, stdio: 'inherit',
+      timeout: 600_000,
+    });
+    console.error(`Native Checkpoint control compile complete (${Math.round(performance.now() - started)}ms)`);
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',JSON.parse(process.argv[1])," +
+      "{cwd:process.cwd(),timeout:90000});", JSON.stringify(selected)], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit', env: selectedEnvironment,
+    });
+    const [code, signal] = await once(child, 'exit');
+    if (code !== 0) {
+      throw new Error(`native Checkpoint control replay failed: ${code ?? signal}`);
+    }
+  };
+  if (focus === 'core-http') {
+    const args = nativeCoreHttpArguments(JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_ARGS));
+    const expectedTests = Number(process.env.ACTQL_TEST_NATIVE_CORE_HTTP_COUNT);
+    assert(Number.isSafeInteger(expectedTests) && expectedTests > 0,
+      'Original compiler-owned HTTP case count required');
+    await writeFile(join(root, 'credential.secret'), 'native-secret\n', {mode: 0o600});
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native',...JSON.parse(process.argv[1])]," +
+      "{cwd:process.cwd(),timeout:300000,expectedTests:Number(process.argv[2])});",
+      JSON.stringify(args), String(expectedTests)], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      env: {...process.env,
+        ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY: nonCurlLibrary,
+        ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+        ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+        ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+        ACTQL_TEST_NATIVE_HTTP_SECRET: join(root, 'credential.secret'),
+        ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
+        ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL: join(root, 'credential.sqlite'),
+        ACTQL_TEST_NATIVE_HTTP_BEARER_URL: bearerServers.origin,
+        ACTQL_TEST_NATIVE_HTTP_BEARER_FOREIGN_URL: bearerServers.foreignOrigin,
+        ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearerServers.directory,
+        ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
+        ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key')},
+    });
+    const [code, signal] = await once(child, 'exit');
+    assert.equal(code, 0, `Native Core HTTP profile failed: ${code ?? signal}`);
+    break verification;
+  }
+  if (focus === 'effect-control-replay') {
+    await runCheckpointControlReplay({
+      ...process.env,
+      ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+      ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+      ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+      ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+      ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
+      ACTQL_TEST_NATIVE_SQLITE_ROOT: sqliteRoot,
+      ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin,
+      ACTQL_REQUIRE_NATIVE_EFFECT_REPLAY_TESTS: '1',
+    });
+    break verification;
   }
   if (focus === 'remote-client-poll') {
     // Reuse the real HTTPS peer and authored dispatch above. The child keeps
@@ -1067,11 +1177,7 @@ verification: try {
         ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
         ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
         ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
-        ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
-          process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
-          (process.platform === 'darwin'
-            ? '/usr/lib/libsqlite3.dylib'
-            : 'libsqlite3.so.0'),
+        ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
         ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
       },
     });
@@ -1083,8 +1189,75 @@ verification: try {
     ]);
     break verification;
   }
+  if (focus === 'http-constructor-retirement') {
+    // Original constructor/current/cleanup cases only. The selected image
+    // determines its actual TLS retirement expectation; no product fallback.
+    for (const selected of [
+      'HTTP partial path acquisition retains original metadata through cleanup failure',
+      'HTTP constructor cleanup reply loss observes the same retired metadata before acknowledgement',
+      'ready HTTP Library retirement waits for its original Client and refuses new children',
+    ]) {
+      const child = spawn(process.execPath, ['--input-type=module', '-e',
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+        "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+        "'src/platform_native/http_client/construction_custody_native_wbtest.mbt'," +
+        "'--filter',process.argv[1]],{cwd:process.cwd(),timeout:120000});",
+        selected], {
+        cwd: new URL('../', import.meta.url), stdio: 'inherit',
+        env: {...process.env, ACTQL_TEST_NATIVE_HTTP_LIBRARY: library},
+      });
+      const [code, signal] = await once(child, 'exit');
+      assert.equal(code, 0,
+        `focused HTTP constructor retirement failed: ${selected}: ${code ?? signal}`);
+    }
+    break verification;
+  }
+  if (focus === 'http-symbol-unload') {
+    // Execute only the original missing-symbol/lost-unload case. No Common,
+    // DuckDB, Resident or other package supplier is built or run.
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+      "'src/platform_native/http_client/construction_custody_native_wbtest.mbt'," +
+      "'--filter','failed HTTP symbol load retains unknown unload without repeating a consumed handle']," +
+      "{cwd:process.cwd(),timeout:120000});"], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      env: {
+        ...process.env,
+        ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY: nonCurlLibrary,
+      },
+    });
+    const [code, signal] = await once(child, 'exit');
+    assert.equal(code, 0,
+      `focused HTTP symbol-unload test failed: ${code ?? signal}`);
+    break verification;
+  }
+  if (focus === 'http-retirement') {
+    // This exact file uses only the original HTTPS peer and selected libcurl.
+    // No Common, DuckDB, Resident or other package supplier is built or run.
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+      "'src/platform_native/http_client/transport_retirement_native_wbtest.mbt']," +
+      "{cwd:process.cwd(),timeout:120000});"], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      env: {
+        ...process.env,
+        ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+        ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+        ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+      },
+    });
+    const [code, signal] = await once(child, 'exit');
+    assert.equal(code, 0,
+      `focused HTTP retirement tests failed: ${code ?? signal}`);
+    break verification;
+  }
   execFileSync(moon, [
     'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+    ...(focus?.startsWith('resident-review-') ? ['--jobs', '2'] : []),
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
   const moonModule = await import(pathToFileURL(join(
     new URL('../', import.meta.url).pathname,
@@ -1180,7 +1353,16 @@ verification: try {
   });
   const testEnvironment = {
     ...process.env,
+    ...(focus === undefined || focus === 'core-source' || focus === 'resident-review-write' ||
+        focus === 'resident-review-regressions'
+      ? {ACTQL_TEST_NATIVE_EFFECT_CREATE_FIXTURE: '1'} : {}),
+    ...(effectReviewOrigin ? {
+      ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-review-report',
+      ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-review',
+      ACTQL_TEST_EFFECT_RESOLUTION_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-resolution',
+    } : {}),
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+    ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY: nonCurlLibrary,
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
     ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY: join(root, 'missing-crypto-library'),
     ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: nativePackageStoreRoot(root),
@@ -1196,11 +1378,7 @@ verification: try {
     ACTQL_TEST_NATIVE_HTTP_BEARER_ROOT: bearerServers.directory,
     ACTQL_TEST_NATIVE_HTTP_BAD_CERT: join(root, 'foreign-client.crt'),
     ACTQL_TEST_NATIVE_HTTP_BAD_KEY: join(root, 'foreign-client.key'),
-    ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
-      process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
-      (process.platform === 'darwin'
-        ? '/usr/lib/libsqlite3.dylib'
-        : 'libsqlite3.so.0'),
+    ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
     ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
     ACTQL_TEST_NATIVE_CREDENTIAL_JOURNAL: join(root, 'credential.sqlite'),
     ACTQL_TEST_NATIVE_SQLITE_ROOT: sqliteRoot,
@@ -1236,6 +1414,71 @@ verification: try {
     productCredentialEnvelope.signature,
   );
   await writeFile(join(root, 'credential-authority.pem'), credentialPublicKey);
+  if (focus === 'core-source') {
+    const args = JSON.parse(process.env.ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS);
+    const expectedTests = Number(process.env.ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT);
+    assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
+    assert.deepEqual(args.filter(value => value.startsWith('src/')),
+      ['src/platform_native/remote_resident_source_compute_tests']);
+    assert(!args.some(value => ['--target','--filter','--index','--doc-index','-f','-i'].some(
+      option => value === option || value.startsWith(option+'='))),
+      'Core Source fixture requires the complete original package and Native target');
+    assert(Number.isSafeInteger(expectedTests) && expectedTests > 0,
+      'Original compiler-owned Source case count required');
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native',...JSON.parse(process.argv[1])]," +
+      "{cwd:process.cwd(),timeout:3600000,expectedTests:Number(process.argv[2])});",
+      JSON.stringify(args), String(expectedTests)], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      // Same original Source-package environment as the full Native HTTP loop.
+      env: {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET: join(bearerServers.directory, 'control'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin},
+    });
+    const [code, signal] = await once(child, 'close');
+    assert.equal(code, 0, `Native Core Source fixture failed: ${code ?? signal}`);
+    // Same physical Source-package oracles as the full HTTP loop below.
+    assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 1});
+    assert.deepEqual(bearerServers.effectCreatedValues(),
+      [{Id: '001000000000001AAA', Count__c: 3}]);
+    break verification;
+  }
+  if (focus?.startsWith('resident-review-')) {
+    // Use the same peers, signed bundle and physical roots as the full CI
+    // harness. Each original case runs once in its own process/Store namespace.
+    const selected = [
+      ['resident-review-local', 'local_client_source_wbtest.mbt',
+        'Native Local original sole-view completion is refused before acquisition or durable start claim'],
+      ['resident-review-provider', 'acquisition_runtime_wbtest.mbt',
+        'Effect original holders retain physical Provider review and Checkpoint without reacquisition'],
+      ['resident-review-checkpoint', 'acquisition_runtime_wbtest.mbt',
+        'original completion-free Source and consumer persist mapped-create review through Store loss and cleanup retry'],
+      ['resident-review-write', 'acquisition_runtime_wbtest.mbt',
+        'original completion-free mapped-create approval retains one physical write through response custody loss'],
+    ];
+    for (const [selectedFocus, file, name] of selected) {
+      if (focus !== 'resident-review-regressions' && focus !== selectedFocus) continue;
+      const child = spawn(process.execPath, ['--input-type=module', '-e',
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+        "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+        "'src/platform_native/remote_resident_source_compute_tests/'+process.argv[1]," +
+        "'--filter',process.argv[2]],{cwd:process.cwd(),timeout:600000});", file, name], {
+        cwd: new URL('../', import.meta.url), stdio: 'inherit',
+        env: {...testEnvironment,
+          ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET: join(bearerServers.directory, 'control'),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin},
+      });
+      const [code, signal] = await once(child, 'exit');
+      assert.equal(code, 0, `focused Resident review failed: ${name}: ${code ?? signal}`);
+    }
+    break verification;
+  }
   for (const packagePath of [
     'src/platform_native/filesystem',
     'src/platform_native/sqlite',
@@ -1256,8 +1499,10 @@ verification: try {
     if (packagePath === 'src/query_integration') {
       // The retained Preview, retained Checkpoint and original-holder review
       // each perform one Provider read. Denied/duplicate paths perform no
-      // additional read, and no case applies an external Effect.
-      assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 0});
+      // additional read; mapped-create applies its one scoped Effect.
+      assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 1});
+      assert.deepEqual(bearerServers.effectCreatedValues(),
+        [{Id: '001000000000001AAA', Count__c: 3}]);
       resetNativeStoreTransfer();
       nativeStandardTransferCompletions.length = 0;
       await runNativeQueryTests(moon, 'http-client', {
@@ -1270,15 +1515,60 @@ verification: try {
     // Package tests are independent consumers, not successive recoveries of
     // one Store. Keep retained files and capacity in their original namespace.
     const packageStoreRoot = nativePackageStoreRoot(root);
-    const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
+    const walFixtureEnvironment = {};
+    if (packagePath === 'src/platform_native/remote_journal') {
+      // Same exec-only WAL producer as the Native core harness. In particular,
+      // macOS system SQLite must not be entered between fork and exec. Keep
+      // its executable in this invocation's owned namespace and pass it only
+      // to the Journal test child, never to preparation or other consumers.
+      const walFixture = join(root, 'unclosed-sqlite-fixture');
+      execFileSync('cc', ['-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+        fileURLToPath(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url)),
+        '-o', walFixture,
+        ...(process.platform === 'linux' ? ['-ldl'] : [])], {stdio: 'inherit'});
+      walFixtureEnvironment.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE = walFixture;
+    }
+    // Only this child consumes the existing signed rejection fixture. Other
+    // packages keep their original optional-HTTP environment unchanged.
+    const localReviewFixtureEnvironment = packagePath ===
+        'src/platform_native/remote_resident_source_compute_tests'
+      ? {
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET:
+          join(bearerServers.directory, 'control'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin,
+      } : {};
+    const options = {
       cwd: new URL('../', import.meta.url),
       env: packagePath === 'src/platform_native/filesystem'
         ? {...testEnvironment, ...nativePrivateHostFixture(root),
           ACTQL_TEST_NATIVE_STORE_ROOT: filesystemTestRoot}
-        : {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},
+        : {...testEnvironment,
+          ...walFixtureEnvironment,
+          ...localReviewFixtureEnvironment,
+          ...(packagePath === 'src/platform_native/signature'
+            ? nativeOriginalSigningFixture(root) : {}),
+          ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},
       stdio: 'inherit',
-    });
+    };
+    // Separate the cold compiler/linker interval from the physical fixture
+    // execution. Both invocations use the exact same target and environment;
+    // no test filter, alternate binary or second fixture is introduced.
+    const compileStarted = performance.now();
+    let compiled = false;
+    try {
+      execFileSync(moon, ['test', packagePath, '--target', 'native', '--build-only'], options);
+      compiled = true;
+    } finally {
+      console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({package: packagePath,
+        phase: 'compile', milliseconds: Math.round(performance.now() - compileStarted), succeeded: compiled}));
+    }
+    const executeStarted = performance.now();
+    const child = spawn(moon, ['test', packagePath, '--target', 'native'], options);
     const [code, signal] = await once(child, 'exit');
+    console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({package: packagePath,
+      phase: 'execute', milliseconds: Math.round(performance.now() - executeStarted), code, signal}));
     if (code !== 0) {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
     }
@@ -1290,18 +1580,9 @@ verification: try {
     host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
   });
-  const checkpointReplay = spawn(process.execPath, ['--input-type=module', '-e',
-    "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-    "process.exitCode=runFocusedTests('moon',['--target','native'," +
-    "'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt']," +
-    "{cwd:process.cwd(),timeout:90000});"], {
-    cwd: new URL('../', import.meta.url), stdio: 'inherit',
-    env: {...testEnvironment, ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin},
-  });
-  const [checkpointReplayCode, checkpointReplaySignal] = await once(checkpointReplay, 'exit');
-  if (checkpointReplayCode !== 0) {
-    throw new Error(`native Checkpoint control replay failed: ${checkpointReplayCode ?? checkpointReplaySignal}`);
-  }
+  await runCheckpointControlReplay({...testEnvironment,
+    ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin,
+    ACTQL_REQUIRE_NATIVE_EFFECT_REPLAY_TESTS: '1'});
   execFileSync(moon, [
     'build', '--target', 'native', 'src/cmd/native_remote_credential',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
@@ -1839,135 +2120,11 @@ verification: try {
     mkdir(productTransferRoot),
   ]);
 
-  execFileSync(moon, [
-    'build', '--target', 'native', 'src/cmd/native_runtime_bundle',
-  ], {cwd: repositoryRoot, stdio: 'inherit'});
-  const runtimeBundleExecutable = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_runtime_bundle/' +
-      'native_runtime_bundle.exe',
-  );
-  const applicationComponent = await readFile(applicationExecutable);
-  const applicationComponentCid = physicalCid(applicationComponent);
-  const duckdbLibrary = join(
-    repositoryRoot,
-    `adapters/connectors/duckdb/node/node_modules/@duckdb/` +
-      `node-bindings-${process.platform}-${process.arch}/` +
-      (process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
-  );
-  assert.equal(existsSync(duckdbLibrary), true, duckdbLibrary);
-  const duckdbComponent = await readFile(duckdbLibrary);
-  const applicationRuntimeManifest = runtimeControl.prepare({
-    issuerAuthority: 'bundle-authority-a',
-    bundleName: 'native-application-site',
-    revision: 'native-application/1',
-    targetTriple,
-    components: [
-      {
-        role: 'duckdb_library',
-        cid: physicalCid(duckdbComponent),
-        bytes: BigInt(duckdbComponent.byteLength),
-      },
-      {
-        role: 'runtime_executable',
-        cid: applicationComponentCid,
-        bytes: BigInt(applicationComponent.byteLength),
-      },
-    ],
-    connectorRegistration: 'local',
-    connectorRevision: 'local/1',
-    strategyRevision: 'strategy/1',
+  const {applicationRuntimeEnvelope,applicationComponentCid} = await installNativeApplicationBundle({
+    repositoryRoot,root,applicationExecutable,applicationRuntimeRoot,applicationBundleInputRoot,
+    runtimeControl,runtimeKeys,targetTriple,runCaptured,
+    publicKey:testEnvironment.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY,
   });
-  const applicationRuntimeEnvelope = signRemoteRuntimeBundle(
-    applicationRuntimeManifest,
-    runtimeControl,
-    {keyId: 'key-a', privateKey: runtimeKeys.privateKey},
-  );
-  await Promise.all([
-    writeFile(
-      join(applicationBundleInputRoot, 'runtime-public.pem'),
-      testEnvironment.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY,
-      {mode: 0o600},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'trust.json'),
-      JSON.stringify({
-        authorities: [{
-          admit_new_bundles: true,
-          issuer_authority: 'bundle-authority-a',
-          key_id: 'key-a',
-          public_key_name: 'runtime-public.pem',
-        }],
-        version: 'actql-native-runtime-bundle-trust/0.1',
-      }),
-      {mode: 0o600},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'manifest.json'),
-      applicationRuntimeEnvelope.body,
-      {mode: 0o600},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'signature.txt'),
-      applicationRuntimeEnvelope.signature,
-      {mode: 0o600},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'component.bin'),
-      applicationComponent,
-      {mode: 0o700},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'duckdb.bin'),
-      duckdbComponent,
-      {mode: 0o600},
-    ),
-  ]);
-  const applicationBundleCommon = [
-    '--store-root', applicationRuntimeRoot,
-    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-    '--crypto-library', cryptoLibrary,
-    '--target-triple', targetTriple,
-    '--authority-root', applicationBundleInputRoot,
-    '--trust-config-name', 'trust.json',
-    '--capacity-bytes', '268435456',
-    '--max-bundles', '4',
-    '--max-owners', '8',
-    '--max-record-bytes', '1048576',
-  ];
-  const installedApplicationBundle = await runCaptured(
-    runtimeBundleExecutable,
-    [
-      ...applicationBundleCommon,
-      'install',
-      '--install-id', 'native-application-install',
-      '--signature-key-id', 'key-a',
-      '--bundle-cid', applicationRuntimeEnvelope.runtimeBundleCid,
-      '--input-root', applicationBundleInputRoot,
-      '--manifest-name', 'manifest.json',
-      '--signature-name', 'signature.txt',
-      '--component-file', 'duckdb_library=duckdb.bin',
-      '--component-file', 'runtime_executable=component.bin',
-    ],
-  ).completed;
-  assert.equal(
-    installedApplicationBundle.code,
-    0,
-    installedApplicationBundle.stderr,
-  );
-  const activatedApplicationBundle = await runCaptured(
-    runtimeBundleExecutable,
-    [
-      ...applicationBundleCommon,
-      'activate',
-      '--bundle-cid', applicationRuntimeEnvelope.runtimeBundleCid,
-    ],
-  ).completed;
-  assert.equal(
-    activatedApplicationBundle.code,
-    0,
-    activatedApplicationBundle.stderr,
-  );
 
   execFileSync(moon, [
     'build', '--target', 'native',
@@ -2829,6 +2986,10 @@ verification: try {
   await stopProductTransferService(productTransferService);
   productTransferService = undefined;
 } finally {
+  if (effectReviewServer !== undefined) {
+    effectReviewServer.close();
+    await once(effectReviewServer, 'close');
+  }
   await effectCheckpointServer?.close();
   releaseStalePoll?.();
   if (applicationControlProxy !== undefined) {

@@ -70,6 +70,16 @@ allocation: the durable Index or its original retirement owner still owns it.
 If its own witness is retired or absent, cleanup uses existing live-reference and
 original-generation recovery rather than reusing stale successful-adoption state.
 
+An externally missing object from a closed prior Store lifetime remains a read
+refusal. Its exact opening accounting row may nevertheless be retired without
+inventing an original FD: the Store excludes current readers, writers and
+preparations, fences that CID, verifies absence on both sides of the actual
+object-directory ACK, and removes only that unchanged row. Failed ACK or a
+replacement retains the fence and charge. Current allocations and previously
+retired/replaced opening generations require their original cleanup path;
+equal CID/device/inode DATA cannot restore prior-lifetime eligibility. This
+selected reconciliation neither scans unrelated history nor resets its quota.
+
 ## Bounded deletion diagnostics
 
 Prepared-object release and the original Result/metadata deletion owners share

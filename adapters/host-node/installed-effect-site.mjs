@@ -202,6 +202,7 @@ function cleanupCustody(physical, requirePhysical = false) {
   let released = false;
   let inputsReleased = false;
   let recoveryResources;
+  let constructionOwner;
   const releaseAuthorizations = async () => {
     let failure;
     for (const state of authorizations) {
@@ -222,6 +223,10 @@ function cleanupCustody(physical, requirePhysical = false) {
     return authorizations.every(state => state.released);
   };
   const releaseInputs = async () => {
+    if (typeof constructionOwner?.releaseInputs === 'function' &&
+        await constructionOwner.releaseInputs() !== true) {
+      fail('InstalledEffectConstructionCleanupPending');
+    }
     if (!inputsReleased && typeof stage?.releaseInputs === 'function') {
       await stage.releaseInputs();
       inputsReleased = true;
@@ -254,6 +259,12 @@ function cleanupCustody(physical, requirePhysical = false) {
         fail('InstalledEffectCleanupOwnerAlreadySet');
       }
       release = operation;
+    },
+    retainConstruction(original) {
+      if (constructionOwner !== undefined || typeof original?.close !== 'function' ||
+          typeof original?.status !== 'function' || original.releaseInputs !== undefined &&
+          typeof original.releaseInputs !== 'function') fail('InstalledEffectCleanupOwnerAlreadySet');
+      constructionOwner = original;
     },
     retainRecoveryResources(original) {
       if (recoveryResources === original) return;
@@ -298,6 +309,10 @@ function cleanupCustody(physical, requirePhysical = false) {
       // this custody's strong aliases before that consuming return callback.
       stage = release = physical = undefined;
       authorizations.length = 0;
+      if (constructionOwner !== undefined) {
+        if (await constructionOwner.close() !== true || constructionOwner.status().pending !== false) return false;
+        constructionOwner = undefined;
+      }
       if (recoveryResources !== undefined) {
         if (await recoveryResources.close() !== true) return false;
         recoveryResources = undefined;
@@ -310,7 +325,7 @@ function cleanupCustody(physical, requirePhysical = false) {
         requirePhysical && !physicalReleased && physical === undefined ||
         physical !== undefined && !physicalReleased ||
         release !== undefined && !released ||
-        !disposed && stage?.dispose !== undefined || recoveryResources !== undefined;
+        !disposed && stage?.dispose !== undefined || recoveryResources !== undefined || constructionOwner !== undefined;
     },
   });
 }
@@ -334,7 +349,7 @@ async function currentRunState(facts, result, stage) {
 // owners; neither hook may decide that an unknown send succeeded or restart
 // Compute. The recovered hook receives the exact durable capture only.
 export function createInstalledEffectSite({environmentWire,
-  prepareCaptured, prepareRecovered, validateRecoveredInstallation, privateEvidenceKey,
+  prepareCaptured, prepareRecovered, prepareManagedPlan, validateRecoveredInstallation, privateEvidenceKey,
   queryTableBindings,
   queryTableWriteAccesses,
   targetReadInventory, targetReadAuthorization,
@@ -342,6 +357,7 @@ export function createInstalledEffectSite({environmentWire,
   if (typeof environmentWire !== 'string' || !environmentWire ||
       typeof prepareCaptured !== 'function' ||
       typeof prepareRecovered !== 'function' ||
+      (prepareManagedPlan !== undefined && typeof prepareManagedPlan !== 'function') ||
       (validateRecoveredInstallation !== undefined && typeof validateRecoveredInstallation !== 'function') ||
       targetReadInventory !== undefined && typeof targetReadInventory !== 'function' ||
       (targetReadInventory === undefined) !== (targetReadAuthorization === undefined) ||
@@ -354,6 +370,9 @@ export function createInstalledEffectSite({environmentWire,
   }
   return Object.freeze({
     environmentWire,
+    // Retain the SAME installed implementation callback. Selection and its
+    // nominal Plan/current/capacity checks stay with the original Run owner.
+    prepareManagedPlan,
     queryTableBindings,
     queryTableWriteAccesses,
     targetReadInventory, targetReadAuthorization,
@@ -422,7 +441,8 @@ export function createInstalledEffectSite({environmentWire,
       let stage;
       try {
         facts.assertUpdateSelectionCurrent?.();
-        const capturedFacts = {...facts, execution, checkedHost};
+        const capturedFacts = {...facts, execution, checkedHost,
+          retainConstructionOwner: owner => custody.retainConstruction(owner)};
         delete capturedFacts.contentOwner;
         if (contentOwner !== undefined) capturedFacts.contentOwner = contentOwner;
         stage = await prepareCaptured(Object.freeze(capturedFacts));
@@ -586,15 +606,23 @@ export function createInstalledEffectSite({environmentWire,
       }
       const settling = claimed?.action === 'settlement';
       if (!observing && claimed.action !== 'claimed' && !settling) return claimed;
+      const originalContinuationFacts = facts;
+      const originalContinuationCurrent = facts.assertContinuationCurrent;
+      const assertResumeCurrent = () => {
+        signal?.throwIfAborted();
+        if (!observing && !settling) {
+          if (originalContinuationCurrent !== undefined) {
+            Reflect.apply(originalContinuationCurrent, originalContinuationFacts, []);
+          }
+          checkpointJournal.admitResume(claimed.claim, {checkpointCid: view.checkpointCid});
+        }
+      };
+      facts = Object.freeze({...facts, assertContinuationCurrent: assertResumeCurrent});
       if (recovered.updateTargetSelections !== undefined) {
         const original = recovered.assertUpdateSelectionCurrent;
         recovered = Object.freeze({...recovered, assertUpdateSelectionCurrent() {
           original();
-          signal?.throwIfAborted();
-          if (!observing && !settling) {
-            facts.assertContinuationCurrent?.();
-            checkpointJournal.admitResume(claimed.claim, {checkpointCid: view.checkpointCid});
-          }
+          assertResumeCurrent();
         }});
       }
       let stage;
@@ -613,7 +641,8 @@ export function createInstalledEffectSite({environmentWire,
         }
         stage = await prepareRecovered(Object.freeze({...facts,
           recovered,
-          retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
+          retainRecoveryOwner: owner => custody.attachPhysical(owner),
+          retainConstructionOwner: owner => custody.retainConstruction(owner)}));
         recovered.assertUpdateSelectionCurrent?.();
       } catch (error) {
         if (!observing && !settling && (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||

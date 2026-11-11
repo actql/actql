@@ -99,10 +99,12 @@ export async function accountedGitHubRows(verifyTransport, resource = 'issues') 
   assert.ok(view);
   const publication = JSON.stringify({environmentCid: environment.evidenceCid, aliases: [{name: `gh.${resource}`,
     sourceRef: view.source_ref, sourceViewContractCid: view.view_cid, schemaContractCid: view.carrier_schema_cid}]});
+  // This component explicitly selects the Query acquisition profile. Ordinary
+  // unfiltered input uses the separate managed Whole-input path.
   const preparation = commonMoon.clientProgramPrepareSourceWithParameters(
-    resource === 'issues' ? 'SELECT number, comments, state_reason, assignees, labels, url FROM gh.issues ORDER BY number'
-      : resource === 'pull_requests' ? 'SELECT * FROM gh.pull_requests ORDER BY number'
-      : 'SELECT * FROM gh.issue_comments ORDER BY id',
+    resource === 'issues' ? 'SELECT number, comments, state_reason, assignees, labels, url FROM gh.issues WHERE TRUE ORDER BY number'
+      : resource === 'pull_requests' ? 'SELECT * FROM gh.pull_requests WHERE TRUE ORDER BY number'
+      : 'SELECT * FROM gh.issue_comments WHERE TRUE ORDER BY id',
     'sql', check, publication, undefined, undefined);
   const program = commonMoon.clientProgramPreparationReady(preparation);
   assert.ok(program, commonMoon.clientProgramPreparationIssueCode(preparation));

@@ -7,6 +7,7 @@ struct ClientModelReadOrigin {
   compiled : ClientCompiledRun
   definition_cid : String
   plan : ClientInferPlanGraph
+  model_limits : @resources.LedgerLimits?
   host_policy_cid : String
   execution_context_cid : String
 }
@@ -18,15 +19,22 @@ struct ClientModelReadScope {
   origin : ClientModelReadOrigin
   ledger : @resources.Ledger
   identity : @resources.OriginalLedgerIdentity
+  group : ClientModelReadGroup?
+  retained_bytes : Int64
+  execution_bytes : Int64
+  mut read_attempted : Bool
+  mut finished : Bool
 }
 
 ///|
-// This Owner's two actual records above. All eight fields borrow originals;
+// This Owner's two actual records above. The group slot borrows its existing
+// closed Scope set; byte partitions and lifecycle flags are scalar fields. All
+// original identity fields borrow originals;
 // CID getters return retained strings and create no copied UTF16 backing.
 let client_model_read_scope_construction_units : @execution.PreparationRepresentationUnits = {
   record_headers: 2L,
-  reference_slots: 8L,
-  scalar_words: 0L,
+  reference_slots: 10L,
+  scalar_words: 4L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -35,13 +43,32 @@ let client_model_read_scope_construction_units : @execution.PreparationRepresent
 /// Immutable construction DATA, not a byte allowance or Scope/permission.
 /// The original caller must fund this and its census growth before binding.
 pub fn client_model_read_scope_construction_inventory() -> @execution.PreparationRepresentationUnits {
-  client_model_read_scope_construction_units
+  // The existing Resource claim now retains a resident optional closed-child
+  // reference even on the singular path. The selected physical allowance has
+  // one optional borrowed reference; back its Some frame before binding too.
+  // This same original scope entrance issues no additional child/grant.
+  let slots = @resources.original_read_children_construction_slots(1).unwrap()
+  {
+    ..client_model_read_scope_construction_units,
+    record_headers: client_model_read_scope_construction_units.record_headers +
+    slots.0 +
+    1L,
+    reference_slots: client_model_read_scope_construction_units.reference_slots +
+    slots.1 +
+    2L,
+    scalar_words: client_model_read_scope_construction_units.scalar_words +
+    slots.2 +
+    3L,
+  }
 }
 
 ///|
 struct ClientModelReadPreparation {
   origin : ClientModelReadOrigin
   claim : @resources.FundedReadClaim[ClientModelReadOrigin]
+  consumer : @resources.FundedReadConsumer[ClientModelReadOrigin]?
+  mut consumer_claimed : Bool
+  mut retired : Bool
 }
 
 ///|
@@ -64,6 +91,7 @@ pub fn begin_client_model_read_scope(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  model_limits? : @resources.LedgerLimits? = None,
 ) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue] {
   // No Run authentication or binding allocation precedes the funded envelope.
   if !@resources.original_read_bootstrap_available(ledger, bootstrap) {
@@ -80,7 +108,14 @@ pub fn begin_client_model_read_scope(
     Ok(value) => value
     Err(issue) => return Err(Resource(issue))
   }
-  bind_client_model_read_scope(compiled, definition, plan, ledger, identity)
+  bind_client_model_read_scope(
+    compiled,
+    definition,
+    plan,
+    ledger,
+    identity,
+    model_limits~,
+  )
 }
 
 ///|
@@ -94,6 +129,7 @@ pub fn bind_client_model_read_scope(
   plan : ClientInferPlanGraph,
   ledger : @resources.Ledger,
   identity : @resources.OriginalLedgerIdentity,
+  model_limits? : @resources.LedgerLimits? = None,
 ) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue] {
   if !client_compiled_run_has_infer(compiled, plan) ||
     check_client_compiled_run_definition(compiled, definition) is Err(_) {
@@ -105,6 +141,7 @@ pub fn bind_client_model_read_scope(
   }
   let origin : ClientModelReadOrigin = {
     compiled,
+    model_limits,
     definition_cid: @publication.publication_contract_identity(definition),
     plan,
     host_policy_cid: @publication.run_publication_host_policy(
@@ -114,7 +151,16 @@ pub fn bind_client_model_read_scope(
       compiled.admission,
     ),
   }
-  Ok({ origin, ledger, identity, })
+  Ok({
+    origin,
+    ledger,
+    identity,
+    group: None,
+    retained_bytes: 0L,
+    execution_bytes: 0L,
+    read_attempted: false,
+    finished: false,
+  })
 }
 
 ///|
@@ -123,6 +169,11 @@ pub fn prepare_client_model_read(
   retained_bytes : Int64,
   execution_bytes : Int64,
 ) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue] {
+  if scope.group is Some(group) {
+    return prepare_client_model_group_read(
+      scope, group, retained_bytes, execution_bytes,
+    )
+  }
   let origin = scope.origin
   let ledger = scope.ledger
   let descriptor = match
@@ -134,7 +185,14 @@ pub fn prepare_client_model_read(
     @resources.fund_original_read(
       ledger, origin, descriptor, retained_bytes, execution_bytes,
     ) {
-    Ok(claim) => Ok({ origin, claim, })
+    Ok(claim) =>
+      Ok({
+        origin,
+        claim,
+        consumer: None,
+        consumer_claimed: false,
+        retired: false,
+      })
     Err(issue) => Err(Resource(issue))
   }
 }
@@ -154,6 +212,11 @@ pub fn finish_client_model_read_scope(
 ) -> Result[Bool, ClientModelReadPreparationIssue] {
   if !client_model_origin_matches(scope.origin, compiled, definition, plan) {
     return Err(ForeignRun)
+  }
+  if scope.group is Some(group) {
+    return finish_client_model_group_scope(
+      scope, group, original_run_cleanup_complete,
+    )
   }
   @resources.finish_original_ledger_inventory(
     scope.ledger,
@@ -225,7 +288,12 @@ pub fn client_model_read_available(
   plan : ClientInferPlanGraph,
 ) -> Bool {
   client_model_read_origin_matches(value, compiled, definition, plan) &&
-  @resources.funded_read_available(value.claim, value.origin)
+  (match value.consumer {
+    Some(consumer) =>
+      !value.consumer_claimed &&
+      @resources.funded_read_consumer_available(consumer, value.origin, 1L, 1L)
+    None => @resources.funded_read_available(value.claim, value.origin)
+  })
 }
 
 ///|
@@ -258,6 +326,16 @@ pub fn client_model_read_preparation_available(
   execution_bytes : Int64,
   retained_bytes? : Int64 = 0L,
 ) -> Bool {
+  if value.consumer is Some(consumer) {
+    return client_model_read_origin_matches(value, compiled, definition, plan) &&
+      !value.consumer_claimed &&
+      @resources.funded_read_consumer_available(
+        consumer,
+        value.origin,
+        Int64::max(1L, retained_bytes),
+        execution_bytes,
+      )
+  }
   client_model_read_origin_matches(value, compiled, definition, plan) &&
   @resources.funded_read_preparation_available(
     value.claim,
@@ -297,7 +375,11 @@ pub fn handoff_client_model_read_capacity(
 pub fn stop_client_model_read(
   value : ClientModelReadPreparation,
 ) -> Result[Unit, ClientModelReadPreparationIssue] {
-  @resources.stop_funded_read(value.claim).map_err(issue => Resource(issue))
+  let result = match value.consumer {
+    Some(consumer) => @resources.stop_funded_read_consumer(consumer)
+    None => @resources.stop_funded_read(value.claim)
+  }
+  result.map_err(issue => Resource(issue))
 }
 
 ///|
@@ -305,10 +387,18 @@ pub fn settle_client_model_read(
   value : ClientModelReadPreparation,
   physical_cleanup_complete : Bool,
 ) -> Result[Unit, ClientModelReadPreparationIssue] {
-  @resources.settle_funded_read(value.claim, physical_cleanup_complete).map_err(issue => {
-      Resource(issue)
-    },
-  )
+  let result = match value.consumer {
+    Some(consumer) =>
+      @resources.settle_funded_read_consumer(
+        consumer, physical_cleanup_complete,
+      )
+    None =>
+      @resources.settle_funded_read(value.claim, physical_cleanup_complete)
+  }
+  if result is Ok(_) {
+    value.retired = true
+  }
+  result.map_err(issue => Resource(issue))
 }
 
 ///|
@@ -329,5 +419,56 @@ pub fn finish_client_model_read_inventory(
     value.claim,
     value.origin,
     original_run_cleanup_complete,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
+/// Grow the same entered singular consumer from its original preparation.
+/// The preparation supplies its retained immutable origin; Resource performs
+/// the one current/snapshot/grow boundary. No second origin/current getter,
+/// reservation, permission or Model handoff is issued by this projection.
+pub fn grow_client_model_read_preparation_consumer_capacity(
+  read : ClientModelReadPreparation,
+  consumer : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, ClientModelReadPreparationIssue] {
+  if read.retired ||
+    !client_model_read_origin_matches(read, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.grow_funded_read_consumer_capacity(
+    consumer.consumer,
+    read.origin,
+    retained_bytes,
+    execution_bytes,
+  ).map_err(issue => Resource(issue))
+}
+
+///|
+/// Preserve the SAME claimed preparation before its one consuming Execution
+/// enters. Resource performs the original-current/snapshot/grow boundary and
+/// retains the Preparing phase; an entered or foreign consumer is refused.
+pub fn grow_client_model_read_preparing_capacity(
+  read : ClientModelReadPreparation,
+  consumer : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, ClientModelReadPreparationIssue] {
+  if read.retired ||
+    !client_model_read_origin_matches(read, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.grow_funded_read_preparing_capacity(
+    consumer.consumer,
+    read.origin,
+    retained_bytes,
+    execution_bytes,
   ).map_err(issue => Resource(issue))
 }

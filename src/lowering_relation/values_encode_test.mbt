@@ -38,6 +38,37 @@ fn values_params_wire(owner : @lowering_relation.BoundPrepared) -> String raise 
 }
 
 ///|
+test "Values literal text demand borrows original cached UTF8 and excludes Parameters" {
+  let owner = values_owner(
+    "{\"schema\":{\"x\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"x\":{\"literal\":\"😀\"}},{\"x\":{\"literal\":\"é\"}}]}",
+  )
+  let node = @lowering_relation.node_at(
+    @lowering_relation.bound_preparation(owner),
+    0,
+  ).unwrap()
+  let bytes = @lowering_relation.node_values_literal_text_bytes(node).unwrap()
+  assert_true(bytes >= 7)
+  assert_eq(
+    @lowering_relation.node_values_literal_text_bytes(node),
+    Some(bytes),
+  )
+  let declarations = declarations()
+  let parameter = @lowering_relation.bind_parameters(
+    prepared_with(declarations),
+    Some(bound(declarations)),
+    max_parameters=1,
+    max_name_bytes=6,
+  ).unwrap()
+  let parameter_node = @lowering_relation.node_at(
+    @lowering_relation.bound_preparation(parameter),
+    0,
+  ).unwrap()
+  assert_true(
+    @lowering_relation.node_values_literal_text_bytes(parameter_node) is None,
+  )
+}
+
+///|
 test "values execution params preserve empty schema row order and multiplicity" {
   // Fixed params from main's ordinary/empty/repeated/reversed vectors.
   for

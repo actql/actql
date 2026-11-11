@@ -6,6 +6,9 @@ import * as salesforceMoon from '../../../../_build/js/release/build/connectors/
 import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from
   '../../../site-node/https-credential-resource.mjs';
 import {openSalesforceEffectSiteFixture} from './salesforce-effect-site.fixture.mjs';
+import {installedRowCredentialOperationSite} from '../../../host-node/installed-row-source.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {readSalesforceSourceChild} from '../site/salesforce-query-read.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const current = () => ({assertCurrent() {}, async observeCurrent() {}});
@@ -31,6 +34,49 @@ async function fixture(t, options = {}) {
   return {setup, invoke, initialRequests,
     resolutions: () => resolutions, rotate: value => { secret = value; }};
 }
+
+test('Salesforce query Site retains its same issuer and original metadata child in the shared Reader', async t => {
+  const f = await fixture(t), site = f.setup.site;
+  const decision = await f.setup.authorization.authorize('acquisition', {
+    connection: site.connection, resource: 'Test_Record__c', operation: 'read'}, {subjectCid: cid('7')});
+  const original = site.issueGrant({operation: 'salesforce:query:read', decision,
+    resource: 'Test_Record__c', runInvocationCid: cid('1'), dispatchRequestCid: cid('2'), maxUses: 1});
+  const originalSite = installedRowCredentialOperationSite(site.credential);
+  assert.equal(originalSite.site, site);
+  assert.equal(originalSite.authorizationPurpose(original).kind, 'read');
+  assert.equal(originalSite.authorizationPurpose(original).decision, decision);
+  let charges = 0, observations = 0, children = 0;
+  const charged = Object.freeze({});
+  // The physical Site/current/issuer/Journal/provider are real; capacity and
+  // row-accounting ports are explicit. No normal recipe is admitted here.
+  const readerFactory = createInstalledCredentialSourceReader({capacity: {}, originalSite,
+    assertCurrent() {}, maxResponses: 1, maxResponseBytes: 4_000_000,
+    prepareReadSequence() {
+      return Object.freeze({async read(context) {
+        const described = await site.describeForAcquisition({resource: 'Test_Record__c',
+          occurrence: 'shared-reader-describe', runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
+          readChild(raw, input) {children++;return readSalesforceSourceChild(context, raw, input);}});
+        assert.equal(described.evidence.names[0], 'Test_Record__c');
+        await context.consumeObservation();
+      }, retire() {return true;}});
+    }});
+  const reader = readerFactory.prepare(Object.freeze({columns: ['Id'], originalAuthorization: original,
+    verifyRead() {}, authorizationFor() {return {...original, useId: 'original-query-use'};},
+    authorizeReadChild(operation, index, occurrence, supplied) {
+      assert.equal(operation, 'salesforce:catalog:describe');assert.equal(index, 0);
+      assert.equal(occurrence.grant, supplied.originalAuthorization.grant);return supplied;
+    }, consumePage() {assert.fail('Metadata does not construct rows');},
+    chargePage(bytes) {assert(bytes.byteLength > 0);charges++;return charged;},
+    consumeObservation(actual) {assert.equal(actual, charged);observations++;}}));
+  try {
+    assert.deepEqual(await reader.read(), {pages: 1, rowCount: 0});
+    assert.equal(f.setup.seen.length - f.initialRequests, 1);
+    assert.deepEqual({charges, observations, children}, {charges: 1, observations: 1, children: 1});
+  } finally {
+    reader.requestStop();assert.equal(reader.observe().cleanupConfirmed, true);
+    assert.equal(readerFactory.retire(), true);
+  }
+});
 
 test('Salesforce Site binds original Account read and write grants to the same private material', async t => {
   const f = await fixture(t);
@@ -171,4 +217,93 @@ test('Salesforce Site does not infer acquisition capacity from its issued grants
   assert.throws(() => f.setup.site.bindRecordAcquisition(f.setup.observe, current()),
     {code: 'SalesforceRecordAcquisitionUnavailable'});
   assert.equal(f.setup.seen.length, f.initialRequests);
+});
+
+test('managed Salesforce registry preserves original target and write purpose and refuses Account closure before send', async t => {
+  const f = await fixture(t), originalSite = installedRowCredentialOperationSite(f.setup.site.credential);
+  assert.equal(originalSite.authorizationPurpose(f.setup.observe).kind, 'target-read');
+  assert.equal(originalSite.authorizationPurpose(f.setup.write).kind, 'effect');
+  assert.throws(() => originalSite.authorizationPurpose({...f.setup.observe}),
+    {code: 'RowSourceAuthorizationPurposeUnavailable'});
+  const acquired = originalSite.bindRunAcquisition(f.setup.observe, {
+    assertCurrent() {}, async observeCurrent() {f.setup.authorization.close();},
+  });
+  try {
+    await assert.rejects(f.invoke(acquired, 'managed-original-account-closure'),
+      {code: 'AuthorizationDecisionScopeClosed'});
+    assert.equal(f.setup.seen.length, f.initialRequests);
+  } finally {assert.equal(acquired.close(), 'closed');}
+});
+
+test('managed Salesforce registry keeps the original profile fence before target IO', async t => {
+  const f = await fixture(t), originalSite = installedRowCredentialOperationSite(f.setup.site.credential);
+  const original = await readFile(f.setup.profilePath);
+  const acquired = originalSite.bindRunAcquisition(f.setup.observe, {
+    assertCurrent() {}, async observeCurrent() {
+      const changed = JSON.parse(original); changed.siteGeneration++;
+      await writeFile(f.setup.profilePath, JSON.stringify(changed));
+    },
+  });
+  try {
+    await assert.rejects(f.invoke(acquired, 'managed-original-profile-fence'),
+      {code: 'SalesforceRecordAcquisitionProfileChanged'});
+    assert.equal(f.setup.seen.length, f.initialRequests);
+  } finally {
+    await writeFile(f.setup.profilePath, original);
+    assert.equal(acquired.close(), 'closed');
+  }
+});
+
+test('managed Salesforce metadata child binds the original Describe issuer without minting another grant', async t => {
+  const f = await fixture(t), site = f.setup.site, originalSite = installedRowCredentialOperationSite(site.credential);
+  let reads = 0;
+  const catalog = await site.describeEffectCatalog({resources: ['Test_Record__c'],
+    runInvocationCid: cid('1'), dispatchRequestCid: cid('2'), occurrence: 'managed-original-description',
+    async readChild(original, input) {
+      const purpose = originalSite.authorizationPurpose(original);
+      assert.equal(purpose.kind, 'read'); assert.equal(purpose.resource, 'Test_Record__c');
+      assert.strictEqual(input.grant, original.grant);
+      const acquired = originalSite.bindRunAcquisition(original, current());
+      try {
+        reads++;
+        return await callHttpsCredentialResource({...input, ...acquired.credential});
+      } finally {assert.equal(acquired.close(), 'closed');}
+    }});
+  assert.equal(reads, 1);
+  assert.equal(f.setup.seen.length - f.initialRequests, 1);
+  assert.deepEqual(catalog.evidence.names, ['Test_Record__c']);
+});
+
+test('managed Salesforce Describe enters the same synchronous construction frame around native phases while leaving HTTP outside', async t => {
+  let active = false, checking = false, entries = 0;
+  const observed = [];
+  const names = ['salesforceCatalogBeginNamed', 'salesforceCatalogDescribe',
+    'salesforceCatalogResponseSha256', 'salesforcePrepareCatalogObservation', 'salesforceCatalogObservationJson'];
+  const provider = Object.freeze({...salesforceMoon, ...Object.fromEntries(names.map(name =>
+    [name, (...args) => {
+      if (checking) {assert(active, `${name} must have original before-call backing`);observed.push(name);}
+      return Reflect.apply(salesforceMoon[name], salesforceMoon, args);
+    }]))});
+  const f = await fixture(t, {salesforceMoon: provider}), site = f.setup.site;
+  const originalSite = installedRowCredentialOperationSite(site.credential);
+  checking = true;
+  try {
+    const catalog = await site.describeEffectCatalog({resources: ['Test_Record__c'],
+      runInvocationCid: cid('1'), dispatchRequestCid: cid('2'), occurrence: 'managed-construction-description',
+      controlConstruction(receiver, method, args) {
+        assert.equal(active, false);assert.equal(receiver, undefined);entries++;active = true;
+        try {return Reflect.apply(method, receiver, args);} finally {active = false;}
+      },
+      async readChild(original, input) {
+        assert.equal(active, false, 'a synchronous construction borrow never spans the HTTP await');
+        const acquired = originalSite.bindRunAcquisition(original, current());
+        try {return await callHttpsCredentialResource({...input, ...acquired.credential});}
+        finally {assert.equal(acquired.close(), 'closed');}
+      }});
+    assert.equal(catalog.evidence.names[0], 'Test_Record__c');
+    assert.equal(f.setup.seen.length - f.initialRequests, 1);
+    assert.equal(entries, 4, 'begin, original Grant, response projection and final observation');
+    assert.deepEqual(new Set(observed), new Set(names));
+    assert.equal(active, false);
+  } finally {checking = false;}
 });

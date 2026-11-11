@@ -382,8 +382,8 @@ fn project_layout(
 fn layout_allocation(slots : Int, bytes : Int, work : Int) -> LayoutAllocation {
   {
     ledger: None,
-    slots: { limit: slots, live: 0, peak: 0, },
-    bytes: { limit: bytes, live: 0, peak: 0, },
+    slots: { ..row_workspace(slots), live: 0, peak: 0, },
+    bytes: { ..row_workspace(bytes), live: 0, peak: 0, },
     work: { remaining: work, max_frames: 0, },
   }
 }
@@ -547,7 +547,7 @@ test "A B C use the same stable index kernel and consume identical comparison wo
     // preserve this occurrence order, rather than physical backing row order.
     let input = select_layout_rows(original, [1, 0, 2], budget).unwrap()
     let control = { remaining: 1000, max_frames: 0, }
-    let workspace = { limit: 1000, live: 0, peak: 0, }
+    let workspace = row_workspace(1000)
     let indices = stable_order_indices(input, order, control, workspace).unwrap()
     assert_eq(indices, [0, 1, 2])
     assert_eq(workspace.live, 3)
@@ -558,7 +558,7 @@ test "A B C use the same stable index kernel and consume identical comparison wo
     let sorted = select_layout_rows(input, indices, budget).unwrap()
     assert_true(layout_cell(sorted, 0, 0) is Some(Number(1)))
     assert_true(layout_cell(sorted, 1, 0) is Some(Number(3)))
-    let failed = { limit: 0, live: 0, peak: 0, }
+    let failed = row_workspace(0)
     assert_true(
       stable_order_indices(
         input,

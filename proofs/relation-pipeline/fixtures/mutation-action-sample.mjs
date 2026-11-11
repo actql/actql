@@ -8,7 +8,7 @@ import {executionCommand} from '../fixture.mjs';
 const digest = value => hash(JSON.stringify(value));
 const revision = 'a'.repeat(40), targets = ['js', 'wasm', 'native'];
 export function inputTree() {
-  const paths = ['scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar',
+  const paths = ['adapters/host-node/ordinary-node-resource-runtime.cjs', 'scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar',
     'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml',
     'docs/spec/language.md', 'docs/spec/execution.md', 'src/query_integration/moon.pkg',
     'vendor/package/data', 'proofs/bounded-session/check.mjs', 'proofs/relation-chain/check.mjs',

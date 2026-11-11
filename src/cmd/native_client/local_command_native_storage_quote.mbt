@@ -5,7 +5,6 @@
 priv struct LocalCommandNativeStorageBounds {
   source : String
   max_snapshot_bytes : Int64
-  max_records : Int
   read_selection : LocalCommandReadStorageSelection
   platform_selection : LocalCommandPlatformStorageSelection
   sqlite_domain_selection : LocalCommandSqliteDomainStorageSelection
@@ -70,7 +69,6 @@ extern "C" fn native_inspection_layout_field(field : Int) -> Int64 = "actql_jour
 priv struct LocalCommandNativeStorageQuote {
   source : String
   snapshot_bytes : Int64
-  records : Int
   sqlite_domain_facility_ceiling : Int64?
   read_facility_ceiling : Int64?
 }
@@ -286,8 +284,6 @@ fn quote_local_command_native_storage(
   let bounds = profile.native_storage
   if bounds.source != profile.source ||
     bounds.source.length() != 40 ||
-    bounds.max_records < 1 ||
-    bounds.max_records > 1024 ||
     profile.crypto_heap_bytes <= 0L ||
     profile.crypto_heap_bytes > 2147483647L ||
     profile.sqlite_heap_bytes < 4096L ||
@@ -362,7 +358,6 @@ fn quote_local_command_native_storage(
   Ok({
     source: bounds.source,
     snapshot_bytes: bounds.max_snapshot_bytes,
-    records: bounds.max_records,
     sqlite_domain_facility_ceiling: Some(sqlite),
     read_facility_ceiling: Some(read),
   })
@@ -377,7 +372,6 @@ fn LocalCommandNativeStorageQuote::covers_journal(
 ) -> Bool {
   native_storage_journal_bounds_cover(
     self.source,
-    self.records,
     self.snapshot_bytes,
     source,
     records,
@@ -386,11 +380,12 @@ fn LocalCommandNativeStorageQuote::covers_journal(
 }
 
 ///|
-// Pure subset check used by the actual captured quote; these scalar operands
+// Source and snapshot bounds belong to the captured physical quote. The actual
+// positive record policy is selected later from the same checked configuration;
+// future record count is not preallocated Read/SQLite demand. These scalars
 // cannot manufacture a quote, physical original, or permission.
 fn native_storage_journal_bounds_cover(
   original_source : String,
-  original_records : Int,
   original_snapshot_bytes : Int64,
   source : String,
   records : Int,
@@ -398,7 +393,6 @@ fn native_storage_journal_bounds_cover(
 ) -> Bool {
   source == original_source &&
   records >= 1 &&
-  records <= original_records &&
   snapshot_bytes > 0L &&
   snapshot_bytes <= original_snapshot_bytes
 }

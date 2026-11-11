@@ -71,6 +71,66 @@ pub fn NativeLocalHostConnection::observe_publication_run_state(
   quantum : Int,
   max_rounds : Int,
 ) -> Result[NativeLocalObservedRunState, NativeLocalObservedRunStateIssue] {
+  let authority = match
+    self.prepare_publication_observation_authority(publisher) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let candidate = match
+    pending.prepare_run_state_candidate(
+      observed_at, max_workspace, quantum, max_rounds,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Candidate(issue))
+  }
+  let result = self.finalize_observed_run_state_candidate(
+    publisher, authority, candidate,
+  )
+  match candidate.release() {
+    Ok(_) => result
+    Err(issue) => Err(Candidate(issue))
+  }
+}
+
+///|
+/// SAME Host observer for an original Effectful pending publication. The
+/// existing finalizer preserves publisher and independent Read authority;
+/// no fresh publisher is manufactured for an already completed Saved Run.
+pub fn NativeLocalHostConnection::observe_effectful_publication_run_state(
+  self : NativeLocalHostConnection,
+  publisher : NativeLocalPublisherBinding,
+  pending : @native_publication.NativePreparedEffectfulRunPublication,
+  observed_at : String,
+  max_workspace : Int,
+  quantum : Int,
+  max_rounds : Int,
+) -> Result[NativeLocalObservedRunState, NativeLocalObservedRunStateIssue] {
+  let authority = match
+    self.prepare_publication_observation_authority(publisher) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let candidate = match
+    pending.prepare_run_state_candidate(
+      observed_at, max_workspace, quantum, max_rounds,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Candidate(issue))
+  }
+  let result = self.finalize_observed_run_state_candidate(
+    publisher, authority, candidate,
+  )
+  match candidate.release() {
+    Ok(_) => result
+    Err(issue) => Err(Candidate(issue))
+  }
+}
+
+///|
+fn NativeLocalHostConnection::prepare_publication_observation_authority(
+  self : NativeLocalHostConnection,
+  publisher : NativeLocalPublisherBinding,
+) -> Result[NativeLocalPolicyAuthority, NativeLocalObservedRunStateIssue] {
   if !physical_equal(publisher.authority.host, self) ||
     !(publisher.authority.purpose is PublishRun) {
     return Err(ForeignOriginal)
@@ -92,20 +152,7 @@ pub fn NativeLocalHostConnection::observe_publication_run_state(
   if !publisher.current() {
     return Err(AuthorizationDenied)
   }
-  let candidate = match
-    pending.prepare_run_state_candidate(
-      observed_at, max_workspace, quantum, max_rounds,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Candidate(issue))
-  }
-  let result = self.finalize_observed_run_state_candidate(
-    publisher, authority, candidate,
-  )
-  match candidate.release() {
-    Ok(_) => result
-    Err(issue) => Err(Candidate(issue))
-  }
+  Ok(authority)
 }
 
 ///|

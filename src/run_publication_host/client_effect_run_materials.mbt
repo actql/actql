@@ -134,6 +134,11 @@ pub fn issue_client_effect_run_materials(
       }
     }
   }
+  let infer_inputs_wire = match
+    client_effect_original_infer_inputs(allowed.compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let wire = match
     encode_client_run_materials_body(
       allowed.admission,
@@ -144,6 +149,7 @@ pub fn issue_client_effect_run_materials(
       parameters_wire,
       request_wire~,
       source_free_policy_input~,
+      infer_inputs_wire~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -188,6 +194,15 @@ pub fn admit_client_effect_run_materials(
   expected_request? : ClientRequestIdentity? = None,
   original_source? : ClientSourcePreparation? = None,
   numeric_profile_cid? : String? = None,
+  original_compilation? : ClientEffectCompilation? = None,
+  request_value_policies? : ((@checked.EffectComputationCandidate) -> Result[
+    Array[@checked.HostRequestValuePolicyEvidence],
+    ClientEffectComputationIssue,
+  ])? = None,
+  before_compilation? : ((ClientEffectCompilationConstructionInput) -> Result[
+    Unit,
+    ClientEffectRunMaterialsIssue,
+  ])? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let body = match
     read_client_run_materials_body(
@@ -209,22 +224,38 @@ pub fn admit_client_effect_run_materials(
       }
     None => ()
   }
-  let prepared = match
-    prepare_client_effect_computation(
-      body.program,
-      Json,
-      body.environment,
-      body.parameters,
-      [],
-      effect_limits,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Program(issue))
+  // A Request-owned restoration already paid for its original checker and
+  // compiler. Reuse that nominal output; the independent Run/Request and the
+  // complete canonical material comparison below bind every original input.
+  // Wire-only callers retain their existing parser/check/compiler path.
+  let prepared = match original_compilation {
+    Some(original) => original.owner
+    None =>
+      match
+        prepare_client_effect_computation(
+          body.program,
+          Json,
+          body.environment,
+          body.parameters,
+          [],
+          effect_limits,
+          request_value_policies~,
+        ) {
+        Ok(value) => value
+        Err(Candidate(@checked.MissingEffects)) if body.infer_inputs_wire
+          is Some(_) =>
+          return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+        Err(issue) => return Err(Program(issue))
+      }
   }
   let prepared = match original_source {
     None => prepared
     Some(original) => {
       guard original.preparation is Effect(source_prepared) &&
+        (
+          original_compilation is None ||
+          physical_equal(source_prepared, prepared)
+        ) &&
         prepared_client_effect_identity(source_prepared) ==
         prepared_client_effect_identity(prepared) &&
         prepared_client_effect_computation_environment_cid(source_prepared) ==
@@ -236,7 +267,8 @@ pub fn admit_client_effect_run_materials(
       source_prepared
     }
   }
-  let prepared = if original_source is Some(_) {
+  let prepared = if original_source is Some(_) ||
+    original_compilation is Some(_) {
     if prepared_client_effect_target_selections(prepared) !=
       body.target_selections_wire {
       return Err(TargetSelection(InvalidMaterials))
@@ -255,18 +287,45 @@ pub fn admit_client_effect_run_materials(
       }
     }
   }
-  let infer = match
-    restore_client_effect_original_infer(prepared, body.infer_input, limits) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let infer = match original_compilation {
+    Some(_) => None
+    None =>
+      match
+        restore_client_effect_original_infer(
+          prepared,
+          body.infer_input,
+          limits,
+          native_read_profile=body.infer_native_read_profile,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
   }
-  let source_free_policy = match
-    restore_client_effect_original_source_free_policy(
-      prepared,
-      body.source_free_policy_input,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let infers = match (original_compilation, body.infer_inputs_wire) {
+    (None, Some(wire)) =>
+      match
+        read_plural_client_infer_run_graphs(
+          client_effect_program_view(prepared),
+          wire,
+          limits,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          return Err(Input(MaterialsEvidence("infer_execution_contracts")))
+      }
+    _ => []
+  }
+  let source_free_policy = match original_compilation {
+    Some(_) => None
+    None =>
+      match
+        restore_client_effect_original_source_free_policy(
+          prepared,
+          body.source_free_policy_input,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
   }
   // Profile selection is an audit of the restored checked owners, not a
   // catalog string or caller boolean. No custody escapes until saved
@@ -275,10 +334,22 @@ pub fn admit_client_effect_run_materials(
     body.normalization_wire {
     None => (None, None, None)
     Some(wire) => {
-      let inventory = match
-        checked_client_effect_normalization_inventory(prepared) {
-        Ok(value) => value
-        Err(issue) => return Err(Normalization(issue))
+      let retained_inventory = match original_compilation {
+        Some(original) => original.normalization_profile
+        None => None
+      }
+      let inventory = match retained_inventory {
+        Some(original) => {
+          if !client_effect_normalization_inventory_matches(original, prepared) {
+            return Err(Normalization(ForeignPreparation))
+          }
+          original
+        }
+        None =>
+          match checked_client_effect_normalization_inventory(prepared) {
+            Ok(value) => value
+            Err(issue) => return Err(Normalization(issue))
+          }
       }
       if original_materials is Some(issued) {
         match issued.normalization_profile {
@@ -311,22 +382,55 @@ pub fn admit_client_effect_run_materials(
       }
     }
   }
-  let compilation = match
-    issue_client_effect_compilation_internal(
-      prepared,
-      manifests,
-      limits.sequence,
-      limits.max_sequence_steps,
-      limits.max_sequence_work,
-      limits.max_evidence_bytes,
-      limits.max_evidence_nodes,
-      limits.max_evidence_depth,
-      normalization_profile,
-      infer~,
-      source_free_policy~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Compilation(issue))
+  // The original parser/checker/Model preparation has already completed.
+  // A caller may grow its SAME current construction holding here, before
+  // the single artifact compiler. Failure retains that caller's responsibility.
+  // Existing wire-only/default and already-compiled entrances stay unchanged.
+  if original_compilation is None && before_compilation is Some(prepare) {
+    let components = match infer {
+      Some(component) => [component]
+      None => infers
+    }
+    match
+      prepare({
+        owner: prepared,
+        components,
+        normalization: normalization_profile,
+      }) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  let compilation = match original_compilation {
+    Some(original) => {
+      if !physical_equal(original.owner, prepared) ||
+        !same_client_effect_normalization_profile(
+          normalization_profile,
+          original.normalization_profile,
+        ) {
+        return Err(Binding(ForeignCompilation))
+      }
+      original
+    }
+    None =>
+      match
+        issue_client_effect_compilation_internal(
+          prepared,
+          manifests,
+          limits.sequence,
+          limits.max_sequence_steps,
+          limits.max_sequence_work,
+          limits.max_evidence_bytes,
+          limits.max_evidence_nodes,
+          limits.max_evidence_depth,
+          normalization_profile,
+          infer~,
+          infers~,
+          source_free_policy~,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Compilation(issue))
+      }
   }
   let evidence = fn(name : String, wire : String) {
     @publication.admit_run_evidence_value(
@@ -389,7 +493,7 @@ pub fn admit_client_effect_run_materials(
       Some(value)
     }
   }
-  if original_source is Some(_) &&
+  if (original_source is Some(_) || original_compilation is Some(_)) &&
     (request is None || expected_request is None || request != expected_request) {
     return Err(Request(IdentityMismatch))
   }
@@ -415,7 +519,8 @@ pub fn admit_client_effect_run_materials(
     prepared.target_selections is Some(_) ||
     infer is Some(_) ||
     source_free_policy is Some(_) ||
-    original_source is Some(_) {
+    original_source is Some(_) ||
+    original_compilation is Some(_) {
     let canonical = match
       encode_prepared_client_effect_materials(
         allowed,
@@ -427,11 +532,39 @@ pub fn admit_client_effect_run_materials(
       Err(issue) => return Err(issue)
     }
     if canonical != materials {
+      if original_compilation is Some(_) {
+        return Err(RunMismatch)
+      }
       if prepared.target_selections is Some(_) {
         return Err(TargetSelection(InvalidMaterials))
       }
       return Err(Normalization(UnverifiedOriginalMaterials))
     }
+  }
+  // Reusing an immutable compiler must not displace that Owner's already
+  // retained material custody. Matching transport bytes reuse its original
+  // journal/handle; equal Program identity alone cannot replace a live tuple.
+  if original_compilation is Some(_) &&
+    prepared.normalization_custody is Some(custody) {
+    let material_cid = match original_materials {
+      Some(issued) => original_effect_materials_cid(issued)
+      None => "sha256:" + @sha.hex(@utf8.encode(materials))
+    }
+    if !physical_equal(custody.compilation, compilation) ||
+      custody.run_cid != expected_run_definition_cid ||
+      custody.request != request ||
+      custody.materials_cid != material_cid ||
+      body.normalization_wire != Some(custody.journal_wire) {
+      return Err(Normalization(ForeignMaterials))
+    }
+    return Ok({
+      normalization: Some(custody),
+      prepared,
+      compilation,
+      allowed,
+      run_definition,
+      request,
+    })
   }
   let normalization = match body.normalization_wire {
     None => None

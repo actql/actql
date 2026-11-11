@@ -392,19 +392,45 @@ pub fn issue_effect_row_outcome_receipt_from_local(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let bytes = @utf8.encode(response.contract.wire)
+  seal_effect_local_row_outcome(
+    operation.effect_preview_cid,
+    operation.member_preview_cid,
+    operation.row_preview_cid,
+    dispatch_entry_cid,
+    response.contract,
+    outcome,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// One unchanged local row-receipt preimage for SQLite and file observations.
+fn seal_effect_local_row_outcome(
+  effect_preview_cid : String,
+  member_preview_cid : String,
+  row_preview_cid : String,
+  dispatch_entry_cid : String,
+  response : PublicationContract,
+  outcome : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectRowOutcomeIssue] {
+  let bytes = @utf8.encode(response.wire)
   let body = try {
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     for
       (name, value) in [
         ("version", "actql-effect-row-outcome-receipt/0.1"),
-        ("effect_preview_cid", operation.effect_preview_cid),
-        ("effect_member_preview_cid", operation.member_preview_cid),
-        ("row_preview_cid", operation.row_preview_cid),
+        ("effect_preview_cid", effect_preview_cid),
+        ("effect_member_preview_cid", member_preview_cid),
+        ("row_preview_cid", row_preview_cid),
         ("dispatch_entry_cid", dispatch_entry_cid),
         ("response_kind", "local_operation"),
-        ("local_operation_receipt_cid", response.contract.identity),
+        ("local_operation_receipt_cid", response.identity),
         ("response_physical_sha256", @sha.hex(bytes)),
         (
           "typed_outcome_cid",

@@ -94,6 +94,7 @@ struct NativeClientSubmittedIntentRecord {
   revision : Int64
   run_state_original : String?
   run_state_observation : (Int64, String?)?
+  preparation_problem : (String, String)?
   // Same immutable state already restored by the selected Common snapshot,
   // bound to its authenticated Run definition. No availability or permission.
   restored_state_original : (String, @host.ClientRunStateOriginal)?
@@ -128,16 +129,29 @@ pub fn native_client_submitted_intent_revision(
 }
 
 ///|
+/// The original stored explanation only; it grants no Run or retry authority.
+pub fn native_client_submitted_preparation_problem(
+  value : NativeClientSubmittedIntentRecord,
+) -> (String, String)? {
+  value.preparation_problem
+}
+
+///|
 fn submitted_intent_body(
   reference : NativeClientSubmissionReference,
   intent : @host.ClientSubmittedIntent,
   run_admission? : NativeClientSubmittedRunAdmission? = None,
   run_state_original? : String? = None,
   run_state_observation? : (Int64, String?)? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    @host.ClientJournalEncodingIssue,
+  ])? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   @host.client_submitted_intent_journal_row_body(
     reference.wire,
     intent,
+    before_construction~,
     run_state_original~,
     run_state_observation~,
     run_admission=run_admission.map(admission => {
@@ -268,7 +282,11 @@ fn NativeClientRunJournal::inspect_submitted_intent_row_with_record(
   (@host.ClientSubmittedJournalEncoding, NativeClientSubmittedIntentRecord),
   NativeClientRunJournalIssue,
 ] {
-  let original = match @host.decode_client_submitted_journal_row(row.body) {
+  let original = match
+    @host.decode_client_submitted_journal_row(
+      row.body,
+      before_construction=submitted_decode_construction(self.database, reads),
+    ) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -283,6 +301,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row_with_record(
     revision: row.revision,
     run_state_original: original.run_state_original,
     run_state_observation: original.run_state_observation,
+    preparation_problem: original.preparation_problem,
     restored_state_original: None,
   }
   if record.reference.request_id != row.key {
@@ -434,6 +453,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
       })
     },
     CustodyLost,
+    before_construction=submitted_decode_construction(self.database, reads),
   ).map(value => {
     value.map(snapshot => {
       let decoded = @host.client_saved_submission_record(snapshot)
@@ -448,6 +468,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
         revision: @host.client_saved_submission_revision(snapshot),
         run_state_original: decoded.run_state_original,
         run_state_observation: decoded.run_state_observation,
+        preparation_problem: decoded.preparation_problem,
         restored_state_original: native_saved_submission_state(snapshot),
       }
       (original, selected_run.val)
@@ -579,6 +600,14 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         })
       },
       CustodyLost,
+      before_decode_construction=submitted_decode_construction(
+        self.database,
+        reads,
+      ),
+      before_construction=submitted_encode_construction(
+        self.database,
+        operations,
+      ),
       usage=Some(() => {
         if self.append_schema != 1 {
           return Err(CustodyLost)
@@ -590,6 +619,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
           reads~,
         )
       }),
+      max_retained_intent_bytes=self.max_retained_intent_bytes,
     ) {
     Ok(@host.Retained(snapshot)) => {
       let original = @host.client_saved_submission_record(snapshot)
@@ -604,6 +634,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         revision: @host.client_saved_submission_revision(snapshot),
         run_state_original: original.run_state_original,
         run_state_observation: original.run_state_observation,
+        preparation_problem: original.preparation_problem,
         restored_state_original: native_saved_submission_state(snapshot),
       })
     }
@@ -663,6 +694,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
     revision,
     run_state_original: None,
     run_state_observation: None,
+    preparation_problem: None,
     restored_state_original: None,
   })
   .map_err(issue => Physical(issue))

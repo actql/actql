@@ -269,18 +269,41 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
       capacity, input,
     ).unwrap()
     let bytes = program_check_data_extent_cost(parent.program_data.unwrap()).unwrap()
+    let phase = installed_effect_control_phase_quote_capacity()
+    // The existing generic Plan constructor also backs its checked-node proof
+    // before entry. The previous data-only fixture omitted those live frames.
+    let proof_retained = client_local_value_node_proof_retained_bytes().unwrap()
+    let proof_scratch = client_local_value_node_proof_scratch_bytes().unwrap()
+    // The empty Direct selection retains its original Plan reference even
+    // though this Effect fixture captures no Source or coordinate arrays.
+    let direct_selector_field = @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 1L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+    let retained = bytes +
+      proof_retained +
+      direct_selector_field +
+      @execution.execution_capacity_retained_bytes(phase)
+    let execution = bytes +
+      proof_retained +
+      proof_scratch +
+      direct_selector_field +
+      @execution.execution_capacity_execution_bytes(phase)
     let limits = @resources.ledger_limits(parent.ledger)
     let block = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        limits.retained_bytes - before.0 - bytes + 1L
+        limits.retained_bytes - before.0 - retained + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - before.1 - bytes + 1L
+        limits.execution_bytes - before.1 - execution + 1L
       },
     ).unwrap()
     let result = reserve_request_effect_plan(parent, input)
@@ -293,7 +316,7 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
     )
     assert_eq(
       parent.program_plan_quote,
-      Some((before.0 + bytes, before.1 + bytes)),
+      Some((before.0 + retained, before.1 + execution)),
     )
     assert_true(
       parent.phase == EffectPlanQuoted &&
@@ -327,11 +350,10 @@ test "Effect Request immutable limits DATA does not observe current while the re
   let (plan, request) = request_effect_plan_fixture(prepared)
   complete_request_effect_preparation(parent, input, plan).unwrap()
   let before = calls.val
-  let limits = @resources.node_local_preparation_limits(parent.initial, input).unwrap()
+  let limits = preparation_initial_limits(parent.initial, input).unwrap()
   assert_true(physical_equal(limits, @resources.ledger_limits(parent.ledger)))
   assert_true(
-    @resources.node_local_preparation_limits(parent.initial, [1])
-    is Err(ForeignOriginal),
+    preparation_initial_limits(parent.initial, [1]) is Err(ForeignOriginal),
   )
   assert_eq(calls.val, before)
   action.val = Some(() => {

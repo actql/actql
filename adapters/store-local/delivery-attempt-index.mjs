@@ -335,6 +335,7 @@ export async function openDeliveryAttemptIndex(path, {
     const physicalHeader = prepare('PRAGMA user_version').get().user_version;
     if (![0,1].includes(physicalHeader)) fail('DeliveryAttemptIndexUnavailable');
     let physicalRecoveryRequired = physicalHeader === 1, physicalLifetime;
+    let priorPhysicalReconciliationAllowed = true;
     let complete = selected.complete === 1;
     const metadataFence = prepare('SELECT * FROM metadata_deletion_fences WHERE metadata_key=?');
     const physicalObject = prepare('SELECT * FROM physical_objects WHERE cid=?');
@@ -578,7 +579,9 @@ export async function openDeliveryAttemptIndex(path, {
           count+=kind==='record'?1:-1;bytes+=kind==='record'?row.byte_count:-row.byte_count;
           const previous=physicalLifetime.changes.get(row.cid);
           const before=previous===undefined?current:previous.before;
-          updates.push({key:row.cid,before,after:kind==='record'?row:undefined});
+          updates.push({key:row.cid,before,after:kind==='record'?row:undefined,
+            priorRetired:previous?.priorRetired===true || before!==undefined &&
+              (kind==='remove' || !samePhysical(before,row))});
         }
       }
       const objects=physicalLifetime.objects+count,total=physicalLifetime.bytes+bytes;
@@ -592,7 +595,10 @@ export async function openDeliveryAttemptIndex(path, {
       }
       for(const change of updates){
         if(change.retire!==undefined){physicalLifetime.retiring.delete(change.retire);continue;}
-        if(sameOptionalPhysical(change.before,change.after))physicalLifetime.changes.delete(change.key);
+        // Keep a bounded baseline marker after remove/re-record, even if its
+        // DATA happens to equal the opening original (including inode reuse).
+        // Such a generation is no longer a closed prior-lifetime allocation.
+        if(sameOptionalPhysical(change.before,change.after)&&!change.priorRetired)physicalLifetime.changes.delete(change.key);
         else physicalLifetime.changes.set(change.key,Object.freeze(change));
       }
       if(kind==='record'){
@@ -669,6 +675,9 @@ export async function openDeliveryAttemptIndex(path, {
         return retained!==undefined;
       }) : [];
       if (changes.length===0 && prepared.length===0 && !retry) return before;
+      // Direct legacy mutations do not retain an opening-generation marker.
+      // They cannot later supply the closed-lifetime reconciliation path.
+      if(changes.length!==0)priorPhysicalReconciliationAllowed=false;
       try {
         run(()=>{
           for(const row of changes) {
@@ -1298,8 +1307,18 @@ export async function openDeliveryAttemptIndex(path, {
         if(physicalLifetime===undefined||!samePhysical(selectedPhysical(original.cid),original))fail('PublicationObjectAccountingMismatch');
         physicalLifetime.retiring.set(preparationKey(original),original);
       },
-      physicalObject(cidValue) {
+      physicalObject(cidValue,{priorLifetime=false}={}) {
         requireComplete();if(!cid(cidValue))fail('InvalidDeliveryAttemptIndex');
+        if(priorLifetime){
+          if(!priorPhysicalReconciliationAllowed||physicalRecoveryRequired||
+              physicalLifetime?.changes.get(cidValue)?.priorRetired===true)return undefined;
+          const row=physicalObject.get(cidValue),original=row===undefined?undefined:physicalOriginal(row);
+          if(!samePhysical(original,selectedPhysical(cidValue)))return undefined;
+          const preparing=physicalLifetime===undefined
+            ?prepare('SELECT 1 FROM physical_object_preparations WHERE cid=? LIMIT 1').get(cidValue)!==undefined
+            :[...physicalLifetime.preparations.values()].some(value=>value.cid===cidValue);
+          return preparing?undefined:original;
+        }
         return selectedPhysical(cidValue);
       },
       migratePhysicalObjects(values) {
@@ -1309,6 +1328,7 @@ export async function openDeliveryAttemptIndex(path, {
         if(!Number.isSafeInteger(bytes)||new Set(originals.map(row=>row.cid)).size!==originals.length) {
           fail('InvalidDeliveryAttemptIndex');
         }
+        priorPhysicalReconciliationAllowed=false;
         run(()=>{
           for(const row of originals)insertPhysicalObject.run(row.cid,row.byte_count,row.device,row.inode);
           prepare(`UPDATE physical_object_usage SET complete=1,objects=?,bytes=?,

@@ -105,6 +105,11 @@ class AsyncClient:
         the existing factory. Managed limits do not supply a worker, permission
         or a shared native holding. Partial cleanup retains the same Host.
         """
+        return await cls._open_installed_local(state_dir=state_dir, signer=signer)
+
+    @classmethod
+    async def _open_installed_local(cls, *, state_dir=None, signer=None,
+                                    discover_project=False, profile=None):
         selected_signer = None if signer is None else capture_signer(signer)
         from ._local_worker_funding import LocalWorkerFundingUnavailable
         try:
@@ -115,6 +120,9 @@ class AsyncClient:
             raise ClientError('LocalInstallationUnavailable', original_error=failure) from None
         try:
             options = {} if state_dir is None else {'state_dir': state_dir}
+            if discover_project:
+                options['_discover_project'] = True
+                options['_project_profile'] = profile
             host = InstalledLocalHost.installed(**options)
         except LocalProductCleanupPending as failure:
             client = cls._from_local_host(failure.cleanup_host)
@@ -135,7 +143,23 @@ class AsyncClient:
         return await cls._connect_local(host, signer=selected_signer)
 
     @classmethod
-    async def connect(cls, endpoint, token=_NO_TOKEN, **options):
+    async def connect(cls, endpoint=_MISSING, token=_NO_TOKEN, *, mode='remote',
+                      installation=_MISSING, **options):
+        if mode == 'local':
+            if endpoint is not _MISSING or token is not _NO_TOKEN:
+                raise ClientError('InvalidConnectionOptions')
+            signer = options.pop('signer', None)
+            profile = options.pop('profile', None)
+            if (options or profile is not None
+                    and (type(profile) is not str or len(profile) > 65536)):
+                raise ClientError('InvalidConnectionOptions')
+            selected = {} if installation is _MISSING else {'state_dir': installation}
+            return await cls._open_installed_local(signer=signer, profile=profile,
+                                                   discover_project=True, **selected)
+        if mode != 'remote' or installation is not _MISSING:
+            raise ClientError('InvalidConnectionOptions')
+        if endpoint is _MISSING:
+            raise ClientError('InvalidConnectionEndpoint')
         client = cls(endpoint, token, **options)
         try:
             profile = await client._request('connect', {})

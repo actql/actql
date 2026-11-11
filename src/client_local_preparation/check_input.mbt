@@ -21,18 +21,9 @@ pub fn admit_local_program_input(
     None => None
     Some(body) => {
       let (source_limits, tree_limits) = local_parameter_input_limits()
-      let parsed = match
-        @source.parse_json_bytes(
-          @utf8.encode(body),
-          source_limits,
-          source_path="Client Parameters",
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(SuppliedSyntax(issue))
-      }
-      match @decode.admit(parsed, tree_limits) {
+      match admit_local_parameter_document(body, source_limits, tree_limits) {
         Ok(value) => Some(value)
-        Err(issue) => return Err(SuppliedAdmission(issue))
+        Err(issue) => return Err(issue)
       }
     }
   }
@@ -91,8 +82,12 @@ pub fn local_parameter_input_limits() -> (@source.ParseLimits, @decode.Limits) {
 pub fn[T] admit_captured_local_parameters(
   input : T,
   reader : @source.JsonDataReader[T],
+  limits? : (@source.ParseLimits, @decode.Limits)? = None,
 ) -> Result[@decode.Cursor, LocalProgramInputIssue] {
-  let (source_limits, tree_limits) = local_parameter_input_limits()
+  let (source_limits, tree_limits) = match limits {
+    Some(selected) => selected
+    None => local_parameter_input_limits()
+  }
   let parsed = match
     @source.admit_captured_json(
       input,
@@ -107,4 +102,26 @@ pub fn[T] admit_captured_local_parameters(
   @decode.admit(parsed.node, tree_limits).map_err(issue => {
     SuppliedAdmission(issue)
   })
+}
+
+///|
+/// One original textual Parameters admission. The fixed caller supplies its
+/// selected syntax bounds after backing this parser/index coexistence on its
+/// existing Request. These DATA cannot supply funding, currentness or a grant.
+/// The same normalized-key reader is shared with the default Local entry.
+pub fn admit_local_parameter_document(
+  body : String,
+  source_limits : @source.ParseLimits,
+  tree_limits : @decode.Limits,
+) -> Result[@decode.Cursor, LocalProgramInputIssue] {
+  let parsed = match
+    @source.parse_json_bytes(
+      @utf8.encode(body),
+      source_limits,
+      source_path="Client Parameters",
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(SuppliedSyntax(issue))
+  }
+  @decode.admit(parsed, tree_limits).map_err(issue => SuppliedAdmission(issue))
 }

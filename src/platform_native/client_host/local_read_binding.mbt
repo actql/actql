@@ -45,6 +45,13 @@ struct NativeLocalReadPolicyBinding {
     @host.ClientRequestIdentity,
     Bytes,
   )?
+  // One resolved committed Result root in this existing binding. This is only
+  // immutable correspondence, never a cached current Allow or read grant.
+  mut result_policy_original : (
+    @host.ClientRequestIdentity,
+    @result_access.NativeResultReadFacts,
+    String,
+  )?
 }
 
 ///|
@@ -100,6 +107,7 @@ pub fn NativeLocalHostConnection::bind_result_read_policy(
     file_preparation: None,
     upgrade_packet: None,
     run_policy_original: None,
+    result_policy_original: None,
   })
 }
 
@@ -257,6 +265,7 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
         @host.client_local_run_policy_original_body(original),
       ),
     ),
+    result_policy_original: None,
   }
   binding.require_current().map(_ => binding)
 }
@@ -537,6 +546,7 @@ fn NativeLocalReadPolicyBinding::resolve_policy_with_committed_result(
   @publication.CapturedEffectDependencyBody,
   NativeLocalReadBindingIssue,
 ] {
+  self.result_policy_original = None
   if self.capture is Some(capture) {
     return self.resolve_policy_from_snapshot(
       capture,
@@ -578,13 +588,76 @@ fn NativeLocalReadPolicyBinding::resolve_policy_with_committed_result(
         Err(issue) => return Err(Adoption(issue))
       }
   }
-  if !self.selection.data_policy_cids.contains(
-      @publication.captured_effect_dependency_body_cid(body),
-    ) {
-    return Err(PolicyNotSelected)
+  match self.retain_result_policy_original(original, facts, body) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   match self.require_request(original, facts) {
     Ok(_) => Ok(body)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+// Called only after the existing trusted Store/first-packet resolver has
+// matched the committed Result and selected its actual effective Policy root.
+fn NativeLocalReadPolicyBinding::retain_result_policy_original(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  facts : @result_access.NativeResultReadFacts,
+  body : @publication.CapturedEffectDependencyBody,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
+  let cid = @publication.captured_effect_dependency_body_cid(body)
+  match self.selection.policy {
+    ExplicitPolicyCids(cids) =>
+      if !cids.contains(cid) {
+        return Err(PolicyNotSelected)
+      }
+    AcceptedRunPolicy => {
+      guard self.run_policy_original is Some((_, bound, _)) &&
+        @host.client_request_identity_relation(bound, original) ==
+        @host.SameRequest else {
+        return Err(SelectionMismatch)
+      }
+      self.result_policy_original = Some((original, facts, cid))
+    }
+  }
+  Ok(())
+}
+
+///|
+// Projection of an already-resolved root, with no callback or Store read.
+// Literal selections preserve their original array and ceiling preimage.
+fn NativeLocalReadPolicyBinding::selected_policy_cids(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  facts : @result_access.NativeResultReadFacts,
+  actual_policy_cid : String,
+) -> Result[Array[String], NativeLocalReadBindingIssue] {
+  match self.selection.policy {
+    ExplicitPolicyCids(cids) =>
+      if cids.contains(actual_policy_cid) {
+        Ok(cids)
+      } else {
+        Err(PolicyNotSelected)
+      }
+    AcceptedRunPolicy => {
+      guard self.run_policy_original is Some((_, run_request, _)) &&
+        @host.client_request_identity_relation(run_request, original) ==
+        @host.SameRequest &&
+        self.result_policy_original is Some((bound, resolved, cid)) &&
+        @host.client_request_identity_relation(bound, original) ==
+        @host.SameRequest &&
+        cid == actual_policy_cid &&
+        local_read_file_same_request(resolved.request, facts.request) &&
+        resolved.public_index_entry_cid == facts.public_index_entry_cid &&
+        resolved.result_manifest_cid == facts.result_manifest_cid &&
+        resolved.result_artifact_cid == facts.result_artifact_cid &&
+        resolved.result_definition_cid == facts.result_definition_cid &&
+        resolved.material_generation_cid == facts.material_generation_cid else {
+        return Err(PolicyNotSelected)
+      }
+      Ok([cid])
+    }
   }
 }

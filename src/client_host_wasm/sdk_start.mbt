@@ -19,17 +19,12 @@ priv enum StoredSDKOriginalRows {
 }
 
 ///|
-fn sdk_saved_original_rows(
+fn sdk_saved_original_snapshot(
   value : Instance,
   run : Int,
   plan : @local_run.LocalRunPlan,
 ) -> Result[
-  (
-    @host.ClientJournalPhysicalRow,
-    @host.ClientJournalPhysicalRow,
-    StoredSDKOriginalRows,
-    Int,
-  ),
+  (@host.ClientSavedSubmissionSnapshot, StoredSDKOriginalRows, Int),
   Int,
 ] {
   guard value.runs.get(run) is Some(record) &&
@@ -54,7 +49,7 @@ fn sdk_saved_original_rows(
       is Err(_) {
       return Err(-31)
     }
-    return Ok((row, submission, Saved(snapshot), restoration))
+    return Ok((snapshot, Saved(snapshot), restoration))
   }
   guard value.preparations.get(record.preparation)
     is Some({ submitted: Some(preparation), .. }) else {
@@ -88,10 +83,37 @@ fn sdk_saved_original_rows(
         is Err(_) {
         return Err(-31)
       }
-      return Ok((row, submission, Submitted(rows, preparation), handle))
+      return Ok((saved, Submitted(rows, preparation), handle))
     }
   }
   Err(-2)
+}
+
+///|
+// Project rows from the same completed observation without another journal
+// audit. The snapshot remains local to this call, not retained current proof.
+fn sdk_saved_original_rows(
+  value : Instance,
+  run : Int,
+  plan : @local_run.LocalRunPlan,
+) -> Result[
+  (
+    @host.ClientJournalPhysicalRow,
+    @host.ClientJournalPhysicalRow,
+    StoredSDKOriginalRows,
+    Int,
+  ),
+  Int,
+] {
+  let (snapshot, original, handle) = match
+    sdk_saved_original_snapshot(value, run, plan) {
+    Ok(value) => value
+    Err(code) => return Err(code)
+  }
+  guard @host.client_saved_submission_run_row(snapshot) is Some(row) else {
+    return Err(-35)
+  }
+  Ok((row, @host.client_saved_submission_row(snapshot), original, handle))
 }
 
 ///|

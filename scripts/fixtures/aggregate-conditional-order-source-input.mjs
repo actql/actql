@@ -76,7 +76,7 @@ export const aggregateConditionalOrderSuccesses = [
     columns: ['names', 'reverse'].map(name => ({name, contract: {type: 'string', nullable: true}})),
   }),
   success('current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0), id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0), id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY IFNULL(before.payload.score, 0), id) AS previous", {
     expected: [{current: 'a|c|b|b', previous: 'c|b|b|a'}],
     columns: ['current', 'previous'].map(name => ({name, contract: {type: 'string', nullable: true}})),
@@ -117,7 +117,7 @@ export const aggregateConditionalOrderSuccesses = [
     columns: ['names', 'reverse'].map(name => ({name, contract: {type: 'string', nullable: true}})),
   }),
   success('predicate-current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score > 15 NULLS LAST, id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score > 15 NULLS LAST, id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY before.payload.score > 15 NULLS LAST, id) AS previous", {
     expected: [{current: 'a|c|b|b', previous: 'b|b|a|c'}],
     columns: ['current', 'previous'].map(name => ({name, contract: {type: 'string', nullable: true}})),
@@ -161,7 +161,7 @@ export const aggregateConditionalOrderSuccesses = [
   success('membership-null-safe-null', sql.replace('COALESCE(payload.score, 0)', 'payload.score IS DISTINCT FROM NULL'),
     {expected: [{names: 'c|a|b|b'}]}),
   success('membership-current-and-snapshot', 'FROM objects AS before |> SET payload = other '
-    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score IN (25, 30) NULLS LAST, id) AS current, "
+    + "|> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score IN (25, 30) NULLS LAST, id) AS `current`, "
     + "STRING_AGG(name, '|' ORDER BY before.payload.score IN (25, 30) NULLS LAST, id) AS previous", {
     expected: [{current: 'a|c|b|b', previous: 'a|b|b|c'}],
     columns: ['current', 'previous'].map(name => ({name, contract: {type: 'string', nullable: true}})),
@@ -274,6 +274,6 @@ aggregateConditionalOrderRefusals.push(...[
     + "|> AGGREGATE STRING_AGG(DISTINCT IFNULL(name, 'missing'), '|' ORDER BY IFNULL(before.name, 'missing')) AS names"},
   {name: 'distinct-member-mismatch', text: 'SELECT ARRAY_AGG(DISTINCT IFNULL(payload.score, 0) IGNORE NULLS ORDER BY IFNULL(other.score, 0)) AS ids FROM objects'},
   {name: 'distinct-explicit-receiver', text: ', colliding AS (SELECT id, name, payload, other, other.score AS score FROM objects) '
-    + 'SELECT ARRAY_AGG(DISTINCT IFNULL((payload).score, 0) IGNORE NULLS ORDER BY IFNULL(payload.score, 0)) AS ids FROM colliding AS payload'},
+    + 'SELECT ARRAY_AGG(DISTINCT IFNULL((payload.payload).score, 0) IGNORE NULLS ORDER BY IFNULL(payload.score, 0)) AS ids FROM colliding AS payload'},
 ].map(item => ({...base, ...item, name: 'aggregate-conditional-order-refuse-' + item.name,
   text: data + item.text, expectedCode: 'ClientProgramImplementationLimit'})));

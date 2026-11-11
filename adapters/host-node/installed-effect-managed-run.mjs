@@ -2,6 +2,8 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
+import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
+import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openNodeComposedInferProvider, retireNodeInferOriginalRead} from './infer-operation.mjs';
 
@@ -9,7 +11,7 @@ const fail = code => {throw Object.assign(new Error(code), {code});};
 
 export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
   prepared, request, requestInput, selection, facts, inputs, sourceProfile, model, modelSelection,
-  publicationControl, assertCurrent, checked}) {
+  publicationControl, prepareContent, assertCurrent, checked}) {
   assertCurrent();
   const same = run => {
     if (Object.hasOwn(run, 'failure')) throw run.failure;
@@ -44,36 +46,35 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
         .map(name => [name, facts[name]])));
     if (model !== undefined) {
-      if (model === null || typeof model !== 'object' || types.isProxy(model) || !Object.isFrozen(model)) {
-        fail('ForeignInstalledEffectModelSelection');
-      }
-      const modelFields = Object.getOwnPropertyDescriptors(model);
-      if (Reflect.ownKeys(modelFields).length !== 5 ||
-          ['kind', 'compiled', 'definition', 'occurrence', 'graph'].some(name =>
-            !Object.hasOwn(modelFields[name] ?? {}, 'value')) ||
-          modelFields.kind.value !== 'local-mock' || modelFields.compiled.value !== facts.modelCompiled ||
-          modelFields.compiled.value === undefined || modelFields.definition.value !== facts.definition ||
-          modelFields.occurrence.value === undefined || modelFields.graph.value === undefined) {
+      const plural = Array.isArray(model.components);
+      if (plural && (!Object.isFrozen(model) || types.isProxy(model) ||
+          !Object.isFrozen(model.components) || model.components.length < 2 ||
+          !Array.isArray(modelSelection?.components) || !Object.isFrozen(modelSelection.components) ||
+          modelSelection.components.length !== model.components.length ||
+          !Array.isArray(model.graph) || model.graph !== modelSelection.graph ||
+          model.components.some((member, index) => member.graph !== model.graph[index]))) {
         fail('ForeignInstalledEffectModelSelection');
       }
       run.publicationControl = publicationControl;
       run.modelRunDefinition = fields.runDefinition?.value;
-      run.prepareModelDemand = modelSelection === undefined ? runtime.clientProgramInstalledEffectModelDemandPrepare
-        : publicationControl?.prepareCheckedClientEffectModelDemand;
-      if (typeof run.prepareModelDemand !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
-      run.modelDemand = modelSelection === undefined ? checked(Reflect.apply(run.prepareModelDemand, runtime,
-        [prepared, model.compiled, facts.compilation, model.definition, model.occurrence, model.graph]))
-        : Reflect.apply(run.prepareModelDemand, publicationControl,
-          [prepared, model.compiled, facts.compilation, facts.runDefinition, model.occurrence, model.graph]);
-      if (run.modelDemand === null || typeof run.modelDemand !== 'object') fail('InstalledEffectModelDemandUnavailable');
-      if (modelSelection !== undefined) {
-        if (modelSelection.localMock !== true || modelSelection.occurrence !== model.occurrence ||
-            modelSelection.graph !== model.graph) fail('ForeignInstalledEffectModelSelection');
-        // The SAME native component is captured by the Plan configuration now.
-        // Its physical context is bound once, after the original Sources have
-        // been captured; execution must never construct a replacement provider.
-        run.modelComponent = openNodeComposedInferProvider({moon: runtime, selected: modelSelection, deferred: true});
-        run.modelComponents = Object.freeze([run.modelComponent.provider]);
+      const members = plural ? model.components.map((member, index) => ({model: member,
+        modelSelection: modelSelection.components[index], modelScope: undefined})) : [run];
+      if (plural) run.modelMembers = Object.freeze(members);
+      for (const member of members) {
+        prepareEffectModelMember(member, run, facts, publicationControl, prepareContent, checked);
+      }
+      if (plural) {
+        const compose = runtime.clientProgramInstalledEffectModelsDemandPrepare;
+        if (typeof compose !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
+        run.modelDemand = checked(Reflect.apply(compose, runtime, [members.map(member => member.modelDemand)]));
+        run.modelComponents = Object.freeze(members.map(member => member.modelComponent.provider));
+      }
+    }
+    if (prepareContent !== undefined) {
+      if (typeof prepareContent !== 'function') fail('UnsupportedInstalledContentEffectClosure');
+      run.contentOriginal = prepareContent(value => {run.contentCleanup = value;});
+      if (run.contentOriginal?.preparation === undefined || run.contentCleanup === undefined) {
+        fail('InstalledContentRunPreparationUnavailable');
       }
     }
     const select = Object.getOwnPropertyDescriptor(selection ?? {}, 'prepareManagedPlan')?.value;
@@ -86,8 +87,9 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
         requestIdentity: request, sourceProfile, queryContract: inputs.queryContract,
         evidenceContract: inputs.evidenceContract});
     }
-    const planInputs = model === undefined && run.sourceInputs === undefined ? inputs
-      : Object.freeze({...inputs, ...(run.sourceInputs === undefined ? {} : {sourceInputs: run.sourceInputs}),
+    const planInputs = model === undefined && run.sourceInputs === undefined && run.contentOriginal === undefined ? inputs
+      : Object.freeze({...inputs,
+        ...(run.contentOriginal === undefined ? {} : {contentPreparation: run.contentOriginal.preparation}), ...(run.sourceInputs === undefined ? {} : {sourceInputs: run.sourceInputs}),
         ...(model === undefined ? {} : {modelDemand: run.modelDemand,
           ...(run.modelComponents === undefined ? {} : {modelComponents: run.modelComponents})})});
     run.operationPlan = Reflect.apply(select, selection, [facts, planInputs]);
@@ -103,10 +105,12 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // Capture cleanup before any constructor. A partial begin remains attached
     // to this same record and can never acquire another admission on retry.
     run.retire = runtime.clientProgramInstalledManagedRunRetire;
+    run.quiesce = runtime.clientProgramInstalledManagedRunQuiesce;
     run.readPlan = runtime.clientProgramInstalledEffectManagedOperationPlan;
-    run.beginOperations = runtime.clientProgramInstalledEffectOperationControlsBegin;
+    run.beginOperations = runtime.clientProgramInstalledEffectOperationControlsRetain;
     const beginOperations = run.beginOperations;
-    if (![run.retire, run.readPlan, run.beginOperations].every(value => typeof value === 'function')) {
+    if (![run.retire, run.readPlan, run.beginOperations, ...(model === undefined ? [] : [run.quiesce])]
+        .every(value => typeof value === 'function')) {
       fail('NodeManagedRunRuntimeUnavailable');
     }
     if (model === undefined) {
@@ -137,18 +141,32 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       }
       const adopted = Reflect.apply(adopt, manager, [prepared, requestInput, request, operationPlan, run]);
       if (adopted.original !== run.original || adopted.operationPlan !== operationPlan ||
-          run.original === undefined || run.modelScope === undefined || adopted.value === undefined) {
+          run.original === undefined ||
+          (run.modelMembers === undefined ? run.modelScope === undefined :
+            !Array.isArray(run.modelScopes) || run.modelScopes.length !== run.modelMembers.length ||
+              run.modelMembers.some((member, index) => member.modelScope !== run.modelScopes[index])) || adopted.value === undefined) {
         fail('ForeignInstalledEffectManagedRun');
       }
       run.value = adopted.value;
       run.preparationFunded = true;
+      for (const member of run.modelMembers ?? [run]) {
+        const selected = member.modelSelection;
+        if (selected === undefined || selected.localMock === true) continue;
+        if (typeof selected.bindTrustedRuntimeScope !== 'function' ||
+            typeof selected.assertTrustedRuntimeScope !== 'function' ||
+            typeof selected.finishTrustedRuntimeScope !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
+        // The WHOLE Scope inventory is retained before a fallible association.
+        member.modelRuntimeView = selected.bindTrustedRuntimeScope(
+          member.modelScope, member.model.compiled, run.modelRunDefinition, member.model.graph);
+      }
       assertCurrent();
     }
     // The original Request/Model adoption above supplies the SAME Ledger.
     // Quote DATA alone cannot back the consumer's later operation controls.
     const parent = run.value, definition = run.definitionOriginal, readPlan = run.readPlan;
     const demand = run.modelDemand, scope = run.modelScope, admission = run.admission, original = run.original;
-    const component = run.modelComponent, sourceInputs = run.sourceInputs, modelControl = run.publicationControl,
+    const members = run.modelMembers, scopes = run.modelScopes;
+    const component = run.modelMembers === undefined ? run.modelComponent : run.modelComponents, sourceInputs = run.sourceInputs, modelControl = run.publicationControl,
       modelDefinition = run.modelRunDefinition;
     const actualPlan = checked(Reflect.apply(beginOperations, runtime, [parent, prepared, request, operationPlan]));
     if (Object.hasOwn(run, 'failure')) throw run.failure;
@@ -161,11 +179,21 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // cached current flag escapes; cached/later reads still call their getter.
     assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, operationPlan, readPlan,
       definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
-    modelSelection, component, sourceInputs, modelControl, modelDefinition);
+    modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes);
+    // Capture the control methods only after that original post-current fence;
+    // a replaced Runtime must retain its original Foreign refusal precedence.
+    run.selecting = true;
+    try {
+      run.controlConstruction = prepareInstalledEffectControlConstruction(run);
+      run.retireControlConstruction = run.controlConstruction.retire;
+    } finally {run.selecting = false;}
+    assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, operationPlan, readPlan,
+      definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
+    modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes);
     assertCurrent();
     assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, operationPlan, readPlan,
       definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
-    modelSelection, component, sourceInputs, modelControl, modelDefinition);
+    modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes);
     return parent;
   } catch (cause) {
     if (!Object.hasOwn(run, 'failure')) run.failure = cause;
@@ -173,23 +201,96 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   }
 }
 
+function prepareEffectModelMember(member, run, facts, publicationControl, prepareContent, checked) {
+  const {model, modelSelection} = member, runtime = run.runtime, prepared = run.prepared;
+  if (model === null || typeof model !== 'object' || types.isProxy(model) || !Object.isFrozen(model)) {
+    fail('ForeignInstalledEffectModelSelection');
+  }
+  const fields = Object.getOwnPropertyDescriptors(model);
+  if (Reflect.ownKeys(fields).length !== 5 ||
+      ['kind', 'compiled', 'definition', 'occurrence', 'graph'].some(name => !Object.hasOwn(fields[name] ?? {}, 'value')) ||
+      model.kind !== (modelSelection !== undefined && modelSelection.localMock !== true ? 'installed-model' : 'local-mock') ||
+      model.compiled !== facts.modelCompiled || model.compiled === undefined || model.definition !== facts.definition ||
+      model.occurrence === undefined || model.graph === undefined) fail('ForeignInstalledEffectModelSelection');
+  const physical = modelSelection !== undefined && modelSelection.localMock !== true;
+  if (physical && (modelSelection.originalReadInstallation === undefined || modelSelection.selectedBounds === undefined)) {
+    fail('InstalledEffectModelRuntimeUnavailable');
+  }
+  member.prepareModelDemand = modelSelection === undefined ? runtime.clientProgramInstalledEffectModelDemandPrepare
+    : physical ? publicationControl?.prepareCheckedClientNodeEffectModelDemand : publicationControl?.prepareCheckedClientEffectModelDemand;
+  if (typeof member.prepareModelDemand !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
+  member.modelDemand = modelSelection === undefined ? checked(Reflect.apply(member.prepareModelDemand, runtime,
+    [prepared, model.compiled, facts.compilation, model.definition, model.occurrence, model.graph]))
+    : Reflect.apply(member.prepareModelDemand, publicationControl,
+      [prepared, model.compiled, facts.compilation, facts.runDefinition, model.occurrence, model.graph,
+        ...(physical ? [modelSelection.selectedBounds, modelSelection.originalReadInstallation] : [])]);
+  if (member.modelDemand === null || typeof member.modelDemand !== 'object') fail('InstalledEffectModelDemandUnavailable');
+  if (modelSelection !== undefined) {
+    if (modelSelection.occurrence !== model.occurrence || modelSelection.graph !== model.graph) fail('ForeignInstalledEffectModelSelection');
+    member.modelComponent = openNodeComposedInferProvider({moon: runtime, selected: modelSelection,
+      deferred: true, deferredGeneratedInput: prepareContent !== undefined});
+    if (member === run) run.modelComponents = Object.freeze([member.modelComponent.provider]);
+  }
+}
+
 // Only the existing complete dispatch/initialization retirement caller supplies
 // this physical-cleanup observation. A terminal Run or settled Promise cannot.
 export function finishInstalledEffectModelScope(run, originalRunCleanupComplete, checked) {
-  if (run.modelScope === undefined || run.modelScopeFinished === true) return;
+  if ((run.modelMembers === undefined ? run.modelScope === undefined : run.modelScopes === undefined) ||
+      run.modelScopeFinished === true) return;
   if (run.modelScopeFinishing) fail('InstalledEffectModelScopeCleanupPending');
+  const sameMembers = run.modelMembers, sameScopes = run.modelScopes;
   const sameScope = run.modelScope, sameParent = run.value, sameModel = run.model;
   const sameControl = run.publicationControl, sameDefinition = run.modelRunDefinition, sameFinish = run.finishModelScope;
-  run.modelScopeFinishing = true;
-  try {
-    const finished = run.publicationControl === undefined ? checked(Reflect.apply(run.finishModelScope, run.runtime,
-      [sameScope, sameModel.compiled, sameModel.definition, sameModel.graph, originalRunCleanupComplete]))
-      : Reflect.apply(run.finishModelScope, run.publicationControl,
-        [sameModel.compiled, run.modelRunDefinition, sameModel.graph, sameScope, originalRunCleanupComplete]);
-    if (run.modelScope !== sameScope || run.value !== sameParent || run.model !== sameModel ||
-        run.publicationControl !== sameControl || run.modelRunDefinition !== sameDefinition || run.finishModelScope !== sameFinish) {
+  const sameRuntime = run.runtime, sameQuiesce = run.quiesce, sameRequest = run.request,
+    sameOriginal = run.original, sameConstruction = run.controlConstruction, sameRetire = run.retireControlConstruction;
+  const original = () => {
+    if (run.modelMembers !== sameMembers || run.modelScopes !== sameScopes || run.modelScope !== sameScope || run.value !== sameParent || run.model !== sameModel ||
+        run.publicationControl !== sameControl || run.modelRunDefinition !== sameDefinition || run.finishModelScope !== sameFinish ||
+        run.runtime !== sameRuntime || run.quiesce !== sameQuiesce || run.request !== sameRequest ||
+        run.original !== sameOriginal || run.controlConstruction !== sameConstruction || run.retireControlConstruction !== sameRetire) {
       fail('ForeignInstalledEffectModelScope');
     }
+  };
+  run.modelScopeFinishing = true;
+  try {
+    if (originalRunCleanupComplete === true && sameParent !== undefined) {
+      // The actual constructor must stop before its SAME Core control backing
+      // can settle. Scope census quiescence cannot acknowledge either child.
+      if (sameConstruction !== undefined) {
+        if (typeof sameRetire !== 'function') fail('InstalledEffectControlConstructionCleanupPending');
+        const stopped = Reflect.apply(sameRetire, sameConstruction, []);
+        original();
+        if (stopped !== true) fail('InstalledEffectControlConstructionCleanupPending');
+      }
+      if (typeof sameQuiesce !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
+      checked(Reflect.apply(sameQuiesce, sameRuntime, [sameParent]));
+      original();
+    }
+    const finishMember = member => {
+      if (sameMembers !== undefined && member.modelScopeFinished === true) return true;
+      const scope = member.modelScope, model = member.model, selected = member.modelSelection;
+      const finished = member.modelRuntimeView !== undefined
+        ? originalRunCleanupComplete === true && selected.finishTrustedRuntimeScope(
+          scope, member.modelRuntimeView, model.compiled, sameDefinition, model.graph)
+        : sameControl === undefined ? checked(Reflect.apply(sameFinish, sameRuntime,
+          [scope, model.compiled, model.definition, model.graph, originalRunCleanupComplete]))
+          : Reflect.apply(sameFinish, sameControl,
+            [model.compiled, sameDefinition, model.graph, scope, originalRunCleanupComplete]);
+      original();
+      if (sameMembers !== undefined && (member.modelScope !== sameScopes?.[sameMembers.indexOf(member)] ||
+          member.model !== sameModel.components[sameMembers.indexOf(member)])) fail('ForeignInstalledEffectModelScope');
+      if (sameMembers !== undefined && finished === true) member.modelScopeFinished = true;
+      return finished;
+    };
+    let finished;
+    if (sameMembers !== undefined) {
+      // Earlier members can remain pending until the last SAME group member
+      // finishes; observe all before asking the existing owner for final ACK.
+      for (const member of sameMembers) finishMember(member);
+      finished = true;
+      for (const member of sameMembers) if (finishMember(member) !== true) finished = false;
+    } else finished = finishMember(run);
     if (finished !== true) fail('InstalledEffectModelScopeCleanupPending');
     run.modelScopeFinished = true;
   } finally {run.modelScopeFinishing = false;}
@@ -199,18 +300,38 @@ export function finishInstalledEffectModelScope(run, originalRunCleanupComplete,
 // inputs. Its original read remains on this Run through failed construction;
 // no late Scope, admission, bounds selection or independent Model Root exists.
 export function installedEffectModelPreparation(run, publicationCapacity, assertCurrent) {
-  const model = run.model, control = run.publicationControl, definition = run.modelRunDefinition,
-    scope = run.modelScope, parent = run.value, demand = run.modelDemand;
+  if (run.modelMembers === undefined) return installedEffectModelMemberPreparation(run, run, publicationCapacity, assertCurrent);
+  const members = run.modelMembers, scopes = run.modelScopes;
   const current = () => {
     assertCurrent();
-    if (run.closed || run.model !== model || run.publicationControl !== control ||
-        run.modelRunDefinition !== definition || run.modelScope !== scope || run.value !== parent ||
-        run.modelDemand !== demand || run.modelScopeFinished || scope === undefined || control === undefined) {
+    if (run.modelMembers !== members || run.modelScopes !== scopes || run.closed || run.modelScopeFinished ||
+        !Array.isArray(scopes) || scopes.length !== members.length ||
+        members.some((member, index) => member.modelScope !== scopes[index] || member.model !== run.model.components[index] ||
+          member.modelSelection !== run.modelSelection.components[index])) fail('ForeignInstalledEffectModelScope');
+  };
+  current();
+  if (run.modelPreparation !== undefined) return run.modelPreparation;
+  const components = Object.freeze(members.map(member => Object.freeze({selection: member.modelSelection,
+    component: member.modelComponent, ...installedEffectModelMemberPreparation(run, member, publicationCapacity, current)})));
+  run.modelPreparation = Object.freeze({components,
+    retain() {current(); for (const component of components) component.retain();},
+    retire() {current(); for (const component of components) if (component.retire() !== true) return false; return true;}});
+  return run.modelPreparation;
+}
+
+function installedEffectModelMemberPreparation(run, member, publicationCapacity, assertCurrent) {
+  const model = member.model, control = run.publicationControl, definition = run.modelRunDefinition,
+    scope = member.modelScope, parent = run.value, demand = member.modelDemand;
+  const current = () => {
+    assertCurrent();
+    if (run.closed || member.model !== model || run.publicationControl !== control ||
+        run.modelRunDefinition !== definition || member.modelScope !== scope || run.value !== parent ||
+        member.modelDemand !== demand || run.modelScopeFinished || scope === undefined || control === undefined) {
       fail('ForeignInstalledEffectModelScope');
     }
   };
   current();
-  if (run.modelPreparation !== undefined) return run.modelPreparation;
+  if (member.modelPreparation !== undefined) return member.modelPreparation;
   const readWindow = run.runtime.clientProgramInstalledEffectModelReadWindow;
   if (typeof readWindow !== 'function' || typeof publicationCapacity !== 'function') {
     fail('InstalledEffectModelRuntimeUnavailable');
@@ -219,37 +340,62 @@ export function installedEffectModelPreparation(run, publicationCapacity, assert
   if (!Array.isArray(window) || window.length !== 2 ||
       window.some(value => typeof value !== 'bigint' || value <= 0n)) fail('InvalidHostRuntimeResult');
   const retained = window[0], execution = window[1];
+  const physical = member.modelSelection?.originalReadInstallation;
+  const startup = physical === undefined ? undefined : inferOriginalReadStartupCapacity(physical);
   const fields = {control, compiled: model.compiled, runDefinition: definition, scope, publicationCapacity,
     readRetainedBytes: retained, readExecutionBytes: execution,
-    modelRetainedBytes: retained, modelExecutionBytes: execution};
+    modelRetainedBytes: startup?.modelRetainedBytes ?? retained,
+    modelExecutionBytes: startup?.modelExecutionBytes ?? execution,
+    ...(physical === undefined ? {} : {nodeInstallation: physical.nodeInstallation,
+      metadataInstallation: physical,
+      assertRuntimeCurrent() {
+        current();
+        member.modelSelection.assertTrustedRuntimeScope(scope, member.modelRuntimeView,
+          model.compiled, definition, model.graph);
+      }}),
+  };
+  const prepareRead = () => {
+    current();
+    if (Object.hasOwn(member, 'modelReadFailure')) throw member.modelReadFailure;
+    if (member.modelPreparationRetired || !member.modelPreparationTaken || member.modelReadAttempted) fail('ForeignInstalledEffectModelScope');
+    member.modelReadAttempted = true;
+    try {
+      member.modelRead = physical === undefined
+        ? control.prepareCheckedClientInferOriginalRead(model.compiled, definition, model.graph, scope, fields)
+        : control.prepareCheckedClientInferNodeReadLayout(
+          model.compiled, definition, model.graph, scope, physical.nodeInstallation);
+      return Object.freeze({...fields, read: member.modelRead});
+    } catch (cause) {member.modelReadFailure = cause; throw cause;}
+  };
   const view = Object.freeze({...fields,
     retain() {
       current();
-      if (run.modelPreparationRetired || run.modelPreparationTaken || run.modelReadAttempted) fail('ForeignInstalledEffectModelScope');
-      run.modelPreparationTaken = true;
+      if (member.modelPreparationRetired || member.modelPreparationTaken || member.modelReadAttempted) fail('ForeignInstalledEffectModelScope');
+      member.modelPreparationTaken = true;
     },
-    prepareRead() {
+    prepareRead,
+    restoreRead(input) {
       current();
-      if (Object.hasOwn(run, 'modelReadFailure')) throw run.modelReadFailure;
-      if (run.modelPreparationRetired || !run.modelPreparationTaken || run.modelReadAttempted) fail('ForeignInstalledEffectModelScope');
-      run.modelReadAttempted = true;
-      try {
-        run.modelRead = control.prepareCheckedClientInferOriginalRead(
-          model.compiled, definition, model.graph, scope, fields);
-        return Object.freeze({...fields, read: run.modelRead});
-      } catch (cause) {run.modelReadFailure = cause; throw cause;}
+      // This selects the saved-input constructor, not fresh input permission.
+      // Core admits the nominal saved scope against this same Run/occurrence
+      // before entering the one original consumer or allocating saved input.
+      if (input?.savedScope === undefined ||
+          typeof control.startCheckedClientOriginalRestoredComposedInferExecution !== 'function') {
+        fail('InstalledEffectModelRuntimeUnavailable');
+      }
+      return prepareRead();
     },
     retire() {
       current();
-      if (run.modelPreparationRetired) return true;
+      if (member.modelPreparationRetired) return true;
       retireNodeInferOriginalRead({control, compiled: model.compiled, runDefinition: definition,
-        graph: model.graph, scope, read: run.modelRead});
-      run.modelRead = undefined;
-      run.modelPreparationRetired = true;
+        graph: model.graph, scope, read: member.modelRead});
+      member.modelRead = undefined;
+      member.modelPreparationRetired = true;
       return true;
     },
   });
-  run.modelPreparation = view;
+  member.modelPreparation = view;
   return view;
 }
 
@@ -275,20 +421,21 @@ function readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, 
   const definition = run.definitionOriginal, manager = run.manager, selection = run.selection;
   const sourceProfile = run.sourceProfile, model = run.model, demand = run.modelDemand, scope = run.modelScope;
   const admission = run.admission, original = run.original, beginOperations = run.beginOperations;
-  const modelSelection = run.modelSelection, component = run.modelComponent, sourceInputs = run.sourceInputs,
+  const members = run.modelMembers, scopes = run.modelScopes;
+  const modelSelection = run.modelSelection, component = run.modelMembers === undefined ? run.modelComponent : run.modelComponents, sourceInputs = run.sourceInputs,
     modelControl = run.publicationControl, modelDefinition = run.modelRunDefinition;
   assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
     definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
-    modelSelection, component, sourceInputs, modelControl, modelDefinition);
+    modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes);
   const actualPlan = checked(Reflect.apply(readPlan, runtime, [parent, prepared, request]));
   assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
     definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
-    modelSelection, component, sourceInputs, modelControl, modelDefinition);
+    modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes);
   if (actualPlan !== plan) fail('ForeignInstalledEffectManagedRun');
   assertCurrent();
   assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
     definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
-    modelSelection, component, sourceInputs, modelControl, modelDefinition);
+    modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes);
   return parent;
 }
 
@@ -296,7 +443,7 @@ function readCurrentPlanParent(run, runs, liveRuns, runtime, prepared, request, 
 // Failure presence keeps even an original thrown undefined failed on retry.
 function assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request, parent, plan, readPlan,
   definition, manager, selection, sourceProfile, model, demand, scope, admission, original, beginOperations,
-  modelSelection, component, sourceInputs, modelControl, modelDefinition) {
+  modelSelection, component, sourceInputs, modelControl, modelDefinition, members, scopes) {
   if (Object.hasOwn(run, 'failure')) throw run.failure;
   if (runs.get(prepared) !== run || !liveRuns.has(run) || run.closed ||
       run.preparationKind !== 'effect-plan' || run.runtime !== runtime ||
@@ -305,7 +452,10 @@ function assertCurrentPlanRecord(run, runs, liveRuns, runtime, prepared, request
       run.manager !== manager || run.selection !== selection || run.sourceProfile !== sourceProfile ||
       run.model !== model || run.modelDemand !== demand || run.modelScope !== scope ||
       run.admission !== admission || run.original !== original || run.beginOperations !== beginOperations ||
-      run.operationsBegun !== true || run.modelSelection !== modelSelection || run.modelComponent !== component ||
+      run.operationsBegun !== true || run.modelSelection !== modelSelection || (members === undefined ? run.modelComponent : run.modelComponents) !== component ||
       run.sourceInputs !== sourceInputs || run.publicationControl !== modelControl ||
-      run.modelRunDefinition !== modelDefinition) fail('ForeignInstalledEffectManagedRun');
+      run.modelRunDefinition !== modelDefinition || run.modelMembers !== members || run.modelScopes !== scopes ||
+      members !== undefined && (!Object.isFrozen(members) || !Object.isFrozen(scopes) || members.length !== scopes.length ||
+        members.some((member, index) => member.modelScope !== scopes[index] || member.model !== model.components[index] ||
+          member.modelSelection !== modelSelection.components[index] || member.modelComponent?.provider !== component[index]))) fail('ForeignInstalledEffectManagedRun');
 }

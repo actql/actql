@@ -9,3 +9,27 @@ import {
   "actql/actql/platform_native/client_host" @runtime,
   "actql/actql/platform_native/signature",
 }
+
+// Ordinary Native linking needs the same real registration implementations as
+// the private provider. Its runtime_initialization_shim remains producer-only:
+// that adapter calls the producer's explicitly renamed original main.
+
+options(
+  "native-stub": [
+    "control_shim.c",
+    "backing_shim.c",
+    "domain_shim.c",
+    "domain_read_shim.c",
+    "worker_selection_shim.c",
+    "live_channel_shim.c",
+    "process_shim.c",
+    "sqlite_shim.c",
+    "sqlite_database_shim.c",
+    "original_read_shim.c",
+    "packaged_runtime_shim.c",
+    "packaged_product_shim.c",
+    "local_host_resources_shim.c",
+    "local_adoption_shim.c",
+    "read_crypto_shim.c",
+  ],
+)

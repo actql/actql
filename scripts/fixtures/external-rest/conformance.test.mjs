@@ -1,10 +1,51 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, readFile, rm} from 'node:fs/promises';
+import childProcess from 'node:child_process';
+import fs, {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {captureStandardRestRead} from './conformance.mjs';
+import {captureStandardRestRead, observeOwnScopedStateFds, scopedStateFdCommand} from './conformance.mjs';
+import {cancelStandardRestAtPageBarrier} from './cancel-conformance.mjs';
+
+test('scoped FD observations select the existing Linux and Darwin lsof locations', () => {
+  assert.equal(scopedStateFdCommand('linux'), '/usr/bin/lsof');
+  assert.equal(scopedStateFdCommand('darwin'), '/usr/sbin/lsof');
+});
+
+test('scoped FD command failure or nonempty output cannot become an empty observation', t => {
+  // Explicit command results cover only this observer's refusal logic, not a
+  // physical descriptor observation or product cleanup acknowledgement.
+  let result;
+  const calls = [];
+  t.mock.method(childProcess, 'spawnSync', (command, args, options) => {
+    calls.push({command, args, options}); return result;
+  });
+  syncBuiltinESMExports();
+  try {
+    for (const [value, empty] of [
+      [{status: 1, stdout: '', stderr: ''}, true],
+      [{status: null, stdout: '', stderr: '',
+        error: Object.assign(new Error('authored unavailable command'), {code: 'ENOENT'})}, false],
+      [{status: 2, stdout: '', stderr: 'authored failure'}, false],
+      [{status: 0, stdout: 'p1\nf3\nn/authored-root/file\n', stderr: ''}, false],
+      [{status: 1, stdout: '', stderr: 'authored warning'}, false],
+    ]) {
+      result = value;
+      const observed = observeOwnScopedStateFds(['/authored-root']);
+      assert.equal(observed.scopedStateFd0, empty);
+      assert.equal(observed.observations[0].command, scopedStateFdCommand(process.platform));
+    }
+    assert.equal(calls.length, 5);
+    for (const call of calls) {
+      assert.equal(call.command, scopedStateFdCommand(process.platform));
+      assert.deepEqual(call.args, ['-nP', '-a', '-p', String(process.pid), '+D', '/authored-root', '-F', 'pfn']);
+    }
+  } finally {
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
 
 async function fixture(t) {
   const root = await mkdtemp(join(realpathSync(tmpdir()), 'actql-rest-caller-mechanism-'));
@@ -121,4 +162,98 @@ test('an original failed wait cannot be replaced by later successful status or r
   const outcome = await f.read('outcome.json');
   assert.equal(outcome.passed, false);assert.equal(outcome.publicCloseAcknowledged, true);
   assert.equal(outcome.scopedStateFd0, true);
+});
+
+
+// Explicit synthetic public ports exercise only the existing fixture caller.
+// They supply no product Run, authority, provider or physical-stop evidence.
+function cancellationPorts(events) {
+  const reference = {run: 'synthetic-marker-only'};
+  const execution = {ref: reference,
+    status: async () => ({status: 'running', result_available: false,
+      control: {physical_stop: 'unknown', revision: 2}}),
+    cancel: async options => {
+      events.push('cancel');
+      return {kind: 'accepted', cancellation: {kind: 'accepted', ref: reference,
+        cancelRef: {...reference, cancelId: options.cancelId, expectedRevision: options.expectedRevision}}};
+    },
+    wait: async () => {events.push('wait');return {status: 'cancelled', result_available: false,
+      control: {cancellation_requested: true, physical_stop: 'confirmed'}};},
+  };
+  const pending = Promise.resolve(execution);
+  return {client: {startSource() {events.push('start');return pending;},
+    close: async () => {events.push('close');}},
+  publicSdk: {getSubmissionInput(value) {assert.equal(value, pending);return {original: 'synthetic'};},
+    explainCancellation: answer => ({kind: answer.kind})}};
+}
+
+test('REST cancel marker stays absent until the original write has complete bytes', async t => {
+  const f = await fixture(t), events = [];
+  await mkdir(f.outputRoot);
+  const pageEnteredPath = join(f.root, 'page-entered.json');
+  await writeFile(pageEnteredPath, JSON.stringify({page: 2, replyHeld: true}));
+  const marker = join(f.root, 'cancel-returned.json'), partial = Promise.withResolvers();
+  const release = Promise.withResolvers(), originalWrite = fs.writeFile, originalOpen = fs.open;
+  t.mock.method(fs, 'writeFile', async (path, data, options) => {
+    if (path !== marker && path !== marker + '.pending') return originalWrite(path, data, options);
+    const handle = await originalOpen(path, options.flag, options.mode);
+    try {
+      const bytes = Buffer.from(data);
+      await handle.writeFile(bytes.subarray(0, 1));
+      partial.resolve();
+      await release.promise;
+      await handle.writeFile(bytes.subarray(1));
+    } finally {await handle.close();}
+  });
+  syncBuiltinESMExports();
+  const ports = cancellationPorts(events);
+  const flight = cancelStandardRestAtPageBarrier(ports.client, {publicSdk: ports.publicSdk,
+    program: {}, outputRoot: f.outputRoot, stateRoots: [f.state],
+    pageEnteredPath, cancellationReturnedPath: marker});
+  const observed = flight.then(value => ({value}), error => ({error}));
+  try {
+    const entered = await Promise.race([partial.promise.then(() => true), observed]);
+    assert.equal(entered, true, 'Existing caller did not reach original marker write');
+    await assert.rejects(readFile(marker, 'utf8'), {code: 'ENOENT'});
+    release.resolve();
+    const terminal = await observed;
+    assert.equal(terminal.error, undefined);
+    const value = JSON.parse(await readFile(marker, 'utf8'));
+    assert.equal(value.returned, true);assert.equal(value.answer.kind, 'accepted');
+    await assert.rejects(readFile(marker + '.pending'), {code: 'ENOENT'});
+    assert.deepEqual(events, ['start', 'cancel', 'wait', 'close']);
+  } finally {
+    release.resolve();await observed;
+    t.mock.restoreAll();syncBuiltinESMExports();
+  }
+});
+
+test('REST cancel marker refuses replacement and keeps the original complete marker', async t => {
+  const f = await fixture(t), marker = join(f.root, 'cancel-returned.json');
+  const pageEnteredPath = join(f.root, 'page-entered.json');
+  await writeFile(pageEnteredPath, JSON.stringify({page: 2, replyHeld: true}));
+  for (const index of [0, 1]) {
+    const events = [], ports = cancellationPorts(events), outputRoot = join(f.root, 'attempt-' + index);
+    await mkdir(outputRoot);
+    const flight = cancelStandardRestAtPageBarrier(ports.client, {publicSdk: ports.publicSdk,
+      program: {}, outputRoot, stateRoots: [f.state], pageEnteredPath, cancellationReturnedPath: marker});
+    if (index === 0) await flight;
+    else await assert.rejects(flight, {code: 'EEXIST'});
+    assert.equal(events.filter(value => value === 'cancel').length, 1);
+    assert.equal(events.filter(value => value === 'close').length, 1);
+    if (index === 0) f.originalMarker = await readFile(marker);
+    else assert.deepEqual(await readFile(marker), f.originalMarker);
+  }
+});
+
+test('REST cancel keeps malformed published page markers as failure without parsing retries', async t => {
+  const f = await fixture(t), events = [], ports = cancellationPorts(events);
+  await mkdir(f.outputRoot);
+  const pageEnteredPath = join(f.root, 'page-entered.json');
+  await writeFile(pageEnteredPath, '{');
+  await assert.rejects(cancelStandardRestAtPageBarrier(ports.client, {publicSdk: ports.publicSdk,
+    program: {}, outputRoot: f.outputRoot, stateRoots: [f.state], pageEnteredPath,
+    cancellationReturnedPath: join(f.root, 'must-not-exist.json')}), SyntaxError);
+  assert.deepEqual(events, ['start', 'close']);
+  await assert.rejects(readFile(join(f.root, 'must-not-exist.json')), {code: 'ENOENT'});
 });

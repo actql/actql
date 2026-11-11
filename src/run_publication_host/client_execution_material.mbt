@@ -212,10 +212,10 @@ fn issue_prepared_client_execution_material_with_template(
     Ok(wire) => wire
     Err(issue) => return Err(Program(issue))
   }
-  guard parse_plan_identity_value(
-      program_wire, max_wire_bytes, max_nodes, max_depth,
-    )
-    is Some(program) else {
+  let mut program = parse_plan_identity_value(
+    program_wire, max_wire_bytes, max_nodes, max_depth,
+  )
+  if program is None {
     return Err(Encoding)
   }
   let names : Array[String] = []
@@ -258,7 +258,7 @@ fn issue_prepared_client_execution_material_with_template(
       writer,
       value,
       manifests,
-      program,
+      program.unwrap(),
       @publication.run_evidence_value_identity(bindings),
       @publication.run_evidence_value_identity(template),
       names,
@@ -268,6 +268,10 @@ fn issue_prepared_client_execution_material_with_template(
       @canonical.emit_value,
       (value, out) => @encode.string_value(out, value),
     )
+    // The synchronous writer has finished borrowing the local parsed Program.
+    // Cut that original alias before the new material parser constructs its
+    // independent retained tree; neither wire nor Prepared is reconstructed.
+    program = None
     // The body writer has finished using this temporary parsed selection.
     selection_value = None
     let raw = @encode.finish(writer)
@@ -391,6 +395,7 @@ fn[P, C] emit_client_execution_material_body(
   effect_target_selections : @canonical.CanonicalValue?,
   emit_program : (P, @encode.Writer) -> Unit raise @encode.EncodeFailure,
   emit_cid : (C, @encode.Writer) -> Unit raise @encode.EncodeFailure,
+  measured_effect_targets? : @encode.EncodingConstructionGeometry? = None,
 ) -> Unit raise @encode.EncodeFailure {
   let identity = prepared_client_identity(value)
   @encode.begin_object(writer)
@@ -407,9 +412,16 @@ fn[P, C] emit_client_execution_material_body(
     @encode.string_value(writer, cid)
   }
   @encode.end_object(writer)
-  if effect_target_selections is Some(body) {
-    @encode.key(writer, "effect_target_selections")
-    @canonical.emit_value(body, writer)
+  match measured_effect_targets {
+    Some(shape) => {
+      @encode.key(writer, "effect_target_selections")
+      @encode.emit_construction_measurement(writer, shape)
+    }
+    None =>
+      if effect_target_selections is Some(body) {
+        @encode.key(writer, "effect_target_selections")
+        @canonical.emit_value(body, writer)
+      }
   }
   @encode.key(writer, "grammar_manifest_cid")
   @encode.string_value(writer, manifests.grammar_manifest_cid)

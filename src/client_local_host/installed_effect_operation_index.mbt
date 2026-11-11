@@ -35,10 +35,32 @@ impl Hash for ClientEffectOperationCoordinate with fn hash_combine(self, hasher)
 }
 
 ///|
+// A synchronous quantity/lifetime selection on the SAME control reservation.
+// Only the closed Ledger family has separately funded nested codecs. Fixed
+// constructors cannot borrow that seam, including Ledger opening itself.
+priv enum ClientEffectControlConstructorFrame {
+  Fixed(Int64, ClientInstalledEffectOperationBorrow?)
+  Ledger(Int64)
+}
+
+///|
 // The existing Run control slot retains its SAME original capacity token and
 // the coordinate-to-stable-slot index. This is not a cleanup or Resource owner.
 // Spent coordinates outlive body retirement without retaining the heavy view.
 priv struct ClientEffectOperationControls {
   reservation : @resources.CapacityReservation
   coordinates : Map[ClientEffectOperationCoordinate, Int]
+  construction_deferred : Bool
+  mut construction_active : Bool
+  // Some selects one original synchronous constructor's scratch. A request
+  // projection also retains its SAME completed child, not a new permission.
+  // Every output stays charged; None keeps the complete generic frame.
+  mut constructor_frame : ClientEffectControlConstructorFrame?
+  mut ledger_codec_active : Bool
+  mut ledger_codec_workspace : Int64
+  mut ledger_codec_retained : Int64
+  // Runtime inventory belongs to this Run, never the reusable immutable Plan.
+  mut captured_rows : Int?
+  // One same-Run Preview input; its existing producer retains wire storage.
+  mut host_input : (String, @execution.ExecutionCapacity)?
 }

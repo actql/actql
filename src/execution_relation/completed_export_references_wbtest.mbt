@@ -136,6 +136,143 @@ fn reference_export_finish(
 }
 
 ///|
+test "completed Content identity projection keeps original occurrences and custody" {
+  let (receipt, originals) = content_borrow_export_fixture(
+    true,
+    Ref(true),
+    Ref(true),
+  )
+  let source = receipt.rows.source.unwrap()
+  let references = receipt.rows.references.unwrap()
+  guard originals[0] is @admitted.Reference(first) &&
+    originals[1] is @admitted.Reference(second) else {
+    fail("original Content identities")
+  }
+  // Equal semantic identities retain distinct original authority. This
+  // projection preserves both occurrences; the protocol owner deduplicates.
+  assert_false(@admitted.reference_same_issuer(first, second))
+  assert_eq(
+    completed_relation_export_content_reference_cids(receipt, 2, 100).unwrap(),
+    [
+      @admitted.reference_identity_cid(first),
+      @admitted.reference_identity_cid(second),
+    ],
+  )
+  assert_true(physical_equal(receipt.rows.source.unwrap(), source))
+  assert_true(physical_equal(receipt.rows.references.unwrap(), references))
+  assert_true(
+    completed_relation_export_content_reference_cids(receipt, 1, 100)
+    is Err(Wire(Encoding(@encode.OutputLimit))),
+  )
+  assert_true(
+    completed_relation_export_content_reference_cids(receipt, 2, 1)
+    is Err(Wire(OrderLimit)),
+  )
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(
+    completed_relation_export_content_reference_cids(receipt, 2, 100)
+    is Err(Unavailable),
+  )
+}
+
+///|
+test "completed Content identity projection fences one original current callback" {
+  let (source, _, _) = reference_export_fixture(false, Ref(true), Ref(true))
+  let calls = Ref(0)
+  let retiring : Ref[CompletedRelationExportReceipt?] = Ref(None)
+  let restricted = restrict_completed_output(source, () => {
+    calls.val += 1
+    if retiring.val is Some(receipt) {
+      cancel_completed_relation_export_receipt(receipt)
+    }
+    true
+  })
+  let receipt = content_borrow_export(restricted)
+  calls.val = 0
+  assert_eq(
+    completed_relation_export_content_reference_cids(receipt, 2, 100)
+    .unwrap()
+    .length(),
+    2,
+  )
+  assert_eq(calls.val, 1)
+  retiring.val = Some(receipt)
+  calls.val = 0
+  assert_true(
+    completed_relation_export_content_reference_cids(receipt, 2, 100)
+    is Err(Unavailable),
+  )
+  assert_eq(calls.val, 1)
+}
+
+///|
+test "completed Content identity projection reads nested cached references without reissuance" {
+  let content = "{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/json\"}"
+  let contract = select_checked_contract(
+    "{\"type\":\"array\",\"nullable\":false,\"items\":" +
+    content +
+    ",\"max_items\":2}",
+  )
+  let id_contract = @contract.primitive(NumberType, nullable=false)
+  let schema = @schema.from_fields(
+    [(Unqualified("id"), id_contract), (Unqualified("p"), contract)],
+    max_fields=2,
+    max_name_bytes=3,
+  ).unwrap()
+  let seed = issued_content_value(select_checked_contract(content), Ref(true))
+  guard seed.value is @admitted.Reference(reference) else {
+    fail("Content fixture")
+  }
+  let wire = @admitted.reference_wire(reference)
+  let callbacks = Ref(0)
+  let nested = @admitted.admit_host(
+    @admitted.bind_reference_issuer((_, candidate) => candidate == wire, _ => {
+      callbacks.val += 1
+      true
+    }),
+    contract,
+    input_cursor("[" + wire + "," + wire + "]"),
+    { max_nodes: 100, max_depth: 10, max_text_bytes: 10000, },
+    { max_bytes: 4096, max_nodes: 64, max_depth: 4, max_text_units: 4096, },
+  ).unwrap()
+  let owner = presence_output_owner(schema~)
+  let admitted = prepare_admitted_output(
+    owner,
+    Step(0),
+    1,
+    stream_value_limits(),
+  ).unwrap()
+  let id = @admitted.admit(id_contract, input_cursor("1"), {
+    max_nodes: 1,
+    max_depth: 0,
+    max_text_bytes: 0,
+  }).unwrap()
+  append_admitted_output(admitted, [id, nested]).unwrap()
+  let rows = finish_admitted_output(admitted).unwrap()
+  let prepared = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    ["events_0"],
+    10000,
+    1000,
+  ).unwrap()
+  let source = complete_trusted_output(
+    prepare_trusted_output_port(prepared, Step(0), 1000, 10000, (_ : Unit) => {
+      Some(rows)
+    }).unwrap(),
+    (),
+  ).unwrap()
+  let receipt = content_borrow_export(source)
+  callbacks.val = 0
+  let cid = @admitted.reference_identity_cid(reference)
+  assert_eq(
+    completed_relation_export_content_reference_cids(receipt, 2, 100).unwrap(),
+    [cid, cid],
+  )
+  assert_eq(callbacks.val, 0)
+}
+
+///|
 test "retained reference-free material retirement does not claim physical release" {
   let live = Ref(true)
   let (output, handle) = retained_fixture(capture_fixture(), live)

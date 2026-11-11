@@ -4,14 +4,16 @@ pub(all) enum ClientJournalDecodingIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Original physical issuance count syntax and finite Native profile. This
+/// Original physical issuance count syntax and selected finite policy. This
 /// does not prove a complete inventory: the journal must scan its same Store
 /// transaction and validate every original row and custody relationship.
 pub fn client_journal_issuance_count(
   bytes : Bytes,
   max_records : Int,
 ) -> Result[Int, ClientJournalDecodingIssue] {
-  if max_records < 1 || max_records > 1024 || bytes.length() > 4 {
+  // A nonnegative Int has at most ten decimal digits. Bound parsing before
+  // multiply/add; this is representation capacity, not another record policy.
+  if max_records < 1 || bytes.length() > 10 {
     return Err(CustodyLost)
   }
   let text = @utf8.decode(bytes) catch { _ => return Err(CustodyLost) }
@@ -22,6 +24,10 @@ pub fn client_journal_issuance_count(
   for unit in text {
     let digit = unit.to_int() - 48
     if digit < 0 || digit > 9 {
+      return Err(CustodyLost)
+    }
+    if count > max_records / 10 ||
+      (count == max_records / 10 && digit > max_records % 10) {
       return Err(CustodyLost)
     }
     count = count * 10 + digit

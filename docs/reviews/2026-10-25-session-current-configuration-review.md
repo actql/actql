@@ -51,3 +51,24 @@ transition tests compare authentic introduced bodies with their authentic
 parents and retain all pinned preimage assertions; current HEAD is separately
 checked against the successor review. Missing historical Git objects remain
 missing prerequisites rather than synthetic successful history.
+
+## Local Host Model completion dependency successor
+
+The current map binds `src/client_local_host/moon.pkg` to genuine
+`65dd1da4c260610e9a88e430665fdc8f6106bc94`, SHA-256
+`8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda`.
+Its only change from the independently retained `583969bb` manifest is the
+literal `actql/actql/model_execution` import under `@model`. Existing target
+selectors, options and all other bytes remain unchanged.
+
+The caller consumes the existing nominal `ModelExecution` and its original
+completed-parent matcher when reconnecting a restored Effect Host. The imported
+package has literal portable imports and test imports, with no build hook,
+foreign-library option or dynamic resolver. Its full transitive source closure,
+immediate directory memberships and every member's bytes/mode remain keyed;
+the dependency is not a cached completion, current permission or cleanup ACK.
+
+Historical manifest preimages and their exact transition assertions remain
+unchanged. The earlier digest, changed import/options, foreign target/toolchain
+and unknown nested input still refuse current review. This finite JS input
+binding is not runtime, Native, restoration or reuse acceptance.

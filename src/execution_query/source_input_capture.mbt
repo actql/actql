@@ -164,3 +164,18 @@ pub fn captured_source_original_input_read(
   }
   Some(@execution.restrict_supplied_relation_read(input.read, source.live))
 }
+
+///|
+/// Immutable acquisition provenance only. The completed identity retains the
+/// original supplied binding even after its input was consumed. This compares
+/// no wire/CID substitute and grants no availability, read or execution right.
+pub fn captured_source_relation_identity_has_input_binding(
+  identity : CapturedSourceRelationIdentity,
+  read : @execution.SuppliedRelationRead,
+) -> Bool {
+  match identity.origin.owner {
+    InputCapture(input) =>
+      @execution.supplied_relation_read_same_binding(input.read, read)
+    QueryCapture(_) => false
+  }
+}

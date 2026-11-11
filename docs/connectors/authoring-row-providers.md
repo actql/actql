@@ -51,6 +51,14 @@ reject incomplete hook sets. Recovery must reconstruct and compare the exact
 approved requests; retained data is not authorization. Create-only providers
 can use the existing default reconstruction instead of a custom recovery path.
 
+An installed Source profile's `prepareManagedRun` takes the single internal
+object `{preparedProgram, requestIdentity, prepareInvocation}` and returns its
+same Host-owned Run. Capture the actual method and receiver at installation.
+Do not use a positional third argument for a Model selection or issue a new
+Connector-owned Node admission. The Host's shared ordinary route is used by
+both admission and dispatch; Model and Content retain their distinct existing
+constructors. This is a private implementation contract, not an external SPI.
+
 Classify a refusal only from observed semantic facts before send.
 `checkedEffectPreparation` and `refusedEffectPreparation` are not markers for
 arbitrary exceptions, rate limits, missing responses or physical stop. A

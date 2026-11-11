@@ -23,13 +23,13 @@ function call(v) {
  const peers=Array.isArray(v.peers)?'['+v.peers.join(', ')+']':v.peers;
  return `merge_rankings(with: ${peers}, by: [], candidate: current.id, rank: current.position, k: 3, score_policy: {rrf: {rank_constant: 1, weights: [${v.weights.join(', ')}], rank_window: ${v.window}}})`;
 }
-function source(c) {
- return `WITH l AS (${leftText}), r AS (${rightText}), fused AS (FROM l AS current |> ${c}) SELECT id, score, rank FROM fused ORDER BY rank`;
+function source(c, alias = 'current') {
+ return `WITH l AS (${leftText}), r AS (${rightText}), fused AS (FROM l AS ${alias} |> ${c}) SELECT id, score, rank FROM fused ORDER BY rank`;
 }
 export const rankingFusionSourceSuccesses=variants.flatMap(v=>{
  const results={answer:{rows:v.rows,columns}};
  return [{name:'ranking-fusion-json-'+v.name,format:'json',text:JSON.stringify(program(v)),results,sourceReadCount:0},
- ...['sql','aql-text'].map(format=>({name:'ranking-fusion-'+format+'-'+v.name,format,text:source(call(v)),results,sourceReadCount:0}))];
+ ...['sql','aql-text'].map(format=>({name:'ranking-fusion-'+format+'-'+v.name,format,text:source(call(v), '`current`'),results:{main:results.answer},sourceReadCount:0}))];
 });
 const valid=call(variants[0]);
 export const rankingFusionSourceRefusals=[

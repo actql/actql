@@ -1,17 +1,15 @@
 ///|
 // Private identities for the same original logical request and opaque paired
 // capture. Submission admission/scope stays with its independent original
-// Owner; none of these four strings is a grant, signing permit or use claim.
-fn NativeLocalReviewerProofMaterials::original_signing_subject(
+// Owner; this read view is not a grant, signing permit or use claim.
+fn NativeLocalReviewerProofMaterials::read_original_signing_subject_after_current(
   self : NativeLocalReviewerProofMaterials,
 ) -> Result[
-  (String, String, String, String),
+  NativeLocalOriginalEffectSigningSubjectRead,
   NativeLocalReviewerProofMaterialsIssue,
 ] {
-  match self.require_current() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
+  // The enclosing scope constructor has just checked this same material.
+  // Only immutable attempt syntax separates that check from this read.
   let reviewer = self.reviewer
   let projected = reviewer.approval_scope.read_original_signing_subject_for(
     reviewer.request,
@@ -26,21 +24,13 @@ fn NativeLocalReviewerProofMaterials::original_signing_subject(
     Err(issue) => return Err(issue)
   }
   let subject = match projected {
-    Ok(read) => read.original_subject_after_current()
-    Err(issue) => Err(issue)
+    Ok(read) => read
+    Err(_) => return Err(ProofUnavailable)
   }
-  // The terminal read above performs no callbacks. A last now/RunRead/key
-  // callback cannot retire the original and leave a stale CID tuple successful.
-  match subject {
-    Ok((invocation, unit)) =>
-      Ok(
-        (
-          @host.client_request_intent_cid(reviewer.request),
-          @host.client_request_scope_cid(reviewer.request),
-          invocation,
-          unit,
-        ),
-      )
-    Err(_) => Err(ProofUnavailable)
-  }
+  // Retain the actual subject across the remaining Submission/clock callbacks;
+  // a tuple alone cannot detect retirement of these same original references.
+  subject
+  .original_subject_after_current()
+  .map(_ => subject)
+  .map_err(_ => ProofUnavailable)
 }

@@ -189,3 +189,117 @@ test "request policy subjects preserve the exact legacy logical bound while char
   retire_request_policy_subjects(prepared)
   retire_request_policy_subjects(broad)
 }
+
+///|
+test "restored request policy subjects share one cumulative work bound through binding" {
+  let original = checked_direct_program_fixture(
+    selected_environment=Some(request_policy_internal_environment()),
+    append="right",
+  )
+  let limits = policy_continuation_limits()
+  let policy = "sha256:bc75d87043cc6314215460b4e0f2fbf5a72363edbe989ee7bb69acfc9021c808"
+  let broad = begin_request_policy_subjects(original, limits)
+  measure_request_policy_subjects(broad)
+  construct_request_policy_subjects(broad)
+  let count = request_policy_subject_count(broad)
+  assert_eq(count, 3)
+  for index in 0..<count {
+    assert_true(
+      bind_prepared_request_policy_subject(broad, index, Some(policy))
+      is Some(_),
+    )
+  }
+  let total = request_policy_subjects_spent_work(broad)
+  retire_request_policy_subjects(broad)
+  let exact = begin_request_policy_subjects(
+    original,
+    limits,
+    cumulative_work=Some(total),
+  )
+  measure_request_policy_subjects(exact)
+  construct_request_policy_subjects(exact)
+  for index in 0..<count {
+    assert_true(
+      bind_prepared_request_policy_subject(exact, index, Some(policy))
+      is Some(_),
+    )
+  }
+  assert_true(request_policy_subject_bindings_complete(exact))
+  assert_eq(request_policy_subjects_spent_work(exact), total)
+  retire_request_policy_subjects(exact)
+  let short = begin_request_policy_subjects(
+    original,
+    limits,
+    cumulative_work=Some(total - 1L),
+  )
+  measure_request_policy_subjects(short)
+  construct_request_policy_subjects(short)
+  for index in 0..<(count - 1) {
+    assert_true(
+      bind_prepared_request_policy_subject(short, index, Some(policy))
+      is Some(_),
+    )
+  }
+  try
+    bind_prepared_request_policy_subject(short, count - 1, Some(policy))
+  catch {
+    BudgetExceeded => ()
+    error => raise error
+  } noraise {
+    _ => fail("last binding refilled the original cumulative work allowance")
+  }
+  assert_true(short.phase == Failed)
+  assert_true(request_policy_subjects_spent_work(short) <= total - 1L)
+  try
+    bind_prepared_request_policy_subject(short, count - 1, Some(policy))
+  catch {
+    ForeignOwner => ()
+    error => raise error
+  } noraise {
+    _ => fail("failed original binding was retried")
+  }
+  retire_request_policy_subjects(short)
+}
+
+///|
+test "restored request policy measurement refuses an exhausted cumulative prefix without retry" {
+  let original = checked_direct_program_fixture(
+    selected_environment=Some(request_policy_internal_environment()),
+  )
+  let limits = policy_continuation_limits()
+  try
+    begin_request_policy_subjects(original, limits, cumulative_work=Some(-1L))
+  catch {
+    BudgetExceeded => ()
+    error => raise error
+  } noraise {
+    _ => fail("negative original work allowance was admitted")
+  }
+  let prepared = begin_request_policy_subjects(
+    original,
+    limits,
+    cumulative_work=Some(1L),
+  )
+  try measure_request_policy_subjects(prepared) catch {
+    BudgetExceeded => ()
+    error => raise error
+  } noraise {
+    _ => fail("measurement exceeded the original cumulative prefix")
+  }
+  assert_true(prepared.phase == Failed)
+  assert_true(request_policy_subjects_spent_work(prepared) <= 1L)
+  try measure_request_policy_subjects(prepared) catch {
+    ForeignOwner => ()
+    error => raise error
+  } noraise {
+    _ => fail("partial original measurement was retried")
+  }
+  try construct_request_policy_subjects(prepared) catch {
+    ForeignOwner => ()
+    error => raise error
+  } noraise {
+    _ => fail("failed measurement exposed descriptor construction")
+  }
+  retire_request_policy_subjects(prepared)
+  assert_true(prepared.original is None && prepared.subjects.is_empty())
+}

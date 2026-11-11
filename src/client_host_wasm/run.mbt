@@ -271,6 +271,15 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
     stored_preparation_input(preparation) is Some(input) else {
     return -2
   }
+  let source_submission = if preparation.source is Some(_) {
+    guard stored_preparation_source_submission(value, record.preparation)
+      is Some(original) else {
+      return -35
+    }
+    Some(original)
+  } else {
+    None
+  }
   // Product finite configuration has a separate original-request entry. It
   // must never accept caller-supplied absolute adoption-time deadlines.
   if configuration.sdk is Some(_) {
@@ -335,6 +344,7 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
             created_at,
             valid_until,
             original_policy,
+            submitted=source_submission,
           )
       }
     } else {
@@ -351,6 +361,7 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
         run_id,
         created_at,
         valid_until,
+        submitted=source_submission,
       )
     },
   )
@@ -459,26 +470,46 @@ pub fn restore_run(nonce : Int64, handle : Int, materials : Int) -> Int {
       return 0
     }
   }
-  let restore = if @host.prepared_client_acquisition_count(
+  // The original request's Source domain is independent of the SDK profile.
+  let source_submission = if @host.client_request_input_cid(retained_request) !=
+    @host.source_free_caller_input_intent_cid() {
+    guard preparation.submitted is Some(original) else { return -35 }
+    Some(original)
+  } else {
+    None
+  }
+  let outcome = if @host.prepared_client_acquisition_count(
       @preparation.local_prepared_program(input),
     ) ==
     0 {
-    @local_run.restore_source_free_local_run_from_materials
+    @local_run.restore_source_free_local_run_from_materials(
+      input,
+      restored,
+      definition_cid,
+      retained_request,
+      configuration.authority_scope_cid,
+      permit,
+      configuration.account,
+      configuration.tuple,
+      configuration.context_cid,
+      configuration.policy_cid,
+      submitted=source_submission,
+    )
   } else {
-    @local_run.restore_captured_source_local_run_from_materials
+    @local_run.restore_captured_source_local_run_from_materials(
+      input,
+      restored,
+      definition_cid,
+      retained_request,
+      configuration.authority_scope_cid,
+      permit,
+      configuration.account,
+      configuration.tuple,
+      configuration.context_cid,
+      configuration.policy_cid,
+      submitted=source_submission,
+    )
   }
-  let outcome = restore(
-    input,
-    restored,
-    definition_cid,
-    retained_request,
-    configuration.authority_scope_cid,
-    permit,
-    configuration.account,
-    configuration.tuple,
-    configuration.context_cid,
-    configuration.policy_cid,
-  )
   record.outcome = Some(
     if configuration.sdk is Some(_) {
       match outcome {

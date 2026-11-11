@@ -139,12 +139,13 @@ test "completed identity yields inside both long column key streams" {
     let mut payload_keys = 0
     let mut logical_keys = 0
     for _ in 0..<24 {
-      let before = @encode.writer_progress(scan.stream.writer).0
+      let before = @encode.writer_progress(scan.stream.unwrap().writer).0
       match advance_completed_relation_identity_scan(scan, 1) {
         Ok((finished, consumed)) => {
           assert_eq(consumed, 1)
           assert_true(
-            @encode.writer_progress(scan.stream.writer).0 - before <= 68,
+            @encode.writer_progress(scan.stream.unwrap().writer).0 - before <=
+            68,
           )
           if scan.phase is EmitPayloadKey(_) {
             payload_keys += 1
@@ -211,4 +212,107 @@ test "completed identity yields inside both long column key streams" {
     )
     assert_true(finish_completed_relation_identity_scan(scan) is Err(Closed))
   }
+}
+
+///|
+fn retained_identity_body_fixture(
+  source : CompletedOutput,
+  retained? : Bool = true,
+) -> CompletedRelationIdentityScan {
+  start_completed_relation_identity_scan(
+    source,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    10000,
+    100000,
+    incremental_metadata=true,
+    retain_body=retained,
+  ).unwrap()
+}
+
+///|
+test "retained identity body keeps exact emitted Unicode relation and its original receipt" {
+  let source = export_fixture(result_export_owner())
+  let (foreign, _) = export_relation_all(source)
+  let scan = retained_identity_body_fixture(source)
+  assert_true(completed_relation_identity_scan_body(scan, foreign) is None)
+  let before = scan.work
+  assert_eq(
+    advance_completed_relation_identity_scan(
+      scan,
+      31,
+      construction_capacity=Some(execution_capacity(0L, 0L).unwrap()),
+    ).unwrap(),
+    (false, 0),
+  )
+  assert_eq(scan.work, before)
+  let mut done = false
+  for _ in 0..<10000 {
+    let next = completed_relation_identity_scan_next_construction_capacity(scan).unwrap()
+    done = advance_completed_relation_identity_scan(
+        scan,
+        31,
+        construction_capacity=Some(next),
+      ).unwrap().0
+    if done {
+      break
+    }
+  }
+  assert_true(done)
+  let receipt = finish_completed_relation_identity_scan(scan).unwrap()
+  let work = scan.work
+  // Independently authored canonical logical Relation, not an expected value
+  // copied from product emission. References remain ordinary typed cells.
+  let expected = "{\"sort\":\"relation\",\"value\":[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]}"
+  assert_eq(
+    completed_relation_identity_scan_body(scan, receipt),
+    Some(expected),
+  )
+  assert_true(completed_relation_identity_scan_body(scan, foreign) is None)
+  assert_eq(scan.work, work)
+  assert_true(completed_relation_export_matches_output(receipt, source))
+  assert_true(scan.retained_body is None)
+  // Existing non-retaining use still emits the same identity and stores no
+  // body; it does not silently inherit the optional Native retention purpose.
+  let plain = retained_identity_body_fixture(source, retained=false)
+  while !advance_completed_relation_identity_scan(plain, 31).unwrap().0 {
+    ()
+  }
+  let plain_receipt = finish_completed_relation_identity_scan(plain).unwrap()
+  assert_eq(
+    logical_relation_cid(completed_relation_export_identity(receipt)),
+    logical_relation_cid(completed_relation_export_identity(plain_receipt)),
+  )
+  assert_true(
+    completed_relation_identity_scan_body(plain, plain_receipt) is None,
+  )
+  assert_false(cancel_completed_relation_identity_scan(scan))
+  assert_true(completed_relation_identity_scan_body(scan, receipt) is None)
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "retained identity body cancellation cuts unfinished chunks without retiring the original input" {
+  let source = export_fixture(result_export_owner())
+  let scan = retained_identity_body_fixture(source)
+  for _ in 0..<10 {
+    let next = completed_relation_identity_scan_next_construction_capacity(scan).unwrap()
+    assert_false(
+      advance_completed_relation_identity_scan(
+        scan,
+        1,
+        construction_capacity=Some(next),
+      ).unwrap().0,
+    )
+  }
+  assert_true(scan.retained_body is Some(_))
+  assert_true(cancel_completed_relation_identity_scan(scan))
+  assert_true(scan.retained_body is None)
+  assert_true(scan.completed_body is None && scan.body_receipt is None)
+  assert_eq(scan.retained_body_units, 0L)
+  assert_true(finish_completed_relation_identity_scan(scan) is Err(Closed))
+  assert_true(completed_output_available(source))
 }

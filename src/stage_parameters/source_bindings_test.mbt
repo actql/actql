@@ -45,7 +45,7 @@ test "Source reuses only the original complete Program under compatible declarat
 }
 
 ///|
-test "Source completed binding retains original values and refuses changed or tighter inputs" {
+test "Source completed binding retains original values under measured fitting limits and refuses changed inputs" {
   let original = prepared(parsed())
   let supplied = Some(source_binding_cursor("{\"n\":7}"))
   let caps : @value.Limits = {
@@ -57,6 +57,15 @@ test "Source completed binding retains original values and refuses changed or ti
   guard first is Ok(Ready(values)) else { fail("original binding") }
   let repeated = bind(source, supplied, { ..caps, max_nodes: 101, }).unwrap()
   guard repeated is Ready(same) else { fail("completed original") }
+  assert_true(physical_equal(values, same))
+  let exact = { ..caps, max_nodes: 1, max_text_bytes: 1, }
+  guard bind(source, supplied, exact) is Ok(Ready(same)) else {
+    fail("same Source must consume its completed measured binding")
+  }
+  assert_true(physical_equal(values, same))
+  let (same_source, exact_result) = prepare_bindings(source, supplied, exact)
+  assert_true(physical_equal(source, same_source))
+  guard exact_result is Ok(Ready(same)) else { fail("measured repeat") }
   assert_true(physical_equal(values, same))
   let (same_source, same_result) = prepare_bindings(source, supplied, caps)
   assert_true(physical_equal(source, same_source))

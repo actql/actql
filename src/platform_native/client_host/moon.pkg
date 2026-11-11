@@ -5,7 +5,15 @@ import {
   "actql/actql/platform_native/installed_arena_control" @arena,
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
   "actql/actql/run_publication_host" @host,
+  "actql/actql/model_execution" @model,
+  "actql/actql/client_infer_host" @infer,
+  "actql/actql/check_environment" @environment,
   "actql/actql/client_local_host" @local,
+  "actql/actql/connectors/local" @compute_local,
+  "actql/actql/client_source_publication" @source_publication,
+  "actql/actql/client_row_source_host" @rows,
+  "actql/actql/execution_query",
+  "actql/actql/platform_native/row_source" @row_file,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host_dispatch" @driver,
   "actql/actql/execution_relation" @execution,
@@ -15,6 +23,7 @@ import {
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/query_program" @query,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/logical_request_scope" @scope,
   "actql/actql/run_publication" @publication,
@@ -41,6 +50,7 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/sha256" @sha,
   "actql/actql/canonical_json" @canonical,
+  "actql/actql/capacity_policy",
   "actql/actql/canonical_value",
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/value_admission" @values,
@@ -50,10 +60,6 @@ import {
   "moonbitlang/core/debug",
   "moonbitlang/core/env",
 }
-
-import {
-  "actql/actql/check_environment" @environment,
-} for "wbtest"
 
 options(
   "native-stub": [ "local_journal_shim.c" ],

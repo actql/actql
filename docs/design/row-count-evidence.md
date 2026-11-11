@@ -159,10 +159,13 @@ unclamped intermediate. Unknown operand counts keep this global k bound, but do
 not manufacture a finite union bound for partitioned fusion. Rank windows may
 reduce participation further; these summaries do not claim the bound is tight.
 It respects resolved operand edges and does not deduplicate repeated inputs.
-Checked addition and multiplication reject safe-integer overflow with
-`RowBoundOverflow` at the step source, rather than saturating or silently dropping
-the fact. Zero products remain zero even when the other count is unknown, without
-waiving that operand's validation requirements.
+Checked addition and multiplication leave optional cardinality estimates unknown
+when their conservative upper bound exceeds the safe-integer range. They never
+saturate, substitute a Host ceiling, or reject an otherwise typed pipeline for
+that estimate alone. Invalid supplied count values remain errors; actual buffer
+lengths, indexes and execution work retain their own checked limits. Zero
+products remain zero even when the other count is unknown, without waiving that
+operand's validation requirements.
 
 The fixed Sketch bound-transfer registry distinguishes preservation, clamping,
 addition, multiplication, reduction and carrier-specific laws. This implementation

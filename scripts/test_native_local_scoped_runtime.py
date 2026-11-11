@@ -4,8 +4,12 @@ from pathlib import Path
 import re
 import shlex
 import subprocess
+import sys
+import tempfile
 import unittest
 
+# Match direct script execution when unittest imports the producer by file.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 SPEC = importlib.util.spec_from_file_location(
     'local_scoped_build', Path(__file__).with_name('produce-native-remote-scoped-runtime.py'))
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -49,11 +53,51 @@ class LocalScopedComposition(unittest.TestCase):
              str(self.emission / 'native/release/build/libruntime-original.a'), '-lm'],
         ]
 
-    def plan(self, commands=None, entry='src/cmd/native_client'):
+    def plan(self, commands=None, entry='src/cmd/native_client', **selection):
         return MODULE.commands_for(
             '\n'.join(shlex.join(c) for c in (self.commands if commands is None else commands)),
             self.home, self.emission, self.allocator, self.clang, self.sdk, entry=entry,
-            source_sha=self.source)
+            source_sha=self.source, **selection)
+
+    def test_linux_local_keeps_one_provider_original_link_and_ordinary_managed_values(self):
+        header = Path('/owned/local-stock-file-control.h')
+        planned = self.plan(target='linux-x64', stock_file_control_bytes=4096,
+                            local_control_header=header)
+        steps = [step for step in planned if step[0] == str(self.clang)]
+        self.assertEqual(len(steps), 9)
+        for step in steps:
+            self.assertIn('-D_GNU_SOURCE', step)
+            self.assertIn('-DACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY', step)
+            self.assertIn('-DACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=170', step)
+            self.assertIn('-DACTQL_RUNTIME_MANAGED_VALUES=1', step)
+            self.assertIn(str(header), step)
+            self.assertNotIn('-isysroot', step)
+            self.assertFalse(any(value.startswith(('-mmacosx-', '-DACTQL_BUNDLE_INITIAL_CONTROL_HEADER=',
+                '-DACTQL_RESIDENT_INITIAL_CONTROL_HEADER=')) for value in step))
+        self.assertEqual(sum(any(value.startswith('-DACTQL_SCOPED_READ_PROVIDER=') for value in step)
+                             for step in steps), 1)
+        exports = {'-Wl,--export-dynamic-symbol=' + symbol
+                   for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS}
+        self.assertEqual({value for value in planned[-1] if value.startswith('-Wl,--export')}, exports)
+        self.assertFalse(any(value in exports for step in planned[:-1] for value in step))
+
+    def test_linux_local_needs_its_own_bounded_control_header(self):
+        for header in (None, Path('/foreign/header.h'), Path('/owned/bad\nheader.h')):
+            with self.subTest(header=header), self.assertRaisesRegex(ValueError, 'stock-File control header'):
+                self.plan(target='linux-x64', stock_file_control_bytes=4096, local_control_header=header)
+        for count in (None, 0, 4095, 4097):
+            with self.subTest(count=count), self.assertRaisesRegex(ValueError, 'control page'):
+                self.plan(target='linux-x64', stock_file_control_bytes=count,
+                          local_control_header=Path('/owned/header.h'))
+        with tempfile.TemporaryDirectory() as temporary:
+            header = Path(temporary) / 'local.h'
+            record = MODULE.local_stock_file_control_header(self.source, header)
+            self.assertEqual(record['selected'], {'kind': 'private-native-client-stock-file-control',
+                'target': 'linux-x64', 'stockFileControlBytes': 4096})
+            self.assertEqual(header.read_text(), '/* Local command fixed File records; not arena capacity. */\n'
+                             '#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES 4096\n')
+            self.assertFalse(record['permission'])
+            self.assertFalse(record['physicalAcquired'])
 
     def test_remote_default_build_arguments_remain_unchanged(self):
         self.assertEqual(MODULE.moon_build_arguments(
@@ -188,6 +232,9 @@ class LocalScopedComposition(unittest.TestCase):
             '-Wl,-exported_symbol,_actql_bootstrap_current_read_context',
             '-Wl,-exported_symbol,_actql_native_file_scoped_allocate',
             '-Wl,-exported_symbol,_actql_native_file_scoped_free',
+            '-Wl,-exported_symbol,_actql_native_private_scoped_allocate',
+            '-Wl,-exported_symbol,_actql_native_private_scoped_free',
+            '-Wl,-exported_symbol,_actql_native_private_scoped_contains_allocation',
         }
         final = self.plan()[-1]
         self.assertEqual({p for p in final if p.startswith('-Wl,-export')}, expected)
@@ -195,7 +242,7 @@ class LocalScopedComposition(unittest.TestCase):
         for command in self.plan()[:-1]:
             self.assertFalse(any(p.startswith('-Wl,-export') for p in command))
 
-    def test_local_exports_match_both_actual_components_provider_origin_checks(self):
+    def test_local_exports_match_components_and_private_http_provider_ports(self):
         root = Path(__file__).resolve().parents[1]
         imported = set()
         for directory, function in (
@@ -208,8 +255,13 @@ class LocalScopedComposition(unittest.TestCase):
             ports = set(re.findall(r'\(void\s*\*\)\s*(actql_[A-Za-z0-9_]+)', body))
             self.assertEqual(len(ports), 6 if directory == 'crypto-component' else 7)
             imported.update(ports)
-        self.assertEqual(set(MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS), imported)
         self.assertEqual(len(imported), 8)
+        http = (root / 'src/platform_native/http_client/http_client_stub.c').read_text()
+        private = set(re.findall(r'^extern [^;\n]*?\b(actql_native_private_scoped_[A-Za-z0-9_]+)\(', http, re.M))
+        self.assertEqual(private, {'actql_native_private_scoped_allocate',
+                                  'actql_native_private_scoped_free',
+                                  'actql_native_private_scoped_contains_allocation'})
+        self.assertEqual(set(MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS), imported | private)
 
     def test_remote_core_executable_or_missing_local_module_are_foreign(self):
         for index, old, new in (

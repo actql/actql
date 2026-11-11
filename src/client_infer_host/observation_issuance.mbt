@@ -9,6 +9,77 @@ pub(all) struct ObservationIssuanceLimits {
 }
 
 ///|
+// The unchanged metadata component shared by its issuer and original Native
+// caller. This is not a whole-platform constructor/Store envelope or a grant.
+fn observation_issuance_metadata_bytes(
+  wire_bytes : Int,
+  slots : Int,
+  owners : Int,
+  generations : Int,
+) -> Int64 {
+  wire_bytes.to_int64() * 16L +
+  slots.to_int64() * 128L +
+  (owners - 1).to_int64() * 256L +
+  generations.to_int64() * 256L
+}
+
+///|
+/// Prepared single-Model metadata envelope from the same issuer formula.
+/// This is DATA for its enclosing Plan before execution, not a grant or a
+/// complete physical publication recipe. Actual issuance still counts rows.
+pub fn prepared_observation_issuance_metadata_bytes(
+  limits : ObservationIssuanceLimits,
+) -> Int64? {
+  if limits.max_slots < 0 ||
+    limits.max_wire_bytes < 1 ||
+    limits.max_wire_bytes > 16384 ||
+    limits.max_work < 1 {
+    None
+  } else {
+    Some(
+      observation_issuance_metadata_bytes(
+        limits.max_wire_bytes,
+        limits.max_slots,
+        1,
+        0,
+      ),
+    )
+  }
+}
+
+///|
+/// Quote only this same terminal original's flat metadata component. Read the
+/// already prepared row inventory without acquiring output/capture, invoking
+/// current or traversing values. The original reservation and issuer still
+/// validate their nominal Run/Scope and complete constructor backing.
+pub fn original_observation_issuance_metadata_bytes(
+  active : Execution,
+  limits : ObservationIssuanceLimits,
+) -> Int64? {
+  guard limits.max_slots >= 0 &&
+    limits.max_wire_bytes >= 1 &&
+    limits.max_wire_bytes <= 16384 &&
+    limits.max_work >= 1 &&
+    !active.advancing &&
+    !active.reclaimed &&
+    !active.cancelled &&
+    active.phase is Terminal &&
+    active.completed is Some(_) &&
+    active.model is Some(_) &&
+    active.call_scope is Some(_) &&
+    active.original_preparation is Some(_) &&
+    active.run_binding is Some(_) &&
+    active.rows is Some(rows) else {
+    return None
+  }
+  let count = @relation.prepared_infer_rows_count(rows)
+  if count > limits.max_slots {
+    return None
+  }
+  Some(observation_issuance_metadata_bytes(limits.max_wire_bytes, count, 1, 0))
+}
+
+///|
 priv enum ObservationIssuancePhase {
   Begin
   Slot
@@ -66,22 +137,74 @@ pub struct ObservationIssuance {
 }
 
 ///|
-fn observation_issuance_funding_current(
+// Compiler order is independent of which original finishes first and retains
+// the ONE whole-Run publication borrow. Find that actual nominal receiver
+// without reordering members; a non-owner comparison runs no current callback.
+fn original_observation_inventory_valid(owners : Array[Execution]) -> Bool {
+  !owners.is_empty() && owners.length() <= 128
+}
+
+///|
+fn complete_original_observation_backing_current(
+  owners : Array[Execution],
+  capacity : @model.OriginalModelPublicationCapacity,
+) -> Bool {
+  if !original_observation_inventory_valid(owners) {
+    return false
+  }
+  let found = owners.any(active => {
+    active.model is Some(model) &&
+    active.call_scope is Some(scope) &&
+    @model.original_model_publication_capacity_current(capacity, model, scope)
+  })
+  found &&
+  owners.all(active => {
+    !active.advancing &&
+    !active.reclaimed &&
+    active.phase is Terminal &&
+    active.model is Some(model) &&
+    active.call_scope is Some(scope) &&
+    @model.original_model_publication_capacity_matches_parent(
+      capacity, model, scope,
+    )
+  })
+}
+
+///|
+// New issuance still needs the original handed-off read. Retirement of
+// already-owned metadata needs its SAME live Model/publication backing, not
+// permission to produce more evidence after the read consumer was stopped.
+fn complete_original_observation_funding_current(
+  owners : Array[Execution],
+  capacity : @model.OriginalModelPublicationCapacity,
+) -> Bool {
+  original_observation_inventory_valid(owners) &&
+  owners.all(original_infer_publication_owner_current) &&
+  complete_original_observation_backing_current(owners, capacity)
+}
+
+///|
+fn observation_issuance_backing_current(
   state : ObservationIssuanceState,
 ) -> Bool {
   match state.funding {
     Some(Metadata(ledger, reservation)) =>
       @resources.reservation_open(reservation) &&
       @resources.check_original_resources_mutable(ledger) is Ok(_)
-    Some(Original(capacity)) => {
-      guard state.owners.get(0) is Some(active) &&
-        active.model is Some(model) &&
-        active.call_scope is Some(scope) else {
-        return false
-      }
-      @model.original_model_publication_capacity_current(capacity, model, scope)
-    }
+    Some(Original(capacity)) =>
+      complete_original_observation_backing_current(state.owners, capacity)
     None => false
+  }
+}
+
+///|
+fn observation_issuance_funding_current(
+  state : ObservationIssuanceState,
+) -> Bool {
+  match state.funding {
+    Some(Original(capacity)) =>
+      complete_original_observation_funding_current(state.owners, capacity)
+    _ => observation_issuance_backing_current(state)
   }
 }
 
@@ -97,14 +220,10 @@ fn charge_observation_issuance_step(
       @resources.charge_planning(ledger, 1).map_err(issue => {
         Model(@model.Ledger(issue))
       })
-    Original(capacity) => {
-      if !original_infer_publication_owner_current(state.owners[0]) {
-        return Err(Model(@model.OutputIdentity))
-      }
+    Original(capacity) =>
       @model.charge_original_model_observation_step(capacity).map_err(issue => {
         Model(issue)
       })
-    }
   }
 }
 
@@ -174,6 +293,29 @@ pub fn start_original_observation_issuance(
   // Even this receiver list is created only under the existing original grant.
   start_observation_issuance_owned(
     [active],
+    None,
+    Some(capacity),
+    limits,
+    generations,
+  )
+}
+
+///|
+/// All compiler-retained original Model occurrences share ONE existing
+/// publication borrow on their SAME parent Ledger. Original execution/Scope,
+/// ordered Plan membership and complete Run inventory remain mandatory.
+/// This neither creates a Ledger nor treats completed output as a grant.
+pub fn start_complete_original_observation_issuance(
+  owners : Array[Execution],
+  capacity : @model.OriginalModelPublicationCapacity,
+  limits : ObservationIssuanceLimits,
+  generations? : Array[@publication_host.ClientSerializationGeneration] = [],
+) -> Result[ObservationIssuance, Issue] {
+  if !complete_original_observation_funding_current(owners, capacity) {
+    return Err(Model(@model.OutputIdentity))
+  }
+  start_observation_issuance_owned(
+    owners,
     None,
     Some(capacity),
     limits,
@@ -275,10 +417,12 @@ fn start_observation_issuance_owned(
     is Some(policy_cid) else {
     return Err(Model(@model.OutputIdentity))
   }
-  let workspace = limits.max_wire_bytes.to_int64() * 16L +
-    count.to_int64() * 128L +
-    (owners.length() - 1).to_int64() * 256L +
-    generations.length().to_int64() * 256L
+  let workspace = observation_issuance_metadata_bytes(
+    limits.max_wire_bytes,
+    count,
+    owners.length(),
+    generations.length(),
+  )
   // This is the unchanged metadata component allowance, not a normal backend
   // whole-phase bound. Original funding must cover it AND all additional
   // simultaneous publication holdings supplied by the actual installation.
@@ -292,12 +436,7 @@ fn start_observation_issuance_owned(
       ObservationIssuanceFunding::Metadata(ledger, reservation)
     }
     (None, Some(capacity)) => {
-      if !original_infer_publication_owner_current(owners[0]) ||
-        !@model.original_model_publication_capacity_current(
-          capacity,
-          owners[0].model.unwrap(),
-          owners[0].call_scope.unwrap(),
-        ) {
+      if !complete_original_observation_funding_current(owners, capacity) {
         return Err(Model(@model.OutputIdentity))
       }
       if !@model.original_model_publication_capacity_covers(
@@ -685,6 +824,42 @@ pub fn observation_issuance_value(
 }
 
 ///|
+/// Immutable classification of the original already verified slot binding.
+/// Callers first borrow the completed observation at its current boundary;
+/// inspecting each slot adds no callback, capture issuance or output use.
+pub fn observation_issuance_slot_outcome(
+  active : ObservationIssuance,
+  index : Int,
+) -> String? {
+  if !active.accepted ||
+    active.reclaimed ||
+    index < 0 ||
+    active.state.bindings.length() != active.state.count {
+    return None
+  }
+  active.state.bindings
+  .get(index)
+  .bind(binding => @publication.bound_model_slot_capture_outcome(binding))
+}
+
+///|
+/// Original Source evidence inventory already selected by this flat issuer.
+/// Pure projection after the completed-value borrow; no per-Source callback,
+/// independent deduplication or fresh Source observation is performed.
+pub fn observation_issuance_source_originals(
+  active : ObservationIssuance,
+) -> Array[@publication.RunEvidenceValue]? {
+  if !active.accepted || active.reclaimed {
+    return None
+  }
+  Some(
+    active.state.sources.map(source => {
+      @publication.model_source_observation_originals(source).0
+    }),
+  )
+}
+
+///|
 pub fn cancel_observation_issuance(active : ObservationIssuance) -> Bool {
   if active.reclaimed || @bounded.session_stopped(active.session) {
     false
@@ -703,7 +878,7 @@ pub fn cleanup_observation_issuance(
   if active.uses > 0 || !@bounded.session_stopped(active.session) {
     return Ok(false)
   }
-  if !observation_issuance_funding_current(active.state) {
+  if !observation_issuance_backing_current(active.state) {
     return Err(Model(@model.OutputIdentity))
   }
   // The legacy metadata Ledger can differ from the borrowed Models. Check

@@ -304,6 +304,66 @@ static napi_value local_fs_lease_receipt(napi_env env, napi_callback_info info) 
       !local_fs_bigint(env, result, "inode", status.st_ino) || napi_object_freeze(env, result) != napi_ok) return NULL;
   return result;
 }
+/* Private Store metadata entry. The destination is fixed, and no public Files
+ * publish/overwrite semantics are widened. JS owns the already-synced closed
+ * record and both directory durability acknowledgements. */
+static napi_value local_fs_publish_store_owner(napi_env env, napi_callback_info info) {
+  napi_value args[4]; size_t count = 4; void *data = NULL;
+  char name[LOCAL_NAME_BYTES + 1]; uint64_t device, inode; bool lossless;
+  if (napi_get_cb_info(env, info, &count, args, NULL, &data) != napi_ok || count != 4 || !data ||
+      !local_fs_text(env, args[1], name, LOCAL_NAME_BYTES, false, false) ||
+      strncmp(name, ".owner-opening-", 15) || strlen(name) != 51 ||
+      !local_fs_lease_identity(name + 15) ||
+      napi_get_value_bigint_uint64(env, args[2], &device, &lossless) != napi_ok || !lossless ||
+      napi_get_value_bigint_uint64(env, args[3], &inode, &lossless) != napi_ok || !lossless)
+    return unavailable(env, "InvalidPublicationStoreOwner");
+  local_fs_original *root = local_fs_argument(env, args[0], data);
+  struct stat staged;
+  if (!local_fs_current(root) || !root->directory || root->depth != 0 ||
+      fstatat(root->descriptor, name, &staged, AT_SYMLINK_NOFOLLOW) != 0 ||
+      !S_ISDIR(staged.st_mode) || staged.st_uid != geteuid() || (staged.st_mode & 077) ||
+      (uint64_t)staged.st_dev != device || (uint64_t)staged.st_ino != inode)
+    return unavailable(env, "PublicationStoreOwnershipLost");
+  if (local_fs_rename(root->descriptor, name, "owner", false) != 0)
+    return unavailable(env, errno == EEXIST || errno == ENOTEMPTY ?
+      "PublicationStoreBusy" : "PublicationStoreOwnerPublishFailed");
+  return undefined(env);
+}
+/* Replace only this Store's complete lease metadata under the original owner
+ * directory descriptor. Compare the old physical original immediately before
+ * rename; a copied token or callback substitution is never the original. */
+static napi_value local_fs_replace_store_owner(napi_env env, napi_callback_info info) {
+  napi_value args[11]; size_t count = 11; void *data = NULL;
+  char name[LOCAL_NAME_BYTES + 1]; int64_t expected[9]; bool lossless;
+  if (napi_get_cb_info(env, info, &count, args, NULL, &data) != napi_ok || count != 11 || !data ||
+      !local_fs_text(env, args[1], name, LOCAL_NAME_BYTES, false, false) ||
+      strncmp(name, ".lease-", 7) || strlen(name) != 48 || strcmp(name + 43, ".json"))
+    return unavailable(env, "InvalidPublicationStoreOwner");
+  for (size_t index = 0; index < 9; index++) {
+    if (napi_get_value_bigint_int64(env, args[index + 2], &expected[index], &lossless) != napi_ok || !lossless)
+      return unavailable(env, "InvalidPublicationStoreOwner");
+  }
+  local_fs_original *directory = local_fs_argument(env, args[0], data);
+  struct stat before, staged; int64_t ms, mn, cs, cn;
+  if (!local_fs_current(directory) || !directory->directory || directory->depth != 1 ||
+      strcmp(directory->name, "owner") ||
+      (int64_t)directory->identity.st_dev != expected[7] ||
+      (int64_t)directory->identity.st_ino != expected[8] ||
+      fstatat(directory->descriptor, "owner.json", &before, AT_SYMLINK_NOFOLLOW) != 0 ||
+      fstatat(directory->descriptor, name, &staged, AT_SYMLINK_NOFOLLOW) != 0 ||
+      !S_ISREG(before.st_mode) || !S_ISREG(staged.st_mode) ||
+      (int64_t)before.st_dev != expected[0] || (int64_t)before.st_ino != expected[1] ||
+      before.st_size != expected[2] || (int64_t)staged.st_dev != expected[5] ||
+      (int64_t)staged.st_ino != expected[6])
+    return unavailable(env, "PublicationStoreOwnershipLost");
+  local_fs_times(&before, &ms, &mn, &cs, &cn);
+  if (ms * INT64_C(1000000000) + mn != expected[3] ||
+      cs * INT64_C(1000000000) + cn != expected[4])
+    return unavailable(env, "PublicationStoreOwnershipLost");
+  if (local_fs_rename(directory->descriptor, name, "owner.json", true) != 0)
+    return unavailable(env, "PublicationStoreOwnerPublishFailed");
+  return undefined(env);
+}
 static napi_value local_fs_entry_kind(napi_env env, napi_callback_info info) {
   napi_value args[2], result; size_t count = 2; void *data = NULL;
   char name[LOCAL_NAME_BYTES + 1]; struct stat status;
@@ -419,16 +479,36 @@ observed:;
   return result;
 }
 #include "root-file-writer.inc"
+/* Inert implementation DATA from this same image, not a Resource or allowance.
+ * Each retained path descriptor owns one real allocation, including its name
+ * arrays. Fixed N-API/call-stack overhead is not a second per-wrapper quote. */
+static napi_value local_fs_write_construction_profile(napi_env env, napi_callback_info info) {
+  size_t count = 0; void *data = NULL; napi_value result;
+  if (napi_get_cb_info(env, info, &count, NULL, NULL, &data) != napi_ok || count != 0 || !data ||
+      napi_create_object(env, &result) != napi_ok) return NULL;
+  const char *names[] = {"nativeOriginalBytes", "maxRootBytes", "maxNameBytes", "maxDepth", "writeQuantumBytes"};
+  const int64_t values[] = {sizeof(local_fs_original), LOCAL_ROOT_BYTES, LOCAL_NAME_BYTES,
+    LOCAL_DEPTH, LOCAL_READ_BYTES};
+  for (size_t index = 0; index < sizeof(values) / sizeof(values[0]); index++) {
+    napi_value value;
+    if (napi_create_int64(env, values[index], &value) != napi_ok ||
+        napi_set_named_property(env, result, names[index], value) != napi_ok) return NULL;
+  }
+  if (napi_object_freeze(env, result) != napi_ok) return NULL;
+  return result;
+}
 static bool initialize_local_files(napi_env env, napi_value exports) {
   local_fs_owner *owner = calloc(1, sizeof(*owner));
   if (!owner) {unavailable(env, "LocalFileAllocationFailed"); return false;}
   owner->tag.lower = (uint64_t)(uintptr_t)owner; owner->tag.upper = UINT64_C(0x414354514c46494c);
   const char *names[] = {"openFileRoot", "openFileDirectory", "openRootFile", "fileRootCurrent",
     "fileRootStat", "fileRootNext", "fileRootRead", "fileRootClose", "fileRootEntryKind",
-    "openRootFileWriter", "fileRootWrite", "fileRootPublish", "openStoreOwnerLease", "storeOwnerLeaseReceipt"};
+    "openRootFileWriter", "fileRootWrite", "fileRootPublish", "openStoreOwnerLease", "storeOwnerLeaseReceipt",
+    "localFileWriteConstructionProfile", "publishStoreOwnerDirectory", "replaceStoreOwnerMetadata"};
   napi_callback callbacks[] = {local_fs_open_root, local_fs_open_directory, local_fs_open_file,
     local_fs_check, local_fs_stat, local_fs_next, local_fs_read, local_fs_close, local_fs_entry_kind,
-    local_fs_open_writer, local_fs_write, local_fs_publish, local_fs_open_lease, local_fs_lease_receipt};
+    local_fs_open_writer, local_fs_write, local_fs_publish, local_fs_open_lease, local_fs_lease_receipt,
+    local_fs_write_construction_profile, local_fs_publish_store_owner, local_fs_replace_store_owner};
   for (size_t index = 0; index < sizeof(callbacks) / sizeof(callbacks[0]); index++) {
     napi_value function;
     if (napi_create_function(env, names[index], NAPI_AUTO_LENGTH, callbacks[index], owner, &function) != napi_ok ||

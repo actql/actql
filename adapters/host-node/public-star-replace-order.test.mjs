@@ -61,7 +61,7 @@ for (const item of [
       const run = await client.startSource(text, {format: 'sql', submissionRef: client.newSubmission({nonce: `case-${index}`}), ...input});
       const state = await run.wait({signal: AbortSignal.timeout(15_000)});
       assert.equal(state.status, 'succeeded', text + ': ' + JSON.stringify(state));
-      const result = run.result('answer');
+      const result = run.result('main');
       assert.deepEqual(await result.all(), item.expected, text);
       // SUM retains its declared nullable result contract; the key stays non-null.
       assert.deepEqual((await result.describe()).columns,

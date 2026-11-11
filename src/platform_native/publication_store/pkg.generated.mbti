@@ -3,7 +3,9 @@ package "actql/actql/platform_native/publication_store"
 
 import {
   "actql/actql/checkpoint_runtime",
+  "actql/actql/client_local_host",
   "actql/actql/connectors/salesforce/catalog",
+  "actql/actql/execution_relation",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/signature",
@@ -31,6 +33,15 @@ pub fn open_store_with_custody(@sqlite.Library, String, String, Int64, Int64, In
 // Errors
 
 // Types and methods
+type CapturedContentCustody
+pub fn CapturedContentCustody::confirm(Self, Int) -> Result[Unit, NativePublicationStoreIssue]
+pub fn CapturedContentCustody::matches_confirmed(Self, @run_publication.CapturedContentReference) -> Bool
+pub fn CapturedContentCustody::matches_lookup_raw_confirmed(Self, @run_publication.PublicationContract) -> Bool
+pub fn CapturedContentCustody::persist(Self, Bytes) -> Result[Unit, NativePublicationStoreIssue]
+pub fn CapturedContentCustody::restore(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn CapturedContentCustody::retained_inventory(Self) -> @execution_relation.PreparationRepresentationUnits?
+pub fn CapturedContentCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
+
 type ConfirmedPayloadDelivery
 pub fn ConfirmedPayloadDelivery::close(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn ConfirmedPayloadDelivery::confirm_chunk(Self) -> Result[Int64, NativePublicationStoreIssue]
@@ -80,6 +91,12 @@ pub fn LocalPreparationRawCustody::persist(Self, Int, Bytes) -> Result[Unit, Nat
 pub fn LocalPreparationRawCustody::reserve(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn LocalPreparationRawCustody::reserved_bytes(Self) -> Int64
 pub fn LocalPreparationRawCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
+
+type ModelEvidenceCustody
+pub fn ModelEvidenceCustody::confirm(Self) -> Result[@run_publication.RunEvidenceValue, NativePublicationStoreIssue]
+pub fn ModelEvidenceCustody::persist(Self) -> Result[Unit, NativePublicationStoreIssue]
+pub fn ModelEvidenceCustody::reserved_bytes(Self) -> Int64
+pub fn ModelEvidenceCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
 
 pub(all) struct NativeCommittedResult {
   public_index_entry : @run_publication.PublicationContract
@@ -162,7 +179,9 @@ pub(all) enum NativePublicationStoreIssue {
   SinkProgress(@run_publication.DeliverySinkProgressIssue)
   DeliveryIssuance(@run_publication.DeliveryIssuanceIssue)
   DeliveryGrantUsage(@run_publication.DeliveryGrantUsageIssue)
+  PublicationPreparation(@client_local_host.ClientProgramValidationIssue)
   PublicationCommit(@run_publication.PublicationCommitIssue)
+  EffectfulPublication(@run_publication.EffectfulPublicationCommitIssue)
   PublicationCommitIssuance(@run_publication.PublicationCommitIssuanceIssue)
   PublicationCommitConflict
   ClockRegression
@@ -234,6 +253,12 @@ pub fn PayloadWriter::append(Self, Bytes) -> Result[Unit, NativePublicationStore
 pub fn PayloadWriter::cancel(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn PayloadWriter::seal(Self) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 
+pub(all) struct PrivateEvidenceCustodyConstruction {
+  retained : @execution_relation.PreparationRepresentationUnits
+  workspace : @execution_relation.PreparationRepresentationUnits
+  envelope_bytes : Int
+}
+
 type ResultDelivery
 pub fn ResultDelivery::attempt_cid(Self) -> String
 pub fn ResultDelivery::close(Self) -> Result[Unit, NativePublicationStoreIssue]
@@ -247,12 +272,15 @@ pub fn Store::acquire_payload_cleanup(Self, @publication_payload.PublicationPayl
 pub fn Store::begin_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[PayloadWriter, NativePublicationStoreIssue]
 pub fn Store::begin_result_delivery(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, String, String, String, Array[String], Int, Int, Int, Int, Int, Int64) -> Result[ResultDelivery, NativePublicationStoreIssue]
 pub fn Store::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativePublicationStoreIssue]
+pub fn Store::captured_content_custody_construction_inventory(Self, Int, candidate? : @run_publication.CapturedContentReference?) -> @execution_relation.PreparationRepresentationUnits?
 pub fn Store::close(Self) -> Result[Bool, NativePublicationStoreIssue]
-pub fn Store::commit_publication(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[NativePublicationCommit, NativePublicationStoreIssue]
+pub fn Store::commit_publication(Self, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[String], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, capture? : @client_local_host.ClientProgramCapture?, effectful? : @run_publication.EffectfulFinalRunEvidence?) -> Result[NativePublicationCommit, NativePublicationStoreIssue]
 pub fn Store::custody_location(Self) -> Result[(String, UInt64, UInt64), NativePublicationStoreIssue]
+pub fn Store::effect_checkpoint_restore_construction(Self, @checkpoint_runtime.SealedCheckpoint) -> Result[(@sqlite.NativeJournalHeader, PrivateEvidenceCustodyConstruction), NativePublicationStoreIssue]
 pub fn Store::inspect_committed_publication(Self, String, String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract?, NativePublicationStoreIssue]
 pub fn Store::inspect_payload(Self, String) -> Result[NativePublicationPayloadInfo, NativePublicationStoreIssue]
 pub fn Store::inspect_result_delivery(Self, String) -> Result[NativeResultDeliveryStatus, NativePublicationStoreIssue]
+pub fn Store::lookup_raw_custody_construction_inventory(Self, Int, @run_publication.PublicationContract) -> @execution_relation.PreparationRepresentationUnits?
 pub fn Store::lookup_result_delivery(Self, @run_publication.DeliveryAttemptLookupScope) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue]
 pub fn Store::matches_original_operation(Self, @sqlite.NativeStoreOperationOriginal) -> Bool
 pub fn Store::observe_allocation(Self, (String) -> Unit) -> Unit
@@ -261,12 +289,16 @@ pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, Nati
 pub fn Store::open_confirmed_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_delivery(Self, String, String, String, Array[String], Int, Int, Int, Int, Int64) -> Result[PayloadDelivery, NativePublicationStoreIssue]
 pub fn Store::open_payload_reader(Self, String) -> Result[PayloadReader, NativePublicationStoreIssue]
+pub fn Store::prepare_captured_content_custody(Self, @run_publication.CapturedContentReference, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_capture_custody(Self, @run_publication.EffectCaptureHoldingBinding, @signature.Library, Bytes) -> Result[EffectCaptureCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_catalog_custody(Self, @catalog.CatalogObservation, @catalog.CatalogObservationBinding, String, String, Int, Bytes, @catalog.DescribeLimits, @signature.Library, Bytes) -> Result[EffectCatalogCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_preview_custody(Self, @run_publication.EffectPreviewIdentity, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[EffectPreviewCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @http_client.Client, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
+pub fn Store::prepare_lookup_raw_custody(Self, @run_publication.PublicationContract, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
+pub fn Store::prepare_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
+pub fn Store::private_evidence_custody_construction(Self, String) -> PrivateEvidenceCustodyConstruction?
 pub fn Store::read_publication_contract(Self, String, String) -> Result[@run_publication.PublicationContract, NativePublicationStoreIssue]
 pub fn Store::read_result_schema(Self, String) -> Result[String, NativePublicationStoreIssue]
 pub fn Store::reclaim_payload(Self, String) -> Result[Unit, NativePublicationStoreIssue]
@@ -274,13 +306,14 @@ pub fn Store::reconcile_original_return(Self) -> Result[Bool, NativePublicationS
 pub fn Store::reconcile_payload(Self, @publication_payload.PublicationPayloadRequest) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue]
 pub fn Store::recover(Self) -> Result[NativePublicationRecovery, NativePublicationStoreIssue]
 pub fn Store::resolve_committed_result(Self, String, String, String, String, Int, Int, Int) -> Result[NativeCommittedResult?, NativePublicationStoreIssue]
-pub fn Store::restore_confirmed_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]
+pub fn Store::restore_confirmed_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, @signature.Library, Bytes, continuation_extent? : @sqlite.NativeJournalHeader?) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_capture_custody(Self, @run_publication.EffectCaptureHoldingBinding, @signature.Library, Bytes) -> Result[EffectCaptureCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_catalog_custody(Self, @catalog.CatalogObservationBinding, String, String, @catalog.DescribeLimits, @signature.Library, Bytes) -> Result[EffectCatalogCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_checkpoint_custody(Self, @checkpoint_runtime.SealedCheckpoint, String, String, @signature.Library, Bytes) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_preview_custody(Self, @run_publication.EffectPreviewIdentity, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[EffectPreviewCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 pub fn Store::restore_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
+pub fn Store::restore_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
 pub fn Store::retained_data_current(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::retry_pending_result_delivery_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
 

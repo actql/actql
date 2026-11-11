@@ -708,6 +708,8 @@ fn start_bounded_row_window_with_input(
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
+  // The existing row-charge cursor funds complete output DATA before commit.
+  output.buffer.budget.retention = generated.working
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)

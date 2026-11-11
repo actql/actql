@@ -1,0 +1,325 @@
+{
+  "status": "source-preparation-only",
+  "profile": "linux-x64-posix-process",
+  "target": "x86_64-linux-gnu",
+  "normal_profile": null,
+  "installed_supplier": false,
+  "compiler": {
+    "pin": "toolchain.json",
+    "archive": {
+      "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+      "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+    }
+  },
+  "build_selection": {
+    "package": "src/platform_native/host_bootstrap/moon.pkg",
+    "compiler": "original Moon-selected compiler unchanged",
+    "stub_cc_flags": [
+      "-D_GNU_SOURCE"
+    ],
+    "cc_link_flags": [
+      "-pthread"
+    ],
+    "entry": "default bootstrap_stub.c branch on actual __linux__ && __x86_64__, before moonbit.h",
+    "provider_define": "ACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN",
+    "excluded": [
+      "ACTQL_SCOPED_READ_ALLOCATOR",
+      "ACTQL_BOOTSTRAP_IMPORT_PROVIDER"
+    ],
+    "permission": false
+  },
+  "physical_contract": {
+    "same_provider": [
+      "owned_capacity.c",
+      "owned_region.inc",
+      "owned_domain_borrow.inc",
+      "owned_thread.inc",
+      "owned_inventory.inc",
+      "owned_domain_growth.inc"
+    ],
+    "abi": "LP64 little-endian glibc, 64-bit pointers/size_t/off_t, 32-bit int/PID and always-lock-free PID atomics; actual layout/page sizes observed, never copied from ARM",
+    "custody": "Original Core child/current/borrow and child-first physical retirement remain required; anonymous parent is not FD transport",
+    "image_rust_engine": false
+  },
+  "qualification": {
+    "executed": false,
+    "physical_command": [
+      "python3",
+      "scripts/test_native_linux_x64_owned_process.py"
+    ],
+    "moon_ffi_package": "src/platform_native/host_bootstrap",
+    "full_required_wrappers": [
+      "scripts/test-native-http-client.mjs",
+      "scripts/test-native-separated-network.sh"
+    ],
+    "coverage": "Preserve all15 existing package selections and later original controls. A C-only result is not their qualification.",
+    "ci_job": "native",
+    "ci_step_timeout_minutes": 5,
+    "ci_order": "Once before check:native-http-client; not duplicated in native-separated-network",
+    "actual_correspondence": "Require exact source/recipe input hashes, original installed.json Linuxx64 marker and Moon versions; record actual C compiler target/version/binary and dependency header hashes. Recheck source and tools after execution.",
+    "ci_ffi_command": [
+      "node",
+      "scripts/local-checks.mjs",
+      "test",
+      "moon",
+      "--timeout-seconds",
+      "240",
+      "--",
+      "--target",
+      "native",
+      "src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt"
+    ]
+  },
+  "inputs": [
+    {
+      "path": "toolchain.json",
+      "bytes": 753,
+      "sha256": "8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/moon.pkg",
+      "bytes": 381,
+      "sha256": "241bd39427dead44ebaefe46ae3b11515642bda96baf7e0a12b307058c1c372b"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
+      "bytes": 42805,
+      "sha256": "c1eea291360487485062a036e0283dce8369f0974a3bbb13836981824ab0bf84"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/bootstrap_native.mbt",
+      "bytes": 23697,
+      "sha256": "5efa2d79a6f6d846a06e58f55b09341b72d91fd0a5db5241ce84312981b63c61"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_region_native.mbt",
+      "bytes": 9816,
+      "sha256": "77a5deeada8e5622450c21fe031d6ff37d4c76af0e8fb551e608baab6b925c87"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_view_native.mbt",
+      "bytes": 9175,
+      "sha256": "9a002959bf6bc218a801d907c0af668503abeae80d852c0044abbf486af9b808"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_domain_native.mbt",
+      "bytes": 10215,
+      "sha256": "001cea87bfddb56c5125a09ebf90a21541661de3eee36bf4ae9ae6260f43ccb4"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/process_region.h",
+      "bytes": 8902,
+      "sha256": "3f9194634a91120de1cca13172671eb017e1505bc5820e91263ae901be9464e3"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/component_domain_minimum.h",
+      "bytes": 1048,
+      "sha256": "84d1d7520f20ba053ac70b6116af1dee376d123c5505302f6f793c9325a48000"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
+      "bytes": 41465,
+      "sha256": "d043591d81b0988dbd262cec8f4d2fd77afb2a1bd87428350d1555b6137e9493"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
+      "bytes": 7439,
+      "sha256": "0444df0c78d0fda6a23ffeb29f4b9e38f531cfc8fc758ea1e328b7819f85f149"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_linux_x64_process_profile.h",
+      "bytes": 2250,
+      "sha256": "724d2486e8e4f2af268ae2e008d79f1f66fe862d5acadc852c13a7f1e8ac9661"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_region.h",
+      "bytes": 12839,
+      "sha256": "62a647e791f554801d05379d64ceaebc94af78b2ec2dc4cb368fa52447ce30e5"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_region.inc",
+      "bytes": 36266,
+      "sha256": "6900203c7d7ec0a9f7515d9cda8355b1edaad545417451f494f49ce94cfdbe70"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_domain_borrow.h",
+      "bytes": 2573,
+      "sha256": "51a183ccb9f9de945a608b5b9241ffa7ef3f62513e8ca8426e29188b29157480"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_domain_borrow.inc",
+      "bytes": 8662,
+      "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_thread.h",
+      "bytes": 1894,
+      "sha256": "9cc6dfb81529954e07267e0ae0c14f89cc8a2648252b6ac498bf0f0ed6b37bdd"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_thread.inc",
+      "bytes": 8474,
+      "sha256": "77b12a17b88ce0a671f0b3caef673c93e5e2ad0bc404f890a7bdffdc001651b3"
+    },
+    {
+      "path": "scripts/test_native_linux_x64_owned_process.py",
+      "bytes": 14178,
+      "sha256": "ad15d7a17ef244cdf311f717440388e99cdeb40a184124803b6ea22aa6fb30a5"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/linux_x64_process_abi.c",
+      "bytes": 1713,
+      "sha256": "abfa371a4547bc55c029c38d8fc8e47a5f907c5327cca00b6542f6c06c76576b"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/region.c",
+      "bytes": 6663,
+      "sha256": "e7eaec540b11398d1baf567a56f2da08c13a874c1703ce56a5342cad7c1f8d2f"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/region_range.c",
+      "bytes": 4794,
+      "sha256": "e1187b62fd1723e7878bb0c35d65a4a682186de0de2986f444e1ec83486cc1a8"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/extent_domain.c",
+      "bytes": 6452,
+      "sha256": "c4c9429849be63129e3662b9ee0c64438074ad65f04f6b33a5e3e0492ac745c5"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_borrow.c",
+      "bytes": 9474,
+      "sha256": "72f8c42e5da9580917ed0581a9392b91cbb72ce016249b44b265e5e8fff61a80"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_record.c",
+      "bytes": 6275,
+      "sha256": "5684d77a99f2f688c63079c3d370eae867934415d2eae409ea83d83aca28f508"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_span.c",
+      "bytes": 7555,
+      "sha256": "8af44d58131a0fa7e1888f847ef518bb43083c82d3bd2f58e4a881008262dd7e"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/stopped_region.c",
+      "bytes": 7593,
+      "sha256": "9196520dea3f07d6d9bc15401fdef06fc404575decd2ad3a8702e57ecc44f6e1"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/in_process_domain.c",
+      "bytes": 7172,
+      "sha256": "52b30cb2c65ab1f3fc463041217fb79f5858bc893d8cb640ed5e51cabaa5e1f0"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_storage.c",
+      "bytes": 6833,
+      "sha256": "57456506b5bdfdb9c48289f78aada175b59b4c8e76c042cd9d20c6f373a97e82"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/first_fit.c",
+      "bytes": 5261,
+      "sha256": "9a8acd4be9bf0930200cdd9f0f0e6d857c0de8bb985f09badb15e870f6a315ec"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/extent_work.c",
+      "bytes": 3901,
+      "sha256": "67fc2346ed96283b8db1776aa619f9d0b7c3c63b8bb556e5cc6c91a340c78ac2"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/cleanup.c",
+      "bytes": 3997,
+      "sha256": "d7858bea504ab7473fb25c4ed8d880d5d1e7b3cf6e3eb8dfda82bf31c074b065"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/thread.c",
+      "bytes": 12343,
+      "sha256": "52152ab57d0810a9fb64a6e1e3898dc2e91ce7135ab9beeb04de5ea52d9ebb1c"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_inventory.inc",
+      "bytes": 3461,
+      "sha256": "1719f75f87630a21c69909ca5194ef90196e582be284b0d8a1518de6b05fd524"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/process_inventory.c",
+      "bytes": 4752,
+      "sha256": "e5cfd2c758408f5f3c10ab2182d37e14d302fe327161911e67f76e6386995a09"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt",
+      "bytes": 3325,
+      "sha256": "8c1019ebc4d459ce610d04adcf1c3d85887f33961dc0f0edd3a76ae9662c7aff"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backing_growth_native.mbt",
+      "bytes": 4478,
+      "sha256": "023d52b154fdaa5d966da537a38a40fd50a8069520c60459b084120b7f8d663a"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backing_growth_wbtest.mbt",
+      "bytes": 2232,
+      "sha256": "44108608af115ca4ab0e383a7d453bc2123f1d7171cb8eb687754ccb45f8b2a0"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/growth.c",
+      "bytes": 6980,
+      "sha256": "3e367ddf09d8d58978806b6f53f29e0a2328093771959ef9727db2a4b130d568"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_growth.c",
+      "bytes": 15974,
+      "sha256": "c87a3fbf0e5a070463417898121609f6339665b05d0deceea5524d1a83df8bf0"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_domain_growth.inc",
+      "bytes": 28051,
+      "sha256": "c743974199c77ea78c91126ee8e63b69a81c0f0cb8beb0f3917e8a82929dcace"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_supplier.c",
+      "bytes": 21506,
+      "sha256": "b9b2f756dbf4c603365dc48c76aee9a78b03ee81e54f17aed9a86f05af3f3eb4"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_reconciliation.c",
+      "bytes": 12541,
+      "sha256": "64799d2e80a14b853bea353e0162cac5edf576ed0da88a84995cd054bd63f30e"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/root_control.inc",
+      "bytes": 13116,
+      "sha256": "51d839c3924e1626466257255c39fa0df6710effb2d939854770a0c92b4e7b79"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/root_control_native.mbt",
+      "bytes": 17775,
+      "sha256": "5f927f7441f12b023afb7f39ee0a2bd193ccc97d7ec80cadb6c37ba454461e96"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt",
+      "bytes": 18368,
+      "sha256": "1baeb88bf4f19beb1ff83a8f7fb27f0b122af54d413327792210b8c1e90a2242"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/root_control_unavailable_wbtest.mbt",
+      "bytes": 1125,
+      "sha256": "ee654ae3e4a4c14c1eaa0504e6d363e2e6e8d4abc49afee391a8cec098b30eb1"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/working_origin.inc",
+      "bytes": 8439,
+      "sha256": "31c6a783783bf5652d86dcada06c408f9aefc54c19d7889eaa22a372c2320a1e"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/working_origin_fixture.c",
+      "bytes": 8643,
+      "sha256": "f73494540230d02b08e5fd0b52c8f4425f11ecea99b82c3df2c13bbc0eab6990"
+    },
+    {
+      "path": "scripts/test_native_working_origin.py",
+      "bytes": 5362,
+      "sha256": "e08612721fc2def3496740c5f26401d940ede8a5fc99875e0ce17f1f57aef650"
+    }
+  ]
+}

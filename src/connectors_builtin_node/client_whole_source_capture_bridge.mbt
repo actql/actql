@@ -56,28 +56,9 @@ pub fn client_program_prepare_whole_source_capacity(
     original,
     declaration,
     contracts,
-    {
-      max_rows,
-      page: {
-        max_bytes: max_page_bytes,
-        max_nodes: max_page_nodes,
-        max_depth: max_page_depth,
-        max_rows: max_page_rows,
-      },
-      retention: {
-        max_nodes: 100000,
-        max_text_bytes: 500000,
-        max_depth: 100,
-        max_work: 20000000,
-      },
-      wire: {
-        max_columns: 100,
-        max_order_work: 100000,
-        max_bytes: 1000000,
-        max_nodes: 100000,
-        max_depth: 100,
-      },
-    },
+    @client_local_host.installed_row_input_policy(
+      max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+    ),
     provider,
   )
 }
@@ -115,8 +96,14 @@ pub fn client_program_whole_source_input_identity(
   prepared : @publication_host.PreparedClientProgram,
   original : @acquisition.SourceAcquisition,
 ) -> Array[String]? {
+  let stage = @acquisition.declaration(
+      @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
+    ).stage_index
   if !@publication_host.client_source_acquisition_matches_program(
-      prepared, 0, 0, original,
+      prepared,
+      stage,
+      @acquisition.source_acquisition_source_index(original),
+      original,
     ) {
     return None
   }
@@ -235,6 +222,14 @@ pub fn client_program_issue_whole_source_publication_invocation(
 }
 
 ///|
+#export_name("clientProgramWholeSourceIsListing")
+pub fn client_program_whole_source_is_listing(
+  acquisition : @client_row_source_host.RowInputAcquisition,
+) -> Bool {
+  @client_row_source_host.row_input_acquisition_is_listing(acquisition)
+}
+
+///|
 #export_name("clientProgramWholeSourceFacts")
 pub fn client_program_whole_source_facts(
   acquisition : @client_row_source_host.RowInputAcquisition,
@@ -264,6 +259,9 @@ pub fn client_program_whole_source_request_wire(
 }
 
 ///|
+// Like the Query capture entry, the Request invokes these constructors while
+// its original body is borrowed. Actual tasks reserve on that same finite
+// parent; whole-Run quote maxima neither fund work nor gate this entrance.
 #export_name("clientProgramPrepareInstalledManagedWholeSourcePlan")
 pub fn client_program_prepare_installed_managed_whole_source_plan(
   prepared : @publication_host.PreparedClientProgram,
@@ -292,6 +290,7 @@ pub fn client_program_prepare_installed_managed_whole_source_plan(
     ordered,
     retained_output~,
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -333,6 +332,7 @@ pub fn client_program_prepare_installed_managed_whole_source_plan_at_query_time(
     invocation,
     retained_output~,
     provider_factory=installed_client_family_providers,
+    runtime_admission=true,
   )
 }
 
@@ -384,6 +384,22 @@ pub fn client_program_open_installed_managed_capture_host(
 }
 
 ///|
+#export_name("clientProgramOpenInstalledManagedKeyedCaptureHost")
+pub fn client_program_open_installed_managed_keyed_capture_host(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  @client_local_host.ClientInstalledCaptureHostIssue,
+] {
+  @client_local_host.open_installed_managed_keyed_capture_host(
+    owner, prepared, request, lookup,
+  ).map(value => value.0)
+}
+
+///|
 #export_name("clientProgramInstalledWholeSourceReadStartRows")
 pub fn client_program_installed_whole_source_read_start_rows(
   read : @client_local_host.ClientInstalledSourceRead,
@@ -424,11 +440,26 @@ pub fn client_program_issue_whole_source_input_logical(
   @publication.RunEvidenceValue,
   @publication_host.ClientCapturedSourceLogicalIssue,
 ] {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let original = @client_local_host.installed_whole_source_original(capacity)
+  let stage = @acquisition.declaration(
+      @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
+    ).stage_index
+  guard @publication_host.client_source_acquisition_matches_program(
+      prepared,
+      stage,
+      @acquisition.source_acquisition_source_index(original),
+      original,
+    ) &&
+    @strategy.graph_stage_operation_task(graph, stage, 0) is Some(task) else {
+    return Err(@publication_host.ForeignPrepared)
+  }
   @publication_host.issue_captured_whole_source_input_logical(
-    @publication_host.prepared_client_graph(prepared),
+    graph,
     source,
     identity,
-    @client_local_host.installed_whole_source_original(capacity),
+    original,
+    task~,
   )
 }
 
@@ -462,4 +493,802 @@ pub fn client_program_whole_source_issue_source_evidence_wire(
   @client_row_source_host.issue_row_input_source_evidence(
     acquisition, capture, identity, logical, scope, policy, observed,
   ).map(value => @publication.run_evidence_value_json(value))
+}
+
+///|
+#export_name("clientProgramEffectDirectSourceCoordinates")
+pub fn client_program_effect_direct_source_coordinates(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Result[
+  Array[Array[Int]],
+  @publication_host.ClientDirectAcquisitionOccurrenceIssue,
+] {
+  @publication_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).map(value => {
+    Array::makei(
+      @publication_host.client_direct_acquisition_occurrence_count(value),
+      slot => {
+        let (stage, input, task) = @publication_host.client_direct_acquisition_occurrence_at(
+          value, slot,
+        ).unwrap()
+        [stage, input, slot, task]
+      },
+    )
+  })
+}
+
+///|
+#export_name("clientProgramEffectWholeSourceInputIdentity")
+pub fn client_program_effect_whole_source_input_identity(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  original : @acquisition.SourceAcquisition,
+) -> Array[String]? {
+  let source = @acquisition.mode_input(
+    @acquisition.source_acquisition_mode(original),
+  )
+  let stage = @acquisition.declaration(source).stage_index
+  if !@publication_host.client_source_acquisition_matches_effect_program(
+      prepared,
+      stage,
+      @acquisition.source_acquisition_source_index(original),
+      original,
+    ) {
+    return None
+  }
+  let identity = @publication_host.prepared_client_effect_identity(prepared)
+  Some([identity.program_definition_cid, identity.parameter_values_cid])
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedPlanWholeSource")
+pub fn client_program_installed_effect_managed_plan_whole_source(
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  occurrence : Int,
+) -> Result[
+  (
+    @acquisition.SourceAcquisition,
+    @client_row_source_host.RowInputAcquisition,
+    @client_local_host.ClientInstalledWholeSourceCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepared_installed_effect_managed_whole_source(
+    plan, occurrence,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedSourceInputKind")
+pub fn client_program_installed_effect_managed_source_input_kind(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  occurrence : Int,
+) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_effect_managed_source_input_kind(
+    owner, prepared, request, occurrence,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedWholeSourceRead")
+pub fn client_program_installed_effect_managed_whole_source_read(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @client_row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    @client_local_host.ClientInstalledSourceRead,
+    @acquisition.SourceAcquisition,
+    @client_row_source_host.RowInputAcquisition,
+    @client_local_host.ClientInstalledWholeSourceCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_effect_managed_whole_source_read(
+    owner, prepared, request, declaration, occurrence,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedSourcesLedger")
+pub fn client_program_installed_effect_managed_sources_ledger(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @resources.Ledger,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_effect_managed_sources_ledger(
+    owner, prepared, request,
+  )
+}
+
+///|
+#export_name("clientProgramIssueEffectWholeSourceInputLogical")
+pub fn client_program_issue_effect_whole_source_input_logical(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication_host.ClientCapturedSourceLogicalIssue,
+] {
+  let original = @client_local_host.installed_whole_source_original(capacity)
+  let stage = @acquisition.declaration(
+      @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
+    ).stage_index
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(prepared),
+  )
+  guard @publication_host.client_source_acquisition_matches_effect_program(
+      prepared,
+      stage,
+      @acquisition.source_acquisition_source_index(original),
+      original,
+    ) &&
+    @strategy.graph_stage_operation_task(graph, stage, 0) is Some(task) else {
+    return Err(@publication_host.ForeignPrepared)
+  }
+  @publication_host.issue_captured_whole_source_input_logical(
+    graph,
+    source,
+    identity,
+    original,
+    task~,
+  )
+}
+
+///|
+/// Immutable policy DATA from the same installed Source constructor as Pure.
+#export_name("clientProgramInstalledRowInputPolicy")
+pub fn client_program_installed_row_input_policy(
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> @client_row_source_host.RowInputLimits {
+  @client_local_host.installed_row_input_policy(
+    max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+  )
+}
+
+///|
+#export_name("clientProgramExportWholeSourceCapture")
+pub fn client_program_export_whole_source_capture(
+  source : @query.CapturedInputSource,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  binding : String,
+) -> Result[
+  (Array[String], String, String, Array[String]),
+  @client_local_host.ClientSourceCaptureIssue,
+] {
+  @client_local_host.export_client_whole_source_capture(
+    source, capacity, binding,
+  )
+}
+
+///|
+#export_name("clientProgramRestoreWholeSourceCapture")
+pub fn client_program_restore_whole_source_capture(
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  expected_binding : String,
+  saved_binding : String,
+  saved_identity : Array[String],
+  schema_cid : String,
+  rows_cid : String,
+  rows : Array[String],
+  ledger : @resources.Ledger,
+  custody_available : () -> Bool,
+  reference_issuer : @admitted.ReferenceIssuer?,
+) -> Result[
+  @client_local_host.ClientAccountedSourceCapture,
+  @client_local_host.ClientSourceCaptureIssue,
+] {
+  @client_local_host.restore_accounted_client_whole_source_capture(
+    capacity,
+    expected_binding,
+    saved_binding,
+    saved_identity,
+    schema_cid,
+    rows_cid,
+    rows,
+    ledger,
+    custody_available,
+    reference_issuer?,
+  )
+}
+
+///|
+#export_name("clientProgramSourceCaptureRetainInput")
+pub fn client_program_source_capture_retain_input(
+  value : @client_local_host.ClientAccountedSourceCapture,
+  dag : @strategy.CapturedDAG,
+  task : Int,
+) -> Result[Unit, @client_local_host.ClientSourceCaptureIssue] {
+  @client_local_host.retain_accounted_client_source_capture_input(
+    value, dag, task,
+  )
+}
+
+///|
+#export_name("clientProgramWholeSourceCaptureInput")
+pub fn client_program_whole_source_capture_input(
+  capture : @client_row_source_host.RowSourceCapture,
+) -> Result[
+  @client_row_source_host.RowCapturedInput,
+  @client_row_source_host.RowHostIssue,
+] {
+  guard @client_row_source_host.row_capture_input(capture) is Some(input) &&
+    @client_row_source_host.row_captured_input_source_original(input) is Some(_) else {
+    return Err(@client_row_source_host.InvalidState)
+  }
+  Ok(input)
+}
+
+///|
+#export_name("clientProgramRestoredWholeSourceCaptureInput")
+pub fn client_program_restored_whole_source_capture_input(
+  owner : @client_local_host.ClientAccountedSourceCapture,
+) -> Result[
+  @client_row_source_host.RowCapturedInput,
+  @client_local_host.ClientSourceCaptureIssue,
+] {
+  match @client_local_host.accounted_client_source_capture_input(owner) {
+    Some(value) => Ok(value)
+    None => Err(@client_local_host.BindingMismatch)
+  }
+}
+
+///|
+#export_name("clientProgramAdmitComposedInferWholeSources")
+pub fn client_program_admit_composed_infer_whole_sources(
+  occurrence : @publication_host.ClientInferOccurrence,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  capacities : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  logicals : Array[@publication.RunEvidenceValue],
+  evidence : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+  keyed : @publication_host.ClientKeyedLookupObservation?,
+) -> Result[
+  @publication_host.ClientInferComposedSources,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  let count = logicals.length()
+  if count < 1 ||
+    count > 2 ||
+    evidence.length() != count ||
+    capacities.length() != count {
+    return Err(@publication_host.ForeignInput)
+  }
+  for index in 0..<count {
+    match
+      check_client_infer_original_evidence(
+        "source_input_logical",
+        logicals[index],
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    match
+      check_client_infer_original_evidence("source_evidence", evidence[index]) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  @publication_host.admit_client_infer_composed_whole_sources(
+    occurrence,
+    captures,
+    identities,
+    capacities.map(@client_local_host.installed_whole_source_original),
+    logicals,
+    evidence,
+    authority_scope_cid,
+    started_at,
+    completed_at,
+    keyed~,
+  )
+}
+
+///|
+#export_name("clientProgramStartInstalledOriginalComposedKeyedInputPrefix")
+pub fn client_program_start_installed_original_composed_keyed_input_prefix(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  inputs : Array[@client_row_source_host.RowCapturedInput],
+) -> Result[
+  @client_local_host.ClientOriginalComposedKeyedPrefix,
+  @client_local_host.ClientSerializationPrefixIssue,
+] {
+  let limits = @infer_host.standard_limits()
+  @client_local_host.start_installed_original_composed_keyed_input_prefix(
+    owner,
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    inputs,
+    limits.input,
+    limits.measurement,
+  )
+}
+
+///|
+// Retained canonical usage enforces the existing wire admission envelope.
+// This DATA check neither re-admits JSON nor grants Source/Model authority.
+fn check_client_infer_original_evidence(
+  name : String,
+  evidence : @publication.RunEvidenceValue,
+) -> Result[Unit, @publication_host.ClientInferCallScopeIssue] {
+  if @publication.run_evidence_value_name(evidence) != name ||
+    !@publication.run_evidence_value_fits(evidence, 100000, 10000, 100) {
+    return Err(@publication_host.Evidence(@publication.RunEvidenceInvalidWire))
+  }
+  Ok(())
+}
+
+///|
+/// Native Catalog inputs retain the original SourceView instead of issuing a
+/// QueryRequirement or regenerating a row declaration with different pins.
+#export_name("clientProgramPrepareDuckDBWholeSourceCapacity")
+pub fn client_program_prepare_duckdb_whole_source_capacity(
+  prepared : @publication_host.PreparedClientProgram,
+  selection : @acquisition.SourceAcquisitionRoute,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> Result[
+  @client_local_host.ClientInstalledWholeSourceCapacity,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard selection is @acquisition.WholeInputRoute(original) else {
+    return Err(@client_local_host.Unsupported)
+  }
+  if max_page_depth != @duckdb_input.transport_column_frame_depth() {
+    return Err(@client_local_host.Unsupported)
+  }
+  @client_local_host.prepare_installed_catalog_whole_source_capacity(
+    prepared,
+    original,
+    contracts,
+    @client_local_host.installed_row_input_policy(
+      max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+    ),
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedDuckDBWholeSourceRead")
+pub fn client_program_installed_managed_duckdb_whole_source_read(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> Result[
+  (
+    @client_local_host.ClientInstalledSourceRead,
+    @acquisition.SourceAcquisition,
+    @client_row_source_host.RowInputAcquisition,
+    @client_local_host.ClientInstalledWholeSourceCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_managed_catalog_whole_source_read(
+    owner, prepared, request, capacity,
+  )
+}
+
+///|
+/// Fixed native rendering from the exact checked complete input. Physical
+/// identifiers are Host installation DATA; no authored SQL enters this port.
+#export_name("clientProgramDuckDBWholeSourceSql")
+pub fn client_program_duckdb_whole_source_sql(
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  database_schema : String,
+  table : String,
+  max_bytes : Int,
+) -> Result[String, @client_row_source_host.RowHostIssue] {
+  @client_local_host.render_installed_catalog_source_sql(
+    capacity, database_schema, table, max_bytes,
+  )
+}
+
+///|
+/// Admit the existing native scalar transport with its exact checked input
+/// field contracts, then hand opaque values to the common charged RowRun.
+#export_name("clientProgramDuckDBWholeSourceAcceptPage")
+pub fn client_program_duckdb_whole_source_accept_page(
+  run : @client_row_source_host.RowRun,
+  acquisition : @client_row_source_host.RowInputAcquisition,
+  charge : @client_row_source_host.RowPageCharge,
+  fields_wire : String,
+  columns_wire : String,
+  rows : Int,
+) -> Result[Int, @client_row_source_host.RowHostIssue] {
+  match
+    @client_row_source_host.check_native_row_input_original(run, acquisition) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let limits = @client_row_source_host.row_input_acquisition_limits(acquisition)
+  let schema = @client_row_source_host.row_input_acquisition_schema(acquisition)
+  let width = @schema.field_count(schema)
+  if rows < 0 ||
+    rows > limits.page.max_rows ||
+    width <= 0 ||
+    rows > 2147483647 / width {
+    return Err(@client_row_source_host.InvalidSpecification)
+  }
+  let transport : @duckdb_input.TransportColumnLimits = {
+    max_bytes: limits.page.max_bytes,
+    max_nodes: limits.page.max_nodes,
+    max_columns: limits.wire.max_columns,
+    max_rows: limits.page.max_rows,
+    max_text_bytes: limits.retention.max_text_bytes,
+  }
+  let fields = match
+    @duckdb_input.decode_physical_fields(fields_wire, transport) {
+    Ok(value) => value
+    Err(_) => return Err(@client_row_source_host.InvalidSpecification)
+  }
+  let columns = match
+    @duckdb_input.decode_transport_columns(columns_wire, transport) {
+    Ok(value) => value
+    Err(_) => return Err(@client_row_source_host.InvalidSpecification)
+  }
+  if fields.length() != width || columns.length() != width {
+    return Err(@client_row_source_host.InvalidSpecification)
+  }
+  let mappings = []
+  for index in 0..<width {
+    let field = @schema.field_at(schema, index).unwrap()
+    if fields[index].0 != @schema.field_reference_name(field) ||
+      @decode.array_length(columns[index]) != Some(rows) {
+      return Err(@client_row_source_host.InvalidSpecification)
+    }
+    match
+      @duckdb_input.prepare_value_mapping(
+        fields[index].1,
+        @schema.field_contract(field),
+      ) {
+      Ok(value) => mappings.push(value)
+      Err(_) => return Err(@client_row_source_host.InvalidSpecification)
+    }
+  }
+  let values = []
+  for row in 0..<rows {
+    let cells = []
+    for column in 0..<width {
+      match
+        @duckdb_input.admit_physical_value(
+          mappings[column],
+          @decode.element_at(columns[column], row).unwrap(),
+          {
+            max_nodes: limits.retention.max_nodes,
+            max_depth: limits.retention.max_depth,
+            max_text_bytes: limits.retention.max_text_bytes,
+          },
+        ) {
+        Ok(value) => cells.push(value)
+        Err(_) => return Err(@client_row_source_host.InvalidSpecification)
+      }
+    }
+    values.push(cells)
+  }
+  @client_row_source_host.accept_charged_row_run_values(
+    run,
+    charge,
+    fields.map(value => value.0),
+    values,
+  )
+}
+
+///|
+#export_name("clientProgramDuckDBWholeSourceBeginTransport")
+pub fn client_program_duckdb_whole_source_begin_transport(
+  borrow : @client_row_source_host.RowRunResponseBorrow,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.begin_row_run_response_attempt(borrow)
+}
+
+///|
+#export_name("clientProgramDuckDBWholeSourceChargeResponse")
+pub fn client_program_duckdb_whole_source_charge_response(
+  run : @client_row_source_host.RowRun,
+  bytes : Int64,
+) -> Result[
+  @client_row_source_host.RowPageCharge,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.charge_native_row_input_response(run, bytes)
+}
+
+///|
+/// Actual selected native scalar-column codec depth, not a reader column ratio.
+#export_name("clientProgramDuckDBWholeSourcePageDepth")
+pub fn client_program_duckdb_whole_source_page_depth() -> Int {
+  @duckdb_input.transport_column_frame_depth()
+}
+
+///|
+/// Declaration DATA for the existing Host's real installation/Catalog join.
+#export_name("clientProgramDuckDBWholeSourceConnector")
+pub fn client_program_duckdb_whole_source_connector(
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> String {
+  let original = @client_local_host.installed_whole_source_original(capacity)
+  @acquisition.declaration(
+    @acquisition.mode_input(@acquisition.source_acquisition_mode(original)),
+  ).connector
+}
+
+///|
+#export_name("clientProgramPrepareInstalledManagedWholeSourcesPlan")
+pub fn client_program_prepare_installed_managed_whole_sources_plan(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacities : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  transfer : Array[Int64],
+  scratch : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  retained_output : Bool,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_whole_sources_plan(
+    prepared,
+    request,
+    capacities,
+    transfer,
+    scratch,
+    contracts,
+    values,
+    fragment,
+    ordered,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+    runtime_admission=true,
+  )
+}
+
+///|
+/// The caller forwards the SAME opaque Option from the existing pre-module
+/// invocation getter. Core checks all originals; no JS tuple is constructed.
+#export_name("clientProgramPrepareInstalledManagedWholeSourcesPlanAtQueryTime")
+pub fn client_program_prepare_installed_managed_whole_sources_plan_at_query_time(
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacities : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  transfer : Array[Int64],
+  scratch : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  retained_output : Bool,
+  invocation : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_whole_sources_plan_at_query_time(
+    prepared,
+    request,
+    capacities,
+    transfer,
+    scratch,
+    contracts,
+    values,
+    fragment,
+    ordered,
+    invocation,
+    retained_output~,
+    provider_factory=installed_client_family_providers,
+    runtime_admission=true,
+  )
+}
+
+///|
+#export_name("clientProgramDirectSourceCoordinates")
+pub fn client_program_direct_source_coordinates(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  Array[Array[Int]],
+  @publication_host.ClientDirectAcquisitionOccurrenceIssue,
+] {
+  @publication_host.select_client_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).map(value => {
+    Array::makei(
+      @publication_host.client_direct_acquisition_occurrence_count(value),
+      slot => {
+        let (stage, input, task) = @publication_host.client_direct_acquisition_occurrence_at(
+          value, slot,
+        ).unwrap()
+        [stage, input, slot, task]
+      },
+    )
+  })
+}
+
+///|
+#export_name("clientProgramInstalledManagedWholeSourceReadAt")
+pub fn client_program_installed_managed_whole_source_read_at(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @client_row_source_host.RowDeclaration,
+  occurrence : Int,
+) -> Result[
+  (
+    @client_local_host.ClientInstalledSourceRead,
+    @acquisition.SourceAcquisition,
+    @client_row_source_host.RowInputAcquisition,
+    @client_local_host.ClientInstalledWholeSourceCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_managed_whole_source_read_at(
+    owner, prepared, request, declaration, occurrence,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedWholeSourcesLedger")
+pub fn client_program_installed_managed_whole_sources_ledger(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  capacities : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  transfer : Array[Int64],
+  scratch : Array[Int64],
+) -> Result[
+  @resources.Ledger,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_managed_whole_sources_ledger(
+    owner, prepared, request, capacities, transfer, scratch,
+  )
+}
+
+///|
+#export_name("clientProgramIssueWholeSourcesPublicationInvocation")
+pub fn client_program_issue_whole_sources_publication_invocation(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  captures : Array[@client_row_source_host.RowSourceCapture],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  sources : Array[@publication.RunEvidenceValue],
+  inputs : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @client_local_host.ClientClosedValuesPreparationIssue,
+] {
+  @client_local_host.issue_program_whole_sources_publication_invocation(
+    owner, prepared, compiled, definition, captures, identities, sources, inputs,
+    authority_scope_cid, data_policy_cid, capture_started_at, capture_completed_at,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelWholeInputsComponentCaptureModule")
+pub fn client_program_prepare_request_model_whole_inputs_component_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  whole_sources : Array[@client_local_host.ClientInstalledWholeSourceCapacity],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  @client_local_host.ClientRequestProgramPlanIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    [],
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    contracts,
+    retained_output,
+    installed_client_family_provider_count() + 1,
+    installed_client_family_providers,
+    query_time~,
+    whole_sources~,
+    component_factory=Some((capacity, prefix, suffix) => {
+      construct(capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
+  )
+}
+
+///|
+#export_name("clientProgramIdentifyWholeCapturedSourceRelation")
+pub fn client_program_identify_whole_captured_source_relation(
+  source : @query.CapturedInputSource,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
+  guard @client_local_host.client_whole_source_capture_schema_columns(
+      source, capacity,
+    )
+    is Some(columns) else {
+    return Err(@query.Unavailable)
+  }
+  identify_installed_captured_source(source, 0, columns~)
+}
+
+///|
+#export_name("clientProgramIdentifyWholeCapturedEffectSourceRelation")
+pub fn client_program_identify_whole_captured_effect_source_relation(
+  source : @query.CapturedInputSource,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
+  guard @client_local_host.client_whole_source_capture_schema_columns(
+      source, capacity,
+    )
+    is Some(columns) else {
+    return Err(@query.Unavailable)
+  }
+  identify_installed_captured_source(source, 16777216, columns~)
 }

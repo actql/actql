@@ -76,8 +76,8 @@ pub fn project_row_source_json_page(
 ) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue] {
   let original = match
     project_row_source_typed_json_page(
-      bytes, items_path, cursor_present, cursor_path, max_bytes, max_nodes,
-      max_depth, max_rows, max_cursor_bytes,
+      bytes, items_path, cursor_present, cursor_path, max_bytes, max_nodes, max_depth,
+      max_rows, max_cursor_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -252,7 +252,8 @@ fn accept_row_source_projected_page(
       max_string_bytes: limits.max_bytes,
       max_total_string_bytes: limits.max_bytes,
     })
-    is Ok(root) && @decode.elements(root) is Ok(items) else {
+    is Ok(root) &&
+    @decode.elements(root) is Ok(items) else {
     return fail_read(read, InvalidPage)
   }
   accept_row_source_items(read, items)
@@ -273,6 +274,30 @@ pub fn accept_charged_row_run_projected_page(
   match consume_row_page_charge(run, charge) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
+  }
+  if run.configuration is InputConfiguration(_) &&
+    run.physical is Some(_) &&
+    physical_equal(page.origin, projected_json_page_origin) &&
+    page.rows_bytes <= read.page_limits.max_bytes {
+    // The original provider still owns the immutable parsed tree. An actual
+    // UTF8 JSON span bounds node/field occurrences without parsing it again.
+    let nodes = Int::min(page.rows_bytes, read.page_limits.max_nodes)
+    match
+      fund_row_input_page(
+        run,
+        read,
+        nodes.to_int64(),
+        page.rows_bytes.to_int64(),
+        page.row_count.to_int64(),
+        page.rows_bytes,
+        None,
+      ) {
+      Ok(_) => ()
+      Err(issue) => {
+        abort_row_run(run)
+        return Err(issue)
+      }
+    }
   }
   match accept_row_source_projected_page(read, page) {
     Ok(count) => Ok(count)

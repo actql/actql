@@ -160,8 +160,10 @@ for (const operation of ['status', 'wait', 'reconcile']) {
         },
       });
       const {run, operations} = await fixture(t, () => reply);
-      const answer = await run[operation]();
-      assert.deepEqual(answer, original);
+      let answer, failure;
+      try { answer = await run[operation](); } catch (error) { failure = error; }
+      assert.equal(failure, undefined, '[check-mutation:run-copy-preservation]');
+      assert.deepEqual(answer, original, '[check-mutation:run-copy-preservation]');
       assert.deepEqual(explainEffectUncertainty(answer).effects, original.next_action.effects);
       assert.ok(Object.values(reads).every(count => count === 1));
       assert.deepEqual(operations, ['connect', 'attach', operation]);
@@ -175,7 +177,7 @@ for (const operation of ['status', 'wait', 'reconcile']) {
     t.after(() => { globalThis.structuredClone = clone; });
     globalThis.structuredClone = value => {
       const copy = clone(value);
-      if (value?.version === 'actql-run-state/0.1' && ++copies > 1) {
+      if (value?.version === 'actql-run-state/0.1' && ++copies > 0) {
         copy.control.physical_stop = 'confirmed';
         copy.control.revision = 8;
         copy.next_action.effects[0] = 'é\r\n';
@@ -280,7 +282,9 @@ for (const path of paths) {
     changing(reply, path.key, path.first, path.later, counts);
     if (path.name === 'deliveryAttempt') changing(reply, 'hostReleaseReceipt', null, delivery.hostReleaseReceipt, counts);
     const f = await responseFixture(t, reply);
-    const answer = await path.call(f);
+    let answer, failure;
+    try { answer = await path.call(f); } catch (error) { failure = error; }
+    assert.equal(failure, undefined, '[check-mutation:response-capture-once]');
     path.assert(answer);
     assert.deepEqual(counts, Object.fromEntries(Object.keys(counts).map(key => [key, 1])), '[check-mutation:response-capture-once]');
     if (['status', 'wait', 'reconcile'].includes(path.name)) {
@@ -341,9 +345,12 @@ for (const path of paths) {
     if (Object.hasOwn(value, 'connection')) return nativeClone(value);
     assert.fail('Unexpected response verification clone');
   });
-    const answer = await path.call(f);
+    let answer, failure;
+    try { answer = await path.call(f); } catch (error) { failure = error; }
+    assert.equal(failure, undefined, '[check-mutation:response-capture-no-conversion]');
     path.assert(answer);
-    assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
+    assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0,
+      '[check-mutation:response-capture-no-conversion]');
     assert.equal(f.operations.length, 3);
   });
 }

@@ -55,8 +55,9 @@ pub fn prepare_program_source_acquisitions(
 }
 
 ///|
-/// Select applicable positive row bounds from the owned capacity closures.
-/// No proof coordinates or independently reconstructed TargetRows are required.
+/// Retain applicable checked row estimates from the owned capacity closures.
+/// Unknown targets retain explicit runtime admission requirements. No proof
+/// coordinates or independently reconstructed TargetRows are required.
 pub fn prepare_program_source_acquisitions_auto(
   selected : SelectedPolicyContext,
   limits : @sourceviews.RequestLimits,

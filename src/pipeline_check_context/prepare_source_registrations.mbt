@@ -18,6 +18,7 @@ pub fn prepare_source_registrations(
   max_inputs~ : Int,
   max_views~ : Int,
   max_order_keys~ : Int,
+  collected_inputs_out? : Ref[@source_inputs.Inputs?]? = None,
 ) -> Result[
   (@sourceviews.PipelineInputs, @local_inputs.ProgramEnvironmentInputs),
   SourceRegistrationIssue,
@@ -36,8 +37,14 @@ pub fn prepare_source_registrations(
   }
   while true {
     match advance_source_registration(read) {
-      RegistrationComplete | RegistrationFailed =>
+      RegistrationComplete | RegistrationFailed => {
+        // Borrow this same reader's collection before normal handoff clears
+        // its aliases. No collector, resolver or binding read is repeated.
+        if collected_inputs_out is Some(output) {
+          output.val = source_registration_collected_inputs(read)
+        }
         return take_source_registration_result(read).unwrap()
+      }
       RegistrationCollect
       | RegistrationSelect
       | RegistrationPipeline

@@ -78,6 +78,8 @@ pub fn graph_data_at(CheckedDAG, Int) -> DataEdge?
 
 pub fn graph_data_count(CheckedDAG) -> Int
 
+pub fn graph_keyed_model_plan_inputs_complete(CheckedDAG, Int, Int) -> Bool
+
 pub fn graph_ordered_inputs_complete(CheckedDAG) -> Bool
 
 pub fn graph_program(CheckedDAG) -> @program_check.CheckedProgram
@@ -122,6 +124,8 @@ pub fn graph_task_target(CheckedDAG, Int) -> @pipeline_typing.Target?
 
 pub fn graph_task_unit_index(CheckedDAG, Int) -> Int?
 
+pub fn graph_with_completed_keyed_model_input(CheckedDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> CheckedDAG?
+
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[CheckedDAG, GraphIssue]
 
 pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[CheckedEffectComputationDAG, GraphIssue]
@@ -134,6 +138,8 @@ pub fn prepare_retained_task_projection(CheckedDAG, Int) -> Result[RetainedTaskP
 
 pub fn prepare_source_input_dag(CheckedDAG, @sourceview_resolution.SourceAcquisition) -> Result[CheckedDAG, GraphIssue]
 
+pub fn prepare_source_inputs_dag(CheckedDAG, Array[@sourceview_resolution.SourceAcquisition]) -> Result[CheckedDAG, GraphIssue]
+
 pub fn retained_task_projection_consumer(RetainedTaskProjection) -> Int
 
 pub fn retained_task_projection_graph(RetainedTaskProjection) -> CheckedDAG
@@ -145,6 +151,8 @@ pub fn retained_task_projection_producer(RetainedTaskProjection) -> Int
 pub fn retained_task_projection_reference(RetainedTaskProjection, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
 
 pub fn retained_task_projection_target(RetainedTaskProjection) -> @pipeline_typing.Target
+
+pub fn source_inputs_dag_matches_original(CheckedDAG, CheckedDAG) -> Bool
 
 pub fn task_numeric_observation_family(TaskNumericObservation) -> NumericObservationFamily
 

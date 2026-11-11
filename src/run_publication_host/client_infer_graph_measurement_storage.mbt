@@ -8,6 +8,7 @@
 pub fn prepared_client_infer_graph_measurement_storage(
   occurrence : ClientInferOccurrence,
   serialization? : ClientSerializationPlanGraph? = None,
+  native_keyed? : Bool = false,
 ) -> @execution.PreparationRepresentationUnits? {
   guard client_infer_occurrence_matches(occurrence, occurrence.owner) &&
     client_infer_occurrence_output_step(occurrence) is Some(terminal) &&
@@ -22,6 +23,23 @@ pub fn prepared_client_infer_graph_measurement_storage(
     return None
   }
   let (count, original_ports, content_parts) = match serialization {
+    None if native_keyed => {
+      guard client_composed_keyed_source_coordinates(occurrence.owner)
+        is Ok(Some((stage, _, join))) &&
+        stage == occurrence.stage &&
+        join < occurrence.step &&
+        @lower.node_at(@lower.bound_preparation(occurrence.preparation), join)
+        is Some(join_node) else {
+        return None
+      }
+      (
+        2L + (terminal - occurrence.step).to_int64(),
+        client_task_fragment_input_count(occurrence.preparation, None).to_int64() +
+        @lower.node_input_count(join_node).to_int64(),
+        // One lookup node, three edges, body/node geometry and their pair.
+        7L,
+      )
+    }
     None =>
       (
         1L + (terminal - occurrence.step).to_int64(),
@@ -101,7 +119,7 @@ pub fn prepared_client_infer_graph_measurement_storage(
     terminal.to_string())
     .length()
     .to_int64()
-  Some({
+  let base : @execution.PreparationRepresentationUnits = {
     record_headers: collections.record_headers,
     reference_slots: collections.reference_slots,
     scalar_words: collections.scalar_words,
@@ -109,5 +127,13 @@ pub fn prepared_client_infer_graph_measurement_storage(
     // names remain borrowed. All generated Fragment labels remain retained.
     owned_utf16_units: 4L * role_units + count * label,
     owned_wire_bytes: 0L,
-  })
+  }
+  if !native_keyed {
+    return Some(base)
+  }
+  guard serialization is None &&
+    client_keyed_plan_metadata_storage(occurrence) is Some(keyed) else {
+    return None
+  }
+  @execution.compose_preparation_representation([base, keyed])
 }

@@ -14,6 +14,23 @@ fn[A] with_managed_scratch_use(
 }
 
 ///|
+// Every input copy contributes to the same Task import extent. Keep its
+// computation, current callback, debit and append in one synchronous mutation
+// scope. Cancellation and cleanup remain independently callable.
+fn with_local_managed_import_mutation(
+  active : Ref[Bool],
+  action : () -> Result[Unit, LocalDispatchIssue],
+) -> Result[Unit, LocalDispatchIssue] {
+  if active.val {
+    return Err(Configuration(InputUnavailable))
+  }
+  active.val = true
+  let result = action()
+  active.val = false
+  result
+}
+
+///|
 // Readiness is private import bookkeeping, not an availability or authority
 // witness. Call only after the existing exact bridge/import validation.
 fn[T] install_local_managed_input_read(
@@ -49,8 +66,11 @@ struct LocalManagedDispatchConfiguration[T] {
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   imports : @local.LocalImportLimits
+  installation : LocalDispatchModule
   metadata : LocalManagedMetadataLimits
   capacity : @connector.ExecutionCapacity
+  metered_output_retention : Bool
+  metered_retention : Bool
   join_output_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
   asof_search_ceilings : Array[(Int, Int64)]
@@ -235,6 +255,8 @@ pub struct LocalManagedDispatchOperations[T] {
     LocalManagedRelationSnapshot?,
     LocalDispatchIssue,
   ]
+  // Original startup-storage quote passed back to this same operation. An
+  // actual-retention task issues its final holding from checked final usage.
   storage_bytes : Int64
   close : () -> Unit
   cleanup_refresh : () -> Bool
@@ -252,6 +274,88 @@ fn managed_row_transfer_bytes(
   @scalar.admit_utf8_length64(row, max_bytes.to_int64()).map_err(_ => {
     Configuration(InputUnavailable)
   })
+}
+
+///|
+// Import preparation retains empty buffers and schema/cursor bindings. Row
+// wire/parser scratch is constructed only by append; the original before-decode
+// growth owner funds that scratch and copied DATA from the same incoming wire.
+fn local_managed_import_start_bytes(
+  limits : @local.LocalImportLimits,
+) -> Int64? {
+  @local.local_import_retention_capacity({
+    max_rows: 0,
+    values: { ..limits.values, max_nodes: 0, max_text_bytes: 0, },
+    wire: { ..limits.wire, max_bytes: 0, max_nodes: 0, },
+    row: { ..limits.row, max_bytes: 1, max_nodes: 0, max_text_bytes: 0, },
+    max_batch_bytes: 1,
+  })
+}
+
+///|
+// A complete incoming row wire bounds every newly decoded value node and
+// text byte, including columns outside the receiving projection. Each bridge
+// accumulates its own bound: equal producers never share a parsed copy.
+fn local_managed_import_next_extent(
+  limits : @local.LocalImportLimits,
+  rows : Int64,
+  nodes : Int64,
+  text : Int64,
+  wire_bytes : Int64,
+) -> (Int64, Int64, Int64, Int64)? {
+  let max_rows = limits.max_rows.to_int64()
+  let max_nodes = limits.values.max_nodes.to_int64()
+  let max_text = limits.values.max_text_bytes.to_int64()
+  guard rows >= 0L &&
+    rows <= max_rows &&
+    nodes >= 0L &&
+    nodes <= max_nodes &&
+    text >= 0L &&
+    text <= max_text &&
+    wire_bytes >= 0L else {
+    return None
+  }
+  let next_rows = rows + Int64::min(1L, max_rows - rows)
+  let next_nodes = nodes + Int64::min(wire_bytes, max_nodes - nodes)
+  let next_text = text + Int64::min(wire_bytes, max_text - text)
+  guard local_managed_import_start_bytes(limits) is Some(start) &&
+    @local.local_import_retention_capacity({
+      max_rows: next_rows.to_int(),
+      values: {
+        ..limits.values,
+        max_nodes: next_nodes.to_int(),
+        max_text_bytes: next_text.to_int(),
+      },
+      // Every parser node, text byte and provisional reference is bounded by
+      // this complete UTF-8 row. These are funding extents only; append still
+      // receives all original parser, wire and cumulative admission limits.
+      wire: {
+        ..limits.wire,
+        max_bytes: Int64::min(limits.wire.max_bytes.to_int64(), wire_bytes).to_int(),
+        max_nodes: Int64::min(limits.wire.max_nodes.to_int64(), wire_bytes).to_int(),
+      },
+      row: {
+        ..limits.row,
+        max_bytes: Int64::max(
+          1L,
+          Int64::min(limits.row.max_bytes.to_int64(), wire_bytes),
+        ).to_int(),
+        max_nodes: Int64::min(limits.row.max_nodes.to_int64(), wire_bytes).to_int(),
+        max_text_bytes: Int64::min(
+          limits.row.max_text_bytes.to_int64(),
+          wire_bytes,
+        ).to_int(),
+      },
+      max_batch_bytes: Int64::max(
+        1L,
+        Int64::min(limits.max_batch_bytes.to_int64(), wire_bytes),
+      ).to_int(),
+    })
+    is Some(quoted) &&
+    quoted >= start else {
+    return None
+  }
+  Some((next_rows, next_nodes, next_text, quoted - start))
 }
 
 ///|
@@ -546,37 +650,66 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   if provider is None {
     return Ok(None)
   }
-  let base = match provider {
-    Some(_) =>
-      @local.local_module_capacity_for_sequence(
-        installed.implementation,
-        local_task_slot(installed, task),
-        sequence,
-      )
+  let metered_start = @local.local_module_metered_output_start_capacity(
+    installed.implementation,
+    local_task_slot(installed, task),
+    sequence,
+  )
+  let base = match metered_start {
+    Some(value) => Some(value)
     None =>
-      @execution.generated_sequence_capacity(
-        sequence,
-        @local.local_module_execution_limits(installed.implementation),
-        @local.local_module_measurement_limits(installed.implementation),
-      )
+      match provider {
+        Some(_) =>
+          @local.local_module_capacity_for_sequence(
+            installed.implementation,
+            local_task_slot(installed, task),
+            sequence,
+          )
+        None =>
+          @execution.generated_sequence_capacity(
+            sequence,
+            @local.local_module_execution_limits(installed.implementation),
+            @local.local_module_measurement_limits(installed.implementation),
+          )
+      }
   }
   guard base is Some(base) &&
     @local.local_import_retention_capacity(imports) is Some(per_input) else {
     return Err(Configuration(InvalidLimits))
   }
-  // Native supplied reads are already admitted by their original Source.
-  // They do not construct the wire importer below, so use the same import
-  // occurrence count as the retained dispatch Plan's producer-edge inventory.
+  // Match the actual binding pass below. Supplied reads and already accessible
+  // ordinary captures borrow their original storage; only missing copies and
+  // managed producer bridges allocate an importer on this same task.
   let mut count = 0L
+  let mut imported = 0L
+  guard local_managed_import_start_bytes(imports) is Some(import_start) else {
+    return Err(Configuration(InvalidLimits))
+  }
   for input in relation_inputs {
-    if !(input is SuppliedRelationInput(_)) {
-      count += 1L
+    let required = match input {
+      OrdinaryRelationInput(read) =>
+        if !@execution.producer_read_has_cell_access(read) {
+          count += 1L
+          per_input
+        } else {
+          0L
+        }
+      ManagedRelationInput(_) => {
+        count += 1L
+        // This bridge's append owns its input construction growth even when
+        // the selected provider keeps its full prepaid output/workspace quote.
+        import_start
+      }
+      SuppliedRelationInput(_) => 0L
     }
+    if imported > 9223372036854775807L - required {
+      return Err(Configuration(InvalidLimits))
+    }
+    imported += required
   }
   if per_input > 0L && count > 9223372036854775807L / per_input {
     return Err(Configuration(InvalidLimits))
   }
-  let imported = count * per_input
   // Host metadata is a separately funded holding. It survives scratch release
   // and follows the existing completed-output/borrower cleanup acknowledgement.
   guard local_retained_with_metadata(
@@ -646,7 +779,17 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
         installed.implementation,
       ),
       imports,
+      installation: installed,
       metadata,
+      metered_output_retention: metered_start is Some(_),
+      metered_retention: metered_start is Some(start) &&
+      @local.local_module_capacity_for_sequence(
+        installed.implementation,
+        local_task_slot(installed, task),
+        sequence,
+      )
+      .map(full => start.retained_bytes < full.retained_bytes)
+      .unwrap_or(false),
       capacity: {
         transfer_bytes: count * imports.wire.max_bytes.to_int64(),
         retained_bytes: retained_with_metadata,
@@ -723,6 +866,7 @@ pub fn[T] start_local_managed_dispatch(
     None,
   )
   let provider_execution : Ref[@local.ManagedProviderExecution?] = Ref(None)
+  let working_sequence : Ref[@execution.GeneratedSequence?] = Ref(None)
   let final_provider_work : Ref[Result[Int64, @local.ManagedProviderWorkIssue]] = Ref(
     Ok(0L),
   )
@@ -730,21 +874,16 @@ pub fn[T] start_local_managed_dispatch(
   // the task's scratch reservation until the installed provider actually
   // releases its owned state. Cache the existing owner's cumulative work
   // before dropping its last driver reference, without inventing cleanup work.
+  let provider_completion_retained = Ref(false)
   let release_provider_scratch = fn() {
-    match provider_execution.val {
-      None => true
-      Some(active) => {
-        if !@local.managed_provider_stopped(active) ||
-          !@local.cleanup_managed_provider(active).unwrap_or(false) {
-          return false
-        }
-        final_provider_work.val = @local.managed_provider_cumulative_work(
-          active,
-        )
-        provider_execution.val = None
-        true
-      }
-    }
+    release_local_managed_provider_scratch(
+      provider_execution,
+      provider_completion_retained,
+      live.val &&
+      settled.val &&
+      (ordinary.val is Some(_) || carrier.val is Some(_)),
+      final_provider_work,
+    )
   }
   let retired_carriers : Array[@carrier_runtime.Material] = []
   let snapshot_attempted = Ref(false)
@@ -765,6 +904,7 @@ pub fn[T] start_local_managed_dispatch(
   ).filter(requirement => requirement.need is @execution.EstablishedBy(_))
   let finalization_started = Ref(false)
   let finalization_ready = Ref(false)
+  let finalization_metadata_grown = Ref(false)
   let finalization_cancelled = Ref(false)
   let finalization_row = Ref(0)
   let finalization_receipt_steps = Ref(0L)
@@ -780,6 +920,7 @@ pub fn[T] start_local_managed_dispatch(
   let finalization_receipt : Ref[@execution.ManagedOutputValueReceipt?] = Ref(
     None,
   )
+  let finalization_storage : Ref[Int64?] = Ref(None)
   let finalization_retention : Ref[
     @execution.ManagedOutputRetentionPort[
       (@execution.ManagedOutputValueReceipt, T, Int64, () -> Bool),
@@ -871,7 +1012,7 @@ pub fn[T] start_local_managed_dispatch(
     if !(disposed.val ||
       (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
       scratch_uses.val != 0 ||
-      provider_execution.val is Some(_) ||
+      (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
       relation_snapshot_cancel.val is Some(_) ||
       (!live.val && input_stop.phase != Stopped) {
       return
@@ -979,7 +1120,7 @@ pub fn[T] start_local_managed_dispatch(
               (settled.val && carrier.val is Some(_))
             ) &&
             scratch_uses.val == 0 &&
-            provider_execution.val is None &&
+            (provider_execution.val is None || provider_completion_retained.val) &&
             (live.val || input_stop.phase == Stopped) &&
             scratch_retirement.phase == Retired &&
             (
@@ -1017,6 +1158,7 @@ pub fn[T] start_local_managed_dispatch(
                 old_carriers_released = false
               }
             }
+            provider_execution.val is None &&
             relation_released &&
             carrier_released &&
             old_carriers_released &&
@@ -1052,6 +1194,192 @@ pub fn[T] start_local_managed_dispatch(
     is Some(numeric_count) else {
     return Err(Execution(ForeignCandidate))
   }
+  // Configuration may select output after managed setup. Start has now
+  // recorded history, so the existing owner rejects further policy changes.
+  let exports = setup.installation.output_policy.map(value => value.0)
+  // Output framing belongs to the independently selected output policy.
+  // An input batch or its column ceiling does not constrain a checked output.
+  // Keep the established fallback for callers without an output profile.
+  let output_wire = match exports {
+    Some(limits) => limits.wire
+    None => setup.imports.wire
+  }
+  let output_values = match exports {
+    Some(limits) => limits.values
+    None => setup.imports.values
+  }
+  let output_max_rows = match exports {
+    Some(limits) => limits.max_rows
+    None => setup.imports.max_rows
+  }
+  // Both evaluator growth and later Result metadata extend the same original
+  // scratch extent. Keep their independent actual additions; neither may
+  // replace the other's reservation with the smaller initial quote.
+  let working_extra = Ref(0L)
+  let retained_extra = Ref(0L)
+  let metadata_extra = Ref(0L)
+  let transport_extra = Ref(0L)
+  let import_extra = Ref(0L)
+  let import_mutating = Ref(false)
+  let output_row_extent : Ref[Int?] = Ref(None)
+  let working_failure : Ref[LocalDispatchIssue?] = Ref(None)
+  let reserve_capacity = fn(
+    extra : Int64,
+    retained_data : Int64,
+  ) -> Result[Unit, @execution.WorkspaceGrowthIssue] {
+    if !live.val ||
+      disposed.val ||
+      extra < working_extra.val ||
+      retained_data < retained_extra.val ||
+      retained_data > 9223372036854775807L - setup.capacity.retained_bytes ||
+      extra > 9223372036854775807L - setup.capacity.scratch_bytes ||
+      metadata_extra.val >
+      9223372036854775807L - setup.capacity.scratch_bytes - extra ||
+      transport_extra.val >
+      9223372036854775807L -
+      setup.capacity.scratch_bytes -
+      extra -
+      metadata_extra.val ||
+      import_extra.val >
+      9223372036854775807L -
+      setup.capacity.scratch_bytes -
+      extra -
+      metadata_extra.val -
+      transport_extra.val {
+      working_failure.val = Some(Execution(Stopped))
+      return Err(WorkspaceUnavailable)
+    }
+    let scratch = setup.capacity.scratch_bytes +
+      extra +
+      metadata_extra.val +
+      transport_extra.val +
+      import_extra.val
+    // This pure balance refusal precedes every grow/current/imported-window
+    // call and changes no reservation. It permits the common attachment to
+    // ask for its exact minimum instead of spare page backing. The subsequent
+    // grow still owns all original/current/stop checks; this is not authority.
+    let ledger = @strategy.captured_dag_ledger(setup.run)
+    let limits = @resources.ledger_admission_limits(ledger)
+    let usage = @resources.ledger_usage(ledger)
+    let r_refused = retained_data - retained_extra.val >
+      limits.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes
+    if r_refused ||
+      extra - working_extra.val >
+      limits.execution_bytes - usage.reserved_execution_bytes {
+      working_failure.val = Some(
+        Execution(
+          Physical(if r_refused { RetentionLimit } else { ExecutionLimit }),
+        ),
+      )
+      return Err(WorkspaceBudgetUnavailable)
+    }
+    match
+      @strategy.grow_task_execution_workspace(
+        setup.run,
+        execution,
+        scratch,
+        retained=if setup.metered_retention {
+          Some(setup.capacity.retained_bytes + retained_data)
+        } else {
+          None
+        },
+      ) {
+      Err(issue) => {
+        working_failure.val = Some(Execution(Physical(issue)))
+        return Err(WorkspaceUnavailable)
+      }
+      Ok(_) => ()
+    }
+    if !live.val || disposed.val {
+      working_failure.val = Some(Execution(Stopped))
+      return Err(WorkspaceUnavailable)
+    }
+    working_extra.val = extra
+    retained_extra.val = retained_data
+    working_failure.val = None
+    Ok(())
+  }
+  let reserve_working = fn(extra) {
+    reserve_capacity(extra, retained_extra.val)
+  }
+  // Import DATA, evaluator scratch, framing and Result metadata coexist under
+  // this original Task reservation. No live parent or other copy is credited.
+  let reserve_import = fn(next : Int64) -> Result[Unit, LocalDispatchIssue] {
+    if !live.val || disposed.val || next < import_extra.val {
+      return Err(Execution(Stopped))
+    }
+    let mut total = setup.capacity.scratch_bytes
+    for
+      extra in [
+        working_extra.val,
+        metadata_extra.val,
+        transport_extra.val,
+        next,
+      ] {
+      guard @execution.checked_preparation_add_product(total, extra, 1L)
+        is Some(value) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      total = value
+    }
+    match @strategy.grow_task_execution_workspace(setup.run, execution, total) {
+      Err(issue) => return Err(Execution(Physical(issue)))
+      Ok(_) => ()
+    }
+    import_extra.val = next
+    if !live.val || disposed.val {
+      return Err(Execution(Stopped))
+    }
+    Ok(())
+  }
+  let export_frame_extent = fn(
+    receipt : @execution.ManagedOutputValueReceipt,
+    result : @execution.ManagedResultOccurrence?,
+  ) -> Result[Int, LocalDispatchIssue] {
+    guard @execution.managed_output_value_row_wire_bound(
+        receipt,
+        result,
+        output_wire.max_columns,
+        output_wire.max_bytes,
+      )
+      is Some(bytes) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    let frame = Int::max(setup.imports.max_batch_bytes, bytes)
+    guard @execution.execution_capacity_inventory_add(
+        0L,
+        CanonicalWireBytes,
+        (frame - setup.imports.max_batch_bytes).to_int64(),
+        1,
+      )
+      is Some(extra) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    if extra > transport_extra.val {
+      guard @execution.execution_capacity_inventory_add(
+          setup.capacity.scratch_bytes +
+          working_extra.val +
+          metadata_extra.val +
+          import_extra.val,
+          QuotedBytes,
+          extra,
+          1,
+        )
+        is Some(scratch) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      match
+        @strategy.grow_task_execution_workspace(setup.run, execution, scratch) {
+        Ok(_) => ()
+        Err(issue) => return Err(Execution(Physical(issue)))
+      }
+      transport_extra.val = extra
+      if !live.val || disposed.val {
+        return Err(Execution(Stopped))
+      }
+    }
+    Ok(frame)
+  }
   let numeric = local_task_numeric_execution(
     setup.run,
     execution,
@@ -1063,28 +1391,78 @@ pub fn[T] start_local_managed_dispatch(
     guard input is ManagedRelationInput(managed) else { continue }
     let handle = bridges[bridge_index]
     bridge_index += 1
+    let copied_rows = Ref(0L)
+    let copied_nodes = Ref(0L)
+    let copied_text = Ref(0L)
+    let copied_extent = Ref(0L)
     transfers.push(LocalManagedInputTransfer::{
       input: managed,
-      append: fn(row) {
-        guard handle.val is Some(bridge) &&
-          local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
-          return Err(Configuration(InputUnavailable))
-        }
-        let bytes = match
-          managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        match
-          @strategy.charge_task_execution_transfer(setup.run, execution, bytes) {
-          Err(issue) => Err(Execution(Physical(issue)))
-          Ok(_) =>
-            @execution.append_managed_producer_bridge_wire(
-              bridge,
-              row,
-              setup.imports.row,
-            ).map_err(_ => Configuration(InputUnavailable))
-        }
+      append: row => {
+        with_local_managed_import_mutation(import_mutating, fn() {
+          guard handle.val is Some(bridge) &&
+            local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          let bytes = match
+            managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          match
+            @strategy.charge_task_execution_transfer(
+              setup.run,
+              execution,
+              bytes,
+            ) {
+            Err(issue) => return Err(Execution(Physical(issue)))
+            Ok(_) => ()
+          }
+          guard local_managed_import_next_extent(
+              setup.imports,
+              copied_rows.val,
+              copied_nodes.val,
+              copied_text.val,
+              bytes,
+            )
+            is Some((rows, nodes, text, quoted)) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          // Shorter later rows need less transient parsing scratch. Keep
+          // this same copy's reservation monotone, without refunding it.
+          let extent = Int64::max(copied_extent.val, quoted)
+          guard @execution.checked_preparation_add_product(
+              import_extra.val,
+              extent - copied_extent.val,
+              1L,
+            )
+            is Some(next) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          match reserve_import(next) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          // A current callback may synchronously cancel and retire this exact
+          // bridge. A successful grow cannot revive it or permit parsing.
+          guard local_managed_input_writes_open(
+              live.val,
+              settled.val,
+              disposed.val,
+            ) &&
+            handle.val is Some(current) &&
+            physical_equal(current, bridge) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          copied_rows.val = rows
+          copied_nodes.val = nodes
+          copied_text.val = text
+          copied_extent.val = extent
+          @execution.append_managed_producer_bridge_wire(
+            bridge,
+            row,
+            setup.imports.row,
+          ).map_err(_ => Configuration(InputUnavailable))
+        })
       },
       finish: fn() {
         guard handle.val is Some(bridge) &&
@@ -1271,6 +1649,27 @@ pub fn[T] start_local_managed_dispatch(
             if !live.val || disposed.val {
               return Err(Configuration(InputUnavailable))
             }
+            let constrained = match
+              @execution.bind_generated_workspace_growth(
+                constrained,
+                setup.execution,
+                @resources.ledger_admission_limits(
+                  @strategy.captured_dag_ledger(setup.run),
+                ).execution_bytes,
+                reserve_working,
+                meter_retained_outputs=setup.metered_output_retention,
+                reserve_retained=if setup.metered_retention {
+                  Some(reserve_capacity)
+                } else {
+                  None
+                },
+              ) {
+              Ok(value) => {
+                working_sequence.val = Some(value)
+                value
+              }
+              Err(issue) => return Err(Configuration(Execution(issue)))
+            }
             let started = match
               @local.start_managed_provider_with_inputs_and_execution(
                 provider,
@@ -1293,13 +1692,21 @@ pub fn[T] start_local_managed_dispatch(
                 numeric~,
               ) {
               Ok(value) => value
-              Err(issue) => return Err(Configuration(issue))
+              Err(issue) => {
+                if working_failure.val is Some(original) {
+                  return Err(original)
+                }
+                return Err(Configuration(issue))
+              }
             }
             provider_execution.val = Some(started)
             started
           }
         }
         let poll = @local.advance_managed_provider(active, quantum)
+        if working_failure.val is Some(original) {
+          return Err(original)
+        }
         if @local.managed_provider_cumulative_work(active) is Err(_) {
           live.val = false
           return Err(Configuration(InvalidLimits))
@@ -1497,6 +1904,7 @@ pub fn[T] start_local_managed_dispatch(
         available() else {
         return Err(Configuration(InvalidLimits))
       }
+
       let values = match
         @execution.prepare_managed_output_values(
           @connector.managed_fixed_compute_request_owner(request),
@@ -1505,6 +1913,11 @@ pub fn[T] start_local_managed_dispatch(
           setup.execution.rows.output_values,
           @connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
           setup.measurement,
+          working=if setup.metered_retention {
+            working_sequence.val
+          } else {
+            None
+          },
         ) {
         Ok(value) => value
         Err(issue) => return Err(ManagedValues(issue))
@@ -1516,7 +1929,7 @@ pub fn[T] start_local_managed_dispatch(
           let (receipt, proof_payload, bytes, proof_available) = proof
           if finalization_receipt.val is Some(expected) &&
             physical_equal(receipt, expected) &&
-            bytes == storage_bytes &&
+            finalization_storage.val == Some(bytes) &&
             proof_available() &&
             available() {
             Some((receipt, proof_payload, bytes, proof_available))
@@ -1613,6 +2026,49 @@ pub fn[T] start_local_managed_dispatch(
           })
         }
       }
+      if output_row_extent.val is None {
+        guard finalization_receipt.val is Some(receipt) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        let extent = match export_frame_extent(receipt, None) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        output_row_extent.val = Some(
+          Int::max(setup.imports.row.max_bytes, extent),
+        )
+      }
+      if finalization_storage.val is None {
+        guard finalization_receipt.val is Some(receipt) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        let data = if setup.metered_retention {
+          let usage = @execution.managed_output_value_usage(receipt)
+          guard @execution.execution_capacity_inventory_bytes([
+              {
+                unit: ValueNodeSlots,
+                count: usage.nodes.to_int64(),
+                copies: 1,
+              },
+              {
+                unit: DecodedTextBytes,
+                count: usage.text_bytes.to_int64(),
+                copies: 1,
+              },
+            ])
+            is Some(data) &&
+            data <= retained_extra.val else {
+            return Err(Configuration(InvalidLimits))
+          }
+          data
+        } else {
+          0L
+        }
+        guard data <= 9223372036854775807L - setup.capacity.retained_bytes else {
+          return Err(Configuration(InvalidLimits))
+        }
+        finalization_storage.val = Some(setup.capacity.retained_bytes + data)
+      }
       if finalization_material.val is None {
         if finalization_work_remaining.val < 1 {
           return Err(Configuration(InvalidLimits))
@@ -1629,7 +2085,7 @@ pub fn[T] start_local_managed_dispatch(
         let material = match
           @execution.retain_managed_output(
             retention,
-            (receipt, payload, setup.capacity.retained_bytes, available),
+            (receipt, payload, finalization_storage.val.unwrap(), available),
           ) {
           Ok(value) => value
           Err(issue) => return Err(ManagedRetention(issue))
@@ -1655,13 +2111,16 @@ pub fn[T] start_local_managed_dispatch(
           match
             (requirement.domain, requirement.subject, requirement.occurrence) {
             (@execution.OrderedRows, @execution.TaskOutput, None) => {
+              guard finalization_receipt.val is Some(receipt) else {
+                return Err(Configuration(InvalidLimits))
+              }
+              let frame = match export_frame_extent(receipt, None) {
+                Ok(value) => value
+                Err(issue) => return Err(issue)
+              }
               let stream = match
                 @execution.prepare_completed_output_export(
-                  output,
-                  setup.imports.max_rows,
-                  setup.imports.values,
-                  setup.imports.wire,
-                  setup.imports.max_batch_bytes,
+                  output, output_max_rows, output_values, output_wire, frame,
                 ) {
                 Ok(value) => value
                 Err(issue) => return Err(IdentityExport(issue))
@@ -1670,22 +2129,79 @@ pub fn[T] start_local_managed_dispatch(
             }
             (@execution.LogicalRelation, @execution.NamedResult, Some(result)) => {
               if finalization_result_preparation.val is None {
+                // Only a Named Result constructs these row indices. Other
+                // task identities do not reserve an unused Result workspace.
+                if !finalization_metadata_grown.val {
+                  if setup.metadata.result_rows_reserved is Some(initial) {
+                    let rows = @execution.completed_row_count(output)
+                    if rows < 0 || rows > output_max_rows {
+                      return Err(Configuration(InvalidLimits))
+                    }
+                    let extra_rows = Int::max(0, rows - initial)
+                    // Result projection and stable ordering own two index arrays. This is
+                    // their existing logical cursor-root allowance, not measured heap/RSS.
+                    guard @execution.execution_capacity_inventory_add(
+                        0L,
+                        CursorRootSlots,
+                        extra_rows.to_int64(),
+                        2,
+                      )
+                      is Some(scratch) else {
+                      return Err(Configuration(InvalidLimits))
+                    }
+                    if extra_rows > 0 {
+                      guard @execution.execution_capacity_inventory_add(
+                          setup.capacity.scratch_bytes +
+                          working_extra.val +
+                          transport_extra.val +
+                          import_extra.val,
+                          QuotedBytes,
+                          scratch,
+                          1,
+                        )
+                        is Some(total_scratch) else {
+                        return Err(Configuration(InvalidLimits))
+                      }
+                      match
+                        @strategy.grow_task_execution_workspace(
+                          setup.run,
+                          execution,
+                          total_scratch,
+                        ) {
+                        Ok(_) => ()
+                        Err(issue) => return Err(Execution(Physical(issue)))
+                      }
+                      metadata_extra.val = scratch
+                      if !live.val || disposed.val || !available() {
+                        return Err(Execution(Stopped))
+                      }
+                    }
+                  }
+                  finalization_metadata_grown.val = true
+                }
+                guard finalization_receipt.val is Some(receipt) else {
+                  return Err(Configuration(InvalidLimits))
+                }
+                let frame = match export_frame_extent(receipt, Some(result)) {
+                  Ok(value) => value
+                  Err(issue) => return Err(issue)
+                }
                 let preparation = match
                   @execution.start_completed_result_relation_export(
                     output,
                     result,
                     {
-                      max_fields: setup.imports.wire.max_columns,
-                      max_mapping_work: setup.imports.wire.max_order_work,
+                      max_fields: output_wire.max_columns,
+                      max_mapping_work: output_wire.max_order_work,
                       max_order_work: setup.execution.max_work,
                       max_workspace_entries: setup.metadata.result_workspace_entries,
                     },
-                    setup.imports.max_rows,
-                    setup.imports.values,
-                    setup.imports.wire,
-                    setup.imports.wire,
+                    output_max_rows,
+                    output_values,
+                    output_wire,
+                    output_wire,
                     setup.metadata.schema,
-                    setup.imports.max_batch_bytes,
+                    frame,
                   ) {
                   Ok(value) => value
                   Err(issue) => return Err(IdentityExport(issue))
@@ -2022,7 +2538,7 @@ pub fn[T] start_local_managed_dispatch(
         @strategy.retain_task_execution_allocation(
           setup.run,
           execution,
-          storage_bytes,
+          finalization_storage.val.unwrap(),
         ) {
         Ok(value) => value
         Err(issue) => return Err(Execution(Physical(issue)))
@@ -2121,10 +2637,13 @@ pub fn[T] start_local_managed_dispatch(
       guard ordinary.val is Some(output) else {
         return Err(Configuration(InputUnavailable))
       }
+      // Before finalization, preserve the original funded small transport.
+      // A larger read needs the measured extent funded before settlement.
+      let extent = output_row_extent.val.unwrap_or(setup.imports.row.max_bytes)
       @execution.completed_output_row_wire(
         output,
         row,
-        setup.imports.row.max_bytes,
+        extent,
         setup.imports.row.max_nodes,
         setup.imports.row.max_depth,
       ).map_err(_ => Configuration(InputUnavailable))
@@ -2701,15 +3220,23 @@ pub fn[T] start_local_managed_dispatch(
     // -1 means no authorized local continuation, not a stop/release witness.
     // Provider, borrowed input, snapshot and active-reader waits retain custody.
     cleanup_local_continuation: fn() {
-      if !disposed.val ||
-        live.val ||
+      // Completed Relation material owns its independent receipt/index. Its
+      // stopped provider can retire temporary roots before that live output
+      // closes; this cursor is not an output or physical cleanup ACK.
+      let completed_relation = live.val &&
+        settled.val &&
+        finalization_ready.val &&
+        finalization_completed.val is Some(_) &&
+        retained.val is Some(_) &&
+        ordinary.val is Some(_)
+      if ((!disposed.val || live.val) && !completed_relation) ||
         scratch_uses.val != 0 ||
-        provider_execution.val is Some(_) ||
+        (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
         relation_snapshot_cancel.val is Some(_) ||
-        input_stop.phase != Stopped ||
+        (!completed_relation && input_stop.phase != Stopped) ||
         carrier.val is Some(_) ||
         !retired_carriers.is_empty() ||
-        retained.val is Some(_) ||
+        (retained.val is Some(_) && !completed_relation) ||
         snapshot_storage_released.val is Some(_) {
         return -1L
       }

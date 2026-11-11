@@ -24,7 +24,8 @@ class BindingMutationTests(unittest.TestCase):
             root = Path(temporary)
             for path in [ROOT / 'src/client_host_wasm/moon.pkg',
                          *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
-                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                         ROOT / 'src/physical_resources/platform_vm_capacity_wasm.mbt']:
                 target = root / path.relative_to(ROOT)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(path.read_bytes())
@@ -40,6 +41,75 @@ class BindingMutationTests(unittest.TestCase):
             path.write_text(old.replace('start : Int, count : Int', 'start : String, count : Int', 1))
             with self.assertRaisesRegex(ValueError, 'parameter declaration'):
                 WASM.render(root)
+
+    def test_journal_buffer_imports_require_complete_original_borrow_contract(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for path in [ROOT / 'src/client_host_wasm/moon.pkg',
+                         *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                         ROOT / 'src/physical_resources/platform_vm_capacity_wasm.mbt']:
+                target = root / path.relative_to(ROOT)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(path.read_bytes())
+            path = root / 'src/client_host_wasm/journal_observation.mbt'
+            original = path.read_text()
+            baseline = WASM.render(root)
+            self.assertEqual(baseline, WASM.render())
+            borrow = '#borrow(namespace_buffer, key_buffer, header_buffer)'
+            self.assertEqual(original.count(borrow), 1)
+            mutations = [
+                ('missing', original.replace(borrow, '', 1)),
+                ('partial', original.replace(borrow, '#borrow(namespace_buffer, key_buffer)', 1)),
+                ('wrong-name', original.replace(borrow, '#borrow(namespace_buffer, key_buffer, other)', 1)),
+                ('duplicate-name', original.replace(borrow,
+                    '#borrow(namespace_buffer, key_buffer, header_buffer, header_buffer)', 1)),
+                ('duplicate-annotation', original.replace(borrow, borrow + '\n' + borrow, 1)),
+                ('comment', original.replace(borrow, '// ' + borrow, 1)),
+                ('block-comment', original.replace(borrow, '/* ' + borrow + ' */', 1)),
+                ('raw-literal', original.replace(borrow, 'let fake_borrow =\n  #|' + borrow, 1)),
+                ('quoted-literal', original.replace(borrow, 'let fake_borrow = "' + borrow + '"', 1)),
+                ('missing-layout-declaration', original.replace('#unsafe_skip_stub_check', '', 1)),
+                ('wrong-element', original.replace('header_buffer : FixedArray[Byte]',
+                                                   'header_buffer : FixedArray[Int]', 1)),
+                ('immutable-output', original.replace('header_buffer : FixedArray[Byte]',
+                                                      'header_buffer : Bytes', 1)),
+                ('wrong-local-symbol', original.replace('fn physical_journal_query_header(',
+                                                        'fn foreign_journal_query_header(', 1)),
+                ('unknown-import', original.replace('"actql_host" "journal_query_header"',
+                                                    '"actql_host" "foreign_query_header"', 1)),
+                ('copy-borrow-missing', original.replace('#borrow(key_buffer, body_buffer)', '', 1)),
+                ('copy-borrow-partial', original.replace('#borrow(key_buffer, body_buffer)',
+                                                        '#borrow(key_buffer)', 1)),
+                # The exact old bug must fail even if every machine scalar
+                # signature still matches and annotations name those scalars.
+                ('all-buffers-reverted-to-int', original
+                    .replace('namespace_buffer : Bytes', 'namespace_buffer : Int')
+                    .replace('key_buffer : Bytes', 'key_buffer : Int')
+                    .replace('header_buffer : FixedArray[Byte]', 'header_buffer : Int')
+                    .replace('key_buffer : FixedArray[Byte]', 'key_buffer : Int')
+                    .replace('body_buffer : FixedArray[Byte]', 'body_buffer : Int')),
+                ('typed-arbitrary-import', original.replace(
+                    'fn physical_journal_current(ticket : Int)',
+                    'fn physical_journal_current(ticket : Bytes)', 1)),
+                ('typed-export', original.replace('physical_ticket : Int,',
+                                                  'physical_ticket : Bytes,', 1)),
+            ]
+            for name, modified in mutations:
+                with self.subTest(name=name):
+                    self.assertNotEqual(modified, original)
+                    path.write_text(modified)
+                    with self.assertRaisesRegex(ValueError, 'borrowed ABI|scalar ABI parameter'):
+                        WASM.render(root)
+            path.write_text(original)
+            moved = path.with_name('foreign_journal_observation.mbt')
+            path.rename(moved)
+            with self.assertRaisesRegex(ValueError, 'Foreign original borrowed ABI'):
+                WASM.render(root)
+            moved.rename(path)
+            self.assertEqual(WASM.render(root), baseline)
+            self.assertIn("'journal_query_header': ('i32 i32 i32 i32 i32 i32 i32', 'i32')", baseline)
+            self.assertIn("'journal_copy_row': ('i32 i32 i32 i32 i32', 'i32')", baseline)
 
     def test_export_map_matches_actual_public_declarations(self):
         declared = WASM.package_wasm_exports(ROOT / 'src/client_host_wasm/moon.pkg')
@@ -80,7 +150,8 @@ class BindingMutationTests(unittest.TestCase):
             root = Path(temporary)
             for path in [ROOT / 'src/client_host_wasm/moon.pkg',
                          *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
-                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                         ROOT / 'src/physical_resources/platform_vm_capacity_wasm.mbt']:
                 target = root / path.relative_to(ROOT)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(path.read_bytes())
@@ -105,7 +176,8 @@ class BindingMutationTests(unittest.TestCase):
             root = Path(temporary)
             for path in [ROOT / 'src/client_host_wasm/moon.pkg',
                          *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
-                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt']:
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                         ROOT / 'src/physical_resources/platform_vm_capacity_wasm.mbt']:
                 target = root / path.relative_to(ROOT)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(path.read_bytes())

@@ -1,5 +1,5 @@
 ///|
-test "window counts retain parameter obligations and reject multiplication overflow" {
+test "window counts retain parameter obligations and keep overflowing estimates unknown" {
   let parameters = @parameter.read_declarations(
     Some(cursor("{\"step\":{\"type\":\"number\",\"default\":2}}")),
     { max_parameters: 10, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
@@ -34,7 +34,7 @@ test "window counts retain parameter obligations and reject multiplication overf
       )
     }
   }
-  let bad = @pipeline_typing.check_carriers(
+  let large = @pipeline_typing.check_carriers(
     cursor(
       "[" +
       count_values(3, "seed") +
@@ -44,9 +44,9 @@ test "window counts retain parameter obligations and reject multiplication overf
     None,
     None,
     limits(),
-  ).unwrap_err()
-  assert_eq(bad.kind, RowBoundOverflow)
-  assert_eq(bad.path, [@source.Index(1)])
+  ).unwrap()
+  assert_count(large, 0, 3L, true)
+  assert_true(@pipeline_typing.row_count(large, Step(1)) is None)
 }
 
 ///|

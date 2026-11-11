@@ -17,14 +17,14 @@ const ref = {namespaceId: 'missing', authorityScopeCid: `sha256:${'a'.repeat(64)
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const fixture = () => createOwnedScratch({
   parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
-  prefix: 'journal-wal-bound-', label: 'same Journal WAL lifetime support bound'});
+  prefix: 'journal-wal-bound-', label: 'same Journal live WAL support bound'});
 
 // Explicit native observations, never a physical facility issuer or authority.
 // Keep every acquired database and original receiver observable through close.
 function instrument(action) {
   const open = DatabaseSync.prototype.open, prepare = DatabaseSync.prototype.prepare;
   const exec = DatabaseSync.prototype.exec, close = DatabaseSync.prototype.close;
-  const state = {databases: [], calls: 0, fault: undefined, closePending: false};
+  const state = {databases: [], calls: 0, fault: undefined, closePending: false, checkpoints: 0};
   DatabaseSync.prototype.open = function(...args) {
     state.databases.push(this);
     return Reflect.apply(open, this, args);
@@ -41,7 +41,12 @@ function instrument(action) {
           state.fault = undefined;
           throw cause;
         }
-        return Reflect.apply(original, this, values);
+        const result = Reflect.apply(original, this, values);
+        if (name === 'get' && sql === 'PRAGMA wal_checkpoint(TRUNCATE)') {
+          assert.deepEqual({...result}, {busy: 0, log: 0, checkpointed: 0});
+          state.checkpoints++;
+        }
+        return result;
       };
     }
     return statement;
@@ -61,7 +66,7 @@ function instrument(action) {
   }
 }
 
-test('unsupported WAL lifetime refuses before native open instead of treating a later file bound as backing', async () => {
+test('unsupported WAL support refuses before native open instead of treating a later file bound as backing', async () => {
   const scratch = await fixture();
   instrument(state => {
     let journal;
@@ -90,31 +95,30 @@ test('WAL support requires the original finite SQL, operand and database boundar
   scratch.passed();
 });
 
-test('both writable connections share one non-refilling WAL lifetime without charging metadata reads', async () => {
+test('both original writable connections reuse finite WAL support only after actual native truncation', async () => {
   const scratch = await fixture();
   instrument(state => {
     const selected = options(200000);
     const journal = openClientRequestJournal(join(scratch.path, 'requests'), selected);
     // Changing the caller's plain options cannot replace the original finite
-    // primitive captured by this constructor's same lifetime counter.
+    // primitive captured by this constructor's same live support bound.
     selected.maxWalFrames = Number.MAX_SAFE_INTEGER;
     const observations = journal.observationStorage();
     try {
       assert.equal(state.databases.length, 2);
-      let accepted = 0;
-      for (; accepted < 1000; accepted++) {
-        try { assert.equal(observations.consume({ref, scope: 'test', revision: 'one',
-          bytes: 1, maxRecords: 1, maxBytes: 1}), undefined); }
-        catch (cause) { assert.equal(cause.code, 'ClientRequestJournalWalUnavailable'); break; }
+      for (let accepted = 0; accepted < 1000; accepted++) {
+        assert.equal(observations.consume({ref, scope: 'test', revision: 'one',
+          bytes: 1, maxRecords: 1, maxBytes: 1}), undefined);
+        assert.equal(journal.lookupReconciliationState(ref), undefined);
       }
-      assert.ok(accepted > 0 && accepted < 1000);
+      assert.ok(state.checkpoints > 1, 'Repeated finite operations exceed the former lifetime allowance');
+      const checkpoints = state.checkpoints;
       const before = state.calls;
       assert.equal(journal.lookupReconciliationState(ref), undefined);
       assert.ok(state.calls > before, 'A metadata read uses no writable-frame allowance');
-      const afterRead = state.calls;
-      assert.throws(() => observations.consume({ref, scope: 'test', revision: 'one',
-        bytes: 1, maxRecords: 1, maxBytes: 1}), {code: 'ClientRequestJournalWalUnavailable'});
-      assert.equal(state.calls, afterRead, 'The observation connection cannot borrow a new allowance');
+      assert.equal(state.checkpoints, checkpoints, 'SELECT does not request WAL reclamation');
+      assert.equal(observations.consume({ref, scope: 'test', revision: 'one',
+        bytes: 1, maxRecords: 1, maxBytes: 1}), undefined);
     } finally { journal.close(); }
     assert.ok(state.databases.every(database => database.isOpen === false));
     const custody = observeOriginalClientRequestJournalCustody(journal);
@@ -124,7 +128,7 @@ test('both writable connections share one non-refilling WAL lifetime without cha
   scratch.passed();
 });
 
-test('failed metadata reads do not debit writable WAL and exhausted writers retain original pending close', async () => {
+test('failed metadata reads do not debit writable WAL and reused writers retain original pending close', async () => {
   const scratch = await fixture();
   const remaining = [];
   for (const [index, fault] of [undefined, new Error('OriginalNativeReadFailure')].entries()) {
@@ -136,14 +140,12 @@ test('failed metadata reads do not debit writable WAL and exhausted writers reta
           state.fault = fault;
           assert.throws(() => journal.lookupReconciliationState(ref), cause => cause === fault);
         }
-        let accepted = 0;
-        for (; accepted < 1000; accepted++) {
-          try { observations.consume({ref, scope: 'test', revision: 'one',
-            bytes: 1, maxRecords: 1, maxBytes: 1}); }
-          catch (cause) { assert.equal(cause.code, 'ClientRequestJournalWalUnavailable'); break; }
+        for (let accepted = 0; accepted < 1000; accepted++) {
+          observations.consume({ref, scope: 'test', revision: 'one',
+            bytes: 1, maxRecords: 1, maxBytes: 1});
         }
-        assert.ok(accepted > 0 && accepted < 1000);
-        remaining.push(accepted);
+        assert.ok(state.checkpoints > 0);
+        remaining.push(state.checkpoints);
         state.closePending = true;
         assert.throws(() => journal.close(), {message: 'ClientRequestJournalConnectionCleanupPending'});
         assert.equal(state.databases[0].isOpen, true);
@@ -156,11 +158,11 @@ test('failed metadata reads do not debit writable WAL and exhausted writers reta
     });
   }
   assert.equal(remaining[0], remaining[1],
-    'A failed SELECT spends its SQL attempt, not a fictional WAL write; actual write charges never refill');
+    'A failed SELECT spends its SQL attempt, not WAL capacity or a checkpoint');
   scratch.passed();
 });
 
-test('later integer conversion replacement cannot erase the original WAL lifetime charge', async () => {
+test('later integer conversion replacement cannot erase the original finite WAL charge', async () => {
   const scratch = await fixture();
   instrument(state => {
     const journal = openClientRequestJournal(join(scratch.path, 'requests'), options(200000));
@@ -168,18 +170,11 @@ test('later integer conversion replacement cannot erase the original WAL lifetim
     const original = globalThis.BigInt;
     try {
       globalThis.BigInt = () => 0n;
-      let accepted = 0;
-      for (; accepted < 1000; accepted++) {
-        try { observations.consume({ref, scope: 'test', revision: 'one',
-          bytes: 1, maxRecords: 1, maxBytes: 1}); }
-        catch (cause) { assert.equal(cause.code, 'ClientRequestJournalWalUnavailable'); break; }
+      for (let accepted = 0; accepted < 1000; accepted++) {
+        observations.consume({ref, scope: 'test', revision: 'one',
+          bytes: 1, maxRecords: 1, maxBytes: 1});
       }
-      assert.ok(accepted > 0 && accepted < 1000);
-      const before = state.calls;
-      assert.throws(() => observations.consume({ref, scope: 'test', revision: 'one',
-        bytes: 1, maxRecords: 1, maxBytes: 1}),
-        {code: 'ClientRequestJournalWalUnavailable'});
-      assert.equal(state.calls, before);
+      assert.ok(state.checkpoints > 1, 'Real truncation must still be required to reclaim charges');
     } finally { globalThis.BigInt = original; journal.close(); }
     assert.ok(state.databases.every(database => database.isOpen === false));
   });

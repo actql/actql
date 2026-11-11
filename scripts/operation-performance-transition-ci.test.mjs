@@ -83,6 +83,7 @@ test('Python priority lane reuses the formal wheel producer without changing rel
   const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['ordinary-python-priority'];
   assert.ok(job);
+  assert.equal(job['runs-on'], 'macos-15');
   assert.equal(job.permissions.actions, 'read');
   const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package artifact and producer job');
   const download = job.steps.findIndex(s => s.name === 'Reuse the exact formal package artifact');
@@ -141,13 +142,13 @@ test('ordinary priority assessment reuses both platform reports without replacin
   assert.deepEqual(job.needs, ['ordinary-node-priority', 'ordinary-python-priority']);
   assert(job.if.includes('always()'), 'Missing or failed collectors must still produce a failed/incomplete assessment');
   const expression = job.if.slice(3, -2).trim();
-  for (const [enabled, visibility, privateFlag, expected] of [
-    [undefined, 'public', false, false], ['false', 'public', false, false],
-    ['true', 'private', true, false], ['true', 'public', true, false],
-    ['true', 'public', undefined, false], ['true', 'public', false, true],
+  for (const [visibility, privateFlag, expected] of [
+    ['public', false, true],
+    ['private', true, false], ['public', true, false],
+    ['public', undefined, false], ['public', false, true],
   ]) {
     assert.equal(runInNewContext(expression, {
-      vars: {ACTQL_MAIN_CI_ENABLED: enabled},
+
       github: {event: {repository: {visibility, private: privateFlag}}},
       toJSON: JSON.stringify, always: () => true,
     }, {timeout: 100}), expected);
@@ -155,6 +156,7 @@ test('ordinary priority assessment reuses both platform reports without replacin
   assert.deepEqual(workflow.jobs['ordinary-platform-assessment'].needs,
     ['ordinary-operations', 'ordinary-native', 'ordinary-python']);
   for (const name of ['ordinary-operations', 'ordinary-native', 'ordinary-python']) {
+    assert.equal(workflow.jobs[name]['runs-on'], name === 'ordinary-operations' ? 'ubuntu-24.04' : 'macos-15');
     const assessments = workflow.jobs[name].steps.filter(step =>
       step.run?.includes('scripts/operation-performance.mjs --input'));
     assert.equal(assessments.length, 1, `${name} must retain its full-release assessment`);

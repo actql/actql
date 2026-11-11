@@ -45,6 +45,18 @@ export function resourceSummary(samples, minimum) {
     maximumBytes: Math.max(...samples.map(row => row.peakRssBytes))} : {available: false}};
 }
 
+// Trend observations are not acceptance assessments. Three repetitions support
+// median/max only; the final protocol's minimum continues to govern p95.
+export function recordOperationMeasurements(series) {
+  requireValue(series.mode === 'record-only', 'Explicit record-only mode required');
+  const summary = latencySummary(series.samples, operationTargets[series.operation].samples);
+  requireValue(series.samples.length === 3 && series.samples.every(row => row.completed === true && row.verified === true),
+    'Record-only measurement requires three verified samples');
+  const resources = resourceSummary(series.samples, operationTargets[series.operation].samples);
+  requireValue(resources.cpu.available && resources.rss.available, 'Record-only CPU/RSS measurements are missing');
+  return {operation: series.operation, mode: series.mode, ...summary, resources, acceptanceAssessed: false};
+}
+
 // These are actual clocks around the existing public caller and its row
 // oracle, not validation-call counters or inferred work durations. Child
 // clocks are compared by elapsed time only, never by cross-process origin.
@@ -771,7 +783,7 @@ export async function collectOperationSamples({operation, mode, identity, stateI
   // Cold/init measurements must come from actual child-process adapters with
   // their individual PID/state observations, never this warm-process clock.
   requireValue(Object.hasOwn(operationTargets, operation) && operation.startsWith('warm-') &&
-    ['diagnostic', 'final'].includes(mode), 'This collector supports warm operations only');
+    ['diagnostic', 'final', 'record-only'].includes(mode), 'This collector supports warm operations only');
   const target = operationTargets[operation], count = mode === 'final' ? target.samples : 3;
   const samples = [];
   let stopReason = null;
@@ -797,7 +809,7 @@ export async function collectOperationSamples({operation, mode, identity, stateI
     // unprofiled early-stop budget solely to avoid repeating an expensive diagnostic.
     const stopMs = targetP95Ms === undefined ? 100 : targetP95Ms * 10;
     requireValue(Number.isFinite(stopMs) && stopMs > 0, 'Invalid diagnostic stop budget');
-    if (!verified || wallNs / 1e6 >= stopMs) {
+    if (!verified || (mode !== 'record-only' && wallNs / 1e6 >= stopMs)) {
       stopReason = verified ? 'slow diagnostic; final distribution not measured' : 'public functional failure';
       break;
     }

@@ -23,6 +23,13 @@ pub(all) enum TransportColumnIssue {
 } derive(Eq, Debug)
 
 ///|
+/// Fixed depth of this private native frame: columns containing scalar values.
+/// Both preflight and downstream Source page policy use this codec owner.
+pub fn transport_column_frame_depth() -> Int {
+  2
+}
+
+///|
 /// Raw physical scalars must not use the authoring JSON parser, which normalizes
 /// NFC/LF. Preflight forbids nesting beyond columns and bounds allocation before
 /// the general JSON parser runs. SQL scalar meaning remains in value admission.
@@ -64,7 +71,7 @@ pub fn decode_transport_columns(
     let cursor = match
       @decode.admit_raw_scalar_column(values, span, {
         max_nodes: limits.max_nodes,
-        max_depth: 1,
+        max_depth: transport_column_frame_depth() - 1,
         max_string_bytes: limits.max_text_bytes,
         max_total_string_bytes: remaining_text,
       }) {
@@ -117,11 +124,11 @@ fn preflight_transport_columns(
     let mut value = false
     match char {
       '[' => {
-        if depth >= 2 {
+        if depth >= transport_column_frame_depth() {
           return Err(InvalidShape)
         }
         depth += 1
-        if depth == 2 {
+        if depth == transport_column_frame_depth() {
           if columns == limits.max_columns {
             return Err(ColumnLimit)
           }
@@ -137,14 +144,14 @@ fn preflight_transport_columns(
         depth -= 1
       }
       '"' => {
-        if depth != 2 {
+        if depth != transport_column_frame_depth() {
           return Err(InvalidShape)
         }
         quoted = true
         value = true
       }
       't' | 'f' | 'n' => {
-        if depth != 2 {
+        if depth != transport_column_frame_depth() {
           return Err(InvalidShape)
         }
         value = true
@@ -157,7 +164,7 @@ fn preflight_transport_columns(
         return Err(NodeLimit)
       }
       nodes += 1
-      if depth == 2 && char != '[' {
+      if depth == transport_column_frame_depth() && char != '[' {
         if rows == limits.max_rows {
           return Err(RowLimit)
         }

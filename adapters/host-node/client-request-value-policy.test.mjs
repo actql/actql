@@ -54,5 +54,5 @@ test('funded policy owner failure keeps its original cause without public checki
   await assert.rejects(prepare({kind: 'aql', input: {format: 'sql', text: 'SELECT 1 AS n'}, parameters: null}),
     error => error === cause);
   assert.equal(attempts, 1); assert.equal(checks, 0);
-  assert.equal(prepare.sourceCheckFailure(cause), false);
+  assert.equal(Object.hasOwn(prepare, 'sourceCheckFailure'), false);
 });

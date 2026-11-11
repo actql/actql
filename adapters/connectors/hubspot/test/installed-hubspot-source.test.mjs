@@ -1,11 +1,12 @@
 import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
+import './installed-hubspot-wide-source.actual.test.mjs';
 import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {installedSourceIdentity} from '../../../host-node/installed-source.mjs';
+import {loadInstalledHubSpotSource} from '../host/installed-hubspot-source.mjs';
 import {installedHubSpotFixture as fixture, properties, expected, objectBody} from './installed-hubspot.fixture.mjs';
 
 test('installed HubSpot restores every observed property without a credential read', async t => {
@@ -75,14 +76,14 @@ test('foreign original account metadata and incomplete property metadata refuse 
 });
 
 test('installed identity binds original metadata, Site generation and declared authority resources', async t => {
-  const f = await fixture(t), original = await installedSourceIdentity(f.path);
+  const f = await fixture(t), original = await f.identity();
   await writeFile(f.siteProfilePath, JSON.stringify({...f.site, siteGeneration: 2}));
-  assert.notEqual(await installedSourceIdentity(f.path), original);
+  assert.notEqual(await f.identity(), original);
   await writeFile(f.siteProfilePath, JSON.stringify(f.site));
-  assert.equal(await installedSourceIdentity(f.path), original);
+  assert.equal(await f.identity(), original);
   await writeFile(f.path, JSON.stringify({...f.profile,
     metadataResources: {...f.profile.metadataResources, properties: 'different-permission'}}));
-  assert.notEqual(await installedSourceIdentity(f.path), original);
+  assert.notEqual(await f.identity(), original);
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
 });
 
@@ -149,4 +150,40 @@ test('cancellation of the original identity response closes the same bound trans
   await rejected;
   assert.equal(f.state.requests.length, 1); assert.equal(f.state.resolutions, 1);
   assert.deepEqual(ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
+});
+
+test('HubSpot loader without original initialization refuses before raw metadata or provider entry',async()=>{
+  await assert.rejects(loadInstalledHubSpotSource({metadataPath:'/UNOPENED-original-metadata'},{}),
+    {code:'HubSpotSourceConstructionUnavailable'});
+});
+
+test('registered HubSpot malformed property bytes preserve original input failure and initial cleanup',async t=>{
+  const f=await fixture(t);
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,objects:[{...f.metadata.objects[0],
+    propertiesBody:f.metadata.objects[0].propertiesBody+'\n'}]}));
+  await assert.rejects(f.load(),cause=>{
+    assert.equal(cause.primaryFailure?.code,'InvalidInstalledHubSpotMetadata');
+    assert.equal(cause.cleanupPending,false);assert.deepEqual(cause.cleanupErrors,[]);return true;
+  });
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
+test('registered HubSpot retains every original resource on the same initial parent before Source finish',async t=>{
+  const f=await fixture(t);
+  await writeFile(f.path,JSON.stringify({...f.profile,resources:[...f.profile.resources,
+    {resource:'contacts',objectType:'contacts'}]}));
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,objects:[...f.metadata.objects,
+    {resource:'contacts',objectType:'contacts',propertiesBody:f.metadata.objects[0].propertiesBody}]}));
+  const source=await f.load();
+  assert.deepEqual(source.sourceReadAccesses.map(value=>value.resource).sort(),['companies','contacts']);
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
+});
+
+
+test('HubSpot standard Source publishes its actual same-owner managed Effect Plan selection before provider I/O', async t => {
+  const f = await fixture(t), source = await f.load();
+  const selected = source.managedEffectPlanSelection();
+  assert(selected.declaration);assert(selected.provider);assert(selected.inputLimits);
+  assert.equal(typeof selected.transferBytes, 'bigint');assert.equal(typeof selected.executionBytes, 'bigint');
+  assert.equal(f.state.requests.length, 0);assert.equal(f.state.resolutions, 0);
 });

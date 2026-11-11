@@ -1,9 +1,10 @@
 // Exercise the installed Host configuration entry, not a post-lowering edit.
 import {generateKeyPairSync} from 'node:crypto';
-import {readFile, readdir, writeFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
+import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {connect} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -11,16 +12,30 @@ import {canonicalJson} from './local-account-config.mjs';
 
 const {directory, entrance, output, ref, submissionRef: originalSubmission,
   interruptAfterRows, originalAttemptId} = JSON.parse(process.argv[2]);
-const deliveriesDirectory = join(directory, 'host/publication/deliveries');
-async function savedAttempts() {
-  const names = (await readdir(deliveriesDirectory)).filter(name => /^[0-9a-f]{64}$/u.test(name)).sort();
-  return Promise.all(names.map(name => readFile(join(deliveriesDirectory, name, 'attempt.json'), 'utf8')));
+// Observe the Store's actual durable issuance records independently of SDK
+// calls. New START commits keep these originals in the native index, without
+// legacy deliveries/*/attempt.json or contracts/*.json locator copies. This
+// read-only, single-statement snapshot never claims or reopens an attempt.
+// Three rows are enough to expose an unexpected third issue in this fixture.
+function savedAdmissions() {
+  const database = new DatabaseSync(join(directory, 'host/publication/delivery-attempts.sqlite3'),
+    {readOnly: true, allowExtension: false});
+  try {
+    return database.prepare(`SELECT a.attempt_cid, a.run_cid, a.grant_cid,
+      a.attempt_wire, a.grant_wire, a.ready, i.initial_cid, u.uses
+      FROM attempts AS a LEFT JOIN initial_records AS i USING(attempt_cid)
+      LEFT JOIN grant_uses AS u USING(grant_cid)
+      ORDER BY a.attempt_cid LIMIT 3`).all();
+  } finally {database.close();}
 }
 const keys = generateKeyPairSync('ed25519');
 let computes = 0;
 const authorization = {
   accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
-    account_id: 'read-row-capacity', entries: [{entry_id: 'write', outcome: 'allow',
+    account_id: 'read-row-capacity', entries: [{entry_id: 'owner-read', outcome: 'allow',
+      principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}, exclusions: []},
+    {entry_id: 'write', outcome: 'allow',
       principal: {all: true}, connection: {all: true}, resource: {all: true},
       operation: {any_of: ['write']}, exclusions: []}]}),
   reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
@@ -59,10 +74,10 @@ try {
   const result = run.result('answer');
   let originalFirst, originalSecond, lookupBefore, lookupAfter;
   if (originalAttemptId !== undefined) {
-    lookupBefore = await savedAttempts();
+    lookupBefore = savedAdmissions();
     originalFirst = await result.deliveryAttempt(originalAttemptId);
     originalSecond = await result.deliveryAttempt(originalAttemptId);
-    lookupAfter = await savedAttempts();
+    lookupAfter = savedAdmissions();
   }
   const description = await result.describe();
   console.log('INSTALLED_READ_121_PHASE', 'described');
@@ -76,15 +91,13 @@ try {
   const attempt = await result.deliveryAttempt(reader.attemptId);
   const originalAfterRead = originalAttemptId === undefined ? undefined :
     await result.deliveryAttempt(originalAttemptId);
-  const attempts = await savedAttempts();
-  const grants = await Promise.all(attempts.map(async wire => {
-    const cid = JSON.parse(wire).result_read_grant_cid;
-    return JSON.parse(await readFile(join(directory, 'host/publication/contracts', `${cid.slice(7)}.json`), 'utf8'));
-  }));
+  const admissions = savedAdmissions();
+  const attempts = admissions.map(row => row.attempt_wire);
+  const grants = admissions.map(row => JSON.parse(row.grant_wire));
   console.log('INSTALLED_READ_121_PHASE', 'receipt', attempt.record?.state);
   await writeFile(output, JSON.stringify({pid: process.pid, ref: run.ref, submissionRef, status, request,
     description, rows, attempt, readState: reader.state(), rowsYielded: reader.rowsYielded(), computes,
-    originalFirst, originalSecond, originalAfterRead, lookupBefore, lookupAfter, attempts, grants}));
+    originalFirst, originalSecond, originalAfterRead, lookupBefore, lookupAfter, admissions, attempts, grants}));
 } catch (error) {
   console.log('INSTALLED_READ_121_FAILURE', error.code ?? error.name, error.message);
   throw error;

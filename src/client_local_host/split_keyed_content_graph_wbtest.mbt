@@ -2,7 +2,7 @@
 // The actual public frontend selects these original checked owners. Diagnostic
 // coordinates explain a refusal; they are not acquisition or completion proof.
 test "split keyed Content graph keeps the actual public output target" {
-  let value = split_keyed_content_limits_fixture()
+  let (value, _, _, _) = split_keyed_content_limits_fixture()
   let graph = @publication_host.prepared_client_graph(value.prepared)
   let owner = @strategy.graph_task_owner(graph, value.task).unwrap()
   let prepared = @lower.bound_preparation(owner)

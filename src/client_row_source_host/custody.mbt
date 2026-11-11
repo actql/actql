@@ -167,7 +167,32 @@ fn abort_row_attempt(attempt : RowAttempt) -> Unit {
   if attempt.state is Reading(read) {
     cancel_row_source_read(read) |> ignore
   }
+  if attempt.state is EvidenceIssued(records) &&
+    !@planning.retire_query_evidence_custody(records.issued) {
+    // Never lose an original holder when its custody refuses retirement.
+    return
+  }
   attempt.state = Failed
+}
+
+///|
+/// Called only after the same RowRun has completed its required cleanup. Keep
+/// successful cancellation distinct from retirement of closed evidence, and
+/// leave Input/Keyed cleanup ownership to their existing state machines.
+fn retire_closed_row_evidence(attempt : RowAttempt) -> Bool {
+  let records = match attempt.state {
+    EvidenceIssued(records) => records
+    Captured(observation) => observation.records
+    _ => return true
+  }
+  if @planning.query_evidence_registration_live(
+      records.authority.issuer.registration,
+    ) ||
+    !@planning.retire_query_evidence_custody(records.issued) {
+    return false
+  }
+  attempt.state = Failed
+  true
 }
 
 ///|
@@ -351,7 +376,10 @@ fn complete_row_capture_output(
   attempt.state = EvidenceIssued(records)
   match verify_row_records(issuer, attempt, records) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      abort_row_attempt(attempt)
+      return Err(issue)
+    }
   }
   match
     @planning.capture_query_evidence(

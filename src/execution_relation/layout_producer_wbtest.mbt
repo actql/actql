@@ -82,7 +82,7 @@ fn import_layout_producer(
         limits.max_rows,
         control,
         output,
-        { limit: limits.operation_entries, live: 0, peak: 0, },
+        { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
         physical,
         None,
       )
@@ -278,7 +278,7 @@ test "producer layout import uses the checked projection and keeps its success o
             limits.max_rows,
             control,
             invocation.output_budget,
-            { limit: limits.operation_entries, live: 0, peak: 0, },
+            { ..row_workspace(limits.operation_entries), live: 0, peak: 0, },
             physical,
             logical,
           )

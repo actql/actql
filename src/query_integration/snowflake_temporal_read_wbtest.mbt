@@ -45,7 +45,7 @@ test "Snowflake temporal Source request selects UTC and fixed formats from the s
     ),
   )
   assert_true(@snowflake_read.statement_read_complete(statement))
-  let captured = @snowflake_read.capture_result_read(read).unwrap()
+  let captured = snowflake_capture_result(read).unwrap()
   let input = @query.captured_source_storage(
     @row_host.row_capture_source(captured).unwrap(),
     10000,
@@ -106,7 +106,7 @@ test "Snowflake temporal output parameters follow only the original selected col
       ("TREND", false, true),
     ] {
     let prepared = snowflake_read_preparation(
-      query_text="SELECT " + column + " FROM snowflake.usage_30d",
+      query_text="SELECT " + column + " FROM snowflake.usage_30d WHERE TRUE",
       temporal=true,
       selected_fields=[column],
     ).unwrap()
@@ -142,7 +142,7 @@ test "Snowflake temporal output parameters follow only the original selected col
 ///|
 test "Snowflake final query projection does not rewrite the original physical Source carrier" {
   let prepared = snowflake_read_preparation(
-    query_text="SELECT ACCOUNT_ID FROM snowflake.usage_30d",
+    query_text="SELECT ACCOUNT_ID FROM snowflake.usage_30d WHERE TRUE",
     temporal=true,
   ).unwrap()
   assert_eq(

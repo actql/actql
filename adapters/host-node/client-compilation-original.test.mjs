@@ -317,7 +317,10 @@ test('actual Request Node Model Plan binding forwards original layout and physic
   const original = Object.freeze({nodeInstallation: Object.freeze({layout, installation: profile,
     runtimeArtifactCid: 'runtime-original', layoutArtifactCid: 'layout-original', probability}),
     modelRetainedBytes: 123n, modelExecutionBytes: 456n,
-    bootstrap: Object.freeze({maxReservations: 7, maxHoldings: 8, maxDelegations: 9})});
+    // Explicit stored fixture DATA for the existing constructor's complete suffix.
+    // These values assert forwarding, not actual physical admission or backing.
+    bootstrap: Object.freeze({maxReservations: 7, maxHoldings: 8, maxDelegations: 9,
+      bootstrapRetainedBytes: 23n, bootstrapExecutionBytes: 31n})});
   let calls = 0, primary;
   const ok = value => ({$tag: 1, _0: value});
   const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'fixture',
@@ -330,7 +333,7 @@ test('actual Request Node Model Plan binding forwards original layout and physic
     clientProgramPrepareRequestNodeModelSourceFreePlan(...args) {
       assert.equal(this, moon);
       assert.deepEqual(args, [parent, input, module, request, native, definitionToken, occurrence, graph, bounds,
-        layout, profile, 'runtime-original', 'layout-original', probability, 123n, 456n, 7, 8, 9]);
+        layout, profile, 'runtime-original', 'layout-original', probability, 123n, 456n, 7, 8, 9, 23n, 31n]);
       calls++; return primary === undefined ? ok(selected) : {$tag: 0, _0: primary};
     },
     clientProgramPrepareRequestModelSourceFreePlan() {assert.fail('No physical Node fallback to generic Model Plan');},

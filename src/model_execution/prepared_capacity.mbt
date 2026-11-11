@@ -54,6 +54,9 @@ fn finish_prepared_model_capacity(
   // original cleanup/capacity settlement above preserves this exact reference.
   if state.prepared_call_set is Some(prepared) {
     prepared.io_access = None
+    // The escaped set can still identify its reclaimed owner. The owner no
+    // longer needs the reverse edge, which would retain the entire execution.
+    state.prepared_call_set = None
   }
   Ok(true)
 }

@@ -14,6 +14,46 @@ import {execFileSync} from 'node:child_process';
 import {once} from 'node:events';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 
+// Run completion does not wait for its optional Evidence projection. Observe
+// this fixture's actual sink write before reading that same original receipt.
+// A later process can read an already committed receipt without waiting for a
+// new projection; lookup still refuses a missing original receipt.
+function captureSinkWithCompletion(original, targets) {
+  const writes = new Map(targets.map(target => {
+    const completion = Promise.withResolvers();
+    // record may fail before lookup starts. Keep that exact rejection for the
+    // later lookup without creating an unrelated unhandled rejection.
+    void completion.promise.catch(() => {});
+    return [target, {...completion, started: false}];
+  }));
+  return Object.freeze({...original,
+    capture: original.capture.bind(original),
+    pendingBytes: original.pendingBytes.bind(original),
+    cleanupPending: original.cleanupPending.bind(original),
+    async record(receipt) {
+      const completion = writes.get(receipt.target);
+      if (completion) completion.started = true;
+      try {
+        const result = await original.record(receipt);
+        completion?.resolve(receipt.subject);
+        return result;
+      } catch (cause) {
+        completion?.reject(cause);
+        throw cause;
+      }
+    },
+    async lookup(subject, target) {
+      const completion = writes.get(target);
+      assert.ok(completion, 'Only the two declared Evidence targets are observed');
+      let committed;
+      try {committed = await original.lookup(subject, target);}
+      catch (cause) {if (cause?.code !== 'EvidenceOriginalMissing') throw cause;}
+      if (committed !== undefined && !completion.started) return committed;
+      assert.deepEqual(await completion.promise, subject);
+      return original.lookup(subject, target);
+    }});
+}
+
 const runtime = process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS === undefined ? undefined :
   JSON.parse(await readFile(process.env.ACTQL_INFER_EVIDENCE_ACCEPTANCE_INPUTS, 'utf8'));
 const {connect} = runtime === undefined
@@ -84,9 +124,9 @@ try {
   };
   let settlements = 0;
   const destination = 'local:source-multi-infer-evaluator';
-  const sink = await createCaptureSink({directory: join(root, 'evidence'), destination,
+  const sink = captureSinkWithCompletion(await createCaptureSink({directory: join(root, 'evidence'), destination,
     maxBytes: 131072, maxPendingBytes: 1048576, retentionMs: 300000,
-    authorize: facts => facts.destination === destination});
+    authorize: facts => facts.destination === destination}), ['first_assessment', 'second_assessment']);
   if (observationMode === 'sampling-zero') {
     collector = httpServer((request, response) => {otlpRequests++; request.resume(); response.end();}).listen(0, '127.0.0.1');
     await once(collector, 'listening');
@@ -98,6 +138,8 @@ try {
   const installation = {
     ...(telemetry === undefined ? {} : {observation: telemetry.connection}),
     directory: join(root, 'host'), sourceProfilePath, modelInstallation: installed.installation,
+    // Both publications retain the same finite Host policy across processes.
+    hostCapacityPolicy: base.host_policy_profile.capacity,
     inferEvidence: {target: ['first_assessment', 'second_assessment'], destination,
       maxBytes: 262144, sink, authorize: binding =>
         JSON.parse(binding.policy.wire).unknown_provenance === true},
@@ -175,7 +217,9 @@ try {
         return installed.tasks.some(task => task.contract_cid === taskCid) && selector === 'packed-risk-model' &&
           JSON.parse(wire).format === 'packed-risk/0.1';
       },
-      quantityCapacity: {limits: {tokens: 66n, costUnits: 0n, durationMs: 1000n},
+      // Two admitted two-call contracts each retain 1000ms. The shared Run
+      // covers both complete 66-token/1000ms envelopes without refunding either.
+      quantityCapacity: {limits: {tokens: 132n, costUnits: 0n, durationMs: 2000n},
         perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
       observeEgress: () => ({_0: 'public', _1: 'fixture-region', _2: false, _3: false}),
       physicalPreflight: request => {
@@ -371,13 +415,13 @@ try {
     serial.id = 'unsupported-serial-infer-evidence';
     serial.stages[2].inputs.items.result.stage = 'first';
     serial.stages[2].steps[1].infer.input = {text: {literal: 'downstream'}};
-    // The public Submission contract records this unsupported downstream
-    // preparation as an operation failure, not malformed language input.
+    // The original bound Check discloses this Host's downstream Model-input
+    // implementation limit. This is not a complete language-validity verdict.
     await assert.rejects(client.start(serial,
       {submissionRef: client.newSubmission({nonce: 'serial-infer-negative'})}),
       error => error.code === 'SubmissionPreparationFailed' &&
-        error.outcome?.problem?.code === 'ClientProgramRejected' &&
-        error.outcome.problem.classification === 'operation_failed');
+        error.outcome?.problem?.code === 'ClientProgramUnsupported' &&
+        error.outcome.problem.classification === 'implementation_limit');
     assert.equal(calls.length, 4, 'the refused downstream INFER must not send');
     assert.equal(observed.filter(item => item.name === 'acquisition_started').length, 1);
   }
@@ -401,8 +445,16 @@ try {
     calls, sourceCalls: readLines(sourcePath).length, terminal, description, ref: run.ref, revision: runtime?.revision}));
   }
   if (['resume-cleanup-pending', 'resume-cleanup-retry'].includes(phase)) {
-    await client.close(); client = undefined;
-    if (host !== undefined) {await host.close(); host = undefined;}
+    const closeOwners = async () => {
+      await client.close(); client = undefined;
+      if (host !== undefined) {await host.close(); host = undefined;}
+    };
+    if (phase === 'resume-cleanup-pending') {
+      // The injected filesystem refusal must remain visible at close. Preserve
+      // that exact pending state across the fixture's next process boundary.
+      await assert.rejects(closeOwners, {code: transport === 'local'
+        ? 'ClientCleanupPending' : 'PublicationStoreCleanupPending'});
+    } else await closeOwners();
     const directory = join(root, 'host/checkpoints/attempts');
     const ledgers = [];
     for (const name of await readdir(directory)) {
@@ -417,6 +469,7 @@ try {
     await writeFile(join(root, `${phase}.json`), JSON.stringify({pid: process.pid,
       ref: run.ref, sourceCalls: readLines(sourcePath).length, calls, holdings,
       retainedRequestCount: ledgers.flatMap(ledger => ledger.holdings).filter(item => item.name === 'invocation_request').length}));
+    if (phase === 'resume-cleanup-pending') process.exit(77);
   }
 } finally {
   await client?.close();

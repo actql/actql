@@ -91,7 +91,7 @@
       "name": "risk",
       "contract": {
         "type": "string",
-        "nullable": true
+        "nullable": false
       }
     }
   ],
@@ -121,7 +121,7 @@
       "name": "risk",
       "contract": {
         "type": "string",
-        "nullable": true
+        "nullable": false
       }
     },
     {

@@ -58,7 +58,8 @@ function fixture({implementationFailure,sourceFailure,foreignCapacity=false}={})
     sourceReaderImplementationProfile(input){
       assert.equal(this,services);assert.equal(input.installation,installation);
       assert.equal(input.sourceInitialization,sourceInitialization);events.push('profile');
-      return{maxDeclarationBytes:4096,maxDeclarationNodes:1000};
+      return{maxDeclarationBytes:4096,maxDeclarationNodes:1000,pageSize:250,maxTotalRows:1000,
+        maxTotalResponseBytes:65536,maxCursorBytes:1024,maxTargetBytes:4096};
     },
     sourceReaderImplementation(input){
       assert.equal(this,services);assert.equal(input.installation,installation);
@@ -110,7 +111,12 @@ test('Calendar calendars constructs through original Host Source services withou
   const f=fixture();assert.equal(await f.load(),f.result);
   assert.deepEqual(f.events,['configuration','profile','implementation','schema','declaration','site','reader','source']);
   const {implementationInput,readerInput,sourceInput}=f.selected();
-  assert.deepEqual(implementationInput.limits,limits);
+  assert.deepEqual(implementationInput.limits,{
+    maxResponseBytes:8192,maxTotalResponseBytes:32768,maxNodes:512,maxDepth:16,
+    maxRows:2,maxTotalRows:3,maxPages:4,pageSize:2,maxCursorBytes:512,
+    maxIdentityBytes:4096,maxTargetBytes:4096,maxValueNodes:100,maxValueTextBytes:4096,
+    maxRowsWireBytes:8192,maxRowsWireNodes:200,maxRowsWireDepth:8,maxSecretBytes:128,
+  });
   assert.equal(implementationInput.columnCount,4);
   assert.deepEqual(sourceInput.limits,{maxPages:4,maxPageBytes:8192,maxPageRows:2,maxCaptureRows:3});
   assert.equal(readerInput.operation,'calendar:calendars:list');
@@ -136,4 +142,26 @@ test('Calendar retains original implementation failure and original failed reade
   const h=fixture({foreignCapacity:true});
   await assert.rejects(h.load(),{code:'InstalledCalendarReaderImplementationMismatch'});
   assert.equal(h.cleanup.length,1);assert(!h.events.includes('source'));
+});
+
+
+test('Calendar Source selects its complete original page recipe before the shared reader constructor',async()=>{
+  const f=fixture();assert.equal(await f.load(),f.result);
+  assert.deepEqual(f.selected().implementationInput.limits,{
+    maxResponseBytes:8192,maxTotalResponseBytes:32768,maxNodes:512,maxDepth:16,
+    maxRows:2,maxTotalRows:3,maxPages:4,pageSize:2,maxCursorBytes:512,
+    maxIdentityBytes:4096,maxTargetBytes:4096,maxValueNodes:100,maxValueTextBytes:4096,
+    maxRowsWireBytes:8192,maxRowsWireNodes:200,maxRowsWireDepth:8,maxSecretBytes:128,
+  });
+  assert.deepEqual(f.selected().sourceInput.limits,
+    {maxPages:4,maxPageBytes:8192,maxPageRows:2,maxCaptureRows:3});
+});
+
+
+test('Calendar original total response and cursor limits refuse before shared construction',async()=>{
+  for(const change of [{maxResponseBytes:20000},{maxCursorUnits:300},{maxRows:1001}]){
+    const f=fixture();Object.assign(f.profile.limits,change);
+    await assert.rejects(f.load(),{code:'InstalledSourceReaderImplementationBoundsExceeded'});
+    assert.deepEqual(f.events,['configuration','profile']);
+  }
 });

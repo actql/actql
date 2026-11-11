@@ -8,9 +8,9 @@ test "NFC construction rejects negative extents and preserves finite Int bounds"
   assert_eq(empty.owned_utf16_units, 2L)
   assert_eq(empty.max_output_utf16_units, 0L)
   let largest = nfc_lf_construction_extent(2147483647).unwrap()
-  assert_eq(largest.scalar_words, 75161928173L)
-  assert_eq(largest.owned_utf16_units, 85899345882L)
-  assert_eq(largest.max_output_utf16_units, 17179869176L)
+  assert_eq(largest.scalar_words, 57982058997L)
+  assert_eq(largest.owned_utf16_units, 42949672942L)
+  assert_eq(largest.max_output_utf16_units, 8589934588L)
 }
 
 ///|
@@ -42,7 +42,25 @@ test "NFC constructor arrays and text fit the named construction inventory" {
       decomposed.capacity().to_int64() +
       composed.capacity().to_int64()
     assert_true(quote.scalar_words >= live_slots + 256L)
+    // The original ordering call's private class/run arrays have returned
+    // before composition. Keep both full preceding growth bounds while
+    // checking each actual named phase, including the fixed sort table.
+    let ordering_slots = scalars.capacity().to_int64() +
+      decomposed.capacity().to_int64() +
+      2L * decomposed.length().to_int64() +
+      256L
+    assert_true(quote.scalar_words >= ordering_slots)
+    assert_eq(quote.scalar_words, 528L + 27L * units)
     assert_true(quote.owned_utf16_units >= result.length().to_int64())
   }
   assert_eq(normalize_nfc_lf("e\u{0301}\r\n\r").unwrap(), "é\n\n")
+}
+
+///|
+test "NFC output quotation follows pinned recursive UTF16 geometry without doubling each scalar" {
+  assert_eq(nfc_lf_retained_output_units(64L), Some(256L))
+  let profile = nfc_lf_construction_extent(64).unwrap()
+  assert_eq(profile.max_output_utf16_units, 256L)
+  // Same five named output/builder/LF overlaps and fixed empty buffers.
+  assert_eq(profile.owned_utf16_units, 5L * 256L + 2L)
 }

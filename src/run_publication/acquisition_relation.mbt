@@ -62,6 +62,10 @@ pub(all) enum AcquisitionRelationIssue {
   WrongEvidence
   WrongScope
   WrongRetention
+  KeySetRole(Int, String)
+  KeySetArity(Int)
+  KeySetContract(Int, Int)
+  KeySetOrder(Int, Int, @admitted.KeyOrderIssue)
   Encoding
   Contract(PublicationContractIssue)
 } derive(Eq, Debug)
@@ -77,6 +81,51 @@ pub fn issue_single_source_acquisition_scope(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, AcquisitionRelationIssue] {
+  issue_source_request_acquisition_scope(
+    source_contract_cid,
+    request_values_cid,
+    None,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Bind the existing key-set envelope to its own SourceView/static Request.
+/// This is semantic Scope DATA, not evidence of lookup completion or authority.
+pub fn issue_keyed_source_acquisition_scope(
+  source_contract_cid : String,
+  request_values_cid : String,
+  key_set : PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, AcquisitionRelationIssue] {
+  if key_set.name != "request_key_set" ||
+    contract_string(key_set, "source_view_contract_cid") !=
+    Some(source_contract_cid) {
+    return Err(WrongScope)
+  }
+  issue_source_request_acquisition_scope(
+    source_contract_cid,
+    request_values_cid,
+    Some(key_set.identity),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_source_request_acquisition_scope(
+  source_contract_cid : String,
+  request_values_cid : String,
+  key_set_cid : String?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, AcquisitionRelationIssue] {
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -86,7 +135,10 @@ pub fn issue_single_source_acquisition_scope(
     @encode.begin_array(writer)
     @encode.begin_object(writer)
     @encode.key(writer, "request_key_set_cid")
-    @encode.null_value(writer)
+    match key_set_cid {
+      Some(cid) => @encode.string_value(writer, cid)
+      None => @encode.null_value(writer)
+    }
     @encode.key(writer, "request_values_cid")
     @encode.string_value(writer, request_values_cid)
     @encode.key(writer, "source_contract_cid")
@@ -146,6 +198,50 @@ pub fn issue_derived_input_relation(
     retention,
     contract_count(artifact, "actual_row_count").unwrap(),
     contract_string(artifact, "actual_completeness").unwrap(),
+    "derivation",
+    evidence.derivation.identity,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// A completed private computation can feed acquisition without publishing a
+/// Result. The original capture owner supplies actual row count/completeness;
+/// the validated derivation/order and same scope/retention bind its metadata.
+/// This issues no execution, custody, Source access or completeness attestation.
+pub fn issue_computed_input_relation(
+  evidence : ResultOrderingEvidence,
+  scope : PublicationContract,
+  retention : PublicationContract,
+  row_count : Int,
+  completeness : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, AcquisitionRelationIssue] {
+  if scope.name != "acquisition_scope" ||
+    contract_string(evidence.derivation, "scope_cid") != Some(scope.identity) {
+    return Err(WrongScope)
+  }
+  if retention.name != "result_retention_policy" ||
+    contract_string(evidence.derivation, "effective_data_policy_cid") !=
+    contract_string(retention, "effective_data_policy_cid") {
+    return Err(WrongRetention)
+  }
+  if row_count < 0 || !["complete", "partial", "unknown"].contains(completeness) {
+    return Err(WrongEvidence)
+  }
+  seal_input_relation(
+    contract_string(evidence.derivation, "producer_contract_cid").unwrap(),
+    contract_string(evidence.derivation, "logical_value_cid").unwrap(),
+    contract_string(evidence.derivation, "relation_schema_cid").unwrap(),
+    evidence.ordering.identity,
+    scope,
+    retention,
+    row_count.to_int64(),
+    completeness,
     "derivation",
     evidence.derivation.identity,
     max_bytes,

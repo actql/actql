@@ -85,7 +85,7 @@ test "checked fragment runtime budget reaches the shared evaluator without reset
     2,
     { remaining: 100000, max_frames: 100, },
     row_output(),
-    { limit: 100000, live: 0, peak: 0, },
+    row_workspace(100000),
     ordered_budget=Some(budget),
   ).unwrap()
   assert_eq(output.rows.length(), 2)
@@ -110,7 +110,7 @@ test "checked fragment runtime budget reaches the shared evaluator without reset
       2,
       { remaining: 100000, max_frames: 100, },
       row_output(),
-      { limit: 100000, live: 0, peak: 0, },
+      row_workspace(100000),
       ordered_budget=Some(limited),
     )
     is Err(LogicalRows(InputRowLimit)),

@@ -629,6 +629,17 @@ fn bounded_group_step(
           state.output_recheck is Some(_) {
           return bounded_group_failure(InvalidExecution, progress, used + 1)
         }
+        // Preserve the complete measured original row. The same task funds
+        // persistent output before transfer, including a window projection.
+        if !fund_output_retention(
+            output.buffer.budget,
+            output.buffer.budget.nodes,
+            output.buffer.budget.text,
+          ) ||
+          !output.buffer.open ||
+          output.buffer.reading {
+          return bounded_group_failure(Capture(CaptureLimit), progress, used)
+        }
         output.buffer.rows.push(state.output_row)
         release_slots(state.workspace, state.output_row.length())
         state.output_row = []
@@ -777,6 +788,7 @@ fn start_bounded_group_with_input(
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
+  output.buffer.budget.retention = generated.working
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)

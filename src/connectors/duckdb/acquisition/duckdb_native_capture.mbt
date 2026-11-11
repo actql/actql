@@ -106,9 +106,7 @@ pub fn duckdb_native_observation_usage(
 pub fn duckdb_native_observation_measurement_usage(
   value : DuckDBNativeObservation,
 ) -> (Int, Int, Int) {
-  @duckdb.native_receiving_measurement_usage(
-    value.records.measurement.attempt.receiver,
-  )
+  @duckdb.native_receiving_measurement_usage(value.records.measurement.receiver)
 }
 
 ///|

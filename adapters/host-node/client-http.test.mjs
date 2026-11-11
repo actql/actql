@@ -7,10 +7,14 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installHttpRequestPreparation} from './http-request-preparation.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {ClientError, connect} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createDiagnosticObserver, diagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
+import {resultDescriptionLimits} from '../../packages/client-wire/index.mjs';
+import './http-required-preparation.test.mjs';
 
 const ref = {namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -22,6 +26,18 @@ const state = {version: 'actql-run-state/0.1', run_id: 'run-a',
     state: 'unknown', observed_at: '2026-09-24T00:00:00.000Z',
     reason: 'verification_pending'}}};
 
+// Transport outcome fixtures use the same installed Request owner as other
+// HTTP callers. Missing preparation remains a separate installation refusal.
+async function createFundedHttpHandler(t, options) {
+  const wire = await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const body = JSON.parse(wire);
+  const environment = moon.clientProgramCheckEnvironment(wire.trimEnd(),
+    body.evidence_bundle_cid, false, false, true, true, false, false, false);
+  assert.ok(environment);
+  const funded = await fundedClientPreparation(t, {moon, environment, http: true});
+  return createClientHttpHandler({...options, prepareRequest: funded.prepareRequest});
+}
+
 async function withServer(handler, run) {
   const server = createServer(handler);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -32,7 +48,7 @@ async function withServer(handler, run) {
   }
 }
 
-test('epoch-bound submit has one outcome contract over HTTP and in-process', async () => {
+test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {
   const profile = {version: 'actql-client-host/0.1', mode: 'local',
     owner: 'local', durability: 'durable', scopeRef: 'local-scope',
     capabilities: [], submissionEpoch: {version: 'actql-submission-epoch/0.1',
@@ -116,7 +132,7 @@ test('epoch-bound submit has one outcome contract over HTTP and in-process', asy
             ['refused', 'prepare-refused'].includes(scenario) ? 0 : 1);
         };
         if (transport === 'http') {
-          await withServer(createClientHttpHandler(options), async base => {
+          await withServer(await createFundedHttpHandler(t, options), async base => {
             await exercise(await connect({mode: 'local', owner: 'local',
               endpoint: `${base}/`, token: 'local-token'}), `${base}/`);
           });
@@ -136,7 +152,7 @@ test('epoch-bound submit has one outcome contract over HTTP and in-process', asy
 });
 
 test('unsettled authentication diagnostics do not block refusal or grow forever',
-  async () => {
+  async t => {
     let calls = 0;
     let finish;
     const observe = () => {
@@ -153,7 +169,7 @@ test('unsettled authentication diagnostics do not block refusal or grow forever'
       await assert.rejects(port.perform('status', body),
         {code: 'ClientAuthenticationDenied'});
     }
-    await withServer(createClientHttpHandler(options), async base => {
+    await withServer(await createFundedHttpHandler(t, options), async base => {
       const response = await fetch(`${base}/actql/client/0.1/status`, {
         method: 'POST', headers: {'content-type': 'application/json'},
         body: JSON.stringify(body), signal: AbortSignal.timeout(2000),
@@ -206,7 +222,7 @@ test('closing one diagnostic owner does not poison a later installation',
 
 for (const boundary of ['authenticate', 'authorize_connection']) {
   test(`authorization faults stay private at ${boundary} on both ports`,
-    async () => {
+    async t => {
       for (const fault of [false, true]) {
         const cause = new Error('private authentication service detail');
         const observations = [];
@@ -231,7 +247,7 @@ for (const boundary of ['authenticate', 'authorize_connection']) {
           runners: [], consentRefs: []}, ref};
         const code = boundary === 'authenticate'
           ? 'ClientAuthenticationDenied' : 'ClientConnectionDenied';
-        await withServer(createClientHttpHandler(options), async base => {
+        await withServer(await createFundedHttpHandler(t, options), async base => {
           const response = await fetch(`${base}/actql/client/0.1/status`, {
             method: 'POST', headers: {'content-type': 'application/json'},
             body: JSON.stringify(body),
@@ -255,9 +271,9 @@ for (const boundary of ['authenticate', 'authorize_connection']) {
     });
 }
 
-test('Client Host rejects missing authentication before touching state', async () => {
+test('Client Host rejects missing authentication before touching state', async t => {
   let authorized = 0;
-  const handler = createClientHttpHandler({
+  const handler = await createFundedHttpHandler(t, {
     authenticate: () => undefined,
     authorizeConnection: () => { authorized++; return true; },
     maxRequestBytes: 512,
@@ -274,9 +290,9 @@ test('Client Host rejects missing authentication before touching state', async (
   assert.equal(authorized, 0);
 });
 
-test('installed preparation cannot disappear before Run acceptance', async () => {
+test('installed preparation cannot disappear before Run acceptance', async t => {
   let admissions = 0;
-  const handler = createClientHttpHandler({
+  const handler = await createFundedHttpHandler(t, {
     authenticate: () => 'principal-a', authorizeConnection: () => true,
     prepareSubmit: () => undefined,
     submit: () => { admissions++; return undefined; },
@@ -295,9 +311,9 @@ test('installed preparation cannot disappear before Run acceptance', async () =>
 });
 
 test('Run start denial and changed request intent keep distinct HTTP errors',
-  async () => {
+  async t => {
     let code = 'ClientRunStartDenied';
-    const handler = createClientHttpHandler({
+    const handler = await createFundedHttpHandler(t, {
       authenticate: () => 'principal-a', authorizeConnection: () => true,
       submit: () => { throw Object.assign(new Error(code), {code}); },
     });
@@ -319,8 +335,8 @@ test('Run start denial and changed request intent keep distinct HTTP errors',
     });
   });
 
-test('Client Host rejects missing movement consent and oversized bodies', async () => {
-  const handler = createClientHttpHandler({
+test('Client Host rejects missing movement consent and oversized bodies', async t => {
+  const handler = await createFundedHttpHandler(t, {
     authenticate: () => 'principal-a',
     authorizeConnection: () => false,
     maxRequestBytes: 1024,
@@ -341,9 +357,9 @@ test('Client Host rejects missing movement consent and oversized bodies', async 
   });
 });
 
-test('malformed wire is rejected before connection authorization', async () => {
+test('malformed wire is rejected before connection authorization', async t => {
   let authorized = 0;
-  const handler = createClientHttpHandler({
+  const handler = await createFundedHttpHandler(t, {
     authenticate: () => 'principal-a',
     authorizeConnection: () => { authorized++; return true; },
   });
@@ -386,9 +402,9 @@ test('malformed wire is rejected before connection authorization', async () => {
   assert.equal(authorized, 0);
 });
 
-test('Client Host negotiates a profile only after authentication and consent', async () => {
+test('Client Host negotiates a profile only after authentication and consent', async t => {
   const observed = [];
-  const handler = createClientHttpHandler({
+  const handler = await createFundedHttpHandler(t, {
     authenticate: authorization => authorization === 'Bearer scoped-token'
       ? 'principal-a' : undefined,
     authorizeConnection: facts => {
@@ -420,11 +436,11 @@ test('Client Host negotiates a profile only after authentication and consent', a
 });
 
 test('Client Host binds a found request reply before sending its Run ref',
-  async () => {
+  async t => {
     let reply = {kind: 'found', requestId: 'saved-id', ref,
       durability: 'volatile',
       lookupExpiresAt: '2026-09-24T00:00:00.000Z'};
-    const handler = createClientHttpHandler({
+    const handler = await createFundedHttpHandler(t, {
       authenticate: () => 'principal-a',
       authorizeConnection: () => true,
       lookupRequest: () => {
@@ -457,12 +473,12 @@ test('Client Host binds a found request reply before sending its Run ref',
   });
 
 test('Client Host rejects foreign admissions and invalid attempt evidence',
-  async () => {
+  async t => {
     const connection = {mode: 'remote', owner: 'remote',
       runners: [], consentRefs: []};
     let admission = {ref, durability: 'volatile', revision: 1};
     let attempt = {kind: 'not_found'};
-    const handler = createClientHttpHandler({
+    const handler = await createFundedHttpHandler(t, {
       authenticate: () => 'principal-a',
       authorizeConnection: () => true,
       submit: () => admission,
@@ -502,11 +518,11 @@ test('Client Host rejects foreign admissions and invalid attempt evidence',
     });
   });
 
-test('Client Host validates custom status and wait replies', async () => {
+test('Client Host validates custom status and wait replies', async t => {
   const connection = {mode: 'remote', owner: 'remote',
     runners: [], consentRefs: []};
   let reply = state;
-  const handler = createClientHttpHandler({
+  const handler = await createFundedHttpHandler(t, {
     authenticate: () => 'principal-a',
     authorizeConnection: () => true,
     observeRun: () => reply,
@@ -532,7 +548,7 @@ test('Client Host validates custom status and wait replies', async () => {
 });
 
 test('known status refusal and unknown faults classify equally on both ports',
-  async () => {
+  async t => {
     const connection = {mode: 'remote', owner: 'remote',
       runners: [], consentRefs: []};
     let cause = Object.assign(new Error('RunStateAccessDenied'),
@@ -549,7 +565,7 @@ test('known status refusal and unknown faults classify equally on both ports',
       observeRun: () => { throw cause; },
       cancel: () => { throw cause; }, maxRowBytes: 1024};
     const port = createNodeInProcessClientHost(options);
-    await withServer(createClientHttpHandler(options), async base => {
+    await withServer(await createFundedHttpHandler(t, options), async base => {
       const send = () => fetch(`${base}/actql/client/0.1/status`, {
         method: 'POST', headers: {'content-type': 'application/json'},
         body: JSON.stringify({connection, ref}),
@@ -602,7 +618,7 @@ test('known status refusal and unknown faults classify equally on both ports',
   });
 
 test('cancel and reconcile classify synchronous and asynchronous Host faults',
-  async () => {
+  async t => {
     const connection = {mode: 'remote', owner: 'remote',
       runners: [], consentRefs: []};
     let fault = () => {};
@@ -617,7 +633,7 @@ test('cancel and reconcile classify synchronous and asynchronous Host faults',
           maxBatchRetainedValueBytes: 2048}}),
       cancel: () => fault(), reconcile: () => fault(), maxRowBytes: 1024};
     const port = createNodeInProcessClientHost(options);
-    await withServer(createClientHttpHandler(options), async base => {
+    await withServer(await createFundedHttpHandler(t, options), async base => {
       for (const operation of ['cancel', 'reconcile']) {
         const body = {connection, ref, ...(operation === 'cancel'
           ? {cancelId: 'original-cancel', expectedRevision: 6,
@@ -658,7 +674,7 @@ test('cancel and reconcile classify synchronous and asynchronous Host faults',
     });
   });
 
-test('reconcile validates the same Run state over HTTP and in-process', async () => {
+test('reconcile validates the same Run state over HTTP and in-process', async t => {
   const connection = {mode: 'local', owner: 'local', runners: [], consentRefs: []};
   let reply;
   let calls = 0;
@@ -666,7 +682,7 @@ test('reconcile validates the same Run state over HTTP and in-process', async ()
     authorizeConnection: () => true, negotiate: () => {},
     reconcile: () => { calls++; return reply; }, maxRowBytes: 1024};
   const port = createNodeInProcessClientHost(options);
-  await withServer(createClientHttpHandler(options), async base => {
+  await withServer(await createFundedHttpHandler(t, options), async base => {
     const request = () => fetch(`${base}/actql/client/0.1/reconcile`, {
       method: 'POST', headers: {'content-type': 'application/json'},
       body: JSON.stringify({connection, ref}),
@@ -694,9 +710,9 @@ test('reconcile validates the same Run state over HTTP and in-process', async ()
 });
 
 test('local-owned Hybrid Cloud ref reaches Host authorization before use',
-  async () => {
+  async t => {
     const authorized = [];
-    const handler = createClientHttpHandler({
+    const handler = await createFundedHttpHandler(t, {
       authenticate: () => 'principal-a',
       authorizeConnection: facts => {
         authorized.push(facts.connection.cloudConnectionRef);
@@ -732,7 +748,7 @@ test('local-owned Hybrid Cloud ref reaches Host authorization before use',
   });
 
 test('wait disconnect ends only its observation and releases its listener',
-  {timeout: 10000}, async () => {
+  {timeout: 10000}, async t => {
     const connection = {mode: 'remote', owner: 'remote',
       runners: [], consentRefs: []};
     const responses = [];
@@ -745,7 +761,7 @@ test('wait disconnect ends only its observation and releases its listener',
     let cancelCalls = 0;
     let normal = false;
     const observedSignals = [];
-    const handler = createClientHttpHandler({
+    const handler = await createFundedHttpHandler(t, {
       authenticate: () => 'principal-a',
       authorizeConnection: () => true,
       attach: () => ({ref, durability: 'volatile', revision: 1}),
@@ -974,7 +990,8 @@ test('HTTP publication current refusal keeps its primary and still finishes the 
   assert.deepEqual(events, ['operation', 'snapshot']);
   assert.deepEqual(finishes, ['failed']);
   preparation.beforeResultPublicationOperation = () => {throw primary;};
-  assert.throws(() => prepare('submit-intent', request), error => error === primary);
+  const refusedRequest = Object.freeze({...request});
+  assert.throws(() => prepare('submit-intent', refusedRequest), error => error === primary);
   assert.deepEqual(events, ['operation', 'snapshot']);
 });
 
@@ -982,20 +999,29 @@ test('HTTP publication current refusal keeps its primary and still finishes the 
 // Keep the whole HTTP handler and all real wire/preparation imports. Only the
 // existing Result service entrance is an explicit delivery port in this Source
 // component; no grant, Core, actual Host or durable Result is claimed here.
-async function httpHandlerWithDeliveryPort() {
+async function httpHandlerWithDeliveryPort({statePort = false} = {}) {
   const file = new URL('./client-http.mjs', import.meta.url);
   const source = await readFile(file, 'utf8');
   const ast = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
   const imports = ast.body.filter(node => node.type === 'ImportDeclaration');
   assert.equal(imports.filter(node => node.source.value === './result-access.mjs').length, 1);
   const port = `export const deliverAuthorizedResult = (service, ...args) => service.deliver(...args);
-    export const describeAuthorizedResult = () => { throw new Error('UnselectedDescriptionPort'); };
-    export const inspectAuthorizedDeliveryAttempt = () => { throw new Error('UnselectedLookupPort'); };`;
+    export const describeAuthorizedResult = (service, ...args) => {
+      if (typeof service.describe !== 'function') throw new Error('UnselectedDescriptionPort');
+      return service.describe(...args);
+    };
+    export const inspectAuthorizedDeliveryAttempt = (service, ...args) => {
+      if (typeof service.inspectDelivery !== 'function') throw new Error('UnselectedLookupPort');
+      return service.inspectDelivery(...args);
+    };`;
   let projected = source;
   for (const node of [...imports].reverse()) {
+    const state = `export const observeClientRunState = (_observation, service, ...args) => service.observe(...args);`;
     const specifier = node.source.value === './result-access.mjs'
       ? 'data:text/javascript;base64,' + Buffer.from(port).toString('base64')
-      : new URL(node.source.value, file).href;
+      : statePort && node.source.value === './client-run-state.mjs'
+        ? 'data:text/javascript;base64,' + Buffer.from(state).toString('base64')
+        : new URL(node.source.value, file).href;
     projected = projected.slice(0, node.source.start) + JSON.stringify(specifier) +
       projected.slice(node.source.end);
   }
@@ -1153,3 +1179,133 @@ test('HTTP read close rejects once and ignores late duplicate end callbacks',
 
 test('HTTP read response error retains its primary through close and late callbacks',
   {timeout: 10000}, () => httpReadEndSettlement('error-first'));
+
+for (const operation of ['read', 'result-describe', 'delivery-attempt']) {
+  test(`HTTP Result ${operation} binds its prepared Request before service entry`,
+    {timeout: 10000}, async () => {
+      // Actual ingress and registry association, with explicit service and
+      // preparation ports. This does not issue Core capacity or a real Run.
+      const createHandler = await httpHandlerWithDeliveryPort();
+      const registry = createEmbeddedHostRegistry(() => true);
+      const host = {}, installation = {}, originals = {host, installation, generation: host};
+      registry.registerPreparation(host, installation, host);
+      let originalRequest;
+      const entered = [];
+      const primary = new Error('OriginalServiceBoundaryFailure');
+      const preparation = {
+        requestPreparation() {return Object.freeze({});},
+        beforeResultPublicationOperation(actual) {
+          assert.equal(actual, operation);
+          registry.assertSourceRequest(host, installation, host, originalRequest);
+        },
+        assertResultPublicationCurrent() {},
+      };
+      const prepare = installHttpRequestPreparation(preparation, registry, originals);
+      const atService = request => {
+        assert.strictEqual(registry.originalSourceRequest(host, installation, host, request),
+          originalRequest);
+        assert.deepEqual(request.indexKey, originalRequest.ref);
+        assert.equal(request.principalId, originalRequest.principalId);
+        assert.equal(request.resultName, originalRequest.resultName);
+        assert.equal(request.attemptId, originalRequest.attemptId);
+        entered.push(request);
+        throw primary;
+      };
+      const handler = createHandler({
+        authenticate: () => 'original-principal', authorizeConnection: () => true,
+        prepareRequest(actual, request) {
+          originalRequest = request;
+          return prepare(actual, request);
+        },
+        resultService: {deliver: atService, describe: atService, inspectDelivery: atService},
+      });
+      await withServer(handler, async base => {
+        const response = await fetch(`${base}/actql/client/0.1/${operation}`, {
+          method: 'POST', headers: {'content-type': 'application/json'},
+          body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+            runners: [], consentRefs: []}, ref, resultName: 'answer',
+            ...(operation === 'delivery-attempt' ? {} : {format: 'jsonl'}),
+            ...(operation === 'result-describe' ? resultDescriptionLimits : {}),
+            attemptId: 'same-prepared-request'}),
+          signal: AbortSignal.timeout(2000),
+        });
+        // The deliberately failing service remains an unknown Host failure.
+        // The assertion is same-original linkage before service work, not a
+        // successful read or a known business non-acceptance classification.
+        assert.equal(response.status, 500);
+        assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+        assert.equal(entered.length, 1);
+        await new Promise(resolve => setImmediate(resolve));
+        assert.throws(() => registry.originalSourceRequest(host, installation, host, entered[0]),
+          {code: 'InstalledHostPreparationChanged'});
+      });
+    });
+}
+
+test('HTTP Result bind failure prevents service entry and finishes only its original Request',
+  {timeout: 10000}, async () => {
+    const createHandler = await httpHandlerWithDeliveryPort();
+    const primary = new Error('OriginalResultRequestBindFailure');
+    const terminals = [];
+    let services = 0, binds = 0;
+    const handler = createHandler({
+      authenticate: () => 'original-principal', authorizeConnection: () => true,
+      prepareRequest(_operation, body) {
+        return {body, beforeReply() {assert.fail('Failed bind cannot publish');},
+          bindRequest() {binds++; throw primary;},
+          finish(terminal) {terminals.push(terminal);}};
+      },
+      resultService: {deliver() {services++; assert.fail('UnboundResultService');}},
+    });
+    await withServer(handler, async base => {
+      const response = await fetch(`${base}/actql/client/0.1/read`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref, resultName: 'answer',
+          format: 'jsonl', attemptId: 'failed-original-bind'}),
+        signal: AbortSignal.timeout(2000),
+      });
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+    });
+    assert.equal(binds, 1);
+    assert.equal(services, 0);
+    assert.deepEqual(terminals, ['failed']);
+  });
+
+test('HTTP status service binds its prepared Request before fallback observation',
+  {timeout: 10000}, async () => {
+    // The same whole handler and actual registry, with only this observation
+    // service entrance selected as a port. No Run state authority is issued.
+    const createHandler = await httpHandlerWithDeliveryPort({statePort: true});
+    const registry = createEmbeddedHostRegistry(() => true);
+    const host = {}, installation = {}, originals = {host, installation, generation: host};
+    registry.registerPreparation(host, installation, host);
+    let originalRequest, entered = 0;
+    const prepare = installHttpRequestPreparation({requestPreparation() {return {};},
+      beforeResultPublicationOperation(operation) {assert.equal(operation, 'status');},
+      assertResultPublicationCurrent() {}}, registry, originals);
+    const handler = createHandler({
+      authenticate: () => 'original-principal', authorizeConnection: () => true,
+      prepareRequest(operation, request) {originalRequest = request; return prepare(operation, request);},
+      stateService: {observe(request) {
+        assert.strictEqual(registry.originalSourceRequest(host, installation, host, request),
+          originalRequest);
+        assert.deepEqual(request.indexKey, originalRequest.ref);
+        assert.equal(request.principalId, originalRequest.principalId);
+        assert.equal(request.purpose, 'inspect');
+        entered++;
+        throw new Error('OriginalObservationBoundaryFailure');
+      }},
+    });
+    await withServer(handler, async base => {
+      const response = await fetch(`${base}/actql/client/0.1/status`, {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+          runners: [], consentRefs: []}, ref}), signal: AbortSignal.timeout(2000),
+      });
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+      assert.equal(entered, 1);
+    });
+  });

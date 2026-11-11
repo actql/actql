@@ -5,7 +5,8 @@ priv struct ClientRequestQuerySyntax {
   format : @frontend.Format
   source_path : String
   quote : (Int64, Int64)
-  mut query : @query_syntax.Query?
+  // Reuse the existing outcome slot for the original success or failure.
+  mut query : Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]?
   mut known_work : Int64
   mut counters_complete : Bool
   mut lowering : ClientRequestQueryLowering?
@@ -48,7 +49,7 @@ pub fn[I] prepared_request_query_syntax(
   }
   guard owner.phase == QuerySyntaxParsed &&
     owner.query_syntax is Some(selected) &&
-    selected.query is Some(query) else {
+    selected.query is Some(Ok(query)) else {
     return Err(Request(WrongPhase))
   }
   Ok(query)
@@ -88,6 +89,21 @@ pub fn[I] parse_request_query_syntax(
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(Request(ForeignOriginal))
+  }
+  let source = if owner.source_input is Some(_) {
+    guard request_source_input_original(owner) is Some(source) else {
+      return Err(Request(ForeignOriginal))
+    }
+    let parts = match @publication_host.client_source_input_parts(source) {
+      Err(issue) => return Err(Request(SourceInput(Source(issue))))
+      Ok(parts) => parts
+    }
+    if parts.0 != document || parts.1 != format {
+      return Err(Request(ForeignOriginal))
+    }
+    Some(source)
+  } else {
+    None
   }
   if format != @frontend.Sql && format != @frontend.Text {
     return Err(Frontend(@frontend.InvalidFormat))
@@ -150,11 +166,38 @@ pub fn[I] parse_request_query_syntax(
     }
     Ok(value) => value
   }
-  let (outcome, known, complete) = @frontend.observe_parse_query(
-    selected.document,
-    selected.format,
-    source_path=selected.source_path,
-  )
+  let (outcome, known, complete) = match source {
+    None =>
+      @frontend.observe_parse_query(
+        selected.document,
+        selected.format,
+        source_path=selected.source_path,
+      )
+    Some(source) =>
+      match
+        @publication_host.observe_client_source_input_query(
+          source,
+          source_path=selected.source_path,
+        ) {
+        Ok(observed) => observed
+        Err(issue) => {
+          let closed = @resources.finish_preparation_phase_work64(work)
+          owner.phase = QuerySyntaxFailed
+          match closed {
+            Err(failure) => return Err(Work(failure))
+            Ok(_) => {
+              let result = Err(
+                ClientRequestQuerySyntaxIssue::Request(
+                  SourceInput(Source(issue)),
+                ),
+              )
+              selected.query = Some(result)
+              return result
+            }
+          }
+        }
+      }
+  }
   selected.known_work = known
   selected.counters_complete = complete
   let charged = @resources.spend_preparation_phase_work64(work, known)
@@ -168,12 +211,12 @@ pub fn[I] parse_request_query_syntax(
     Err(issue) => return Err(Work(issue))
     Ok(_) => ()
   }
-  match outcome {
-    Err(issue) => Err(Frontend(issue))
-    Ok(query) => {
-      selected.query = Some(query)
-      owner.phase = QuerySyntaxParsed
-      Ok(query)
-    }
+  let result = outcome.map_err(issue => {
+    ClientRequestQuerySyntaxIssue::Frontend(issue)
+  })
+  selected.query = Some(result)
+  if result is Ok(_) {
+    owner.phase = QuerySyntaxParsed
   }
+  result
 }

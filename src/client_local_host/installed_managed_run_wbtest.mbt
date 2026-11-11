@@ -43,9 +43,9 @@ test "source-free managed Run quotes the existing Local output envelope without 
     Some(source_query_original_fragment),
     None,
   ).unwrap()
-  // The original installed Local limits: one task/holding, one 1MB transfer,
-  // 200MB minimum retained allowance and unchanged 512MiB execution ceiling.
-  assert_eq(required, [100000L, 1L, 1L, 1000000L, 200000000L, 536870912L])
+  // One task/holding and one 1MB transfer, with the existing finite 512MiB
+  // runtime retention/execution policy. These ceilings are not initial demand.
+  assert_eq(required, [100000L, 1L, 1L, 1000000L, 536870912L, 536870912L])
 }
 
 ///|

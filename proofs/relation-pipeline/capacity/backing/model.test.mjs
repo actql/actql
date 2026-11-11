@@ -38,3 +38,40 @@ test('source correspondence requires the installed core, not just a compiler ver
       ? Buffer.from('unreviewed growth rule') : readFileSync(path)));
   }
 });
+
+// Exercise the auditor's actual model-log block, not a duplicate validator.
+// The independent Lean inventory and existing producer each declare THREE
+// conditional native Map propositions; this is not a complete capacity seal.
+test('capacity audit requires the actual three native Map extent propositions', () => {
+  const lean = readFileSync(new URL('./NativeMapExtent.lean', import.meta.url), 'utf8');
+  assert.deepEqual([...lean.matchAll(/^theorem\s+(\w+)/gm)].map(([, name]) => name),
+    ['table_bound', 'empty_extent', 'current_distinct']);
+  const producer = readFileSync(new URL('./check.mjs', import.meta.url), 'utf8');
+  assert(producer.includes("const nativeNames = ['table_bound', 'empty_extent', 'current_distinct'];"));
+  assert(producer.includes("console.log('3 conditional native Map extent propositions checked;"));
+  const source = readFileSync(new URL('../audit.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('    assert.deepEqual(report.backingModel.command,');
+  const end = source.indexOf('\n  }\n  admitClaim(report.claim);', start);
+  assert(start > 0 && end > start);
+  const consume = Function('assert', 'hash', 'read', 'report', 'current', source.slice(start, end));
+  const log = ['6 array backing model propositions checked',
+    '4 restricted Map model propositions checked',
+    '3 conditional native Map extent propositions checked',
+    '3 selected native Array extent propositions checked'].join('\n');
+  const hash = value => String(value);
+  const current = {digest: 'original fixture Source digest'};
+  const report = {backingModel: {command: ['node', 'proofs/relation-pipeline/capacity/backing/check.mjs'],
+    exit: 0, sourceDigest: current.digest, logPath: 'same-model.log', logDigest: hash(log)}};
+  const verify = (value, original = report) => consume(assert, hash, path => {
+    assert.equal(path, 'same-model.log'); return Buffer.from(value);
+  }, original, current);
+  verify(log);
+  for (const changed of [
+    log.replace('3 conditional native Map', '4 conditional native Map'),
+    log.replace('3 selected native Array', '2 selected native Array'),
+    log.replace('4 restricted Map', '3 restricted Map'),
+  ]) assert.throws(() => verify(changed, {backingModel: {...report.backingModel, logDigest: hash(changed)}}));
+  assert.throws(() => verify(log, {backingModel: {...report.backingModel, exit: 1}}));
+  assert.throws(() => verify(log, {backingModel: {...report.backingModel, sourceDigest: 'foreign'}}));
+  assert.throws(() => verify(log, {backingModel: {...report.backingModel, logDigest: 'foreign'}}));
+});

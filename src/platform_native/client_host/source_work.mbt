@@ -19,6 +19,12 @@ struct NativeClientSourceWork {
 
 ///|
 pub(all) enum NativeClientSourceWorkIssue {
+  Configuration
+  OriginalOperation(NativeClientValuesWorkIssue)
+  RelationFile(@row_file.NativeRelationFileIssue)
+  LocalExecution(@local.LocalValuesExecutionIssue)
+  LocalExport(@local.LocalValuesResultExportIssue)
+  CaptureIdentity(@execution_query.CapturedSourceIssue)
   AuthorizationDenied
   Normalization(@host.ClientLocalNormalizationIssue)
   NeedsOriginalReconciliation

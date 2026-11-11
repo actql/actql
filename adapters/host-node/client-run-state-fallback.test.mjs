@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createServer} from 'node:http';
+import {generateKeyPairSync} from 'node:crypto';
+import {userInfo} from 'node:os';
+import {readFile} from 'node:fs/promises';
+import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -9,12 +12,10 @@ import {installRunStateAuthority, installRunStateService} from
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRunStateObservation, observeClientRunState} from
   './client-run-state.mjs';
-import {createClientHttpHandler} from './client-http.mjs';
-import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {connect} from '../../packages/sdk/index.mjs';
-import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
+import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
+import {openInstalledClientHostFixture} from './fixtures/installed-client-host.fixture.mjs';
 
 // Actual Common observation issuer and physical request Journal; the Store
 // publication/availability ports below are explicit doubles, not execution or
@@ -23,11 +24,7 @@ const control = runtimeCore(moon).publicationControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const limits = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64};
 const at = '2026-10-20T00:00:00.000Z';
-const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-  durability: 'durable', scopeRef: 'reader', capabilities: [],
-  limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
-    maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
-    maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
+
 
 async function fixture(t) {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
@@ -83,46 +80,88 @@ async function fixture(t) {
     observe: (port = runStateObservation, req = request) => observeClientRunState(port, stateService, req)};
 }
 
+// Keep the direct Journal/Store fallback contract separate from the actual
+// installed transport. The production Host owns its own Journal and Store;
+// the semantic double above cannot supply its operational preparation.
+test('fallback uses the original durable observation across reread and reopen', async t => {
+  const f = await fixture(t);
+  const first = await f.observe();
+  assert.equal(validRunState(first), true);
+  assert.equal(first.status, 'succeeded');
+  assert.deepEqual(await f.observe(), first);
+  const original = f.journal.lookupRunDefinition(f.ref, moon, control);
+  assert.equal(first.revision, JSON.parse(f.journal.publishRunState(original, first, moon, control)).revision);
+  f.journal.close();
+  const reopened = f.open();
+  assert.deepEqual(await f.observe(f.bind(reopened)), first);
+  reopened.requestCancellation(f.ref, {currentAuthorization: true,
+    publicationCommitted: true}, moon, control);
+  const after = await f.observe(f.bind(reopened));
+  assert.ok(after.revision >= first.revision);
+  assert.equal(after.status, 'succeeded', 'a cancellation cannot replace confirmed publication');
+  f.scratch.passed();
+});
+
+async function currentInstalledState(run) {
+  const before = Date.now();
+  const state = await run.status();
+  const after = Date.now();
+  assert.equal(validRunState(state), true);
+  // The real Store samples its current clock on each read. These two fields
+  // are observations, not another durable state revision or a frozen clock.
+  const observed = Date.parse(state.result_availability.answer.observed_at);
+  assert.equal(new Date(observed).toISOString(), state.result_availability.answer.observed_at);
+  assert.ok(observed >= before && observed <= after);
+  assert.equal(state.updated_at, state.result_availability.answer.observed_at);
+  return state;
+}
+
+function sameInstalledState(actual, original) {
+  // Compare the complete public state. Only the separately checked clock
+  // samples may differ; no identity, control, availability or revision is lost.
+  assert.deepEqual(actual, {...original, updated_at: actual.updated_at,
+    result_availability: {answer: {...original.result_availability.answer,
+      observed_at: actual.result_availability.answer.observed_at}}});
+}
+
 for (const transport of ['HTTP', 'in-process']) {
-  test(`${transport} fallback uses the original durable observation across reread and reopen`, async t => {
-    const f = await fixture(t);
-    const configuration = {authenticate: () => 'reader', authorizeConnection: () => true,
-      negotiate: () => profile, stateService: f.stateService,
-      runStateObservation: f.runStateObservation, maxRowBytes: 1024,
-      attach: () => ({ref: f.ref, durability: 'durable', revision: 0})};
-    let server;
-    let client;
-    try {
-      if (transport === 'HTTP') {
-        server = createServer(createClientHttpHandler(configuration));
-        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-        client = await connect({mode: 'local', owner: 'local',
-          endpoint: `http://127.0.0.1:${server.address().port}/`, token: 'reader'});
-      } else {
-        client = await connectInProcess({mode: 'local', owner: 'local'},
-          createNodeInProcessClientHost(configuration));
-      }
-      const run = await client.attach(f.ref);
-      const first = await run.status();
-      assert.equal(validRunState(first), true);
-      assert.equal(first.status, 'succeeded');
-      assert.deepEqual(await run.status(), first);
-      const original = f.journal.lookupRunDefinition(f.ref, moon, control);
-      assert.equal(first.revision, JSON.parse(f.journal.publishRunState(original, first, moon, control)).revision);
-      await client.close();
-      f.journal.close();
-      const reopened = f.open();
-      assert.deepEqual(await f.observe(f.bind(reopened)), first);
-      reopened.requestCancellation(f.ref, {currentAuthorization: true,
-        publicationCommitted: true}, moon, control);
-      const after = await f.observe(f.bind(reopened));
-      assert.ok(after.revision >= first.revision);
-      assert.equal(after.status, 'succeeded', 'a cancellation cannot replace confirmed publication');
-    } finally {
-      await client?.close();
-      if (server) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
-    }
-    f.scratch.passed();
+  test(`${transport} installed Host retains the same Run observation across reread and reopen`, async t => {
+    const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
+      prefix: 'run-state-installed-', label: `${transport} installed Run observation`});
+    const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
+    let physicalStarts = 0;
+    const authorization = {
+      accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
+        account_id: 'run-state-installed', entries: [{entry_id: 'execution', outcome: 'allow',
+          principal: {all: true}, connection: {all: true}, resource: {all: true},
+          operation: {any_of: ['read', 'write']}, exclusions: []}]}),
+      reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+      hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+      faultInjection(name) {if (name === 'physical_start_reserved') physicalStarts++;},
+    };
+    const certificates = transport === 'HTTP' ? await fixtureCertificates(scratch.path) : undefined;
+    const configuration = {entrance: transport, installation: {
+      directory: join(scratch.path, 'host'), authorization},
+    authenticate: () => principalId, certificates};
+    const firstHost = await openInstalledClientHostFixture(t, configuration);
+    const program = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
+    const run = await firstHost.client.start(program);
+    const ref = run.ref;
+    assert.equal((await run.wait()).status, 'succeeded');
+    const first = await currentInstalledState(run);
+    assert.equal(validRunState(first), true);
+    assert.equal(first.status, 'succeeded');
+    sameInstalledState(await currentInstalledState(run), first);
+    assert.equal(physicalStarts, 1);
+    await firstHost.close();
+    const reopened = await openInstalledClientHostFixture(t, configuration);
+    const attached = await reopened.client.attach(ref);
+    sameInstalledState(await currentInstalledState(attached), first);
+    assert.deepEqual(await attached.result('answer').all(), [{id: 1}, {id: 2}]);
+    assert.equal(physicalStarts, 1, 'reread and reopen must not dispatch another Run');
+    await reopened.close();
+    scratch.passed();
   });
 }
 

@@ -1,0 +1,5 @@
+{
+  "kind": "private-native-client-stock-file-control",
+  "target": "linux-x64",
+  "stockFileControlBytes": 4096
+}

@@ -13,6 +13,7 @@ fn bounded_join_fixture(
   name_bytes? : Int = 10000,
   right_name? : String = "r",
   key_name? : String = "id",
+  reserve? : ((Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
 ) -> (@bounded.Control, BoundedJoinExecution, Array[ProducerRead]) raise {
   let schema = "{\"id\":{\"type\":\"" +
     key_type +
@@ -88,6 +89,17 @@ fn bounded_join_fixture(
     100000,
     10000,
   ).unwrap()
+  let generated = match reserve {
+    Some(reserve) =>
+      bind_generated_workspace_growth(
+        generated,
+        { rows: run_limits(), max_work, max_frames: 100, },
+        1048576L,
+        reserve,
+        meter_retained_outputs=true,
+      ).unwrap()
+    None => generated
+  }
   let left = prepare_producer_read(
     receiver,
     bind_completed_input(receiver, 0, left_owner, left_output).unwrap(),

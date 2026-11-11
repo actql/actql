@@ -289,9 +289,24 @@ test "Local Values Effect export keeps original row and field bounds without los
 test "Local Values ordinary Named Result export preserves its canonical payload after shared bridge extraction" {
   let (captured, inputs, execution) = values_effect_export_fixture()
   let (rows, limits) = values_effect_export_test_limits()
-  let value = execution
-    .prepare_result_export(0, rows, 100, 10000, limits)
-    .unwrap()
+  let value = match
+    execution.prepare_result_export(0, rows, 100, 10000, limits) {
+    Ok(value) => value
+    Err(issue) => {
+      let cause = match issue {
+        MissingOutput => "MissingOutput"
+        UnknownResult => "UnknownResult"
+        Bridge(_) => "Bridge"
+        Export(Retain(_)) => "Retain"
+        Export(Output(_)) => "Output"
+        Export(_) => "Export"
+        Transformation(ForeignSelection) => "Transformation.ForeignSelection"
+        Transformation(InvalidState) => "Transformation.InvalidState"
+        Transformation(_) => "Transformation.Other"
+      }
+      fail("Original ordinary Named Result export: " + cause)
+    }
+  }
   let stream = value.output_export()
   let mut wire = ""
   while stream.next().unwrap() is Some(batch) {
@@ -304,6 +319,120 @@ test "Local Values ordinary Named Result export preserves its canonical payload 
     "sha256:" + @sha.hex(@utf8.encode("[{\"value\":1}]")),
   )
   value.close()
+  assert_eq(execution.rows().unwrap(), ["{\"value\":1}"])
+  values_effect_export_test_close(captured, inputs, execution)
+}
+
+///|
+// A completed predecessor has no operation in a later managed suffix. Its
+// original cell pin, rather than that suffix's task inventory, selects export.
+test "Result exporter selection keeps an original Cells completion independent of managed suffix" {
+  let (run, issuer) = captured_graph_fixture()
+  let graph = @strategy.captured_dag_graph(run)
+  for task in 1..<@strategy.graph_task_count(graph) {
+    captured_graph_local(run, task).unwrap()
+  }
+  let task = @strategy.graph_result_task(graph, 0).unwrap()
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let borrow = @strategy.borrow_captured_any_result_output(
+    run, task, occurrence, 1,
+  ).unwrap()
+  let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_false(
+    @strategy.captured_any_result_borrow_requires_managed_export(borrow),
+  )
+  assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)), before)
+  @strategy.close_captured_task_output(run, task)
+  assert_true(
+    @strategy.captured_any_result_borrow_cell_output(borrow) is Some(_),
+  )
+  let (_, limits) = values_effect_export_test_limits()
+  let preparation = @strategy.start_captured_any_result_borrow_export(
+    borrow,
+    {
+      max_fields: limits.max_result_fields,
+      max_mapping_work: limits.max_result_mapping_work,
+      max_order_work: limits.max_result_order_work,
+      max_workspace_entries: limits.max_result_workspace_entries,
+    },
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
+  ).unwrap()
+  assert_true(@strategy.release_captured_any_result_borrow(borrow))
+  // The representation is immutable; it cannot grant liveness after release.
+  assert_false(
+    @strategy.captured_any_result_borrow_requires_managed_export(borrow),
+  )
+  assert_true(@strategy.captured_any_result_borrow_cell_output(borrow) is None)
+  assert_true(
+    @execution.advance_completed_result_relation_export(preparation, 64)
+    is Err(ResultView(Unavailable)),
+  )
+  @execution.cancel_completed_result_relation_export(preparation) |> ignore
+  @strategy.stop_captured_dag(run)
+  for task in 0..<@strategy.graph_task_count(graph) {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+    0L,
+  )
+}
+
+///|
+test "Result exporter selection keeps Resident bridge ownership and revoked pins fail closed" {
+  let (captured, inputs, execution) = values_effect_export_fixture()
+  let (rows, limits) = values_effect_export_test_limits()
+  let index = values_effect_export_test_index(inputs, "out")
+  let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
+  let borrow = @strategy.captured_effect_local_result_borrow(result)
+  assert_true(
+    @strategy.captured_any_result_borrow_requires_managed_export(borrow),
+  )
+  assert_true(@strategy.captured_any_result_borrow_cell_output(borrow) is None)
+  assert_true(
+    @strategy.start_captured_effect_local_result_export(
+      inputs,
+      index,
+      {
+        max_fields: limits.max_result_fields,
+        max_mapping_work: limits.max_result_mapping_work,
+        max_order_work: limits.max_result_order_work,
+        max_workspace_entries: limits.max_result_workspace_entries,
+      },
+      limits.max_rows,
+      limits.values,
+      limits.payload_wire,
+      limits.logical_wire,
+      limits.schema,
+      limits.max_batch_bytes,
+    )
+    is Err(
+      @strategy.CapturedEffectLocalResultExportIssue::Export(
+        NotCellRepresentation
+      )
+    ),
+  )
+  let managed = execution
+    .prepare_effect_result_export(
+      captured, inputs, index, rows, 100, 10000, limits,
+    )
+    .unwrap()
+  let exported = managed.captured_export().unwrap()
+  assert_true(
+    @strategy.captured_effect_local_result_export_retained(inputs, exported),
+  )
+  assert_true(@strategy.release_captured_any_result_borrow(borrow))
+  assert_true(
+    @strategy.captured_any_result_borrow_requires_managed_export(borrow),
+  )
+  assert_true(managed.captured_export() is None)
+  managed.close()
   assert_eq(execution.rows().unwrap(), ["{\"value\":1}"])
   values_effect_export_test_close(captured, inputs, execution)
 }

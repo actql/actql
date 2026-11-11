@@ -4,6 +4,7 @@ pub(all) enum NativeClientValuesPublicationIssue {
   Policy(NativeClientRunJournalIssue)
   BindingMismatch
   Invocation(@publication.RunEvidenceValueIssue)
+  Preparation(@local.ClientClosedValuesPreparationIssue)
   Service(@native_publication.NativeRunPublicationIssue)
   Publication(@native_publication.NativeCapturedRunPublicationPreparationIssue)
 }
@@ -66,9 +67,34 @@ pub fn NativeClientValuesWork::publication_invocation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   NativeClientValuesPublicationIssue,
 ] {
-  match local_values_publication_policy(self) {
-    Ok(_) => ()
+  let policy = match local_values_publication_policy(self) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if self.managed is Some(owner) {
+    if self.publication_invocation is Some(original) {
+      return Ok(original)
+    }
+    let invocation = match
+      @local.issue_program_publication_invocation(
+        owner,
+        self.prepared,
+        self.compiled,
+        self.definition,
+        policy,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Preparation(issue))
+    }
+    // Retain the original issued pair before another fallible current check.
+    self.publication_invocation = Some(invocation)
+    return self
+      .require_current()
+      .map_err(issue => NativeClientValuesPublicationIssue::Work(issue))
+      .map(_ => invocation)
   }
   let invocation = match
     @host.issue_client_compiled_local_values_invocation(
@@ -217,6 +243,12 @@ pub fn NativeClientValuesWork::prepare_local_publication(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if self.managed is Some(owner) && self.publication is None {
+    match @local.reserve_program_publication(owner, self.prepared) {
+      Ok(value) => self.publication = Some(value)
+      Err(issue) => return Err(Preparation(issue))
+    }
+  }
   let normalization_journal = match self.normalization_evidence() {
     Ok(value) => value
     Err(issue) => return Err(Work(issue))
@@ -266,6 +298,7 @@ pub fn NativeClientValuesWork::prepare_local_publication(
     results,
     intent,
     occurrence,
+    publication=self.publication,
   ).map_err(issue => NativeClientValuesPublicationIssue::Publication(issue))
   // The synchronous persistence traversal and its receipt replay have ended.
   // Pending Store cleanup remains inside the original preparation result.

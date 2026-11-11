@@ -149,7 +149,11 @@ test "original journal issuance count retains exact canonical decimal and caps" 
       (b"0", 1, 0),
       (b"1", 1, 1),
       (b"8", 8, 8),
+      (b"1023", 1023, 1023),
       (b"1024", 1024, 1024),
+      (b"1025", 1025, 1025),
+      (b"10000", 10000, 10000),
+      (b"2147483647", 2147483647, 2147483647),
     ] {
     assert_eq(client_journal_issuance_count(bytes, maximum), Ok(count))
   }
@@ -160,10 +164,16 @@ test "original journal issuance count retains exact canonical decimal and caps" 
     ] {
     assert_eq(client_journal_issuance_count(bytes, 1024), Err(CustodyLost))
   }
-  for maximum in [0, 1025, -1] {
+  for maximum in [0, -1] {
     assert_eq(client_journal_issuance_count(b"0", maximum), Err(CustodyLost))
   }
   assert_eq(client_journal_issuance_count(b"9", 8), Err(CustodyLost))
+  for bytes in [b"2147483648", b"9999999999", b"10000000000", b"00000000000"] {
+    assert_eq(
+      client_journal_issuance_count(bytes, 2147483647),
+      Err(CustodyLost),
+    )
+  }
 }
 
 ///|

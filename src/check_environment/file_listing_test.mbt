@@ -19,10 +19,14 @@ fn file_listing_fixture_schema() -> Json raise {
 ///|
 fn file_listing_fixture_carriers(
   profile : Json?,
-  schema? : Json = file_listing_fixture_schema(),
+  schema? : Json,
   request? : Json? = None,
   extension? : Bool = false,
 ) -> CarrierSchemas raise {
+  let schema = match schema {
+    Some(value) => value
+    None => file_listing_fixture_schema()
+  }
   let bodies = value_bodies("{\"type\":\"number\",\"nullable\":false}")
   bodies["request_schema"] = @json.parse(
     "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{\"paths\":{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"string\",\"nullable\":false}},\"glob\":{\"type\":\"string\",\"nullable\":true}}}",

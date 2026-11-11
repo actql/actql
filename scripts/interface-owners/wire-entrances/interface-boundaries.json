@@ -5167,7 +5167,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
@@ -5273,7 +5273,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
@@ -5515,7 +5515,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ed82e6cef8bd7a889ff30d8de8b26417590ff7a8a5516bf07793edd46062ef3",
+      "sha256": "44c93c230a0261b08164cbaa74298c681735f2c86d5cb9a1fcfd2b8a2c7b3710",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -11582,7 +11582,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
@@ -11698,7 +11698,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual}));"
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [

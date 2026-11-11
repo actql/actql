@@ -47,6 +47,8 @@ struct RelationSchemaIdentityPreparation {
   measurement_only : Bool
   mut measured : (Int, Int, Int)?
   mut closed : Bool
+  mut name_headers : Int64
+  mut name_utf16 : Int64
 }
 
 ///|
@@ -119,6 +121,8 @@ fn start_relation_schema_output(
       measurement_only,
       measured: None,
       closed: false,
+      name_headers: 0L,
+      name_utf16: 0L,
     })
   } catch {
     issue => Err(Encoding(issue))
@@ -197,6 +201,10 @@ pub fn advance_relation_schema_identity(
               value.phase = 6
             }
           } else {
+            let field = @schema.field_at(schema, value.field).unwrap()
+            let name = @schema.reference_name_construction_extent(field.name)
+            value.name_headers += name.scratch.record_headers
+            value.name_utf16 += name.scratch_utf16_units
             value.key = Some(
               @encode.start_ordered_key(
                 writer,
@@ -249,6 +257,10 @@ pub fn advance_relation_schema_identity(
             )
             return Ok((true, steps))
           } else if value.names.length() < value.fields {
+            let field = @schema.field_at(schema, value.names.length()).unwrap()
+            let name = @schema.reference_name_construction_extent(field.name)
+            value.name_headers += name.scratch.record_headers
+            value.name_utf16 += name.scratch_utf16_units
             value.names.push(
               @schema.field_reference_name_at(schema, value.names.length()).unwrap(),
             )

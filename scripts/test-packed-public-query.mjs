@@ -12,8 +12,10 @@ import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 import {graphPublicHostCases, graphPublicHostPattern} from './fixtures/graph-host-cases.mjs';
 import {validatePackedPublicQueryArguments} from './packed-public-query-options.mjs';
+import {selectAcceptanceTimeout} from './fixtures/packed-query-transport-owner.mjs';
 
 validatePackedPublicQueryArguments(process.argv.slice(2));
+const acceptanceTimeout = selectAcceptanceTimeout(process.env);
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
@@ -32,6 +34,8 @@ function run(command, args, cwd = root, env = environment,
 console.log(`Packed public-query evidence: ${directory}`);
 console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
   'scripts/distinct-join-order-source-input.test.mjs',
+  'scripts/graph-difference-source-input.test.mjs',
+  'scripts/graph-relation-join-source-input.test.mjs',
   'scripts/public-query-profiles.test.mjs', 'scripts/packed-query-transports.test.mjs',
   'scripts/graph-argument-check.test.mjs', 'scripts/graph-argument-origin-literals.test.mjs'],
   repository).trimEnd());
@@ -743,11 +747,13 @@ console.log(run(process.execPath, ['readme-acceptance.mjs'], root,
   runtimeEnvironment).trimEnd());
 // A fresh process must fail for a real missing generated wire asset; module
 // caches and the checkout's dependency graph must not rescue this install.
+// The Node facade loads the SDK lazily. Select the wire owner itself rather
+// than requiring an unrelated import to eagerly load the transport graph.
 const asset = join(root, 'node_modules/@actql/client-wire/publication.generated.js');
 await rename(asset, asset + '.omitted');
 try {
   const negative = spawnSync(process.execPath, ['--input-type=module', '-e',
-    "await import('@actql/node')"], {cwd: root, env: runtimeEnvironment,
+    "await import('@actql/client-wire')"], {cwd: root, env: runtimeEnvironment,
     encoding: 'utf8', timeout: 30_000});
   await writeFile(join(directory, 'missing-generated-asset.json'), JSON.stringify({
     status: negative.status, signal: negative.signal, stderr: negative.stderr,
@@ -755,12 +761,23 @@ try {
   assert.equal(negative.error, undefined);
   assert.notEqual(negative.status, 0, 'Missing packaged asset must fail at runtime');
   assert.match(negative.stderr, /ERR_MODULE_NOT_FOUND/u);
-assert.match(negative.stderr, /publication\.generated\.js/u);
+  assert.match(negative.stderr, /publication\.generated\.js/u);
   console.log('Packed missing generated asset: child failed as expected');
 } finally { await rename(asset + '.omitted', asset); }
 async function exerciseNativeGraphSource(sourceOnly = false) {
+  const compiler = environment.ACTQL_TEST_NATIVE_QUERY_COMPILER;
+  if (compiler !== undefined && (compiler !== 'clang-19' || process.platform !== 'linux')) {
+    throw new Error('PackedQueryNativeCompilerSelectionInvalid');
+  }
+  if (compiler !== undefined && !/\bclang version 19(?:\.|\s)/u.test(
+    run('cc', ['--version'], repository, environment, 10_000))) {
+    throw new Error('PackedQueryNativeCompilerMismatch');
+  }
+  // Selected Linux CI uses the normal Linux producer's compiler and 1800s
+  // serial compilation budget. Unselected developer builds retain their route.
   run('moon', ['build', '--target', 'native', '--release',
-    'src/cmd/native_client'], repository, environment);
+    ...(compiler === undefined ? [] : ['-j', '1']), 'src/cmd/native_client'],
+  repository, environment, compiler === undefined ? 900_000 : 1_800_000);
   const nativeClient = join(repository, '_build/native/release/build/cmd',
     'native_client/native_client.exe');
   console.log(run(process.execPath,
@@ -848,9 +865,11 @@ let acceptanceStarted = false, acceptanceSucceeded = false, packedFailure;
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     acceptanceStarted = true;
+    const acceptanceDeadline = Date.now() + acceptanceTimeout;
     const output = run(process.execPath, ['packed-query-transports.mjs'], root,
-      {...runtimeEnvironment, ACTQL_TEST_QUERY_DEADLINE: String(Date.now() + 900_000),
-        ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'}, 900_000);
+      {...runtimeEnvironment, ACTQL_TEST_QUERY_TIMEOUT_MS: String(acceptanceTimeout),
+        ACTQL_TEST_QUERY_DEADLINE: String(acceptanceDeadline),
+        ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'}, acceptanceTimeout);
     acceptanceSucceeded = true;
     console.log(output.trimEnd());
     // Reuse this exact installation and its producer artifact. Source INFER

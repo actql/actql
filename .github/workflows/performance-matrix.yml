@@ -89,7 +89,7 @@ permissions:
 jobs:
   ordinary-operations:
     name: Required ordinary operation performance
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -182,8 +182,8 @@ jobs:
           retention-days: 30
   ordinary-native:
     name: Ordinary native ${{ matrix.operation }}
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
-    runs-on: macos-14
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: macos-15
     timeout-minutes: 30
     permissions:
       contents: read
@@ -260,8 +260,8 @@ jobs:
           retention-days: 30
   ordinary-python:
     name: Ordinary python ${{ matrix.operation }}
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
-    runs-on: macos-14
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: macos-15
     timeout-minutes: 30
     permissions:
       contents: read
@@ -352,8 +352,8 @@ jobs:
           retention-days: 30
   ordinary-python-priority:
     name: Ordinary Python priority collector
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
-    runs-on: macos-14
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: macos-15
     timeout-minutes: 30
     permissions:
       contents: read
@@ -439,7 +439,7 @@ jobs:
           retention-days: 30
   ordinary-node-priority:
     name: Ordinary Node priority collector
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -497,7 +497,7 @@ jobs:
   ordinary-priority-assessment:
     name: Ordinary Node and Python priority checkpoint
     needs: [ordinary-node-priority, ordinary-python-priority]
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -562,7 +562,7 @@ jobs:
           retention-days: 30
   ordinary-platform-assessment:
     needs: [ordinary-operations, ordinary-native, ordinary-python]
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -580,7 +580,7 @@ jobs:
             }
           '
   registered-cases:
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
     runs-on: ubuntu-24.04
     outputs:
       cases: ${{ steps.list.outputs.cases }}
@@ -592,7 +592,7 @@ jobs:
         run: echo "cases=$(node benchmarks/retained-results/equivalent-matrix-cases.mjs)" >> "$GITHUB_OUTPUT"
 
   equivalent-obligations:
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
     needs: registered-cases
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -647,7 +647,7 @@ jobs:
 
   equivalent-assessment:
     needs: [registered-cases, equivalent-obligations]
-    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && needs.registered-cases.result == 'success' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && needs.registered-cases.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

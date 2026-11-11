@@ -5,6 +5,7 @@ type LogicalLimits = @lower.FragmentRowLimits
 ///|
 priv struct LogicalBudget {
   limits : LogicalLimits
+  growth : WorkspaceGrowth?
   root_result_bytes : Int64?
   all_expression_roots : Bool
   host_bytes : Int
@@ -22,6 +23,7 @@ priv struct LogicalRoot {
   owner : LogicalBudget
   mut bytes : Int64
   mut measurement : LogicalValueMeasure?
+  mut text_capacity : Int64?
   mut released : Bool
 }
 
@@ -44,6 +46,7 @@ fn logical_budget(
   host_depth : Int,
   root_result_bytes? : Int64? = None,
   all_expression_roots? : Bool = false,
+  growth? : WorkspaceGrowth? = None,
 ) -> Result[LogicalBudget, LogicalBudgetIssue] {
   match validate_logical_limits(limits) {
     Err(e) => return Err(e)
@@ -57,6 +60,7 @@ fn logical_budget(
   }
   Ok({
     limits,
+    growth,
     root_result_bytes,
     all_expression_roots,
     host_bytes,
@@ -171,6 +175,34 @@ fn reserve_logical_bytes(
   b : LogicalBudget,
   bytes : Int64,
 ) -> Result[LogicalRoot, LogicalBudgetIssue] {
+  reserve_logical_root(b, bytes, None)
+}
+
+///|
+// Only the measured Text constructor uses this representation. Logical byte
+// guards still advance during sizing; no payload buffer exists until its
+// exact cached UTF-16 extent is funded by the same Task below.
+fn reserve_text_logical_bytes(
+  b : LogicalBudget,
+  bytes : Int64,
+) -> Result[LogicalRoot, LogicalBudgetIssue] {
+  reserve_logical_root(
+    b,
+    bytes,
+    if b.growth is Some(_) {
+      Some(0L)
+    } else {
+      None
+    },
+  )
+}
+
+///|
+fn reserve_logical_root(
+  b : LogicalBudget,
+  bytes : Int64,
+  text_capacity : Int64?,
+) -> Result[LogicalRoot, LogicalBudgetIssue] {
   if b.failed {
     return Err(FailedLogicalBudget)
   }
@@ -178,9 +210,13 @@ fn reserve_logical_bytes(
     b.failed = true
     return Err(LiveValueLimit)
   }
+  if text_capacity is None && !reserve_logical_working(b, bytes) {
+    b.failed = true
+    return Err(LiveValueLimit)
+  }
   b.live += bytes
   b.peak = Int64::max(b.peak, b.live)
-  Ok({ owner: b, bytes, released: false, measurement: None, })
+  Ok({ owner: b, bytes, released: false, measurement: None, text_capacity, })
 }
 
 ///|
@@ -195,5 +231,24 @@ fn release_logical_root(
   }
   root.released = true
   b.live -= root.bytes
+  if b.growth is Some(growth) {
+    match root.text_capacity {
+      Some(bytes) => growth.text -= bytes
+      None => growth.logical -= root.bytes
+    }
+  }
   Ok(())
+}
+
+///|
+// The same root can be created whole or grown by a measured accumulator.
+// Both paths fund the new bytes before mutation and release through one owner.
+fn reserve_logical_working(budget : LogicalBudget, bytes : Int64) -> Bool {
+  match budget.growth {
+    None => true
+    Some(growth) =>
+      bytes >= 0L &&
+      bytes <= 9223372036854775807L - growth.logical &&
+      grow_workspace(growth, growth.slots, growth.logical + bytes)
+  }
 }

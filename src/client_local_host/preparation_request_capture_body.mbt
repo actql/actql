@@ -47,7 +47,7 @@ pub fn[I] begin_request_capture_managed_run(
     return Err(ForeignOriginal)
   }
   owner.phase = Selecting
-  let result = begin_preparation_owned_installed_capture_run(
+  let result = begin_preparation_owned_installed_capture_run_original(
     owner.initial,
     input,
     capacity,
@@ -66,10 +66,12 @@ pub fn[I] begin_request_capture_managed_run(
       owner.program_data = None
       owner.program_plan_quote = None
       owner.program_captured = None
+      owner.program_model_direct = None
       owner.native_parameters = None
       owner.native_query_declarations = None
       owner.native_parameters_ready = false
       owner.held_program = None
+      clear_request_source_input(owner)
       owner.submitted_intent = None
       owner.intent_base = None
       owner.intent_peak_live = false

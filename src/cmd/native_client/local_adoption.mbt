@@ -36,6 +36,16 @@ fn local_settings_text(
 }
 
 ///|
+// The actual Journal policy uses the existing Int count representation. This
+// conversion grants no storage and does not reserve future record capacity.
+fn local_host_journal_record_limit(records : Int64) -> Int? {
+  if records < 1L || records > 2147483647L {
+    return None
+  }
+  Some(records.to_int())
+}
+
+///|
 // Finite physical settings are selected by the operator, never by a Program.
 // Limits are explicit; no existing Owner budget is silently increased.
 fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
@@ -70,14 +80,12 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     value
   }
   let ttl = number("submission_ttl_ms")
-  let records = number("journal_record_limit")
+  let records = local_host_journal_record_limit(number("journal_record_limit")).unwrap_or_else(() => {
+      stop("InvalidLocalHostLimits")
+    },
+  )
   let snapshot = number("journal_snapshot_bytes")
-  if ttl < 1L ||
-    ttl > 86400000L ||
-    records < 1L ||
-    records > 1024L ||
-    snapshot < 1L ||
-    snapshot > 536870912L {
+  if ttl < 1L || ttl > 86400000L || snapshot < 1L || snapshot > 536870912L {
     stop("InvalidLocalHostLimits")
   }
   let installation_files : Array[String] = []
@@ -124,7 +132,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     sqlite_library: local_settings_text(fields, "sqlite_library"),
     signature_library: local_settings_text(fields, "signature_library"),
     ttl_ms: ttl.to_double(),
-    record_limit: records.to_int(),
+    record_limit: records,
     snapshot_bytes: snapshot,
     installation_files,
     initial_host_signing,
@@ -205,6 +213,9 @@ fn execute_native_local_adoption(
 ) -> String raise ClientStop {
   native_timing_begin(12)
   defer native_timing_end(12)
+  if preparation is None && command_preparation_invocation.val is Some(original) {
+    return original.execute_operator_command(matches, operation, child)
+  }
   if operation == "adopt" && child.flags.get("migrate-journal").unwrap_or(false) {
     command_preparation_diagnostic.val = JournalMaintenanceFailed
   }
@@ -241,6 +252,17 @@ fn execute_native_local_adoption(
       (body, local_host_settings(body))
     }
   }
+  if configuration_original is None && preparation_runtime is Some(runtime) {
+    if settings.sqlite_library != runtime.sqlite ||
+      settings.signature_library != runtime.crypto ||
+      !settings.installation_files.contains("runtime.json") {
+      stop("PackagedLocalRuntimeChanged")
+    }
+    local_product_require_same_runtime_wire(
+      text_file(root, "runtime.json", 65536L),
+      @run_host.client_native_local_runtime_original(runtime.manifest),
+    )
+  }
   let (environment_file, evidence_cid) = local_configuration(configuration)
   let environment = text_file(root, environment_file, 65536L)
   let check_environment = match preparation {
@@ -260,6 +282,13 @@ fn execute_native_local_adoption(
     current == root_ownership else {
     stop("LocalConfigurationRootUntrusted")
   }
+  if optional(matches, "host-config") is Some(_) &&
+    settings.initial_host_signing is None {
+    stop("LocalConfiguredHostInstallationUnavailable")
+  }
+  if settings.initial_host_signing is Some(_) && preparation is Some(original) {
+    ignore(original.select_operator_host(matches, false))
+  }
   // The operator selects installation originals separately from submitted
   // Program data. Their bytes and generations join the same adoption intent;
   // naming a file installs no Source, Policy, credential or execution grant.
@@ -269,6 +298,12 @@ fn execute_native_local_adoption(
       stop("InvalidLocalInstallationSelection")
     }
     selected_files.push(file)
+  }
+  // Retain the actual operator Host file separately from the eight existing
+  // implementation originals. Its name supplies no signer or Account grant.
+  if settings.initial_host_signing is Some(_) &&
+    !selected_files.contains("host.json") {
+    selected_files.push("host.json")
   }
   let selected_source = match settings.source_file {
     None => None
@@ -866,7 +901,23 @@ fn local_submission_lookup_reply(
         ),
       )
       match @local_host.native_client_submitted_run_admission(record) {
-        None => fields.set("phase", Json::string("preparing"))
+        None =>
+          match
+            @local_host.native_client_submitted_preparation_problem(record) {
+            None => fields.set("phase", Json::string("preparing"))
+            Some((code, classification)) => {
+              fields.set("phase", Json::string("preparation_failed"))
+              fields.set(
+                "problem",
+                Json::object(
+                  Map::from_array([
+                    ("code", Json::string(code)),
+                    ("classification", Json::string(classification)),
+                  ]),
+                ),
+              )
+            }
+          }
         Some(admission) => {
           // Resolve the original durable Run rather than rebuilding a reference
           // from current settings or treating admission revision as control.

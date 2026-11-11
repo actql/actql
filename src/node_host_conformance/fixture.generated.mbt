@@ -79,6 +79,7 @@ fn captured_graph_fixture(
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
   ledger_limits? : @resources.LedgerLimits? = None,
+  original_ledger? : @resources.Ledger? = None,
   compute_filter? : String = "id > 2",
   parameter_json? : String = "{\"minimum\":1}",
   supplied_local_rows? : Array[(Int, Int, Array[String])] = [],
@@ -196,16 +197,18 @@ fn captured_graph_fixture(
     query_capture_limits(),
   ).unwrap()
   let source = @mock.mock_captured_source(issuer, attempt, observation).unwrap()
-  let ledger = @resources.create_ledger(
-    ledger_limits.unwrap_or({
-      planning_work: 10000,
-      attempts: 10,
-      holdings: 10,
-      transfer_bytes: 300000L,
-      retained_bytes: 32000000L,
-      execution_bytes: 134217728L,
-    }),
-  ).unwrap()
+  let ledger = original_ledger.unwrap_or_else(() => {
+    @resources.create_ledger(
+      ledger_limits.unwrap_or({
+        planning_work: 10000,
+        attempts: 10,
+        holdings: 10,
+        transfer_bytes: 300000L,
+        retained_bytes: 32000000L,
+        execution_bytes: 134217728L,
+      }),
+    ).unwrap()
+  })
   let supplied = supplied_local_rows.map(entry => {
     let (stage, input, rows) = entry
     @execution.capture_input(
@@ -3883,9 +3886,19 @@ fn query_checked_sequence(
     max_name_bytes=10000,
     expression_profiles=checked_expression_profile_admission(checked),
   ).unwrap()
+  // This fixture prepares the original acquisition, not any later checked
+  // Program projection. Retain its owned capture prefix on the same pipeline.
+  let capture_end = match prefix_end {
+    Some(_) => prefix_end
+    None =>
+      match @acquisition.query_acquisition_capture(query) {
+        @pipeline.Step(index) => Some(index)
+        _ => fail("Expected the original query capture step")
+      }
+  }
   @query.prepare_query_sequence(
     query,
-    query_generated(bound, prefix_end~),
+    query_generated(bound, prefix_end=capture_end),
     10000,
   ).unwrap()
 }

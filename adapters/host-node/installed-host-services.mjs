@@ -1,14 +1,23 @@
+import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition, bindInstalledEnvironmentConstruction} from './installed-funded-environment.mjs';
 // Standard installed Host service owner. This public cut retains the exact
 // original Source implementation/Site association; numerical DATA is neither
 // a Run admission nor permission. Other service facets extend this SAME owner.
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment,
-  rowSourceMapping} from './installed-row-source.mjs';
+  rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {authoredCommandProjection} from './installed-authored-command.mjs';
+import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry}
+  from './installed-source-construction-geometry.mjs';
+import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
+import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
+import {createInstalledTableEffect} from './installed-table-effect.mjs';
+import {installDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {installedCheckEnvironmentInputs} from './installed-check-environment.mjs';
-import {readSourceProfileJson, readBoundedConfigurationText, installedConfigurationByteLimit,
+import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
-  installedRuntimeBundleCid} from './source-profile-json.mjs';
-import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
+  installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
+import {runtimeField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNames,
   installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
 import {types as nodeTypes} from 'node:util';
@@ -16,6 +25,7 @@ import {types as nodeTypes} from 'node:util';
 const sourceNativeThen = Promise.prototype.then;
 const installations = new WeakMap();
 const sourceContexts = new WeakMap();
+const boundConstructions = new WeakMap();
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
 
 function requireSourceConstructor(services, installation, fields, prepared = false) {
@@ -52,6 +62,10 @@ function sourceMaterial(original) {
     InstalledSourceConstructionCapacity: original.moon.clientProgramInstalledSourceConstructionCapacity,
     ComposeInstalledSourceConstructionCapacity: original.moon.clientProgramComposeInstalledSourceConstructionCapacity,
     InstalledSourceRetainedConstructionCapacity: original.moon.clientProgramInstalledSourceRetainedConstructionCapacity,
+    InstalledSourceJsonConstructionCapacity: original.moon.clientProgramInstalledSourceJsonConstructionCapacity,
+    InstalledProfileConstructionCapacities: original.moon.clientProgramInstalledProfileConstructionCapacities,
+    InstalledSourceInspectionConstructionCapacity: original.moon.clientProgramInstalledSourceInspectionConstructionCapacity,
+    InstalledTableConstructionInventory: original.moon.clientProgramInstalledTableConstructionInventory,
     ReserveInstalledSourceConstruction: original.moon.clientProgramReserveInstalledSourceConstruction,
     ReconcileInstalledSourceConstruction: original.moon.clientProgramReconcileInstalledSourceConstruction,
     CompleteInstalledSourceMaterial: original.moon.clientProgramCompleteInstalledSourceMaterial,
@@ -66,7 +80,9 @@ function sourceMaterial(original) {
     FinishInstalledSourceIoAfterCleanup: original.moon.clientProgramFinishInstalledSourceIoAfterCleanup,
   });
   for (const [name, fn] of Object.entries(methods)) {
-    if ((name === 'ComposeInstalledSourceConstructionCapacity' || name === 'InstalledSourceRetainedConstructionCapacity') && fn === undefined) continue;
+    if ((name === 'ComposeInstalledSourceConstructionCapacity' || name === 'InstalledSourceRetainedConstructionCapacity' ||
+        name === 'InstalledSourceJsonConstructionCapacity' || name === 'InstalledProfileConstructionCapacities' ||
+        name === 'InstalledSourceInspectionConstructionCapacity' || name === 'InstalledTableConstructionInventory') && fn === undefined) continue;
     if (typeof fn !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   }
   const material = {methods, input: undefined, unit: undefined, capacity: undefined,
@@ -89,6 +105,7 @@ function sourceMaterial(original) {
 
 function sourceCall(original, material, name, args) {
   if (material.busy) fail('InstalledSourceInitializationReentry');
+  if (typeof material.methods?.[name] !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   material.busy = true;
   try {return checked(Reflect.apply(material.methods[name], original.moon, args));}
   finally {material.busy = false;}
@@ -147,23 +164,28 @@ function releaseFinishedSourceWorkspaces(material) {
   }
 }
 
-function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, workspace) {
+function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, workspace, retained) {
   if (material.phase !== 'working') fail('InstalledSourceInitializationClosed');
   releaseFinishedSourceWorkspaces(material);
   let activeNodes = nodes, activeText = text, activeWire = wire;
+  let retainedNodes = retained?.nodes ?? nodes, retainedText = retained?.text ?? text,
+    retainedWire = retained?.wire ?? wire;
   for (const active of material.workspaces) {
     if (active === workspace) continue;
     activeNodes += active.nodes; activeText += active.text; activeWire += active.wire;
+    retainedNodes += active.retained?.nodes ?? active.nodes;
+    retainedText += active.retained?.text ?? active.text;
+    retainedWire += active.retained?.wire ?? active.wire;
   }
   // Every live original constructor overlaps the completed prefix AND all
   // other active/failed native workspaces. Replace only this read's extent,
   // after the same parent has admitted the complete simultaneous quantities.
   const quote = sourceCapacityQuote(original, material,
-    [material.nodes + activeNodes, material.text + activeText, material.wire + activeWire,
+    [material.nodes + retainedNodes, material.text + retainedText, material.wire + retainedWire,
       activeNodes, activeText, activeWire]);
   sourceCall(original, material, 'ReserveInstalledSourceConstruction',
     [material.capacity, material.input, quote]);
-  if (workspace !== undefined) Object.assign(workspace, {nodes, text, wire});
+  if (workspace !== undefined) Object.assign(workspace, {nodes, text, wire, retained});
 }
 
 function reconcileSource(original, material) {
@@ -247,6 +269,121 @@ function freezeSourceProjection(value) {
   return value;
 }
 
+// Both existing native entrances complete through this SAME material. Their
+// callers retain every actual output before entering here. Preserve the full
+// admitted prefix through the original current fence; only then select the
+// existing typed retained quantity and detach its spent callback slot.
+function retainCompletedSourceNativeConstruction(original, material, providerIndex,
+  projectionIndex, quantity, projection, validate) {
+  const check = () => {
+    validate();
+    if (material.phase !== 'working' || material.providers[providerIndex] !== quantity ||
+        material.inputs[projectionIndex] !== projection) fail('InstalledSourceInputCapacityUnavailable');
+  };
+  check();
+  // Reconciliation itself is numerical. The existing reserve entrance also
+  // checks the SAME physical parent when its admitted debit is sufficient.
+  reserveSource(original, material);
+  check();
+  let retained;
+  material.busy = true;
+  try {
+    retained = checked(Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity,
+      original.moon, [quantity]));
+    check();
+    if (!retained || typeof retained !== 'object' || nodeTypes.isProxy(retained)) {
+      fail('InstalledSourceInputCapacityUnavailable');
+    }
+    material.inputs[projectionIndex] = undefined;
+    material.providers[providerIndex] = retained;
+  } finally {material.busy = false;}
+  try {
+    // The full old debit is still held: reserve observes currentness before
+    // any shrink. A failed original fence therefore cannot spend that debt.
+    reserveSource(original, material);
+    validate();
+    if (material.phase !== 'working' || material.providers[providerIndex] !== retained ||
+        material.inputs[projectionIndex] !== undefined) fail('InstalledSourceInputCapacityUnavailable');
+    reconcileSource(original, material);
+  } catch (cause) {
+    // A failed final fence keeps the SAME original quote and callback debt.
+    material.providers[providerIndex] = quantity;
+    material.inputs[projectionIndex] = projection;
+    throw cause;
+  }
+}
+
+// One pure metadata/native-input constructor under an already existing Source
+// material. Context and metadata-reader entrances supply only private guards;
+// neither can replace the original material or reserve after construction.
+function prepareSourceNativeInput(original, material, projection, attempts, validate, retain) {
+  if (material.phase !== 'working' || material.busy || attempts.has(projection)) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  validate();
+  let {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+  if (typeof material.methods.InstalledSourceRetainedConstructionCapacity !== 'function') {
+    fail('InstalledSourceInitializationRuntimeUnavailable');
+  }
+  attempts.add(projection);
+  let quantity;
+  material.busy = true;
+  try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
+  finally {material.busy = false;}
+  if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceInputCapacityUnavailable');
+  const providerIndex = material.providers.length, projectionIndex = material.inputs.length;
+  material.providers.push(quantity); material.inputs.push(projection);
+  reserveSource(original, material);
+  validate();
+  if (material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+  let value;
+  material.busy = true;
+  try {
+    value = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
+    material.inputs.push(value);
+    validate();
+    if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || 'then' in value) {
+      fail('InvalidInstalledSourceNativeInput');
+    }
+    retain(value);
+  } finally {material.busy = false;}
+  retainCompletedSourceNativeConstruction(original, material, providerIndex,
+    projectionIndex, quantity, projection, validate);
+  projection = capacityFor = project = quantity = undefined;
+  return value;
+}
+
+// JSON uses the SAME typed constructor recipe and successful-output cut as
+// other native inputs. JS reports its original wire facts and physical return;
+// Core owns peak/retained arithmetic, currentness and the original reservation.
+function reserveSourceJsonConstruction(original, material, workspace, geometry, bufferBytes) {
+  const quantity = sourceCall(original, material, 'InstalledSourceJsonConstructionCapacity',
+    [geometry.nodes, geometry.units, bufferBytes, geometry.retained.nodes, geometry.retained.text]);
+  const providerIndex = material.providers.length, projectionIndex = material.inputs.length;
+  material.providers.push(quantity); material.inputs.push(geometry);
+  workspace.json = {providerIndex, projectionIndex, quantity, projection: geometry};
+  // The original recipe now includes this read's complete parser/buffer peak.
+  // Keep its physical pending marker, without charging those same buffers twice.
+  Object.assign(workspace, {nodes: 0n, text: 0n, wire: 0n, retained: undefined});
+  reserveSource(original, material);
+}
+
+function retainCompletedSourceJson(original, material, workspace, value) {
+  const input = material.inputs.length;
+  material.inputs.push(value);
+  // Reaching here follows the SAME awaited file close (or synchronous parse
+  // of retained text). A later current failure keeps the original provider
+  // peak, not a fictitious pending FD, until this Source actually retires.
+  material.workspaces.delete(workspace); workspace.keepFailed = true;
+  const {providerIndex, projectionIndex, quantity, projection} = workspace.json;
+  retainCompletedSourceNativeConstruction(original, material, providerIndex,
+    projectionIndex, quantity, projection, () => {
+      if (sourceMaterial(original) !== material || material.phase !== 'working' ||
+          material.inputs[input] !== value) fail('ForeignInstalledSourceInitialization');
+    });
+  return value;
+}
+
 // This reader is created only by the real initializer, before the first
 // configuration open. Its fixed Buffer peak is reserved before allocation;
 // actual received bytes fund native decoding BEFORE concat/text/JSON.parse.
@@ -256,7 +393,7 @@ export function installedSourceConfigurationReader(services) {
   const material = sourceMaterial(original);
   if (material === undefined) return undefined;
   if (material.configurationReader !== undefined) return material.configurationReader;
-  async function read(path, options, json) {
+  async function read(path, options, json, strictUtf8 = false, profile = false) {
     if (options !== undefined && (nodeTypes.isProxy(options) ||
         Reflect.ownKeys(options).some(name => name !== 'maxBytes'))) {
       fail('InvalidInstalledConfigurationReaderOptions');
@@ -276,25 +413,49 @@ export function installedSourceConfigurationReader(services) {
         2n * BigInt(maxBytes) + BigInt(installedConfigurationChunkBytes), workspace);
       const beforeDecode = bytes => {
         decoded = BigInt(bytes);
-        // Native parsed input, checked profile/split projections and original
-        // identity preimages can coexist. Four input-proportional native
-        // views conservatively cover those representations. Invalid UTF8 may
-        // expand to three UTF8 bytes per original byte; escaping is separate.
-        reserveSource(original, material, json ? 4n * decoded : 0n,
-          12n * decoded, 8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+        if (json) {
+          // Only buffers and one lossy UTF8 String exist at this phase. Fund
+          // their complete overlap before concat/toString; JSON values do not
+          // exist yet. The same String funds the parser in beforeParse below.
+          reserveSource(original, material, 0n, 3n * decoded,
+            2n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+        } else {
+          // This constructor returns one String. Lossy decoding may replace
+          // each invalid byte with three UTF8 bytes; strict decoding cannot.
+          // Original chunks and their concatenation overlap by at most two
+          // received bodies plus the last chunk. Later parse/snapshot/identity
+          // constructors reserve their own geometry before allocation.
+          const text = strictUtf8 ? decoded : 3n * decoded;
+          reserveSource(original, material, 0n, 0n,
+            2n * decoded + BigInt(installedConfigurationChunkBytes), workspace,
+            {nodes: 0n, text, wire: decoded});
+        }
       };
-      const value = await (json ? readSourceProfileJson : readBoundedConfigurationText)(path,
-        {maxBytes, beforeDecode, io: sourceIo(original, material)});
-      // The original file has actually closed before retaining/reconciling.
+      const beforeParse = text => {
+        // Preserve the existing parsed/checked/identity envelope, using its
+        // actual wire geometry rather than treating every byte as a node.
+        const geometry = sourceJsonWireGeometry(text);
+        reserveSourceJsonConstruction(original, material, workspace, geometry,
+          8n * decoded + BigInt(installedConfigurationChunkBytes));
+      };
+      const value = await (json ? readSourceProfileJson
+        : strictUtf8 ? readBoundedConfigurationUtf8 : readBoundedConfigurationText)(path,
+        {maxBytes, beforeDecode, ...(json ? {beforeParse} : {}), io: sourceIo(original, material)});
+      // Actual close precedes this successful-return cut. The native tree
+      // uses the already-observed retained geometry, with no second scan.
+      if (json) {
+        const completed = retainCompletedSourceJson(original, material, workspace, value);
+        if (!profile) return completed;
+        const {parse, ...construction} = profileConstruction(workspace.json.projection);
+        return Object.freeze({value: completed, ...construction});
+      }
       material.inputs.push(value);
-      material.nodes += json ? 4n * decoded : 0n;
-      material.text += 12n * decoded;
-      // Text inputs can have an actual CA Buffer retained alongside the text.
-      material.wire += json ? 0n : decoded;
+      material.text += BigInt(Buffer.byteLength(value, 'utf8'));
+      material.wire += decoded;
       material.workspaces.delete(workspace);
       reconcileSource(original, material);
       return value;
-    } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
+    } catch (cause) {retainSourceFailure(material, cause, workspace.keepFailed ? undefined : workspace); throw cause;}
     finally {material.ioPending--;}
   }
   async function readOriginal(path, binary) {
@@ -325,7 +486,71 @@ export function installedSourceConfigurationReader(services) {
     } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
     finally {material.ioPending--;}
   }
+  const metadataProjections = new WeakSet();
+  const validateMetadataInput = () => {
+    if (sourceMaterial(original) !== material || material.phase !== 'working') {
+      fail('ForeignInstalledSourceInitialization');
+    }
+  };
+  const retainMetadataInput = () => {};
+  const profileConstruction = facts => {
+    const [parsed, projected] = sourceCall(original, material, 'InstalledProfileConstructionCapacities',
+      [facts.nodes, facts.units]);
+    const invoke = (capacity, project) => prepareSourceNativeInput(original, material,
+      Object.freeze({capacity: () => capacity, project}), metadataProjections,
+      validateMetadataInput, retainMetadataInput);
+    // Same original quantity/input, never a cached current/Account decision.
+    // Each fixed native call reserves on the existing parent before running.
+    return {parse: project => invoke(parsed, project),
+      construct: project => invoke(projected, project),
+      inspect(project) {
+        validateMetadataInput();
+        return invoke(sourceCall(original, material,
+          'InstalledSourceInspectionConstructionCapacity', [parsed]), project);
+      }};
+  };
   const reader = Object.freeze({
+    prepareNativeInput(projection) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return prepareSourceNativeInput(original, material, projection, metadataProjections,
+        validateMetadataInput, retainMetadataInput);
+    },
+    prepareProfile(text, project) {
+      if (this !== reader || typeof text !== 'string' || !material.inputs.includes(text)) {
+        fail('ForeignInstalledConfigurationText');
+      }
+      const {parse, ...construction} = profileConstruction(sourceJsonWireGeometry(text, true));
+      return Object.freeze({value: parse(project), ...construction});
+    },
+    readProfile(path, options) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      // Preserve native JSON parse BEFORE its SAME actual FD close, including
+      // malformed-input versus pending-close failure order. The completed
+      // original also carries its wire facts into later checked constructors.
+      return read(path, options, true, false, true);
+    },
+    parseJsonText(text) {
+      if (this !== reader || typeof text !== 'string' || !material.inputs.includes(text)) {
+        fail('ForeignInstalledConfigurationText');
+      }
+      if (material.busy) fail('InstalledSourceInitializationReentry');
+      // The existing bounded text read owns the input. Reserve the parsed,
+      // checked and identity views before JSON.parse, without another read.
+      const geometry = sourceJsonWireGeometry(text);
+      const workspace = {nodes: 0n, text: 0n, wire: 0n};
+      material.workspaces.add(workspace);
+      try {
+        reserveSourceJsonConstruction(original, material, workspace, geometry, 0n);
+        let value;
+        material.busy = true;
+        try {value = JSON.parse(text);}
+        finally {material.busy = false;}
+        return retainCompletedSourceJson(original, material, workspace, value);
+      } catch (cause) {
+        retainSourceFailure(material, cause, workspace.keepFailed ? undefined : workspace);
+        throw cause;
+      }
+    },
     readJson(path, options) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
       return read(path, options, true);
@@ -333,6 +558,10 @@ export function installedSourceConfigurationReader(services) {
     readText(path, options) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
       return read(path, options, false);
+    },
+    readUtf8(path, options) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return read(path, options, false, true);
     },
     async readOriginalText(path) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
@@ -344,7 +573,126 @@ export function installedSourceConfigurationReader(services) {
     },
   });
   material.configurationReader = reader;
+  // The Common composer alone receives this capability. Provider readers have
+  // no release method and cannot turn arbitrary returned values into refunds.
+  bindInstalledEnvironmentConstruction(services, reader, () => {
+    original.current();
+    if (material.phase !== 'working' || material.busy || material.ioPending !== 0) {
+      fail('ForeignInstalledSourceInitialization');
+    }
+    const providerStart = material.providers.length, inputStart = material.inputs.length;
+    let finished = false;
+    return () => {
+      if (finished) fail('InstalledEnvironmentConstructionAlreadyFinished');
+      finished = true;
+      const providerEnd = material.providers.length, inputEnd = material.inputs.length;
+      let released = false;
+      return () => {
+        if (released) return;
+        original.current();
+        if (material.configurationReader !== reader || material.phase !== 'working' ||
+            material.busy || material.ioPending !== 0) fail('ForeignInstalledSourceInitialization');
+        const empty = sourceCall(original, material, 'InstalledSourceConstructionCapacity',
+          [0n, 0n, 0n, 0n, 0n, 0n]);
+        let providers = material.providers.slice(providerStart, providerEnd),
+          inputs = material.inputs.slice(inputStart, inputEnd);
+        for (let index = providerStart; index < providerEnd; index++) material.providers[index] = empty;
+        for (let index = inputStart; index < inputEnd; index++) material.inputs[index] = undefined;
+        try {reconcileSource(original, material);}
+        catch (cause) {
+          for (let index = providerStart; index < providerEnd; index++) material.providers[index] = providers[index - providerStart];
+          for (let index = inputStart; index < inputEnd; index++) material.inputs[index] = inputs[index - inputStart];
+          throw cause;
+        }
+        released = true; providers = inputs = undefined;
+      };
+    };
+  });
   return reader;
+}
+
+// The original profile constructor funds this SAME descriptor/stack/Set walk
+// before it allocates. No reader's completed parser workspace backs it.
+function inspectInstalledTableConstruction(profile) {
+  let nodes = 0n, wire = 0n, strings = 0n, serializerText = 0n;
+  const pending = [{value: profile, depth: 0n}], seen = new Set();
+  while (pending.length !== 0) {
+    const {value, depth} = pending.pop();
+    nodes++;
+    let syntax;
+    if (value === null) syntax = 4n;
+    else if (typeof value === 'boolean') syntax = 5n;
+    else if (typeof value === 'number' && Number.isFinite(value)) syntax = 25n;
+    else if (typeof value === 'string') {
+      strings += BigInt(value.length);
+      syntax = 6n * BigInt(value.length) + 2n;
+    } else {
+      if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || seen.has(value)) {
+        fail('InvalidInstalledSourceProfileConstruction');
+      }
+      seen.add(value);
+      const array = Array.isArray(value), fields = Object.getOwnPropertyDescriptors(value);
+      if (!array && Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) {
+        fail('InvalidInstalledSourceProfileConstruction');
+      }
+      syntax = 2n;
+      for (const key of Reflect.ownKeys(fields)) {
+        if (array && key === 'length') continue;
+        const field = fields[key];
+        if (typeof key !== 'string' || !Object.hasOwn(field, 'value')) fail('InvalidInstalledSourceProfileConstruction');
+        if (field.value === undefined) continue;
+        syntax++;
+        if (!array) {
+          strings += BigInt(key.length);
+          syntax += 6n * BigInt(key.length) + 3n;
+          nodes++;
+        }
+        pending.push({value: field.value, depth: depth + 1n});
+      }
+    }
+    wire += syntax;
+    // Recursive canonical writers retain child strings while assembling
+    // each ancestor. This sums actual input depths rather than maxDepth*wire.
+    serializerText += syntax * (depth + 1n);
+  }
+  return Object.freeze({nodes, wire, strings, serializerText});
+}
+
+function reserveInstalledTableConstruction(original, material, profile, construction) {
+  if (typeof construction?.inspect !== 'function') fail('InstalledSourceProfileConstructionUnavailable');
+  const facts = construction.inspect(() => inspectInstalledTableConstruction(profile));
+  const [allNodes, allText, allWire] = sourceCall(original, material,
+    'InstalledTableConstructionInventory', [facts.nodes, facts.wire, facts.strings, facts.serializerText]);
+  reserveSource(original, material, allNodes, allText, allWire);
+  // Keep the entire original construction peak for failed or escaped pure
+  // projections; do not infer that a provider's return settled its aliases.
+  material.inputs.push(profile);
+  material.nodes += allNodes; material.text += allText; material.wire += allWire;
+  // Return constructor DATA; the selected RowRun still reserves its own copies.
+  return sourceCall(original, material, 'InstalledSourceConstructionCapacity',
+    [allNodes, allText, allWire, allNodes, allText, allWire]);
+}
+
+// The checked Environment owns its complete parse/native projection already.
+// Account admission occurs once; each existing connector-binding digest uses
+// the same physical-target projection. Keep their input-proportional controls,
+// UTF-8/hex strings and serialization overlap before either constructor. These
+// are the existing Source node/text/byte quantities, never numerical admission.
+function reserveInstalledDuckDBConstruction(original, material, profile, environment) {
+  const bindings = BigInt(environment.body.connector_catalogs.length);
+  const physicalUnits = BigInt(profile.database.length) + BigInt(profile.schema.length) + BigInt(profile.table.length);
+  // Physical target retains original names plus at most eight hex units per
+  // UTF-16 input unit. Root/principal/source names belong to each exact digest.
+  const bindingUnits = 9n * physicalUnits + BigInt(original.root.length) +
+    BigInt(original.principalId.length) + BigInt(profile.sourceRef.length);
+  const units = BigInt(profile.accountConfigurationWire.length) + bindings * bindingUnits;
+  const operations = 1n + bindings;
+  const nodes = 16n * (units + operations), text = 16n * units, wire = 8n * units;
+  reserveSource(original, material, nodes, text, wire);
+  // Failed constructors retain their complete admitted peak on this SAME
+  // Source successor. No return from a pure wrapper is a cleanup receipt.
+  material.inputs.push(profile, environment);
+  material.nodes += nodes; material.text += text; material.wire += wire;
 }
 
 export async function withInstalledSourceLoading(services, construct) {
@@ -374,9 +722,110 @@ export function beginInstalledSourceInitialization(services, installation, conne
   if (original.selected.get(installation) === undefined || typeof connectorId !== 'string' ||
       typeof baseEnvironmentWire !== 'string' || !['source', 'effect'].includes(role) ||
       role === 'effect' && installation.effect === undefined) fail('ForeignInstalledSourceInitialization');
+  return createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role, services);
+}
+
+// The existing builtin publishes its complete Environment, rather than a Row
+// declaration. Retain the SAME pending Source context before its checked
+// constructor; select the connector only from that admitted original Catalog.
+export function beginInstalledPublishedSourceInitialization(services, installation, sourceRef, wire, baseEnvironmentWire) {
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  const material = sourceMaterial(original);
+  if (material === undefined) return undefined;
+  if (material.phase !== 'working' || original.selected.get(installation) === undefined ||
+      typeof sourceRef !== 'string' || typeof wire !== 'string' || typeof baseEnvironmentWire !== 'string') {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  const context = createInstalledSourceContext(original, material, installation, undefined, baseEnvironmentWire, 'source', services);
+  try {
+    const environment = context.preparePublishedEnvironment(wire);
+    // Catalog views carry their checked contract identity, not a source_ref.
+    // Join the SAME admitted snapshot selector to that exact catalog member;
+    // never infer a connector by parsing or repairing the URI-like spelling.
+    let snapshot;
+    for (const candidate of environment.body.schema_snapshots) {
+      if (candidate.source_ref !== sourceRef || candidate.read_mode !== 'snapshot') continue;
+      if (snapshot !== undefined) fail('InstalledSourceBindingAmbiguous');
+      snapshot = candidate;
+    }
+    if (snapshot === undefined) fail('InstalledSourceProgramMismatch');
+    let selected;
+    for (const catalog of environment.body.connector_catalogs) {
+      if (!catalog.source_views.some(view => view.contract_cid === snapshot.source_view_contract_cid)) continue;
+      if (selected !== undefined) fail('InstalledSourceBindingAmbiguous');
+      selected = catalog.connector_id;
+    }
+    if (typeof selected !== 'string' || selected.length === 0) fail('InstalledSourceProgramMismatch');
+    const retained = sourceContexts.get(context);
+    if (!retained.scope.active || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+    retained.scope.connectorId = selected;
+    return context;
+  } catch (cause) {
+    finishInstalledSourceInitialization(context, undefined, cause, true);
+    throw cause;
+  }
+}
+
+function createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role, services) {
   const scope = {installation, connectorId, baseEnvironmentWire, role, prepared: undefined,
     source: undefined, active: true};
   material.contexts.push(scope); material.constructors++;
+  const inputProjections = new WeakSet();
+  const nativeInputOriginals = new WeakSet();
+  const validateNativeInputContext = prepared => {
+    if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+        material.phase !== 'working' || prepared !== undefined &&
+        (scope.role !== 'effect' || prepared.declaration === undefined ||
+          prepared.mappings !== undefined || prepared.commands !== undefined ||
+          scope.mappingsAttempted || scope.commandAttempted || scope.providerAttempted)) {
+      fail('ForeignInstalledSourceInitialization');
+    }
+  };
+  const retainNativeInput = value => nativeInputOriginals.add(value);
+  function prepareSourceEnvironment(declared, mappings = []) {
+    const geometry = sourceEnvironmentConstructionGeometry(scope.baseEnvironmentWire, declared, mappings);
+    const before = scope.prepared;
+    // Same material owner and same original reservation: record this pure
+    // phase before its constructor. A sibling reconciliation cannot forget it.
+    const workspace = {nodes: 0n, text: 0n, wire: 0n,
+      retained: {nodes: 0n, text: 0n, wire: 0n}};
+    material.workspaces.add(workspace);
+    let admitted = false;
+    try {
+      reserveSource(original, material, geometry.workspace.nodes, geometry.workspace.text,
+        geometry.workspace.wire, workspace, geometry.retained);
+      admitted = true;
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== before) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      let environment;
+      material.busy = true;
+      try {
+        environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared, mappings);
+        material.inputs.push(environment);
+        const retained = sourceEnvironmentRetainedGeometry(environment);
+        if (retained.nodes > geometry.retained.nodes || retained.text > geometry.retained.text ||
+            retained.wire > geometry.retained.wire) fail('InstalledSourceEnvironmentCapacityExceeded');
+        material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
+      } finally {material.busy = false;}
+      // No callback or physical child escapes this synchronous pure producer.
+      // Retain its actual result before removing only this closed workspace.
+      material.workspaces.delete(workspace);
+      return environment;
+    } catch (cause) {
+      if (admitted) {
+        // A thrown producer keeps its full already-admitted inventory as
+        // failure debt. Transfer before removing the ended pure phase: there
+        // is no invented pending FD, and sibling reconciliation sees the debt.
+        material.nodes += geometry.retained.nodes + geometry.workspace.nodes;
+        material.text += geometry.retained.text + geometry.workspace.text;
+        material.wire += geometry.retained.wire + geometry.workspace.wire;
+      }
+      material.workspaces.delete(workspace);
+      throw cause;
+    }
+  }
   function prepareOriginalDeclaration(restore, originalInput, basis, makeWire, expectedCatalogCid, finish) {
     if (typeof restore !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
     reserveSource(original, material, 4n * basis, 8n * basis, 8n * basis);
@@ -413,14 +862,53 @@ export function beginInstalledSourceInitialization(services, installation, conne
     reconcileSource(original, material);
     return prepared;
   }
-  function prepareProviderConstruction(projection, role) {
+  function captureDeclarationViews(views) {
+    if (!Array.isArray(views) || nodeTypes.isProxy(views)) fail('InvalidInstalledSourceDeclarationViews');
+  // View specifications contain only provider-authored strings. Measure and
+  // reserve before snapshot/stringify; no getter/receiver is invoked here.
+  let units = BigInt(scope.connectorId.length + scope.baseEnvironmentWire.length);
+  // These are fixed published-view selection frames and original String
+  // references, not copied schema payload. Capture before the Core current
+  // callback can replace the caller's authored fields.
+  const snapshot = [];
+  const allowed = ['resource', 'resource_kind', 'schema_wire', 'schema_cid',
+    'request_schema_wire', 'facts_wire', 'acquisition_wire',
+    'data_classification', 'resource_identity_wire'];
+  for (let i = 0; i < views.length; i++) {
+    const view = Object.getOwnPropertyDescriptor(views, String(i))?.value;
+    if (!view || nodeTypes.isProxy(view)) fail('InvalidInstalledSourceDeclarationViews');
+    const fields = Object.getOwnPropertyDescriptors(view);
+    const selected = {};
+    for (const name of Reflect.ownKeys(fields)) {
+      if (!allowed.includes(name) || !Object.hasOwn(fields[name], 'value')) fail('InvalidInstalledSourceDeclarationViews');
+      // Preserve the existing JSON.stringify omission rule. Common alone
+      // decides required fields and optional classification/identity law.
+      if (fields[name].value === undefined) continue;
+      if (typeof fields[name].value !== 'string') fail('InvalidInstalledSourceDeclarationViews');
+      units += BigInt(name.length + fields[name].value.length);
+      selected[name] = fields[name].value;
+    }
+    snapshot.push(Object.freeze(selected));
+  }
+  // Restore owns parsed schema/request/facts, checked contract projections,
+  // canonical identity preimages, Catalog+manifest and declaration JSON;
+  // rowSourceCheckEnvironment then overlaps native inputs and output. This
+  // conservative input-proportional allowance covers the whole operation,
+  // including its failed child, using existing shared units (not VM prices).
+  const basis = 6n * units + 64n * BigInt(views.length);
+    return {snapshot: Object.freeze(snapshot), basis};
+  }
+  function prepareProviderConstruction(projection, role, withMappings = false) {
     if (this !== context || scope.role !== role || !scope.active || scope.prepared === undefined ||
         scope.source !== undefined || scope.providerAttempted || material.phase !== 'working') {
       fail('ForeignInstalledSourceInitialization');
     }
     if (material.busy) fail('InstalledSourceInitializationReentry');
     const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
-    if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+    if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function' ||
+        withMappings && typeof material.methods.InstalledSourceRetainedConstructionCapacity !== 'function') {
+      fail('InstalledSourceInitializationRuntimeUnavailable');
+    }
     const prepared = scope.prepared;
     scope.providerAttempted = true;
     let quantity;
@@ -431,6 +919,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
     // A Source-issued reference outlives any one Run's Reader. Its complete
     // original constructor peak therefore belongs to this SAME initializer,
     // not a borrowed Reader reservation or an inferred spare allowance.
+    const providerIndex = material.providers.length;
     material.providers.push(quantity); material.inputs.push(projection);
     reserveSource(original, material);
     if (!scope.active || material.phase !== 'working' || scope.prepared !== prepared || scope.source !== undefined) {
@@ -444,10 +933,319 @@ export function beginInstalledSourceInitialization(services, installation, conne
       material.inputs.push(target);
       freezeSourceProjection(target);
     } finally {material.busy = false;}
+    if (withMappings) {
+      const fields = Object.getOwnPropertyDescriptors(target);
+      const mappings = fields.mappingWires;
+      if (!mappings || !Object.hasOwn(mappings, 'value') || !Array.isArray(mappings.value) ||
+          nodeTypes.isProxy(mappings.value) || !Object.isFrozen(mappings.value)) fail('InvalidInstalledSourceNativeMappings');
+      const wires = mappings.value;
+      for (let i = 0; i < wires.length; i++) {
+        const field = Object.getOwnPropertyDescriptor(wires, String(i));
+        if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') fail('InvalidInstalledSourceNativeMappings');
+      }
+      // The selected pure producer has synchronously returned its SAME target
+      // and complete frozen mapping strings. Its typed retained projection
+      // owns every escaped original; no callback/physical cleanup ACK is inferred.
+      // Throwing, asynchronous and invalid outputs above keep the full peak.
+      material.busy = true;
+      try {
+        const retained = checked(Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity,
+          original.moon, [quantity]));
+        if (!retained || typeof retained !== 'object' || nodeTypes.isProxy(retained) ||
+            material.providers[providerIndex] !== quantity) fail('InstalledSourceCommandConstructionUnavailable');
+        material.inputs.push(quantity, retained, wires);
+        material.providers[providerIndex] = retained;
+      } finally {material.busy = false;}
+      // The same admitted declared body is reused, never restored/replaced.
+      const environment = prepareSourceEnvironment(prepared.declared, wires);
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== prepared || scope.source !== undefined) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      material.busy = true;
+      try {
+        scope.prepared = Object.freeze({...prepared, environment, environmentMappings: wires});
+        material.inputs.push(wires, environment);
+      } finally {material.busy = false;}
+    }
     reconcileSource(original, material);
     return target;
   }
+  function prepareInitialNativeConstruction(projection, attempt) {
+    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+        scope[attempt] || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+    if (material.busy) fail('InstalledSourceInitializationReentry');
+    const methods = sourceProjectionMethods(projection);
+    if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') {
+      fail('InstalledSourceInitializationRuntimeUnavailable');
+    }
+    scope[attempt] = true;
+    let quantity;
+    material.busy = true;
+    try {quantity = requireSynchronousSourceConstruction(material,
+      Reflect.apply(methods.capacity, projection, []));}
+    finally {material.busy = false;}
+    if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) {
+      fail('InstalledSourceCommandConstructionUnavailable');
+    }
+    // The selected original recipe includes every returned native value and
+    // failed constructor prefix. It stays on this initial parent through
+    // Source retirement; this entrance does not issue another capacity.
+    material.providers.push(quantity);material.inputs.push(projection);
+    reserveSource(original, material);
+    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+        material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+    return methods.project;
+  }
   const context = Object.freeze({
+    prepareInputConstruction(projection) {
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      const project = prepareInitialNativeConstruction(projection, 'nativeInputAttempted');
+      material.busy = true;
+      try {
+        const value = requireSynchronousSourceConstruction(material,
+          Reflect.apply(project, projection, []));
+        material.inputs.push(value);
+        if (!scope.active || scope.prepared !== undefined || material.phase !== 'working' ||
+            value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) {
+          fail('InvalidInstalledSourceNativeInput');
+        }
+        // A private original Buffer/opaque native value is retained as-is.
+        // Walking or freezing its contents would allocate another input copy.
+        return value;
+      } finally {material.busy = false;}
+    },
+    prepareNativeInput(projection) {
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      // Mapping constructors need the original declaration CID. Pin this
+      // same tuple across every reservation and projection fence; Source and
+      // already-started Mapping/Command/driver paths remain closed.
+      const prepared = scope.prepared;
+      return prepareSourceNativeInput(original, material, projection, inputProjections,
+        () => validateNativeInputContext(prepared), retainNativeInput);
+    },
+    prepareProviderEffect(site, provider, mappingOriginals) {
+      if (this !== context || scope.role !== 'effect' || !scope.active || scope.prepared !== undefined ||
+          scope.declarationAttempted || material.phase !== 'working' || material.busy ||
+          !nativeInputOriginals.has(provider) || !Array.isArray(mappingOriginals) ||
+          nodeTypes.isProxy(mappingOriginals) || !Object.isFrozen(mappingOriginals) ||
+          !mappingOriginals.every(value => nativeInputOriginals.has(value))) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const {declared, schemas, capabilities} = provider;
+      const owns = Object.getOwnPropertyDescriptor(site, 'ownsDeclaration');
+      if (!owns || !Object.hasOwn(owns, 'value') || typeof owns.value !== 'function' ||
+          Reflect.apply(owns.value, site, [declared.declaration]) !== true) {
+        fail('ForeignInstalledProviderDeclaration');
+      }
+      scope.declarationAttempted = true;
+      const exported = Object.freeze({catalog: declared.catalog, manifest_entry: declared.manifest_entry,
+        contracts: declared.contracts, view_bodies: declared.source_views,
+        evidence_schemas: schemas, evidence_capabilities: capabilities});
+      const mappingWires = mappingOriginals.map(value => value.body);
+      // Complete the SAME pure Environment through the existing owner before
+      // constructing the independent returned Mapping carriers. Its full peak
+      // stays charged on failure; only its actual closed output survives here.
+      const environment = prepareSourceEnvironment(exported, mappingWires);
+      // Four String fields plus the record and array element for each retained Mapping.
+      const mappingNodes = 1n + 6n * BigInt(mappingOriginals.length);
+      reserveSource(original, material, mappingNodes);
+      if (!scope.active || scope.prepared !== undefined || material.phase !== 'working') {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      let prepared;
+      material.busy = true;
+      try {
+        const mappings = Object.freeze(mappingOriginals.map(value => Object.freeze({
+          resource: value.write.resource, mappingRef: value.mappingRef,
+          mappingCid: value.mappingCid, body: value.body})));
+        // This opaque declaration belongs to the provider Site, not Common's
+        // RowDeclaration type. Only its genuine exported DATA reaches Environment.
+        prepared = Object.freeze({kind: 'providerEffect', declared: exported, environment, mappings});
+        scope.prepared = prepared;
+        material.inputs.push(site, provider, mappingOriginals, prepared);
+        material.nodes += mappingNodes;
+      } finally {material.busy = false;}
+      reconcileSource(original, material);
+      return prepared;
+    },
+    preparePublishedEnvironment(wire) {
+      if (this !== context || !scope.active || scope.prepared !== undefined || scope.declarationAttempted ||
+          material.phase !== 'working' || material.busy || typeof wire !== 'string') fail('ForeignInstalledSourceInitialization');
+      scope.declarationAttempted = true;
+      // The central constructor retains every input and native original under
+      // this exact existing material before constructing the published view.
+      const environment = composeInstalledSourceEnvironment(services, original.moon,
+        scope.baseEnvironmentWire, undefined, wire);
+      if (!scope.active || scope.prepared !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      scope.prepared = Object.freeze({environment});
+      scope.publishedEnvironment = true;
+      material.inputs.push(environment);
+      return environment;
+    },
+    prepareNativeDeclaration(projection) {
+      if (this !== context || !scope.active || scope.prepared !== undefined || scope.source !== undefined || scope.declarationAttempted ||
+          material.phase !== 'working' || material.busy) fail('ForeignInstalledSourceInitialization');
+      let {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+      scope.declarationAttempted = true;
+      let quantity;
+      material.busy = true;
+      try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
+      finally {material.busy = false;}
+      if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceDeclarationCapacityUnavailable');
+      // Running and failed native construction keeps its complete original
+      // peak. Only this caller can close the original declaration/export phase.
+      const providerIndex = material.providers.length, projectionIndex = material.inputs.length;
+      material.providers.push(quantity); material.inputs.push(projection);
+      reserveSource(original, material);
+      if (!scope.active || scope.prepared !== undefined || scope.source !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let projected, declaration, declared, declaredWire;
+      material.busy = true;
+      try {
+        // This declared native projection is synchronous and pure: no Site,
+        // reader, callback or physical child can escape its failed prefix.
+        // Unreturned native values become unreachable; the SAME complete
+        // construction peak remains held, even when projection throws.
+        projected = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
+        material.inputs.push(projected);
+        if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+            material.phase !== 'working' || !projected || typeof projected !== 'object' ||
+            nodeTypes.isProxy(projected) || !Object.isFrozen(projected)) fail('InvalidInstalledSourceDeclarationProjection');
+        const projectedFields = Object.getOwnPropertyDescriptors(projected);
+        if (Reflect.ownKeys(projectedFields).some(name => typeof name !== 'string' ||
+            !Object.hasOwn(projectedFields[name], 'value'))) fail('InvalidInstalledSourceDeclarationProjection');
+        const field = projectedFields.declaration;
+        if (!field || !Object.hasOwn(field, 'value') || field.value === undefined) fail('InvalidInstalledSourceDeclarationProjection');
+        declaration = field.value;
+        declaredWire = requireSynchronousSourceConstruction(material,
+          Reflect.apply(original.declarationJson, original.moon, [declaration]));
+        material.inputs.push(declaration, declaredWire);
+        if (typeof declaredWire !== 'string') fail('InvalidInstalledSourceDeclarationProjection');
+      } finally {material.busy = false;}
+      // Fund the outer exported JSON parse before observing its detached
+      // member strings. The typed producer already retains the original wire.
+      const parsedGeometry = sourceJsonWireGeometry(declaredWire);
+      const parseNodes = 4n * parsedGeometry.nodes, parseText = 12n * parsedGeometry.units;
+      reserveSource(original, material, parseNodes, parseText, 0n);
+      // The original quote has TWO separate equal roles: returned tree and
+      // parsing workspace. Keep their admitted total on failure; only the
+      // successful pure parse can remove its ended workspace below. This is
+      // not retained+execution (whose execution already contains retained).
+      material.nodes += 2n * parseNodes; material.text += 2n * parseText;
+      if (!scope.active || scope.prepared !== undefined || scope.source !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      material.busy = true;
+      try {
+        declared = JSON.parse(declaredWire);
+        material.inputs.push(declared);
+        freezeSourceProjection(declared);
+      } finally {material.busy = false;}
+      material.nodes -= parseNodes; material.text -= parseText;
+      if (typeof material.methods.InstalledSourceRetainedConstructionCapacity === 'function') {
+        retainCompletedSourceNativeConstruction(original, material, providerIndex,
+          projectionIndex, quantity, projection, () => {
+            if (!scope.active || scope.prepared !== undefined || scope.source !== undefined) {
+              fail('ForeignInstalledSourceInitialization');
+            }
+          });
+        projection = capacityFor = project = quantity = undefined;
+      }
+      // A legacy runtime without the existing retained DATA port keeps its
+      // old complete quote; no Host reconstruction or guessed shrink occurs.
+      let environment;
+      if (scope.role === 'effect') reserveSource(original, material);
+      else environment = prepareSourceEnvironment(declared);
+      if (!scope.active || scope.prepared !== undefined || scope.source !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let prepared;
+      material.busy = true;
+      try {
+        // Borrow the exact already-owned export. Consumers must not serialize
+        // or export the declaration again just to recover its original wire.
+        prepared = Object.freeze({declaration, declared, wire: declaredWire, environment});
+        scope.prepared = prepared;
+        // Preserve the existing raw Mapping continuation's declaration basis.
+        scope.declarationBasis = 16n * (BigInt(declaredWire.length) + BigInt(scope.baseEnvironmentWire.length));
+        material.inputs.push(environment);
+      } finally {material.busy = false;}
+      reconcileSource(original, material);
+      return Object.freeze({...projected, ...prepared});
+    },
+    prepareBorrowedDeclaration(sourceContext) {
+      const source = sourceContexts.get(sourceContext);
+      if (this !== context || scope.role !== 'effect' || !scope.active ||
+          scope.prepared !== undefined || scope.source !== undefined || scope.declarationAttempted ||
+          material.phase !== 'working' || material.busy || source === undefined ||
+          source.original !== original || source.material !== material ||
+          source.scope.role !== 'source' || source.scope.installation !== scope.installation ||
+          source.scope.connectorId !== scope.connectorId ||
+          source.scope.baseEnvironmentWire !== scope.baseEnvironmentWire ||
+          !source.scope.active || source.scope.closed || source.scope.prepared?.declaration === undefined ||
+          source.scope.prepared.commands !== undefined || typeof source.scope.declarationBasis !== 'bigint') {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const prepared = source.scope.prepared;
+      scope.declarationAttempted = true;
+      // Both contexts already belong to this exact material. Borrow the
+      // existing immutable tuple without a copied declaration or new owner.
+      // The original constructor quantity remains retained by that material.
+      reserveSource(original, material);
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined ||
+          !source.scope.active || source.scope.closed || source.scope.prepared !== prepared) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      scope.prepared = prepared;
+      scope.declarationBasis = source.scope.declarationBasis;
+      scope.borrowedDeclaration = source.scope;
+      return prepared;
+    },
+    // Native connector producers already own and fund complete canonical
+    // Mapping DATA. Retain those exact originals beside this SAME Common
+    // declaration; Common still admits every Mapping at Program preparation.
+    prepareNativeMappings(declared, mappingOriginals) {
+      if (this !== context || scope.role !== 'effect' || !scope.active ||
+          scope.prepared?.declaration === undefined || scope.source !== undefined ||
+          scope.prepared.declared !== declared ||
+          scope.mappingsAttempted || scope.prepared.mappings !== undefined ||
+          scope.prepared.commands !== undefined || material.phase !== 'working' || material.busy ||
+          !Array.isArray(mappingOriginals) || nodeTypes.isProxy(mappingOriginals) ||
+          !Object.isFrozen(mappingOriginals) || mappingOriginals.length === 0) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const prepared = scope.prepared;
+      for (let index = 0; index < mappingOriginals.length; index++) {
+        const entry = Object.getOwnPropertyDescriptor(mappingOriginals, String(index));
+        const value = entry?.value;
+        if (!entry || !Object.hasOwn(entry, 'value') || !nativeInputOriginals.has(value) ||
+            !Object.isFrozen(value)) fail('ForeignInstalledSourceInitialization');
+        const fields = Object.getOwnPropertyDescriptors(value);
+        for (const key of ['resource', 'mappingRef', 'mappingCid', 'body']) {
+          const field = fields[key];
+          if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
+            fail('InvalidInstalledEffectMappings');
+          }
+        }
+      }
+      scope.mappingsAttempted = true;
+      const mappingNodes = 1n + 6n * BigInt(mappingOriginals.length);
+      reserveSource(original, material, mappingNodes);
+      if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let mappings;
+      material.busy = true;
+      try {
+        mappings = Object.freeze(Array.prototype.map.call(mappingOriginals, value => Object.freeze({
+          resource: value.resource, mappingRef: value.mappingRef,
+          mappingCid: value.mappingCid, body: value.body})));
+        material.inputs.push(mappingOriginals, mappings);
+        material.nodes += mappingNodes;
+      } finally {material.busy = false;}
+      const environment = prepareSourceEnvironment(prepared.declared,
+        Array.prototype.map.call(mappingOriginals, value => value.body));
+      if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      scope.prepared = Object.freeze({...prepared, mappings, environment});
+      material.inputs.push(scope.prepared);
+      reconcileSource(original, material);
+      return scope.prepared;
+    },
     prepareMappings(writesJson, writes) {
       if (this !== context || !scope.active || scope.prepared === undefined ||
           scope.role !== 'effect' || scope.source !== undefined || scope.mappingsAttempted ||
@@ -474,7 +1272,13 @@ export function beginInstalledSourceInitialization(services, installation, conne
         const write = field(writes, String(i)), resource = field(write, 'resource'), sources = field(write, 'sources');
         if (typeof resource !== 'string' || !Array.isArray(sources) || nodeTypes.isProxy(sources) ||
             !Object.isFrozen(sources)) fail('InvalidInstalledEffectMappings');
-        units += BigInt(resource.length);
+        const operationField = Object.getOwnPropertyDescriptor(write, 'operation');
+        const operation = operationField === undefined ? 'create' : field(write, 'operation');
+        if (operation !== 'create' && operation !== 'update' ||
+            operation === 'update' && typeof original.prepareUpdateMapping !== 'function') {
+          fail('InvalidInstalledEffectMappings');
+        }
+        units += BigInt(resource.length + operation.length);
         for (let j = 0; j < sources.length; j++) {
           const source = field(sources, String(j));
           for (const name of ['target', 'field', 'null_behavior']) {
@@ -499,9 +1303,12 @@ export function beginInstalledSourceInitialization(services, installation, conne
       material.busy = true;
       try {
         const runtime = Object.freeze({clientProgramRowSourcePrepareMapping: (...args) =>
-          Reflect.apply(original.prepareMapping, original.moon, args)});
+          Reflect.apply(original.prepareMapping, original.moon, args),
+          clientProgramRowSourcePrepareUpdateMapping: (...args) =>
+            Reflect.apply(original.prepareUpdateMapping, original.moon, args)});
         const mappings = Object.freeze(writes.map(write => Object.freeze({resource: write.resource,
-          ...rowSourceMapping(runtime, scope.prepared.declaration, writesJson, write.resource, write.sources)})));
+          ...rowSourceMapping(runtime, scope.prepared.declaration, writesJson, write.resource, write.sources,
+            Object.getOwnPropertyDescriptor(write, 'operation')?.value ?? 'create')})));
         const environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, scope.prepared.declared,
           mappings.map(mapping => mapping.body));
         prepared = Object.freeze({...scope.prepared, environment, mappings});
@@ -511,6 +1318,69 @@ export function beginInstalledSourceInitialization(services, installation, conne
       } finally {material.busy = false;}
       reconcileSource(original, material);
       return prepared;
+    },
+    prepareDerivedDeclaredCommands(initialViews, derivation, projection, expectedCatalogCid) {
+      if (this !== context || !scope.active || scope.prepared !== undefined || scope.derivedAttempted ||
+          scope.commandAttempted || material.phase !== 'working' || material.busy) fail('InvalidInstalledSourceDerivedDeclaration');
+      const {capacity: derivationCapacity, project: deriveFinalViews} = sourceProjectionMethods(derivation);
+      if (projection !== undefined) sourceProjectionMethods(projection);
+      scope.derivedAttempted = true;
+      const {snapshot, basis} = captureDeclarationViews(initialViews);
+      // This existing first restore supplies carrier schema CIDs for final
+      // facts. It never fills the publishable prepared slot.
+      const preliminary = prepareOriginalDeclaration(original.restoreDeclaration, snapshot, basis,
+        () => JSON.stringify({views: snapshot}), undefined, (declaration, wire) => {
+          const declared = freezeSourceProjection(JSON.parse(wire));
+          const value = Object.freeze({declaration, declared, wire});
+          material.inputs.push(value);
+          return value;
+        });
+      // Domain-specific pure facts construction owns its typed recipe. Both
+      // calls receive the SAME privately retained preliminary declaration;
+      // no arbitrary callback is priced from its input wire length.
+      let quantity;
+      material.busy = true;
+      try {quantity = requireSynchronousSourceConstruction(material,
+        Reflect.apply(derivationCapacity, derivation, [preliminary.declared]));}
+      finally {material.busy = false;}
+      if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) {
+        fail('InstalledSourceDerivedDeclarationCapacityUnavailable');
+      }
+      material.providers.push(quantity); material.inputs.push(derivation);
+      reserveSource(original, material);
+      if (!scope.active || scope.prepared !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let views;
+      material.busy = true;
+      try {
+        views = requireSynchronousSourceConstruction(material,
+          Reflect.apply(deriveFinalViews, derivation, [preliminary.declared]));
+        material.inputs.push(views);
+      } finally {material.busy = false;}
+      // The callback's original quantity retains its output. Common prices
+      // only its subsequent authored-view snapshot and shallow stringify,
+      // before either allocation, using those actual immutable String fields.
+      const geometry = sourceAuthoredViewConstructionGeometry(views);
+      reserveSource(original, material, geometry.nodes, geometry.text, geometry.wire);
+      if (!scope.active || scope.prepared !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let finalWire;
+      material.busy = true;
+      try {
+        const final = captureDeclarationViews(views);
+        material.inputs.push(final.snapshot);
+        finalWire = JSON.stringify({views: final.snapshot});
+        material.inputs.push(finalWire);
+        material.nodes += geometry.nodes;
+        material.text += geometry.text; material.wire += geometry.wire;
+      } finally {material.busy = false;}
+      // Same final RowDeclaration and native command producer entrance as
+      // ordinary Command installations; no caller-supplied replacement wire.
+      return projection === undefined ? context.prepareDeclaration(finalWire, expectedCatalogCid)
+        : context.prepareDeclaredCommands(finalWire, projection, expectedCatalogCid);
+    },
+    prepareAuthoredCommands(viewsWire, specification, expectedCatalogCid) {
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      return context.prepareDeclaredCommands(viewsWire,
+        authoredCommandProjection(original.moon, specification), expectedCatalogCid);
     },
     prepareDeclaredCommands(viewsWire, projection, expectedCatalogCid) {
       if (this !== context || !scope.active || scope.prepared !== undefined || scope.commandAttempted || material.phase !== 'working') {
@@ -546,10 +1416,12 @@ export function beginInstalledSourceInitialization(services, installation, conne
             projected = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, [declaredWire]));
             if (!projected || nodeTypes.isProxy(projected)) fail('InvalidInstalledSourceCommandProjection');
             const out = Object.getOwnPropertyDescriptors(projected);
-            if (['declared','commands','definition','wire'].some(name => !Object.hasOwn(out[name] ?? {}, 'value'))) fail('InvalidInstalledSourceCommandProjection');
+            if (['declared','commands','wire'].some(name => !Object.hasOwn(out[name] ?? {}, 'value')) ||
+                (out.definition !== undefined || scope.role === 'effect') &&
+                  !Object.hasOwn(out.definition ?? {}, 'value')) fail('InvalidInstalledSourceCommandProjection');
             declared = freezeSourceProjection(out.declared.value);
             commands = freezeSourceProjection(out.commands.value);
-            definition = freezeSourceProjection(out.definition.value);
+            definition = out.definition === undefined ? undefined : freezeSourceProjection(out.definition.value);
             outputWire = out.wire.value;
             if (typeof outputWire !== 'string') fail('InvalidInstalledSourceCommandProjection');
             if (!Array.isArray(commands) || commands.length === 0 ||
@@ -602,22 +1474,30 @@ export function beginInstalledSourceInitialization(services, installation, conne
           // JSON output is already backed by the original native quantity.
           // Different inputs still fund their own complete Environment before
           // parsing/merging. An equal CID alone cannot select the reuse path.
-          const basis = 16n * (BigInt(outputWire.length) + BigInt(scope.baseEnvironmentWire.length));
-          reserveSource(original, material, basis, basis, basis);
+          const sourcePhase = scope.role === 'source';
+          const geometry = sourcePhase ? undefined : sourceEnvironmentConstructionGeometry(scope.baseEnvironmentWire, declared);
+          let environment;
+          if (sourcePhase) environment = prepareSourceEnvironment(declared);
+          else reserveSource(original, material, geometry.nodes, geometry.text, geometry.wire);
           if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined) fail('ForeignInstalledSourceInitialization');
           let prepared;
           material.busy = true;
           try {
-            const environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
+            if (!sourcePhase) environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
             prepared = Object.freeze({declaration, declared, environment, commands, commandDefinition: definition});
             scope.prepared = prepared;scope.commandDeclarationWire = outputWire;
             material.inputs.push(outputWire, environment);
-            material.nodes += basis;material.text += basis;material.wire += basis;
+            // Effects still need the full backing for their next constructor's
+            // existing Environment parse. Only Source pure phases use the split.
+            if (!sourcePhase) {
+              material.nodes += geometry.nodes;material.text += geometry.text;material.wire += geometry.wire;
+            }
           } finally {material.busy = false;}
           return prepared;
         });
     },
     prepareReadTarget(projection) {return prepareProviderConstruction.call(this, projection, 'source');},
+    prepareReadTargetWithMappings(projection) {return prepareProviderConstruction.call(this, projection, 'source', true);},
     prepareEffectDriverConstruction(projection) {return prepareProviderConstruction.call(this, projection, 'effect');},
     prepareAuthoredDeclaration(viewsWire, expectedCatalogCid) {
       if (this !== context || !scope.active || scope.prepared !== undefined || scope.commandAttempted) {
@@ -652,43 +1532,338 @@ export function beginInstalledSourceInitialization(services, installation, conne
           expectedCatalogCid !== undefined && typeof expectedCatalogCid !== 'string') {
         fail('InvalidInstalledSourceDeclarationViews');
       }
-      // View specifications contain only provider-authored strings. Measure and
-      // reserve before snapshot/stringify; no getter/receiver is invoked here.
-      let units = BigInt(scope.connectorId.length + scope.baseEnvironmentWire.length);
-      // These are fixed published-view selection frames and original String
-      // references, not copied schema payload. Capture before the Core current
-      // callback can replace the caller's authored fields.
-      const snapshot = [];
-      const allowed = ['resource', 'resource_kind', 'schema_wire', 'schema_cid',
-        'request_schema_wire', 'facts_wire', 'acquisition_wire',
-        'data_classification', 'resource_identity_wire'];
-      for (let i = 0; i < views.length; i++) {
-        const view = Object.getOwnPropertyDescriptor(views, String(i))?.value;
-        if (!view || nodeTypes.isProxy(view)) fail('InvalidInstalledSourceDeclarationViews');
-        const fields = Object.getOwnPropertyDescriptors(view);
-        const selected = {};
-        for (const name of Reflect.ownKeys(fields)) {
-          if (!allowed.includes(name) || !Object.hasOwn(fields[name], 'value')) fail('InvalidInstalledSourceDeclarationViews');
-          // Preserve the existing JSON.stringify omission rule. Common alone
-          // decides required fields and optional classification/identity law.
-          if (fields[name].value === undefined) continue;
-          if (typeof fields[name].value !== 'string') fail('InvalidInstalledSourceDeclarationViews');
-          units += BigInt(name.length + fields[name].value.length);
-          selected[name] = fields[name].value;
-        }
-        snapshot.push(Object.freeze(selected));
-      }
-      // Restore owns parsed schema/request/facts, checked contract projections,
-      // canonical identity preimages, Catalog+manifest and declaration JSON;
-      // rowSourceCheckEnvironment then overlaps native inputs and output. This
-      // conservative input-proportional allowance covers the whole operation,
-      // including its failed child, using existing shared units (not VM prices).
-      const basis = 6n * units + 64n * BigInt(views.length);
+      const {snapshot, basis} = captureDeclarationViews(views);
       return prepareOriginalDeclaration(original.restoreDeclaration, Object.freeze(snapshot), basis,
         () => JSON.stringify({views: snapshot}), expectedCatalogCid);
   }});
   sourceContexts.set(context, {original, material, scope});
   return context;
+}
+
+// The ordinary loader owns this one bound factory. Connector code supplies
+// domain inputs, never the initialization token or registration/retirement order.
+// Keep partial acquisitions in the existing initialization failure carrier.
+export function bindInstalledSourceConstruction(services, context, checkedProfile, profileConstruction) {
+  const retained = sourceContexts.get(context), original = installations.get(services);
+  if (retained === undefined || retained.original !== original) fail('ForeignInstalledSourceConstruction');
+  if (boundConstructions.has(context)) fail('InstalledSourceConstructionAlreadyBound');
+  const {scope, material} = retained;
+  const owned = {site: undefined, authorization: undefined, reader: undefined, adapter: undefined,
+    constructing: false, attempted: false};
+  boundConstructions.set(context, owned);
+  const current = () => {
+    if (!scope.active || material.phase !== 'working' || owned.failed || owned.closed) fail('InstalledSourceInitializationClosed');
+    original.current();
+    if (!scope.active || material.phase !== 'working' || owned.failed || owned.closed) fail('InstalledSourceInitializationClosed');
+  };
+  const domain = (options, reserved = []) => {
+    if (options === null || typeof options !== 'object' || nodeTypes.isProxy(options)) fail('InvalidInstalledSourceConstruction');
+    const fields = Object.getOwnPropertyDescriptors(options);
+    for (const name of Reflect.ownKeys(fields)) {
+      if (typeof name !== 'string' || !Object.hasOwn(fields[name], 'value') || reserved.includes(name)) {
+        fail('InvalidInstalledSourceConstruction');
+      }
+    }
+    return Object.fromEntries(Object.entries(fields).map(([name, field]) => [name, field.value]));
+  };
+  const identity = options => ({...domain(options, ['installation', 'sourceInitialization']),
+    installation: scope.installation, sourceInitialization: context});
+  const prepare = name => (...args) => {
+    current();
+    const value = Reflect.apply(context[name], context, args);
+    current();
+    return value;
+  };
+  async function construct(options, role, factory) {
+    current();
+    if (scope.role !== role || owned.attempted || owned.constructing || scope.prepared === undefined ||
+        owned.site === undefined || owned.authorization === undefined ||
+        scope.prepared.environment === undefined) fail('InstalledSourceConstructionUnavailable');
+    const selected = domain(options, ['moon', 'sourceInitialization', 'declaration', 'declared', 'environment',
+      'environmentWire', 'site', 'authorization', 'connectorId', 'connectorRegistration', 'connectorRevision']);
+    const prepared = scope.prepared;
+    const {projectSite, ...input} = selected;
+    if (projectSite !== undefined && (typeof projectSite !== 'function' || nodeTypes.isProxy(projectSite) ||
+        nodeTypes.isAsyncFunction(projectSite))) fail('InvalidInstalledSiteProjection');
+    owned.attempted = true; owned.constructing = true;
+    try {
+      let site = owned.site;
+      if (projectSite !== undefined) {
+        // A grant projection changes domain method names, never physical
+        // custody. Capture the owned Site's actual close before provider code.
+        const originalSite = owned.site;
+        const close = Object.getOwnPropertyDescriptor(originalSite, 'close');
+        if (!close || !Object.hasOwn(close, 'value') || typeof close.value !== 'function') {
+          fail('InvalidInstalledSiteProjection');
+        }
+        const projected = requireSynchronousSourceConstruction(material,
+          Reflect.apply(projectSite, undefined, [originalSite]));
+        material.inputs.push(projected);
+        const fields = domain(projected, ['close', 'then']);
+        site = Object.freeze({...fields, close: () => Reflect.apply(close.value, originalSite, [])});
+      }
+      material.inputs.push(site);
+      current();
+      // No connector callback runs between acquisition and retaining the actual
+      // adapter. The constructor itself retains partial physical failures.
+      const adapter = await factory({...input, moon: original.moon, sourceInitialization: context,
+        ...prepared, environmentWire: prepared.environment.wire,
+        connectorId: scope.connectorId, connectorRegistration: scope.installation.registration,
+        connectorRevision: scope.installation.revision, site, authorization: owned.authorization});
+      owned.adapter = adapter;
+      current();
+      if (scope.prepared !== prepared || scope.source !== adapter) fail('ForeignInstalledSourceConstruction');
+      return adapter;
+    } finally {owned.constructing = false;}
+  }
+  const bound = Object.freeze({
+    configurationReader: captureConfigurationReaders(installedSourceConfigurationReader(services), undefined,
+      () => fail('InstalledConfigurationReaderUnavailable')),
+    prepareDeclaration: prepare('prepareDeclaration'),
+    prepareNativeDeclaration: prepare('prepareNativeDeclaration'),
+    prepareNativeInput: prepare('prepareNativeInput'),
+    preparePublishedEnvironment: prepare('preparePublishedEnvironment'),
+    prepareProviderEffect(provider, mappings) {
+      current();
+      if (owned.site === undefined) fail('InstalledSourceSiteUnavailable');
+      const value = context.prepareProviderEffect(owned.site, provider, mappings);
+      current(); return value;
+    },
+    prepareAuthoredDeclaration: prepare('prepareAuthoredDeclaration'),
+    prepareBorrowedDeclaration: prepare('prepareBorrowedDeclaration'),
+    prepareMappings: prepare('prepareMappings'),
+    prepareNativeMappings: prepare('prepareNativeMappings'),
+    prepareDeclaredCommands: prepare('prepareDeclaredCommands'),
+    prepareAuthoredCommands: prepare('prepareAuthoredCommands'),
+    prepareDerivedDeclaredCommands: prepare('prepareDerivedDeclaredCommands'),
+    prepareReadTarget: prepare('prepareReadTarget'),
+    prepareReadTargetWithMappings: prepare('prepareReadTargetWithMappings'),
+    prepareEffectDriverConstruction: prepare('prepareEffectDriverConstruction'),
+    sourceReaderImplementationProfile(options) {
+      current(); return services.sourceReaderImplementationProfile(identity(options));
+    },
+    sourceReaderImplementation(options) {
+      current(); return services.sourceReaderImplementation(identity(options));
+    },
+    async openSpecializedSite(options) {
+      current();
+      if (owned.site !== undefined || owned.siteAttempted) fail('InstalledSourceSiteAlreadyConstructed');
+      const selected = domain(options);
+      const {authorizationConstructor, siteConstructor, siteArgument, accountConfiguration, siteOptions = {}} = selected;
+      if (typeof authorizationConstructor !== 'function' || typeof siteConstructor !== 'function' ||
+          nodeTypes.isProxy(authorizationConstructor) || nodeTypes.isProxy(siteConstructor)) fail('InvalidInstalledSpecializedSite');
+      const input = domain(siteOptions, ['authorization','commonMoon','runtimeBundleCid','configurationReader','ownAuthorization']);
+      owned.siteAttempted = true;
+      const authorization = await Reflect.apply(authorizationConstructor, undefined, [{accountConfiguration,
+        root: original.root, principalId: original.principalId, gateOptions: {runtime: original.moon}}]);
+      owned.authorization = authorization;
+      current();
+      const site = await Reflect.apply(siteConstructor, undefined, [siteArgument, {...input, authorization,
+        commonMoon: original.moon, runtimeBundleCid: original.selected.get(scope.installation),
+        configurationReader: bound.configurationReader, ownAuthorization: true}]);
+      owned.site = site;
+      // Bind this SAME specialized original to its bound constructor just as
+      // openRowSite does. Credential custody still validates the Site issuer;
+      // this private association supplies no grant or physical acknowledgement.
+      original.siteInstallations.set(site, context);
+      current();
+      return Object.freeze({site, authorization});
+    },
+    async openRowSite(options) {
+      current();
+      if (owned.site !== undefined || owned.siteAttempted) fail('InstalledSourceSiteAlreadyConstructed');
+      const selected = domain(options);
+      const profile = selected.profile;
+      // The bound owner captures immutable installation DATA; a provider need
+      // not remember to freeze a fresh domain profile before the Site call.
+      const fields = domain(profile);
+      const capturedProfile = Object.isFrozen(profile) ? profile : Object.freeze(fields);
+      material.inputs.push(profile, capturedProfile);
+      owned.siteAttempted = true;
+      const opened = await services.openRowSite(identity({...selected, profile: capturedProfile}));
+      // The actual shared Site constructor owns its Authorization even when
+      // its own current check fails. Retain both before this facade reenters.
+      owned.site = opened.site; owned.authorization = opened.authorization;
+      current();
+      return opened;
+    },
+    createSourceReader(options) {
+      current();
+      if (owned.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
+      const selected = domain(options, ['site']);
+      const reader = services.createSourceReader(identity({...selected, site: owned.site}));
+      owned.reader = reader;
+      current();
+      return reader;
+    },
+    async createDuckDBSource() {
+      current();
+      if (scope.role !== 'source' || !scope.publishedEnvironment || scope.prepared?.environment === undefined ||
+          typeof scope.connectorId !== 'string' || owned.attempted || owned.constructing) {
+        fail('InstalledSourceConstructionUnavailable');
+      }
+      const prepared = scope.prepared;
+      owned.attempted = true; owned.constructing = true;
+      try {
+        reserveInstalledDuckDBConstruction(original, material, checkedProfile, prepared.environment);
+        current();
+        const profile = await installDuckDBSourceProfile(checkedProfile, {
+          root: original.root, principalId: original.principalId, runtime: original.moon,
+          retainAuthorization(authorization) {
+            // Retain before the installed profile can return or fail.
+            owned.authorization = authorization;
+            material.inputs.push(authorization);
+          },
+        });
+        material.inputs.push(profile);
+        current();
+        // This known constructor registers its SAME adapter before returning;
+        // connector DATA cannot supply a factory or register an arbitrary value.
+        const adapter = await createInstalledDuckDBSource(profile, original.moon, {
+          root: original.root, principalId: original.principalId,
+          sourceInitialization: context, environment: prepared.environment,
+          installation: scope.installation,
+        });
+        owned.adapter = adapter;
+        current();
+        if (scope.prepared !== prepared || scope.source !== adapter) fail('ForeignInstalledSourceConstruction');
+        return adapter;
+      } finally {owned.constructing = false;}
+    },
+    async createTableSource(options) {
+      current();
+      if (scope.role !== 'source' || owned.attempted || scope.prepared !== undefined) {
+        fail('InstalledSourceConstructionUnavailable');
+      }
+      const selected = domain(options, ['moon', 'sourceInitialization', 'environment', 'environmentWire',
+        'declaration', 'declared', 'site', 'authorization', 'connectorId', 'connectorRegistration',
+        'connectorRevision', 'baseEnvironmentWire']);
+      const {accountConfiguration, createBridge, ...input} = selected;
+      if (typeof createBridge !== 'function' || nodeTypes.isProxy(createBridge) ||
+          nodeTypes.isAsyncFunction(createBridge)) fail('InvalidInstalledTableBridgeConstructor');
+      owned.attempted = true; owned.constructing = true;
+      try {
+        const profileCapacity = reserveInstalledTableConstruction(original, material, checkedProfile, profileConstruction);
+        const bridge = requireSynchronousSourceConstruction(material, Reflect.apply(createBridge, undefined, []));
+        owned.bridge = bridge; material.inputs.push(bridge);
+        if (!bridge || typeof bridge !== 'object' || nodeTypes.isProxy(bridge) ||
+            'then' in bridge) fail('InvalidInstalledTableBridge');
+        current();
+        const prepared = context.prepareDeclaration(input.targets.map(target => ({
+          resource: target.resource, resource_kind: 'table', schema_wire: target.schemaWire,
+          schema_cid: target.selector.schema_cid,
+        })));
+        current();
+        const authorization = await installRowSourceAuthorization({accountConfiguration,
+          root: original.root, principalId: original.principalId,
+          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon}});
+        owned.authorization = authorization;
+        current();
+        const site = installedTableReadSite({connection: input.connection, authorization,
+          principalId: original.principalId, ownAuthorization: true,
+          targets: () => owned.adapter?.tableReadTargets ?? []});
+        owned.site = site;
+        current();
+        const capacityMethod = original.moon.clientProgramInstalledTableSourceReaderCapacity;
+        if (typeof capacityMethod !== 'function' || nodeTypes.isAsyncFunction(capacityMethod)) {
+          fail('InstalledTableSourceReaderUnavailable');
+        }
+        const columns = Math.max(...prepared.declared.views.map(view => view.fields.length));
+        const originalReaderCapacity = Reflect.apply(capacityMethod, original.moon, [columns, profileCapacity]);
+        // Preserve the original native reference Option for the existing typed
+        // Source composition. Its canonical binding alone exposes the value;
+        // Host never reconstructs a Some, tuple or scalar capacity.
+        const readerCapacity = runtimeUnboxedReferenceOption(originalReaderCapacity);
+        if (readerCapacity === undefined || readerCapacity === null || typeof readerCapacity !== 'object') {
+          fail('InstalledTableSourceReaderUnavailable');
+        }
+        material.providers.push(originalReaderCapacity);
+        reserveSource(original, material);
+        current();
+        const bindReader = reader => {
+          current();
+          if (owned.reader !== undefined || scope.reader !== undefined ||
+              bridge.frameLimits === undefined || !Object.isFrozen(bridge.frameLimits)) {
+            fail('InstalledTableSourceReaderUnavailable');
+          }
+          owned.reader = scope.reader = reader;
+          // Two actual commands, each with its ready and reply frame. Page
+          // count remains the original row-page profile; protocol transfer is
+          // the actual four original bounded bodies, not re-encoded rows.
+          scope.readerDemand = Object.freeze({nested:false,responses:4,
+            queryPages:input.limits.maxPages,maxResponseBytes:input.limits.maxPageBytes,
+            maxNodes:400000,maxDepth:32,maxRows:input.limits.maxPageRows,
+            maxTotalRows:input.limits.maxCaptureRows,
+            transferBytes:4n*BigInt(bridge.frameLimits.maxBytes)});
+        };
+        const adapter = await createInstalledTableSource({...input, bridge, site, authorization,
+          readerCapacity, bindReader,
+          moon: original.moon, sourceInitialization: context, ...prepared,
+          baseEnvironmentWire: scope.baseEnvironmentWire,
+          connectorId: scope.connectorId, connectorRegistration: scope.installation.registration,
+          connectorRevision: scope.installation.revision});
+        owned.adapter = adapter;
+        current();
+        if (scope.prepared !== prepared || scope.source !== adapter) fail('ForeignInstalledSourceConstruction');
+        return adapter;
+      } finally {owned.constructing = false;}
+    },
+    async createTableEffect(options) {
+      current();
+      if (scope.role !== 'effect' || scope.publishedEnvironment !== true || owned.attempted ||
+          scope.prepared?.environment === undefined) fail('InstalledSourceConstructionUnavailable');
+      const selected = domain(options, ['moon', 'sourceInitialization', 'environment', 'environmentWire',
+        'authorization', 'connectorId', 'connectorRegistration', 'connectorRevision', 'runtimeBundleCid']);
+      const {accountConfiguration, createBridge, ...input} = selected;
+      if (typeof createBridge !== 'function' || nodeTypes.isProxy(createBridge) ||
+          nodeTypes.isAsyncFunction(createBridge)) fail('InvalidInstalledTableBridgeConstructor');
+      const prepared = scope.prepared;
+      owned.attempted = true; owned.constructing = true;
+      try {
+        reserveInstalledTableConstruction(original, material, checkedProfile, profileConstruction);
+        const bridge = requireSynchronousSourceConstruction(material, Reflect.apply(createBridge, undefined, []));
+        owned.bridge = bridge; material.inputs.push(bridge);
+        if (!bridge || typeof bridge !== 'object' || nodeTypes.isProxy(bridge) ||
+            'then' in bridge) fail('InvalidInstalledTableBridge');
+        current();
+        const authorization = await installRowSourceAuthorization({accountConfiguration,
+          root: original.root, principalId: original.principalId,
+          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon}});
+        owned.authorization = authorization;
+        current();
+        const adapter = await createInstalledTableEffect({...input, bridge, moon: original.moon,
+          sourceInitialization: context, environment: prepared.environment,
+          environmentWire: prepared.environment.wire, authorization,
+          connectorId: scope.connectorId, connectorRegistration: scope.installation.registration,
+          connectorRevision: scope.installation.revision,
+          runtimeBundleCid: original.selected.get(scope.installation)});
+        owned.adapter = adapter;
+        current();
+        if (scope.prepared !== prepared || scope.source !== adapter) fail('ForeignInstalledSourceConstruction');
+        return adapter;
+      } finally {owned.constructing = false;}
+    },
+    createRowSource: options => construct(options, 'source', createInstalledRowSource),
+    createRowEffect: options => construct(options, 'effect', createInstalledRowEffect),
+  });
+  return bound;
+}
+
+export async function retainBoundInstalledSourceFailure(context, cause, adapter) {
+  const owned = boundConstructions.get(context);
+  const registered = sourceContexts.get(context)?.scope.source;
+  if (owned === undefined) return retainInstalledHostInitializationFailure(cause, {sourceProfile: registered});
+  owned.failed = true;
+  // The adapter's existing close owns its Reader and Site after successful
+  // construction; before then the same acquired originals remain here.
+  // The module's returned value is not custody evidence. A mistaken foreign
+  // return must not close a sibling; a correctly registered own adapter must
+  // still retire even when the module returns something else.
+  const acquired = owned.adapter ?? registered;
+  return retainInstalledHostInitializationFailure(cause, acquired !== undefined
+    ? {sourceProfile: acquired}
+    : {sourceReader: owned.reader, sourceProfile: owned.site,
+      ...(owned.site === undefined ? {authorization: owned.authorization} : {})});
 }
 
 export function assertInstalledSourceConstruction(context, declaration, declared, environment, providerReader, mappings, commands) {
@@ -792,16 +1967,38 @@ export function closeInstalledSourceConstruction(context, source) {
   const retained = sourceContexts.get(context);
   if (retained === undefined || retained.scope.source !== source) fail('ForeignInstalledSourceConstruction');
   retained.scope.closed = true;
+  const owned = boundConstructions.get(context);
+  if (owned !== undefined) {
+    owned.site = owned.authorization = owned.reader = owned.adapter = undefined;
+    owned.closed = true;
+  }
 }
 
 export function finishInstalledSourceInitialization(context, adapter, cause, failed = false) {
   if (context === undefined) return;
   const retained = sourceContexts.get(context);
   if (retained === undefined || !retained.scope.active) fail('ForeignInstalledSourceInitialization');
-  if (!failed && retained.scope.source !== adapter) fail('InstalledSourceConstructorUnavailable');
+  const selected = retained.scope.role === 'effect'
+    ? resolveInstalledRowEffectConstruction(retained.scope.source, adapter) : adapter;
+  if (!failed && (retained.scope.source === undefined || retained.scope.source !== selected)) {
+    fail('InstalledSourceConstructorUnavailable');
+  }
   if (failed) retainSourceFailure(retained.material, cause);
   retained.scope.finishedSuccessfully = !failed;
   retained.scope.active = false; retained.material.constructors--;
+}
+
+// Nominal admission for the common installed Environment composer. Reused
+// metadata still belongs to this exact live Source material and runtime.
+export function installedSourceEnvironmentConstructionReader(services, moon) {
+  const original = installations.get(services);
+  if (original === undefined || original.moon !== moon) fail('ForeignInstalledHostServices');
+  original.current();
+  const material = sourceMaterial(original);
+  if (material === undefined || material.phase !== 'working' || material.busy) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  return installedSourceConfigurationReader(services);
 }
 
 export function reserveInstalledSourceEnvironment(services, ...wires) {
@@ -809,18 +2006,16 @@ export function reserveInstalledSourceEnvironment(services, ...wires) {
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = original.material;
   if (material === undefined) return;
-  let basis = 0n;
   const selected = installedCheckEnvironmentInputs(wires[0], wires[1], wires[2]);
-  for (let index = 0; index < wires.length; index++) {
-    const wire = index < selected.length ? selected[index] : wires[index];
-    if (wire !== undefined) {
-      if (typeof wire !== 'string') fail('InvalidInstalledSourceEnvironment');
-      basis += BigInt(Buffer.byteLength(wire));
-    }
-  }
-  // Existing merge parses each input, builds canonical identities and emits
-  // the whole output while the old Source/declaration prefix stays retained.
-  reserveSource(original, material, 16n * basis, 16n * basis, 8n * basis);
+  const geometry = sourceEnvironmentCompositionGeometry(wires.map((wire, index) => {
+    const value = index < selected.length ? selected[index] : wire;
+    if (value !== undefined && typeof value !== 'string') fail('InvalidInstalledSourceEnvironment');
+    return value;
+  }));
+  // Reserve before the original parser/composer, separating its synchronous
+  // scratch from admitted output while all earlier Source material stays live.
+  reserveSource(original, material, geometry.nodes, geometry.text, geometry.wire,
+    undefined, geometry.retained);
 }
 
 export function reserveInstalledSourceRuntimeIdentity(services) {
@@ -861,10 +2056,13 @@ export function completeInstalledSourceInitialization(services, sourceOriginal, 
   releaseFinishedSourceWorkspaces(material);
   if (material.ioPending !== 0 || material.constructors !== 0 || material.workspaces.size !== 0 || environment === undefined ||
       typeof environmentWire !== 'string') fail('InstalledSourceInitializationPending');
-  const bytes = BigInt(Buffer.byteLength(environmentWire));
-  reserveSource(original, material, 16n * bytes, 16n * bytes, 8n * bytes);
+  // The original final checker already constructed this body. Fund its actual
+  // retained tree/text before adopting the SAME body; completion adds no parse,
+  // canonicalization or second construction workspace.
+  const retained = sourceEnvironmentCompositionGeometry([environmentWire]).retained;
+  reserveSource(original, material, 0n, 0n, 0n, undefined, retained);
   material.inputs.push(environmentWire);
-  material.nodes += 16n * bytes; material.text += 16n * bytes; material.wire += 8n * bytes;
+  material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
   sourceCall(original, material, 'CompleteInstalledSourceMaterial', [material.capacity, material.input,
     sourceOriginal, environment, sourceQuote(original, material)]);
   material.sourceOriginal = sourceOriginal; material.environment = environment;
@@ -894,6 +2092,11 @@ export function borrowInstalledSourceInitialization(services, sourceOriginal, en
     return returned;
   }});
   return view;
+}
+
+export function isInstalledSourceInitializationRetired(services) {
+  const original = installations.get(services);
+  return original !== undefined && original.material?.phase === 'retired';
 }
 
 export function retireInstalledSourceInitialization(services) {
@@ -929,161 +2132,9 @@ export function retireInstalledSourceInitialization(services) {
     material.input = material.unit = material.capacity = material.methods = undefined;
     original.initialPreparation = undefined;
     material.phase = 'retired';
+    releaseRetiredInstalledEnvironmentComposition(services);
   }
   return completed;
-}
-
-// The Calendar provider keeps its original, mandatory profile grammar. This
-// projects rejection bounds into the SAME selected generic inventory; it
-// neither changes that profile nor reserves or credits any capacity.
-function calendarImplementationReaderLimits(supplied, selected) {
-  if (selected === undefined || selected.metadata !== 0) {
-    fail('InstalledCalendarImplementationProfileUnavailable');
-  }
-  const names = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxPages', 'maxRows',
-    'maxRequests', 'perPage', 'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes',
-    'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth', 'maxDeclarationBytes',
-    'maxDeclarationNodes', 'maxSecretBytes', 'maxCaBytes'];
-  if (Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < 1 || supplied[name].value >= 2147483647)) {
-    fail('InvalidInstalledCalendarImplementationLimits');
-  }
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
-  const policy = selected.value;
-  const total = BigInt(original.maxResponseBytes) * BigInt(original.maxPages);
-  // Four bytes per original UTF16 unit is a conservative UTF8 ceiling, not
-  // a conversion/normalization of the cursor. Check before Number conversion.
-  const cursor = 4n * BigInt(original.maxCursorUnits);
-  if (original.perPage > 250 || original.maxPages > original.maxRequests ||
-      original.perPage > policy.pageSize || original.maxRows > policy.maxTotalRows ||
-      original.maxDeclarationBytes > policy.maxDeclarationBytes ||
-      original.maxDeclarationNodes > policy.maxDeclarationNodes ||
-      total > BigInt(policy.maxTotalResponseBytes) || cursor > BigInt(policy.maxCursorBytes)) {
-    fail('InstalledSourceReaderImplementationBoundsExceeded');
-  }
-  return Object.freeze({original, limits: Object.freeze({
-    maxResponseBytes: original.maxResponseBytes, maxTotalResponseBytes: Number(total),
-    maxNodes: original.maxNodes, maxDepth: original.maxDepth,
-    maxRows: Math.min(original.perPage, original.maxRows), maxTotalRows: original.maxRows,
-    maxPages: original.maxPages, pageSize: original.perPage, maxCursorBytes: Number(cursor),
-    maxIdentityBytes: original.maxValueTextBytes, maxTargetBytes: policy.maxTargetBytes,
-    maxValueNodes: original.maxValueNodes, maxValueTextBytes: original.maxValueTextBytes,
-    maxRowsWireBytes: original.maxRowsWireBytes, maxRowsWireNodes: original.maxRowsWireNodes,
-    maxRowsWireDepth: original.maxRowsWireDepth, maxSecretBytes: original.maxSecretBytes,
-  })});
-}
-
-// Project the two existing complete query/point provider grammars once. The
-// result retains every original rejection bound; it is not another profile,
-// a grant or an independently admitted capacity.
-function nestedImplementationReaderLimits(supplied, columns, profile) {
-  if (profile === undefined) fail('InstalledSourceSequenceProfileUnavailable');
-  const query = Object.hasOwn(supplied, 'maxRowsWireBytes');
-  const common = ['maxResponseBytes', 'maxTotalResponseBytes', 'maxRequestBytes', 'maxTargetBytes',
-    'maxNodes', 'maxDepth', 'maxIdentityBytes', 'maxRowNodes', 'maxRowDepth', 'maxRowTextBytes',
-    'maxColumns', 'maxRowWork', 'maxPropertyPages', 'maxPropertyBytes', 'maxPropertyNodes',
-    'maxPropertyTextBytes', 'maxCursorBytes', 'maxPropertyWork', 'pageSize', 'maxSecretBytes'];
-  const selected = query
-    ? ['maxPages', 'maxTotalRows', 'maxDataSources', 'maxProperties', 'maxNameBytes',
-      'maxPageWork', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth', 'maxPropertyItems']
-    : ['maxTextBytes', 'maxWireBytes', 'maxWireNodes', 'maxWireDepth',
-      'maxDataSources', 'maxProperties', 'maxNameBytes', 'maxPropertyItems'];
-  const names = [...common, ...selected];
-  if (Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < (!query && ['maxDataSources', 'maxProperties', 'maxNameBytes', 'maxPropertyItems'].includes(name) ? 0 : 1) ||
-    supplied[name].value > 2147483647)) fail('InvalidInstalledSourceSequenceLimits');
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
-  const queryPages = query ? original.maxPages : 1, totalRows = query ? original.maxTotalRows : 1;
-  const rows = query ? Math.min(original.pageSize, totalRows) : 1;
-  if (!Number.isSafeInteger(columns) || columns < 1 || columns > original.maxColumns ||
-      original.pageSize > 100 || queryPages > 10000 || original.maxPropertyPages > 10000) {
-    fail('InvalidInstalledSourceSequenceLimits');
-  }
-  const occurrences = BigInt(totalRows) * BigInt(columns);
-  const structuralResponses = BigInt(queryPages) + occurrences * BigInt(original.maxPropertyPages);
-  // The immutable selected profile owns this total physical response ceiling.
-  // Logical query pages and per-property pages retain their original meanings.
-  const ceiling = BigInt(profile.value.maxPages);
-  const responses = structuralResponses < ceiling ? structuralResponses : ceiling;
-  const limits = Object.freeze({
-    maxResponseBytes: original.maxResponseBytes, maxTotalResponseBytes: original.maxTotalResponseBytes,
-    maxNodes: original.maxNodes, maxDepth: original.maxDepth, maxRows: rows, maxTotalRows: totalRows,
-    maxPages: queryPages, pageSize: original.pageSize, maxCursorBytes: original.maxCursorBytes,
-    maxIdentityBytes: original.maxIdentityBytes, maxTargetBytes: original.maxTargetBytes,
-    maxValueNodes: original.maxRowNodes, maxValueTextBytes: original.maxRowTextBytes,
-    maxRowsWireBytes: query ? original.maxRowsWireBytes : original.maxWireBytes,
-    maxRowsWireNodes: query ? original.maxRowsWireNodes : original.maxWireNodes,
-    maxRowsWireDepth: query ? original.maxRowsWireDepth : original.maxWireDepth,
-    maxSecretBytes: original.maxSecretBytes,
-  });
-  const quote = [...installedJsonSourceReaderLimitNames.map(name => limits[name]),
-    original.maxRequestBytes, original.maxPropertyPages, original.maxPropertyBytes,
-    original.maxPropertyNodes, original.maxPropertyTextBytes, Number(responses)];
-  return Object.freeze({original, limits, quote: Object.freeze(quote), responses: Number(responses),
-    propertyOccurrences: Number(occurrences < responses ? occurrences : responses), propertyPages: original.maxPropertyPages});
-}
-
-// Original Gmail list/get grammar, not a caller-supplied byte quote. The same
-// service retains every selected bound and asks Core to compose its nominal
-// prefix with the existing JSON response/row recipe before constructing it.
-function gmailThreadImplementationReaderLimits(supplied, columns, profile) {
-  const names = ['maxResponseBytes','maxTotalResponseBytes','maxNodes','maxDepth','pageSize','maxPages',
-    'maxThreads','maxMailboxBytes','maxTargetBytes','maxIdBytes','maxTokenBytes','maxMessages','maxLabels',
-    'maxHeaders','maxHeaderUnits','maxCommentDepth','maxValueNodes','maxValueTextBytes',
-    'maxRowsWireBytes','maxRowsWireNodes','maxRowsWireDepth',
-    'maxDeclarationBytes','maxDeclarationNodes','maxSecretBytes','maxCaBytes'];
-  const mayBeZero = ['maxMessages','maxLabels','maxHeaders','maxHeaderUnits','maxCommentDepth','maxValueTextBytes'];
-  if (profile === undefined || columns !== 5 || Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {},'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < (mayBeZero.includes(name) ? 0 : 1) || supplied[name].value > 2147483647)) {
-    fail('InvalidInstalledGmailThreadReaderLimits');
-  }
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name,supplied[name].value])));
-  if (original.pageSize > 500 || original.maxPages > 2147483647 - original.maxThreads ||
-      original.maxMailboxBytes > profile.value.maxIdentityBytes ||
-      original.maxDeclarationBytes > profile.value.maxDeclarationBytes ||
-      original.maxDeclarationNodes > profile.value.maxDeclarationNodes) fail('InstalledSourceReaderImplementationBoundsExceeded');
-  const responses = original.maxPages + original.maxThreads;
-  return Object.freeze({original,responses,limits:Object.freeze({
-    maxResponseBytes:original.maxResponseBytes,maxTotalResponseBytes:original.maxTotalResponseBytes,
-    maxNodes:original.maxNodes,maxDepth:original.maxDepth,maxRows:1,maxTotalRows:original.maxThreads,
-    maxPages:responses,pageSize:original.pageSize,maxCursorBytes:original.maxTokenBytes,maxIdentityBytes:original.maxIdBytes,
-    maxTargetBytes:original.maxTargetBytes,maxValueNodes:original.maxValueNodes,
-    // The quote's positive slot does not replace Gmail's valid zero-text guard.
-    maxValueTextBytes:original.maxValueTextBytes === 0 ? 1 : original.maxValueTextBytes,
-    maxRowsWireBytes:original.maxRowsWireBytes,maxRowsWireNodes:original.maxRowsWireNodes,
-    maxRowsWireDepth:original.maxRowsWireDepth,maxSecretBytes:original.maxSecretBytes,
-  }),sequence:Object.freeze({operation:'gmail:threads:list',maxUses:original.maxPages,
-    children:Object.freeze([Object.freeze({operation:'gmail:threads:get',maxUses:original.maxThreads})])})});
-}
-
-// All three existing Slack resources use one selected implementation. The
-// messages protocol's original total exchange/occurrence guards remain in its
-// sequence; users/channels additionally need one separately scoped auth.test.
-function slackImplementationReaderLimits(supplied, columns, profile) {
-  const names = [...installedJsonSourceReaderLimitNames, 'maxDeclarationBytes',
-    'maxDeclarationNodes', 'maxSecretBytes', 'maxCaBytes'];
-  if (profile === undefined || Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < 1 || supplied[name].value > 2147483647)) fail('InvalidInstalledSlackReaderLimits');
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
-  if (original.maxPages === 2147483647 || original.pageSize >= 1000 ||
-      columns > profile.value.maxColumns || original.maxDeclarationBytes > profile.value.maxDeclarationBytes ||
-      original.maxDeclarationNodes > profile.value.maxDeclarationNodes) fail('InstalledSourceReaderImplementationBoundsExceeded');
-  const children = entries => Object.freeze(entries.map(([operation,maxUses]) => Object.freeze({operation,maxUses})));
-  const sequence = (operation,maxUses,entries) => Object.freeze({operation,maxUses,children:children(entries)});
-  return Object.freeze({original,limits:Object.freeze({...Object.fromEntries(
-    installedJsonSourceReaderLimitNames.map(name => [name,original[name]])),
-    maxPages:original.maxPages+1,maxSecretBytes:original.maxSecretBytes}),
-    sequences:Object.freeze({
-      users:sequence('slack:users:list',original.maxPages,[['slack:workspace:identity',1]]),
-      channels:sequence('slack:channels:list',original.maxPages,[['slack:workspace:identity',1]]),
-      messages:sequence('slack:messages:history',original.maxPages,[
-        ['slack:workspace:identity',original.maxPages],['slack:channels:list',original.maxPages],
-        ['slack:messages:replies',original.maxPages]]),
-    })});
 }
 
 // Snapshot only the existing required Source service methods. The connector
@@ -1117,8 +2168,6 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
   const sourceRequestCapacity = moon.clientProgramInstalledJsonSourceReaderCapacityWithRequest;
   const preservingSourceRequestCapacity = moon.clientProgramInstalledPreservingJsonSourceReaderCapacityWithRequest;
-  const gmailThreadCapacity = moon.clientProgramInstalledGmailThreadReaderCapacity;
-  const slackCapacity = moon.clientProgramInstalledSlackSourceReaderCapacity;
   const current = () => {
     if (Reflect.apply(assertCurrent, receiver, []) !== undefined) fail('InstalledHostServiceCurrentCheckNotSynchronous');
   };
@@ -1167,7 +2216,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const fields = Object.getOwnPropertyDescriptors(options ?? {});
       if (Reflect.ownKeys(fields).length !== (Object.hasOwn(fields, 'sourceInitialization') ? 4 : 3) +
           (Object.hasOwn(fields, 'requestConstruction') ? 1 : 0) +
-          (Object.hasOwn(fields, 'preservingRequestConstruction') ? 1 : 0) ||
+          (Object.hasOwn(fields, 'preservingRequestConstruction') ? 1 : 0) +
+          (Object.hasOwn(fields, 'readSequenceConstruction') ? 1 : 0) ||
           Object.hasOwn(fields, 'requestConstruction') && Object.hasOwn(fields, 'preservingRequestConstruction') || ['installation', 'limits', 'columnCount'].some(name =>
         !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceReaderSelection');
       if (nodeTypes.isProxy(fields.limits.value ?? {})) fail('InvalidInstalledSourceReaderSelection');
@@ -1191,32 +2241,42 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         }
         requestConstruction = field.value;
       }
+      // The selected Source supplies its SAME complete Core quote and original
+      // occurrence declaration. This is retained construction DATA, not a grant,
+      // owner, profile knob or a recipe selected again by registration here.
+      let readSequenceConstruction;
+      if (Object.hasOwn(fields, 'readSequenceConstruction')) {
+        const field = fields.readSequenceConstruction;
+        if (!Object.hasOwn(field, 'value') || field.value === null || typeof field.value !== 'object' ||
+            nodeTypes.isProxy(field.value) || !Object.isFrozen(field.value)) fail('InvalidInstalledSourceSequenceConstruction');
+        const original = Object.getOwnPropertyDescriptors(field.value);
+        const names = Reflect.ownKeys(original);
+        if (names.some(name => !['capacity', 'originalLimits', 'sequence', 'sequences', 'maxRequestBytes', 'maxQueryBytes'].includes(name)) ||
+            names.some(name => !Object.hasOwn(original[name], 'value')) ||
+            !Object.hasOwn(original, 'capacity') || !Object.hasOwn(original, 'originalLimits') ||
+            Object.hasOwn(original, 'sequence') === Object.hasOwn(original, 'sequences') ||
+            original.capacity.value === undefined || original.capacity.value === null ||
+            original.originalLimits.value === null || typeof original.originalLimits.value !== 'object' ||
+            nodeTypes.isProxy(original.originalLimits.value) || !Object.isFrozen(original.originalLimits.value)) {
+          fail('InvalidInstalledSourceSequenceConstruction');
+        }
+        const occurrences = (original.sequence ?? original.sequences).value;
+        if (occurrences === null || typeof occurrences !== 'object' || nodeTypes.isProxy(occurrences) ||
+            !Object.isFrozen(occurrences) || original.maxRequestBytes !== undefined &&
+            (!Number.isSafeInteger(original.maxRequestBytes.value) || original.maxRequestBytes.value < 1 ||
+              original.maxRequestBytes.value > 2147483647) || original.maxQueryBytes !== undefined &&
+            (!Number.isSafeInteger(original.maxQueryBytes.value) || original.maxQueryBytes.value < 1 ||
+              original.maxQueryBytes.value > 2147483647)) fail('InvalidInstalledSourceSequenceConstruction');
+        readSequenceConstruction = field.value;
+      }
       const profile = sourceProfiles.get(selection);
-      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits, nestedLimits, threadLimits, slackLimits;
-      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'gmail' &&
-          Object.hasOwn(supplied, 'maxThreads')) {
-        threadLimits = gmailThreadImplementationReaderLimits(supplied, columns, profile);
-        supplied = Object.getOwnPropertyDescriptors(threadLimits.limits);
-      }
-      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'slack') {
-        slackLimits = slackImplementationReaderLimits(supplied, columns, profile);
-        supplied = Object.getOwnPropertyDescriptors(slackLimits.limits);
-      }
-      if (Object.hasOwn(supplied, 'maxRequestBytes')) {
-        // Only the complete original nested grammar has the selected request
-        // constructor inventory. A method/body allowance alone is not a recipe.
-        if (!Object.hasOwn(supplied, 'maxPropertyPages')) fail('InstalledSourceReaderRequestCapacityUnavailable');
-        nestedLimits = nestedImplementationReaderLimits(supplied, columns, profile);
-        supplied = Object.getOwnPropertyDescriptors(nestedLimits.limits);
-      }
-      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'calendar' &&
-          !Object.hasOwn(supplied, 'maxTotalResponseBytes')) {
-        const projected = calendarImplementationReaderLimits(supplied, profile);
-        calendarLimits = projected.original;
-        supplied = Object.getOwnPropertyDescriptors(projected.limits);
-      }
-      if (requestConstruction !== undefined &&
-          (calendarLimits !== undefined || nestedLimits !== undefined || threadLimits !== undefined || slackLimits !== undefined)) {
+      const supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {});
+      // A scalar method/body allowance cannot replace the original request
+      // constructor or a complete selected sequence. The retired query/property
+      // projection never admitted its 21-field quote through the real 16-field
+      // JSON constructor, and its managed-read entry was refused as unfunded.
+      if (Object.hasOwn(supplied, 'maxRequestBytes') || Object.hasOwn(supplied, 'maxQueryBytes')) fail('InstalledSourceReaderRequestCapacityUnavailable');
+      if (requestConstruction !== undefined && readSequenceConstruction !== undefined) {
         fail('InstalledSourceReaderRequestConstructionChanged');
       }
       const names = [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'];
@@ -1226,51 +2286,37 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       }
       if (profile !== undefined && (profile.runtimeBundleCid !== runtimeBundleCid ||
           columns > profile.value.maxColumns || names.some(name =>
-            !(nestedLimits !== undefined && name === 'maxPages') && supplied[name].value > profile.value[name]))) {
+            supplied[name].value > profile.value[name]))) {
         fail('InstalledSourceReaderImplementationBoundsExceeded');
       }
       const selectedRequestCapacity = preservingResponse ? preservingSourceRequestCapacity : sourceRequestCapacity;
-      if ([sourcePolicy, requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity].some(port => typeof port !== 'function')) fail('InstalledSourceReaderRuntimeUnavailable');
+      if (typeof sourcePolicy !== 'function' || readSequenceConstruction === undefined &&
+          typeof (requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity) !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
       const policy = Reflect.apply(sourcePolicy, moon, []);
+      // The Values cells-per-row default is not Source schema eligibility.
+      // Source columns retain their declared bounds and typed RowRun capacity;
+      // this bridge still requires the original Core Int representation.
       if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
         !Number.isSafeInteger(value) || value < 1 || value > 2147483647) ||
-        !Number.isSafeInteger(columns) || columns < 1 || columns > policy[2] ||
+        !Number.isSafeInteger(columns) || columns < 1 || columns > 2147483647 ||
         supplied.maxSecretBytes.value > policy[0]) fail('InstalledSourceReaderPolicyUnavailable');
       const limits = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
       const previous = sourceImplementations.get(selection);
       if (previous !== undefined) {
         if (previous.requestConstruction !== requestConstruction || previous.preservingResponse !== preservingResponse ||
+            previous.readSequenceConstruction !== readSequenceConstruction ||
             previous.runtimeBundleCid !== runtimeBundleCid || previous.columns !== columns ||
-            (previous.nestedLimits === undefined) !== (nestedLimits === undefined) ||
-            nestedLimits !== undefined && Object.keys(nestedLimits.original).some(function sequenceSelectionChanged(name) {
-              return previous.nestedLimits.original[name] !== nestedLimits.original[name];
-            }) ||
-            (previous.calendarLimits === undefined) !== (calendarLimits === undefined) ||
-            calendarLimits !== undefined && Object.keys(calendarLimits).some(function calendarSelectionChanged(name) {
-              return previous.calendarLimits[name] !== calendarLimits[name];
-            }) ||
-            (previous.threadLimits === undefined) !== (threadLimits === undefined) ||
-            threadLimits !== undefined && Object.keys(threadLimits.original).some(function threadSelectionChanged(name) {
-              return previous.threadLimits.original[name] !== threadLimits.original[name];
-            }) ||
-            (previous.slackLimits === undefined) !== (slackLimits === undefined) ||
-            slackLimits !== undefined && Object.keys(slackLimits.original).some(function slackSelectionChanged(name) {
-              return previous.slackLimits.original[name] !== slackLimits.original[name];
-            }) ||
             names.some(name => previous.value.limits[name] !== limits[name])) fail('InstalledSourceReaderSelectionChanged');
         return previous.value;
       }
-      if (threadLimits !== undefined && typeof gmailThreadCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
-      if (slackLimits !== undefined && typeof slackCapacity !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');
-      const capacity = Reflect.apply(slackLimits !== undefined ? slackCapacity : threadLimits === undefined ? requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity : gmailThreadCapacity, moon,
-        [nestedLimits?.quote ?? installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
-          ...(slackLimits !== undefined ? [slackLimits.original.maxPages] : threadLimits === undefined
-            ? requestConstruction === undefined ? [] : [requestConstruction.capacity]
-            : [threadLimits.original.maxPages,threadLimits.original.maxMailboxBytes])]);
+      const capacity = readSequenceConstruction !== undefined ? readSequenceConstruction.capacity
+        : Reflect.apply(requestConstruction === undefined ? sourceCapacity : selectedRequestCapacity, moon,
+          [installedJsonSourceReaderLimitNames.map(name => limits[name]), columns, limits.maxSecretBytes,
+            ...(requestConstruction === undefined ? [] : [requestConstruction.capacity])]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, slackLimits, requestConstruction, preservingResponse, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, readSequenceConstruction, requestConstruction, preservingResponse, value}));
       return value;
     },
     createSourceReader(options) {
@@ -1294,37 +2340,59 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // The normal JSON page recipe does not back a retained query/property
       // sequence. Keep this entry refused until that same Source recipe owns
       // constructor, prefix, output and failed-child overlap before use.
-      if (managedSequence && implementation.threadLimits === undefined && implementation.slackLimits === undefined) fail('InstalledSourceReaderReadChildCapacityUnavailable');
+      if (managedSequence && implementation.readSequenceConstruction === undefined) fail('InstalledSourceReaderReadChildCapacityUnavailable');
       if (implementation.requestConstruction !== undefined && !standard) fail('InstalledSourceReaderStandardSelectionRequired');
-      if (implementation.nestedLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
-      if (implementation.slackLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
-      if (implementation.threadLimits !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
+      if (implementation.readSequenceConstruction !== undefined && !managedSequence) fail('InstalledSourceReaderSequenceSelectionRequired');
       const originalSite = installedRowCredentialOperationSite(fields.site.value.credential);
-      const limits = implementation.value.limits, nested = implementation.nestedLimits, threads = implementation.threadLimits, slack = implementation.slackLimits;
+      const limits = implementation.value.limits, sequence = implementation.readSequenceConstruction;
+      const maxQueryBytes = sequence !== undefined && Object.hasOwn(sequence, 'maxQueryBytes')
+        ? sequence.maxQueryBytes : undefined;
       const constructor = sourceContexts.get(selection);
       if (constructor?.scope.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
+      // Optional separately bound Resources are declared by this SAME complete
+      // native sequence recipe. Names bound construction; only each original
+      // Site-issued decision/grant authorizes the actual child.
+      let resourceChildren;
+      const sequences = sequence?.sequences === undefined ? [sequence?.sequence]
+        : Object.values(sequence.sequences);
+      for (const originalSequence of sequences) {
+        for (const child of originalSequence?.children ?? []) {
+          const resource = Object.getOwnPropertyDescriptor(child, 'resource');
+          if (resource === undefined) continue;
+          if (!Object.hasOwn(resource, 'value') || typeof resource.value !== 'string' || resource.value.length === 0) {
+            fail('InvalidInstalledSourceResourceChildren');
+          }
+          resourceChildren ??= [];
+          if (!resourceChildren.includes(resource.value)) resourceChildren.push(resource.value);
+        }
+      }
+      if (resourceChildren !== undefined) Object.freeze(resourceChildren);
       const factory = createInstalledCredentialSourceReader({capacity: implementation.value.capacity,
         originalSite, [readerField]: fields[readerField].value, assertCurrent: current,
-        maxResponses: nested?.responses ?? limits.maxPages,
+        ...(resourceChildren === undefined ? {} : {resourceChildren}),
+        maxResponses: limits.maxPages,
         ...(standard ? {operation: fields.operation.value,
           ...(implementation.requestConstruction === undefined ? {} : {maxRequestBytes:implementation.requestConstruction.maxRequestBytes}),
           maxResponseBytes: limits.maxResponseBytes, maxTotalResponseBytes: limits.maxTotalResponseBytes,
           maxSecretBytes: limits.maxSecretBytes} : {}),
         ...(managedSequence ? {maxResponseBytes: limits.maxResponseBytes,
-          ...(slack !== undefined ? {maxRequestBytes:2} : nested === undefined ? {} : {maxRequestBytes:nested.original.maxRequestBytes}),
+          ...(maxQueryBytes === undefined ? {} : {maxQueryBytes}),
+          ...(sequence?.maxRequestBytes !== undefined ? {maxRequestBytes:sequence.maxRequestBytes}
+            : {}),
           maxTotalResponseBytes: limits.maxTotalResponseBytes} : {})});
       if (constructor !== undefined) {
-        const all = BigInt(nested?.responses ?? limits.maxPages) * BigInt(limits.maxResponseBytes);
+        const all = BigInt(limits.maxPages) * BigInt(limits.maxResponseBytes);
         const prefix = BigInt(limits.maxTotalResponseBytes) + BigInt(limits.maxResponseBytes);
         constructor.scope.reader = factory;
-        constructor.scope.readerDemand = Object.freeze({nested: nested !== undefined,
-          ...(threads === undefined ? {} : {sequence:threads.sequence}),
-          ...(slack === undefined ? {} : {sequences:slack.sequences}),
-          responses: nested?.responses ?? limits.maxPages, queryPages: limits.maxPages,
-          propertyPages: nested?.propertyPages, propertyOccurrences: nested?.propertyOccurrences,
+        constructor.scope.readerDemand = Object.freeze({nested: false,
+          ...(sequence?.sequence === undefined ? {} : {sequence:sequence.sequence}),
+          ...(sequence?.sequences === undefined ? {} : {sequences:sequence.sequences}),
+          responses: limits.maxPages, queryPages: limits.maxPages,
+          propertyPages: undefined, propertyOccurrences: undefined,
           maxResponseBytes: limits.maxResponseBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
           maxRows: limits.maxRows, maxTotalRows: limits.maxTotalRows,
-          transferBytes: nested === undefined && threads === undefined && slack === undefined || all < prefix ? all : prefix});
+          transferUnitBytes: BigInt(limits.maxResponseBytes),
+          transferBytes: sequence === undefined || all < prefix ? all : prefix});
       }
       return factory;
     },
@@ -1393,9 +2461,10 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const admitAcquisitionContracts = moon.clientProgramRowSourceAdmitAcquisitionContracts;
   const acquisitionContractsCapacity = moon.clientProgramRowSourceAcquisitionContractsConstructionCapacity;
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
+  const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
-    sourceImplementations, sourceProfiles, moon, initialPreparation, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping});
+    sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
+    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping});
   return services;
 }
 

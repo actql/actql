@@ -342,3 +342,169 @@ test "separate Source and publication policies preserve retention custody bounds
     assert_false(result_retention_bounds_equal(source, changed))
   }
 }
+
+///|
+test "Source policy projection preserves every original retention field and refuses foreign envelopes" {
+  let original = relation_fixture_retention(relation_fixture_cid("5"))
+  let expected = relation_fixture_retention(relation_fixture_cid("6"))
+  let projected = issue_result_retention_for_data_policy(
+    original,
+    relation_fixture_cid("6"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_eq(projected.wire, expected.wire)
+  assert_eq(projected.identity, expected.identity)
+  assert_true(result_retention_bounds_equal(projected, original))
+  assert_true(
+    physical_equal(
+      issue_result_retention_for_data_policy(
+        original,
+        relation_fixture_cid("5"),
+        10000,
+        1000,
+        32,
+      ).unwrap(),
+      original,
+    ),
+  )
+  assert_true(
+    issue_result_retention_for_data_policy(
+      original,
+      relation_fixture_cid("6"),
+      1,
+      1000,
+      32,
+    )
+    is Err(_),
+  )
+  assert_true(
+    issue_result_retention_for_data_policy(original, "unknown", 10000, 1000, 32)
+    is Err(_),
+  )
+  let scope = issue_single_source_acquisition_scope(
+    relation_fixture_cid("1"),
+    relation_fixture_cid("2"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_true(
+    issue_result_retention_for_data_policy(
+      scope,
+      relation_fixture_cid("6"),
+      10000,
+      1000,
+      32,
+    )
+    is Err(_),
+  )
+}
+
+///|
+// This envelope preserves supplied completeness; only the capturing owner can
+// establish that an executed input is complete. No Result is fabricated here.
+test "computed input Relation preserves original derivation and completeness" {
+  let scope = issue_single_source_acquisition_scope(
+    relation_fixture_cid("1"),
+    relation_fixture_cid("2"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let policy = relation_fixture_cid("7")
+  let evidence = issue_local_result_occurrence_evidence(
+    relation_fixture_cid("1"),
+    relation_fixture_cid("2"),
+    relation_fixture_cid("3"),
+    relation_fixture_cid("4"),
+    [],
+    scope.identity,
+    policy,
+    "fixture-owner",
+    relation_fixture_cid("6"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let retention = relation_fixture_retention(policy)
+  for completeness in ["complete", "partial", "unknown"] {
+    let relation = issue_computed_input_relation(
+      evidence, scope, retention, 2, completeness, 10000, 1000, 32,
+    ).unwrap()
+    assert_eq(
+      contract_string(relation, "producer_contract_cid"),
+      Some(relation_fixture_cid("1")),
+    )
+    assert_eq(
+      contract_string(relation, "logical_value_cid"),
+      Some(relation_fixture_cid("2")),
+    )
+    assert_eq(
+      contract_string(relation, "relation_schema_cid"),
+      Some(relation_fixture_cid("3")),
+    )
+    assert_eq(
+      contract_string(relation, "ordering_evidence_cid"),
+      Some(evidence.ordering.identity),
+    )
+    assert_eq(
+      contract_string(relation, "observation_scope_cid"),
+      Some(scope.identity),
+    )
+    assert_eq(
+      contract_string(relation, "actual_completeness"),
+      Some(completeness),
+    )
+    assert_eq(contract_count(relation, "actual_row_count"), Some(2L))
+    assert_true(
+      admit_publication_contract(
+        "acquisition_relation",
+        relation.wire,
+        10000,
+        1000,
+        32,
+      )
+      is Ok(_),
+    )
+  }
+  let foreign_scope = issue_single_source_acquisition_scope(
+    relation_fixture_cid("1"),
+    relation_fixture_cid("3"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_true(
+    issue_computed_input_relation(
+      evidence, foreign_scope, retention, 2, "complete", 10000, 1000, 32,
+    )
+    is Err(WrongScope),
+  )
+  assert_true(
+    issue_computed_input_relation(
+      evidence,
+      scope,
+      relation_fixture_retention(relation_fixture_cid("8")),
+      2,
+      "complete",
+      10000,
+      1000,
+      32,
+    )
+    is Err(WrongRetention),
+  )
+  assert_true(
+    issue_computed_input_relation(
+      evidence, scope, retention, -1, "complete", 10000, 1000, 32,
+    )
+    is Err(WrongEvidence),
+  )
+  assert_true(
+    issue_computed_input_relation(
+      evidence, scope, retention, 2, "invented", 10000, 1000, 32,
+    )
+    is Err(WrongEvidence),
+  )
+}

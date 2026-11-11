@@ -85,14 +85,16 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
     'notionUserListColumnNames', 'notionProjectUserList', 'notionUserListMetadataJson',
     'notionUserListRowsWire', 'notionUserListIds',
     'slackUserListSchemaWire', 'slackUserListRelationFactsWire', 'slackChannelListSchemaWire',
-    'slackChannelListRelationFactsWire', 'slackMessageSchemaWire', 'slackMessageRelationFactsWire'].map(name =>
+    'slackChannelListRelationFactsWire', 'slackMessageSchemaWire', 'slackMessageRelationFactsWire',
+    'slackUserListColumnNames', 'slackChannelListColumnNames', 'slackMessageColumnNames'].map(name =>
     [name, () => name === 'notionUserListColumnNames' ? ['id'] : (() => {throw stop;})()]));
   const installation = Object.freeze({original: role});
   const sourceInitialization = Object.freeze({prepareDeclaration() {assert.fail('no declaration before schema');}});
   const installationServices = {
     sourceReaderImplementationProfile(input) {
       assert.equal(this, installationServices); assert.equal(input.installation, installation);
-      assert.equal(input.sourceInitialization, sourceInitialization); assert.equal(input.metadataResponses, 0);
+      assert.equal(input.sourceInitialization, sourceInitialization);
+      assert.equal(input.metadataResponses, role === 'slack' ? 1 : 0);
       assert.equal(input.originUnits, site.apiOrigin.length);
       return Object.freeze({maxDeclarationBytes: 100, maxDeclarationNodes: 100});
     },
@@ -110,9 +112,12 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
       return functions.identity(profile, profile, withThird ? read : undefined, Object.freeze({original: role}),
         legacy ? undefined : Object.freeze({configurationReader: reader}));
     },
-    load() {return functions.load(profile, {...(role === 'slack'
-      ? {readerCapacity: Object.freeze({explicit: 'unexecuted legacy Slack capacity port'})}
-      : {sourceInitialization, installation}),
+    load() {return functions.load(profile, {sourceInitialization, installation,
+      ...(role === 'slack' ? {moon: Object.freeze({
+        clientProgramInstalledSlackSourceReaderCapacity() {
+          assert.fail('no runtime capacity before provider declaration');
+        },
+      })} : {}),
       resolveSecret() {assert.fail('no secret lookup');}, installationServices,
       ...(legacy ? {} : {configurationReader: reader}), providerMoon: provider});},
   };

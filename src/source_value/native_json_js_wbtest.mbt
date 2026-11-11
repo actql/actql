@@ -225,3 +225,147 @@ test "native captured input never invokes a copied accessor and still refuses ma
     is Err({ issue: InvalidUnicodeEscape, .. }),
   )
 }
+
+///|
+#cfg(target="js")
+test "native normalized keys do not claim an unavailable original spelling" {
+  // These distinct combining-mark orders have equal byte/UTF16 geometry.
+  // Both normalize to the same key; a normalized Cursor and its measurements
+  // cannot determine which original JSON Pointer was actually submitted.
+  let first = "q\u{0301}\u{0323}"
+  let second = "q\u{0323}\u{0301}"
+  let canonical = "q\u{0323}\u{0301}"
+  let limits : ParseLimits = {
+    max_input_bytes: 1000,
+    max_nodes: 100,
+    max_depth: 8,
+  }
+  let originals : Array[ParsedSource] = []
+  for key in [first, second] {
+    let document = "{\"" + key + "\":\"caller-owned\"}"
+    let native = admit_captured_json(
+      native_json_test_input(document),
+      native_json_reader,
+      limits,
+      normalize_keys=true,
+    ).unwrap()
+    guard native.node.value is Object(fields) else {
+      fail("the original supplied input must remain an object")
+    }
+    assert_eq(fields[0].key, canonical)
+    assert_true(fields[0].key_span.end_byte > fields[0].key_span.start_byte)
+    assert_eq(fields[0].key_span.source_path, "<captured-json>")
+    originals.push(native)
+    // Both readers require this corresponding original representation.
+    // A scalar span by itself cannot recover either original spelling.
+    let bytes = @utf8.encode(document)
+    let textual = parse_json_measured(document, limits).unwrap()
+    guard textual.node.value is Object(text_fields) else {
+      fail("the original text must remain an object")
+    }
+    for span in [text_fields[0].key_span, fields[0].key_span] {
+      assert_true(span.end_byte > span.start_byte)
+      let scalar = parse_json_bytes_preserving(
+        bytes[span.start_byte:span.end_byte].to_owned(),
+        { max_input_bytes: 100, max_nodes: 1, max_depth: 0, },
+      ).unwrap()
+      assert_true(scalar.value is String(actual) && actual == key)
+    }
+  }
+  assert_true(first != second)
+  assert_eq(originals[0].usage, originals[1].usage)
+  assert_true(native_json_same_node(originals[0].node, originals[1].node))
+}
+
+///|
+#cfg(target="js")
+extern "js" fn native_json_test_wire(input : NativeJsonValue) -> String =
+  #|(input) => JSON.stringify(input)
+
+///|
+fn native_json_same_key_offsets(actual : Node, expected : Node) -> Bool {
+  match (actual.value, expected.value) {
+    (Object(a), Object(b)) =>
+      a.length() == b.length() &&
+      a
+      .iter()
+      .zip(b.iter())
+      .all(pair => {
+        pair.0.key_span.start_byte == pair.1.key_span.start_byte &&
+        pair.0.key_span.end_byte == pair.1.key_span.end_byte &&
+        pair.0.key_span.start_line == pair.1.key_span.start_line &&
+        pair.0.key_span.end_line == pair.1.key_span.end_line &&
+        pair.0.key_span.start_column == pair.1.key_span.start_column &&
+        pair.0.key_span.end_column == pair.1.key_span.end_column &&
+        native_json_same_key_offsets(pair.0.value, pair.1.value)
+      })
+    (Array(a), Array(b)) =>
+      a.length() == b.length() &&
+      a
+      .iter()
+      .zip(b.iter())
+      .all(pair => native_json_same_key_offsets(pair.0, pair.1))
+    _ => true
+  }
+}
+
+///|
+#cfg(target="js")
+test "native key offsets bind the same detached JSON representation across containers and escaped scalars" {
+  let document =
+    #|{ "a": [null,true,false,0.1,-0,1e21,"é😀\n\u0000",{},[],{"a/b~\"\\é😀":"last"}], "q̣́": {"nested": [{"é": 7}]} }
+  let input = native_json_test_input(document)
+  let wire = native_json_test_wire(input)
+  let limits : ParseLimits = {
+    max_input_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 64,
+  }
+  let native = admit_captured_json(
+    input,
+    native_json_reader,
+    limits,
+    normalize_keys=true,
+  ).unwrap()
+  let textual = parse_json_measured(wire, limits).unwrap()
+  assert_true(native_json_same_node(native.node, textual.node))
+  assert_eq(native.usage, textual.usage)
+  assert_true(native_json_same_key_offsets(native.node, textual.node))
+  assert_eq(native.node.span.start_byte, 0)
+  assert_eq(native.node.span.end_byte, 0)
+}
+
+///|
+test "same native key visits retain the maximum without changing admission or Unicode refusal" {
+  let limits : ParseLimits = {
+    max_input_bytes: 2048,
+    max_nodes: 64,
+    max_depth: 8,
+  }
+  let observed = Ref(-1)
+  let native = native_json_test_input(
+    "{\"é😀\":1,\"x\":{\"longer-key\":null}}",
+  )
+  let original = admit_captured_json(native, native_json_reader, limits).unwrap()
+  let actual = admit_captured_json(
+    native,
+    native_json_reader,
+    limits,
+    max_key_units_out=Some(observed),
+  ).unwrap()
+  assert_true(native_json_same_node(original.node, actual.node))
+  assert_eq(actual.usage, original.usage)
+  assert_eq(observed.val, 10)
+  let malformed = native_json_test_input("{\"\\ud800\":1}")
+  assert_true(
+    admit_captured_json(
+      malformed,
+      native_json_reader,
+      limits,
+      max_key_units_out=Some(observed),
+    )
+    is Err(_),
+  )
+  // The observation is DATA, never an admission receipt after refusal.
+  assert_eq(observed.val, 1)
+}

@@ -1,0 +1,382 @@
+{
+  "normal": {
+    "filter": "amount >= 20",
+    "expression": {
+      "gte": [
+        {
+          "field": "amount"
+        },
+        {
+          "literal": 20
+        }
+      ]
+    },
+    "stageSemantics": [
+      {
+        "binding_references": [],
+        "bindings": {},
+        "expression_contract_cid": "sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda",
+        "parameter_references": [],
+        "parameters": {},
+        "version": "actql-stage-semantics/0.1",
+        "local_body": {
+          "effects": {},
+          "inputs": {
+            "remote": {
+              "connector": "crm/main",
+              "resource": "r"
+            }
+          },
+          "results": {
+            "rows": {
+              "fields": [
+                "id"
+              ],
+              "from": "captured"
+            }
+          },
+          "steps": [
+            {
+              "as": "filtered",
+              "filter": {
+                "gte": [
+                  {
+                    "field": "amount"
+                  },
+                  {
+                    "literal": 20
+                  }
+                ]
+              }
+            },
+            {
+              "as": "captured",
+              "select": [
+                "id"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "binding_references": [],
+        "bindings": {},
+        "expression_contract_cid": "sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda",
+        "parameter_references": [],
+        "parameters": {},
+        "version": "actql-stage-semantics/0.1",
+        "local_body": {
+          "effects": {},
+          "inputs": {
+            "rows": {
+              "result": {
+                "result": "rows",
+                "stage": "acquire"
+              }
+            }
+          },
+          "results": {
+            "rows": {
+              "fields": [
+                "id"
+              ],
+              "from": "ordered"
+            }
+          },
+          "steps": [
+            {
+              "as": "ordered",
+              "sort": [
+                {
+                  "id": "asc"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "programSemantics": {
+      "binding_references": [],
+      "bindings": {},
+      "expression_contract_cid": "sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda",
+      "parameter_references": [],
+      "parameters": {},
+      "actql_version": "actql/0.1",
+      "version": "actql-program-semantics/0.1",
+      "program_template": {
+        "exports": {
+          "selected": {
+            "from": {
+              "result": "rows",
+              "stage": "ordered_result"
+            }
+          }
+        },
+        "stages": [
+          {
+            "after": "initial",
+            "id": "acquire",
+            "imports": {},
+            "stage_semantics_cid": "sha256:6a7e9aaef1c8e335907bdf6430ac2c7341cd9bd0bbf46051e3eab52c870f9281"
+          },
+          {
+            "after": "completed",
+            "id": "ordered_result",
+            "imports": {
+              "rows": {
+                "result": {
+                  "result": "rows",
+                  "stage": "acquire"
+                }
+              }
+            },
+            "stage_semantics_cid": "sha256:5b056004bc7ec32c99fb541ebcb2badb9886c7007f12fd30087a028980ca0096"
+          }
+        ]
+      }
+    },
+    "programDefinition": {
+      "id": "fixture.planner-selection",
+      "program_semantics_cid": "sha256:1788415094f5ce689c51f7c9377d4144496596f2cf49fd02ea4f89997c50c407",
+      "version": "actql-program-definition/0.1"
+    },
+    "requirement": {
+      "filter": {
+        "expression_cid": "sha256:22906a5b574e694aebfc3966c02dd0eea0d40f797a8ed41efd9abe5e28f69172",
+        "occurrence": "/steps/0/filter"
+      },
+      "input_contract_cid": "sha256:bfa97ad45a64359561649b04e9e23326736ce2c4eefa22d6ac95dc112984093c",
+      "logical_guards": {
+        "max_rows": 100,
+        "max_value_bytes": 10000
+      },
+      "output_contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+      "owner": {
+        "input": "remote",
+        "program_source_cid": "sha256:7a9e15593a2c274324b50a57444902f0c9e5bc0e58cea40c04baf02d6cc2e104",
+        "stage": "acquire"
+      },
+      "parameter_values_cid": "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
+      "request": {},
+      "select": {
+        "fields": [
+          {
+            "input": "id",
+            "output": "id"
+          }
+        ],
+        "occurrence": "/steps/1/select"
+      },
+      "source_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
+      "source_order_cid": null,
+      "source_ref": "connector://crm/main/r#v",
+      "source_validation": {
+        "fields": [
+          "amount",
+          "id"
+        ],
+        "scope": "selected_scan"
+      },
+      "version": "actql-query-acquisition/0.1"
+    },
+    "cid": "sha256:9578333c35278f89a5a06e26448b541bd41ac092b6acf2afb2ee334ebd11264e"
+  },
+  "unsupportedPredicate": {
+    "filter": "id + 1 > 2",
+    "expression": {
+      "gt": [
+        {
+          "add": [
+            {
+              "field": "id"
+            },
+            {
+              "literal": 1
+            }
+          ]
+        },
+        {
+          "literal": 2
+        }
+      ]
+    },
+    "stageSemantics": [
+      {
+        "binding_references": [],
+        "bindings": {},
+        "expression_contract_cid": "sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda",
+        "parameter_references": [],
+        "parameters": {},
+        "version": "actql-stage-semantics/0.1",
+        "local_body": {
+          "effects": {},
+          "inputs": {
+            "remote": {
+              "connector": "crm/main",
+              "resource": "r"
+            }
+          },
+          "results": {
+            "rows": {
+              "fields": [
+                "id"
+              ],
+              "from": "captured"
+            }
+          },
+          "steps": [
+            {
+              "as": "filtered",
+              "filter": {
+                "gt": [
+                  {
+                    "add": [
+                      {
+                        "field": "id"
+                      },
+                      {
+                        "literal": 1
+                      }
+                    ]
+                  },
+                  {
+                    "literal": 2
+                  }
+                ]
+              }
+            },
+            {
+              "as": "captured",
+              "select": [
+                "id"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "binding_references": [],
+        "bindings": {},
+        "expression_contract_cid": "sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda",
+        "parameter_references": [],
+        "parameters": {},
+        "version": "actql-stage-semantics/0.1",
+        "local_body": {
+          "effects": {},
+          "inputs": {
+            "rows": {
+              "result": {
+                "result": "rows",
+                "stage": "acquire"
+              }
+            }
+          },
+          "results": {
+            "rows": {
+              "fields": [
+                "id"
+              ],
+              "from": "ordered"
+            }
+          },
+          "steps": [
+            {
+              "as": "ordered",
+              "sort": [
+                {
+                  "id": "asc"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "programSemantics": {
+      "binding_references": [],
+      "bindings": {},
+      "expression_contract_cid": "sha256:2849a6667980fc51ed51a04879470a97068fd08e358d784262602a09b22dacda",
+      "parameter_references": [],
+      "parameters": {},
+      "actql_version": "actql/0.1",
+      "version": "actql-program-semantics/0.1",
+      "program_template": {
+        "exports": {
+          "selected": {
+            "from": {
+              "result": "rows",
+              "stage": "ordered_result"
+            }
+          }
+        },
+        "stages": [
+          {
+            "after": "initial",
+            "id": "acquire",
+            "imports": {},
+            "stage_semantics_cid": "sha256:1bf3b56ab1c8d9d8f0ad69ad8225780659dac03315bec7596a3d42ff9b6c5c83"
+          },
+          {
+            "after": "completed",
+            "id": "ordered_result",
+            "imports": {
+              "rows": {
+                "result": {
+                  "result": "rows",
+                  "stage": "acquire"
+                }
+              }
+            },
+            "stage_semantics_cid": "sha256:5b056004bc7ec32c99fb541ebcb2badb9886c7007f12fd30087a028980ca0096"
+          }
+        ]
+      }
+    },
+    "programDefinition": {
+      "id": "fixture.planner-selection",
+      "program_semantics_cid": "sha256:7b5bd1074a338d31046926ad843774f375ce8d9964406d4d2a8eba3f88ed58b0",
+      "version": "actql-program-definition/0.1"
+    },
+    "requirement": {
+      "filter": {
+        "expression_cid": "sha256:53083a5505045d219d113fa6b22356f01be38cfd475f6385504357ace74beeab",
+        "occurrence": "/steps/0/filter"
+      },
+      "input_contract_cid": "sha256:bfa97ad45a64359561649b04e9e23326736ce2c4eefa22d6ac95dc112984093c",
+      "logical_guards": {
+        "max_rows": 100,
+        "max_value_bytes": 10000
+      },
+      "output_contract_cid": "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+      "owner": {
+        "input": "remote",
+        "program_source_cid": "sha256:ac3f4928ac700aa386e2c293d656047586aa3a04537223b9e337a62b30c9bd34",
+        "stage": "acquire"
+      },
+      "parameter_values_cid": "sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52",
+      "request": {},
+      "select": {
+        "fields": [
+          {
+            "input": "id",
+            "output": "id"
+          }
+        ],
+        "occurrence": "/steps/1/select"
+      },
+      "source_contract_cid": "sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3",
+      "source_order_cid": null,
+      "source_ref": "connector://crm/main/r#v",
+      "source_validation": {
+        "fields": [
+          "amount",
+          "id"
+        ],
+        "scope": "selected_scan"
+      },
+      "version": "actql-query-acquisition/0.1"
+    },
+    "cid": "sha256:2d30267ef42eaade1facc845e8533ed68fe75ec79af17285542cb6f6f1de6473"
+  }
+}

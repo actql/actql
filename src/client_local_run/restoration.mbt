@@ -48,10 +48,21 @@ pub fn restore_source_free_local_run_from_materials(
   tuple : @authorization.AccessTuple,
   execution_context_cid : String,
   host_policy_cid : String,
+  submitted? : @input.LocalSubmittedPreparation? = None,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   restore_local_run_from_materials(
-    input, restored, expected_definition_cid, retained_request, authority_scope_cid,
-    permit, current, tuple, execution_context_cid, host_policy_cid, source_free_profile,
+    input,
+    restored,
+    expected_definition_cid,
+    retained_request,
+    authority_scope_cid,
+    permit,
+    current,
+    tuple,
+    execution_context_cid,
+    host_policy_cid,
+    source_free_profile,
+    submitted~,
   )
 }
 
@@ -69,10 +80,21 @@ pub fn restore_captured_source_local_run_from_materials(
   tuple : @authorization.AccessTuple,
   execution_context_cid : String,
   host_policy_cid : String,
+  submitted? : @input.LocalSubmittedPreparation? = None,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   restore_local_run_from_materials(
-    input, restored, expected_definition_cid, retained_request, authority_scope_cid,
-    permit, current, tuple, execution_context_cid, host_policy_cid, captured_source_profile,
+    input,
+    restored,
+    expected_definition_cid,
+    retained_request,
+    authority_scope_cid,
+    permit,
+    current,
+    tuple,
+    execution_context_cid,
+    host_policy_cid,
+    captured_source_profile,
+    submitted~,
   )
 }
 
@@ -89,6 +111,7 @@ fn restore_local_run_from_materials(
   execution_context_cid : String,
   host_policy_cid : String,
   profile : (@host.PreparedClientProgram) -> Bool,
+  submitted? : @input.LocalSubmittedPreparation? = None,
 ) -> Result[LocalRunPlan, LocalRunIssue] {
   let original_input = @input.local_prepared_program(input)
   if !authorized_input(
@@ -126,10 +149,11 @@ fn restore_local_run_from_materials(
     return Err(AuthorizationMismatch)
   }
   let requested = match
-    @host.prepare_source_free_client_request_identity(
-      restored.prepared,
+    local_run_request_original(
+      input,
       authority_scope_cid,
       @host.client_request_caller_id(retained_request),
+      submitted,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Request(issue))

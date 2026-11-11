@@ -15,10 +15,7 @@ fn NativeClientRunJournal::collect_legacy_append_usage_locked(
     return Err(CustodyLost)
   }
   let reads = operations.map(value => value.reads)
-  let runs : Map[String, NativeClientRunRecord] = Map(
-    [],
-    capacity=self.max_records,
-  )
+  let runs : Map[String, NativeClientRunRecord] = Map([])
   let (run_count, run_revision) = match
     run_journal_custody(
       self.database,

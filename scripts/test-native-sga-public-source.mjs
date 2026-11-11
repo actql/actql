@@ -39,11 +39,33 @@ DuckDBPreparedStatement.prototype.stream = function(...args) {
 };
 const {openInstalledRemoteHttpHost} = await import(pathToFileURL(
   requireInstalled.resolve('@actql/local-node/http-host')));
+const sourceProfilePath = sourceOnly ? undefined : join(installation, 'source-profile.json');
+const sourceProfile = sourceOnly ? undefined :
+  JSON.parse(await readFile(sourceProfilePath, 'utf8'));
+const hostCapacityPolicy = sourceOnly ? undefined :
+  JSON.parse(sourceProfile.checkEnvironmentWire).host_policy_profile.capacity;
+// Source input permission is separate from public Run/Result observation.
+// Match the current packed Host fixture's original principal, Site and targets.
+const authorization = {accountConfiguration: JSON.stringify({
+  version: 'actql-execution-account-config/0.1', account_id: 'native-graph-http',
+  entries: [{entry_id: 'read-original', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['run', ...new Set(cases.flatMap(item =>
+      Object.keys(item.results).map(name => 'result/' + name)))].sort()},
+    operation: {any_of: ['read']}, exclusions: []},
+  {entry_id: 'request-original', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: [sourceOnly ? 'source-free-values' : 'duckdb-acquired']},
+    operation: {any_of: ['write']}, exclusions: []}],
+})};
 const host = await openInstalledRemoteHttpHost({
   directory: join(installation, 'sga-native-state'),
   // This isolated source-only corpus uses Values producers, so it needs no
   // external alias profile or provider schema injected by another test.
-  ...(sourceOnly ? {} : {sourceProfilePath: join(installation, 'source-profile.json')}),
+  ...(sourceOnly ? {} : {sourceProfilePath, hostCapacityPolicy}),
+  authorization,
   beforeDispatch: () => { dispatches++; },
   authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined,
@@ -86,10 +108,12 @@ const run = async (...args) => {
       const filename = `submission-${nonce}.json`;
       await writeFile(join(installation, filename),
         JSON.stringify(client.newSubmission({nonce})), {mode: 0o600});
-      submissions.set(nonce, filename);
+      submissions.set(nonce, {filename, attemptId: `native-submit-${randomUUID()}`});
     }
-    args.push('--submission-ref-file', submissions.get(nonce));
+    const original = submissions.get(nonce);
+    args.push('--submission-ref-file', original.filename);
     if (args[0] === 'lookup-submission') args.splice(args.indexOf('--request-id'), 2);
+    else args.push('--operation-attempt-id', original.attemptId);
   }
   return new Promise((resolve, reject) => {
   execFile(executable, [...common, ...args], {cwd: installation,
@@ -142,7 +166,7 @@ try {
   }
   const inputCodes = new Set(['ClientProgramInvalidInput', 'ClientParametersInvalid',
     'ClientParametersTooLarge', 'ClientProgramUnsupported', 'ClientProgramNeedsInputs', 'ClientProgramRejected']);
-  for (const {name, text, format} of graphSourceRefusals) {
+  for (const {name, text, format, expectedCode} of graphSourceRefusals) {
     const sourceFile = `${name}.native-source`;
     await writeFile(join(installation, sourceFile), text);
     const requestId = `sga-native-refuse-${name}-${randomUUID()}`;
@@ -150,7 +174,8 @@ try {
     await assert.rejects(run('aql', '--program-file', sourceFile, '--format', format,
       '--request-id', requestId), error => {
       const code = /^aql: actql-native-client: (\w+)\s*$/u.exec(String(error.message))?.[1];
-      assert.ok(inputCodes.has(code), `confirmed typed preparation refusal: ${code}`);
+      assert.ok(expectedCode === undefined ? inputCodes.has(code) : code === expectedCode,
+        `confirmed typed preparation refusal: ${code}`);
       return true;
     });
     const refused = JSON.parse(await run('lookup-submission', '--request-id', requestId));

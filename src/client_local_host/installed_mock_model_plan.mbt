@@ -5,6 +5,16 @@ fn installed_mock_model_compilation_matches(
   prepared : @publication_host.PreparedClientProgram,
   compilation : @publication_host.ClientTaskCompilation,
 ) -> Bool {
+  if compilation.infers.length() > 1 {
+    return physical_equal(compilation.owner, prepared) &&
+      @publication_host.client_task_compilation_serialization(compilation)
+      is None &&
+      installed_managed_owner_shape_supported(
+        Pure(prepared),
+        true,
+        model_graphs=Some(compilation.infers),
+      )
+  }
   physical_equal(compilation.owner, prepared) &&
   compilation.infers.length() == 1 &&
   physical_equal(compilation.infers[0].owner, prepared) &&
@@ -61,7 +71,16 @@ pub fn prepare_installed_mock_model_source_free_with_contracts(
       fragment_body,
       ordered_body,
       true,
-      model=Some(compilation.infers[0]),
+      model=if compilation.infers.length() == 1 {
+        Some(compilation.infers[0])
+      } else {
+        None
+      },
+      model_graphs=if compilation.infers.length() > 1 {
+        Some(compilation.infers)
+      } else {
+        None
+      },
       query_time~,
     ) {
     Err(issue) => return Err(issue)
@@ -99,7 +118,10 @@ pub fn prepare_installed_mock_model_capture_plan(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  runtime_admission? : Bool = false,
+  whole_sources? : Array[ClientInstalledWholeSourceCapacity] = [],
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   if !installed_mock_model_compilation_matches(prepared, compilation) {
     return Err(ForeignOriginal)
@@ -119,7 +141,19 @@ pub fn prepare_installed_mock_model_capture_plan(
       retained_output~,
       provider_factory~,
       query_time~,
-      model=Some(compilation.infers[0]),
+      model=if compilation.infers.length() == 1 {
+        Some(compilation.infers[0])
+      } else {
+        None
+      },
+      model_graphs=if compilation.infers.length() > 1 {
+        Some(compilation.infers)
+      } else {
+        None
+      },
+      direct_occurrences~,
+      runtime_admission~,
+      whole_sources~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -143,6 +177,7 @@ fn installed_request_model_compilation_matches(
     return false
   }
   installed_mock_model_compilation_matches(prepared, original) &&
+  original.infers.length() == 1 &&
   physical_equal(original.infers[0], graph) &&
   @publication_host.client_compiled_run_matches_tasks(
     compiled, prepared, original,
@@ -158,6 +193,7 @@ struct ClientInstalledManagedModelPlan {
   compiled : @publication_host.ClientCompiledRun
   definition : @publication.PublicationContract
   graph : @publication_host.ClientInferPlanGraph
+  models : Array[ClientInstalledModelReadPartition]?
   _occurrence : @publication_host.ClientInferOccurrence
   source_free : ClientInstalledManagedSourceFreePreparation?
   captured : ClientInstalledManagedCapturePlan?
@@ -169,12 +205,12 @@ struct ClientInstalledManagedModelPlan {
 }
 
 ///|
-// This exact record above: one header, ten retained references and three
+// This exact record above: one header, eleven retained references and three
 // scalar inventory words. The selected module/compiler, Option carriers,
 // Model Scope, provider and all nested construction frames are separate.
 let installed_model_plan_record : @execution.PreparationRepresentationUnits = {
   record_headers: 1L,
-  reference_slots: 10L,
+  reference_slots: 11L,
   scalar_words: 3L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
@@ -204,6 +240,7 @@ fn prepare_installed_mock_model_source_free_plan(
   max_holdings : Int,
   max_delegations : Int,
   content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   guard original.owner is Pure(prepared) && original.configuration is Some(_) else {
     return Err(ForeignOriginal)
@@ -226,6 +263,7 @@ fn prepare_installed_mock_model_source_free_plan(
     max_holdings,
     max_delegations,
     content_prefix~,
+    bootstrap~,
   )
 }
 
@@ -243,6 +281,7 @@ pub fn prepare_installed_mock_model_capture_plan_binding(
   max_holdings : Int,
   max_delegations : Int,
   content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   prepare_installed_mock_model_plan_owned(
     original.prepared,
@@ -262,6 +301,7 @@ pub fn prepare_installed_mock_model_capture_plan_binding(
     max_holdings,
     max_delegations,
     content_prefix~,
+    bootstrap~,
   )
 }
 
@@ -284,6 +324,7 @@ fn prepare_installed_mock_model_plan_owned(
   max_holdings : Int,
   max_delegations : Int,
   content_prefix? : ClientInstalledManagedSerializationPreparation? = None,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
   // The module's sequences already retain this original invocation. A later
   // equal-CID request or another saved Run cannot replace its bound context.
@@ -332,11 +373,32 @@ fn prepare_installed_mock_model_plan_owned(
     }
     _ => return Err(ForeignOriginal)
   }
+  // Keep every original compiler/Definition/prefix refusal above authoritative.
+  // A planning quote for a foreign or copied tuple must not hide that cause.
+  let configuration = match (source_free, captured) {
+    (Some(original), None) =>
+      match original.configuration {
+        Some(value) => value
+        None => return Err(ForeignOriginal)
+      }
+    (None, Some(original)) => original.configuration
+    _ => return Err(ForeignOriginal)
+  }
+  let compute_limits = match
+    installed_mock_model_compute_limits(
+      configuration, compute_limits, occurrence,
+    ) {
+    Some(value) => value
+    None => return Err(InsufficientCapacity)
+  }
   guard max_reservations >= 0 &&
     max_holdings >= 0 &&
     max_delegations >= 0 &&
     installed_model_demand_limits(
-      model_limits, read_retained_bytes, read_execution_bytes,
+      model_limits,
+      read_retained_bytes,
+      read_execution_bytes,
+      bootstrap~,
     )
     is Some(model) &&
     @resources.add_ledger_limits(compute_limits, model) is Some(model_limits) else {
@@ -356,6 +418,7 @@ fn prepare_installed_mock_model_plan_owned(
     compiled,
     definition,
     graph,
+    models: None,
     _occurrence: occurrence,
     source_free,
     captured,

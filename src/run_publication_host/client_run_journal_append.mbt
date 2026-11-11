@@ -136,10 +136,10 @@ pub fn[E] prepare_client_run_journal_append(
       Ok(None) => break
       Err(issue) => return Err(Observation(issue))
     }
-    observed += 1
-    if observed > count || row.key <= cursor {
+    if observed >= count || row.key <= cursor {
       return Err(Observation(custody_lost))
     }
+    observed += 1
     let other = match validate_run(row) {
       Ok(value) => value
       Err(issue) => return Err(Observation(issue))

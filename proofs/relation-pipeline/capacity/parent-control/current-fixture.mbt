@@ -113,8 +113,6 @@ test "native census binds real chain captures and retains producer metadata thro
     1,
     [managed_provider_relation_input(read)],
     completed,
-    1000,
-    10000,
   ).unwrap()
   let mut transferred_metadata : @execution.ProducerReadPreparation? = None
   for _ in 0..<100 {

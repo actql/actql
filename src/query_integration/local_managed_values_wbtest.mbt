@@ -75,6 +75,30 @@ test "Local managed execution admits checked zero-input values without a dummy p
   assert_eq(@execution.managed_completed_output_row_count(completed), 1)
   assert_true(@execution.managed_completed_output_available(completed))
 
+  // A successful output remains available while only its original scratch
+  // is refreshed. This never acknowledges output or retention release.
+  let before_scratch = @resources.ledger_usage(
+    @strategy.captured_dag_ledger(run),
+  )
+  let mut refreshes = 0
+  while true {
+    assert_false((operations.cleanup_refresh)())
+    refreshes += 1
+    assert_true(refreshes < 128)
+    if (operations.cleanup_local_continuation)() < 0L {
+      break
+    }
+  }
+  let after_scratch = @resources.ledger_usage(
+    @strategy.captured_dag_ledger(run),
+  )
+  assert_eq(after_scratch.reserved_execution_bytes, 0L)
+  assert_eq(after_scratch.held_bytes, before_scratch.held_bytes)
+  assert_eq(after_scratch.transferred_bytes, before_scratch.transferred_bytes)
+  assert_eq(after_scratch.attempts, before_scratch.attempts)
+  assert_true(@execution.managed_completed_output_available(completed))
+  assert_eq((operations.output_row)(0).unwrap(), "{\"id\":7}")
+
   @strategy.close_captured_task_output(run, 2)
   available.val = false
   (operations.close)()
@@ -283,7 +307,7 @@ fn run_standard_host_values_relation_step(
     limits.guards,
     limits.candidate_work,
   ).unwrap()
-  @local_driver.configure_local_retained_inputs(
+  configure_local_managed_test_inputs(
     installed,
     {
       max_rows: 100,
@@ -292,8 +316,9 @@ fn run_standard_host_values_relation_step(
       row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
       max_batch_bytes: 64,
     },
-    None,
-  ).unwrap()
+    limits,
+  )
+  configure_local_managed_test_output(installed, limits)
   let values_live = Ref(true)
   let values_advances = Ref(0)
   let (values_ops, values) = run_local_managed_test_task(
@@ -1442,7 +1467,7 @@ test "Local managed nested values preserve typed rows for two consumers" {
     limits.guards,
     limits.candidate_work,
   ).unwrap()
-  @local_driver.configure_local_retained_inputs(
+  configure_local_managed_test_inputs(
     installed,
     {
       max_rows: 100,
@@ -1456,8 +1481,8 @@ test "Local managed nested values preserve typed rows for two consumers" {
       },
       max_batch_bytes: 1000,
     },
-    None,
-  ).unwrap()
+    limits,
+  )
 
   let producer_live = Ref(true)
   let (producer_ops, producer) = run_local_managed_test_task(
@@ -1468,6 +1493,7 @@ test "Local managed nested values preserve typed rows for two consumers" {
     [],
     1,
     producer_live,
+    before_start=() => configure_local_managed_test_output(installed, limits),
   )
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, [

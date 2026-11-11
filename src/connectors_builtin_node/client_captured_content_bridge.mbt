@@ -44,6 +44,26 @@ pub fn client_program_reserve_captured_content_workspace(
 }
 
 ///|
+#export_name("clientProgramGrowCapturedContentWorkspace")
+pub fn client_program_grow_captured_content_workspace(
+  ledger : @resources.Ledger,
+  reservation : @resources.Reservation,
+  max_bytes : Int,
+  inventory_count : Int,
+) -> Result[Unit, @resources.LedgerIssue] {
+  guard @publication_host.client_captured_content_workspace_capacity(
+      max_bytes,
+      inventory_count~,
+    )
+    is Some((retained, execution)) else {
+    return Err(@resources.InvalidLimits)
+  }
+  @resources.grow_execution_reservation_capacity(
+    ledger, reservation, retained, execution,
+  )
+}
+
+///|
 #export_name("clientProgramReleaseCapturedContentWorkspace")
 pub fn client_program_release_captured_content_workspace(
   ledger : @resources.Ledger,

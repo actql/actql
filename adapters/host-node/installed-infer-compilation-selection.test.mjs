@@ -79,7 +79,8 @@ test('Host Model admission forwards the same original Request artifact into its 
 
 // Actual physical selection statements, explicit immutable occurrence/runtime
 // ports. No Common ABI, parent funding, provider IO or normal Host is supplied.
-function inputSelectionFixture({acquisitions = 1, managed = true, physical = true, serialized = false} = {}) {
+function inputSelectionFixture({acquisitions = 1, managed = true, physical = true, serialized = false,
+  restored = false, retain = true} = {}) {
   const nodes = [];
   const walk = node => {
     if (!node || typeof node !== 'object') return;
@@ -90,27 +91,33 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
   };
   walk(tree);
   const declarations = nodes.filter(node => node.type === 'VariableDeclaration');
+  const deferred = declarations.find(node => node.declarations[0]?.id?.name === 'deferredModelInput');
   const segment = declarations.find(node => node.declarations[0]?.id?.name === 'segments' &&
-    source.slice(node.start, node.end).includes('serializationGraph !== undefined'));
+    node.start > deferred.end && source.slice(node.start, node.end).includes('serializationGraph !== undefined'));
   const suffix = declarations.find(node => node.start > segment.start &&
     node.declarations[0]?.id?.name === 'computeSuffix');
   assert(segment); assert(suffix);
-  const deferred = declarations.find(node => node.declarations[0]?.id?.name === 'deferredModelInput');
-  const body = (deferred ? source.slice(deferred.start, deferred.end) : '') +
+  const acquisitionDeclaration = declarations.filter(node => node.declarations[0]?.id?.name === 'acquisitionCount' &&
+    node.end <= deferred.start).sort((a, b) => b.start - a.start)[0];
+  assert(acquisitionDeclaration);
+  const body = source.slice(acquisitionDeclaration.start, acquisitionDeclaration.end) +
+    source.slice(deferred.start, segment.start) +
     source.slice(segment.start, suffix.end) + ';return {segments, computeSuffix};';
   const prepared = {}, occurrence = {}, prefix = {}, suffixValue = {}, serializationGraph = serialized ? {} : undefined;
   const calls = [], error = new Error('OriginalUnbackedInputSegmentConstructor');
-  const moon = {clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return acquisitions;},
+  const moon = {clientProgramTaskCount: () => 1, clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return acquisitions;},
     clientProgramPrepareComposedInferSegments(...args) {
       assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('segments');
+      if (restored) assert.fail('Saved input must not prepare another prefix');
       if (acquisitions === 1 && managed && physical && !serialized) throw error;
       return {prefix, suffix: suffixValue};
     },
     clientProgramPrepareComposedInferComputeSuffix(...args) {
-      assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('Content suffix'); return suffixValue;
+      assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('checked suffix'); return suffixValue;
     }};
-  const ports = {preparation: managed ? {} : undefined, physical: physical ? {originalReadInstallation: {}} : {},
-    preparedProgram: prepared, occurrence, serializationGraph, effectGraph: undefined, step: 2,
+  const ports = {effectful: false, preparation: managed ? {} : undefined, physical: physical ? {originalReadInstallation: {}} : {},
+    preparedProgram: prepared, occurrence, retain, serializationGraph, effectGraph: undefined, step: 2,
+    restoredInfer: restored ? {graph: {}} : undefined,
     prepareSubmit: {kindOf: () => 'effect_free'}, moon, registry: {}, values: {}, fragment: {}, ordered: {},
     checked: value => value, runtimeField: (value, index) => index === 1 ? value.suffix : value.prefix,
     runtimeOptionalField: (value, index) => value === undefined ? undefined : index === 0 ? value.prefix : value.suffix};
@@ -119,18 +126,62 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
 }
 
 test('managed acquired Node Model defers input segments to its same Request module before any standalone constructor', () => {
-  const f = inputSelectionFixture();
-  assert.deepEqual(f.select, {segments: undefined, computeSuffix: undefined});
-  assert.deepEqual(f.calls, []);
+  for (const physical of [false, true]) {
+    const f = inputSelectionFixture({physical});
+    assert.deepEqual(f.select, {segments: undefined, computeSuffix: undefined});
+    assert.deepEqual(f.calls, []);
+  }
 });
 
 test('existing sourcefree legacy and serialized Model segment selection keep their actual original ports', () => {
-  for (const options of [{acquisitions: 0}, {managed: false}, {physical: false}]) {
+  for (const options of [{acquisitions: 0}, {managed: false}]) {
     const f = inputSelectionFixture(options);
     assert.equal(f.select.segments.prefix, f.prefix); assert.equal(f.select.computeSuffix, f.suffix);
     assert.deepEqual(f.calls, ['segments']);
   }
   const content = inputSelectionFixture({serialized: true});
   assert.equal(content.select.segments, undefined); assert.equal(content.select.computeSuffix, content.suffix);
-  assert.deepEqual(content.calls, ['Content suffix']);
+  assert.deepEqual(content.calls, ['checked suffix']);
+});
+
+test('restored Model defers checked segments until its funded original Read without preparing saved input again', () => {
+  const f = inputSelectionFixture({acquisitions: 0, physical: false, restored: true});
+  assert.equal(f.select.segments, undefined);
+  assert.equal(f.select.computeSuffix, undefined);
+  assert.deepEqual(f.calls, [], 'Saved input cannot issue segments before retaining its funded original Read');
+});
+
+
+test('checked Pure group defers every captured generic input and suffix to the one original module', () => {
+  for (const acquisitions of [1, 2]) for (const physical of [false, true]) {
+    const f = inputSelectionFixture({acquisitions, physical, retain: false});
+    assert.deepEqual(f.select, {segments: undefined, computeSuffix: undefined});
+    assert.deepEqual(f.calls, []);
+  }
+});
+
+test('checked Pure Mock group does not lower its input before the same Request indexed module', () => {
+  const nodes = [];
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration') nodes.push(node);
+    for (const child of Object.values(node)) {if (Array.isArray(child)) child.forEach(visit); else if (child && typeof child === 'object') visit(child);}
+  };
+  visit(tree);
+  const segments = nodes.find(node => node.declarations[0]?.id?.name === 'segments' &&
+    source.slice(node.start, node.end).includes('effectful ? moon.clientProgramPrepareEffectInferSegments'));
+  assert(segments);
+  const defer = nodes.find(node => node.declarations[0]?.id?.name === 'deferredGroup');
+  const body = 'const serializationGraph=undefined;' + (defer === undefined ? '' : source.slice(defer.start, defer.end)) + source.slice(segments.start, segments.end) + ';return segments;';
+  const select = Function('effectful', 'preparation', 'retain', 'moon', 'preparedProgram', 'occurrence',
+    'registry', 'values', 'fragment', 'ordered', 'checked', body);
+  let calls = 0; const original = {}, prepared = {}, occurrence = {},
+    moon = {clientProgramPrepareComposedInferSegments(p, o) {assert.equal(p, prepared); assert.equal(o, occurrence); calls++; return original;},
+      clientProgramPrepareEffectInferSegments(p, o) {assert.equal(p, prepared); assert.equal(o, occurrence); calls++; return original;}};
+  assert.equal(select(false, {}, false, moon, prepared, occurrence, {}, {}, {}, {}, value => value), undefined);
+  assert.equal(calls, 0);
+  for (const [effectful, preparation, retain] of [[false, {}, true], [true, {}, false], [false, undefined, false]]) {
+    assert.equal(select(effectful, preparation, retain, moon, prepared, occurrence, {}, {}, {}, {}, value => value), original);
+  }
+  assert.equal(calls, 3, 'singular, Effect and independently owned legacy selection remain unchanged');
 });

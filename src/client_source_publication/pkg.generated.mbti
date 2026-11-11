@@ -17,6 +17,8 @@ import {
 // Values
 pub fn[T] admit_captured_query_declarations(T, @source_value.JsonDataReader[T]) -> Result[(@decode_core.Cursor, @parameter_binding.Declarations), PublicationIssue]
 
+pub fn admit_query_declarations_document(String, @source_value.ParseLimits, @decode_core.Limits) -> Result[(@decode_core.Cursor, @parameter_binding.Declarations), PublicationIssue]
+
 pub fn bind_published_query_context(@program_check.CheckEnvironment, String, String?) -> Result[@query_program.Context, PublicationIssue]
 
 pub fn bind_published_query_parts(@program_check.CheckEnvironment, String, String?) -> Result[(@query_program.Context, Array[@query_program.TableWriteBinding], @query_program.UpdateTargetPublication?, @query_program.StoreTargetPublication?, @query_program.CommandTargetPublication?), PublicationIssue]
@@ -44,6 +46,8 @@ pub fn prepared_published_query_catalog(PreparedPublishedQueryEnvironment, @prog
 pub fn prepared_published_query_environment_matches(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Bool
 
 pub fn prepared_published_query_environment_publication_matches(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String) -> Bool
+
+pub fn prepared_published_request_copy_geometry(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Result[(Int, Int64), PreparedPublicationIssue]
 
 pub fn prepared_published_required_catalog(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Result[@program_check.PreparedSourceCatalog, PreparedPublicationIssue]
 

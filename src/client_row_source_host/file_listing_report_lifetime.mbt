@@ -6,6 +6,7 @@ priv struct RowListingReports {
   mut rows : Array[@publication.CompletedFileListingReportRow]?
   mut scan : @execution.CapturedRows?
   empty : @publication.CompletedFileListingReportRow
+  mut original_configuration : RowHostConfiguration?
 }
 
 ///|
@@ -13,6 +14,7 @@ fn new_row_listing_reports() -> RowListingReports {
   {
     rows: Some([]),
     scan: None,
+    original_configuration: None,
     // This invalid data sentinel only severs non-JS backing references before
     // pop. It is never admitted, encoded, returned or used as evidence.
     empty: {
@@ -113,6 +115,7 @@ fn reclaim_row_listing_reports(
     return false
   }
   reports.scan = None
+  reports.original_configuration = None
   reports.rows = None
   true
 }

@@ -6,7 +6,7 @@
 priv struct HolderTaskCustody {
   request : @remote.DispatchRequest
   producer_identity : String?
-  consumer : @resident_host.ResidentRetainedConsumer?
+  mut consumer : @resident_host.ResidentRetainedConsumer?
   process_hold : Ref[@bundle.NativeActiveRuntimeBinding?]
   mut executed : @resident_host.ResidentExecuted?
   mut effect_producer : @resident_host.ResidentEffectProducerExecuted?

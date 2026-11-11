@@ -129,7 +129,7 @@ test "json pick preserves every directly admitted leaf domain and NULL" {
         max_depth: 10,
         max_work: 100000,
       }).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
       None,
     ).unwrap()
     guard result is RowTable(table) else {
@@ -209,7 +209,7 @@ test "json pick preserves owned reference leaves and current authorization" {
       1,
       { remaining: 100000, max_frames: 100, },
       row_output(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
       None,
     ).unwrap()
     guard result is RowTable(table) &&
@@ -245,7 +245,7 @@ test "json pick accepts exact runtime budgets and rejects one-short limits" {
   })
   let maximum = 100000
   let observed_control = { remaining: maximum, max_frames: 100, }
-  let observed_workspace = { limit: maximum, live: 0, peak: 0, }
+  let observed_workspace = { ..row_workspace(maximum), live: 0, peak: 0, }
   evaluate_completed_body(
     PreparedBody(row_kernel(owner, 0)),
     input,
@@ -274,7 +274,7 @@ test "json pick accepts exact runtime budgets and rejects one-short limits" {
       1,
       { remaining: work, max_frames: 100, },
       row_output(),
-      { limit: space, live: 0, peak: 0, },
+      { ..row_workspace(space), live: 0, peak: 0, },
       None,
     )
     if success {

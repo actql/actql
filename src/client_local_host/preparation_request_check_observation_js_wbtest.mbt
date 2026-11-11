@@ -157,7 +157,12 @@ test "live Request projection backs output before publication decoding and retai
   let outcome = child.check_outcome.unwrap()
   let publication = request_observation_publication(child)
   let bytes = request_check_observation_bytes(
-    child, source, outcome, publication, 0L,
+    child,
+    source,
+    outcome,
+    publication,
+    0L,
+    None,
   ).unwrap()
   let (retained, _) = @resources.preparation_capacity_working_extents(
     parent.capacity,
@@ -185,4 +190,109 @@ test "live Request projection backs output before publication decoding and retai
   assert_true(report.contains("\"verdict\":\"invalid\""))
   assert_true(physical_equal(child.check_outcome.unwrap(), outcome))
   abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "completed Request check projects original success before compiler and keeps one current boundary" {
+  let calls = Ref(0)
+  let action : Ref[(() -> Unit)?] = Ref(None)
+  let program = @publication_host.client_standard_program_preparation_limits()
+  let (parent, child, _, input) = registration_parent_fixture(
+    current=() => {
+      calls.val += 1
+      if action.val is Some(run) {
+        run()
+      }
+      true
+    },
+    computation_limits=Some(
+      (program, @publication_host.client_standard_effect_computation_limits()),
+    ),
+  )
+  finish_request_computation_check(parent, input).unwrap()
+  let original = child.check_outcome.unwrap()
+  assert_true(original is @checked.Checked(_))
+  assert_true(parent.compiled_program is None && parent.compiled_effect is None)
+  let publication = request_observation_publication(child)
+  let blocked = Ref(0)
+  action.val = Some(() => {
+    if abort_request_preparation_after_cleanup(parent) is Err(WrongPhase) {
+      blocked.val += 1
+    }
+    if clear_program_check_preparation(child) is Err(WrongPhase) {
+      blocked.val += 1
+    }
+  })
+  let before = calls.val
+  let report = project_request_completed_check_outcome(
+      parent,
+      input,
+      publication,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      request_check_wire.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    )
+    .unwrap()
+    .unwrap()
+  action.val = None
+  assert_eq(calls.val - before, 1)
+  assert_eq(blocked.val, 2)
+  assert_true(report.contains("\"verdict\":\"verified\""))
+  guard @json.parse(report) is Object(root) &&
+    root.get("report") is Some(Object(facts)) &&
+    facts.get("runnable") is Some(Object(runnable)) else {
+    fail("Expected the original typed check report")
+  }
+  assert_true(runnable.get("verdict") is Some(String("yes")))
+  assert_true(parent.compiled_program is None && parent.compiled_effect is None)
+  assert_true(physical_equal(child.check_outcome.unwrap(), original))
+  assert_true(
+    parent.phase == ProgramCheck && child.phase == SemanticCheckComplete,
+  )
+  let before_usage = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    project_request_completed_check_outcome(
+      parent,
+      [999],
+      publication,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      request_check_wire.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before_usage)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(
+    project_request_completed_check_outcome(
+      parent,
+      input,
+      publication,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      request_check_wire.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    )
+    is Ok(None),
+  )
 }

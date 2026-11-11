@@ -16,6 +16,8 @@ import {
 // Values
 pub fn bind_local_dispatch_plan(@physical_host_dispatch.DispatchDriver, LocalDispatchPreparation) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
+pub fn bind_local_effect_dispatch_plan(@physical_host_dispatch.DispatchDriver, LocalDispatchPreparation, @physical_strategy_host.CapturedEffectRunDAG) -> Result[LocalDispatchModule, LocalDispatchIssue]
+
 pub fn configure_local_compute(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, LocalComputeConfiguration) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
 pub fn configure_local_retained_inputs(LocalDispatchModule, @local.LocalImportLimits, Int64?, metadata? : LocalManagedMetadataLimits?) -> Result[Unit, LocalDispatchIssue]
@@ -232,6 +234,7 @@ pub(all) struct LocalManagedMetadataLimits {
   completion_entries : Int
   schema : @execution_relation.RelationSchemaIdentityLimits
   result_workspace_entries : Int
+  result_rows_reserved : Int?
   retained_bytes : Int64
 }
 

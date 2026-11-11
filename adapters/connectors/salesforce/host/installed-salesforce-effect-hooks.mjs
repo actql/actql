@@ -15,6 +15,7 @@ export function salesforceEffectSiteHooks(effect) {
   }
   return Object.freeze({
     environmentWire: effect.environmentWire,
+    prepareManagedPlan: effect.prepareManagedPlan,
     targetReadAuthorization: effect.targetReadAuthorization,
     targetReadInventory: facts => effect.targetReadInventory({moon: facts.moon,
       prepared: facts.prepared,
@@ -23,8 +24,10 @@ export function salesforceEffectSiteHooks(effect) {
       unit: salesforceEffectUnit(facts.moon, facts.compilation)}),
     prepareCaptured: facts => {
       const {moon, publicationPlan: plan, compilation} = facts;
+      const current = facts.assertContinuationCurrent;
       return effect.prepareCaptured({moon, control: facts.control,
         store: facts.store, execution: facts.execution,
+        managedEffect: facts.managedEffect,
         checkedHost: facts.checkedHost, prepared: facts.prepared,
         identity: facts.identity, plan,
         previewContext: {runDefinition: facts.definition,
@@ -35,15 +38,23 @@ export function salesforceEffectSiteHooks(effect) {
             plan.contractLimits.maxDepth))},
         unit: salesforceEffectUnit(moon, compilation), signal: facts.signal,
         targetReads: facts.targetReads,
+        assertContinuationCurrent: current === undefined ? undefined
+          : () => Reflect.apply(current, facts, []),
         updateTargetSelections: facts.updateTargetSelections,
         assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent});
     },
-    prepareRecovered: facts => effect.prepareRecovered({moon: facts.moon,
+    prepareRecovered: facts => {
+      const current = facts.assertContinuationCurrent;
+      return effect.prepareRecovered({moon: facts.moon,
       control: facts.control, store: facts.store, recovered: facts.recovered,
+      managedEffect: facts.managedEffect,
       continuation: facts.continuation, contractLimits: localContractLimits,
       signal: facts.signal, retainRecoveryOwner: facts.retainRecoveryOwner,
       targetReads: facts.targetReads,
-      updateTargetSelections: facts.updateTargetSelections,
-      assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent}),
+      assertContinuationCurrent: current === undefined ? undefined
+        : () => Reflect.apply(current, facts, []),
+      updateTargetSelections: facts.recovered.updateTargetSelections,
+      assertUpdateSelectionCurrent: facts.recovered.assertUpdateSelectionCurrent});
+    },
   });
 }

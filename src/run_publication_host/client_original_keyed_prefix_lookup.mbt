@@ -70,7 +70,8 @@ pub fn start_client_original_keyed_prefix_lookup(
   }
   let left : ClientKeyedLeftRead = {
     acquisition: keyed,
-    source,
+    source: Some(source),
+    composed: None,
     read,
     requests: 0L,
     attempts: 0L,

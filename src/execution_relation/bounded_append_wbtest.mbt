@@ -39,6 +39,7 @@ fn bounded_append_fixture(
   output_values? : ValueLimits = run_limits().output_values,
   selected? : Bool = false,
   left_live? : Ref[Bool]? = None,
+  reserve? : ((Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
 ) -> (
   @bounded.Control,
   Result[BoundedAppendExecution, BoundedAppendIssue],
@@ -104,6 +105,21 @@ fn bounded_append_fixture(
     select_generated_sequence_step(generated, 0).unwrap()
   } else {
     generated
+  }
+  let generated = match reserve {
+    Some(reserve) =>
+      bind_generated_workspace_growth(
+        generated,
+        {
+          rows: { ..run_limits(), operation_entries: max_entries, },
+          max_work,
+          max_frames: 100,
+        },
+        1048576L,
+        reserve,
+        meter_retained_outputs=true,
+      ).unwrap()
+    None => generated
   }
   let left = prepare_producer_read(
     receiver,
@@ -519,4 +535,36 @@ test "bounded append aligns nullable fields in authored left order" {
     }
   }
   assert_true(cleanup_bounded_append(execution).unwrap())
+}
+
+///|
+test "bounded Append refuses original output funding before persistent row transfer" {
+  let requests : Array[Int64] = []
+  let (_, started, _) = bounded_append_fixture(
+    reserve=Some(bytes => {
+      requests.push(bytes)
+      Err(WorkspaceUnavailable)
+    }),
+  )
+  let execution = started.unwrap()
+  let mut failed = false
+  for _ in 0..<1000 {
+    if failed {
+      break
+    }
+    match advance_bounded_append(execution, 1).unwrap() {
+      BoundedAppendContinue(..) => ()
+      BoundedAppendFailed(Capture(CaptureLimit), ..) => failed = true
+      _ => fail("unfunded Append output must not complete")
+    }
+  }
+  assert_true(failed)
+  assert_eq(requests.length(), 1)
+  assert_true(requests[0] > 0L)
+  let output = execution.state.output.unwrap()
+  assert_true(output.buffer.rows.is_empty())
+  assert_true(output.buffer.presence_rows.is_empty())
+  assert_eq(output.buffer.budget.retention_funded, 0L)
+  assert_true(cleanup_bounded_append(execution).unwrap())
+  assert_false(bounded_append_cleanup_pending(execution))
 }

@@ -19,7 +19,7 @@ pub(all) enum LocalDependencyBodyKind {
 pub(all) enum LocalDependencyBodyIssue {
   MissingUnit
   MissingDependency
-  Encoding
+  Encoding(@encode.EncodeFailure)
   ForeignBody
   BudgetExceeded
 } derive(Eq, Debug)
@@ -53,7 +53,8 @@ pub fn checked_local_catalog_dependency_body(
     "capability_evidence" => (@environment.ConnectorCapabilities, None)
     "source_contract" | "source_view_contract" =>
       (@environment.SourceViews, Some("contract_cid"))
-    "data_policy" => (@environment.ContractRegistry, Some("cid"))
+    "data_policy" | "request_schema" | "carrier_schema" =>
+      (@environment.ContractRegistry, Some("cid"))
     _ => return Err(MissingDependency)
   }
   let environment = checked_environment(program)
@@ -86,7 +87,8 @@ pub fn checked_local_catalog_dependency_body(
   let kind = match role {
     "schema_evidence" => SourceSchema(index)
     "capability_evidence" => SourceCapability(index)
-    "data_policy" => RegistryContract(index)
+    "data_policy" | "request_schema" | "carrier_schema" =>
+      RegistryContract(index)
     _ => SourceViewContract(index)
   }
   checked_local_dependency_body(
@@ -166,7 +168,7 @@ pub fn checked_local_dependency_body(
     return Err(MissingUnit)
   }
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
+    issue => return Err(Encoding(issue))
   }
   let cid = try {
     match kind {
@@ -328,9 +330,11 @@ pub fn checked_local_dependency_body(
       }
     }
   } catch {
-    _ => return Err(Encoding)
+    issue => return Err(Encoding(issue))
   }
-  let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  let wire = @encode.finish(writer) catch {
+    issue => return Err(Encoding(issue))
+  }
   Ok({ owner: program, unit: unit_index, kind, cid, wire, })
 }
 

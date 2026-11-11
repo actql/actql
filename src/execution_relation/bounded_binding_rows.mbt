@@ -917,7 +917,9 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     clear_stepped_measure(cursor)
     state.capture_charge_measure = None
   }
-  state.workspace.live = 0
+  if state.workspace.live >= 0 {
+    release_slots(state.workspace, state.workspace.live)
+  }
   if !state.accepted.val {
     state.rows.val = None
     state.live.val = false
@@ -3293,6 +3295,28 @@ fn bounded_binding_rows_step(
         guard state.output is Some(output) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
+        // These direct paths already charged their complete original output
+        // usage. Fund that same cumulative DATA before persistent row transfer;
+        // the small checked-cell append below funds at its existing commit.
+        if state.preserve_presence || state.output_requires_steps {
+          let usage = if state.preserve_presence {
+            state.output_values
+          } else {
+            output.buffer.budget
+          }
+          if !fund_output_retention(
+              output.buffer.budget,
+              usage.nodes,
+              usage.text,
+            ) ||
+            !output.buffer.open {
+            return fail_bounded_binding_rows(
+              Capture(CaptureLimit),
+              progress,
+              used,
+            )
+          }
+        }
         if state.preserve_presence {
           guard state.presence_usage_start is Some(start) &&
             output.buffer.open &&
@@ -3796,7 +3820,8 @@ fn start_bounded_binding_rows_with_input(
       if logical is Some(_) {
         return Err(InvalidExecution)
       }
-      logical = match fragment_runtime_for_kernel(context, kernel) {
+      logical = match
+        fragment_runtime_for_kernel(context, kernel, growth=generated.working) {
         Ok(value) => Some(value)
         Err(_) => return Err(InvalidExecution)
       }
@@ -4106,7 +4131,7 @@ fn start_bounded_binding_rows_with_input(
     }
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
-  let workspace = row_workspace(max_entries)
+  let workspace = working_row_workspace(generated, max_entries)
   if !reserve_slots(workspace, metadata_entries) ||
     (
       watermark_kind &&

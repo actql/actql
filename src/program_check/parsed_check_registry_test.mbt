@@ -34,12 +34,14 @@ test "original registry prefix continues full retained and tighter Catalog route
     let extent = @program_check.parsed_catalog_construction_extent(input)
     if route == 1 {
       assert_eq(@program_check.parsed_catalog_inspection_work(input), 0)
-      assert_eq(extent.record_headers, 9L)
+      // The retained route adds its one actual collected-Inputs Ref to
+      // the existing nine constructor/control records.
+      assert_eq(extent.record_headers, 10L)
     } else {
       // This independent Values fixture has an ACTUAL empty registry; full
       // construction still creates its real entries Array and names Map.
       assert_eq(@program_check.parsed_catalog_inspection_work(input), 0)
-      assert_true(extent.record_headers > 9L)
+      assert_true(extent.record_headers > 10L)
     }
     let initial_work = @program_check.parsed_catalog_semantic_work(input)
     let (result, spent) = @program_check.observe_parsed_check_registry(input)

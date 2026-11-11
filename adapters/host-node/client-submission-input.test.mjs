@@ -18,12 +18,13 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {sourceFreeValuesPlan} from './local-values-plan.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 
 const scratch = new URL('../../_build/client-submission-input-tests/', import.meta.url).pathname;
 await mkdir(scratch, {recursive: true});
@@ -63,6 +64,32 @@ const notAccepted = code => error => {
   assert.deepEqual(outcome.submissionRef, sdk.getSubmissionInput(error).submissionRef);
   return true;
 };
+// These actual Request failures precede an original semantic CheckOutcome.
+// Preserve the SDK's owned input/phase without manufacturing a report or
+// invoking a second checker to obtain a verdict, limits or text coordinates.
+function assertOriginalPreparationRefusal(fixture, error, program) {
+  assert.equal(error?.code, 'SubmissionNotAccepted');
+  const outcome = sdk.getSubmissionOutcome(error), input = sdk.getSubmissionInput(error);
+  assert.equal(outcome?.kind, 'not_accepted');
+  assert.equal(input.kind, 'program');
+  assert.deepEqual(input.input, program);
+  assert.deepEqual(Object.keys(input.input), Object.keys(program));
+  assert.notStrictEqual(input.input, program);
+  assert.equal(Object.isFrozen(input), true); assert.equal(Object.isFrozen(input.input), true);
+  assert.deepEqual(outcome.submissionRef, input.submissionRef);
+  const before = [...fixture.operations];
+  const checked = sdk.getSubmissionCheckObservation(error);
+  assert.equal(checked, undefined, '[check-mutation:program-presemantic-observation]');
+  assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
+  assert.equal(sdk.getCheckFixes(checked), undefined);
+  assert.equal(sdk.getSubmissionCheckObservation(structuredClone(error)), undefined);
+  assert.equal(sdk.getSubmissionInput({...error}), undefined);
+  assert.equal(sdk.getSubmissionOutcome({...error}), undefined);
+  assert.strictEqual(sdk.getSubmissionInput(error), input);
+  assert.deepEqual(fixture.operations, before, '[check-mutation:program-presemantic-passive]');
+  assert.deepEqual(fixture.stored(), []);
+  assert.deepEqual(fixture.counts(), {submits:0, issues:0});
+}
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'durable', scopeRef: 'principal-a', capabilities: ['aql-document'],
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
@@ -74,7 +101,7 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
   const journal = openClientRequestJournal(directory);
   const submissionEpoch = journal.issueSubmissionEpoch({...scope, currentAuthorization: true}, moon);
   const observer = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
-  let client, server, authorized = true, submits = 0, issues = 0;
+  let client, server, funded, authorized = true, submits = 0, issues = 0;
   let endpoint = 'actql:embedded';
   const operations = [], received = [];
   let credentials = 0, authentications = 0, preparations = 0, pause;
@@ -82,18 +109,65 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
     const pending = pause; pause = undefined;
     if (pending) await pending;
   };
-  const prepare = installNodeClientProgramPreparation({moon, environment: checkingEnvironment});
-  const check = installNodeClientCheck({moon, environment: checkingEnvironment, publication, sourceAccesses});
+  // Register teardown before opening the actual Request preparation owner.
   t.after(async () => {
-    client?.close();
+    await client?.close();
     if (server) {
       server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
     }
+    // No ingress or original HTTP handler may outlive its Request parent.
+    await funded?.close();
     observer.close();
     journal.close();
     await rm(directory, {recursive: true, force: true});
   });
+  funded = await openFundedClientPreparation({moon, environment: checkingEnvironment,
+    http: entrance === 'https'});
+  const prepare = entrance === 'https' ? funded.prepareSubmit : funded.prepare;
+  // This routes DATA to the existing owner, never certifies a failure/report.
+  // The nested original SubmissionRef distinguishes concurrent calls even if
+  // a caller throws the same Error object; the manager still checks identity.
+  const failedRequests = new WeakMap();
+  let diagnosticRecords = 0;
+  const diagnose = detail => {
+    if (process.env.ACTQL_TEST_PREPARATION_DIAGNOSTICS !== '1') return;
+    if (diagnosticRecords >= 12) return;
+    diagnosticRecords++;
+    try {t.diagnostic(`ACTQL_PREPARATION_ORIGINAL ${JSON.stringify(detail)}`);}
+    catch { /* Diagnostic delivery cannot replace the original operation. */ }
+  };
+  const prepareSubmit = Object.freeze(Object.assign(async request => {
+    preparations++;
+    received.push(structuredClone({input: request.input, parameters: request.parameters}));
+    const originalRequest = entrance === 'https' ? funded.originalRequest(request) : request;
+    try {return await prepare(request);}
+    catch (failure) {
+      // The existing adapter preserves the original Core terminal in cause.
+      // Record only three compiler tags, never constructor payloads, inputs,
+      // Error strings, opaque references or a reconstructed Result. These
+      // diagnostics neither classify the public failure nor change its oracle.
+      try {
+        const terminal = Object.getOwnPropertyDescriptor(failure, 'cause')?.value;
+        const detail = runtimeOptionalField(terminal, 0);
+        const nested = runtimeOptionalField(detail, 0);
+        diagnose({port: 'prepareSubmit.catch', tags: [terminal, detail, nested].map(value => {
+          const tag = runtimeTag(value);
+          return Number.isSafeInteger(tag) && tag >= 0 && tag <= 65535 ? tag : null;
+        })});
+      } catch {
+        // Missing diagnostic shape cannot replace the same original failure.
+      }
+      if (failure !== null && (typeof failure === 'object' || typeof failure === 'function') &&
+          request.submissionRef !== null && typeof request.submissionRef === 'object') {
+        let requests = failedRequests.get(failure);
+        if (requests === undefined) {requests = new WeakMap(); failedRequests.set(failure, requests);}
+        requests.set(request.submissionRef, originalRequest);
+      }
+      throw failure;
+    }
+  }, {assertSubmittedIntent: prepare.assertSubmittedIntent}));
+  const check = installNodeClientCheck({moon, environment: checkingEnvironment, publication, sourceAccesses});
   const configuration = {
     authenticate: async () => {
       authentications++;
@@ -102,11 +176,8 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
     },
     authorizeConnection: () => authorized,
     negotiate: () => ({...profile, submissionEpoch}),
-    prepareSubmit: request => {
-      preparations++;
-      received.push(structuredClone({input: request.input, parameters: request.parameters}));
-      return prepare(request);
-    },
+    prepareSubmit,
+    ...(entrance === 'https' ? {prepareRequest: funded.prepareRequest} : {}),
     check: Object.assign(request => {
       received.push(structuredClone({input: request.input, parameters: request.parameters}));
       return check(request);
@@ -133,9 +204,25 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
     maxRowBytes: 1024,
   };
   const submission = installNodeClientSubmission({journal, moon,
+    ...(entrance === 'https' ? funded.submission : {}),
     authorizedScope: () => authorized ? scope : undefined,
     prepareSubmit: configuration.prepareSubmit, submit: configuration.submit,
-    lookupRequest: configuration.lookupRequest, checkSubmissionInput: check});
+    lookupRequest: configuration.lookupRequest, checkSubmissionInput: check,
+    async observeOriginalPreparationFailure(failure, value) {
+      const request = failedRequests.get(failure)?.get(value.submissionRef);
+      if (request === undefined) return undefined;
+      const current = () => {
+        if (!authorized) throw Object.assign(new Error('ClientConnectionDenied'), {code: 'ClientConnectionDenied'});
+      };
+      current();
+      const outcome = await funded.manager.observeOriginalCheckOutcome(request, failure, project =>
+        check.projectOriginal({principalId: value.principalId, connection: value.connection,
+          kind: value.kind === 'program' ? 'program' : 'text', scope: 'bound_input',
+          input: value.input, parameters: value.parameters, signal: value.signal}, project));
+      current();
+      diagnose({port: 'observeOriginalCheckOutcome.return', defined: outcome !== undefined});
+      return outcome;
+    }});
   Object.assign(configuration, {submitIntent: submission.submitAttempt,
     lookupSubmission: submission.lookupSubmission});
   let pendingLoss = loss;
@@ -299,6 +386,15 @@ for (const entrance of ['local', 'https']) {
           if (loss === undefined) assert.deepEqual(found, sdk.getSubmissionOutcome(result));
           else assert.equal(sdk.getSubmissionOutcome(result), undefined);
         } else assert.deepEqual(found.problem, {code: 'submission_history_unresolvable'});
+        if (!committed) {
+          // The canonical Submission lookup above is not the separate existing
+          // Request lookup. Exercise that original absence projection too;
+          // neither read grants a Run reference or a permission to resubmit.
+          const absent = await f.client.lookupRequest(submissionRequestId(snapshot.submissionRef));
+          assert.deepEqual(absent, {kind: 'not_found'});
+          assert.equal(sdk.explainRequestLookup(absent).observation, 'lookup_unresolved',
+            '[check-mutation:request-public-observation]');
+        }
         assert.equal(sdk.getSubmissionInput(found), undefined);
         assert.deepEqual(f.stored(), stored);
         f.revoke();
@@ -313,31 +409,40 @@ for (const entrance of ['local', 'https']) {
 }
 
 for (const entrance of ['local', 'https']) {
-  test(`${entrance}: structured Program rejection binds the original parent pointer`, async t => {
+  test(`${entrance}: structured Program admission refusal retains input without a semantic observation`, async t => {
     const f = await fixture(t, entrance);
     const program = {version: 'actql/0.1', id: 'missing-stages'};
     let rejected;
     try {await f.client.start(program);}
     catch (error) {rejected = error;}
     assert.equal(rejected?.code, 'SubmissionNotAccepted');
+    const outcome = sdk.getSubmissionOutcome(rejected);
+    assert.equal(outcome?.kind, 'not_accepted', '[check-mutation:program-original-phase]');
+    const input = sdk.getSubmissionInput(rejected);
+    const before = [...f.operations];
+    assert.equal(input.kind, 'program');
+    assert.deepEqual(input.input, program);
+    assert.notStrictEqual(input.input, program);
+    assert.equal(Object.isFrozen(input), true);
+    assert.equal(Object.isFrozen(input.input), true);
+    assert.deepEqual(outcome.submissionRef, input.submissionRef);
+    // Program JSON admission precedes the semantic CheckOutcome owner. An
+    // absent observation cannot supply a diagnostic pointer or a second check.
     const checked = sdk.getSubmissionCheckObservation(rejected);
-    assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:program-structure-verdict]');
-    const input = sdk.getCheckInput(checked, 'program');
-    assert.deepEqual(input.value, program);
-    assert.equal(input.kind, 'structured');
-    assert.deepEqual(checked.report.reasons, [{code: 'program_structure_invalid', facts: {issue: 'missing_field'}, location: {
-      kind: 'structured', document_id: 'program', revision: input.revision, pointer: ''}}],
-    '[check-mutation:program-structure-location]');
-    assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, input);
-    assert.equal(sdk.resolveCheckTextRange(checked, checked.report.reasons[0].location), undefined);
-    assert.equal(sdk.getCheckInput(structuredClone(checked), 'program'), undefined);
+    assert.equal(checked, undefined, '[check-mutation:program-structural-observation]');
+    assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
+    assert.equal(sdk.getCheckFixes(checked), undefined);
     assert.equal(sdk.getSubmissionCheckObservation(structuredClone(rejected)), undefined);
-    assert.deepEqual(sdk.getCheckFixes(checked), []);
-    assert.equal(f.counts().submits, 0);
-    assert.equal(f.counts().issues, 0);
+    assert.equal(sdk.getSubmissionInput({...rejected}), undefined);
+    assert.equal(sdk.getSubmissionOutcome({...rejected}), undefined);
+    assert.strictEqual(sdk.getSubmissionInput(rejected), input);
+    assert.equal(sdk.explainSubmission(rejected).observation, 'not_accepted');
+    assert.deepEqual(f.operations, before, '[check-mutation:program-passive]');
+    assert.deepEqual(f.stored(), []);
+    assert.deepEqual(f.counts(), {submits: 0, issues: 0});
   });
 
-  test(`${entrance}: structured Program accepted preparation failure retains passive original checking`, async t => {
+  test(`${entrance}: structured Program accepted preparation failure retains phase without a semantic observation`, async t => {
     const f = await fixture(t, entrance);
     const program = {version: 'actql/0.1', id: 'original'};
     const submissionRef = f.client.newSubmission({nonce: 'preparing-program'});
@@ -346,39 +451,59 @@ for (const entrance of ['local', 'https']) {
     assert.equal(f.retainPreparingProgram(program, submissionRef).phase, 'preparing');
     let rejected;
     try {await f.client.start(program, {submissionRef});} catch (error) {rejected = error;}
+    assert.equal(rejected?.code, 'SubmissionPreparationFailed');
     const outcome = sdk.getSubmissionOutcome(rejected);
     assert.equal(outcome?.kind, 'preparation_failed', '[check-mutation:program-original-phase]');
-    const checked = sdk.getSubmissionCheckObservation(rejected);
-    assert.equal(checked?.report.verdict, 'invalid');
-    const original = sdk.getCheckInput(checked, 'program');
-    assert.deepEqual(original.value, program);
-    assert.equal(checked.report.reasons[0].location.pointer, '');
+    const original = sdk.getSubmissionInput(rejected);
+    assert.deepEqual(outcome.submissionRef, submissionRef);
+    assert.deepEqual(original.submissionRef, submissionRef);
+    assert.deepEqual(original.input, program);
+    assert.equal(Object.isFrozen(original.input), true);
     const before = [...f.operations];
-    sdk.resolveCheckLocation(checked, checked.report.reasons[0].location);
-    sdk.explainCheckReason(checked.report.reasons[0]); sdk.getCheckFixes(checked);
+    const checked = sdk.getSubmissionCheckObservation(rejected);
+    assert.equal(checked, undefined, '[check-mutation:program-structural-observation]');
+    assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
+    assert.equal(sdk.getCheckFixes(checked), undefined);
+    assert.equal(sdk.getSubmissionInput({...rejected}), undefined);
+    assert.strictEqual(sdk.getSubmissionInput(rejected), original);
+    assert.equal(sdk.explainSubmission(rejected).observation, 'preparation_failed');
     assert.deepEqual(f.operations, before, '[check-mutation:program-passive]');
     const retained = await f.client.lookupSubmission(submissionRef);
     assert.deepEqual(retained, outcome);
     assert.equal(Object.hasOwn(retained, 'checkObservation'), false);
     assert.equal(sdk.getSubmissionCheckObservation(retained), undefined);
+    assert.deepEqual(f.stored(), []);
     assert.deepEqual(f.counts(), {submits: 0, issues: 0});
   });
 
-  test(`${entrance}: structured Program missing null and wrong-type nodes remain distinct`, async t => {
+  test(`${entrance}: structured Program refusals retain missing null and wrong-type inputs`, async t => {
     const f = await fixture(t, entrance);
-    for (const [value, issue, pointer] of [[{version: 'actql/0.1', id: 'missing'}, 'missing_field', ''],
-      [{version: 'actql/0.1', id: 'null', stages: null}, 'unexpected_null', '/stages'],
-      [{version: 'actql/0.1', id: 'wrong', stages: {}}, 'wrong_type', '/stages']]) {
+    for (const value of [{version: 'actql/0.1', id: 'missing'},
+      {version: 'actql/0.1', id: 'null', stages: null},
+      {version: 'actql/0.1', id: 'wrong', stages: {}}]) {
       let rejected;
       try {await f.client.start(value);} catch (error) {rejected = error;}
+      assert.equal(rejected?.code, 'SubmissionNotAccepted');
+      const outcome = sdk.getSubmissionOutcome(rejected);
+      assert.equal(outcome?.kind, 'not_accepted', '[check-mutation:program-original-phase]');
+      const before = [...f.operations];
+      const original = sdk.getSubmissionInput(rejected);
+      assert.deepEqual(original.input, value, '[check-mutation:program-structural-input]');
+      assert.notStrictEqual(original.input, value);
+      assert.equal(Object.hasOwn(original.input, 'stages'), Object.hasOwn(value, 'stages'));
+      assert.equal(Object.isFrozen(original.input), true);
+      if (value.stages !== null && typeof value.stages === 'object') {
+        assert.equal(Object.isFrozen(original.input.stages), true);
+      }
+      assert.deepEqual(outcome.submissionRef, original.submissionRef);
       const checked = sdk.getSubmissionCheckObservation(rejected);
-      assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:program-structure-verdict]');
-      const owned = sdk.getCheckInput(checked, 'program');
-      assert.deepEqual(checked.report.reasons, [{code: 'program_structure_invalid', facts: {issue},
-        location: {kind: 'structured', document_id: 'program', revision: owned.revision, pointer}}],
-      '[check-mutation:program-structure-location]');
-      assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, owned);
-      assert.equal(sdk.explainCheckReason(checked.report.reasons[0]).kind, 'known');
+      assert.equal(checked, undefined, '[check-mutation:program-structural-observation]');
+      assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
+      assert.equal(sdk.getSubmissionInput({...rejected}), undefined);
+      assert.strictEqual(sdk.getSubmissionInput(rejected), original);
+      assert.equal(sdk.explainSubmission(rejected).observation, 'not_accepted');
+      assert.deepEqual(f.operations, before, '[check-mutation:program-passive]');
+      assert.deepEqual(f.stored(), []);
       assert.deepEqual(f.counts(), {submits: 0, issues: 0});
     }
   });
@@ -395,10 +520,18 @@ for (const entrance of ['local', 'https']) {
       assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:program-mixed-verdict]');
       const programInput = sdk.getCheckInput(checked, 'program');
       const parametersInput = sdk.getCheckInput(checked, 'parameters');
-      assert.deepEqual(checked.report.reasons, [{code: 'supplied_value_type_mismatch', facts: {
-        parameter: 'wrong', expected_type: 'number', actual_type: wrong === null ? 'null' : 'string'},
-        location: {kind: 'structured', document_id: 'parameters', revision: parametersInput.revision, pointer: '/wrong'}}],
+      assert.deepEqual(checked.report.reasons.map(({location, ...reason}) => reason),
+        [{code: 'supplied_value_type_mismatch', facts: {
+          parameter: 'wrong', expected_type: 'number', actual_type: wrong === null ? 'null' : 'string'}}],
       '[check-mutation:program-mixed-facts]');
+      // The retained native binder proves the type facts, but may not retain
+      // authored Parameters coordinates. Any emitted location still owns them.
+      const location = checked.report.reasons[0].location;
+      if (location !== undefined) {
+        assert.deepEqual(location, {kind: 'structured', document_id: 'parameters',
+          revision: parametersInput.revision, pointer: '/wrong'});
+        assert.equal(sdk.resolveCheckLocation(checked, location).input, parametersInput);
+      }
       const requirement = checked.report.requirements[0];
       assert.equal(requirement.code, 'parameter_value_required');
       assert.equal(requirement.facts.parameter, 'missing');
@@ -414,45 +547,28 @@ for (const entrance of ['local', 'https']) {
     }
   });
 
-  test(`${entrance}: structured Program implementation and budget limits retain input pointers`, async t => {
+  test(`${entrance}: structured Program preparation limits retain input without a semantic observation`, async t => {
     const f = await fixture(t, entrance);
     const unsupported = JSON.parse(document);
     unsupported.bindings = {opaque: {type: 'string'}};
     const budget = JSON.parse(document);
     budget.stages = Array.from({length: 33}, (_, index) => ({...budget.stages[0], id: `stage-${index}`}));
-    for (const [program, code, pointer] of [[unsupported, 'implementation_limit', '/bindings'],
-      [budget, 'analysis_budget_exhausted', '/stages']]) {
+    for (const program of [unsupported, budget]) {
       let rejected;
       try {await f.client.start(program);} catch (error) {rejected = error;}
-      const checked = sdk.getSubmissionCheckObservation(rejected);
-      assert.equal(checked?.report.verdict, 'undetermined', '[check-mutation:program-limit-verdict]');
-      assert.deepEqual(checked.report.reasons, []);
-      const owned = sdk.getCheckInput(checked, 'program');
-      assert.deepEqual(checked.report.coverage.limits, [{code, ...(pointer === undefined ? {} : {
-        location: {kind: 'structured', document_id: 'program', revision: owned.revision, pointer}})}],
-      '[check-mutation:program-limit-facts]');
-      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+      assertOriginalPreparationRefusal(f, rejected, program);
     }
   });
 
-  test(`${entrance}: structured Program Unicode pointers and declaration types retain exact input`, async t => {
+  test(`${entrance}: structured Program Unicode and declaration refusals retain exact preparation input`, async t => {
     const f = await fixture(t, entrance);
     const unicode = {...JSON.parse(document), 'e\u0301/😀~': null};
     const defaultType = {...JSON.parse(document), params: {n: {type: 'number', default: 'private-default'}}};
-    for (const [program, code, pointer, facts] of [[unicode, 'program_structure_invalid', '/e\u0301~1😀~0', {issue: 'invalid_structure'}],
-      [defaultType, 'parameter_default_type_mismatch', '/params/n/default', {parameter: 'n', expected_type: 'number', actual_type: 'string'}]]) {
+    for (const program of [unicode, defaultType]) {
       let rejected;
       try {await f.client.start(program);} catch (error) {rejected = error;}
-      const checked = sdk.getSubmissionCheckObservation(rejected);
-      assert.equal(checked?.report?.verdict, 'invalid');
-      const input = sdk.getCheckInput(checked, 'program');
-      assert.deepEqual(checked.report.reasons, [{code, facts,
-        location: {kind: 'structured', document_id: 'program', revision: input.revision, pointer}}],
-      '[check-mutation:program-unicode-location]');
-      assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, input);
-      assert.deepEqual(input.value, program);
-      assert.equal(JSON.stringify(checked).includes('private-default'), false);
-      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+      assertOriginalPreparationRefusal(f, rejected, program);
+      assert.equal(JSON.stringify(sdk.getSubmissionOutcome(rejected)).includes('private-default'), false);
     }
   });
 

@@ -31,9 +31,7 @@ import {installNodeClientRequestLookup} from '../../../host-node/client-request-
 
 import {createClientHttpHandler} from '../../../host-node/client-http.mjs';
 
-import {installNodeClientEffectProgramPreparation,
-  installNodeClientProgramPreparation} from
-  '../../../host-node/client-program-preparation.mjs';
+import {fundedClientPreparation} from '../../../host-node/funded-client-preparation.fixture.mjs';
 
 import {completeCapturedEffectRun, runCapturedEffectComputation,
   runCapturedInternalStrategy,
@@ -231,25 +229,23 @@ async function effectFixture({splitSource = false,
     mappingCid: mapping.mapping_contract_cid};
 }
 
-test('public Effect submit rejects an unsupported checked acquisition shape before Run acceptance',
+test('public Effect submit rejects more than two independent acquired roots before Run acceptance',
   async t => {
     const terminal = await effectFixture({splitSource: true,
       writeKind: 'create', memberIds: ['save', 'save_again'],
       sourceIds: ['001000000000001', '001000000000002']});
-    const prepareTerminal = installNodeClientEffectProgramPreparation({
-      moon, environment: terminal.environment,
-    });
-    const supported = prepareTerminal({kind: 'aql',
-      input: {text: terminal.document, format: 'json'}, parameters: null});
+    const terminalOutcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      terminal.document, 'json', terminal.environment, undefined, []);
+    const supported = moon.clientProgramEffectPreparationReady(terminalOutcome);
+    assert.ok(supported, moon.clientProgramEffectPreparationIssueCode(terminalOutcome));
     // The shared source-free DAG compiler now supports this terminal shape.
     // Compilation alone is not a claim that its public publication is closed.
     checked(moon.clientProgramCompileLocalEffects(supported));
     const acquired = await effectFixture({splitSource: true,
       writeKind: 'update', memberIds: ['save', 'save_again']});
     const program = JSON.parse(acquired.document);
-    // The installed single-acquisition profile supports one terminal Local
-    // Unit, not this checked acquisition followed by two Local Units. Keep
-    // a genuinely unsupported Host shape instead of rejecting source-free DAGs.
+    // The checked acquired prefix may feed multiple Local Units. Their number
+    // is not an unsupported-shape witness for the current compiler.
     program.stages[0].inputs = {remote: {connector: 'crm/main', resource: 'r'}};
     program.stages[0].steps = [{select: ['id'], as: 'selected'}];
     const environmentDocument = JSON.parse(acquired.environmentWire);
@@ -266,9 +262,25 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
     const environment = moon.clientProgramCheckEnvironment(canonicalJson(environmentDocument),
       environmentDocument.evidence_bundle_cid, false, false, true, false, false, false, false);
     assert.ok(environment);
+    const preparation = await fundedClientPreparation(t, {moon, environment, allowEffects: true, http: true});
+    assert.equal(typeof preparation.prepareRequest, 'function');
+    const prepare = preparation.prepare;
+    const acquiredPrepared = await prepare({kind: 'aql',
+      input: {text: JSON.stringify(program), format: 'json'},
+      parameters: null});
+    checked(moon.clientProgramCompileLocalEffects(acquiredPrepared));
+    // Keep a separate checked negative at the existing installed compiler's
+    // one-or-two acquired-prefix boundary. Each additional root is retained by
+    // a public Result, so it cannot disappear as an unused input. This records
+    // an implementation limit, not a language restriction or provider grant.
+    for (const id of ['source_b', 'source_c']) {
+      const source = structuredClone(program.stages[0]);
+      source.id = id;
+      program.stages.splice(1, 0, source);
+      program.results[id] = {from: {stage: id, result: 'rows'}};
+    }
     const unsupported = {document: JSON.stringify(program), environment};
-    const prepare = installNodeClientEffectProgramPreparation({moon, environment});
-    const prepared = prepare({kind: 'aql',
+    const prepared = await prepare({kind: 'aql',
       input: {text: unsupported.document, format: 'json'},
       parameters: null});
     assert.equal(moon.clientProgramEffectCompilationIssueCode(
@@ -301,7 +313,8 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
           maxRows: 100, maxBatchRows: 10,
           maxBatchRetainedValueBytes: 2048},
       }),
-      prepareSubmit: prepare,
+      prepareRequest: preparation.prepareRequest,
+      prepareSubmit: preparation.prepareSubmit,
       submit: async ({preparedProgram, requestId, principalId,
         connection, submission}) => {
         const accepted = await runs.accept({prepared: preparedProgram,
@@ -320,6 +333,7 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
     const lookupRequest = installNodeClientRequestLookup({journal,
       control: moon, authorizedScope});
     const submissions = installNodeClientSubmission({journal, moon,
+      ...preparation.submission,
       authorizedScope, prepareSubmit: services.prepareSubmit,
       submit: services.submit, lookupRequest});
     const server = createServer(createClientHttpHandler({...services, lookupRequest,
@@ -361,9 +375,9 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
 test('Effect publication preparation failure reserves no physical start',
   async t => {
     const fixture = await effectFixture();
-    const prepare = installNodeClientEffectProgramPreparation({moon,
-      environment: fixture.environment});
-    const prepared = prepare({kind: 'aql', input: {text: fixture.document,
+    const prepare = await fundedClientPreparation(t, {moon,
+      environment: fixture.environment, allowEffects: true});
+    const prepared = await prepare({kind: 'aql', input: {text: fixture.document,
       format: 'json'}, parameters: null});
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,
@@ -431,6 +445,8 @@ test('shared Effect Client admission and physical claim survive races and restar
     readFile(new URL('../../../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
   ]);
   const values = JSON.stringify(JSON.parse(contract).execution_contracts['REL.values']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, values, undefined, undefined));
   const control = runtimeCore(moon).publicationControl;
   let starts = 0;
   let failAfterCapture = false;
@@ -455,7 +471,7 @@ test('shared Effect Client admission and physical claim survive races and restar
         compilation)).root_refs.some(root => root.role === 'effect_result'));
       starts++;
       const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-        owner, registry, values, 1n, 0n, 0n, 0n);
+        owner, installedContracts, values, 1n, 0n, 0n, 0n, undefined, undefined);
       assert.ok(setup);
       const execution = await runCapturedEffectComputation(setup);
       await execution.close();

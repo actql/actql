@@ -114,6 +114,9 @@ typedef struct {
   int64_t max_body_bytes;
   int32_t diagnostic_ceiling;
   bool opened;
+  /* Same Database physical close and descriptor ACK, obtained while current.
+   * A later managed-shell return must not call that physical port again. */
+  bool checked_close_ack;
   bool library_child;
   int test_close_failures;
   int test_commit_failures;
@@ -472,14 +475,17 @@ int32_t actql_native_sqlite_close_checked(
   if (!actql_library_current(database->library)) return 0;
   if (database->journal_pin_close_unknown) return 0;
   if (database->lookup_generation != 0) return 0;
+  if (database->checked_close_ack) return 1;
   if (database->database == NULL) {
     actql_retire_result_storage(database);
     bool ack = database->journal_descriptor_ack == NULL ||
       database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
-    if (ack && database->store_operation != NULL) {
+    if (ack) {
       actql_adapter_free(database->library, database->error);
       database->error = NULL;
-      database->store_operation->database_closed = true;
+      database->checked_close_ack = true;
+      if (database->store_operation != NULL)
+        database->store_operation->database_closed = true;
     }
     return ack;
   }
@@ -499,10 +505,12 @@ int32_t actql_native_sqlite_close_checked(
   actql_retire_result_storage(database);
   bool ack = database->journal_descriptor_ack == NULL ||
     database->journal_descriptor_ack(NULL) == ACTQL_SQLITE_COMPONENT_OK;
-  if (ack && database->store_operation != NULL) {
+  if (ack) {
     actql_adapter_free(database->library, database->error);
     database->error = NULL;
-    database->store_operation->database_closed = true;
+    database->checked_close_ack = true;
+    if (database->store_operation != NULL)
+      database->store_operation->database_closed = true;
   }
   return ack;
 }
@@ -555,6 +563,13 @@ static void actql_native_sqlite_database_finalize(void *value) {
      * component again from the outer context merely to retire this shell. */
     if (!original->database_closed || original->flight || original->sql ||
         database->database != NULL || database->journal_pin_close_unknown ||
+        database->lookup_generation != 0 || database->error != NULL ||
+        database->result_body != NULL || database->result_key != NULL) return;
+  } else if (database->checked_close_ack) {
+    /* Only the already-acknowledged shell remains. Re-entering a component
+     * here would lose the Library pin when the original scope has ended. */
+    if (database->process != getpid() || database->database != NULL ||
+        database->journal_pin_close_unknown ||
         database->lookup_generation != 0 || database->error != NULL ||
         database->result_body != NULL || database->result_key != NULL) return;
   } else {
@@ -1347,15 +1362,17 @@ static int32_t actql_database_read(
   int32_t namespace_length,
   moonbit_bytes_t key,
   int32_t key_length,
-  int64_t caller_body_limit
+  int64_t caller_body_limit,
+  int exact_extent, int64_t expected_revision, int64_t expected_bytes
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   actql_clear_result(database);
   sqlite3_stmt *statement = NULL;
   int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
-    "SELECT revision, body FROM actql_records "
-    "WHERE namespace = ?1 AND record_key = ?2",
+    exact_extent ?
+      "SELECT revision, body, typeof(body) = 'blob' FROM actql_records WHERE namespace = ?1 AND record_key = ?2" :
+      "SELECT revision, body FROM actql_records WHERE namespace = ?1 AND record_key = ?2",
     -1,
     &statement,
     NULL
@@ -1383,15 +1400,19 @@ static int32_t actql_database_read(
       result = actql_operation_code(code);
     } else {
       int length = database->library->column_bytes(statement, 1);
-      const void *body = database->library->column_blob(statement, 1);
       sqlite3_int64 revision = database->library->column_int64(statement, 0);
-      if (revision < 0 || length < 0 || length > database->max_body_bytes ||
+      if (revision < 0 || length < 0 || (!exact_extent && length > database->max_body_bytes) ||
           length > INT32_MAX) {
         actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "invalid stored journal record");
         result = -1;
+      } else if (exact_extent &&
+          (revision != expected_revision || length != expected_bytes ||
+           database->library->column_int64(statement, 2) != 1)) {
+        result = 2;
       } else if (caller_body_limit >= 0 && length > caller_body_limit) {
         result = 4;
       } else {
+        const void *body = database->library->column_blob(statement, 1);
         unsigned char *copy = length == 0 ? NULL : actql_adapter_allocate(database->library, (size_t)length);
         if (length > 0 && copy == NULL) {
           actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "journal body allocation failed");
@@ -1415,10 +1436,10 @@ static int32_t actql_database_read(
 
 // Header lookup does not call column_blob or allocate an adapter/Moon body
 // copy. The original database's body ceiling and row validation still apply.
-int32_t actql_native_sqlite_database_read_header(
+static int32_t actql_database_read_header(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes, int32_t namespace_length,
-  moonbit_bytes_t key, int32_t key_length
+  moonbit_bytes_t key, int32_t key_length, int observed_extent
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   actql_clear_result(database);
@@ -1443,7 +1464,7 @@ int32_t actql_native_sqlite_database_read_header(
       revision = (int64_t)database->library->column_int64(statement, 0);
       length = (int64_t)database->library->column_int64(statement, 1);
       int64_t blob = (int64_t)database->library->column_int64(statement, 2);
-      if (revision < 0 || length < 0 || length > database->max_body_bytes ||
+      if (revision < 0 || length < 0 || (!observed_extent && length > database->max_body_bytes) ||
           length > INT32_MAX || blob != 1) {
         actql_replace_error_for(database->library, &database->error,
           database->diagnostic_ceiling, "invalid stored journal header");
@@ -1463,6 +1484,23 @@ int32_t actql_native_sqlite_database_read_header(
   return result;
 }
 
+int32_t actql_native_sqlite_database_read_header(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length
+) {
+  return actql_database_read_header(database, namespace_bytes, namespace_length, key, key_length, 0);
+}
+
+// Metadata only: no body copy, reservation or read permission.
+int32_t actql_native_sqlite_database_observe_body_extent(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length
+) {
+  return actql_database_read_header(database, namespace_bytes, namespace_length, key, key_length, 1);
+}
+
 int64_t actql_native_sqlite_database_result_header_body_bytes(
   actql_native_sqlite_database *database
 ) {
@@ -1477,7 +1515,7 @@ int32_t actql_native_sqlite_database_read(
   int32_t key_length
 ) {
   return actql_database_read(database, namespace_bytes, namespace_length,
-    key, key_length, -1);
+    key, key_length, -1, 0, 0, 0);
 }
 
 // A caller ceiling is only a physical copy bound, never a reservation or permit.
@@ -1491,7 +1529,21 @@ int32_t actql_native_sqlite_database_read_with_body_limit(
 ) {
   if (max_body_bytes < 0) return 4;
   return actql_database_read(database, namespace_bytes, namespace_length,
-    key, key_length, max_body_bytes);
+    key, key_length, max_body_bytes, 0, 0, 0);
+}
+
+
+// Copy only the SAME observed revision/type/extent. The caller must have
+// acquired its actual Read/SQLite backing before entering this operation.
+int32_t actql_native_sqlite_database_read_exact_body_extent(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length,
+  int64_t revision, int64_t body_bytes
+) {
+  if (revision < 0 || body_bytes < 0 || body_bytes > INT32_MAX) return 4;
+  return actql_database_read(database, namespace_bytes, namespace_length,
+    key, key_length, body_bytes, 1, revision, body_bytes);
 }
 
 static int32_t actql_database_scan_after(
@@ -1618,19 +1670,21 @@ int32_t actql_native_sqlite_database_scan_after_with_body_limit(
     after_key, after_key_length, max_body_bytes);
 }
 
-int32_t actql_native_sqlite_database_insert(
+static int32_t actql_database_insert(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
   int32_t namespace_length,
   moonbit_bytes_t key,
   int32_t key_length,
   moonbit_bytes_t body,
-  int32_t body_length
+  int32_t body_length,
+  int64_t body_extent
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
-  if (body_length < 0 || (int64_t)body_length > database->max_body_bytes) {
+  if (body_length < 0 || (int64_t)body_length >
+      (body_extent < 0 ? database->max_body_bytes : body_extent)) {
     return 4;
   }
   sqlite3_stmt *statement = NULL;
@@ -1688,7 +1742,29 @@ int32_t actql_native_sqlite_database_insert(
   return result;
 }
 
-int32_t actql_native_sqlite_database_compare_exchange(
+int32_t actql_native_sqlite_database_insert(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length,
+  moonbit_bytes_t body, int32_t body_length
+) {
+  return actql_database_insert(database, namespace_bytes, namespace_length, key, key_length, body, body_length, -1);
+}
+
+// The enclosing caller owns/backed these exact bytes. This grants no capacity,
+// mutates no Database ceiling and acknowledges no transaction COMMIT.
+int32_t actql_native_sqlite_database_insert_with_body_extent(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length,
+  moonbit_bytes_t body, int32_t body_length,
+  int64_t body_extent
+) {
+  if (body_extent < 0 || body_extent != body_length) return 4;
+  return actql_database_insert(database, namespace_bytes, namespace_length, key, key_length, body, body_length, body_extent);
+}
+
+static int32_t actql_database_compare_exchange(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
   int32_t namespace_length,
@@ -1696,12 +1772,14 @@ int32_t actql_native_sqlite_database_compare_exchange(
   int32_t key_length,
   int64_t expected_revision,
   moonbit_bytes_t body,
-  int32_t body_length
+  int32_t body_length,
+  int64_t body_extent
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
-  if (body_length < 0 || (int64_t)body_length > database->max_body_bytes) {
+  if (body_length < 0 || (int64_t)body_length >
+      (body_extent < 0 ? database->max_body_bytes : body_extent)) {
     return 4;
   }
   if (expected_revision < 0 || expected_revision == INT64_MAX) return 2;
@@ -1767,6 +1845,30 @@ int32_t actql_native_sqlite_database_compare_exchange(
     return actql_operation_code(finalize_code);
   }
   return result;
+}
+
+int32_t actql_native_sqlite_database_compare_exchange(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length,
+  int64_t expected_revision,
+  moonbit_bytes_t body, int32_t body_length
+) {
+  return actql_database_compare_exchange(database, namespace_bytes, namespace_length, key, key_length, expected_revision, body, body_length, -1);
+}
+
+// The enclosing caller owns/backed these exact bytes. This grants no capacity,
+// mutates no Database ceiling and acknowledges no transaction COMMIT.
+int32_t actql_native_sqlite_database_compare_exchange_with_body_extent(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length,
+  int64_t expected_revision,
+  moonbit_bytes_t body, int32_t body_length,
+  int64_t body_extent
+) {
+  if (body_extent < 0 || body_extent != body_length) return 4;
+  return actql_database_compare_exchange(database, namespace_bytes, namespace_length, key, key_length, expected_revision, body, body_length, body_extent);
 }
 
 // Exact retirement only: the caller owns an active transaction and must

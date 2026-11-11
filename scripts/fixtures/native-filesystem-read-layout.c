@@ -70,17 +70,23 @@ int main(void) {
   int64_t root = actql_native_filesystem_read_layout_field(0);
   int64_t reader = actql_native_filesystem_read_layout_field(1);
   int64_t overhead = actql_native_filesystem_read_layout_field(2);
+  int64_t observation = actql_native_filesystem_read_layout_field(3);
+  int64_t acquisition = actql_native_filesystem_read_layout_field(4);
   assert(root == (int64_t)sizeof(actql_native_filesystem_root));
   assert(reader == (int64_t)sizeof(actql_native_filesystem_reader));
   assert(overhead == (int64_t)(sizeof(struct moonbit_object) +
     sizeof(void (*)(void *))));
-  assert(root > 0 && reader > 0 && overhead > 0);
+  assert(observation == (int64_t)sizeof(actql_native_observed_file_stat));
+  assert(acquisition == (int64_t)sizeof(actql_filesystem_scoped_acquisition));
+  assert(root > 0 && reader > 0 && overhead > 0 && observation > 0 && acquisition > 0);
   assert(actql_native_filesystem_read_layout_field(-1) == -1);
-  assert(actql_native_filesystem_read_layout_field(3) == -1);
+  assert(actql_native_filesystem_read_layout_field(5) == -1);
   assert(heap_entries == 0 && descriptor_entries == 0);
-  printf("{\"cases\":7,\"rootPayload\":%lld,\"readerPayload\":%lld,"
-    "\"externalOverhead\":%lld,\"heapEntries\":0,\"descriptorEntries\":0,"
+  printf("{\"cases\":9,\"rootPayload\":%lld,\"readerPayload\":%lld,"
+    "\"externalOverhead\":%lld,\"observationPayload\":%lld,\"acquisitionPayload\":%lld,"
+    "\"heapEntries\":0,\"descriptorEntries\":0,"
     "\"publicAcceptance\":false}\n",
-    (long long)root, (long long)reader, (long long)overhead);
+    (long long)root, (long long)reader, (long long)overhead,
+    (long long)observation, (long long)acquisition);
   return 0;
 }

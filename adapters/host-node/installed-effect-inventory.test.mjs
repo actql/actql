@@ -6,12 +6,15 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
+import {installedInventoryComponent, copyInstalledInventoryLoader} from './fixtures/installed-inventory-component.fixture.mjs';
 import './installed-effect-inventory.integration.test.mjs';
 import './installed-effect-profile-cleanup.test.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {installedEffectPaths} from './installed-effect.mjs';
+import {readSourceProfileJson, installedRuntimeBundleCid} from './source-profile-json.mjs';
+import {verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
 const runtimeUrl = new URL('../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -58,11 +61,13 @@ const descriptor = (value, index = 0) => ({kind: value.mode === 'row' ? 'create'
   target: value.targets[index].targetRef, mappingRef: value.targets[index].mappingRef,
   mappingCid: value.targets[index].mappingCid, effectId: value.targets[index].effectId});
 
-// An authored connector table loads the real Table/row adapter constructors in
-// an isolated tree. There is no product resolver injection or provider branch.
+// Authored Table/row members supply inventory DATA, including deliberately
+// malformed publications. The actual inventory fold and funded Environment
+// remain real; these member ports do not qualify bound module initialization.
 async function installation(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-inventory-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
+  let component;
+  t.after(async () => {await component?.close(); await rm(root, {recursive: true, force: true});});
   const host = join(root, 'adapters', 'host-node');
   const connectors = join(root, 'adapters', 'connectors-builtin');
   await mkdir(host, {recursive: true});
@@ -70,7 +75,7 @@ async function installation(t) {
   const original = fileURLToPath(new URL('./', import.meta.url));
   for (const entry of await readdir(original, {withFileTypes: true})) {
     if (entry.name === 'installed-effect.mjs') {
-      await copyFile(join(original, entry.name), join(host, entry.name));
+      await copyInstalledInventoryLoader(new URL('./installed-effect.mjs', import.meta.url), join(host, entry.name));
     } else if (entry.isFile() && entry.name.endsWith('.mjs')) {
       await symlink(join(original, entry.name), join(host, entry.name));
     }
@@ -79,10 +84,10 @@ async function installation(t) {
     join(root, 'adapters', 'connectors'));
   await writeFile(join(connectors, 'installations.generated.mjs'), `
     import * as fixture from './fixture.mjs';
-    export const installedConnectors = [{name: 'effect_inventory_fixture',
+    export const installedConnectors = Object.freeze([Object.freeze({name: 'effect_inventory_fixture',
       registration: 'effect_inventory_fixture', revision: 'effect_inventory_fixture/0.1',
-      effect: {profileVersion: 'actql-installed-effect-inventory-fixture/0.1',
-        load: async () => fixture}}];
+      effect: Object.freeze({profileVersion: 'actql-installed-effect-inventory-fixture/0.1',
+        load: async () => fixture})})]);
   `);
   await writeFile(join(connectors, 'fixture.mjs'), `
     import {createInstalledTableEffect} from ${JSON.stringify(new URL('./installed-table-effect.mjs', import.meta.url).href)};
@@ -173,7 +178,21 @@ async function installation(t) {
   const options = {root, principalId: 'inventory', moon, runtimeUrl,
     baseEnvironmentWire: baseWire,
     resolveSecret() { fixture.events.push(['secret']); throw new Error('UnexpectedSecret'); }};
-  return {...fixture, ...loader, root, paths, options};
+  const {installedConnectors} = await import(pathToFileURL(join(connectors, 'installations.generated.mjs')).href);
+  component = installedInventoryComponent(loader, fixture.loaded, async (path, captured, retain) => {
+    // This authored member port exposes DATA and independent cleanup before
+    // metadata validation. It does not claim bound module initialization.
+    const profile = fixture.check(await readSourceProfileJson(path));
+    const entry = installedConnectors[0];
+    const adapter = await fixture.load(profile, {...captured, installation: entry,
+      runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl),
+      ledgerRoot: join(root, 'state', 'effects', 'ledger')});
+    retain(adapter);
+    verifyInstalledConnectorRegistration(entry, adapter);
+    return adapter;
+  });
+  return {...fixture, ...loader, root, paths, options,
+    loadInstalledEffects: (paths, options) => component.load('effect', paths, options)};
 }
 const primary = code => error => {
   assert.equal(error.primaryFailure?.code ?? error.code, code);

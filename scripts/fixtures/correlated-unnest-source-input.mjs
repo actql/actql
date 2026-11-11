@@ -92,7 +92,7 @@ export const correlatedUnnestSuccesses = [
   success('sql', sql),
   success('pipe', pipe, {format: 'aql-text'}),
   success('quoted', sql.replaceAll('p.', '`p`.').replace(') p ', ') `p` ').replaceAll('element', '`element`')),
-  success('data', 'WITH expanded AS (' + pipe + ') FROM expanded |> RESULT answer', {format: 'aql-text'}),
+  success('data', 'WITH expanded AS (' + pipe + ') FROM expanded |> RESULT answer', {format: 'aql-text', resultName: 'answer'}),
   success('empty-parents', sql, {parameters: {parents: []}, expected: []}),
   success('empty-arrays', sql, {parameters: {parents: [{id: 1, items: []}, {id: 2, items: null}]}, expected: []}),
   success('filter-limit', sql.replace('ORDER BY', 'WHERE element IS NOT NULL ORDER BY') + ' LIMIT 2',
@@ -152,7 +152,7 @@ export const correlatedUnnestSuccesses = [
     .replace('SELECT p.id,', 'SELECT id,'),
     {format: 'aql-text', expected: immutableInnerExpected}),
   success('inner-data', 'WITH expanded AS (' + innerPipe + ') FROM expanded |> RESULT answer',
-    {format: 'aql-text', expected: innerExpected}),
+    {format: 'aql-text', resultName: 'answer', expected: innerExpected}),
   success('inner-ordinary-join-continuation', innerSql.replace('ORDER BY',
     'JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 ORDER BY'),
     {expected: innerExpected.slice(1)}),
@@ -227,7 +227,7 @@ export const retainedArraySuccesses = [
     + '|> WHERE element IS NOT NULL |> SELECT * EXCEPT (items) '
     + '|> ORDER BY id, position |> LIMIT 3', {expected: retainedRows.slice(0, 3)}),
   retainedSuccess('data-set-star', 'WITH expanded AS (' + retainedHead + ' ' + retainedTail
-    + ') FROM expanded |> RESULT answer'),
+    + ') FROM expanded |> RESULT answer', {resultName: 'answer'}),
   retainedSuccess('empty-set-star', retainedHead + ' ' + retainedTail,
     {parameters: {parents: []}, expected: []}),
   retainedSuccess('cte-array-alias', 'WITH chosen AS (SELECT p.id, p.items AS children '

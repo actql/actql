@@ -36,3 +36,18 @@ pub fn client_local_preparation_resource_limits(
     limits.execution_bytes,
   ]
 }
+
+///|
+/// Read-only standard Model request window selected by the ordinary Local
+/// installation. This DATA neither debits resources nor changes explicit Host
+/// limits, and cannot reauthorize a retained Environment or recovered Run.
+#export_name("clientLocalResourcePolicyModelRequestByteCeiling")
+pub fn client_local_resource_policy_model_request_byte_ceiling(
+  policy : @client_local_host.ClientLocalResourcePolicy,
+) -> Int64 {
+  guard @client_local_host.client_local_preparation_initial_limits(policy)
+    is Some(_) else {
+    return -1L
+  }
+  @infer_host.standard_limits().model.max_request_bytes
+}

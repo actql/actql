@@ -8,7 +8,8 @@ struct ClientInstalledManagedCapturePlan {
   // context while this original also retains the definition/sample binding.
   _observed_query_time : @publication_host.ClientQueryTimePreparation?
   captures : Array[ClientInstalledCaptureCapacity]
-  whole_input : ClientInstalledWholeSourceCapacity?
+  direct_occurrences : @publication_host.ClientDirectAcquisitionOccurrences?
+  whole_sources : Array[ClientInstalledWholeSourceCapacity]
   graph : @strategy.CheckedDAG
   transport_bytes : Array[Int64]
   transport_execution_bytes : Array[Int64]
@@ -46,6 +47,7 @@ pub fn prepare_installed_managed_capture_plan(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  runtime_admission? : Bool = false,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   prepare_installed_managed_capture_plan_owned(
     prepared,
@@ -61,6 +63,7 @@ pub fn prepare_installed_managed_capture_plan(
     retained_output~,
     provider_factory~,
     query_time~,
+    runtime_admission~,
   )
 }
 
@@ -81,7 +84,11 @@ fn prepare_installed_managed_capture_plan_owned(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
+  runtime_admission? : Bool = false,
+  whole_sources? : Array[ClientInstalledWholeSourceCapacity] = [],
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
@@ -91,23 +98,79 @@ fn prepare_installed_managed_capture_plan_owned(
     return Err(ForeignOriginal)
   }
   let graph = @publication_host.prepared_client_graph(prepared)
-  let count = @strategy.graph_captured_prefix(graph)
+  let whole = !whole_sources.is_empty()
+  let count = if whole {
+    whole_sources.length()
+  } else {
+    @strategy.graph_captured_prefix(graph)
+  }
   if !installed_managed_owner_shape_supported(
       Pure(prepared),
       model_purpose,
       model~,
+      model_graphs~,
     ) ||
     count < 1 ||
-    captures.length() != count ||
+    (if whole { !captures.is_empty() } else { captures.length() != count }) ||
     transport_bytes.length() != count ||
     transport_execution_bytes.length() != count {
     return Err(Unsupported)
   }
+  let direct = match direct_occurrences {
+    Some(value) => value
+    None =>
+      match installed_direct_occurrences_owned(Pure(prepared)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+  }
+  if !installed_direct_occurrences_match_owner(direct, Pure(prepared)) ||
+    @publication_host.client_direct_acquisition_occurrence_count(direct) !=
+    count {
+    return Err(ForeignOriginal)
+  }
+  for index, source in whole_sources {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      )
+      is Some((stage, input, _)) &&
+      @publication_host.client_source_acquisition_matches_program(
+        prepared,
+        stage,
+        input,
+        source.original,
+      ) &&
+      @row_source_host.row_input_acquisition_matches_source(
+        source.acquisition,
+        source.original,
+      ) else {
+      return Err(ForeignOriginal)
+    }
+  }
+  let physical_graph = if whole {
+    match
+      @strategy.prepare_source_inputs_dag(
+        graph,
+        whole_sources.map(value => value.original),
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(Unsupported)
+    }
+  } else {
+    graph
+  }
   for index, original in captures {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      )
+      is Some((stage, input, task)) &&
+      task == index else {
+      return Err(ForeignOriginal)
+    }
     if !@publication_host.client_query_requirement_matches_original_query_time(
         prepared,
-        index,
-        0,
+        stage,
+        input,
         original.requirement,
         query_time,
         request,
@@ -152,17 +215,38 @@ fn prepare_installed_managed_capture_plan_owned(
       transport_execution_bytes,
       retained_output,
       provider_factory,
+      runtime_admission~,
+      physical_graph=Some(physical_graph),
+      whole_capacities=whole_sources,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  guard installed_direct_occurrences_layout(count)
+    is Some((selector_retained, _)) &&
+    @execution.checked_preparation_add_product(
+      compute.limits.retained_bytes,
+      selector_retained,
+      1L,
+    )
+    is Some(retained_bytes) &&
+    @execution.checked_preparation_add_product(
+      compute.limits.execution_bytes,
+      selector_retained,
+      1L,
+    )
+    is Some(execution_bytes) else {
+    return Err(InsufficientCapacity)
+  }
+  let limits = { ..compute.limits, retained_bytes, execution_bytes, }
   Ok({
     prepared,
     request,
     _observed_query_time: query_time,
     captures: captures.copy(),
-    whole_input: None,
-    graph: @publication_host.prepared_client_graph(prepared),
+    whole_sources: whole_sources.copy(),
+    direct_occurrences: Some(direct),
+    graph: physical_graph,
     transport_bytes: transport_bytes.copy(),
     transport_execution_bytes: transport_execution_bytes.copy(),
     installed_contracts,
@@ -176,7 +260,7 @@ fn prepare_installed_managed_capture_plan_owned(
     model_input_prefix: None,
     model_input_suffix: None,
     compilation: None,
-    limits: compute.limits,
+    limits,
   })
 }
 
@@ -256,7 +340,13 @@ fn prepare_retained_installed_capture_ledger(
       return Err(ForeignOriginal)
     }
   }
-  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+  let fits = installed_managed_capture_parent_fits(
+    value,
+    prepared,
+    ledger,
+    plan.limits,
+  )
+  if !fits {
     return Err(InsufficientCapacity)
   }
   // The caller already crossed this Run's actual current boundary and its
@@ -288,6 +378,7 @@ pub fn installed_managed_capture_plan(
 pub suberror ClientInstalledCaptureHostIssue {
   Managed(ClientInstalledManagedRunIssue)
   Run(@strategy.RunIssue)
+  Keyed(@publication_host.ClientKeyedRequestIssue)
   Configuration
 }
 
@@ -310,7 +401,11 @@ pub fn open_installed_managed_capture_host(
   }
   guard value.captured_preparation is Some(plan) &&
     sources.length() ==
-    (if plan.whole_input is Some(_) { 1 } else { plan.captures.length() }) else {
+    (if !plan.whole_sources.is_empty() {
+      plan.whole_sources.length()
+    } else {
+      plan.captures.length()
+    }) else {
     return Err(Managed(ForeignOriginal))
   }
   // Bound the snapshot by the retained original occurrence inventory before
@@ -346,8 +441,8 @@ fn open_installed_managed_capture_host_owned(
     return Err(Managed(ForeignOriginal))
   }
   let graph = plan.graph
-  let first = if plan.whole_input is Some(_) {
-    1
+  let first = if !plan.whole_sources.is_empty() {
+    plan.whole_sources.length()
   } else {
     @strategy.graph_captured_prefix(graph)
   }
@@ -364,14 +459,16 @@ fn open_installed_managed_capture_host_owned(
     Err(issue) => return Err(Managed(issue))
     Ok(ledger) => ledger
   }
-  let opened = if plan.whole_input is Some(source) {
-    if !@query.captured_source_matches_input_acquisition(
-        sources[0],
-        source.original,
-      ) {
-      return Err(Managed(ForeignOriginal))
+  let opened = if !plan.whole_sources.is_empty() {
+    for index, source in plan.whole_sources {
+      if !@query.captured_source_matches_input_acquisition(
+          sources[index],
+          source.original,
+        ) {
+        return Err(Managed(ForeignOriginal))
+      }
     }
-    @strategy.open_source_input_dag(graph, sources[0], ledger)
+    @strategy.open_source_inputs_dag(graph, sources, ledger)
   } else if first == 1 {
     @strategy.open_captured_dag(graph, sources[0], ledger)
   } else {
@@ -385,6 +482,84 @@ fn open_installed_managed_capture_host_owned(
     Err(issue) => return Err(Run(issue))
     Ok(run) => run
   }
+  bind_retained_installed_capture_host(value, plan, ledger, run)
+}
+
+///|
+/// The keyed input was assembled on this SAME adopted Run's Ledger. Reuse
+/// its retained configuration and generated sequences; opening the supplied
+/// port neither quotes another whole budget nor compiles the Program again.
+pub fn open_installed_managed_keyed_capture_host(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
+  if value.source_free_opening || value.source_free_captured is Some(_) {
+    return Err(Managed(AlreadyBound))
+  }
+  value.source_free_opening = true
+  let result = open_installed_managed_keyed_capture_host_owned(
+    value, prepared, request, lookup,
+  )
+  value.source_free_opening = false
+  result
+}
+
+///|
+fn open_installed_managed_keyed_capture_host_owned(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
+  let plan = match installed_managed_capture_plan(value, prepared, request) {
+    Err(issue) => return Err(Managed(issue))
+    Ok(plan) => plan
+  }
+  if !plan.whole_sources.is_empty() || plan.captures.length() != 1 {
+    return Err(Managed(ForeignOriginal))
+  }
+  let ledger = match require_installed_managed_run(value) {
+    Err(issue) => return Err(Managed(issue))
+    Ok(ledger) => ledger
+  }
+  let run = match
+    @publication_host.open_client_keyed_lookup_dag(prepared, lookup, ledger) {
+    Err(issue) => return Err(Keyed(issue))
+    Ok(run) => run
+  }
+  bind_retained_installed_capture_host(value, plan, ledger, run)
+}
+
+///|
+fn bind_retained_installed_capture_host(
+  value : ClientInstalledManagedRun,
+  plan : ClientInstalledManagedCapturePlan,
+  ledger : @resources.Ledger,
+  run : @strategy.CapturedDAG,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
   value.source_free_captured = Some(run)
   let host = bind_client_local_configuration(
     run,
@@ -433,4 +608,27 @@ pub fn begin_installed_managed_capture_read(
   read.requirement = Some(capacity.requirement)
   read.acquisition = Some(acquisition)
   Ok(read)
+}
+
+///|
+/// Existing Query and complete-input Plans borrow the same admitted Request.
+/// A backed Request uses its actual phase funding; future whole-run maxima
+/// remain validation/operation policy and are not a startup allocation.
+fn installed_managed_capture_parent_fits(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  ledger : @resources.Ledger,
+  limits : @resources.LedgerLimits,
+) -> Bool {
+  guard value.preparation is Some(PureManaged(admission, actual)) &&
+    physical_equal(actual, prepared) else {
+    return false
+  }
+  match value.preparation_retirement {
+    None =>
+      installed_effect_limits_fit(limits, @resources.ledger_limits(ledger))
+    Some(PurePreparation(original)) =>
+      preparation_owned_run_limits_fit(original, admission, prepared, ledger)
+    Some(EffectPlanPreparation(_)) => false
+  }
 }

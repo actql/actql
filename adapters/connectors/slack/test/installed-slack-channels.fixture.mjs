@@ -43,7 +43,9 @@ export async function installedSlackChannelsFixture(t,{account='allow',resource=
   const table=createInstalledConnectorTable(installedConnectors),installation=installedConnectorForTable(table,'source',profile);
   const initial=lifetime.open({...options,installation});
   const load=async(overrides={})=>initial.load(loadInstalledSlackSource,profile,{...options,...overrides});
-  const prepare=async(source,{format='sql',selection='id, name',resource:selectedResource=resource,predicate,text:originalText,parameterDeclarations,parameters}={})=>{
+  // The default authored component query selects the Query-only ports below;
+  // explicit caller text is retained without adding or rewriting a predicate.
+  const prepare=async(source,{format='sql',selection='id, name',resource:selectedResource=resource,predicate='TRUE',text:originalText,parameterDeclarations,parameters}={})=>{
     const env=JSON.parse(source.environmentWire);
     const check=common.clientProgramCheckEnvironment(source.environmentWire,env.evidence_bundle_cid,
       false,false,true,false,false,false,false);assert.ok(check);

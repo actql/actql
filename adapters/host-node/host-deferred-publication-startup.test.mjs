@@ -64,6 +64,7 @@ const make=compileFunction(`return async function(input){
   const initializePublicationServices=()=>input.initialize(host,value=>{store=value;});
   const ${declaration('hostConnection')};
   const ${declaration('authorizedScope')};
+  const ${declaration('resultReadLimits')};
   const ${declaration('negotiate')};
   const ${declaration('activate')};
   ${source.slice(activationChoice[0].start,activationChoice[0].end)}

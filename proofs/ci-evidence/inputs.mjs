@@ -9,11 +9,12 @@ export const hash = value => createHash('sha256').update(value).digest('hex');
 // The shared Session image utilities evaluate the inventory and its exact
 // proof-runner extension. The extension imports Node built-ins only; neither
 // module performs top-level I/O. Baseline history reads remain behind explicit
-// function calls. New bytes require reviewing this complete import/effect
+// function calls. The current-only HEAD validator is also lazy. New bytes
+// require reviewing this complete import/effect
 // boundary before a closed key may be issued; a digest update is not a review.
 export const pipelineInventoryBoundary = Object.freeze({
   path: 'proofs/relation-pipeline/inventory.mjs',
-  digest: '4a471bec262620016adef787f3b5a78c652d9c5caf2e2a26ed9d0890874c1cff',
+  digest: '5f4dabc338bb780b8cdd965946815eef7b0c0f3f4a03dc824c06e4783d9989ca',
   dependencies: Object.freeze([Object.freeze({
     path: 'proofs/relation-pipeline/proof-runner-extension.mjs',
     digest: 'e510caa50fbdb48c1c0d179f74ab351f158de81e086620e801ecd8f2aa80b9bb',
@@ -24,6 +25,7 @@ export const mutationSnapshotExtras = Object.freeze([
   'toolchain.json', 'moon.mod',
   'docs/reviews/2026-09-23-local-resource-production-routes.json',
   'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
+  'adapters/host-node/ordinary-node-resource-runtime.cjs',
 ]);
 const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(value);
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&

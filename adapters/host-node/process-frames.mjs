@@ -17,7 +17,7 @@ export function validateFrameLimits(limits) {
   return Object.freeze(copy);
 }
 
-function snapshot(value, limits) {
+function snapshot(value, limits, plainObjects = false) {
   let nodes = 0;
   let bytes = 0;
   const parents = new Set();
@@ -35,7 +35,7 @@ function snapshot(value, limits) {
     if (typeof item === 'boolean') { charge(item ? 4 : 5); return item; }
     if (typeof item === 'string') { charge(textSize(item)); return item; }
     if (typeof item === 'number' && Number.isFinite(item)) {
-      charge(JSON.stringify(item).length); return item;
+      charge(JSON.stringify(item).length); return plainObjects && item === 0 ? 0 : item;
     }
     if (typeof item !== 'object' || parents.has(item)) fail('InvalidFrameValue');
     const array = Array.isArray(item);
@@ -43,7 +43,7 @@ function snapshot(value, limits) {
     if (!array && proto !== Object.prototype && proto !== null) fail('InvalidFrameValue');
     parents.add(item);
     charge(2);
-    const result = array ? [] : Object.create(null);
+    const result = array ? [] : plainObjects ? {} : Object.create(null);
     if (array) {
       if (item.length > limits.maxNodes - nodes) fail('FrameShapeLimit');
       for (let index = 0; index < item.length; index++) {
@@ -60,13 +60,22 @@ function snapshot(value, limits) {
         charge(textSize(key) + 1);
         const property = Object.getOwnPropertyDescriptor(item, key);
         if (!property || !Object.hasOwn(property, 'value')) fail('InvalidFrameValue');
-        result[key] = read(property.value, depth + 1);
+        const child = read(property.value, depth + 1);
+        if (plainObjects) Object.defineProperty(result, key,
+          {value: child, enumerable: true, writable: true, configurable: true});
+        else result[key] = child;
       }
     }
     parents.delete(item);
     return result;
   };
   return read(value, 0);
+}
+
+// Pure configuration validation can retain the same bounded JSON snapshot
+// without manufacturing a transport frame that will never be sent.
+export function snapshotProcessValue(value, inputLimits) {
+  return snapshot(value, validateFrameLimits(inputLimits), true);
 }
 
 export function encodeProcessFrame(value, inputLimits) {
@@ -79,8 +88,12 @@ export function encodeProcessFrame(value, inputLimits) {
   return frame;
 }
 
-export function createProcessFrameReader(inputLimits, accept) {
+export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocation, bodyReceived) {
   const limits = validateFrameLimits(inputLimits);
+  if (beforeBodyAllocation !== undefined && typeof beforeBodyAllocation !== 'function' ||
+      bodyReceived !== undefined && typeof bodyReceived !== 'function') {
+    fail('InvalidFrameCapacityHandoff');
+  }
   const header = Buffer.alloc(4);
   let headerBytes = 0;
   let body;
@@ -103,12 +116,26 @@ export function createProcessFrameReader(inputLimits, accept) {
           if (length < 1 || length > limits.maxBytes) fail('FrameByteLimit');
           // Length is checked before allocating a payload, including a peer
           // which announces a huge message and never sends its body.
+          // An installed consumer can enter its SAME original backing here,
+          // before the raw body, UTF8 String or JSON tree exists. This trusted
+          // private entry is synchronous; its return is not an admission proof.
+          if (beforeBodyAllocation !== undefined) {
+            beforeBodyAllocation(length);
+            // Its original Resource/current callback may close this reader.
+            if (closed) fail('FrameReaderClosed');
+          }
           body = Buffer.allocUnsafe(length);
         }
         const size = Math.min(body.length - bodyBytes, chunk.length - offset);
         chunk.copy(body, bodyBytes, offset, offset + size);
         bodyBytes += size; offset += size;
         if (bodyBytes !== body.length) continue;
+        // Observe ONLY the fully received original Buffer, before even a
+        // refused UTF8/JSON decode. Announced length never supplies this fact.
+        if (bodyReceived !== undefined) {
+          bodyReceived(body);
+          if (closed) fail('FrameReaderClosed');
+        }
         const text = new TextDecoder('utf-8', { fatal: true }).decode(body);
         const value = snapshot(JSON.parse(text), limits);
         body = undefined; bodyBytes = 0; headerBytes = 0;

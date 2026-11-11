@@ -29,10 +29,17 @@ function calls(input,name) {
 
 test('Values compilation constructs its private parts once and never reissues them in final assembly',()=>{
   const entry=body('client_values_compilation','issue_prepared_client_values_compilation');
-  assert.equal(calls(entry,'issue_prepared_client_values_executable_plan_parts'),1);
+  assert.equal(calls(entry,'issue_prepared_client_values_compilation_owned'),1);
+  assert.equal(calls(entry,'issue_prepared_client_values_executable_plan_parts'),0);
+  const owned=body('client_values_compilation','issue_prepared_client_values_compilation_owned');
+  assert.equal(calls(owned,'issue_prepared_client_values_executable_plan_parts'),1);
+  assert.equal(calls(owned,'issue_client_values_compilation_with_parts'),1);
   for(const name of ['issue_prepared_client_values_execution_material',
     'issue_prepared_client_values_aoa_identity','issue_prepared_client_values_fragment',
-    'admit_run_evidence_value']) assert.equal(calls(entry,name),0,name);
+    'admit_run_evidence_value']) {
+    assert.equal(calls(entry,name),0,name);
+    assert.equal(calls(owned,name),0,name);
+  }
   const finish=body('client_values_compilation','issue_client_values_compilation_with_parts');
   for(const name of ['issue_prepared_client_values_execution_material',
     'issue_prepared_client_values_aoa_identity','issue_prepared_client_values_fragment',

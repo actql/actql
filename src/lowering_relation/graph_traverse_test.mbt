@@ -1,4 +1,22 @@
 ///|
+test "closed item demand refuses an expanding Graph path even with a checked output guard" {
+  let id = graph_match_identity(2)
+  let source = "[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
+    id +
+    "]},\"direction\":\"out\",\"edge_types\":[\"owns\"],\"min_hops\":1,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"paths\",\"max_output_rows\":10}}]"
+  let prepared = @lowering_relation.bound_preparation(
+    graph_current_owner(source, false),
+  )
+  let node = @lowering_relation.node_at(prepared, 0).unwrap()
+  assert_true(
+    @lowering_relation.node_closed_item_count_bound(node, [3]) is None,
+  )
+  assert_true(
+    @lowering_relation.node_closed_item_count_bound(node, [0]) is None,
+  )
+}
+
+///|
 test "current TRAIL retains homogeneous bounds edge labels and independent identities" {
   let id = graph_match_identity(2)
   let source = "[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +

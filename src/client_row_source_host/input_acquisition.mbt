@@ -1,6 +1,7 @@
 ///|
-/// Bounds of the complete Source input, independent of a Query Select result.
-/// The installed parent must fund these original bounds before construction.
+/// Semantic bounds of the complete Source input, independent of Query Select.
+/// The original parent funds actual construction before each phase; permitting
+/// a larger future input does not preallocate that maximum.
 pub(all) struct RowInputLimits {
   max_rows : Int
   page : RowPageLimits
@@ -22,6 +23,8 @@ priv struct RowInputPreparation {
   limits : RowInputLimits
   facts : @planning.QuerySourceEvidenceFacts
   members : @environment.ConnectorSourceEvidenceMembers
+  file_listing : @environment.FileListProfile?
+  listing_rows : RowListingRows?
 }
 
 ///|
@@ -63,6 +66,24 @@ priv struct RowInputObservation {
 }
 
 ///|
+fn row_input_limits_valid(limits : RowInputLimits) -> Bool {
+  !(limits.max_rows < 0 ||
+  limits.page.max_bytes <= 0 ||
+  limits.page.max_nodes <= 0 ||
+  limits.page.max_depth <= 0 ||
+  limits.page.max_rows <= 0 ||
+  limits.retention.max_nodes < 0 ||
+  limits.retention.max_text_bytes < 0 ||
+  limits.retention.max_depth < 0 ||
+  limits.retention.max_work < 0 ||
+  limits.wire.max_columns < 0 ||
+  limits.wire.max_order_work < 0 ||
+  limits.wire.max_bytes < 0 ||
+  limits.wire.max_nodes < 0 ||
+  limits.wire.max_depth < 0)
+}
+
+///|
 pub fn prepare_row_input_acquisition(
   original : @sourcequery.SourceAcquisition,
   program : @context.ProgramSourceIdentity,
@@ -70,25 +91,9 @@ pub fn prepare_row_input_acquisition(
   contracts : @execution.RegisteredRelationContracts,
   declaration : RowDeclaration,
   limits : RowInputLimits,
+  listing_policy? : @capacity.Policy? = None,
 ) -> Result[RowInputAcquisition, RowHostIssue] {
-  if limits.max_rows < 0 ||
-    limits.page.max_bytes <= 0 ||
-    limits.page.max_nodes <= 0 ||
-    limits.page.max_depth <= 0 ||
-    limits.page.max_rows <= 0 ||
-    limits.retention.max_nodes < 0 ||
-    limits.retention.max_text_bytes < 0 ||
-    limits.retention.max_depth < 0 ||
-    limits.retention.max_work < 0 ||
-    limits.retention.max_nodes > 100000 ||
-    limits.retention.max_text_bytes > 500000 ||
-    limits.retention.max_depth > 100 ||
-    limits.retention.max_work > 20000000 ||
-    limits.wire.max_columns < 0 ||
-    limits.wire.max_order_work < 0 ||
-    limits.wire.max_bytes < 0 ||
-    limits.wire.max_nodes < 0 ||
-    limits.wire.max_depth < 0 {
+  if !row_input_limits_valid(limits) {
     return Err(InvalidSpecification)
   }
   if !@query.source_input_capture_preparation_matches(
@@ -101,20 +106,108 @@ pub fn prepare_row_input_acquisition(
     view.view_cid == facts.source_contract_cid else {
     return Err(Source(UndeclaredSource))
   }
-  let mode = @sourcequery.source_acquisition_mode(original)
-  let source = @sourcequery.mode_input(mode)
-  let declared = @sourcequery.declaration(source)
+  let declared = @sourcequery.declaration(
+    @sourcequery.mode_input(@sourcequery.source_acquisition_mode(original)),
+  )
   if declared.connector != declaration.connector_id ||
     declared.resource != view.resource {
     return Err(Source(ForeignSource))
   }
-  // Native listings have different retained inventories and Resource custody.
-  // They must select their complete recipe, never this ordinary JSON lane.
-  if @environment.source_request_file_listing(
+  prepare_row_input_acquisition_original(
+    original,
+    program,
+    sequence,
+    contracts,
+    Some(view),
+    declaration.connector_registration,
+    limits,
+    listing_policy~,
+  )
+}
+
+///|
+/// An installed native source already has a checked Catalog SourceView. Keep
+/// that same original and schema; no regenerated declaration or Query exists.
+pub fn prepare_catalog_row_input_acquisition(
+  original : @sourcequery.SourceAcquisition,
+  program : @context.ProgramSourceIdentity,
+  sequence : @lower.PreparedSequence,
+  contracts : @execution.RegisteredRelationContracts,
+  limits : RowInputLimits,
+  listing_policy? : @capacity.Policy? = None,
+) -> Result[RowInputAcquisition, RowHostIssue] {
+  let source = @sourcequery.mode_input(
+    @sourcequery.source_acquisition_mode(original),
+  )
+  let declared = @sourcequery.declaration(source)
+  let catalog = @environment.reference_catalog(
+    @environment.source_request_reference(
       @sourcequery.selected_contract(source),
-    )
-    is Some(_) {
-    return Err(Source(ListingProtocol))
+    ),
+  )
+  let (connector_id, _, _) = @environment.catalog_identity(catalog)
+  if declared.connector != connector_id {
+    return Err(Source(ForeignSource))
+  }
+  // This entry is the known installed DuckDB implementation, never a caller's
+  // proposed registration name. The Host separately retains its real entry.
+  prepare_row_input_acquisition_original(
+    original,
+    program,
+    sequence,
+    contracts,
+    None,
+    "builtin_source",
+    limits,
+    listing_policy~,
+  )
+}
+
+///|
+fn prepare_row_input_acquisition_original(
+  original : @sourcequery.SourceAcquisition,
+  program : @context.ProgramSourceIdentity,
+  sequence : @lower.PreparedSequence,
+  contracts : @execution.RegisteredRelationContracts,
+  declared_view : RowDeclaredView?,
+  registration_name : String,
+  limits : RowInputLimits,
+  listing_policy? : @capacity.Policy? = None,
+) -> Result[RowInputAcquisition, RowHostIssue] {
+  if !row_input_limits_valid(limits) {
+    return Err(InvalidSpecification)
+  }
+  if !@query.source_input_capture_preparation_matches(
+      sequence, original, program,
+    ) {
+    return Err(Source(ForeignSource))
+  }
+  guard @planning.source_acquisition_evidence_facts(original) is Some(facts) else {
+    return Err(Source(UndeclaredSource))
+  }
+  let mode = @sourcequery.source_acquisition_mode(original)
+  let source = @sourcequery.mode_input(mode)
+  let declared = @sourcequery.declaration(source)
+  let file_listing = @environment.source_request_file_listing(
+    @sourcequery.selected_contract(source),
+  )
+  let listing_rows = match file_listing {
+    None => None
+    Some(profile) => {
+      // The same checked Source subject selects the original Catalog/Host
+      // ceiling. max_rows is a capture bound, never a Host listing grant.
+      let resolved = match
+        @environment.resolve_file_listing_rows(
+          profile,
+          listing_policy,
+          facts.source_ref,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          return Err(Source(ListingLimitUnresolved("max_listing_items")))
+      }
+      Some(ResolvedListingRows(resolved))
+    }
   }
   let owner = @lower.sequence_owner(sequence)
   guard @sourcequery.source_acquisition_input(original)
@@ -128,7 +221,7 @@ pub fn prepare_row_input_acquisition(
   }
   let width = @schema.field_count(schema)
   if width == 0 ||
-    width != view.fields.length() ||
+    (declared_view is Some(view) && width != view.fields.length()) ||
     width > limits.wire.max_columns {
     return Err(Source(InvalidInputSchema))
   }
@@ -137,11 +230,21 @@ pub fn prepare_row_input_acquisition(
     let name = @schema.field_reference_name(
       @schema.field_at(schema, index).unwrap(),
     )
-    if !view.fields.contains(name) || columns.contains(name) {
+    if (declared_view is Some(view) && !view.fields.contains(name)) ||
+      columns.contains(name) {
       return Err(Source(InvalidInputSchema))
     }
     columns.push(name)
   }
+  let view = declared_view.unwrap_or_else(() => {
+    resource: declared.resource,
+    source_ref: facts.source_ref,
+    view_cid: facts.source_contract_cid,
+    fields: columns.copy(),
+    carrier_schema_cid: facts.carrier_schema_contract_cid,
+    data_policy_cid: facts.source_data_policy_cid,
+    classification: facts.data_classification,
+  })
   let members = match @planning.source_acquisition_evidence_members(original) {
     Ok(value) => value
     Err(issue) => return Err(SourceEvidence(Member(issue)))
@@ -159,11 +262,13 @@ pub fn prepare_row_input_acquisition(
     limits,
     facts,
     members,
+    file_listing,
+    listing_rows,
   }
   guard @connector.prepare_capability_registry(
       [
         {
-          name: declaration.connector_registration,
+          name: registration_name,
           acquisition: true,
           fixed_compute: false,
           effect: false,
@@ -200,6 +305,11 @@ pub fn row_input_acquisition_columns(
   value : RowInputAcquisition,
 ) -> Array[String] {
   value.preparation.columns.copy()
+}
+
+///|
+pub fn row_input_acquisition_is_listing(value : RowInputAcquisition) -> Bool {
+  value.preparation.file_listing is Some(_)
 }
 
 ///|
@@ -302,6 +412,15 @@ pub fn start_row_input_acquisition(
     physical: None,
     page_charge: None,
     response_borrowed: false,
+    input_progress: Some({
+      nodes: 0L,
+      text: 0L,
+      rows: 0L,
+      tokens: 0L,
+      working_frames: 0,
+      preflight: None,
+      parser: None,
+    }),
     residual: None,
   })
 }
@@ -334,6 +453,30 @@ fn begin_input_row_run(
     page.max_bytes.to_int64() > physical.execution_scratch {
     return Err(Physical(InvalidCharge))
   }
+  let listing = match
+    prepare_row_listing_progress(
+      preparation.file_listing,
+      @sourcequery.source_acquisition_request(preparation.original),
+      page.max_bytes,
+      reference_issuer,
+      preparation.listing_rows,
+      retention=if preparation.file_listing is Some(_) {
+        Some({
+          max_nodes: limits.retention.max_nodes,
+          max_text: limits.retention.max_text_bytes,
+          nodes: 0,
+          text: 0,
+        })
+      } else {
+        None
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      abort_row_attempt(run.attempt)
+      return Err(Source(issue))
+    }
+  }
   match
     new_row_source_read(
       preparation.owner,
@@ -345,7 +488,7 @@ fn begin_input_row_run(
       max_rows,
       limits.retention,
       reference_issuer,
-      None,
+      listing,
       None,
     ) {
     Ok(read) => {
@@ -449,9 +592,7 @@ fn capture_input_row_run(
     }
   }
   if run.physical is Some(physical) {
-    let (original, _) = row_original_input_capacity()
-    let measured = @execution.row_wire_usage(observation.measured).0.to_int64()
-    if measured > 9223372036854775807L - original {
+    guard row_input_capture_retained(run) is Some(retained) else {
       abort_row_run(run)
       return Err(Physical(InvalidLimits))
     }
@@ -459,7 +600,7 @@ fn capture_input_row_run(
       @resources.retain_allocation(
         physical.ledger,
         physical.reservation,
-        original + measured,
+        retained,
       ) {
       Ok(value) => value
       Err(issue) => {
@@ -468,8 +609,60 @@ fn capture_input_row_run(
       }
     }
     physical.holding = Some(holding)
-    // Same original reservation retains provider/response cleanup and the
-    // original input until both have actually retired. Capture is no release.
+    // The same holding, reservation and cleanup observer retain the original
+    // input. Ordinary Host-backed input has completed its page construction
+    // and both validation cursors here; later consumers cannot resume it.
+    // Return ONLY that caller's construction scratch, not the retained input,
+    // provider backing or the remaining receiver/evidence workspace. The
+    // existing captured phase quote is an independent lower bound. Listing
+    // and supplementary provider lifetimes keep their original full envelope.
+    if physical.provider_capacity is None &&
+      preparation.file_listing is None &&
+      preparation.listing_rows is None {
+      guard run.input_progress is Some(progress) &&
+        progress.preflight is None &&
+        progress.parser is None &&
+        validation.phase == 6 &&
+        validation.keys is None &&
+        validation.scores is None &&
+        !validation.constructing else {
+        return Err(InvalidState)
+      }
+      if !input_row_capture_live(run) ||
+        !(run.attempt.state is InputCaptured(actual) &&
+        physical_equal(actual, observation)) {
+        return Err(Evidence(UnverifiedTransport))
+      }
+      let (_, execution) = match
+        @resources.reservation_capacity_amounts(
+          physical.ledger,
+          physical.reservation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+      if execution < physical.execution_scratch ||
+        execution - physical.execution_scratch < retained {
+        return Err(Physical(InvalidLimits))
+      }
+      match
+        @resources.reduce_execution_reservation(
+          physical.ledger,
+          physical.reservation,
+          execution - physical.execution_scratch,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+      // A current observer may cancel/reenter. A returned byte allowance is
+      // monotonic; keep this same captured original on every failed boundary.
+      // This cut neither acknowledges physical stop nor permits recapture.
+      if !input_row_capture_live(run) ||
+        !(run.attempt.state is InputCaptured(actual) &&
+        physical_equal(actual, observation)) {
+        return Err(Evidence(UnverifiedTransport))
+      }
+    }
   }
   Ok({ run, observation: InputObservation(observation), source, })
 }
@@ -508,12 +701,12 @@ pub fn check_row_input_compute_binding(
   dag : @strategy.CapturedDAG,
   task : Int,
 ) -> Result[Unit, RowHostIssue] {
-  guard task == 0 &&
+  guard task >= 0 &&
     row_capture_source(capture) is Ok(_) &&
     capture.observation is InputObservation(observation) &&
     capture.run.physical is Some(physical) &&
     physical_equal(physical.ledger, @strategy.captured_dag_ledger(dag)) &&
-    @strategy.source_input_dag_matches_read(dag, observation.read) else {
+    @strategy.source_input_dag_matches_read_at(dag, observation.read, task) else {
     return Err(InvalidState)
   }
   Ok(())
@@ -534,46 +727,24 @@ pub fn check_row_input_capture_run(
 }
 
 ///|
-/// Existing JSON input/capture representation bounds plus this actual
-/// provider recipe. These DATA describe overlap, never a reservation or grant.
+/// Initial original controls/selector and the actual provider recipe only.
+/// Pages and validators grow this same reservation before construction; wire
+/// and retention ceilings are semantic bounds rather than initial demand.
 pub fn row_input_acquisition_capacity(
   value : RowInputAcquisition,
   provider : @execution.ExecutionCapacity?,
 ) -> @execution.ExecutionCapacity? {
-  let (retained, execution) = row_original_input_capacity()
-  guard @execution.execution_capacity_inventory_add(
-      0L,
-      @execution.CanonicalWireBytes,
-      value.preparation.limits.wire.max_bytes.to_int64(),
-      1,
-    )
-    is Some(wire) else {
+  guard row_input_initial_capacity(value.preparation) is Some(initial) else {
     return None
   }
-  if wire > (9223372036854775807L - execution) / 2L {
-    return None
+  let retained = @execution.execution_capacity_retained_bytes(initial)
+  let execution = @execution.execution_capacity_execution_bytes(initial)
+  // The existing provider describes its actual physical-reader construction.
+  // A Host-backed original has no replacement/dummy provider declaration.
+  if provider is None {
+    return @execution.execution_capacity(retained, execution)
   }
-  // Existing input validators retain a data-sized map of key tuples. The
-  // bounded entry region is temporary and belongs to this same Source parent.
-  guard @execution.execution_capacity_inventory_add(
-      0L,
-      @execution.ValueNodeSlots,
-      value.preparation.limits.retention.max_nodes.to_int64(),
-      1,
-    )
-    is Some(key_entries) else {
-    return None
-  }
-  if key_entries > 9223372036854775807L - execution - wire * 2L {
-    return None
-  }
-  match
-    row_provider_capacity_sum(
-      retained + wire,
-      execution + wire * 2L + key_entries,
-      0L,
-      provider,
-    ) {
+  match row_provider_capacity_sum(retained, execution, 0L, provider) {
     Ok((retained, execution)) =>
       @execution.execution_capacity(retained, execution)
     Err(_) => None
@@ -631,4 +802,12 @@ pub fn start_accounted_row_input_acquisition(
     provider_capacity=provider,
   )
   Ok(run)
+}
+
+///|
+/// Borrow the exact checked input schema for the installed native value codec.
+pub fn row_input_acquisition_schema(
+  value : RowInputAcquisition,
+) -> @schema.Schema {
+  value.preparation.schema
 }

@@ -22,6 +22,7 @@ pub struct ClientInferPlanGraph {
 
   // Same issuer-owned component arrays and completed writer facts. They are
   // never exposed as caller-mutable DATA or reconstructed from saved wire.
+  priv keyed : ClientKeyedPlanComponent?
   priv original_graph : ClientTaskPlanGraph
   priv graph_nodes : Array[@canonical.CanonicalValue]
   priv graph_edges : Array[@canonical.CanonicalValue]
@@ -289,10 +290,16 @@ pub fn issue_installed_client_composed_infer_plan_graph(
   max_nodes : Int,
   max_depth : Int,
   construction? : ClientInferGraphConstruction? = None,
+  keyed_native_read? : (
+    ClientKeyedAcquisition,
+    @publication.PublicationContract,
+  )? = None,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
-  if construction is Some(original) {
-    if @strategy.graph_program_has_effects(occurrence.owner.graph) ||
-      !prepared_client_serialization_occurrences(occurrence.owner).is_empty() {
+  if keyed_native_read is Some(_) || construction is Some(_) {
+    // The same measured constructor is also used by an original Effect
+    // occurrence. Its Effect publication remains with the enclosing compiler;
+    // this component still emits no Effect action or independent Result.
+    if !prepared_client_serialization_occurrences(occurrence.owner).is_empty() {
       return Err(UnsupportedProgram)
     }
     return issue_client_infer_plan_graph_for_occurrence(
@@ -308,7 +315,8 @@ pub fn issue_installed_client_composed_infer_plan_graph(
       max_depth,
       1000000,
       false,
-      construction=Some(original),
+      construction~,
+      keyed_native_read~,
     )
   }
   if @strategy.graph_program_has_effects(occurrence.owner.graph) {
@@ -452,6 +460,11 @@ fn client_infer_required_profiles(
   let profiles = [
     ("actql-infer/0.1", @environment.compiler_inference_barrier_contract_cid()),
   ]
+  if value.keyed is Some(_) {
+    profiles.push(
+      ("actql-lookup/0.1", @environment.compiler_lookup_barrier_contract_cid()),
+    )
+  }
   if value.serialization is Some(_) {
     profiles.push(
       (
@@ -461,6 +474,15 @@ fn client_infer_required_profiles(
     )
   }
   profiles
+}
+
+///|
+/// Borrow the exact Native implementation retained by first-Plan construction.
+/// The original Source reader remains responsible for current authorization.
+pub fn client_infer_plan_native_keyed_read_profile(
+  value : ClientInferPlanGraph,
+) -> @publication.PublicationContract? {
+  value.keyed.map(component => component.original.profile)
 }
 
 ///|
@@ -477,6 +499,10 @@ fn issue_client_infer_plan_graph_for_occurrence(
   include_results : Bool,
   serialization? : ClientSerializationPlanGraph? = None,
   construction? : ClientInferGraphConstruction? = None,
+  keyed_native_read? : (
+    ClientKeyedAcquisition,
+    @publication.PublicationContract,
+  )? = None,
   prepare_mappings? : (
     @infer.CheckedInfer,
     @parameter.BoundValues?,
@@ -501,6 +527,13 @@ fn issue_client_infer_plan_graph_for_occurrence(
       original.max_wire_bytes == max_wire_bytes &&
       original.max_nodes == max_nodes &&
       original.max_depth == max_depth &&
+      (match (original.keyed, keyed_native_read) {
+        (None, None) => true
+        (Some(original), Some((acquisition, profile))) =>
+          physical_equal(original.profile, profile) &&
+          physical_equal(original.fragments.acquisition, acquisition)
+        _ => false
+      }) &&
       (match (original.serialization, serialization) {
         (None, None) => true
         (Some(original), Some(selected)) => physical_equal(original, selected)
@@ -539,27 +572,90 @@ fn issue_client_infer_plan_graph_for_occurrence(
     }) {
     value => value
   }
-  let prefix = match
-    (match serialization {
-      Some(component) => {
-        guard physical_equal(component.owner, value) &&
-          physical_equal(@lower.serialization_owner(component.barrier), owner) &&
-          component.task == task &&
-          component.step < step else {
-          return Err(UnsupportedProgram)
+  let keyed_input = match (construction, keyed_native_read) {
+    (Some(original), _) => original.keyed
+    (None, Some((acquisition, profile))) => {
+      if serialization is Some(_) {
+        return Err(UnsupportedProgram)
+      }
+      Some(
+        match
+          prepare_client_keyed_plan_input(
+            occurrence, acquisition, profile, sequence_limits, max_wire_bytes, max_nodes,
+            max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        },
+      )
+    }
+    (None, None) => None
+  }
+  let keyed = match keyed_input {
+    None => None
+    Some(original) =>
+      Some(
+        match
+          issue_client_keyed_plan_component(
+            original, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        },
+      )
+  }
+  let prefix = if keyed is Some(component) {
+    component.joined
+  } else {
+    match
+      (match serialization {
+        Some(component) => {
+          guard physical_equal(component.owner, value) &&
+            physical_equal(@lower.serialization_owner(component.barrier), owner) &&
+            component.task == task &&
+            component.step < step else {
+            return Err(UnsupportedProgram)
+          }
+          if component.step + 1 == step {
+            Ok(component.output)
+          } else {
+            match construction {
+              Some(original) => {
+                guard original.pipeline_inputs.get(step - component.step - 2)
+                  is Some(input) else {
+                  return Err(UnsupportedProgram)
+                }
+                issue_constructed_client_serialized_infer_fragment(
+                  occurrence,
+                  component,
+                  step - 1,
+                  input,
+                  max_wire_bytes,
+                  max_nodes,
+                  max_depth,
+                )
+              }
+              None =>
+                issue_client_serialized_infer_compute_fragment(
+                  component,
+                  step,
+                  step - 1,
+                  sequence_limits,
+                  max_wire_bytes,
+                  max_nodes,
+                  max_depth,
+                )
+            }
+          }
         }
-        if component.step + 1 == step {
-          Ok(component.output)
-        } else {
+        None =>
           match construction {
             Some(original) => {
-              guard original.pipeline_inputs.get(step - component.step - 2)
-                is Some(input) else {
+              guard original.pipeline_inputs.get(0) is Some(input) else {
                 return Err(UnsupportedProgram)
               }
-              issue_constructed_client_serialized_infer_fragment(
+              issue_constructed_client_infer_fragment(
                 occurrence,
-                component,
                 step - 1,
                 input,
                 max_wire_bytes,
@@ -568,41 +664,14 @@ fn issue_client_infer_plan_graph_for_occurrence(
               )
             }
             None =>
-              issue_client_serialized_infer_compute_fragment(
-                component,
-                step,
-                step - 1,
-                sequence_limits,
-                max_wire_bytes,
-                max_nodes,
-                max_depth,
+              issue_client_infer_prefix_fragment_for_owner(
+                owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
               )
           }
-        }
-      }
-      None =>
-        match construction {
-          Some(original) => {
-            guard original.pipeline_inputs.get(0) is Some(input) else {
-              return Err(UnsupportedProgram)
-            }
-            issue_constructed_client_infer_fragment(
-              occurrence,
-              step - 1,
-              input,
-              max_wire_bytes,
-              max_nodes,
-              max_depth,
-            )
-          }
-          None =>
-            issue_client_infer_prefix_fragment_for_owner(
-              owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-            )
-        }
-    }) {
-    Ok(value) => value
-    Err(issue) => return Err(Input(issue))
+      }) {
+      Ok(value) => value
+      Err(issue) => return Err(Input(issue))
+    }
   }
   let mappings = match construction {
     Some(original) => original.mappings
@@ -689,10 +758,33 @@ fn issue_client_infer_plan_graph_for_occurrence(
     let barrier_id = "task_" + task.to_string() + "_infer_" + step.to_string()
     let output_port = @lower.node_id(node)
     let nodes : Array[@canonical.CanonicalValue] = []
-    if serialization is None {
+    if serialization is None && keyed is None {
       nodes.push(prefix_node)
     }
     let edges : Array[@canonical.CanonicalValue] = []
+    if keyed is Some(component) {
+      for fragment in [component.left, component.barrier, component.joined] {
+        guard parse_plan_identity_value(
+            fragment.wire,
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          )
+          is Some(node) else {
+          return Err(Encoding)
+        }
+        nodes.push(node)
+      }
+      guard client_keyed_plan_edges(
+          component, max_wire_bytes, max_nodes, max_depth,
+        )
+        is Some(original_edges) else {
+        return Err(Encoding)
+      }
+      for edge in original_edges {
+        edges.push(edge)
+      }
+    }
     let roots : Array[@canonical.CanonicalValue] = []
     let transformations : Array[ClientResultTransformation] = []
     let result_plans : Array[ClientResultPlanIdentity] = []
@@ -865,7 +957,8 @@ fn issue_client_infer_plan_graph_for_occurrence(
           Some(original) => {
             let index = match original.serialization {
               Some(component) => next - component.step - 2
-              None => next - step
+              None =>
+                next - step + (if original.keyed is Some(_) { 1 } else { 0 })
             }
             guard original.pipeline_inputs.get(index) is Some(input) else {
               return Err(UnsupportedProgram)
@@ -1028,6 +1121,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
       occurrence,
       result_producers: producers,
       serialization,
+      keyed,
       original_graph,
       graph_nodes: nodes,
       graph_edges: edges,

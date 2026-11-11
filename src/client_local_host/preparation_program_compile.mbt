@@ -101,6 +101,19 @@ fn[I, P] begin_program_compilation_work(
     guard program_check_data_extent_cost(data) is Some(bytes) else {
       return Err(Overflow)
     }
+    // The same checked occurrence inventory bounds retained selection records.
+    // Their seven Strings are borrowed; price records, the array and its holder
+    // before the Effect constructor, without another wire or text allocation.
+    let occurrences = if owner.effect_candidate is Some(_) {
+      @syntax.program_preparation_data(@checked.checked_source_program(checked)).effect_members
+    } else {
+      0
+    }
+    guard program_effect_selection_extent_cost(occurrences) is Some(selection) &&
+      @execution.checked_preparation_add_product(bytes, selection, 1L)
+      is Some(bytes) else {
+      return Err(Overflow)
+    }
     let (r, e) = match
       @resources.preparation_capacity_working_extents(owner.capacity, input) {
       Err(issue) => return Err(Capacity(issue))
@@ -144,6 +157,38 @@ fn[I, P] begin_program_compilation_work(
 }
 
 ///|
+fn program_effect_selection_extent_cost(occurrences : Int) -> Int64? {
+  if occurrences < 0 {
+    return None
+  }
+  if occurrences == 0 {
+    return Some(0L)
+  }
+  let count = occurrences.to_int64()
+  guard @shape.collection_construction_extent({
+      records: count,
+      record_references: count * 7L + 1L,
+      record_words: count,
+      reference_arrays: 1L,
+      reference_items: count,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(extent) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: extent.record_headers,
+    reference_slots: extent.reference_slots,
+    scalar_words: extent.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
 fn[T] same_effect_publication(left : T?, right : T?) -> Bool {
   match (left, right) {
     (None, None) => true
@@ -160,6 +205,7 @@ pub fn[I, P] compile_effect_program_check_preparation(
   update_targets? : @update_targets.UpdateTargetPublication? = None,
   store_targets? : @update_targets.StoreTargetPublication? = None,
   command_targets? : @update_targets.CommandTargetPublication? = None,
+  source_input? : @publication_host.ClientSourceInput? = None,
 ) -> Result[
   @publication_host.PreparedClientEffectComputation,
   ClientProgramCheckPreparationIssue,
@@ -172,20 +218,22 @@ pub fn[I, P] compile_effect_program_check_preparation(
     owner.check_data is Some(data) else {
     return Err(WrongPhase)
   }
-  if owner.effect_targets is Some((update, store, command)) {
+  if owner.effect_targets is Some((update, store, command, source)) {
     if !same_effect_publication(update, update_targets) ||
       !same_effect_publication(store, store_targets) ||
-      !same_effect_publication(command, command_targets) {
+      !same_effect_publication(command, command_targets) ||
+      !same_effect_publication(source, source_input) {
       return Err(ChangedInputs)
     }
   } else {
     owner.effect_targets = Some(
-      (update_targets, store_targets, command_targets),
+      (update_targets, store_targets, command_targets, source_input),
     )
   }
   owner.busy = true
   let result = compile_effect_program_check_preparation_owned(
     owner, input, candidate, data, limits, update_targets, store_targets, command_targets,
+    source_input,
   )
   owner.busy = false
   result
@@ -201,6 +249,7 @@ fn[I, P] compile_effect_program_check_preparation_owned(
   update_targets : @update_targets.UpdateTargetPublication?,
   store_targets : @update_targets.StoreTargetPublication?,
   command_targets : @update_targets.CommandTargetPublication?,
+  source_input : @publication_host.ClientSourceInput?,
 ) -> Result[
   @publication_host.PreparedClientEffectComputation,
   ClientProgramCheckPreparationIssue,
@@ -211,13 +260,32 @@ fn[I, P] compile_effect_program_check_preparation_owned(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  let (result, known) = @publication_host.observe_prepare_checked_client_effect_computation(
-    candidate,
-    limits,
-    update_targets~,
-    store_targets~,
-    command_targets~,
-  )
+  let observed = match source_input {
+    None =>
+      Ok(
+        @publication_host.observe_prepare_checked_client_effect_computation(
+          candidate,
+          limits,
+          update_targets~,
+          store_targets~,
+          command_targets~,
+        ),
+      )
+    Some(source) =>
+      @publication_host.observe_prepare_checked_client_source_effect_computation(
+        source,
+        candidate,
+        limits,
+        update_targets~,
+        store_targets~,
+        command_targets~,
+      ).map_err(issue => ClientProgramCheckPreparationIssue::SourceInput(issue))
+  }
+  let known = match observed {
+    Ok((_, known)) => known
+    // The original Source association is checked before compiler invocation.
+    Err(_) => 0L
+  }
   owner.compilation_known_work = known
   let charged = @resources.spend_preparation_phase_work64(work, known)
   match @resources.finish_preparation_phase_work64(work) {
@@ -233,6 +301,13 @@ fn[I, P] compile_effect_program_check_preparation_owned(
       return Err(Work(issue))
     }
     Ok(_) => ()
+  }
+  let result = match observed {
+    Err(issue) => {
+      owner.phase = CompilationFailed
+      return Err(issue)
+    }
+    Ok((result, _)) => result
   }
   match result {
     Err(issue) => {

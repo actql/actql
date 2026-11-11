@@ -38,6 +38,13 @@ pub fn[C, E] begin_numeric_contribution(
 pub fn execute_async_numeric(
   work : AsyncNumericExecution,
 ) -> Result[Unit, @strategy.RunIssue] {
+  // Registration reserved this SAME task, but only this payload boundary
+  // enters possible physical use. The existing current/owner fence and debit
+  // must precede the kernel; repeated entry cannot consume a second attempt.
+  match @strategy.begin_task_execution_use(work.run, work.task) {
+    Err(issue) => return Err(Physical(issue))
+    Ok(_) => ()
+  }
   @numeric.execute_numeric_attempt(work.payload).map_err(numeric_dispatch_issue)
 }
 

@@ -1,4 +1,29 @@
 ///|
+// Drive only the provider's original acquisition child. A later checked
+// Program projection remains outside this reader's capture boundary.
+fn bigquery_capture_result(
+  read : @bigquery_read.Read,
+) -> Result[@row_host.RowSourceCapture, @bigquery_read.ReadIssue] raise {
+  match @bigquery_read.begin_result_capture(read) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let mut previous = 0L
+  for _ in 0..<1000 {
+    let (done, work) = match @bigquery_read.advance_result_capture(read, 1) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    assert_true(work >= previous)
+    previous = work
+    if done {
+      return @bigquery_read.capture_result_read(read)
+    }
+  }
+  fail("Original bigquery capture did not finish within the fixture work bound")
+}
+
+///|
 fn bigquery_description_limits() -> @bigquery_catalog.DescriptionLimits {
   {
     max_bytes: 4096,
@@ -87,8 +112,10 @@ fn bigquery_read_description(
 }
 
 ///|
+// This component exercises QueryMaterial, not the whole-input reader. Its
+// predicate is authored here; ordinary unfiltered Source coverage stays separate.
 fn bigquery_read_preparation(
-  query_text? : String = "SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM bigquery.usage_30d",
+  query_text? : String = "SELECT ACCOUNT_ID, ACTIVE_USERS, TREND FROM bigquery.usage_30d WHERE TRUE",
   description? : @bigquery_catalog.TableDescription? = None,
 ) -> Result[@bigquery_read.PreparedRead, @bigquery_read.ReadIssue] raise {
   let description = description.unwrap_or(bigquery_read_description())
@@ -408,7 +435,7 @@ test "BigQuery original accounted pages preserve decimal38 and SQL null through 
     (first.length() + second.length()).to_int64(),
   )
   @bigquery_read.finish_result_read(read).unwrap()
-  let capture = @bigquery_read.capture_result_read(read).unwrap()
+  let capture = bigquery_capture_result(read).unwrap()
   let storage = @query.captured_source_storage(
     @row_host.row_capture_source(capture).unwrap(),
     10000,
@@ -559,7 +586,7 @@ test "BigQuery zero-row complete response still requires original envelope and c
   )
   assert_eq(@bigquery_read.accept_query_page(read, None, body).unwrap(), 0)
   @bigquery_read.finish_result_read(read).unwrap()
-  assert_true(@bigquery_read.capture_result_read(read) is Ok(_))
+  assert_true(bigquery_capture_result(read) is Ok(_))
   bigquery_assert_retired(read, ledger)
 }
 
@@ -708,6 +735,58 @@ test "BigQuery metadata CheckedValues cannot substitute the original acquisition
   )
   assert_true(@bigquery_read.result_read_complete(read))
   @bigquery_read.finish_result_read(read).unwrap()
-  assert_true(@bigquery_read.capture_result_read(read) is Ok(_))
+  assert_true(bigquery_capture_result(read) is Ok(_))
   bigquery_assert_retired(read, ledger)
+}
+
+///|
+test "bigquery bounded capture retains the same child through stop and cleanup" {
+  let body = bigquery_body(bigquery_rows())
+  let stopped = Ref(false)
+  let (read, ledger) = bigquery_started_read(
+    "bigquery-bounded-capture-cleanup",
+    body.length().to_int64(),
+    stopped~,
+  )
+  assert_true(
+    @bigquery_read.begin_result_capture(read) is Err(@bigquery_read.Closed),
+  )
+  assert_true(
+    @bigquery_read.advance_result_capture(read, 1) is Err(@bigquery_read.Closed),
+  )
+  @bigquery_read.accept_query_page(read, None, body).unwrap() |> ignore
+  @bigquery_read.finish_result_read(read).unwrap()
+  // The original physical observer has not confirmed settlement yet.
+  assert_true(@bigquery_read.begin_result_capture(read) is Err(_))
+  stopped.val = true
+  @bigquery_read.begin_result_capture(read).unwrap()
+  assert_true(@bigquery_read.begin_result_capture(read) is Err(_))
+  assert_true(@bigquery_read.advance_result_capture_cleanup(read, 1) is Err(_))
+  assert_true(@bigquery_read.advance_result_capture(read, 1) is Ok((false, _)))
+  let charged = @resources.ledger_usage(ledger).transferred_bytes
+  @bigquery_read.interrupt_result_read(read)
+  assert_true(
+    @bigquery_read.advance_result_capture(read, 1) is Err(@bigquery_read.Closed),
+  )
+  assert_true(
+    @bigquery_read.capture_result_read(read) is Err(@bigquery_read.Closed),
+  )
+  let mut closed = false
+  for _ in 0..<1000 {
+    match @bigquery_read.close_result_read(read) {
+      Ok(_) => {
+        closed = true
+        break
+      }
+      Err(_) =>
+        @bigquery_read.advance_result_capture_cleanup(read, 1).unwrap()
+        |> ignore
+    }
+  }
+  assert_true(closed)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, charged)
+  bigquery_assert_retired(read, ledger)
+  assert_true(
+    @bigquery_read.begin_result_capture(read) is Err(@bigquery_read.Closed),
+  )
 }

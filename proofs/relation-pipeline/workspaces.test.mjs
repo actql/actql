@@ -6,6 +6,46 @@ import { minimalRepository, runDriver, successful } from './fixtures/execution-d
 
 // Subprocesses exercise the actual owned-scratch exit hook. Generic scratch
 // lifecycle permutations remain in scripts/owned-scratch.test.mjs.
+test('both copied workspaces load the original ordinary Node CJS from the actual whitebox relative path', t => {
+  const root = minimalRepository(t);
+  const result = runDriver(root, String.raw`
+const {createRequire} = await import('node:module');
+const bridgePath = 'adapters/host-node/ordinary-node-resource-runtime.cjs';
+const source = snapshot(root);
+const workspaces = await mutationWorkspaces(root);
+for (const workspace of [workspaces.pristine,workspaces.mutable]) {
+  const output = join(workspace.root,'_build/js/debug/test/query_integration/query_integration.whitebox_test.js');
+  const original = createRequire(output)('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs');
+  assert(Object.isFrozen(original));
+  assert.equal(typeof original.prepareOriginalManagedRunPorts,'function');
+  assert.equal(typeof original.prepareOriginalSourceChildPorts,'function');
+  assert.equal(digest(readFileSync(join(workspace.root,bridgePath))),digest(readFileSync(join(root,bridgePath))));
+  assert.equal(source.sources[bridgePath],digest(readFileSync(join(root,bridgePath))));
+  assert.notEqual(statSync(join(workspace.root,bridgePath)).ino,statSync(join(root,bridgePath)).ino);
+  assert.deepEqual(workspace.check(),source);
+}
+report({roles:[workspaces.pristine.role,workspaces.mutable.role],bridge:source.sources[bridgePath]});
+workspaces.passed();
+`);
+  const report = successful(result);
+  assert.deepEqual(report.roles,['pristine','mutable']);
+  assert.match(report.bridge,/^[a-f0-9]{64}$/u);
+});
+
+for (const role of ['pristine','mutable']) {
+  test(`a changed ${role} ordinary Node CJS input refuses workspace restoration`, t => {
+    const root = minimalRepository(t);
+    const result = runDriver(root, `
+const workspaces = await mutationWorkspaces(root);
+report(workspaces.evidence);
+writeFileSync(join(workspaces.${role}.root,'adapters/host-node/ordinary-node-resource-runtime.cjs'),'// changed original bridge\\n');
+workspaces.passed();
+`);
+    assert.notEqual(result.status,0);
+    assert.match(result.stderr,role === 'pristine' ? /Pristine execution source changed/ : /Mutable source not restored exactly/);
+  });
+}
+
 test('materialization copies exact source bytes and executable mode without dirty outputs or shared builds', t => {
   const root = minimalRepository(t);
   const result = runDriver(root, String.raw`

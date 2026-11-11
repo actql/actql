@@ -47,7 +47,7 @@ for (const entrance of ['local', 'https']) {
         const sent = [...operations];
         assert.deepEqual(JSON.parse(sdk.formatRunObservationFailure(error, {format: 'json'})), {
           domain: 'observation', explanation: expected(operation, run.ref),
-          presentation: {locale: 'en', translationRevision: '2026-10-09.operations.en.11'},
+          presentation: {locale: 'en', translationRevision: '2026-10-09.operations.en.13'},
         }, '[check-mutation:run-format-public]');
         for (const format of ['text', 'html']) {
           const output = sdk.formatRunObservationFailure(error, {format});

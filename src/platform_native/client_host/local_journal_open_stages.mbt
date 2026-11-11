@@ -59,6 +59,7 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
   reads? : NativeClientJournalReadAccess? = None,
   bootstrap? : NativeClientJournalBootstrapAccess? = None,
   opening_ownership? : @filesystem.NativeFileOwnership? = None,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[
   (NativeClientEpochAuthority, NativeClientRunJournal),
   NativeLocalAdoptionIssue,
@@ -103,7 +104,12 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
     Err(issue) => return Err(Epoch(issue))
   }
   let journal = match
-    open_native_client_run_journal_with_reads(database, max_records, reads~) {
+    open_native_client_run_journal_with_reads(
+      database,
+      max_records,
+      reads~,
+      max_retained_intent_bytes~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }

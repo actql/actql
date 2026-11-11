@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
+import {checkedRequestProgramPreparation} from '../adapters/host-node/client-program-preparation.mjs';
 import {statisticalAggregateProgram, statisticalAliasProgram, statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures} from './fixtures/statistical-aggregate-source-input.mjs';
 
 test('default analytic frames retain the explicit implementation-limit refusal', () => {
@@ -9,9 +10,11 @@ test('default analytic frames retain the explicit implementation-limit refusal',
   assert.equal(defaultFrame.length, 1);
   assert.equal(defaultFrame[0].expectedCode, 'ClientProgramImplementationLimit');
   assert.deepEqual(statisticalAggregateRefusals.filter(x => x.expectedCode !== undefined)
-    .map(x => x.text), [text,
-    'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_POP(amount)',
-    'SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_SAMP(amount + 1)']);
+    .map(x => [x.text, x.expectedCode]), [
+    [text, 'ClientProgramImplementationLimit'],
+    ['SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_POP(amount)', 'ClientProgramInvalidInput'],
+    ['SELECT DISTINCT VARIANCE(amount) AS v FROM records ORDER BY VAR_SAMP(amount + 1)', 'ClientProgramInvalidInput'],
+  ]);
   assert.ok(statisticalAggregateRefusals.some(x =>
     x.text === 'SELECT VAR_SAMP(DISTINCT amount) AS v FROM records' &&
     x.expectedCode === undefined));
@@ -21,6 +24,22 @@ test('default analytic frames retain the explicit implementation-limit refusal',
   assert.deepEqual(statisticalAggregateSuccesses.find(x =>
     x.name === 'statistical-aggregate-analytic-prefix').expected,
   [{id: 1, v: null}, {id: 2, v: 0}, {id: 3, v: 1}]);
+});
+
+test('unselected DISTINCT statistical ordering retains the original invalid-input projection', () => {
+  for (const index of [8, 9]) {
+    const fixture = statisticalAggregateRefusals[index];
+    assert.equal(fixture.name, 'statistical-aggregate-refuse-' + index);
+    const issue = {original:fixture.text}, result = {$tag:0, _0:issue};
+    let projections = 0;
+    const moon = {clientProgramRequestPreparationIssueCode(original) {
+      assert.equal(this, moon); assert.equal(original, result); projections++;
+      return 'source_invalid_input';
+    }};
+    assert.throws(() => checkedRequestProgramPreparation(moon, result), error =>
+      error.code === fixture.expectedCode && error.cause === issue);
+    assert.equal(projections, 1);
+  }
 });
 
 test('statistical aliases retain one group result through DISTINCT and ordered publication', () => {

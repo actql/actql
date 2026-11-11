@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import Module from 'node:module';
+import {readFile} from 'node:fs/promises';
 import {beginInitialControlInstallation, assertInitialControlInstallationCurrent,
   readInitialControlInstallationInput, readInitialControlInstallationAsset}
   from './node-initial-control-installation.mjs';
@@ -90,4 +91,25 @@ test('ordinary fixed assets remain bounded and initialization does not freeze pr
   assert.deepEqual(['registerHooks', 'register'].map(name => Object.getOwnPropertyDescriptor(Module, name)), before);
   assert.equal((await scope.close()).pending, false);
   assert.throws(() => readInitialControlInstallationAsset(scope, pair, 'spec/local-check-environment.json'));
+});
+
+
+test('ordinary Remote Host snapshots its top-level policy fields before initialization awaits', async () => {
+  const environment = JSON.parse(await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  const capacity = {...environment.host_policy_profile.capacity};
+  const original = capacity.max_effect_items;
+  let reads = 0;
+  Object.defineProperty(capacity, 'max_effect_items', {enumerable: true, configurable: true,
+    get() {reads++; return original;}});
+  const pair = originals();
+  const opening = beginInitialControlInstallation(pair, {directory: 'remote', hostCapacityPolicy: capacity});
+  assert.equal(reads, 1);
+  Object.defineProperty(capacity, 'max_effect_items', {value: original + 1});
+  const scope = await opening;
+  const input = readInitialControlInstallationInput(scope, pair);
+  assert.equal(input.hostCapacityPolicy.max_effect_items, original);
+  assert.equal(Object.isFrozen(input.hostCapacityPolicy), true);
+  assert.notEqual(input.hostCapacityPolicy, capacity);
+  assert.equal(reads, 1);
+  assert.equal((await scope.close()).pending, false);
 });

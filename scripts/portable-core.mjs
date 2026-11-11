@@ -39,8 +39,11 @@ function reviewedExternal(owner, path) {
   return undefined;
 }
 
-export function tokens(source, sourceCode = false) {
+// Source overlays may request spans; ordinary inspection retains its exact
+// existing token DATA and refusal rules.
+export function tokens(source, sourceCode = false, withRanges = false) {
   const result = [];
+  const push = (token, begin, end) => result.push(withRanges ? {...token, begin, end} : token);
   let i = 0;
   while (i < source.length) {
     if (/\s/.test(source[i])) { i++; continue; }
@@ -70,7 +73,7 @@ export function tokens(source, sourceCode = false) {
       const start = i + 2;
       const newline = source.indexOf('\n', start);
       i = newline < 0 ? source.length : newline;
-      result.push({kind:'string', value:source.slice(start, i)});
+      push({kind:'string', value:source.slice(start, i)}, start - 2, i);
       continue;
     }
     if (source[i] === '"' || (sourceCode && source[i] === "'")) {
@@ -82,12 +85,13 @@ export function tokens(source, sourceCode = false) {
       }
       if (i === source.length) throw new Error('UnclosedString');
       const raw = source.slice(start, ++i);
-      result.push({kind:'string', value:sourceCode ? raw.slice(1, -1) : JSON.parse(raw)});
+      push({kind:'string', value:sourceCode ? raw.slice(1, -1) : JSON.parse(raw)}, start, i);
       continue;
     }
     const word = /^[A-Za-z_][A-Za-z_0-9]*/.exec(source.slice(i));
-    if (word) { result.push({kind:'word', value:word[0]}); i += word[0].length; continue; }
-    result.push({kind:'symbol', value:source[i++]});
+    if (word) { const begin = i; i += word[0].length; push({kind:'word', value:word[0]}, begin, i); continue; }
+    const begin = i;
+    push({kind:'symbol', value:source[i++]}, begin, i);
   }
   return result;
 }
@@ -291,7 +295,17 @@ export function inspectCore(root, roots = coreRoots) {
   for (const [owner, path] of publicImports) {
     // Generated Show/Debug declarations reference this implicit runtime trait;
     // its implementation is separately covered by the pinned stdlib inventory.
-    const permitted = path === 'moonbitlang/core/debug' ||
+    // This existing out-parameter retains the same reader-collected Inputs on
+    // failure. The pinned Ref representation is in-memory DATA, not an owned
+    // proof or Host port. Its review does not permit another Owner or import.
+    const collectedInputsRef = owner === 'pipeline_check_context' &&
+      path === 'moonbitlang/core/ref';
+    // Source's existing native reader writes only a maximum key length to
+    // its original Ref[Int] out-parameter. The pinned Ref contains mutable
+    // in-memory DATA only; this review adds no runtime import or Host port.
+    const capturedKeyExtentRef = owner === 'source_value' &&
+      path === 'moonbitlang/core/ref';
+    const permitted = path === 'moonbitlang/core/debug' || collectedInputsRef || capturedKeyExtentRef ||
       reviewedExternal(owner, path) !== undefined ||
       path.startsWith('actql/actql/') && packages.has(path.slice(12));
     if (!permitted) throw new Error(`UnreviewedPublicType: ${owner}: ${path}`);

@@ -1,0 +1,185 @@
+{
+  "qualification": "Original correspondence only; no physical funding, dispatch authority or installed acceptance",
+  "declarations": [
+    {
+      "module": "src/run_publication_host/client_model_read_frame.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "dbfc95bf7daa2906fabad27736eec2aacb46b791e2d05198170b57099674e310",
+      "role": "common-semantics",
+      "owner": "Existing original Model Read Scope and Native Request frame owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_client_model_read_frame",
+          "declaration": "check_client_model_read_frame ( scope : ClientModelReadScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , frame : @ resources . ImportedChildLedger , ) - > Result [ Unit , ClientModelReadFrameIssue ]"
+        },
+        {
+          "name": "check_client_model_read_frame_retained",
+          "declaration": "check_client_model_read_frame_retained ( scope : ClientModelReadScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , frame : @ resources . ImportedChildLedger , ) - > Result [ Unit , ClientModelReadFrameIssue ]"
+        },
+        {
+          "name": "client_model_read_frame_scope_current",
+          "declaration": "client_model_read_frame_scope_current ( scope : ClientModelReadScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_client_model_read_frame",
+            "check_client_model_read_frame_retained",
+            "client_model_read_frame_scope_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/request_model_read_native.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "011744c65060d5df620c50857297c1c342285f053b62a8cce4d1d964bb3e22c4",
+      "role": "physical-io",
+      "owner": "Existing original Model Read Scope and Native Request frame owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]check_native_client_request_model_read",
+          "declaration": "[ I ] check_native_client_request_model_read ( arena : @ arena . InstalledArenaHost , live : @ bootstrap . NativeBackedLiveChild [ @ arena . InstalledArenaHost , @ arena . InstalledArenaDomain , I , ] , input : I , scope : @ host . ClientModelReadScope , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ host . ClientInferPlanGraph , ) - > Result [ Unit , NativeClientRequestModelReadIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]check_native_client_request_model_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/model-read-frame-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

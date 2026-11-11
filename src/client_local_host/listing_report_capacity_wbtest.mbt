@@ -32,6 +32,7 @@ test "checked listing refuses missing capacity and either shortage before the or
   let execution = @row_source_host.row_acquisition_execution_capacity(
     acquisition,
   )
+  // Original configuration binding adds H1/R2/W1 = 40 tariff bytes.
   // Small independent accounting units exercise addition/reservation only.
   // They are intentionally NOT supplied through a production installation.
   let declaration = @execution.execution_capacity(7L, 9L).unwrap()
@@ -41,8 +42,14 @@ test "checked listing refuses missing capacity and either shortage before the or
       attempts: 1,
       holdings: 1,
       transfer_bytes: 0L,
-      retained_bytes: retained + 7L - (if shortage == 1 { 1L } else { 0L }),
-      execution_bytes: execution + 9L - (if shortage == 2 { 1L } else { 0L }),
+      retained_bytes: retained +
+      7L +
+      40L -
+      (if shortage == 1 { 1L } else { 0L }),
+      execution_bytes: execution +
+      9L +
+      40L -
+      (if shortage == 2 { 1L } else { 0L }),
     }).unwrap()
     let before = @resources.ledger_usage(ledger)
     let confirmations = Ref(0)
@@ -78,11 +85,11 @@ test "checked listing refuses missing capacity and either shortage before the or
       assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
       assert_eq(
         @resources.ledger_usage(ledger).reserved_retention_bytes,
-        retained + 7L,
+        retained + 7L + 40L,
       )
       assert_eq(
         @resources.ledger_usage(ledger).reserved_execution_bytes,
-        execution + 9L,
+        execution + 9L + 40L,
       )
       @row_source_host.close_accounted_row_run(run).unwrap()
       assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
@@ -116,8 +123,8 @@ test "actual empty listing capture keeps encoding allowance until the same Row c
     attempts: 1,
     holdings: 1,
     transfer_bytes: body.length().to_int64(),
-    retained_bytes: retained + 7L,
-    execution_bytes: execution + 9L + 4096L,
+    retained_bytes: retained + 7L + 40L,
+    execution_bytes: execution + 9L + 40L + 4096L,
   }).unwrap()
   let run = @row_source_host.start_accounted_listing_row_acquisition(
     acquisition,
@@ -137,6 +144,15 @@ test "actual empty listing capture keeps encoding allowance until the same Row c
     _ => false,
   )
   @row_source_host.begin_row_run(run, 4096, 3, 3, reference_issuer=Some(issuer)).unwrap()
+  let foreign = listing_report_acquisition_fixture()
+  assert_true(
+    @row_source_host.borrow_row_run_responses(run, foreign)
+    is Err(@row_source_host.ForeignDeclaration),
+  )
+  let original_borrow = @row_source_host.borrow_row_run_responses(
+    run, acquisition,
+  ).unwrap()
+  @row_source_host.check_row_run_response_borrow_current(original_borrow).unwrap()
   @row_source_host.begin_row_run_listing_request(run, None, 0L).unwrap()
   @row_source_host.begin_row_run_listing_page(run, body, 0L).unwrap()
   let mut complete = false
@@ -171,8 +187,11 @@ test "actual empty listing capture keeps encoding allowance until the same Row c
   let postcapture = @resources.ledger_usage(ledger)
   // Original 22404096 + two independently authored canonical [] wires.
   assert_eq(postcapture.held_bytes, 22404100L)
-  assert_eq(postcapture.reserved_retention_bytes, retained + 7L - 22404100L)
-  assert_eq(postcapture.reserved_execution_bytes, execution + 9L + 4096L)
+  assert_eq(
+    postcapture.reserved_retention_bytes,
+    retained + 7L + 40L - 22404100L,
+  )
+  assert_eq(postcapture.reserved_execution_bytes, execution + 9L + 40L + 4096L)
   assert_eq(references.val, 0)
   // The next asynchronous evidence phase still owns its original allowance.
   assert_true(
@@ -182,6 +201,10 @@ test "actual empty listing capture keeps encoding allowance until the same Row c
   assert_eq(@resources.ledger_usage(ledger), postcapture)
   @row_source_host.close_accounted_row_run(run).unwrap()
   assert_true(@row_source_host.row_capture_source(capture) is Err(_))
+  assert_true(
+    @row_source_host.check_row_run_response_borrow_current(original_borrow)
+    is Err(@row_source_host.InvalidState),
+  )
   let retired = @resources.ledger_usage(ledger)
   assert_eq(retired.held_bytes, 0L)
   assert_eq(retired.reserved_retention_bytes, 0L)

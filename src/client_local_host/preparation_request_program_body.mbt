@@ -51,10 +51,46 @@ pub fn[I] continue_request_program_preparation(
   transfer_program_check_input(child)
   child.busy = false
   owner.program_check = None
-  owner.computation_limits = None
+  // Keep the SAME immutable checked compiler profile until Request retirement.
+  // Default installed module construction consumes it; explicit typed limits
+  // still enter through their existing separate constructor arguments.
   owner.program_json = None
   owner.phase = ProgramCompiled
   Ok(prepared)
+}
+
+///|
+/// Codec dimensions selected by this SAME Request's original checker. This is
+/// immutable DATA, not a semantic recheck, capacity grant or current callback.
+/// Explicit module limits remain independent arguments on the typed entry.
+pub fn[I] request_program_compilation_limits(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientPureCompilationLimits,
+  ClientRequestProgramPlanIssue,
+] {
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  guard (
+      owner.phase == ProgramCompiled ||
+      owner.phase == ProgramPlanQuoted ||
+      owner.phase == ProgramPlanReserved
+    ) &&
+    owner.compiled_program is Some(_) &&
+    owner.program_capacity is Some(_) &&
+    owner.computation_limits is Some(selected) else {
+    return Err(Preparation(WrongPhase))
+  }
+  let standard = @publication_host.client_standard_pure_compilation_limits()
+  let codec = selected.checking.compilation.artifacts
+  Ok({
+    ..standard,
+    max_wire_bytes: codec.bytes,
+    max_nodes: codec.nodes,
+    max_depth: codec.depth,
+  })
 }
 
 ///|
@@ -86,7 +122,27 @@ fn[I] request_program_plan_quote(
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
-    owner.program_plan_quote = Some((r, e))
+    guard owner.compiled_program is Some(prepared) &&
+      installed_direct_occurrences_layout(
+        @strategy.graph_captured_prefix(
+          @publication_host.prepared_client_graph(prepared),
+        ),
+      )
+      is Some((selector_retained, selector_execution)) &&
+      @execution.checked_preparation_add_product(r, selector_retained, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, selector_execution, 1L)
+      is Some(e) else {
+      return Err(Policy)
+    }
+    // The shared Compute constructor now retains its original tail execution
+    // aggregate. This is one fixed scalar, not another Plan or policy knob.
+    if e > 9223372036854775807L - installed_compute_tail_inventory_bytes {
+      return Err(Policy)
+    }
+    owner.program_plan_quote = Some(
+      (r, e + installed_compute_tail_inventory_bytes),
+    )
     owner.phase = ProgramPlanQuoted
   }
   Ok(owner.program_plan_quote.unwrap())
@@ -696,35 +752,45 @@ fn[I] prepare_request_program_module_body_owned(
           },
         )
       }
-      // This exact configured Plan is already retained by the Request. Check
-      // the same initial admission before completing its body or adopting a Run.
-      // These immutable quantities neither grant bytes nor establish currentness.
-      if plan is Some(original) {
-        let available = match
-          @resources.node_local_preparation_limits(owner.initial, input) {
-          Err(issue) => return Err(Installed(Resource(issue)))
-          Ok(value) => value
+      // The Request already backs this original body and constructor. The
+      // Plan's whole-Run maxima remain runtime policy DATA; each actual task
+      // reserves/grows on this same finite Ledger before its allocation.
+      if plan is Some(_) {
+        guard owner.program_capacity is Some(capacity) else {
+          return Err(Preparation(WrongPhase))
         }
-        let required = original.limits
-        if required.retained_bytes > available.retained_bytes ||
-          required.execution_bytes > available.execution_bytes {
-          return Err(
-            CapacityExceeded({
-              phase: "source_free_plan",
-              dimension: if required.retained_bytes > available.retained_bytes {
-                "retention"
-              } else {
-                "execution"
-              },
-              required_retention: required.retained_bytes,
-              required_execution: required.execution_bytes,
-              available_retention: available.retained_bytes,
-              available_execution: available.execution_bytes,
-            }),
-          )
-        }
-        if !installed_effect_limits_fit(required, available) {
-          return Err(Installed(InsufficientCapacity))
+        match
+          check_preparation_owned_body_limits(owner.initial, input, capacity) {
+          Err(InsufficientCapacity) => {
+            // Preserve the existing typed pre-admission refusal for an actual
+            // body deficit. Whole-run policy DATA cannot supply these amounts.
+            let available = match
+              preparation_initial_limits(owner.initial, input) {
+              Err(issue) => return Err(Installed(Resource(issue)))
+              Ok(value) => value
+            }
+            let (retained, execution) = match
+              @resources.preparation_capacity_working_extents(capacity, input) {
+              Err(issue) => return Err(Installed(Preparation(issue)))
+              Ok(value) => value
+            }
+            return Err(
+              CapacityExceeded({
+                phase: "source_free_plan",
+                dimension: if retained > available.retained_bytes {
+                  "retention"
+                } else {
+                  "execution"
+                },
+                required_retention: retained,
+                required_execution: execution,
+                available_retention: available.retained_bytes,
+                available_execution: available.execution_bytes,
+              }),
+            )
+          }
+          Err(issue) => return Err(Installed(issue))
+          Ok(_) => ()
         }
       }
       let artifact = match
@@ -750,7 +816,8 @@ fn[I] prepare_request_program_module_body_owned(
         // The actual Plan now owns its compilation. Measurement/retry DATA
         // has no subsequent consumer; do not retain another per-task graph
         // inventory through the SDK body borrower or the eventual Run.
-        // Keep the peak reservation until this constructor has unwound.
+        // The artifact call has already retired only its returned scratch.
+        // Keep all remaining constructor/measurement inventory charged.
         owner.program_measurement_quote = None
         owner.program_artifact_geometry = None
         owner.program_artifact_quote = None
@@ -792,10 +859,20 @@ fn[I] prepare_request_compilation_owned(
   let domain = owner.program_domain_compilation_inputs
   let continuation_phase = match domain {
     Some(RequestEffectCaptureRecovery(_, _))
+    | Some(RequestModelRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
     | Some(RequestModelGraphConstruction(_, _, _, _))
-    | Some(RequestModelGraph(_, _, _, _)) => return Err(Preparation(WrongPhase))
+    | Some(RequestModelGraph(_, _, _, _))
+    | Some(RequestModelGraphs(_, _, _, _)) =>
+      return Err(Preparation(WrongPhase))
     Some(RequestModelCompilation(_, _, _, _)) => ModelPlanReserved
+    Some(RequestModelsCompilation(selected_manifests, selected_limits, _, _)) => {
+      if !physical_equal(selected_manifests, manifests) ||
+        selected_limits != limits {
+        return Err(Preparation(ForeignOriginal))
+      }
+      ModelPlanReserved
+    }
     Some(RequestSerializationCompilation(_, _, _, _))
     | Some(RequestKeyedSerializationCompilation(_, _, _, _)) =>
       ContentPlanReserved
@@ -816,15 +893,21 @@ fn[I] prepare_request_compilation_owned(
           let units = match
             (match domain {
               Some(RequestEffectCaptureRecovery(_, _))
+              | Some(RequestModelRecovery(_, _))
               | Some(RequestSerializationGraph(_, _, _, _))
               | Some(RequestModelGraphConstruction(_, _, _, _))
-              | Some(RequestModelGraph(_, _, _, _)) =>
+              | Some(RequestModelGraph(_, _, _, _))
+              | Some(RequestModelGraphs(_, _, _, _)) =>
                 return Err(Preparation(WrongPhase))
               Some(RequestModelCompilation(_, _, _, graph)) =>
                 @publication_host.prepared_client_model_measurement_storage(
                   prepared,
                   [graph],
                   limits,
+                )
+              Some(RequestModelsCompilation(_, _, _, graphs)) =>
+                @publication_host.prepared_client_model_measurement_storage(
+                  prepared, graphs, limits,
                 )
               Some(RequestSerializationCompilation(_, _, _, component))
               | Some(RequestKeyedSerializationCompilation(_, _, _, component)) =>
@@ -867,14 +950,28 @@ fn[I] prepare_request_compilation_owned(
       match
         (match domain {
           Some(RequestEffectCaptureRecovery(_, _))
+          | Some(RequestModelRecovery(_, _))
           | Some(RequestSerializationGraph(_, _, _, _))
           | Some(RequestModelGraphConstruction(_, _, _, _))
-          | Some(RequestModelGraph(_, _, _, _)) =>
+          | Some(RequestModelGraph(_, _, _, _))
+          | Some(RequestModelGraphs(_, _, _, _)) =>
             return Err(Preparation(WrongPhase))
           Some(RequestModelCompilation(_, _, _, graph)) =>
             @publication_host.measure_prepared_client_model_compilation_construction(
               prepared,
               [graph],
+              manifests,
+              sequence,
+              limits.max_facts,
+              limits.max_witnesses,
+              limits.max_wire_bytes,
+              limits.max_nodes,
+              limits.max_depth,
+            )
+          Some(RequestModelsCompilation(_, _, _, graphs)) =>
+            @publication_host.measure_prepared_client_model_compilation_construction(
+              prepared,
+              graphs,
               manifests,
               sequence,
               limits.max_facts,
@@ -909,10 +1006,13 @@ fn[I] prepare_request_compilation_owned(
     }
   }
   let capacity = owner.program_capacity.unwrap()
-  let (r, e) = match owner.program_artifact_quote {
+  let (r, e, artifact_scratch) = match owner.program_artifact_quote {
     Some(original) => original
     None => {
-      guard program_artifact_construction_cost(geometry) is Some(bytes) else {
+      guard program_artifact_construction_extents(geometry)
+        is Some((retained, scratch)) &&
+        @execution.checked_preparation_add_product(retained, scratch, 1L)
+        is Some(bytes) else {
         return Err(Preparation(Policy))
       }
       let (r, e) = match
@@ -920,12 +1020,15 @@ fn[I] prepare_request_compilation_owned(
         Err(issue) => return Err(Preparation(Capacity(issue)))
         Ok(value) => value
       }
-      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+      // Only the returned artifact escapes this constructor. Nonescaping
+      // parser/writer scratch is simultaneous execution, not retained output.
+      guard @execution.checked_preparation_add_product(r, retained, 1L)
+        is Some(r) &&
         @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
         return Err(Preparation(Policy))
       }
-      owner.program_artifact_quote = Some((r, e))
-      (r, e)
+      owner.program_artifact_quote = Some((r, e, scratch))
+      (r, e, scratch)
     }
   }
   match @resources.reserve_working_preparation_phase(capacity, input, r, e) {
@@ -956,13 +1059,30 @@ fn[I] prepare_request_compilation_owned(
     ClientRequestProgramPlanIssue,
   ] = match domain {
     Some(RequestEffectCaptureRecovery(_, _))
+    | Some(RequestModelRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
     | Some(RequestModelGraphConstruction(_, _, _, _))
-    | Some(RequestModelGraph(_, _, _, _)) => Err(Preparation(WrongPhase))
+    | Some(RequestModelGraph(_, _, _, _))
+    | Some(RequestModelGraphs(_, _, _, _)) => Err(Preparation(WrongPhase))
     Some(RequestModelCompilation(_, _, _, graph)) =>
       @publication_host.observe_prepared_client_multi_infer_plan_encoding(
         prepared,
         [graph],
+        manifests,
+        sequence,
+        limits.max_facts,
+        limits.max_witnesses,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        nodes_out=owner.program_artifact_plan_encoding_nodes,
+      )
+      .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+      .map_err(issue => TaskCompilation(issue))
+    Some(RequestModelsCompilation(_, _, _, graphs)) =>
+      @publication_host.observe_prepared_client_multi_infer_plan_encoding(
+        prepared,
+        graphs,
         manifests,
         sequence,
         limits.max_facts,
@@ -1026,7 +1146,30 @@ fn[I] prepare_request_compilation_owned(
   }
   if attempted is Ok(artifact) {
     owner.program_compilation = Some(artifact)
+    // The actual encoder/parser call and its work receipt have returned.
+    // Its output graph, wires, measurement and all earlier Request domains
+    // remain live. Only the SAME measured constructor's nonescaping scratch
+    // can now leave this reservation before runtime borrows the original body.
+    let (r, e) = match
+      @resources.preparation_capacity_working_extents(capacity, input) {
+      Err(issue) => return Err(Preparation(Capacity(issue)))
+      Ok(value) => value
+    }
+    if artifact_scratch > e {
+      return Err(Preparation(Policy))
+    }
+    match
+      @resources.reconcile_working_preparation_phase(
+        capacity,
+        input,
+        r,
+        e - artifact_scratch,
+      ) {
+      Err(issue) => return Err(Preparation(Capacity(issue)))
+      Ok(_) => ()
+    }
     if domain is Some(RequestModelCompilation(_, _, _, _)) ||
+      domain is Some(RequestModelsCompilation(_, _, _, _)) ||
       domain is Some(RequestSerializationCompilation(_, _, _, _)) ||
       domain is Some(RequestKeyedSerializationCompilation(_, _, _, _)) {
       // These actual callers issue their first compiled Run/Definition just
@@ -1173,7 +1316,7 @@ pub fn[I] begin_request_program_managed_run(
     return Err(ForeignOriginal)
   }
   owner.phase = Selecting
-  let result = begin_preparation_owned_installed_managed_run(
+  let result = begin_preparation_owned_installed_managed_run_original(
     owner.initial,
     input,
     capacity,
@@ -1205,8 +1348,12 @@ pub fn[I] begin_request_program_managed_run(
       owner.native_query_declarations = None
       owner.native_parameters_ready = false
       owner.held_program = None
+      clear_request_source_input(owner)
       owner.submitted_intent = None
       owner.intent_base = None
+      owner.intent_source_quote = None
+      owner.native_intake_base = None
+      owner.native_intake_wire_bytes = 0
       owner.intent_peak_live = false
       owner.input = None
       owner.query_syntax = None
@@ -1224,7 +1371,9 @@ fn[I, P] original_request_plan_construction_quote(
   input : I,
   data : @checked.ParsedCheckDataEstimate,
 ) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
-  guard program_check_data_extent_cost(data) is Some(bytes) else {
+  guard program_check_data_extent_cost(data) is Some(bytes) &&
+    client_local_value_node_proof_retained_bytes() is Some(proof_retained) &&
+    client_local_value_node_proof_scratch_bytes() is Some(proof_scratch) else {
     return Err(Policy)
   }
   let (r, e) = match
@@ -1232,8 +1381,12 @@ fn[I, P] original_request_plan_construction_quote(
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
-  guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
-    @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+  guard @execution.checked_preparation_add_product(bytes, proof_retained, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(retained, proof_scratch, 1L)
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(r, retained, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(e, execution, 1L) is Some(e) else {
     return Err(Policy)
   }
   Ok((r, e))

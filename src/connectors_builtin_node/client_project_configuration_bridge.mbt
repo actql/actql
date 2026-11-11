@@ -1,4 +1,49 @@
 ///|
+#export_name("clientProjectCatalogAdmit")
+pub fn client_project_catalog_admit(
+  wire : String,
+) -> Result[
+  @publication_host.ClientProjectCatalog,
+  @publication_host.ClientProjectCatalogIssue,
+] {
+  @publication_host.admit_client_project_catalog(wire)
+}
+
+///|
+#export_name("clientProjectCatalogOriginalWire")
+pub fn client_project_catalog_original_wire(
+  value : @publication_host.ClientProjectCatalog,
+) -> String {
+  value.original_wire()
+}
+
+///|
+#export_name("clientProjectCatalogCount")
+pub fn client_project_catalog_count(
+  value : @publication_host.ClientProjectCatalog,
+) -> Int {
+  value.count()
+}
+
+///|
+#export_name("clientProjectCatalogName")
+pub fn client_project_catalog_name(
+  value : @publication_host.ClientProjectCatalog,
+  index : Int,
+) -> String? {
+  value.at(index).map(entry => entry.0)
+}
+
+///|
+#export_name("clientProjectCatalogEntryOriginalJson")
+pub fn client_project_catalog_entry_original_json(
+  value : @publication_host.ClientProjectCatalog,
+  index : Int,
+) -> String? {
+  value.at(index).map(entry => entry.1)
+}
+
+///|
 #export_name("clientProjectConnectionsAdmit")
 pub fn client_project_connections_admit(
   wire : String,
@@ -106,6 +151,14 @@ pub fn client_project_configuration_selected_profile(
 }
 
 ///|
+#export_name("clientProjectConfigurationMockCatalogFile")
+pub fn client_project_configuration_mock_catalog_file(
+  value : @publication_host.ClientProjectConfiguration,
+) -> String? {
+  value.mock_catalog_file()
+}
+
+///|
 #export_name("clientProjectConfigurationMockDataFile")
 pub fn client_project_configuration_mock_data_file(
   value : @publication_host.ClientProjectConfiguration,
@@ -156,6 +209,14 @@ pub fn client_project_profile_selected_name(
   value : @publication_host.ClientProjectProfileSelection,
 ) -> Result[String?, @publication_host.ClientProjectProfileIssue] {
   value.selected_profile()
+}
+
+///|
+#export_name("clientProjectProfileMockCatalogFile")
+pub fn client_project_profile_mock_catalog_file(
+  value : @publication_host.ClientProjectProfileSelection,
+) -> Result[String?, @publication_host.ClientProjectProfileIssue] {
+  value.mock_catalog_file()
 }
 
 ///|

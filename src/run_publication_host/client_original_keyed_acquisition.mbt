@@ -149,15 +149,12 @@ pub fn start_client_original_keyed_lookup_input(
   if !physical_equal(left.acquisition, keyed) {
     return Err(ForeignLeft)
   }
+  guard left.composed is None && left.source is Some(source) else {
+    return Err(ForeignLeft)
+  }
   let ledger = match
     borrow_client_original_keyed_captured_ledger(
-      scope,
-      compiled,
-      definition,
-      plan,
-      prepared,
-      keyed,
-      left.source,
+      scope, compiled, definition, plan, prepared, keyed, source,
     ) {
     Ok(value) => value
     Err(_) => return Err(Assembly("original_custody_changed"))
@@ -173,7 +170,7 @@ pub fn start_client_original_keyed_lookup_input(
 
 ///|
 // Loan only to Core Local's existing accounted keyed Row receiver. The cache
-// count comes from the actual assembly, not an external usage claim. Return
+// count comes from actual completed responses, never preplanned key slots. Return
 // its exact request so the receiver does not re-extract data after this check.
 // No Node export/getter, another resource owner or durable grant is introduced.
 pub fn borrow_client_original_keyed_child(
@@ -217,14 +214,14 @@ pub fn borrow_client_original_keyed_child(
     lookup.selected_request is Some(selected) &&
     physical_equal(selected, request) &&
     lookup.selected_index == Some(-1) &&
-    request.row == lookup.accepted &&
+    request.row == keyed_lookup_next_original_row(lookup) &&
     request.attempts == 0L &&
     !request.io_complete &&
     @resources.original_keyed_child_preparation_available(
       scope.identity,
       scope.ledger,
       lookup.reservation,
-      lookup.known.length(),
+      lookup.completed_responses,
       prefix~,
     ) else {
     return Err(Assembly("original_child_custody_changed"))
@@ -234,7 +231,7 @@ pub fn borrow_client_original_keyed_child(
       scope.ledger,
       scope.identity,
       lookup.reservation,
-      lookup.known.length(),
+      lookup.completed_responses,
       request.request,
     ),
   )
@@ -253,7 +250,7 @@ pub fn client_original_keyed_lookup_available(
   keyed : ClientKeyedAcquisition,
   lookup : ClientKeyedLookupInput,
 ) -> Bool {
-  @execution.producer_read_available(lookup.left.read) &&
+  client_keyed_left_available(lookup.left) &&
   !lookup.closed &&
   lookup.left.lookup_issue is None &&
   physical_equal(lookup.ledger, scope.ledger) &&

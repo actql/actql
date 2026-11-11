@@ -56,6 +56,24 @@ pub fn client_program_bigquery_declaration_limits(
 }
 
 ///|
+#export_name("clientProgramBigQueryReadDeclarationConstructionCapacity")
+pub fn client_program_bigquery_read_declaration_construction_capacity(
+  body_bytes : Int,
+  encoded_units : Int,
+  target_units : Int,
+  resource_units : Int,
+  connector_units : Int,
+  revision_units : Int,
+  description : @bigquery_catalog.DescriptionLimits,
+  declaration : @client_row_source_host.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  @bigquery_catalog.read_declaration_construction_capacity(
+    body_bytes, encoded_units, target_units, resource_units, connector_units, revision_units,
+    description, declaration,
+  )
+}
+
+///|
 #export_name("clientProgramBigQueryDescribeTable")
 pub fn client_program_bigquery_describe_table(
   project : String,

@@ -21,7 +21,7 @@ function fixture({required=true,legacy=false,race,commitFailure}={}) {
   const retained = () => ({ref,durability:'durable',revision:0,lookupExpiresAt:policy.expiresAt,
     runDefinition:state.saved.runDefinition,runAdmissionEvidence:state.saved.runAdmissionEvidence,
     physicalStartReserved:state.claims!==0,preDispatchFailureConfirmed:false,
-    cancellationRequested:false,observedTerminalOutcome:null});
+    cancellationRequested:state.cancelled === true,observedTerminalOutcome:null});
   const moon={
     clientProgramEffectCompilationIssueCode:()=>undefined,
     clientProgramCompileLocalEffects(value){assert.strictEqual(value,prepared);state.events.push('compile');return ok(compilation);},
@@ -219,4 +219,64 @@ test('Effect definition preserves original synchronous failure and existing sync
   assert.equal(seen.prepared,f.request.prepared);assert.equal(f.state.events.filter(event=>event==='compile').length,1);assert(Object.isFrozen(seen));
   assert.deepEqual(handle.ref,f.ref);assert.equal(f.state.issued.length,1);
   assert.equal(f.state.claims,0);assert.equal(f.state.executions.length,0);
+});
+
+
+async function restoredDefinitionFixture(prepareDefinition) {
+  const f = fixture(), first = f.install();
+  const initial = await first.accept(f.request);await first.start(initial);
+  const second = f.install({prepareDefinition: facts => prepareDefinition(facts, f)});
+  const handle = await second.accept(f.request);
+  return {...f, second, handle};
+}
+
+test('cold Effect computation prepares its same restored definition before execution preparation', async () => {
+  let original;
+  const f = await restoredDefinitionFixture((facts, fixture) => {
+    assert.equal(original, undefined);original = facts;fixture.state.events.push('definition');
+    assert(Object.isFrozen(facts));
+    for (const name of ['prepared', 'identity', 'compilation', 'allowed', 'definition',
+      'queryTimePreparation', 'modelCompiled']) assert(Object.hasOwn(facts, name), name);
+    assert.strictEqual(facts.prepared, fixture.request.prepared);
+    assert.strictEqual(facts.identity, fixture.identity);
+  });
+  const before = f.state.events.filter(value => value === 'compile').length;
+  const restored = await f.second.restoreComputation(f.handle);
+  assert(original);assert.strictEqual(f.state.preparations.at(-1), original);
+  assert.strictEqual(restored.prepared, original.prepared);
+  assert.strictEqual(restored.compilation, original.compilation);
+  assert(f.state.events.lastIndexOf('definition') < f.state.events.lastIndexOf('prepare'));
+  assert.equal(f.state.events.filter(value => value === 'compile').length, before + 1);
+  assert.equal(f.state.issued.length, 1);assert.equal(f.state.samples.length, 1);assert.equal(f.state.claims, 1);
+});
+
+test('cold Effect computation joins original invalid async definition before refusing', async () => {
+  let settle;
+  const pending = new Promise(resolve => {settle = resolve;});
+  const f = await restoredDefinitionFixture(() => pending);
+  const before = f.state.preparations.length;
+  let completed = false, failure;
+  const flight = f.second.restoreComputation(f.handle).then(
+    () => {completed = true;}, cause => {completed = true;failure = cause;});
+  await new Promise(setImmediate);
+  try {assert.equal(completed, false);assert.equal(f.state.preparations.length, before);}
+  finally {settle();await flight;}
+  assert.equal(failure?.message, 'AsyncClientEffectDefinitionPreparation');
+  assert.equal(f.state.preparations.length, before);assert.equal(f.state.claims, 1);
+});
+
+test('cold Effect computation preserves original thrown undefined before execution preparation', async () => {
+  const f = await restoredDefinitionFixture(() => {throw undefined;});
+  const before = f.state.preparations.length;let rejected = false;
+  try {await f.second.restoreComputation(f.handle);}
+  catch (cause) {rejected = true;assert.strictEqual(cause, undefined);}
+  assert.equal(rejected, true);assert.equal(f.state.preparations.length, before);
+  assert.equal(f.state.claims, 1);
+});
+
+test('cold Effect computation refuses cancellation reentered by its definition constructor', async () => {
+  const f = await restoredDefinitionFixture((_facts, fixture) => {fixture.state.cancelled = true;});
+  const before = f.state.preparations.length;
+  await assert.rejects(f.second.restoreComputation(f.handle), {code: 'ClientEffectRunDenied'});
+  assert.equal(f.state.preparations.length, before);assert.equal(f.state.claims, 1);
 });

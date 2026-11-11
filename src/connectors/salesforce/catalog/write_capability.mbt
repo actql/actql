@@ -82,6 +82,51 @@ fn capability_field(
 }
 
 ///|
+let write_capability_nodes : Int = 100000
+
+///|
+let write_capability_depth : Int = 8
+
+///|
+/// Original writer limits, shared with its constructor inventory. This pure
+/// metadata projects no capability, current authority or caller allowance.
+pub fn write_capability_construction_limits(
+  max_bytes : Int,
+) -> @source.ParseLimits? {
+  if max_bytes < 1 || max_bytes > 1000000 {
+    return None
+  }
+  Some({
+    max_input_bytes: max_bytes,
+    max_nodes: write_capability_nodes,
+    max_depth: write_capability_depth,
+  })
+}
+
+///|
+/// Constructor-only bound for this writer's generated schema. The original
+/// writer limits still govern acceptance. One possible external target adds
+/// one field; each field emits fewer than32 fixed nodes plus reference names.
+/// The root and either existing binding emit fewer than64 nodes.
+pub fn write_capability_generated_construction_limits(
+  original : @source.ParseLimits,
+  fields : Int,
+  references_per_field : Int,
+) -> @source.ParseLimits? {
+  if fields < 1 || references_per_field < 0 {
+    return None
+  }
+  let nodes = Int64::min(
+    original.max_nodes.to_int64(),
+    64L + (fields.to_int64() + 1L) * (32L + references_per_field.to_int64()),
+  )
+  if nodes < 1L || nodes > 2147483647L {
+    return None
+  }
+  Some({ ..original, max_nodes: nodes.to_int(), })
+}
+
+///|
 pub fn prepare_write_capability_evidence(
   request : SingleWriteRequest,
   runtime_bundle_cid : String,
@@ -98,7 +143,9 @@ pub fn prepare_write_capability_evidence(
   }
   let plan = request.projection
   let binding = plan.binding
-  let writer = @encode.writer(max_bytes, 100000, 8) catch {
+  let writer = @encode.writer(
+    max_bytes, write_capability_nodes, write_capability_depth,
+  ) catch {
     _ => return Err(OutputLimit)
   }
   try {

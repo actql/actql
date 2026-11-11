@@ -3,7 +3,6 @@
   "declarations": [
     {
       "module": "packages/native-cli/lib/project-template.mjs",
-      "sha256": "bc3a86afe31321b277202fafa9b715c2e84dbf1a0b2afecb4d17eb87ed5d2972",
       "exports": [
         "projectTemplateFiles"
       ],
@@ -99,7 +98,7 @@
             "verification": [
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
-                "anchor": "test('the Quickstart template prepares seven inputs"
+                "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
@@ -108,18 +107,29 @@
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
                 "anchor": "test('deal-review Mock DATA contains only original Opportunity"
+              },
+              {
+                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "anchor": "test('mock template catalogs declare existing typed rows keys aliases and write permissions'"
+              },
+              {
+                "path": "scripts/native-cli-project-scaffold.test.mjs",
+                "anchor": "test('deal-review catalog separates physical UTF8 files from logical keyed Content views'"
               }
             ]
           }
         }
-      ]
+      ],
+      "sha256": "eab6afc9659e95509a246c2c967586c44b56aa94f5caae7bf6ffdcc88d13aec9"
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "74e4f6ec847a939ae9dc49fc7e3cb9c08201d51d02dc118d66a3d9c7cf9956db",
+      "sha256": "0f072b58f8f9daceffe7238951a85a2ead825f767429b549557b585bd59a578c",
       "exports": [
+        "nativeMockAcceptanceObservations",
         "projectInitArguments",
         "projectInitialAdoptionArguments",
+        "requireProjectInitSupport",
         "scaffoldProject"
       ],
       "operations": [
@@ -139,6 +149,72 @@
           "async": false
         },
         {
+          "name": "nativeMockAcceptanceObservations",
+          "parameters": [
+            "stderr"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/amount/amount",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/exact/exact",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/exact/exact/exact",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#3",
+          "parameters": [
+            "group"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeMockAcceptanceObservations/sameField",
+          "parameters": [
+            "actual",
+            "expected",
+            "message"
+          ],
+          "async": false
+        },
+        {
           "name": "projectInitArguments",
           "parameters": [
             "args"
@@ -148,8 +224,24 @@
         {
           "name": "projectInitialAdoptionArguments",
           "parameters": [
-            "project"
+            "project",
+            "hostConfiguration"
           ],
+          "async": false
+        },
+        {
+          "name": "requireProjectInitSupport",
+          "parameters": [
+            "executable",
+            "environment",
+            "template",
+            "query"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireProjectInitSupport/unavailable/unavailable",
+          "parameters": [],
           "async": false
         },
         {
@@ -176,6 +268,8 @@
       ],
       "imports": [
         "./project-template.mjs",
+        "node:assert/strict",
+        "node:child_process",
         "node:fs",
         "node:path"
       ],
@@ -227,7 +321,7 @@
               },
               {
                 "path": "packages/native-cli/lib/project-scaffold.mjs",
-                "anchor": "export function projectInitialAdoptionArguments(project)"
+                "anchor": "export function projectInitialAdoptionArguments(project, hostConfiguration)"
               }
             ],
             "identity": [
@@ -296,11 +390,116 @@
             "verification": [
               {
                 "path": "scripts/native-cli-project-scaffold.test.mjs",
-                "anchor": "test('the Quickstart template prepares seven inputs"
+                "anchor": "test('the Quickstart template prepares eight inputs"
               },
               {
                 "path": "scripts/native-cli-project-cleanup.test.mjs",
                 "anchor": "// Inject failures into operations on real, fresh handles."
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('init forwards one explicit operator Host path unchanged to the original Native adoption'"
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('installed init dispatcher forwards the original Host selector without reading or creating that file'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "requireProjectInitSupport",
+            "requireProjectInitSupport/unavailable/unavailable",
+            "nativeMockAcceptanceObservations",
+            "nativeMockAcceptanceObservations/amount/amount",
+            "nativeMockAcceptanceObservations/exact/exact",
+            "nativeMockAcceptanceObservations/exact/exact/exact",
+            "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations",
+            "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#2",
+            "nativeMockAcceptanceObservations/nativeMockAcceptanceObservations#3",
+            "nativeMockAcceptanceObservations/positive/positive",
+            "nativeMockAcceptanceObservations/sameField"
+          ],
+          "exports": [
+            "requireProjectInitSupport",
+            "nativeMockAcceptanceObservations"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// Implementation availability only, observed from the same admitted executable."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "export function requireProjectInitSupport("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// A positive answer cannot adopt a Store or supply runtime/Account authority."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "const child = query(executable, ['project-init-support'],"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "env: {...environment, ACTQL_NATIVE_TIMINGS: observing ? '1' : '0'}, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "if (child.error || child.signal || child.status !== 0 || (!observing && child.stderr !== '') ||"
+              },
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "if (child.stdout !== wire && child.stdout !== wire + '\\n') unavailable();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: observing ? 32768 : 4096,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "timeout: 5000, killSignal: 'SIGKILL', maxBuffer: observing ? 32768 : 4096,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/native-cli/lib/project-scaffold.mjs",
+                "anchor": "// No runtime supplier, grant, signer or fallback is selected by this answer."
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('old, malformed, failed, timed out and oversized Native queries refuse before preparation'"
+              },
+              {
+                "path": "src/cmd/native_client/local_project_configuration_wbtest.mbt",
+                "anchor": "test \"project init support is implementation data and acquires no command original\""
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('installed init silences only private query timings and preserves adoption diagnostics'"
+              },
+              {
+                "path": "scripts/native-cli-project-init.test.mjs",
+                "anchor": "test('opt-in init observations forward only complete original child metadata with unchanged support contract'"
               }
             ]
           }

@@ -58,12 +58,20 @@ pub fn NativeLocalAdoptionSession::open_existing_journal_with_custody(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalJournalOpenFailure] {
   if self.journal_open_failure is Some(original) {
     return Err(original)
   }
   let opened = if self.existing_only {
-    self.open_journal(library, crypto, ttl_ms, max_records, max_snapshot_bytes)
+    self.open_journal(
+      library,
+      crypto,
+      ttl_ms,
+      max_records,
+      max_snapshot_bytes,
+      max_retained_intent_bytes~,
+    )
   } else {
     Err(InvalidInput)
   }

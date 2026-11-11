@@ -3,7 +3,8 @@
 The standard distribution is `actql`; the lightweight Remote Client is
 `actql-sdk`. The standard product depends on the exact same release cohort of
 `actql-sdk` and `actql-local-runtime`. Its facade reexports the same Client,
-Execution, Result and diagnostic objects. It contains no second engine, Run
+Execution, Result and diagnostic objects, including the same `CheckObservation`,
+`CheckReport` and `CheckReason` types. It contains no second engine, Run
 owner, scheduler or recovery implementation.
 
 The selected installation forms are:
@@ -34,6 +35,14 @@ token)` API.
 
 The short Local entry is `actql.open(state_dir=".actql")`; it returns the same
 context-managed `Client` used by `Client.open()` and `await AsyncClient.open()`.
+The named `actql.connect(mode="local", installation=".actql")` entry and
+`await AsyncClient.connect(mode="local", installation=".actql")` select that
+same installed factory and preserve its original cleanup handle.
+Named Local connections discover the nearest `actql.config.json`; `profile`
+overrides that original configuration's choice. Explicit `installation` selects
+the Store; otherwise its `state_dir` is relative to the configuration file.
+`open(state_dir=...)` keeps its Store-only selection. Profile intake and the
+operational backend support in the matrix below remain separate contracts.
 The Client factories also accept an explicit Store directory. They
 accept no endpoint, token, Wasm/library path, resources or allocator options.
 Both delegate to the same installed Host and existing Client model. The sync

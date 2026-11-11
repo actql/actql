@@ -24,7 +24,7 @@ test('IFNULL fixtures distinguish NULL, false, empty text and demanded fallback 
   const all = [...ifnullSuccesses, ...ifnullRefusals, ...ifnullExecutionFailures];
   assert.equal(new Set(all.map(value => value.name)).size, all.length);
   assert.ok(ifnullRefusals.some(value => value.text.includes('unknown_function')));
-  assert.deepEqual(ifnullExecutionFailures[0].resultNames, ['answer']);
+  assert.deepEqual(ifnullExecutionFailures[0].resultNames, ['main']);
 });
 
 test('ordinary packed corpus includes IFNULL and its narrow selection excludes unrelated campaigns', async () => {

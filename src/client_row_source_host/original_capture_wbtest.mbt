@@ -91,3 +91,79 @@ test "original input cleanup revokes reads before sliced backing reclamation" {
   assert_true(close_restored_row_original_input(restored, 1))
   assert_eq(@execution.admitted_input_work(input), work)
 }
+
+///|
+test "shared original snapshot engine preserves omitted and explicit null cells" {
+  let (owner, schema) = row_presence_owner()
+  let input = @execution.prepare_bounded_admitted_input(
+    owner,
+    0,
+    3,
+    row_presence_retention(),
+  ).unwrap()
+  let expected = ["{\"id\":1,\"p\":7}", "{\"id\":2,\"p\":null}", "{\"id\":3}"]
+  for wire in expected {
+    row_presence_append(input, schema, wire).unwrap()
+  }
+  let captured = @execution.finish_admitted_input(input).unwrap()
+  let live = Ref(true)
+  let read = @execution.prepare_supplied_relation_read(owner, 0, captured, () => {
+    live.val
+  }).unwrap()
+  let (schema_cid, rows_cid, rows) = row_original_capture_export_facts(
+    export_row_original_read(read).unwrap(),
+  )
+  assert_eq(rows, expected)
+  live.val = false
+  discard_failed_original_input(input)
+  let available = Ref(true)
+  let restored = restore_original_read_with_limits(
+    owner,
+    0,
+    schema_cid,
+    rows_cid,
+    rows,
+    100,
+    {
+      max_nodes: 100000,
+      max_text_bytes: 2000000,
+      max_depth: 64,
+      max_work: 20000000,
+    },
+    original_capture_wire_limits(),
+    original_capture_schema_limits(),
+    () => available.val,
+  ).unwrap()
+  let restored_read = restored_row_original_read(restored).unwrap()
+  assert_eq(
+    row_original_capture_export_facts(
+      export_row_original_read(restored_read).unwrap(),
+    ),
+    (schema_cid, rows_cid, expected),
+  )
+  available.val = false
+  assert_true(restored_row_original_read(restored) is None)
+  let mut closed = false
+  for _ in 0..<20 {
+    if close_restored_row_original_input(restored, 1) {
+      closed = true
+      break
+    }
+  }
+  assert_true(closed)
+  assert_true(
+    restore_original_read_with_limits(
+      owner,
+      0,
+      schema_cid,
+      rows_cid,
+      ["{\"id\":1,\"p\":null}"],
+      100,
+      row_presence_retention(),
+      original_capture_wire_limits(),
+      original_capture_schema_limits(),
+      () => true,
+    )
+    is Err(InvalidBinding),
+  )
+}

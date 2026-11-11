@@ -75,6 +75,15 @@ async function declaredSource(runtimeRootUrl, publication) {
   return {environment, source, sourceRef, fields, catalogCid: catalog.catalog_cid};
 }
 
+// This current authored Host has separate observation and Run permissions.
+// Keep both exact purposes in the synthetic historical snapshot's real CID.
+function assertSyntheticSalesforceHostAccount(account) {
+  assert.deepEqual(account.entries.map(entry => entry.entry_id), ['host-results', 'host-run']);
+  assert.equal(account.entries.every(entry => entry.outcome === 'allow'), true);
+  assert.deepEqual(account.entries[0].operation, {any_of: ['read']});
+  assert.deepEqual(account.entries[1].operation, {any_of: ['write']});
+}
+
 export async function writeSyntheticHistoricalHeldSalesforce({directory, document,
   requestId, authorization, sourceProfile, siteProfile, runtimeRootUrl,
   expressionContractUrl, now = Date.now()}) {
@@ -100,8 +109,7 @@ export async function writeSyntheticHistoricalHeldSalesforce({directory, documen
   const root = resolve(directory), principalId = userInfo().username;
   const namespaceId = 'local', siteKey = 'actql-remote-host', realizationKey = 'salesforce-acquired';
   const account = JSON.parse(authorization.accountConfiguration);
-  assert.equal(account.entries.length, 1);
-  assert.equal(account.entries[0].outcome, 'allow');
+  assertSyntheticSalesforceHostAccount(account);
   const sourceAccount = JSON.parse(sourceProfile.accountConfigurationWire);
   assert.equal(sourceAccount.entries.length, 1);
   assert.equal(sourceAccount.entries[0].outcome, 'delegate');
@@ -218,7 +226,15 @@ export async function writeSyntheticHistoricalHeldSalesforce({directory, documen
   // returned acceptance result; the original binding is independently hashed.
   environmentBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
-    ...environmentBody.host_policy_profile.capacity};
+    ...environmentBody.host_policy_profile.capacity,
+    // The selected materializing Local Host projects its original 512MiB
+    // policy through the 256-byte logical value-node unit. Keep this authored
+    // binding aligned with that declared policy, without reading a Host CID.
+    max_relation_output_rows: 536870912 / 256,
+    max_artifact_rows: 536870912 / 256,
+    max_file_listing_items: 536870912 / 256,
+    // Match the default Local service's declared standard Model request window.
+    max_model_request_bytes_per_item: 65536};
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: sourceConfigurationCid}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,

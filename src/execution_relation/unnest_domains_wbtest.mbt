@@ -130,7 +130,7 @@ test "unnest expands every relation value item into sealed columns" {
       2,
       { remaining: 100000, max_frames: 100, },
       value_budget(run_limits().output_values).unwrap(),
-      { limit: 10000, live: 0, peak: 0, },
+      row_workspace(10000),
       None,
     ).unwrap()
     guard result is ColumnTable(table) else {

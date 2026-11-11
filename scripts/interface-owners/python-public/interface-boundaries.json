@@ -251,6 +251,9 @@
         "AsyncQueryReader",
         "AsyncReader",
         "AsyncResult",
+        "CheckObservation",
+        "CheckReason",
+        "CheckReport",
         "Client",
         "ClientError",
         "Execution",
@@ -266,6 +269,7 @@
         "Signer",
         "SourceFormat",
         "Token",
+        "connect",
         "explain_check_reason",
         "get_check_fixes",
         "get_check_input",
@@ -291,7 +295,7 @@
           ]
         }
       ],
-      "sha256": "23fc666e0fd89f5cc3e882e8e1f98756590e8cf688b5d660bdf687a085dc89da",
+      "sha256": "d8daeafe3026d032906f652e638fbd219a3b6df53a90686eafb636d9a0ed905e",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -306,6 +310,9 @@
             "AsyncExecution",
             "AsyncReader",
             "AsyncResult",
+            "CheckObservation",
+            "CheckReason",
+            "CheckReport",
             "Client",
             "ClientError",
             "Execution",
@@ -319,6 +326,7 @@
             "Signer",
             "SourceFormat",
             "Token",
+            "connect",
             "explain_check_reason",
             "get_check_fixes",
             "get_check_input",
@@ -544,6 +552,9 @@
         "AsyncQueryReader",
         "AsyncReader",
         "AsyncResult",
+        "CheckObservation",
+        "CheckReason",
+        "CheckReport",
         "Client",
         "ClientError",
         "Execution",
@@ -559,6 +570,7 @@
         "Signer",
         "SourceFormat",
         "Token",
+        "connect",
         "explain_check_reason",
         "get_check_fixes",
         "get_check_input",
@@ -584,7 +596,7 @@
           ]
         }
       ],
-      "sha256": "88ed451ae8dce6f23ad6727dc7e70c483a73582b63c7b0ff2b6549deba134ae0",
+      "sha256": "e5bc8a06694cb20a5b8af8093015ad4207b42446fbb9947399f5fd29dcf708f4",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -599,6 +611,9 @@
             "AsyncExecution",
             "AsyncReader",
             "AsyncResult",
+            "CheckObservation",
+            "CheckReason",
+            "CheckReport",
             "Client",
             "ClientError",
             "Execution",
@@ -612,6 +627,7 @@
             "Signer",
             "SourceFormat",
             "Token",
+            "connect",
             "explain_check_reason",
             "get_check_fixes",
             "get_check_input",
@@ -1416,8 +1432,20 @@
           "name": "AsyncClient/connect",
           "parameters": [
             "cls",
+            "mode",
+            "installation",
+            "profile",
+            "signer"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncClient/connect#2",
+          "parameters": [
+            "cls",
             "endpoint",
             "token",
+            "mode",
             "workspace_id",
             "durability",
             "verify",
@@ -1971,8 +1999,20 @@
           "name": "Client/connect",
           "parameters": [
             "cls",
+            "mode",
+            "installation",
+            "profile",
+            "signer"
+          ]
+        },
+        {
+          "async": false,
+          "name": "Client/connect#2",
+          "parameters": [
+            "cls",
             "endpoint",
             "token",
+            "mode",
             "workspace_id",
             "durability",
             "verify",
@@ -2565,7 +2605,7 @@
           ]
         }
       ],
-      "sha256": "b206c8ea71459a17f0455a873a13fa7ef7da1093f798a90b7e3874a6535b6a8d",
+      "sha256": "bcb8f956c78fffb5f22eb8ddf54f011c06ee2f8f08174c533eec9a4d81a740d6",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -2584,6 +2624,7 @@
             "AsyncClient/check#4",
             "AsyncClient/checkpoints",
             "AsyncClient/connect",
+            "AsyncClient/connect#2",
             "AsyncClient/lookup_submission",
             "AsyncClient/new_submission",
             "AsyncClient/open",
@@ -2627,6 +2668,7 @@
             "Client/checkpoints",
             "Client/close",
             "Client/connect",
+            "Client/connect#2",
             "Client/lookup_submission",
             "Client/new_submission",
             "Client/open",
@@ -3495,6 +3537,17 @@
           ]
         },
         {
+          "async": true,
+          "name": "AsyncClient/_open_installed_local",
+          "parameters": [
+            "cls",
+            "state_dir",
+            "signer",
+            "discover_project",
+            "profile"
+          ]
+        },
+        {
           "async": false,
           "name": "AsyncClient/_prepare_start",
           "parameters": [
@@ -3662,6 +3715,8 @@
             "cls",
             "endpoint",
             "token",
+            "mode",
+            "installation",
             "**options"
           ]
         },
@@ -3918,7 +3973,7 @@
           ]
         }
       ],
-      "sha256": "dbfdbf621b5ea7e3c43353e701f006dcc38e283b747fd92bdebe840e027540b4",
+      "sha256": "3acf1d16a823824259bd109ac25d7f052cb67c0b48371523871fc1571710ac76",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4483,6 +4538,74 @@
               {
                 "path": "packages/python-sdk/README.md",
                 "anchor": "### Workspace connection strings"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "AsyncClient/_open_installed_local"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Named Local project preparation"
               }
             ]
           }
@@ -7670,7 +7793,7 @@
           "parameters": []
         }
       ],
-      "sha256": "659859e79840131a2bd42804749c3878c5eea2655e629a71cb677bd313a8a06e",
+      "sha256": "bdeeb663539b1faadb03d79c21eb51fbcc86b033dc7cc55d8f9c5819b69c47c7",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -9770,5 +9893,6 @@
         }
       ]
     }
-  ]
+  ],
+  "syntaxProjectionSha256": "638ecbcea1895befb992205a63423c5c396486d20dd4f0d4f67a215bc8566738"
 }

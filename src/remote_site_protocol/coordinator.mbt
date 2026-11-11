@@ -889,7 +889,8 @@ pub fn coordinator_execution_observation(
   Ok({
     execution: Some(execution),
     cleanup: Some(cleanup),
-    evidence_rejected: record.site_evidence == evidence_state_code(EvidenceRejected),
+    evidence_rejected: record.site_evidence ==
+    evidence_state_code(EvidenceRejected),
     revision: record.revision,
     execution_terminal: terminal,
     cleanup_complete: released &&

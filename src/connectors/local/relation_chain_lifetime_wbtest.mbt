@@ -1,4 +1,16 @@
 ///|
+// Compose the exact installed child constructors: selected rows/Values/Append
+// have bounded metadata, while Set/analytic/UNNEST retain their original recipe.
+fn chain_lifetime_child_capacity(
+  selected : @execution.GeneratedSequence,
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> @execution.ExecutionCapacity {
+  let provider = bounded_relation_step_provider(selected, limits, measurement, family=[]).unwrap()
+  managed_provider_capacity(provider, selected).unwrap()
+}
+
+///|
 fn relation_chain_reclaims_completed_scratch(
   sequence : @execution.GeneratedSequence,
 ) -> Bool {
@@ -103,7 +115,10 @@ fn chain_lifetime_generated(
   let contexts = []
   for step in 0..<@lower.sequence_count(sequence) {
     if @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
-      @lower.kernel_body(kernel) is @lower.Filter(_) {
+      (
+        @lower.kernel_body(kernel) is @lower.Filter(_) ||
+        @lower.kernel_bindings(kernel) is Some(_)
+      ) {
       let fragment = @lower.prepare_fragment_pipeline(sequence, step, {
         max_roots: 100,
         max_pointer_bytes: 10000,
@@ -283,9 +298,7 @@ test "bounded chains execute and charge an unconsumed checked branch" {
   let mut peak = 0L
   for step in 0..<count {
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
-    let child = @execution.generated_sequence_capacity(
-      selected, limits, measure,
-    ).unwrap()
+    let child = chain_lifetime_child_capacity(selected, limits, measure)
     retained += child.retained_bytes
     peak = Int64::max(peak, child.execution_bytes)
   }
@@ -396,9 +409,7 @@ test "built-in chains reclaim each intermediate execution and preserve exact out
       for index in 0..<count {
         let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
         let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
-        let child = @execution.generated_sequence_capacity(
-          selected, limits, measurement,
-        ).unwrap()
+        let child = chain_lifetime_child_capacity(selected, limits, measurement)
         retained += child.retained_bytes
         peak = Int64::max(peak, child.execution_bytes)
         conservative += child.execution_bytes
@@ -679,9 +690,7 @@ test "audited prefix releases scratch before conservative child custody" {
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
-    let child = @execution.generated_sequence_capacity(
-      selected, limits, measure,
-    ).unwrap()
+    let child = chain_lifetime_child_capacity(selected, limits, measure)
     overlap += child.retained_bytes
     peak = Int64::max(peak, child.execution_bytes)
   }
@@ -762,9 +771,7 @@ test "Values and UNNEST chains reclaim scratch and preserve accepted output gene
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
-    let child = @execution.generated_sequence_capacity(
-      selected, limits, measure,
-    ).unwrap()
+    let child = chain_lifetime_child_capacity(selected, limits, measure)
     retained += child.retained_bytes
     peak = Int64::max(peak, child.execution_bytes)
     conservative += child.execution_bytes
@@ -933,9 +940,7 @@ test "an unaudited first child keeps the complete conservative suffix" {
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
-    let child = @execution.generated_sequence_capacity(
-      selected, limits, measure,
-    ).unwrap()
+    let child = chain_lifetime_child_capacity(selected, limits, measure)
     overlap += child.retained_bytes + child.execution_bytes
   }
   let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()

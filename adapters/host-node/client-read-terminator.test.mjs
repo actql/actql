@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
-import {readFile, readdir, writeFile} from 'node:fs/promises';
+import {writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import * as sdk from '../../packages/sdk/index.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openReadOpeningFixture, connectOpeningHost, openingProgram} from './client-read-opening.fixture.mjs';
+import {attemptBytes} from './client-read-run-capacity.fixture.mjs';
 
 // Fixed independently of the delivery decoder and SDK explanations.
 const expected = [{id: 1}, {id: 2}];
@@ -100,9 +101,7 @@ for (const entrance of ['local', 'https']) {
             intents = database.prepare('SELECT nonce, phase FROM client_submitted_intents ORDER BY nonce')
               .all().map(value => ({...value}));
           } finally {database.close();}
-          const root = join(scratch.path, 'publication', 'deliveries');
-          const births = await Promise.all((await readdir(root)).filter(name => /^[0-9a-f]{64}$/u.test(name))
-            .sort().map(async name => JSON.parse(await readFile(join(root, name, 'attempt.json'), 'utf8'))));
+          const births = (await attemptBytes(scratch.path)).map(wire => JSON.parse(wire));
           // A physical rerun can return the same rows; inspect authoritative
           // journal/Store births and real executor counts before the oracle.
           await writeFile(join(scratch.path, 'reread-execution-observation.json'), JSON.stringify({

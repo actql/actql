@@ -2,8 +2,10 @@
 /// Forward only a completed read of the SAME declarations and supplied tree
 /// position. These are immutable semantic facts, not an execution grant. No
 /// pending constructor is advanced here, and no new input is checked here.
-/// A successful result survives relaxed resource ceilings. An error survives
-/// only identical limits, since a relaxed budget can change its first refusal.
+/// A successful result retains actual cumulative preflight usage and actual
+/// per-value admission usage. Node/text ceilings may tighten only when both
+/// fit; depth remains equal or relaxed because no new depth proof is issued.
+/// An error survives only identical limits, preserving its first refusal.
 pub fn reuse_binding_read(
   original : BindingReadInput,
   declarations : Declarations,
@@ -24,14 +26,16 @@ pub fn reuse_binding_read(
   match original.state {
     BindingCompleted(result) =>
       match result {
-        Ok(_) =>
-          if original.limits.max_nodes <= limits.max_nodes &&
-            original.limits.max_depth <= limits.max_depth &&
-            original.limits.max_text_bytes <= limits.max_text_bytes {
+        Ok(binding) => {
+          let (nodes, text) = binding_usage(binding)
+          if Int::max(nodes, original.value_nodes) <= limits.max_nodes &&
+            Int::max(text, original.value_text) <= limits.max_text_bytes &&
+            original.limits.max_depth <= limits.max_depth {
             Some(result)
           } else {
             None
           }
+        }
         Err(_) => if original.limits == limits { Some(result) } else { None }
       }
     _ => None

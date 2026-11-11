@@ -160,11 +160,19 @@ hook.deregister();
 
 // Selecting the installed Source must fail clearly; a missing database file
 // must never be opened and another execution method must not be selected.
+// Reach that dependency boundary with the authored Source and the SAME
+// explicitly selected Host policy, rather than an invalid Environment placeholder.
+const sourceEnvironment = JSON.parse(await readFile('source-environment.json', 'utf8'));
+const baseEnvironment = JSON.parse(await readFile('base-environment.json', 'utf8'));
+sourceEnvironment.host_policy_profile = baseEnvironment.host_policy_profile;
+delete sourceEnvironment.evidence_bundle_cid;
+sourceEnvironment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
+  .update(canonicalJson(sourceEnvironment)).digest('hex');
 await writeFile('source-profile.json', JSON.stringify({
   version: 'actql-installed-duckdb-source/0.1',
   acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
   database: resolve('not-opened.duckdb'), schema: 'main', table: 'records',
-  sourceRef: 'connector://crm/main/r#v', checkEnvironmentWire: '{}',
+  sourceRef: 'connector://crm/main/r#v', checkEnvironmentWire: canonicalJson(sourceEnvironment),
   accountConfigurationWire: JSON.stringify({
     version: 'actql-execution-account-config/0.1', account_id: 'missing-duckdb',
     entries: [{entry_id: 'allow', outcome: 'allow', exclusions: [],
@@ -172,14 +180,27 @@ await writeFile('source-profile.json', JSON.stringify({
       resource: {all: true}, operation: {all: true}}],
   }),
 }));
+let missingDependencyFailure;
 await assert.rejects(connect({mode: 'local', owner: 'local', installation: {
   directory: resolve('missing-source-state'), sourceProfilePath: resolve('source-profile.json'),
+  hostCapacityPolicy: sourceEnvironment.host_policy_profile.capacity,
 }}), error => {
-  assert.equal(error.code, 'DuckDBDependencyUnavailable');
-  assert.match(error.message, /install @duckdb\/node-api@1\.5\.5-r\.4/u);
+  assert.equal(error.code, 'InstalledHostInitializationFailed');
+  assert.equal(error.primaryFailure, error.cause);
+  assert.equal(error.cause.code, 'DuckDBDependencyUnavailable');
+  assert.match(error.cause.message, /install @duckdb\/node-api@1\.5\.5-r\.4/u);
+  assert.equal(error.cause.cause.code, 'ERR_MODULE_NOT_FOUND');
+  missingDependencyFailure = error;
   return true;
 });
+// The failed bound initializer may still own its original partial Source.
+// Retry only that public continuation; fulfillment alone is not a close ACK.
+const missingDependencyCleanup = missingDependencyFailure.cleanupHandle;
+if (missingDependencyCleanup.status().pending) await missingDependencyCleanup.retry();
+assert.equal(missingDependencyCleanup.status().pending, false);
 const contribution = new URL('./adapters/connectors/duckdb/node/strategy-bundle.mjs',
   import.meta.resolve('@actql/local-node'));
 await assert.rejects(import(contribution.href), {code: 'DuckDBDependencyUnavailable'});
+await assert.rejects(stat(resolve('not-opened.duckdb')), {code: 'ENOENT'});
+assert.equal(networkCalls, 0, 'missing DuckDB must not use the network');
 console.log('Packed dependency-free Local: Values, Result, close, attach, inert Source inventory and explicit refusal passed');

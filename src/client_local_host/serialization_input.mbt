@@ -13,6 +13,12 @@ struct ClientSerializationPrefix {
   reservation : @resources.Reservation
   mut child_cleaned : Bool
   mut released : Bool
+  // Exact upstream provider children, retained before their constructors.
+  // They keep their outputs until this consumer has really cleaned up.
+  dependencies : Array[ClientSerializationPrefix]
+  mut pending_start : Bool
+  mut parent_busy : Bool
+  mut composed : ClientOriginalComposedKeyedPrefix?
 }
 
 ///|
@@ -390,6 +396,7 @@ fn start_serialization_prefix_provider(
       0L,
       @execution.execution_capacity_retained_bytes(capacity),
       @execution.execution_capacity_execution_bytes(capacity),
+      quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
@@ -416,6 +423,10 @@ fn serialization_prefix_reservation(
     reservation,
     child_cleaned: false,
     released: false,
+    dependencies: [],
+    pending_start: false,
+    parent_busy: false,
+    composed: None,
   }
 }
 
@@ -430,6 +441,7 @@ fn start_retained_serialization_prefix_provider(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
+  prefix.pending_start = false
   match
     @local.start_managed_provider_with_inputs_and_execution(
       provider,
@@ -478,25 +490,55 @@ pub fn advance_client_serialization_prefix(
 pub fn client_serialization_prefix_work(
   value : ClientSerializationPrefix,
 ) -> Result[Int64, @local.ManagedProviderWorkIssue] {
-  if value.final_work is Some(original) {
-    return original
+  let own = if value.final_work is Some(original) {
+    original
+  } else {
+    match value.child {
+      Some(child) => @local.managed_provider_cumulative_work(child)
+      // No execution handle has returned. This is observed work only, not
+      // proof of physical stop or of how much constructor CPU was consumed.
+      None => Ok(0L)
+    }
   }
-  match value.child {
-    Some(child) => @local.managed_provider_cumulative_work(child)
-    // No execution handle has returned. This is observed work only, not
-    // proof of physical stop or of how much constructor CPU was consumed.
-    None => Ok(0L)
+  let mut total = match own {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
+  for child in value.dependencies {
+    let work = match client_serialization_prefix_work(child) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if work < 0L || total > 9223372036854775807L - work {
+      return Err(@local.CounterOverflow)
+    }
+    total += work
+  }
+  Ok(total)
 }
 
 ///|
 pub fn cancel_client_serialization_prefix(
   value : ClientSerializationPrefix,
 ) -> Bool {
-  !value.child_cleaned &&
-  !value.cleanup_busy &&
-  value.child is Some(child) &&
-  @local.cancel_managed_provider(child)
+  if value.cleanup_busy || value.parent_busy {
+    return false
+  }
+  let mut cancelled = false
+  if value.pending_start {
+    value.pending_start = false
+    value.child_cleaned = true
+    value.final_work = Some(Ok(0L))
+    cancelled = true
+  } else if !value.child_cleaned && value.child is Some(child) {
+    cancelled = @local.cancel_managed_provider(child)
+  }
+  for child in value.dependencies {
+    if cancel_client_serialization_prefix(child) {
+      cancelled = true
+    }
+  }
+  cancelled
 }
 
 ///|
@@ -506,12 +548,19 @@ pub fn cleanup_client_serialization_prefix(
   if value.released {
     return Ok(true)
   }
-  if value.cleanup_busy {
+  if value.cleanup_busy || value.parent_busy {
     return Ok(false)
   }
   value.cleanup_busy = true
   preparation_module_call(
     () => {
+      if value.pending_start {
+        // No provider constructor was entered. This is a known absent child,
+        // not an inference from missing output after a fallible callback.
+        value.pending_start = false
+        value.child_cleaned = true
+        value.final_work = Some(Ok(0L))
+      }
       if !value.child_cleaned {
         guard value.child is Some(child) else { return Ok(false) }
         match @local.cleanup_managed_provider(child) {
@@ -528,6 +577,26 @@ pub fn cleanup_client_serialization_prefix(
           Ok(false) => return Ok(false)
           Err(issue) => return Err(Provider(issue))
         }
+      }
+      // Main ACK precedes this cut. Its controller must not anchor Root
+      // outputs or reads while an upstream reservation is being returned.
+      // Dependencies retain the actual cleanup/work owners independently.
+      if value.composed is Some(original) {
+        retire_composed_keyed_prefix_input_aliases(original)
+        value.composed = None
+      }
+      for index = value.dependencies.length() - 1; index >= 0; index = index - 1 {
+        match cleanup_client_serialization_prefix(value.dependencies[index]) {
+          Ok(true) => ()
+          Ok(false) => return Ok(false)
+          Err(issue) => return Err(issue)
+        }
+      }
+      // Latch the same validated total before cutting upstream control aliases.
+      // A later reservation-return failure may retry without replaying cleanup.
+      if !value.dependencies.is_empty() {
+        value.final_work = Some(client_serialization_prefix_work(value))
+        value.dependencies.clear()
       }
       // Alias retirement follows the original child ACK, before this original
       // settlement can consume/fail. A failed return remains retryable here;

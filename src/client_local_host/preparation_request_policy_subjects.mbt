@@ -12,16 +12,42 @@ fn[I] request_policy_subject_prelude_bytes(
   if limits.work < 0 || limits.artifacts.nodes < 1 || limits.artifacts.depth < 0 {
     return None
   }
-  guard child.arguments is Some(arguments) &&
+  guard child.arguments is Some(_) &&
     child.check_data is Some(data) &&
     program_check_data_extent_cost(data) is Some(semantic) else {
     return None
   }
-  let root = @syntax.program_body(arguments.program)
+  guard request_policy_subject_prelude_inventory(
+      original,
+      owner.native_parameters,
+      limits,
+    )
+    is Some((inventory, count)) &&
+    @execution.preparation_representation_cost(inventory) is Some(bytes) &&
+    @execution.checked_preparation_add_product(bytes, semantic, 1L)
+    is Some(bytes) else {
+    return None
+  }
+  Some((bytes, count))
+}
+
+///|
+/// Same static Request hash/origin construction inventory for a trusted Host
+/// restoring checked material. Completed checking DATA stays with its caller;
+/// this inventory neither verifies values nor creates execution authority.
+pub fn request_policy_subject_prelude_inventory(
+  original : @checked.CheckedProgram,
+  supplied : @decode.Cursor?,
+  limits : @checked.CompileLimits,
+) -> (@execution.PreparationRepresentationUnits, Int)? {
+  if limits.work < 0 || limits.artifacts.nodes < 1 || limits.artifacts.depth < 0 {
+    return None
+  }
+  let root = @syntax.program_body(@checked.checked_source_program(original))
   let p = @decode.admission_usage(root)
   let mut nodes = p.nodes.to_int64()
   let mut depth = p.depth
-  if owner.native_parameters is Some(parameters) {
+  if supplied is Some(parameters) {
     let supplied = @decode.admission_usage(parameters)
     nodes += supplied.nodes.to_int64()
     depth = Int::max(depth, supplied.depth)
@@ -47,10 +73,12 @@ fn[I] request_policy_subject_prelude_bytes(
   // per static field. The SAME bounded writer refuses before exceeding its
   // existing installed node/depth allowance; enumeration arrays still use
   // the actual untruncated field count below.
+  // Fields are the multiplicity, including zero. The admitted Program has a
+  // positive node extent; it is not a zero coefficient for the shared counter.
   guard @execution.checked_preparation_add_product(
       10L + 3L * largest.to_int64(),
-      nodes,
       largest.to_int64(),
+      nodes,
     )
     is Some(encoded_nodes) else {
     return None
@@ -81,7 +109,7 @@ fn[I] request_policy_subject_prelude_bytes(
       map_entries: 0L,
     })
     is Some(arrays) &&
-    @execution.preparation_representation_cost({
+    Some(@execution.PreparationRepresentationUnits::{
       record_headers: writer.record_headers + arrays.record_headers,
       reference_slots: writer.reference_slots + arrays.reference_slots,
       scalar_words: writer.scalar_words + arrays.scalar_words,
@@ -90,12 +118,10 @@ fn[I] request_policy_subject_prelude_bytes(
       owned_utf16_units: writer.owned_utf16_units + 71L * count.to_int64(),
       owned_wire_bytes: writer.owned_wire_bytes,
     })
-    is Some(bytes) &&
-    @execution.checked_preparation_add_product(bytes, semantic, 1L)
-    is Some(bytes) else {
+    is Some(inventory) else {
     return None
   }
-  Some((bytes, count))
+  Some((inventory, count))
 }
 
 ///|
@@ -106,13 +132,31 @@ fn[I] request_policy_subject_prelude_bytes(
 fn request_policy_subject_output_bytes(
   original : @checked.RequestPolicySubjectPreparation,
 ) -> Int64? {
+  guard request_policy_subject_output_inventory(original) is Some(inventory) else {
+    return None
+  }
+  @execution.preparation_representation_cost(inventory)
+}
+
+///|
+/// Original measured text writer and trusted verifier parse overlap. This
+/// exposes only constructor DATA, not a policy proof or physical capacity.
+pub fn request_policy_subject_output_inventory(
+  original : @checked.RequestPolicySubjectPreparation,
+) -> @execution.PreparationRepresentationUnits? {
   let (bytes, nodes, depth) = @checked.request_policy_subject_output_extent(
     original,
   ) catch {
     _ => return None
   }
   if nodes == 0L {
-    return Some(0L)
+    return Some({
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
   }
   guard bytes <= 2147483647L &&
     nodes <= 2147483647L &&
@@ -129,17 +173,17 @@ fn request_policy_subject_output_bytes(
       normalize_keys=false,
     )
     is Some(parsed) &&
-    @execution.preparation_representation_cost({
+    Some(@execution.PreparationRepresentationUnits::{
       record_headers: writer.record_headers + parsed.record_headers,
       reference_slots: writer.reference_slots + parsed.reference_slots,
       scalar_words: writer.scalar_words + parsed.scalar_words,
       owned_utf16_units: writer.owned_utf16_units + parsed.owned_utf16_units,
       owned_wire_bytes: 0L,
     })
-    is Some(bytes) else {
+    is Some(inventory) else {
     return None
   }
-  Some(bytes)
+  Some(inventory)
 }
 
 ///|
@@ -209,13 +253,15 @@ fn[I] prepare_request_policy_subjects_owned(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  guard request_policy_subject_work_limit(inspection, limits) is Some(maximum) else {
+    return Err(Preparation(Policy))
+  }
   let work = match
     @resources.begin_preparation_phase_work_continuation64(
       owner.capacity,
       input,
       @resources.RequestPolicySubjectPreparation,
-      (2L + inspection.to_int64()) * limits.work.to_int64() +
-      inspection.to_int64(),
+      maximum,
     ) {
     Err(issue) => return Err(Preparation(ProgramCheck(Work(issue))))
     Ok(work) => work
@@ -482,4 +528,22 @@ pub fn[I] finish_request_computation_policy_subjects(
   child.policy_subjects = None
   child.policy_subject_evidence = None
   result
+}
+
+///|
+/// Existing complete subject phase: original inspection, measurement/render,
+/// and each original binder's logical envelope. This is DATA for the SAME
+/// parent work receipt, never another quota, refill or execution authority.
+pub fn request_policy_subject_work_limit(
+  inspection : Int,
+  limits : @checked.CompileLimits,
+) -> Int64? {
+  if inspection < 0 || limits.work < 0 {
+    return None
+  }
+  @execution.checked_preparation_add_product(
+    inspection.to_int64(),
+    limits.work.to_int64(),
+    2L + inspection.to_int64(),
+  )
 }

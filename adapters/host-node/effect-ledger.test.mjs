@@ -1194,3 +1194,19 @@ test('one authority Store does not expose another logical request',
       code: 'EffectLedgerScopeMismatch',
     });
   });
+
+
+test('Local closed producer codec admits all six Ledger states and refuses oversized foreign input', () => {
+  const maxEntryBytes=moon.clientProgramInstalledLocalFileStoreControlWireBound();
+  assert.equal(maxEntryBytes,1510);
+  for (const state of ['prepared','dispatching','applied','accepted','failed','unknown']) {
+    const original=entry({state,fence:Number.MAX_SAFE_INTEGER,attempt:Number.MAX_SAFE_INTEGER,
+      prior:cid('c'),outcome:cid('d')});
+    assert.ok(Buffer.byteLength(original.wire)<=maxEntryBytes);
+    const admitted=effect.admitLedgerEntry(original.wire,maxEntryBytes,64,4);
+    assert.equal(effect.ledgerEntryWire(admitted),original.wire);
+  }
+  // Existing Source parser rejects this bound before constructing its tree.
+  assert.throws(()=>effect.admitLedgerEntry(' '.repeat(maxEntryBytes+1)+'{}',
+    maxEntryBytes,64,4),{code:'MoonBitHostFailure'});
+});

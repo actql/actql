@@ -77,14 +77,23 @@ test "explicit finite install adds profile within existing selected limits" {
   assert_eq(@canonical.array_count(values), 7)
   let legacy = product_test_originals()
   for
-    name in [
-      "account.json", "environment.json", "run.json", "retention.json", "store.json",
-    ] {
+    name in ["account.json", "environment.json", "retention.json", "store.json"] {
     assert_eq(
       product_test_original(originals, name),
       product_test_original(legacy, name),
     )
   }
+  // The finite profile changes only its declared object quota. All other
+  // Run configuration bytes, policies, manifests and deadlines remain exact.
+  let legacy_run = product_test_original(legacy, "run.json")
+  assert_eq(legacy_run.split("\"store_objects\":8").to_array().length(), 2)
+  assert_eq(
+    product_test_original(originals, "run.json"),
+    legacy_run.replace_all(
+      old="\"store_objects\":8",
+      new="\"store_objects\":100000",
+    ),
+  )
   assert_eq(legacy.length(), 7)
   assert_false(legacy.any(value => value.0 == "profile.json"))
   assert_false(legacy.any(value => value.0 == "file-read.json"))

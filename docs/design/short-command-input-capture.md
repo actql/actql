@@ -264,3 +264,50 @@ Command targets require their own checked original variant, not a fabricated
 STORE pair, hidden column or current-configuration re-resolution. Missing
 issuer, body workspace, current permission, saved material or physical cleanup
 remains unavailable. Private Preview correspondence is not approval or apply.
+
+## Hot recovery request input
+
+- Responsibility: the existing managed Effect and installed Row Effect retain
+  the recovered request input through final parent retirement.
+- Inputs and outputs: the admitted original Preview and saved provider recovery
+  data produce one original request tuple; each recovery stage only borrows it.
+- Identity: hot reuse requires the same Preview forest and wire, installed member
+  owners, original Request and Plan. Current claims are compared again with the
+  original request CIDs, approved values and targets.
+- Ownership: original member constructor tokens keep the request bodies backed.
+  Closing a transient stage returns its alias after route retirement; it does
+  not retire the retained input or acknowledge the parent.
+- Synchronization: one stage borrows this input at a time. Observation never
+  consumes a spent constructor again or creates another Run or send attempt.
+- Failure: partial construction retains its exact primary and original children;
+  a pending child release keeps final retirement pending.
+- Cancellation: neither cancellation nor Unknown permits resend, inferred stop,
+  early body retirement or a fabricated resource acknowledgement.
+- Resources: the existing control tariff includes the fixed holder and borrow
+  records plus the actual installed-member reference vector. Original request
+  bodies remain on their constructor backing until their own checked release.
+- Extension: this is the existing provider-neutral input lifetime, without a
+  new recovery owner, permission cache or independent execution path.
+- Verification: the original recovery-constructor, hot observation, changed
+  parent, pending child and final control-retirement tests exercise these seams.
+
+## Nested original recovery construction
+
+An installed Effect recovery constructor may have an input prelude followed by
+one or more nested constructors on its same original member token. The prelude
+funds the immutable recovery wire's JSON forest, binary decoding and bounded
+Source lexical controls. After observing the actual nested bytes, a synchronous
+caller can grow that already-selected construction reservation within the same
+immutable Plan maximum. This neither selects another operation nor spends an
+attempt, transfer, grant or mutation permission. Physical operations do not use
+this continuation. The grow callback expires when its original synchronous
+constructor returns; completion and retirement cannot reopen it.
+
+Salesforce named recovery uses the existing Describe Source geometry before
+entering the unchanged complete Catalog recovery validator. Its full retained
+Catalog allowance remains reserved across both phases; only private workspace
+uses the actual forest. The original Preview, observation wire/CID, raw response
+digest, Mapping, claim, current authorization and complete request validation
+remain mandatory. Whole Catalog, changed limits, wider inventories and refused
+lexical observations retain their complete original path. Failed growth keeps
+the preceding backing and exact failure until the existing cleanup completes.

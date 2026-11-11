@@ -421,6 +421,7 @@ pub fn NativeLocalAdoptionSession::open_journal_with_initial_signing_material(
   ttl_ms : Double,
   max_records : Int,
   max_snapshot_bytes : Int64,
+  max_retained_intent_bytes? : Int64 = 67108864L,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   // Reject a foreign original before filesystem/schema initialization.
   match self.initial_signing_public_key(material) {
@@ -439,6 +440,7 @@ pub fn NativeLocalAdoptionSession::open_journal_with_initial_signing_material(
     [],
     initial_signing=Some(material),
     initial_policy=Some(policy),
+    max_retained_intent_bytes~,
   )
 }
 
@@ -519,6 +521,16 @@ pub fn NativeLocalInitialSigningOriginal::require_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  self.require_current_after_host_binding()
+}
+
+///|
+// Private continuation of this SAME Host's immediately preceding binding
+// check. No callback or IO may intervene. All original control/key projection
+// reads and the final post-IO binding fence remain below.
+fn NativeLocalInitialSigningOriginal::require_current_after_host_binding(
+  self : NativeLocalInitialSigningOriginal,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   guard self.host.database.read("client_local_installation_custody", "host")
     is Ok(row) &&
     row.revision == 0L &&

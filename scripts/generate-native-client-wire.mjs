@@ -180,6 +180,7 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     'connection','profile','admission','run_ref',
     'lookup_found','lookup_not_found','lookup_unknown','held',
     'cancellation_ref','cancellation','cancellation_lookup','operation_attempt_ref','cancellation_attempt']) emit(schemas[name], `wire_${name}_shape`);
+  emit({$ref: 'check_outcome'}, 'wire_check_outcome_shape');
   const observationStart = functions.length;
   for (const name of ['owner_ref', 'owner_cursor', 'owner_observations', 'run_plan_view']) {
     emit(schemas[name], `wire_${name}_shape`);

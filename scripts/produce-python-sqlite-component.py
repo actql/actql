@@ -362,16 +362,25 @@ LINUX_LIBRARY = 'libactql_sqlite_component.so'
 _LINUX_SYSTEM_LIBRARIES = frozenset(('libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0'))
 
 
-def inspect_linux_process_component(library: Path, *, execute: Any = subprocess.check_output) -> dict[str, Any]:
+def linux_process_architecture(process_target: str) -> tuple[str, str, int]:
+    require(type(process_target) is str and process_target in ('linux-arm64-gnu', 'linux-x64-gnu'),
+            'Unsupported Linux process SQLite target selection')
+    return (('aarch64', 'AArch64', 183) if process_target == 'linux-arm64-gnu'
+            else ('x86_64', 'x86-64', 62))
+
+
+def inspect_linux_process_component(library: Path, *, process_target: str = 'linux-arm64-gnu',
+                                    execute: Any = subprocess.check_output) -> dict[str, Any]:
     """Inspect the selected ELF image; actual same-process binding is separate."""
+    architecture, image, machine = linux_process_architecture(process_target)
     observed = identity(library, 64 * 1024 * 1024)
     header = _read_file(library, maximum=64 * 1024 * 1024, prefix=64)
     require(len(header) == 64 and header[:7] == b'\x7fELF\x02\x01\x01'
             and header[7] in (0, 3) and int.from_bytes(header[20:24], 'little') == 1
             and int.from_bytes(header[52:54], 'little') == 64
             and int.from_bytes(header[16:18], 'little') == 3
-            and int.from_bytes(header[18:20], 'little') == 183,
-            'Process SQLite requires ELF64 little-endian AArch64 shared image')
+            and int.from_bytes(header[18:20], 'little') == machine,
+            'Process SQLite requires ELF64 little-endian ' + image + ' shared image')
     def read(tool: str, arguments: list[str]) -> str:
         return cast(str, execute([tool, *arguments], text=True))
     definitions = read('/usr/bin/nm', ['-D', '--defined-only', str(library)])
@@ -407,20 +416,24 @@ def inspect_linux_process_component(library: Path, *, execute: Any = subprocess.
             'Linux process SQLite component changed during inspection')
     return {'library': observed, 'exports': sorted(names),
             'provider_imports': sorted(imports), 'system_dependencies': sorted(dependencies),
-            'target': 'aarch64-unknown-linux-gnu', 'automatic_initializers': False,
+            'target': architecture + '-unknown-linux-gnu', 'elf_machine': machine,
+            'automatic_initializers': False,
             'component_tls': False}
 
 
 def build_linux_process_import(source: str, archive: Path, clang: Path,
-                               destination: Path, seconds: int) -> dict[str, Any]:
+                               destination: Path, seconds: int, *,
+                               process_target: str = 'linux-arm64-gnu',
+                               system_header_roots: tuple[Path, ...] = ()) -> dict[str, Any]:
     """Prepare one ELF for the same original process; never a second provider.
 
     No image is loaded and no physical supplier, normal installation or Python
     release is admitted. Darwin process and strong Python bundle paths retain
     their original checks.
     """
-    require(sys.platform == 'linux' and platform.machine() == 'aarch64',
-            'Linux process SQLite requires selected linux-arm64-gnu')
+    architecture, _, _ = linux_process_architecture(process_target)
+    require(sys.platform == 'linux' and platform.machine() == architecture,
+            'Linux process SQLite requires selected ' + process_target)
     require(type(seconds) is int and seconds > 0 and _hex(source, 40),
             'Invalid Linux process SQLite build selection')
     def clean() -> None:
@@ -428,6 +441,9 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
                 and not subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT),
                 'Use the exact committed clean Linux process SQLite producer source')
     clean()
+    sys.path.insert(0, str(ROOT / 'scripts'))
+    from linux_component_headers import LinuxSystemHeaders
+    system_headers = LinuxSystemHeaders(system_header_roots)
     require(not destination.exists() and not destination.is_symlink(), 'SQLite output already exists')
     # Select and hash actual tools before their first invocation. Resolving the
     # trusted system bin link identifies the tool; it does not adopt a provider.
@@ -437,6 +453,7 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
         (nm, 64 * 1024 * 1024), (readelf, 64 * 1024 * 1024),
         (SOURCE / 'source.json', 65536), (SOURCE / 'prepare.py', 65536),
         (ROOT / 'scripts/produce-python-sqlite-component.py', 65536),
+        (ROOT / 'scripts/linux_component_headers.py', 65536),
         (ROOT / 'packages/python-local-runtime/native/pre-root/owned_capacity.h', 65536))}
     destination.mkdir(parents=True, exist_ok=False)
     deadline, steps = time.monotonic() + seconds, []
@@ -453,15 +470,17 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
         require(result.returncode == 0, 'Linux process SQLite command failed: ' + name)
         return result.stdout
     target = run('compiler-target', [str(clang), '-dumpmachine']).strip()
-    require(re.fullmatch(r'aarch64-[A-Za-z0-9_.-]*linux[A-Za-z0-9_.-]*', target) is not None,
-            'Selected compiler target is not Linux AArch64')
+    require(re.fullmatch(architecture + r'-(?:[A-Za-z0-9_.]+-)?linux-gnu', target) is not None,
+            'Selected compiler target is not GNU Linux ' + architecture)
     resource = Path(run('compiler-resource-dir', [str(clang), '-print-resource-dir']).strip())
     require(resource.is_absolute() and resource.is_dir(), 'Invalid compiler resource directory')
     stage = destination / 'source'
-    staged = STAGE.prepare(archive, stage, process_target='linux-arm64-gnu')
+    staged = STAGE.prepare(archive, stage, process_target=process_target)
     obj, library = destination / 'component.o', destination / LINUX_LIBRARY
-    common = [str(clang), '-std=c11', staged['optimization'], '-fPIC', '-fvisibility=hidden',
-              '-mno-outline-atomics', '-I' + str(stage), '-I' + str(ROOT / 'packages/python-local-runtime/native/pre-root')]
+    common = [str(clang), '-std=c11', staged['optimization'], '-fPIC', '-fvisibility=hidden']
+    if process_target == 'linux-arm64-gnu':
+        common.append('-mno-outline-atomics')
+    common += ['-I' + str(stage), '-I' + str(ROOT / 'packages/python-local-runtime/native/pre-root')]
     run('compile', common + ['-MD', '-MF', str(destination / 'component.d'),
                             '-c', str(stage / 'component.c'), '-o', str(obj)])
     exports = destination / 'component.exports'
@@ -472,14 +491,17 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
         '-Wl,-z,now', '-Wl,-z,relro', '-o', str(library), '-ldl', '-lpthread', '-lm'])
     require(Path('/usr/bin/nm').resolve(strict=True) == nm
             and Path('/usr/bin/readelf').resolve(strict=True) == readelf, 'Selected Linux inspection tool changed')
-    inspected = inspect_linux_process_component(library)
+    inspected = inspect_linux_process_component(library, process_target=process_target)
     require(Path('/usr/bin/nm').resolve(strict=True) == nm
             and Path('/usr/bin/readelf').resolve(strict=True) == readelf, 'Selected Linux inspection tool changed')
     dependencies = shlex.split((destination / 'component.d').read_text().replace('\\\n', ' ').split(':', 1)[1])
     compiled = {}
     for name in sorted(set(dependencies)):
         path = Path(name)
-        header_root = next((root for root in (resource, Path('/usr/include'))
+        if system_headers.contains(path):
+            compiled[name] = system_headers.capture(path)
+            continue
+        header_root = next((root for root in (resource,)
                             if path.is_relative_to(root)), None)
         compiled[name] = (compiled_input(path, header_root) if header_root is not None
                           else {'resolved_path': name, **identity(path, 16 * 1024 * 1024)})
@@ -492,10 +514,13 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
                 'Linux process SQLite compiler input changed')
     checked_copy(stage / 'NOTICE', destination / NOTICE, identity(stage / 'NOTICE', 1024 * 1024), 1024 * 1024)
     clean()
+    header_receipt = system_headers.receipt()
     record = {'source_sha': source, 'provider_binding': 'same original process namespace; actual binding required before use',
+              'system_headers': header_receipt,
               'recipe_sha256': staged['recipe_sha256'], 'stage': staged, **inspected,
               'object': identity(obj, 128 * 1024 * 1024), 'inputs': inputs,
-              'compiled_inputs': compiled, 'notice': identity(destination / NOTICE, 1024 * 1024),
+              'compiled_inputs': compiled, 'compiler_target': target,
+              'notice': identity(destination / NOTICE, 1024 * 1024),
               'compile': 1, 'link': 1, 'loaded': False, 'initialized': False,
               'normal_profile': None, 'installed_supplier': False, 'public_E2E': 0}
     (destination / 'process-producer.json').write_text(json.dumps(record, indent=2) + '\n')
@@ -511,18 +536,23 @@ if __name__ == '__main__':
     binding.add_argument('--process-provider', action='store_true')
     parser.add_argument('--clang', type=Path, required=True)
     parser.add_argument('--sdk', type=Path)
-    parser.add_argument('--process-target', choices=('darwin-arm64', 'linux-arm64-gnu'), default='darwin-arm64')
+    parser.add_argument('--process-target', choices=('darwin-arm64', 'linux-arm64-gnu', 'linux-x64-gnu'), default='darwin-arm64')
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--seconds', type=int, default=50)
+    parser.add_argument('--system-header-root', type=Path, action='append', default=[],
+                        help='Explicit additional Linux system-header destination root; never a fallback')
     parser.add_argument('--diagnostic-retained-provider-source',
                         help='Explicit mixed-source candidate only; never a matching release cohort')
     args = parser.parse_args()
+    require(not args.system_header_root or (args.process_provider and args.process_target.startswith('linux-')),
+            'Additional system-header roots require a Linux process component')
     if args.process_provider:
         require(args.diagnostic_retained_provider_source is None,
                 'Process component cannot borrow a diagnostic provider source')
-        if args.process_target == 'linux-arm64-gnu':
+        if args.process_target in ('linux-arm64-gnu', 'linux-x64-gnu'):
             require(args.sdk is None, 'Linux process preparation does not accept a Darwin SDK')
-            result = build_linux_process_import(args.source, args.archive, args.clang, args.destination, args.seconds)
+            result = build_linux_process_import(args.source, args.archive, args.clang, args.destination, args.seconds,
+                process_target=args.process_target, system_header_roots=tuple(args.system_header_root))
         else:
             require(args.sdk is not None, 'Darwin process preparation requires its selected SDK')
             result = build_process_import(args.source, args.archive, args.clang,

@@ -4,13 +4,14 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {createTransportOwner, requireCompleteInventory, transportModes}
+import {selectAcceptanceTimeout, createTransportOwner, requireCompleteInventory, transportModes}
   from './packed-query-transport-owner.mjs';
 import {decodeRetainedFixture, encodeRetainedFixture} from './retained-fixture-values.mjs';
 import {requireGraphArgumentCheckReport} from './graph-argument-check.mjs';
 
 const deadline = Number(process.env.ACTQL_TEST_QUERY_DEADLINE);
-const owner = createTransportOwner({deadline});
+const timeoutMs = selectAcceptanceTimeout(process.env);
+const owner = createTransportOwner({deadline, timeoutMs});
 const entry = fileURLToPath(new URL('./packed-query-worker.mjs', import.meta.url));
 let primary;
 let inventories = [];
@@ -100,7 +101,7 @@ try {
   owner.close();
   const report = {...owner.report(), inventories,
     complete: primary === undefined, primaryError: primary?.message ?? owner.report().primaryError,
-    enclosingCommand: {timeoutMs: 900_000, outputLimitBytes: 8 * 1024 * 1024},
+    enclosingCommand: {timeoutMs: owner.report().timeoutMs, outputLimitBytes: 8 * 1024 * 1024},
   };
   try {
     await writeFile('transport-processes.json', JSON.stringify(report, null, 2) + '\n', {flag: 'wx'});

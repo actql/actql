@@ -33,7 +33,10 @@ options(
   // The exported dispatch counter roots physical imports. Its existing
   // physical-refusing harness runs this release-only fixture in the Wasm CI
   // lane; ordinary debug moonrun tests keep their original import surface.
-  targets: { "saved_lookup_validation_dispatch_wbtest.mbt": [ "release" ] },
+  targets: {
+    "saved_lookup_validation_dispatch_wbtest.mbt": [ "release" ],
+    "non_sdk_source_restore_wbtest.mbt": [ "release" ],
+  },
   link: {
     "wasm": {
       // Explicit artifact exports preserve the production ABI without rooting
@@ -48,6 +51,7 @@ options(
         "report_live:actql_buffer_report_live",
         "stop_live:actql_buffer_stop_live",
         "open:actql_buffer_open",
+        "open_platform:actql_buffer_open_platform",
         "reserve:actql_buffer_reserve",
         "fill:actql_buffer_fill",
         "fill_block:actql_buffer_fill_block",
@@ -182,6 +186,7 @@ options(
         "install_source_environment:actql_program_install_source_environment",
         "reserve_preparation:actql_program_reserve_preparation",
         "prepare_program:actql_program_prepare",
+        "prepared_outcome:actql_program_prepared_outcome",
         "prepared_results:actql_program_prepared_results",
         "prepared_tasks:actql_program_prepared_tasks",
         "close_preparation:actql_program_close_preparation",
@@ -302,6 +307,7 @@ options(
         "source_publication_length:actql_source_publication_length",
         "close_source_publication:actql_source_publication_close",
         "reserve_submission_projection:actql_submission_reserve",
+        "reserve_submission_preparation_failure:actql_submission_reserve_failure",
         "produce_submission_projection:actql_submission_produce",
         "submission_projection_length:actql_submission_length",
         "retire_submission_output:actql_submission_retire_output",

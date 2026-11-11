@@ -6,6 +6,8 @@ pub fn prepared_client_effect_publication_policy_bodies(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((Int, Int, Int) -> Bool)? = None,
+  retained_body_keys? : Map[String, String]? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   guard prepared_client_effect_publication_data_policy_cid(value) is Some(cid) else {
     return Err(MissingDependency)
@@ -14,7 +16,14 @@ pub fn prepared_client_effect_publication_policy_bodies(
     prepared_client_effect_computation_candidate(value),
   )
   checked_client_publication_policy_bodies(
-    program, cid, max_bytes, max_nodes, max_depth,
+    program,
+    cid,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    retain_catalog=true,
+    before_body~,
+    retained_body_keys~,
   )
 }
 
@@ -27,6 +36,7 @@ pub fn prepared_client_publication_policy_bodies(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   guard prepared_client_publication_data_policy_cid(value) is Some(cid) else {
     return Err(MissingDependency)
@@ -38,6 +48,7 @@ pub fn prepared_client_publication_policy_bodies(
     max_nodes,
     max_depth,
     retain_catalog=true,
+    before_body~,
   )
 }
 
@@ -49,6 +60,8 @@ fn checked_client_publication_policy_bodies(
   max_nodes : Int,
   max_depth : Int,
   retain_catalog? : Bool = false,
+  before_body? : ((Int, Int, Int) -> Bool)? = None,
+  retained_body_keys? : Map[String, String]? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   let remaining = Int::min(max_bytes, 16777216)
   let mut work = Int::min(max_nodes, 4096)
@@ -83,6 +96,8 @@ fn checked_client_publication_policy_bodies(
     max_depth,
     work,
     retain_catalog~,
+    before_body~,
+    retained_body_keys~,
   )
 }
 
@@ -98,6 +113,8 @@ fn checked_client_source_policy_bodies(
   max_depth : Int,
   work : Int,
   retain_catalog? : Bool = false,
+  retained_body_keys? : Map[String, String]? = None,
+  before_body? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   let mut remaining_work = work
   let cid = policy.cid
@@ -108,16 +125,40 @@ fn checked_client_source_policy_bodies(
     identity : String,
     emit : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
   ) -> Result[Unit, @checked.LocalDependencyBodyIssue] {
+    if retained_body_keys
+      .map(keys => keys.contains("data_policy\u0000" + identity))
+      .unwrap_or(false) {
+      return Ok(())
+    }
     if seen.contains(identity) {
       return Ok(())
+    }
+    if before_body is Some(prepare) {
+      // Traverse this SAME checked policy emitter without allocating output.
+      // The caller funds measuring-writer controls before entering this API,
+      // then funds exact text/body construction before the actual Writer.
+      let measure = @encode.measuring_writer(remaining, max_nodes, max_depth) catch {
+        _ => return Err(BudgetExceeded)
+      }
+      emit(measure) catch {
+        issue => return Err(Encoding(issue))
+      }
+      let (bytes, nodes, depth) = @encode.finish_measurement_usage(measure) catch {
+        issue => return Err(Encoding(issue))
+      }
+      if !prepare(bytes, nodes, depth) {
+        return Err(BudgetExceeded)
+      }
     }
     let writer = @encode.writer(remaining, max_nodes, max_depth) catch {
       _ => return Err(BudgetExceeded)
     }
     emit(writer) catch {
-      _ => return Err(Encoding)
+      issue => return Err(Encoding(issue))
     }
-    let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
+    let wire = @encode.finish(writer) catch {
+      issue => return Err(Encoding(issue))
+    }
     let bytes = @utf8.encode(wire)
     if "sha256:" + @sha.hex(bytes) != identity {
       return Err(ForeignBody)
@@ -176,6 +217,11 @@ fn checked_client_source_policy_bodies(
       }
       remaining_work -= references.length()
       for (kind, identity) in references {
+        if retained_body_keys
+          .map(keys => keys.contains(kind + "\u0000" + identity))
+          .unwrap_or(false) {
+          continue
+        }
         if seen.contains(identity) {
           guard bodies.iter().find_first(body => body.1 == identity)
             is Some(body) &&
@@ -216,7 +262,10 @@ fn checked_client_source_policy_bodies(
       }
     }
   }
-  if retain_catalog {
+  // Filtered contributions reuse originals on the enclosing collector. They
+  // are not standalone closures; that caller validates the complete graph.
+  // Complete legacy projections retain their original self-contained check.
+  if retain_catalog && retained_body_keys is None {
     let admitted : Array[@publication.CapturedEffectDependencyBody] = []
     for (kind, identity, wire) in bodies {
       match

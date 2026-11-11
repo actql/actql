@@ -39,3 +39,21 @@ pub fn client_program_start_original_infer_observation_issuance(
     generations~,
   )
 }
+
+///|
+#export_name("clientProgramStartCompleteOriginalInferObservationIssuance")
+pub fn client_program_start_complete_original_infer_observation_issuance(
+  active : Array[@infer_host.Execution],
+  capacity : @model.OriginalModelPublicationCapacity,
+  max_slots : Int,
+  max_wire_bytes : Int,
+  max_work : Int,
+  generations : Array[@publication_host.ClientSerializationGeneration],
+) -> Result[@infer_host.ObservationIssuance, @infer_host.Issue] {
+  @infer_host.start_complete_original_observation_issuance(
+    active,
+    capacity,
+    { max_slots, max_wire_bytes, max_work, },
+    generations~,
+  )
+}

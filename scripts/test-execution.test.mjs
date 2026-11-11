@@ -172,6 +172,25 @@ function runRecorded(root, file, extra = {}) {
     {encoding: 'utf8', env: childEnv, timeout: 10_000});
 }
 
+test('required execution count rejects a passing subset and is recorded as failure', t => {
+  const root = fixture(t), file = join(root, 'selected.mjs');
+  writeFileSync(file, "import {test} from 'node:test'; test('one actual case', () => {});\n");
+  const passed = runRecorded(root, file, {expectedTests: 1});
+  assert.equal(passed.status, 0, passed.stderr);
+  const subset = runRecorded(root, file, {expectedTests: 2});
+  assert.equal(subset.status, 1, subset.stderr);
+  assert.match(subset.stderr, /expected tests=2/u);
+  const summaries = readdirSync(join(root, 'evidence')).map(name =>
+    JSON.parse(readFileSync(join(root, 'evidence', name, 'summary.json'))));
+  assert.equal(summaries.filter(value => value.complete).length, 1);
+  assert.equal(summaries.filter(value => value.commands[0].verificationStatus === 1).length, 1);
+  for (const expectedTests of [0, -1, 1.5, '1']) {
+    const invalid = runRecorded(root, file, {expectedTests});
+    assert.equal(invalid.status, 1);
+    assert.match(invalid.stderr, /Expected test count must be a positive safe integer/u);
+  }
+});
+
 test('focused assertion failure survives an explicitly requested successful rerun', t => {
   const root = fixture(t), file = join(root, 'selected.mjs');
   writeFileSync(file, "import {test} from 'node:test'; import assert from 'node:assert/strict'; test('selected', () => assert.equal(1, 2));");

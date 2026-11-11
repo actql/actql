@@ -122,7 +122,9 @@ test('request lookup needs no verification clone after original capture', async 
     if (Object.hasOwn(value, 'connection')) return nativeClone(value);
     assert.fail('Unexpected response verification clone');
   });
-  const answer = await f.client.lookupRequest('saved');
+  const observed = await f.client.lookupRequest('saved').then(answer => ({answer}), error => ({error}));
+  assert.equal(observed.error, undefined, '[check-mutation:request-lookup-admission]');
+  const answer = observed.answer;
   assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
   assert.equal(answer.requestId, 'saved');
   assert.equal(answer.checkpoint.checkpointId, 'checkpoint');
@@ -278,7 +280,9 @@ test('request cancellation keeps its original outcome without a verification clo
     if (Object.hasOwn(value, 'connection')) return nativeClone(value);
     assert.fail('Unexpected response verification clone');
   });
-  const answer = await f.client.cancelRequest('saved');
+  const observed = await f.client.cancelRequest('saved').then(answer => ({answer}), error => ({error}));
+  assert.equal(observed.error, undefined, '[check-mutation:request-cancel-admission]');
+  const answer = observed.answer;
   assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
   assert.equal(answer.kind, 'accepted');
   assert.equal(answer.revision, 7);

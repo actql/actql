@@ -93,6 +93,7 @@ export const repeatedGroupKeySuccesses = [
     parameterDeclarations: repeatedProgram.params, parameters: {increment: 1},
   }),
   success('pipe-repeated-value-separate-names', 'aql-text', 'FROM records |> WHERE id > 0 |> AGGREGATE COUNT(*) AS n GROUP BY amount + 1 AS first, amount + 1 AS second |> ORDER BY first |> RESULT answer', {
+    resultName: 'answer',
     expected: [{first: null, second: null, n: 1}, {first: 21, second: 21, n: 1}, {first: 31, second: 31, n: 2}],
     columns: [number('first', true), number('second', true), number('n')],
   }),

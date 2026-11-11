@@ -1,0 +1,37 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/platform_native/installed_arena_control" @arena,
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
+  "actql/actql/platform_native/filesystem" @files,
+  "actql/actql/client_row_source_host" @rows,
+  "actql/actql/client_local_host" @local,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/canonical_json" @identity,
+  "actql/actql/canonical_value" @canonical,
+  "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/platform_native/publication_store" @store,
+  "actql/actql/sourceview_resolution" @sourceviews,
+  "actql/actql/sha256" @sha,
+  "actql/actql/decode_scalar" @scalar,
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "actql/actql/execution_query" @query,
+  "actql/actql/source_value" @source,
+  "actql/actql/program_check" @checked,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/physical_strategy_host" @strategy,
+  "actql/actql/decode_core" @decode,
+} for "wbtest"

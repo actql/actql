@@ -269,6 +269,30 @@ admission. Canonical relation-value CIDs terminate at validated typed values,
 not arbitrary purported artifacts. The entire bundle, not just root field names,
 is checked for locality and cycles.
 
+<!-- requirement-block: result-artifacts.local-model-observation -->
+A local Model dependency MUST use `actql-local-model-observation/0.1` with
+the closed body `{version, unit_definition_cid, source_ordinal,
+input_logical_relation_cid, input_relation_schema_cid,
+outcome_logical_relation_cid, outcome_relation_schema_cid, self_cid}`. Its
+semantic preimage is the complete canonical body except `self_cid`. The same
+checked Unit and zero-based logical source-step ordinal select the original
+INFER and its task from that Unit's contract closure. The two Relations are
+the complete original pre-INFER input and complete adopted Model outcomes
+before any later filter, projection or Result selection, including every
+adopted non-success outcome. Their logical identities preserve typed values
+and genuine Ref identity rather than physical encoding or row placement.
+
+<!-- requirement-block: result-artifacts.local-model-observation-originals -->
+Projection MUST retain and authenticate the original Model execution, complete
+observation issuer, effective inputs and selected execution contract as its
+projection context. Only matching complete export receipts from those same
+input/outcome owners can issue the local observation. Run/attempt/provider
+audit references are not semantic members or opaque leaf exemptions; missing,
+foreign, retired or unresolved originals refuse projection. This observation
+does not grant another Model call, publication, Effect application or Saved
+restoration. Existing local computation and Result identities are unchanged
+when no Model observation is present.
+
 <!-- requirement-block: result-artifacts.result-import-observation-binding result-artifacts.result-import-observation-manifest result-artifacts.result-import-observation-recovery -->
 A Stage Result import contributes an
 `actql-result-import-observation/0.1` to the consumer's local Invocation
@@ -307,6 +331,22 @@ are retained; their CIDs never substitute for local_manifest_cid.
 <a id="lookup-acquisition-identities"></a>
 
 ### Lookup acquisition identities
+
+The Native declared-file keyed Content reader uses the closed
+`actql-native-file-content-read/0.1` implementation profile. It binds the exact
+logical SourceView and request/response schema envelopes to the original
+physical file SourceView, item/key paths and Content projection fields. Local
+file location and live authority remain on the original installed provider;
+the profile is immutable DATA and grants neither access nor byte custody.
+The reader resolves the original Resource and checks the original version,
+then persists the actual Content before admitting its derived response row.
+The profile alone is not a lookup attempt receipt. Dispatch activation, raw
+capture, page adoption, accounting and currentness retain the same lookup
+history obligations as other read implementations. An HTTP profile and broad
+same-process query evidence cannot stand in for this Native binding. Unknown
+profile versions have no fallback.
+
+<!-- machine-import: ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/native_file_content_read sha256:087884120840e8d5c74043dfd74af35ccb7b535d9a9e8c01d68a45f9afb76e08 -->
 
 <!-- requirement-block: lookup-acquisition-identities.product-774467c23fbe lookup-acquisition-identities.product-4554f0d2d0bd lookup-acquisition-identities.product-7ea9da11d811 lookup-acquisition-identities.product-eaa3962db019 lookup-acquisition-identities.product-bf2864bb4433 lookup-acquisition-identities.product-2ac42b610ae9 lookup-acquisition-identities.product-354e1495b498 lookup-acquisition-identities.product-e655e0e2e3f2 -->
 The lookup identity registry fixes the five references in the existing
@@ -651,7 +691,7 @@ The auxiliary references have these exact targets, before final Invocation:
 
 | Reference | Contract and admission |
 | --- | --- |
-| transport_plan_cid | Registry transport_plan; adapter_contract_cid resolves the SourceView's checked read execution contract, HTTP production schema http_read_transport with self field transport_cid; not runtime SourceReadPlan |
+| transport_plan_cid | Registry transport_plan; adapter_contract_cid resolves the SourceView's checked read execution contract: HTTP http_read_transport or Native native_file_content_read, each with self field transport_cid; not runtime SourceReadPlan |
 | activation / adoption lifecycle refs | Registry activation / adoption, self_cid; authenticated durable slot ownership and cross-bindings above |
 | accounting / attempt_event lifecycle refs | Registry accounting / attempt_event, self_cid; same barrier, input/batch/slot and cumulative history |
 | raw_response_artifact_cid | Registry raw_response, self_cid; content_cid is SHA-256 of exact decoded response bytes and size_bytes is that byte length; wire and decoded accounting remain separate |
@@ -1289,8 +1329,9 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_effect_outcome sha256:8a56e3e7d5139fef571da480831e0df45c95beb96c228e737efdb12a1ef0b98d
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_artifact sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/projection_attestation sha256:27c8c8a1215b705b6553f4db128f73c905b1c6a5f0c7d72c398e02541e7dc805
-../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:4e2d119f5db52ca112124cfab1e59a1579ce408d704c4fb1d04c2dd093390c2a
-../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:f09e6cde8b7140db7534cd1a1730234f37b208b4ba17268b89a32eccfd9b56cb
+../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:7b888e2691b7d48a3f525f2de0da7b09ce594fea6d3319bf5e75512c63217687
+../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:332f29e96a606665706639e1ab1dfcc6ae5d0374b77b7dd5cb3f399955ad58cd
+../../../spec/contracts/actql-stage-contracts.json#/schemas/local_model_observation sha256:00c4c147c9f572366acaa670d0929ea2adbb9c9f4819c53a5f5ff8cf37706afc
 ```
 <!-- stage-contract-pins:end -->
 
@@ -1315,7 +1356,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-lookup-identities.json#/evidence_slots sha256:d5257ad4c6368df06bdd720a132c1759b46ed0d3457b46e66e750b1f7f4aaa66
 ../../../spec/contracts/actql-lookup-identities.json#/reference_roles sha256:24dd3184553911026820fbf87b96d32ac3ce4fb4d256f069fe3d1c9d5533240d
 ../../../spec/contracts/actql-lookup-identities.json#/evidence_kinds sha256:98e11850d4899e992f5b2405ed2e160ed6037fef63e6f0fa02994d8fe3903913
-../../../spec/contracts/actql-lookup-identities.json#/external_contracts sha256:93c4120b39f30053b2713c6725675bc54c0c16dceefe82898fa8ba0d41f6fa1c
+../../../spec/contracts/actql-lookup-identities.json#/external_contracts sha256:d0af52232a41520502bfae7c7a51c0112f9f7bed75182e105c5bac53292d8bd9
 ../../../spec/contracts/actql-lookup-identities.json#/laws sha256:2fb2ee20393958ca02aa8e3aa66e6900efb02acc71e3aaaf7aa64ed285a8b5db
 ```
 <!-- lookup-identity-pins:end -->

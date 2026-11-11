@@ -60,6 +60,7 @@ pub fn begin_captured_managed_transfer(
       transfer_bytes,
       retained_bytes,
       execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(run.ledger),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))

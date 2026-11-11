@@ -188,6 +188,41 @@ connection alone does not prove that trusted transport, physical Native review,
 approval, Provider execution or public Cloud Effect is installed. Previously
 issued Runs do not acquire the new profile or a new identity during recovery.
 
+### Binding materials to a retained compilation
+
+A Host that already retains and funds the original `ClientEffectCompilation`
+passes it to the existing material codec as `original_compilation`. The Node and
+RelA `clientProgramAdmitEffectRunMaterialsWithCompilation` entries require that
+opaque compiler and the independently retained `ClientRequestIdentity` directly;
+JavaScript does not construct an Option or recreate either original.
+
+This route uses the compiler's same prepared Owner and compares the complete
+canonical material, saved Run and original Request, including Program,
+Parameters, Environment, Source selection and compiler policy. It does not parse
+or check the Program again, restore another policy compiler input, or compile a
+replacement. A different compiler, request, material or normalization profile
+refuses. A supplied original Source must also retain the same prepared Owner.
+
+An existing live material custody is reused only for the same compiler,
+Run, Request, complete material CID and journal bytes. A new binding cannot
+displace it. This admission neither returns physical resources nor grants
+current authority, an approval or permission to write.
+
+The existing installed `validateRun` caller supplies its already-owned compiler
+through this route. Its method and receiver are captured at installation;
+a missing typed entry or refused binding does not fall back to wire-only
+preparation. After the typed binding, the caller compares the same prepared and
+compiler references and retains its returned original selection/current closure.
+It does not re-encode both preparations or repeat that boundary's installation
+current callback. Selection DATA conversion may return distinct arrays borrowing
+the same Core original; wrapper reference equality is not nominal proof.
+The existing live capture-recovery caller also forwards its retained managed
+Run compiler for target-original and requested-stop material restoration. A
+live record missing that compiler refuses instead of selecting wire-only work.
+Independent wire-only callers retain their existing restoration contract. Connecting a cold Host's same-Request Plan construction and adoption
+remains a separate caller obligation: this projection does not create that Plan,
+fund its constructors or establish ordinary restoration acceptance.
+
 ### Original request in the Source dispatch binding
 
 For an explicitly selected completion-free Run, the existing Effect Source
@@ -297,3 +332,30 @@ through the same save/retry and typed outcome projection. Reconstructing row
 custody never grants permission to write. Empty or multiple create rows remain
 explicitly unsupported by this single-row adapter; those implementation
 boundaries are not restrictions on the language's create semantics.
+
+
+## Common computation with an original mapped update
+
+The Native README computation combines independent Source inputs, a keyed
+Content input, an explicit uniqueness assertion and an original Model occurrence.
+It is outside the immutable one-root Local update catalogue. A successful check
+or an executable Model graph does not prove an empty normalization inventory.
+
+`actql-local-common-update-completion-free-catalog.json` selects a separate fresh
+profile. Its computation audit reuses the same common original-occurrence walk
+used by Local normalization, including complete requirement and parameter
+ownership. Its update audit reuses the original selector, field, scalar literal,
+Mapping-conversion and omission checks. Actual completion entries, unconnected
+Source/default/template completions and work exhaustion still refuse. There is
+no second operation-support table and no Source, Model, Preview, permission,
+resource or physical execution grant. The Effect-free public inventory continues
+to reject Effect programs; only the original static Effect closure can enter this
+composition. Existing catalogue bodies and all saved recipes remain unchanged.
+
+Fresh selection first reads the retained original narrow applicability audit;
+when that profile is not installed, the common composition must establish its
+own complete original proof. An observed completion is never rescued by the
+broader audit. The selected nominal inventory and its distinct catalogue are
+bound before the first Effect compilation, retained by the same preparation and
+carried through original material and saved-compilation profile checks. Later
+reads of the retained original proof do not repeat the occurrence audit.

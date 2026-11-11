@@ -26,7 +26,7 @@ export const groupedRowsBoundaryRefusals = [
   ...['(id)', '+(@before + 1)', '+(-1)', '(+1.5)', '(9007199254740992)'].map((operand, index) => ({
     name: 'grouped-rows-refuse-operand-' + index, format: 'sql', text: query(operand),
     parameterDeclarations: {before: {type: 'number', nullable: false}}, parameters: {before: 1},
-    expectedCode: 'ClientProgramRejected',
+    expectedCode: 'ClientProgramInvalidInput',
   })),
   {name: 'grouped-rows-refuse-zero-parameter', format: 'sql', text: query('(+@before)'),
     parameterDeclarations: {before: {type: 'number', nullable: false}}, parameters: {before: 0},

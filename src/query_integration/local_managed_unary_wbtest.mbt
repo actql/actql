@@ -321,7 +321,7 @@ fn run_local_managed_unary_case(
     limits.guards,
     limits.candidate_work,
   ).unwrap()
-  @local_driver.configure_local_retained_inputs(
+  configure_local_managed_test_inputs(
     installed,
     {
       max_rows: 100,
@@ -364,8 +364,9 @@ fn run_local_managed_unary_case(
         None => if large_row { 2048 } else { 64 }
       },
     },
-    None,
-  ).unwrap()
+    limits,
+  )
+  configure_local_managed_test_output(installed, limits)
 
   let values_live = Ref(true)
   let values_obligations = if publication {
@@ -677,7 +678,7 @@ fn run_local_managed_nested_input_cancel(
     limits.guards,
     limits.candidate_work,
   ).unwrap()
-  @local_driver.configure_local_retained_inputs(
+  configure_local_managed_test_inputs(
     installed,
     {
       max_rows: 100,
@@ -695,8 +696,9 @@ fn run_local_managed_nested_input_cancel(
       },
       max_batch_bytes: 2048,
     },
-    None,
-  ).unwrap()
+    limits,
+  )
+  configure_local_managed_test_output(installed, limits)
   let values_live = Ref(true)
   let (value_ops, values) = run_local_managed_test_task(
     installed,
@@ -971,6 +973,53 @@ fn assert_captured_keyed_count_chain_budget(
     .unwrap()
   assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
   let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
+  let ledger = @strategy.captured_dag_ledger(run)
+  let workspace_blocker : Ref[@resources.CapacityReservation?] = Ref(None)
+  defer (if workspace_blocker.val is Some(token) {
+    @resources.settle_capacity(ledger, token) |> ignore
+  })
+  if expected == "workspace" || expected == "workspace_exact" {
+    // COUNT and Filter each retain two {id,n} rows; Select retains two {id}
+    // rows. Each row has one object and one scalar per column, plus the exact
+    // UTF-8 field names. All three buffers coexist on this SAME task; cleanup
+    // of a child does not refund its accepted persistent output.
+    let nodes = 2L * (1L + 2L + (1L + 2L) + (1L + 1L))
+    let text = 2L * (2L + 1L + (2L + 1L) + 2L)
+    let persistent = @execution.execution_capacity_inventory_add(
+        0L,
+        @execution.ValueNodeSlots,
+        nodes,
+        1,
+      )
+      .bind(bytes => {
+        @execution.execution_capacity_inventory_add(
+          bytes,
+          @execution.DecodedTextBytes,
+          text,
+          1,
+        )
+      })
+      .unwrap()
+    // The independent transient peak remains fourteen cursor-root slots.
+    // Keep the original exact/one-byte-short physical test, now for the
+    // combined cumulative DATA and missing workspace, not slots alone.
+    let workspace = @execution.execution_capacity_inventory_add(
+      0L,
+      @execution.CursorRootSlots,
+      (14 - max_entries).to_int64(),
+      1,
+    ).unwrap()
+    let required = @execution.checked_preparation_add_product(
+      persistent, workspace, 1L,
+    ).unwrap()
+    let headroom = required - (if expected == "workspace" { 1L } else { 0L })
+    let available = @resources.ledger_limits(ledger).execution_bytes -
+      @resources.ledger_usage(ledger).reserved_execution_bytes
+    assert_true(required > 0L && available >= headroom)
+    workspace_blocker.val = Some(
+      @resources.reserve_capacity(ledger, 0L, available - headroom).unwrap(),
+    )
+  }
   let mut done = false
   let mut rejected = false
   let mut charged_work = 0L
@@ -991,15 +1040,22 @@ fn assert_captured_keyed_count_chain_budget(
           @local_driver.Configuration(
             @connector.Execution(@execution.Rows(_, @execution.RowLimit))
           )
+        ) => fail("prepaid workspace is not the task's physical growth limit")
+        Err(
+          @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
         ) => rejected = expected == "workspace"
         Err(_) => fail("keyed count chain rejected with another issue")
       }
     }
   }
-  if expected == "complete" {
+  if expected == "complete" || expected == "workspace_exact" {
     assert_true(done && !rejected)
     assert_eq(charged_work, captured_keyed_count_chain_work().to_int64())
     assert_eq(local_managed_test_rows(operations), ["{\"id\":2}", "{\"id\":3}"])
+    if workspace_blocker.val is Some(token) {
+      @resources.settle_capacity(ledger, token).unwrap()
+      workspace_blocker.val = None
+    }
     let live = Ref(true)
     (operations.prepare_finalization)(1, operations.storage_bytes, fn() {
       live.val
@@ -1041,22 +1097,22 @@ fn assert_captured_keyed_count_chain_budget(
       assert_true(
         (operations.advance)(1)
         is Err(
-          @local_driver.Configuration(
-            @connector.Execution(@execution.Rows(_, @execution.RowLimit))
-          )
+          @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
         ),
       )
       assert_true(
         (operations.execute)()
         is Err(
-          @local_driver.Configuration(
-            @connector.Execution(@execution.Rows(_, @execution.RowLimit))
-          )
+          @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
         ),
       )
     }
     assert_true((operations.output_row)(0) is Err(_))
     assert_false(@strategy.captured_task_completed(run, 1))
+    if workspace_blocker.val is Some(token) {
+      @resources.settle_capacity(ledger, token).unwrap()
+      workspace_blocker.val = None
+    }
     (operations.settle)().unwrap()
     (operations.close)()
     assert_true((operations.cleanup_refresh)())
@@ -1089,13 +1145,25 @@ test "ordinary keyed count chain admits exact work and one-short limits" {
 }
 
 ///|
-test "ordinary keyed count chain admits exact workspace and one-short limit" {
+test "ordinary keyed count chain grows prepaid workspace and preserves one-short physical limits" {
   // COUNT holds eight metadata slots plus four sort slots for two rows.
   // Filter peaks at six metadata slots, two roots, two snapshot cells,
   // two output cells and two checked cells: 14. Select stays below this peak.
   // Retain this workspace fixture's original work allowance unchanged.
   assert_captured_keyed_count_chain_budget(199, "complete", max_entries=14)
+  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=13)
+  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=12)
+  assert_captured_keyed_count_chain_budget(
+    199,
+    "workspace_exact",
+    max_entries=13,
+  )
   assert_captured_keyed_count_chain_budget(199, "workspace", max_entries=13)
+  assert_captured_keyed_count_chain_budget(
+    199,
+    "workspace_exact",
+    max_entries=12,
+  )
   assert_captured_keyed_count_chain_budget(199, "workspace", max_entries=12)
 }
 
@@ -1134,10 +1202,15 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
-    let child = @execution.generated_sequence_capacity(
-      selected,
+    // Select the original built-in child's actual recipe. A keyed aggregate
+    // can retain the generic envelope even beside bounded leaf children.
+    let child_provider = @local_connector.local_bounded_relation_provider(
       limits.local_execution,
       limits.guards,
+      selected,
+    ).unwrap()
+    let child = @local_connector.managed_provider_capacity(
+      child_provider, selected,
     ).unwrap()
     retained += child.retained_bytes
     scratch = Int64::max(scratch, child.execution_bytes)
@@ -1590,26 +1663,251 @@ test "Local qualified select feeds two downstream Computes" {
 }
 
 ///|
-test "Local identity export over the import batch keeps its resource cause" {
-  // A published row larger than one import batch cannot be exported for its
-  // identity. That is a resource limit, reported as such: never as an
-  // unsupported logical identity.
-  let failure : Ref[@local_driver.LocalDispatchIssue?] = Ref(None)
-  try {
-    run_local_managed_unary_case(
-      "select",
-      publication=true,
-      max_batch_bytes=8,
-      finalization_failure=failure,
+test "Local identity export grows beyond the import batch on its same task" {
+  // Eight bytes is the prepaid import frame, not an output or total ceiling.
+  // Keep original rows, both consumers, Named Result identity and zero cleanup.
+  run_local_managed_unary_case("select", publication=true, max_batch_bytes=8)
+}
+
+///|
+test "Local identity frame exact growth and one-short refusal keep original custody" {
+  for
+    boundary in [
+      "exact", "physical_short", "schema_fields", "schema_bytes", "schema_nodes",
+      "schema_depth",
+    ] {
+    let refused = boundary != "exact"
+    let (run, issuer) = captured_graph_fixture(
+      local_values_unary_chain=Some("select"),
+      managed_publication=true,
     )
-    fail("expected the identity export to stop")
-  } catch {
-    ManagedFinalizationStopped => ()
-    error => raise error
+    assert_true(
+      @strategy.configure_captured_managed_identity_policy(
+        run, true, false, false, false,
+      ),
+    )
+    let registry = search_registry()
+    let limits = dispatch_test_limits()
+    let schema : @execution.RelationSchemaIdentityLimits = {
+      max_fields: if boundary == "schema_fields" {
+        1
+      } else {
+        limits.transport.max_columns
+      },
+      max_bytes: if boundary == "schema_bytes" {
+        1
+      } else {
+        limits.transport.max_bytes
+      },
+      max_nodes: if boundary == "schema_nodes" {
+        1
+      } else {
+        limits.transport.max_nodes
+      },
+      max_depth: if boundary == "schema_depth" {
+        0
+      } else {
+        limits.guards.max_depth
+      },
+    }
+    let installed = @local_driver.prepare_local_dispatch_module(
+      @host_driver.open_dispatch_driver(run),
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      dispatch_test_generated(run),
+      limits.local_execution,
+      limits.guards,
+      limits.candidate_work,
+    ).unwrap()
+    configure_local_managed_test_inputs(
+      installed,
+      {
+        max_rows: 100,
+        values: limits.local_execution.rows.input_values,
+        wire: retained_attempt_wire_limits(),
+        row: {
+          max_bytes: 100,
+          max_nodes: 20,
+          max_depth: 4,
+          max_text_bytes: 100,
+        },
+        max_batch_bytes: 8,
+      },
+      limits,
+      schema~,
+    )
+    configure_local_managed_test_output(installed, limits)
+    // Schema identity is required by the checked root Result on compute_b,
+    // not the Values producer's transport identity. Retain its actual input.
+    let prefix = if boundary.has_prefix("schema_") {
+      let available = Ref(true)
+      let obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
+      let (operations, output) = run_local_managed_test_task(
+        installed,
+        run,
+        1,
+        [],
+        [],
+        1,
+        available,
+        obligations~,
+      )
+      Some((operations, output, local_managed_test_rows(operations), available))
+    } else {
+      None
+    }
+    let task = if prefix is Some(_) { 2 } else { 1 }
+    let obligations = @strategy.captured_next_managed_obligations(run, 10).unwrap()
+    if prefix is Some(_) {
+      assert_eq(
+        @execution.managed_obligations_identities(obligations)
+        .filter(requirement => {
+          requirement.domain == @execution.LogicalRelation &&
+          requirement.subject == @execution.NamedResult
+        })
+        .length(),
+        1,
+      )
+    }
+    let operations = start_local_managed_test_task_operations(
+      installed,
+      run,
+      task,
+      match prefix {
+        Some((_, output, _, _)) => [output]
+        None => []
+      },
+      match prefix {
+        Some((_, _, rows, _)) => [rows]
+        None => []
+      },
+      obligations~,
+    )
+    (operations.execute)().unwrap()
+    let ledger = @strategy.captured_dag_ledger(run)
+    // The original Values Result uses id/amount; the selected projection
+    // renames amount to total. Both identities retain their checked names.
+    // null and 10.0 are four-byte scalars. Quote the larger original key
+    // set using the existing punctuation and six-byte escaping bound.
+    let input_frame = 3 + (4 + 2 * 6 + 4) + (4 + 6 * 6 + 4)
+    let selected_frame = 3 + (4 + 2 * 6 + 4) + (4 + 5 * 6 + 4)
+    let frame = Int::max(input_frame, selected_frame)
+    assert_eq(frame, 67)
+    let growth = @execution.execution_capacity_inventory_add(
+      0L,
+      @execution.CanonicalWireBytes,
+      (frame - 8).to_int64(),
+      1,
+    ).unwrap()
+    let headroom = growth - (if boundary == "physical_short" { 1L } else { 0L })
+    let available = @resources.ledger_limits(ledger).execution_bytes -
+      @resources.ledger_usage(ledger).reserved_execution_bytes
+    assert_true(available >= headroom)
+    // Only the physical boundary constrains the Ledger. Each schema negative
+    // keeps generous payload/output capacity and its own explicit schema cap.
+    let blocker = if boundary == "exact" || boundary == "physical_short" {
+      Some(
+        @resources.reserve_capacity(ledger, 0L, available - headroom).unwrap(),
+      )
+    } else {
+      None
+    }
+    let live = Ref(true)
+    (operations.prepare_finalization)(task, operations.storage_bytes, () => {
+      live.val
+    }).unwrap()
+    let mut complete = false
+    let mut failure : @local_driver.LocalDispatchIssue? = None
+    for _ in 0..<10000 {
+      if !complete && failure is None {
+        match (operations.advance_finalization)(1) {
+          Ok(poll) => complete = poll.complete
+          Err(issue) => failure = Some(issue)
+        }
+      }
+    }
+    if refused {
+      assert_false(complete)
+      if boundary == "physical_short" {
+        assert_true(
+          failure
+          is Some(
+            @local_driver.Execution(
+              @strategy.Physical(@resources.ExecutionLimit)
+            )
+          ),
+        )
+      } else if boundary == "schema_fields" {
+        assert_true(
+          failure
+          is Some(
+            @local_driver.IdentityExport(
+              @execution.Schema(@execution.FieldLimit)
+            )
+          ),
+        )
+      } else {
+        assert_true(
+          failure
+          is Some(
+            @local_driver.IdentityExport(
+              @execution.Schema(@execution.Encoding(@encode.OutputLimit))
+            )
+          ),
+        )
+      }
+      assert_false(@strategy.captured_task_completed(run, task))
+      assert_true(
+        (operations.complete)(task, operations.storage_bytes, () => live.val)
+        is Err(_),
+      )
+    } else {
+      assert_true(complete && failure is None)
+      (operations.settle)().unwrap()
+      let output = (operations.complete)(task, operations.storage_bytes, () => {
+        live.val
+      }).unwrap()
+      assert_true(@execution.managed_completed_output_available(output))
+      assert_eq(
+        local_managed_test_rows(operations),
+        local_managed_unary_input_expected("select"),
+      )
+    }
+    if blocker is Some(token) {
+      @resources.settle_capacity(ledger, token).unwrap()
+    }
+    live.val = false
+    if refused {
+      assert_true((operations.request_cancel)())
+      assert_true((operations.execution_stopped)())
+      (operations.settle)().unwrap()
+    }
+    (operations.close)()
+    if prefix is Some((operations, _, _, available)) {
+      available.val = false
+      (operations.close)()
+    }
+    @strategy.stop_captured_dag(run)
+    for
+      task in 0..<@strategy.graph_task_count(@strategy.captured_dag_graph(run)) {
+      @strategy.close_captured_task_output(run, task)
+    }
+    let mut child_closed = false
+    let mut prefix_closed = prefix is None
+    for _ in 0..<10000 {
+      if !child_closed {
+        child_closed = (operations.cleanup_refresh)()
+      }
+      if child_closed && !prefix_closed && prefix is Some((operations, _, _, _)) {
+        prefix_closed = (operations.cleanup_refresh)()
+      }
+    }
+    assert_true(child_closed && prefix_closed)
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(ledger)
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+    @mock.close_mock_query_issuer(issuer)
   }
-  assert_true(failure.val is Some(@local_driver.IdentityExport(_)))
-  assert_true(
-    !(failure.val
-    is Some(@local_driver.Configuration(@connector.LogicalIdentityUnsupported))),
-  )
 }

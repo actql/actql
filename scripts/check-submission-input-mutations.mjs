@@ -31,10 +31,10 @@ const expected = (phase, assertion = 'submission-input') => {
     name: `${entrance}: explicit restart lookup restores the same linked Run after original processes exit`,
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
   }));
-  if (phase === 'submission-copy') return ['changes branch', 'throws'].map(fault => ({
-    name: `SDK submitted outcome rejects a clone that ${fault}`,
+  if (phase === 'submission-copy') return [{
+    name: 'SDK submitted outcome needs no verification clone after admission',
     assertions: [{id: 'request-held-admission', operator: 'strictEqual'}],
-  }));
+  }];
   if (phase.startsWith('operation-input-')) {
     const inputs = phase === 'operation-input-range' ? ['reversed bound range']
       : ['empty bound vector query', 'short bound vector query', 'long bound vector query'];
@@ -49,7 +49,7 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
   if (phase.startsWith('request-cancel-')) {
     const names = {
-      'request-cancel-admission': ['clone changes request identity', 'clone changes known branch', 'clone changes Run reference', 'clone throws'].map(fault => `request cancellation rejects ${fault}`),
+      'request-cancel-admission': ['request cancellation keeps its original outcome without a verification clone'],
       'request-cancel-snapshot': ['request cancellation snapshots detach reused response and Run references'],
       'request-cancel-custody': ['accepted', 'already_requested', 'already_terminal'].flatMap(kind => [false, true].map(withRun => `request cancellation retains ${kind} ${withRun ? 'with Run' : 'without Run'} without stop or release claims`)),
       'request-cancel-failure': ['request cancellation failures detach reused credential errors without choosing outcome from their codes'],
@@ -70,7 +70,7 @@ const expected = (phase, assertion = 'submission-input') => {
     const names = {
       'request-snapshot': ['request lookup snapshots detach a reused held checkpoint'],
       'request-error-custody': ['request lookup failures detach a reused credential exception for each call'],
-      'request-admission': ['request lookup rejects clone changes a field', 'request lookup rejects reply cannot be cloned'],
+      'request-admission': ['request lookup needs no verification clone after original capture'],
       'request-held-admission': ['submission uncertainty retains original lookup when held clone changes its admitted branch', 'submission uncertainty retains original lookup when held reply cannot be cloned'],
       'request-held-state': ['held submit explanations retain the admitted preparation state'],
       'request-ended-public': ['rejected answers end the request without a Run; answers are per item'],
@@ -115,8 +115,9 @@ const expected = (phase, assertion = 'submission-input') => {
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
   }));
   if (phase === 'check-shape') {
-    return [{name: 'local: check reply custody refuses uncloneable values and copied shape loss',
-      assertions: [{id: assertion, operator: 'strictEqual'}]}];
+    return ['missing-version', 'invalid-outcome'].map(fault => ({
+      name: `local: malformed original check reply ${fault} refuses before issuing a verdict`,
+      assertions: [{id: assertion, operator: 'strictEqual'}]}));
   }
   if (phase === 'check-custody') {
     return ['preserve original syntax inputs and positions',
@@ -188,30 +189,32 @@ const expected = (phase, assertion = 'submission-input') => {
 const mutations = [
   ['typed Submission refusal loses its original invocation explanation',
     '          retainSubmissionAttemptExplanation(typedRejection, attempt, snapshot);',
-    '', 'submission-attempt-refused', 'submit-attempt-refused'],
+    '', 'submission-attempt-refused', 'submit-attempt-refused', [], 'packages/sdk/internal/submission-observation.mjs'],
   ['typed Submission refusal claims globally unconsumed custody',
     "...(attempt.kind === 'refused' ? {guarantee: attempt.guarantee} : {}),",
     "...(attempt.kind === 'refused' ? {guarantee: 'submission_never_committed'} : {}),",
-    'submission-attempt-refused', 'submit-attempt-refused'],
+    'submission-attempt-refused', 'submit-attempt-refused', [], 'packages/sdk/operation-presentation.mjs'],
   ['typed Submission conflict targets a different original submission',
     '    next: submissionTarget(snapshot),',
     "    next: submissionTarget({...snapshot, submissionRef: {...snapshot.submissionRef, nonce: 'different-original'}}),",
-    'submission-attempt-conflict', 'submit-attempt-conflict'],
+    'submission-attempt-conflict', 'submit-attempt-conflict', [], 'packages/sdk/operation-presentation.mjs'],
   ['typed Submission copies acquire original explanation custody',
     'const submissionExplanations = new WeakMap();',
     'const submissionExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
-    'submission-attempt-custody', 'submit-attempt-custody'],
+    'submission-attempt-custody', 'submit-attempt-custody', [], 'packages/sdk/internal/submission-observation.mjs'],
   ['an Unresolvable lookup silently acknowledges risk and restarts work',
     '      return retainSubmissionExplanation(freezeInput(answer), answer, context);',
     "      if (answer.kind === 'unresolvable' && unsafeRestartInput !== undefined) {\n" +
       '        const original = unsafeRestartInput; unsafeRestartInput = undefined;\n' +
-      '        const restarted = await submit(original.kind, original.input, {parameters: original.parameters,\n' +
+      '        const restartOptions = {parameters: original.parameters,\n' +
       '          submissionRef: newSubmission(), unresolvedHistory: {submissionRef: owned,\n' +
-      "            acknowledgement: 'possible_prior_execution_and_effects'}});\n" +
+      "            acknowledgement: 'possible_prior_execution_and_effects'}};\n" +
+      '        const restarted = await withSourceProducer(original.kind, original.input, restartOptions,\n' +
+      '          sourceProducer => submit(original.kind, original.input, restartOptions, sourceProducer));\n' +
       '        await restarted.wait({signal: AbortSignal.timeout(15000)});\n' +
       '      }\n' +
       '      return retainSubmissionExplanation(freezeInput(answer), answer, context);',
-    'unresolvable-restart', 'unresolvable-no-restart'],
+    'unresolvable-restart', 'unresolvable-no-restart', [], 'packages/sdk/internal/submission-observation.mjs'],
   ['known reversed operation range loses input classification',
     '        | Ranges(ReversedRange(_))\n', '',
     'operation-input-range', 'operation-input-public'],
@@ -221,74 +224,101 @@ const mutations = [
   ['request record loss is presented as durable nonacceptance',
     "    answer.kind === 'not_found' ? 'lookup_unresolved'",
     "    answer.kind === 'not_found' ? 'not_accepted'",
-    'request-record-loss', 'request-record-loss-kind'],
+    'request-record-loss', 'request-record-loss-kind', [], 'packages/sdk/operation-presentation.mjs'],
   ['request record loss recommends a new submission',
     "{operation: 'lookupRequest', requestId: context.requestId,\n          lookupContext: context.lookupContext},",
     "{operation: 'submit', requestId: context.requestId,\n          lookupContext: context.lookupContext},",
-    'request-record-loss', 'request-record-loss-advice'],
+    'request-record-loss', 'request-record-loss-advice', [], 'packages/sdk/operation-presentation.mjs'],
   ['request cancellation malformed body becomes an exchange failure',
     "      try { answer = await responseValue(response); }\n      catch { throw uninterpretableRequestCancellation(context); }",
     "      try { answer = await responseValue(response); }\n      catch { throw retainRequestCancellationExplanation(new ClientError('CancellationUnknown', {requestId}), context, 'outcome_unknown', 'exchange_failed'); }",
-    'request-cancel-parse', 'request-cancel-parse'],
+    'request-cancel-parse', 'request-cancel-parse', [], 'packages/sdk/internal/submission-observation.mjs'],
   ['request cancellation raw causes leak private values',
     "}) : new ClientError('CancellationUnknown', {requestId, cause: requestCancellationCause(cause)});",
     "}) : new ClientError('CancellationUnknown', {requestId, cause});",
-    'request-cancel-private', 'request-cancel-private-cause'],
-  ['request cancellation copied reply skips revalidation',
-    "if (!validRequestCancellation(answer, requestId) ||\n            answer.kind !== original.kind || answer.revision !== original.revision ||\n            ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(field =>\n              answer.ref?.[field] !== original.ref?.[field]))",
-    'if (false)', 'request-cancel-admission', 'request-cancel-admission'],
-  ['request cancellation response is frozen without detaching',
-    '      const original = {kind: answer.kind, revision: answer.revision,\n        ref: answer.ref === undefined ? undefined : {...answer.ref}};\n      try {\n        answer = structuredClone(answer);',
-    '      const original = {kind: answer.kind, revision: answer.revision,\n        ref: answer.ref === undefined ? undefined : {...answer.ref}};\n      try {\n        answer = answer;',
-    'request-cancel-snapshot', 'request-cancel-detached'],
+    'request-cancel-private', 'request-cancel-private-cause', [], 'packages/sdk/internal/submission-observation.mjs'],
+  ["request cancellation copied reply skips revalidation",
+    "try { answer = captureResponse(answer); }\n      catch { throw uninterpretableRequestCancellation(context); }",
+    "try { answer = structuredClone(captureResponse(answer)); }\n      catch { throw uninterpretableRequestCancellation(context); }",
+    "request-cancel-admission",
+    "request-cancel-admission",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
+  ["request cancellation response is frozen without detaching",
+    "try { answer = captureResponse(answer); }\n      catch { throw uninterpretableRequestCancellation(context); }",
+    "try { answer = answer; }\n      catch { throw uninterpretableRequestCancellation(context); }",
+    "request-cancel-snapshot",
+    "request-cancel-detached",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
   ['request cancellation copied observations acquire custody',
     'const requestCancellationExplanations = new WeakMap();',
     'const requestCancellationExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
-    'request-cancel-custody', 'request-cancel-custody'],
+    'request-cancel-custody', 'request-cancel-custody', [], 'packages/sdk/internal/submission-observation.mjs'],
   ['request cancellation failure reuses the credential exception',
     "? new ClientError(cause.code, {\n            ...(cause.status === undefined ? {} : {status: cause.status}),\n            ...(cause.cause === undefined ? {} : {cause: requestCancellationCause(cause.cause)}),\n          })",
-    '? cause', 'request-cancel-failure', 'request-cancel-failure-custody'],
+    '? cause', 'request-cancel-failure', 'request-cancel-failure-custody', [], 'packages/sdk/internal/submission-observation.mjs'],
   ['request cancellation acceptance claims physical stop and release',
     '    requestId: context.requestId, ...(problem === undefined ? {} : {problem}),',
     '    requestId: context.requestId, stopped: true, resourcesReleased: true, ...(problem === undefined ? {} : {problem}),',
-    'request-cancel-stop', 'request-cancel-physical-claim'],
-  ['request cancellation accepted becomes already terminal',
-    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
-    "return retainRequestCancellationExplanation(freezeInput(observation), context, 'already_terminal');",
-    'request-cancel-public', 'request-cancel-public'],
+    'request-cancel-stop', 'request-cancel-physical-claim', [], 'packages/sdk/operation-presentation.mjs'],
+  ["request cancellation accepted becomes already terminal",
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);",
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, 'already_terminal');",
+    "request-cancel-public",
+    "request-cancel-public",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
   ['request cancellation response loss becomes accepted',
     "'outcome_unknown', 'exchange_failed');", "'accepted');",
-    'request-cancel-loss', 'request-cancel-loss'],
-  ['request cancellation preparation response becomes already terminal',
-    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
-    "return retainRequestCancellationExplanation(freezeInput(observation), context, 'already_terminal');",
-    'request-cancel-preparation', 'request-cancel-preparation'],
+    'request-cancel-loss', 'request-cancel-loss', [], 'packages/sdk/internal/submission-observation.mjs'],
+  ["request cancellation preparation response becomes already terminal",
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);",
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, 'already_terminal');",
+    "request-cancel-preparation",
+    "request-cancel-preparation",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
   ['request observation failures reuse the borrowed exception',
     '  const retained = new ClientError(code,\n    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});',
-    '  const retained = error;', 'request-error-custody', 'request-failure-custody'],
-  ['request observation loses detached checkpoint custody',
-    "      try {\n        answer = structuredClone(answer);\n        if (!validRequestLookup(answer, requestId)", "      try {\n        answer = answer;\n        if (!validRequestLookup(answer, requestId)", 'request-snapshot', 'request-lookup-detached'],
-  ['request observation skips copied-response revalidation',
-    "        if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) fail('InvalidHostRequestLookup');", '', 'request-admission', 'request-lookup-admission'],
-  ['submission observation permits a copied durable reply to change its branch',
-    "  const copy = structuredClone(value);\n  if (structuralKey(copy) !== observedKey || structuralKey(value) !== observedKey) {\n    throw new TypeError('ChangedHostResponse');\n  }",
-    "  const copy = structuredClone(value);", 'submission-copy', 'request-held-admission'],
+    '  const retained = error;', 'request-error-custody', 'request-failure-custody', [], 'packages/sdk/internal/submission-observation.mjs'],
+  ["request observation loses detached checkpoint custody",
+    "try { answer = captureResponse(answer); }\n      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }",
+    "try { answer = answer; }\n      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }",
+    "request-snapshot",
+    "request-lookup-detached",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
+  ["request observation skips copied-response revalidation",
+    "try { answer = captureResponse(answer); }\n      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }",
+    "try { answer = structuredClone(captureResponse(answer)); }\n      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }",
+    "request-admission",
+    "request-lookup-admission",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
+  ["submission observation permits a copied durable reply to change its branch",
+    "attempt = captureResponse(await controlValue(response));",
+    "attempt = structuredClone(captureResponse(await controlValue(response)));",
+    "submission-copy",
+    "request-held-admission",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
   ['request observation loses the submitted held preparation state',
     "observation: 'request_held', preparationState: answer.state,",
-    "observation: 'request_held', preparationState: undefined,", 'request-held-state', 'request-held-state'],
+    "observation: 'request_held', preparationState: undefined,", 'request-held-state', 'request-held-state', [], 'packages/sdk/operation-presentation.mjs'],
   ['request observation presents ended preparation as resuming',
     'preparationState: answer.state,', "preparationState: answer.state === 'ended' ? 'resuming' : answer.state,",
-    'request-ended-public', 'request-ended-public'],
+    'request-ended-public', 'request-ended-public', [], 'packages/sdk/operation-presentation.mjs'],
   ['request observation treats lookup absence as a Run reference',
     "const observation = answer.kind === 'found' ? 'run_reference_received' :\n" +
       "    answer.kind === 'not_found' ? 'lookup_unresolved'",
     "const observation = answer.kind === 'found' ? 'run_reference_received' :\n" +
       "    answer.kind === 'not_found' ? 'run_reference_received'",
-    'request-absent-public', 'request-public-observation'],
+    'request-absent-public', 'request-public-observation', [], 'packages/sdk/operation-presentation.mjs'],
   ['request observation copies acquire original custody',
     'const requestLookupExplanations = new WeakMap();',
     'const requestLookupExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
-    'request-custody', 'request-observation-custody'],
+    'request-custody', 'request-observation-custody', [], 'packages/sdk/internal/submission-observation.mjs'],
 
   ['check expression type explanation loses its required domain',
     'Use an expression with number type for the rejected argument.',
@@ -303,7 +333,7 @@ const mutations = [
   ['check locale changes an observed invalid verdict into verification',
     "return freezeInput({outcome: 'completed', summary, hint, report});",
     "return freezeInput({outcome: 'completed', summary, hint, report: {...report, verdict: options?.locale === 'ja' ? 'verified' : report.verdict}});",
-    'check-locale-control', 'check-locale-control'],
+    'check-locale-control', 'check-locale-control', [], 'packages/sdk/check-presentation.mjs'],
   ['check unsupported locale loses its safe English fallback',
     "if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';",
     "locale = 'ja';", 'check-locale-fallback', 'check-locale-fallback'],
@@ -315,145 +345,151 @@ const mutations = [
       "    const [summary, hint] = localizeCheck(`completed.${verdict}`,\n" +
       "      explanations[verdict], options);\n" +
       "    const report = reportExplanation(outcome.report, 'complete');",
-    'check-locale-snapshot', 'check-locale-snapshot'],
+    'check-locale-snapshot', 'check-locale-snapshot', [], 'packages/sdk/check-presentation.mjs'],
   ['unknown submit loses its original input',
     "const submissionUnknown = (context, cause) => {\n  const result = new ClientError('SubmissionUnknown', {...context, cause});\n  const input = submissionContexts.get(context);\n  if (input) submissionInputs.set(result, input);",
-    "const submissionUnknown = (context, cause) => {\n  const result = new ClientError('SubmissionUnknown', {...context, cause});\n  const input = submissionContexts.get(context);", 'after-commit'],
-  ['original supplied parameters are replaced by null',
-    'const snapshot = freezeInput({...body, requestId, connection: selected.wire,',
-    'const snapshot = freezeInput({...body, parameters: null, requestId, connection: selected.wire,',
-    'after-commit'],
+    "const submissionUnknown = (context, cause) => {\n  const result = new ClientError('SubmissionUnknown', {...context, cause});\n  const input = submissionContexts.get(context);", 'after-commit', undefined, [], 'packages/sdk/internal/submission-observation.mjs'],
+  ["original supplied parameters are replaced by null",
+    "const snapshot = Object.freeze({...body, requestId, connection: selected.wire,",
+    "const snapshot = Object.freeze({...body, parameters: null, requestId, connection: selected.wire,",
+    "after-commit",
+    undefined,
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
   ['accepted handle loses its original input',
-    '        submissionInputs.set(run, snapshot);', '', 'acceptance'],
+    '        submissionInputs.set(run, snapshot);', '', 'acceptance', undefined, [], 'packages/sdk/internal/submission-observation.mjs'],
   ['unknown acceptance is presented as a held request',
     "submissionLookupExplanation('acceptance_unknown', input)",
     "submissionLookupExplanation('request_held', input)",
-    'after-commit', 'submission-explanation'],
+    'after-commit', 'submission-explanation', [], 'packages/sdk/internal/submission-observation.mjs'],
   ['submission explanation loses the original lookup identity',
     'submissionRef: input.submissionRef}),',
     'submissionRef: {...input.submissionRef, nonce: "wrong-request"}}),',
-    'after-commit', 'submission-explanation'],
+    'after-commit', 'submission-explanation', [], 'packages/sdk/operation-presentation.mjs'],
   ['submission explanation exposes a private transport cause',
     "submissionLookupExplanation('acceptance_unknown', input));",
     "freezeInput({...submissionLookupExplanation('acceptance_unknown', input), cause: cause.message}));",
-    'after-commit', 'submission-explanation'],
+    'after-commit', 'submission-explanation', [], 'packages/sdk/internal/submission-observation.mjs'],
   ['received Run reference is presented as unknown acceptance',
     "observation: 'run_reference_received',", "observation: 'acceptance_unknown',",
-    'acceptance', 'submission-explanation'],
+    'acceptance', 'submission-explanation', [], 'packages/sdk/operation-presentation.mjs'],
   ['cancellation acceptance is presented as physical stop and release',
     "accepted: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.'",
     "accepted: 'The Run has stopped and all resources have been released.'",
-    'cancellation-recorded', 'cancel-explanation'],
+    'cancellation-recorded', 'cancel-explanation', [], 'packages/sdk/operation-presentation.mjs'],
   ['typed cancellation refusal loses its invocation explanation',
     'return retainCancellationAttemptExplanation(received, context);',
-    'return received;', 'cancellation-attempt-refused', 'cancel-attempt-refused'],
+    'return received;', 'cancellation-attempt-refused', 'cancel-attempt-refused', [], 'packages/sdk/internal/run-observation.mjs'],
   ['typed cancellation refusal claims global uncommitted custody',
     "...(result.kind === 'refused' ? {guarantee: result.guarantee} : {}),",
     "...(result.kind === 'refused' ? {guarantee: 'cancellation_never_committed'} : {}),",
-    'cancellation-attempt-refused', 'cancel-attempt-refused'],
+    'cancellation-attempt-refused', 'cancel-attempt-refused', [], 'packages/sdk/operation-presentation.mjs'],
   ['typed cancellation conflict substitutes another expected revision',
     'attemptRef: context.attemptRef, cancelRef: context.cancelRef,',
     'attemptRef: context.attemptRef, cancelRef: {...context.cancelRef, expectedRevision: context.cancelRef.expectedRevision + 1},',
-    'cancellation-attempt-conflict', 'cancel-attempt-conflict'],
+    'cancellation-attempt-conflict', 'cancel-attempt-conflict', [], 'packages/sdk/operation-presentation.mjs'],
   ['typed cancellation copies acquire original explanation custody',
     'const cancellationExplanations = new WeakMap();',
     'const cancellationExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
-    'cancellation-attempt-custody', 'cancel-attempt-custody'],
-  ['unknown cancellation is presented as confirmed acceptance',
-    'cancellationExplanations.set(result, freezeInput({observation,',
-    "cancellationExplanations.set(result, freezeInput({observation: observation === 'outcome_unknown' ? 'accepted' : observation,",
-    'cancellation-unknown', 'cancel-unknown-explanation'],
+    'cancellation-attempt-custody', 'cancel-attempt-custody', [], 'packages/sdk/internal/run-observation.mjs'],
+  ["unknown cancellation is presented as confirmed acceptance",
+    "return freezeInput({observation,\n    ...(revision === undefined ? {} : {revision}), summary: summaries[observation],",
+    "return freezeInput({observation: observation === 'outcome_unknown' ? 'accepted' : observation,\n    ...(revision === undefined ? {} : {revision}), summary: summaries[observation],",
+    "cancellation-unknown",
+    "cancel-unknown-explanation",
+    [],
+    "packages/sdk/operation-presentation.mjs"],
   ['cancellation observation advice targets another Run',
     ": {operation: 'status', ref: context.ref}",
     ": {operation: 'status', ref: {...context.ref, runDefinitionCid: 'sha256:' + '0'.repeat(64)}}",
-    'cancellation-recorded', 'cancel-explanation'],
+    'cancellation-recorded', 'cancel-explanation', [], 'packages/sdk/operation-presentation.mjs'],
   ['unknown cancellation recommends another cancellation write',
     "? {operation: 'lookupCancellation', cancelRef: context.cancelRef}",
     "? {operation: 'cancel', ref: context.ref}",
-    'cancellation-unknown', 'cancel-unknown-explanation'],
+    'cancellation-unknown', 'cancel-unknown-explanation', [], 'packages/sdk/operation-presentation.mjs'],
   ['cancellation explanation exposes a private transport message',
     '...(revision === undefined ? {} : {revision}), summary: summaries[observation],',
     '...(revision === undefined ? {} : {revision}), summary: result.cause?.message ?? summaries[observation],',
-    'cancellation-unknown', 'cancel-unknown-explanation'],
-  ['local cancellation response-format failure loses uncertainty',
-    "        if (value instanceof Response) {\n" +
-    "          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),\n" +
-    "            cancellationContext, 'outcome_unknown');\n        }",
-    "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
-    'cancellation-format', 'cancel-format-uncertainty', [
-      ['          if (!dispatchedCancellations.has(context)) throw cause;',
-        "          if (!dispatchedCancellations.has(context) || cause?.code === 'InvalidLocalHostPortResponse') throw cause;"],
-    ]],
-  ['cancellation response reuse changes an earlier Run observation',
-    'received = detachResponse(received);', 'received = response;',
-    'cancellation-custody', 'cancel-custody', [
-      ['received = freezeInput(received);\n        return retainCancellationAttemptExplanation(received, context);',
-        'return retainCancellationAttemptExplanation(received, context);'],
-    ]],
+    'cancellation-unknown', 'cancel-unknown-explanation', [], 'packages/sdk/operation-presentation.mjs'],
+  ["local cancellation response-format failure loses uncertainty",
+    "if (!wasCancellationDispatched(context)) throw cause;",
+    "if (cause?.code === 'InvalidLocalHostPortResponse') throw new ClientError(cause.code);\n          if (!wasCancellationDispatched(context)) throw cause;",
+    "cancellation-format",
+    "cancel-format-uncertainty",
+    [],
+    "packages/sdk/internal/run-observation.mjs"],
+  ["cancellation response reuse changes an earlier Run observation",
+    "received = captureResponse(response);",
+    "received = response;",
+    "cancellation-custody",
+    "cancel-custody",
+    [["received = freezeInput(received);\n        return retainCancellationAttemptExplanation(received, context);","return retainCancellationAttemptExplanation(received, context);"]],
+    "packages/sdk/internal/run-observation.mjs"],
   ['cancellation clone failure leaks an unassociated error',
     "        let received;\n        try {\n          received = captureResponse(response);",
     "        let received = structuredClone(captureResponse(response));\n        try {\n          received = captureResponse(response);",
-    'cancellation-clone:clone throws', 'cancel-clone-invalid'],
-  ['cancellation clone erasure bypasses copy and shape validation',
-    'received = detachResponse(received);\n          if (!validCancellationAttempt(received, cancelRef, attemptRef))',
-    'received = structuredClone(received);\n          if (false)',
-    'cancellation-clone:clone erases fields', 'cancel-clone-invalid'],
+    'cancellation-clone:clone throws', 'cancel-clone-invalid', [], 'packages/sdk/internal/run-observation.mjs'],
+  ["cancellation clone erasure bypasses copy and shape validation",
+    "if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');",
+    "if (false) fail('InvalidHostCancellation');",
+    "cancellation-clone:clone erases fields",
+    "cancel-clone-invalid",
+    [],
+    "packages/sdk/internal/run-observation.mjs"],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => [
     `cancellation clone bypasses ${field} association`,
-    'received = detachResponse(received);\n' +
-      "          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');",
-    'received = structuredClone(received);\n' +
-      `          if (!validCancellationAttempt(received, {...cancelRef, ${field}: received.cancellation.cancelRef.${field}}, attemptRef)) fail('InvalidHostCancellation');`,
-    `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid',
+    "if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');",
+    `if (!validCancellationAttempt(received, {...cancelRef, ${field}: received.cancellation.cancelRef.${field}}, attemptRef)) fail('InvalidHostCancellation');`,
+    `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid', [],
+    'packages/sdk/internal/run-observation.mjs',
   ]),
   ['check reporting budget is blamed on an invalid input',
     'The reporting budget could not produce a complete bound check report.',
-    'The submitted input is invalid.', 'check-outcome-reporting', 'check-outcome-explanation'],
+    'The submitted input is invalid.', 'check-outcome-reporting', 'check-outcome-explanation', [], 'packages/sdk/check-presentation.mjs'],
   ['check verification is presented as execution and release success',
     "The report verifies only its selected checking scope and context.",
-    'Execution and release succeeded.', 'check-outcome-reporting', 'check-outcome-explanation'],
+    'Execution and release succeeded.', 'check-outcome-reporting', 'check-outcome-explanation', [], 'packages/sdk/check-presentation.mjs'],
   ['check partial report is presented as complete',
     "reportExplanation(outcome.partial_report, 'partial')",
     "reportExplanation(outcome.partial_report, 'complete')",
-    'check-outcome-partial', 'check-outcome-partial'],
+    'check-outcome-partial', 'check-outcome-partial', [], 'packages/sdk/check-presentation.mjs'],
   ['check unavailable is presented as completed',
     "return freezeInput({outcome: 'unavailable',",
     "return freezeInput({outcome: 'completed',",
-    'check-outcome-unavailable', 'check-outcome-unavailable'],
+    'check-outcome-unavailable', 'check-outcome-unavailable', [], 'packages/sdk/check-presentation.mjs'],
   ['check explanation bypasses malformed outcome validation',
     'export function explainCheckOutcome(outcome, options) {\n  if (!validCheckOutcome(outcome)) return undefined;',
     'export function explainCheckOutcome(outcome, options) {',
-    'check-outcome-validation', 'check-outcome-invalid'],
+    'check-outcome-validation', 'check-outcome-invalid', [], 'packages/sdk/check-presentation.mjs'],
 
-  ['check response reuse overwrites original input custody',
-    '        try { outcome = structuredClone(outcome); }\n' +
-      "        catch { reject(); }\n", '',
-    'check-custody', 'check-response-custody'],
+  ["check response reuse overwrites original input custody",
+    "try { outcome = captureResponse(outcome); }",
+    "try { outcome = outcome; }",
+    "check-custody",
+    "check-response-custody",
+    [],
+    "packages/sdk/internal/check-observation.mjs"],
 
-  ['copied check response loses its wire shape without refusal',
-    "        catch { reject(); }\n" +
-      "        if (!validCheckOutcome(outcome)) reject();\n" +
-      "        if (structuralKey(outcome) !== observedKey) reject();",
-    "        catch { reject(); }",
-    'check-shape', 'check-copied-shape'],
+  ["copied check response loses its wire shape without refusal",
+    "if (!validCheckOutcome(outcome)) reject();",
+    "if (false) reject();",
+    "check-shape",
+    "check-copied-shape",
+    [],
+    "packages/sdk/internal/check-observation.mjs"],
 
-  ['check response accepts a known location in another input document',
-    "        if (!validCheckOutcome(outcome)) reject();\n" +
-      "        const observedKey = structuralKey(outcome);\n" +
-      "        // Own this call's value before binding or freezing it. A Local Host may\n" +
-      "        // reuse its response object without replacing a previous SDK observation.\n" +
-      "        try { outcome = structuredClone(outcome); }\n" +
-      "        catch { reject(); }\n" +
-      "        if (!validCheckOutcome(outcome)) reject();",
-    "        const observedKey = structuralKey(outcome);\n" +
-      "        try { outcome = structuredClone(outcome); }\n" +
-      "        catch { reject(); }",
-    'check-location-domain', 'known-location-domain'],
+  ["check response accepts a known location in another input document",
+    "if (!validCheckOutcome(outcome)) reject();",
+    "",
+    "check-location-domain",
+    "known-location-domain",
+    [],
+    "packages/sdk/internal/check-observation.mjs"],
 
   ['check Problem explanation loses its opaque correlation',
     "return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,",
     "return freezeInput({outcome: 'failed', summary, hint, problem,",
-    'check-problem-explanation', 'check-problem-explanation'],
+    'check-problem-explanation', 'check-problem-explanation', [], 'packages/sdk/check-presentation.mjs'],
   ['check outcome bypasses its schema identity pin',
     'valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;',
     'valid(value, schemas.check_outcome);',
@@ -462,19 +498,19 @@ const mutations = [
   ['frontier comparison discards the bound context',
     'return structuralKey(left) === structuralKey(right);',
     'return structuralKey({...left, contextRef: "ignored"}) === structuralKey({...right, contextRef: "ignored"});',
-    'frontier-context', 'frontier-context'],
+    'frontier-context', 'frontier-context', [], 'packages/sdk/internal/check-observation.mjs'],
   ['frontier comparison treats presentation order as progress',
     "requirements: unordered(report.requirements.map(({code, facts}) =>\n      ({code, facts: facts.admission === undefined ? facts : {...facts,\n        admission: {...facts.admission, constraints: unordered(facts.admission.constraints)}}}))),",
     'requirements: report.requirements.map(({code, facts}) => ({code, facts})),',
-    'frontier-order', 'frontier-order'],
+    'frontier-order', 'frontier-order', [], 'packages/sdk/internal/check-observation.mjs'],
   ['frontier session repeats an unchanged obligation set',
     'previous && structuralKey(previous) === structuralKey(frontier)', 'false',
-    'frontier-stalled', 'frontier-stalled'],
+    'frontier-stalled', 'frontier-stalled', [], 'packages/sdk/internal/check-observation.mjs'],
   ['frontier session resets the attempt cap after changing context',
     'const frontier = getCheckRequirementFrontier(outcome);',
     'const frontier = getCheckRequirementFrontier(outcome);\n' +
       '        if (previous && previous.contextRef !== frontier?.contextRef) attempts = 1;',
-    'frontier-budget', 'frontier-budget-count'],
+    'frontier-budget', 'frontier-budget-count', [], 'packages/sdk/internal/check-observation.mjs'],
 
 ];
 const accepted = (phase, assertion) => {
@@ -497,9 +533,10 @@ const accepted = (phase, assertion) => {
     : phase === 'check-locale-snapshot' ? sdkAcceptance
     : phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
     : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
+  const escape = value => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',
-    `^(?:${tests.map(value => value.name).join('|')})$`, file],
+    `^(?:${tests.map(value => escape(value.name)).join('|')})$`, file],
   {encoding: 'utf8', timeout: 130000, maxBuffer: 16 * 1024 * 1024});
   return mutationAcceptance(result, tests, file);
 };
@@ -509,31 +546,29 @@ if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
 }
 const selected = mutations.filter(([name]) => args.length === 0 || name.includes(args[1]));
 if (!selected.length) throw new Error('No SDK mutations selected');
-const mutationPath = phase => phase.startsWith('operation-input-')
+// Split SDK owners are explicit recipe metadata, never guessed from a path.
+const mutationPath = (phase, sourceFile) => sourceFile ?? (phase.startsWith('operation-input-')
   ? 'src/program_check/diagnostic_category.mbt'
   : ['check-expression-type', 'check-operation-parameter', 'check-frame-explanation'].includes(phase)
   ? 'packages/sdk/check-reason-catalog.generated.js' : phase === 'check-schema-pin'
   ? 'packages/client-wire/client-host.generated.js'
-  : phase === 'check-locale-fallback' ? 'packages/sdk/check-presentation.mjs' : path;
-const originals = new Map(selected.map(([, , , phase]) => mutationPath(phase))
+  : phase === 'check-locale-fallback' ? 'packages/sdk/check-presentation.mjs' : path);
+const originals = new Map(selected.map(([, , , phase, , , sourceFile]) => mutationPath(phase, sourceFile))
   .map(file => [file, readFileSync(file, 'utf8')]));
-// Redundant capture/copy defenses must both be removed to inject the original
-// custody or copied-value fault. Named assertion targets remain unchanged.
-const captureFaults = {
-  'request-snapshot': ["try { answer = captureResponse(answer); }", "catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }"],
-  'request-cancel-snapshot': ["try { answer = captureResponse(answer); }", 'catch { throw uninterpretableRequestCancellation(context); }'],
-  'cancellation-custody': ["received = captureResponse(response);"],
-  'check-custody': ['try { outcome = captureResponse(outcome); }'],
-};
 // A parent local gate already owns the worktree lock. Keep this bounded
 // compiler child in its process group rather than acquiring a nested gate.
 const buildOperationInputRuntime = () => execFileSync('moon',
   ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'],
   {stdio: 'inherit', timeout: 120000});
+const groups = new Map(selected.map(([, , , phase, assertion]) =>
+  [phase + ':' + (assertion ?? 'submission-input'), {phase, assertion}]));
+const baselines = [...groups.values()].map(({phase, assertion}) =>
+  ({phase, assertion, accepted: accepted(phase, assertion)}));
+if (baselines.some(result => !result.accepted)) throw new Error('Mutation baseline refused');
 const results = [];
 try {
-  for (const [name, from, to, phase, assertion, additional = []] of selected) {
-    const file = mutationPath(phase);
+  for (const [name, from, to, phase, assertion, additional = [], sourceFile] of selected) {
+    const file = mutationPath(phase, sourceFile);
     const original = originals.get(file);
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
     let altered = original.replace(from, to);
@@ -544,21 +579,14 @@ try {
     }
     if (phase === 'unresolvable-restart') {
       for (const [anchor, replacement] of [
-        ['  const submitIntent = (kind, input, options) => {',
-          '  let unsafeRestartInput;\n  const submitIntent = (kind, input, options) => {'],
+        ['  const submitIntent = (kind, input, options, sourceProducer, requestName) => {',
+          '  let unsafeRestartInput;\n  const submitIntent = (kind, input, options, sourceProducer, requestName) => {'],
         ['    submissionInputs.set(pending, snapshot);',
           '    unsafeRestartInput = snapshot;\n    submissionInputs.set(pending, snapshot);'],
       ]) {
         if (altered.split(anchor).length !== 2) throw new Error(`Restart fault anchor not unique: ${name}`);
         altered = altered.replace(anchor, replacement);
       }
-    }
-    if (captureFaults[phase]) {
-      const [capture, following] = captureFaults[phase];
-      const anchor = following ? capture + '\n      ' + following : capture;
-      if (altered.split(anchor).length !== 2) throw new Error(`Capture fault anchor not unique: ${name}`);
-      altered = altered.replace(anchor, anchor.replace('captureResponse(answer)', 'answer')
-        .replace('captureResponse(response)', 'response').replace('captureResponse(outcome)', 'outcome'));
     }
     if (phase === 'operation-input-range') {
       const capacity = '                | InvalidSeriesCount(ReversedRange)\n';
@@ -574,8 +602,7 @@ try {
   for (const [file, original] of originals) writeFileSync(file, original);
   if (originals.has('src/program_check/diagnostic_category.mbt')) buildOperationInputRuntime();
 }
-const restorations = new Map(selected.map(([, , , phase, assertion]) =>
-  [phase + ':' + (assertion ?? 'submission-input'), {phase, assertion}]));
-const restoredAccepted = [...restorations.values()].every(({phase, assertion}) => accepted(phase, assertion));
-console.log(JSON.stringify({mutations: results, restoredAccepted}, null, 2));
-if (!restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;
+const restoredSources = [...originals].every(([file, original]) => readFileSync(file, 'utf8') === original);
+const restoredAccepted = [...groups.values()].every(({phase, assertion}) => accepted(phase, assertion));
+console.log(JSON.stringify({baselines, mutations: results, restoredSources, restoredAccepted}, null, 2));
+if (!restoredSources || !restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;

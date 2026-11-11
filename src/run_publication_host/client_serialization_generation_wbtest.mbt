@@ -69,6 +69,7 @@ fn serialization_generation_test_definition(
 fn serialization_generation_test_input_evidence(
   run : ClientCompiledRun,
   input : ClientSerializationInput,
+  codec? : (Int, Int, Int) = (16384, 256, 16),
 ) -> ClientSerializationInputEvidence raise {
   let wire : @execution.RowWireLimits = {
     max_columns: 100,
@@ -96,7 +97,12 @@ fn serialization_generation_test_input_evidence(
   assert_true(ready)
   let receipt = @execution.finish_completed_relation_identity_scan(scan).unwrap()
   let evidence = bind_client_serialization_input_identity(
-    run, input, receipt, 16384, 256, 16,
+    run,
+    input,
+    receipt,
+    codec.0,
+    codec.1,
+    codec.2,
   ).unwrap()
   @execution.cancel_completed_relation_export_receipt(receipt)
   evidence
@@ -505,4 +511,39 @@ test "Serialize generation closes exact compiled component policy ceilings and l
     )
     is Err(_),
   )
+}
+
+///|
+test "Content input Artifact stays inside the same closed evidence codec under a larger generic caller ceiling" {
+  assert_eq(client_serialization_evidence_codec_bounds(), (16384, 256, 16))
+  let owner = serialization_preparation_test_program()
+  let run = serialization_generation_test_run(owner, 2, 18)
+  let barrier = prepare_client_serialization(owner, 0, 1, max_work=3).unwrap()
+  let (active, source) = serialization_completed_test_input(barrier)
+  let encoder = start_client_serialization_encoder(
+    barrier,
+    max_rows=2,
+    max_bytes=18,
+    max_value_nodes=100,
+    max_value_depth=10,
+    max_frames=20,
+  ).unwrap()
+  let input = bind_client_serialization_completed_input(
+    barrier, source, encoder,
+  ).unwrap()
+  let original = serialization_generation_test_input_evidence(
+    run,
+    input,
+    codec=(1000000, 100000, 64),
+  )
+  assert_true(physical_equal(original.run, run))
+  assert_true(physical_equal(original.input, input))
+  let wire = @publication.run_evidence_value_json(original.artifact)
+  // This closed emitter contains ASCII CIDs and Int fields, no input rows or
+  // original Program/schema body. UTF-16 length equals UTF-8 length here.
+  assert_true(wire.length() < 16384)
+  assert_true(wire.contains("\"program_definition_cid\""))
+  assert_true(wire.contains("\"relation_schema_cid\""))
+  assert_false(wire.contains("\"rows\":"))
+  assert_true(@execution.cleanup_bounded_values(active).unwrap())
 }

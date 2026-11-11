@@ -14,7 +14,7 @@ int main(void) {
     long page_value = sysconf(_SC_PAGESIZE);
     if (page_value <= 0 || (size_t)page_value > SIZE_MAX / 64) return 2;
     size_t page = (size_t)page_value, bytes = page * 64;
-    char path[] = "/private/tmp/actql-owned-range-XXXXXX";
+    char path[] = "/tmp/actql-owned-range-XXXXXX";
     int fd = mkstemp(path);
     if (fd < 0 || unlink(path) != 0 || fchmod(fd, 0600) != 0 || ftruncate(fd, (off_t)bytes) != 0) return 2;
     unsigned char recipe[32] = {2};

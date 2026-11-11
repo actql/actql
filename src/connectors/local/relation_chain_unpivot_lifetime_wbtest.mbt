@@ -18,9 +18,7 @@ test "unpivot chain reclaims scratch without invalidating expanded output" {
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
-    let child = @execution.generated_sequence_capacity(
-      selected, limits, measure,
-    ).unwrap()
+    let child = chain_lifetime_child_capacity(selected, limits, measure)
     retained += child.retained_bytes
     peak = Int64::max(peak, child.execution_bytes)
     sum += child.execution_bytes

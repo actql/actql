@@ -124,3 +124,41 @@ pub fn client_program_compiled_infer_original(
     (graph, @publication_host.client_infer_plan_graph_execution_contract(graph)),
   )
 }
+
+///|
+/// Read the complete DATA inventory retained by this admitted materials owner.
+/// Copy the outer array; component originals stay owned by its compilation.
+#export_name("clientProgramInferRunMaterialsGraphs")
+pub fn client_program_infer_run_materials_graphs(
+  materials : @publication_host.ClientTaskRunMaterials,
+) -> Array[@publication_host.ClientInferPlanGraph] {
+  @publication_host.client_task_compilation_infers(materials.compilation).copy()
+}
+
+///|
+#export_name("clientProgramCompiledInferOriginals")
+pub fn client_program_compiled_infer_originals(
+  compiled : @publication_host.ClientCompiledRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Array[
+  (
+    @publication_host.ClientInferPlanGraph,
+    @check_environment.ModelExecutionContract,
+  ),
+]? {
+  guard @publication_host.client_compiled_run_matches(compiled, prepared) else {
+    return None
+  }
+  let graphs = @publication_host.client_compiled_run_infers(compiled)
+  if graphs.is_empty() {
+    return None
+  }
+  Some(
+    graphs.map(graph => {
+      (
+        graph,
+        @publication_host.client_infer_plan_graph_execution_contract(graph),
+      )
+    }),
+  )
+}

@@ -37,7 +37,8 @@ for (const entrance of ['local', 'https']) {
           intent, version: 'actql-submitted-intent/0.1'}, {dataKeys: true})).digest('hex');
         const body = {connection: {mode: entrance === 'local' ? 'local' : 'remote',
           owner: entrance === 'local' ? 'local' : 'remote', consentRefs: [], runners: []},
-        submissionRef, intentCid, ...intent};
+        submissionRef, attemptRef: {operation: 'submit', attemptId: `unexposed-${operation}`},
+        intentCid, ...intent};
         assert.equal(validClientBody('submit-intent', body), true);
         assert.equal(validClientBody(operation, body), false);
         let reply, problem;

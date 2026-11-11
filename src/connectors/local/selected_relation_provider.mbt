@@ -29,6 +29,60 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
+// These evaluator leaves return an existing input/prior value or capture an
+// immutable admitted literal, including checked property selection rooted in
+// an input/prior slot. They build no text/container forest. Keep the
+// complete fragment/traversal workspace and fund persistent output on the
+// original bounded row budget before CommitOutputRow transfers it.
+fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
+  guard (
+      @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
+      @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
+    ) &&
+    @lower.kernel_bindings(kernel) is Some(bindings) &&
+    @lower.bindings_count(bindings) > 0 else {
+    return false
+  }
+  let ordered = @lower.bindings_ordered(bindings)
+  for index in 0..<@lower.bindings_count(bindings) {
+    guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
+      return false
+    }
+    let mut leaf = expression
+    let mut property = false
+    while @lower.expression_body(leaf) is @lower.Property(child, _, ordinal) {
+      if ordinal < 0 {
+        return false
+      }
+      property = true
+      leaf = child
+    }
+    if property {
+      match @lower.expression_body(leaf) {
+        @lower.Field(_, @relation.InputField(_)) => ()
+        @lower.Field(_, @relation.PriorSlot(slot)) =>
+          if !ordered || slot < 0 || slot >= index {
+            return false
+          }
+        _ => return false
+      }
+      continue
+    }
+    match @lower.expression_body(expression) {
+      @lower.Field(_, @relation.InputField(_))
+      | @lower.Literal(_)
+      | @lower.TypedNull => ()
+      @lower.Field(_, @relation.PriorSlot(slot)) =>
+        if !ordered || slot < 0 || slot >= index {
+          return false
+        }
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
 fn selected_binding_rows_issue(
   issue : @execution.BoundedBindingRowsIssue,
   step : Int,
@@ -320,17 +374,26 @@ fn relation_chain_reclaimed_prefix(
 ) -> Int {
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
     match @execution.generated_sequence_step_at(sequence, index) {
-      Some(@lower.JoinStep(_)) => ()
+      Some(@lower.JoinStep(_)) | Some(@lower.CrossJoinStep(_)) => ()
       // These built-ins detach their accepted completion before cleanup.
       // Cleanup releases only private scratch; downstream ports keep the
       // original output generation, including duplicate expansion rows.
       Some(@lower.ValuesStep(_)) => ()
       Some(@lower.AppendStep(_)) => ()
+      // The bounded window child detaches its accepted output. Cleanup drops
+      // its maps, membership array and recheck cursors before the next child.
+      Some(@lower.WindowStep(_)) => ()
+      Some(@lower.SetStep(_)) if @execution.generated_sequence_step_count(
+          sequence,
+        ) ==
+        1 => ()
       Some(@lower.RowStep(kernel)) =>
         if !selected_binding_rows_supported(kernel) &&
           !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
           !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) &&
           !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&
+          !(@execution.generated_sequence_step_count(sequence) == 1 &&
+          @lower.kernel_pivot(kernel) is Some(_)) &&
           !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&
           !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
           return index
@@ -351,10 +414,20 @@ fn bounded_relation_chain_capacity(
   measurement : @execution.FixedInputGuardMeasureLimits,
   family : Array[ManagedProvider],
 ) -> @execution.ExecutionCapacity? {
-  guard @execution.generated_sequence_capacity(sequence, limits, measurement)
-    is Some(base) else {
-    return None
+  let bounded_single = @execution.generated_sequence_step_count(sequence) == 1 &&
+    (match @execution.generated_sequence_step_at(sequence, 0) {
+      Some(@lower.RowStep(kernel)) => selected_binding_rows_supported(kernel)
+      Some(@lower.JoinStep(_)) => true
+      _ => false
+    })
+  let quoted = if bounded_single {
+    @execution.generated_bounded_sequence_capacity(
+      sequence, limits, measurement,
+    )
+  } else {
+    @execution.generated_sequence_capacity(sequence, limits, measurement)
   }
+  guard quoted is Some(base) else { return None }
   let count = @execution.generated_sequence_step_count(sequence)
   if count < 2 {
     return Some(base)
@@ -1029,4 +1102,46 @@ fn selected_relation_provider(
       )
     },
   )
+}
+
+///|
+// Mirror the selected INNER JOIN constructor boundary, not a whole-schema
+// permission: carried DATA is borrowed, comparisons use only immediate keys.
+fn selected_join_borrows_carried_values(
+  kernel : @lower.PreparedJoinKernel,
+) -> Bool {
+  let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
+  let step = @lower.join_kernel_step(kernel)
+  let profile = @lower.join_kernel_profile(kernel)
+  guard @lower.inner_join_kind(profile) == @join.Inner &&
+    @lower.inner_join_key_count(profile) > 0 &&
+    @lower.node_at(owner, step) is Some(node) &&
+    @lower.node_input_count(node) == 2 &&
+    @lower.preparation_schema_at(owner, @pipeline.Step(step)).map(
+      @schema.all_fields_required,
+    ) ==
+    Some(true) else {
+    return false
+  }
+  for port in 0..<2 {
+    guard @lower.node_input_target(node, port).bind(target => {
+        @lower.preparation_schema_at(owner, target)
+      })
+      is Some(schema) &&
+      @schema.all_fields_required(schema) else {
+      return false
+    }
+    for index in 0..<@lower.inner_join_key_count(profile) {
+      guard @lower.inner_join_key_at(profile, index) is Some((left, right)) &&
+        @schema.lookup(schema, if port == 0 { left } else { right })
+        is Some(contract) else {
+        return false
+      }
+      match contract.shape {
+        @contract.Number | @contract.Boolean => ()
+        _ => return false
+      }
+    }
+  }
+  true
 }

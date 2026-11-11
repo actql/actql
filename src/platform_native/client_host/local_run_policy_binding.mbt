@@ -436,19 +436,13 @@ fn NativeLocalRunPolicyBinding::prepare_submission_policy_with_operations(
       }
       @host.prepared_client_identity(prepared)
     }
-    EffectComputation(prepared) => {
-      let graph = @strategy.checked_effect_computation_graph(
-        @host.prepared_client_effect_computation_graph(prepared),
-      )
-      if !@strategy.graph_source_free_inputs_complete(graph) ||
-        @strategy.graph_captured_prefix(graph) != 0 ||
-        @strategy.graph_task_count(graph) != 1 ||
-        @strategy.graph_task_input_count(graph, 0) != Some(0) ||
-        @host.prepared_client_effect_infer_occurrence(prepared) is Some(_) {
-        return Err(UnsupportedPreparation)
-      }
+    EffectComputation(prepared) =>
+      // Pending Retention binds this checked identity, not an execution
+      // profile. Source/Model/Effect supply and first Run/material acceptance
+      // remain with their original constructors and current authority checks.
+      // In particular the separate legacy Values acceptance guard stays closed
+      // for composed inputs; preparing a lifetime cannot bypass it.
       @host.prepared_client_effect_identity(prepared)
-    }
   }
   if identity.program_definition_cid !=
     @host.client_request_program_cid(request) ||

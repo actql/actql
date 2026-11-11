@@ -70,6 +70,15 @@ fn reserve_capacity_current(
   let retained = usage.held_bytes +
     usage.reserved_retention_bytes +
     retained_bytes
+  match
+    grow_imported_platform_working_current(
+      ledger,
+      retained,
+      usage.reserved_execution_bytes + execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   ledger.usage = {
     ..usage,
     live_reservations: usage.live_reservations + 1,
@@ -104,6 +113,56 @@ fn reserve_capacity_current(
 ///|
 pub fn capacity_reservation_open(reservation : CapacityReservation) -> Bool {
   reservation_open(reservation.reservation)
+}
+
+///|
+/// Grow the SAME byte-only token before its next constructor. Delegate the
+/// original/current, monotonic-byte and imported-owner checks once; never
+/// expose its inner send/quantity reservation or issue another slot/attempt.
+pub fn grow_capacity_reservation(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, LedgerIssue] {
+  grow_execution_reservation_capacity(
+    ledger,
+    capacity.reservation,
+    retained_bytes,
+    execution_bytes,
+  )
+}
+
+///|
+/// Shrink the SAME byte-only reservation after its owner has disposed of the
+/// returned workspace. This changes neither consumed history nor physical
+/// cleanup obligations, and leaves the original reservation open. Check the
+/// remainder after the original current callback, then use the existing closed
+/// resize path without another callback or an intervening reusable proof.
+pub fn shrink_capacity_reservation(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if retained < 0L || execution < 0L {
+    return Err(InvalidCharge)
+  }
+  let token = capacity.reservation
+  match reservation_check(ledger, token) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if retained > token.retention ||
+    execution > token.execution ||
+    token.attempt_reserved ||
+    token.attempt_started {
+    return Err(InvalidCharge)
+  }
+  if imported_child_fixed_capacity(ledger, token) {
+    return Err(ChildFundingUnavailable)
+  }
+  resize_capacity_reservation_current(ledger, capacity, retained, execution)
 }
 
 ///|
@@ -179,13 +238,32 @@ fn resize_capacity_reservation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  resize_capacity_reservation_current(ledger, capacity, retained, execution)
+}
+
+///|
+// The same mutation after the closed original/current boundary, with no
+// callback or reusable current proof between these checks and the mutation.
+fn resize_capacity_reservation_current(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if retained < 0L || execution < 0L {
+    return Err(InvalidCharge)
+  }
+  let token = capacity.reservation
+  match reservation_check_current(ledger, token) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if token.transfer != 0L ||
     token.quantities is Some(_) ||
     token.uncertain_quantities is Some(_) ||
     token.cleanup_pending {
     return Err(InvalidCharge)
   }
-  let usage = ledger.usage
   let retained_delta = retained - token.retention
   let execution_delta = execution - token.execution
   if (retained_delta > 0L || execution_delta > 0L) &&
@@ -195,6 +273,22 @@ fn resize_capacity_reservation(
     inventory.closing {
     return Err(ClosedReservation)
   }
+  resize_reservation_bytes_current(ledger, token, retained, execution)
+}
+
+///|
+// The original closed current boundary owns every caller. Share byte-vector
+// arithmetic between byte-only preparation and the existing physical attempt;
+// neither caller changes transfer, attempts, quantities or reservation slots.
+fn resize_reservation_bytes_current(
+  ledger : Ledger,
+  token : Reservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  let usage = ledger.usage
+  let retained_delta = retained - token.retention
+  let execution_delta = execution - token.execution
   // Original stopping permits disposal, never new allocation. The preceding
   // reservation check has refreshed currentness and may have latched stopping.
   if (retained_delta > 0L || execution_delta > 0L) &&
@@ -211,6 +305,15 @@ fn resize_capacity_reservation(
   if execution_delta >
     ledger.limits.execution_bytes - usage.reserved_execution_bytes {
     return Err(ExecutionLimit)
+  }
+  match
+    grow_imported_platform_working_current(
+      ledger,
+      usage.held_bytes + usage.reserved_retention_bytes + retained_delta,
+      usage.reserved_execution_bytes + execution_delta,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   ledger.usage = {
     ..usage,

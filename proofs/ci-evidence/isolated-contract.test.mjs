@@ -2,6 +2,7 @@
 // observations. No local record is promoted to authenticated main evidence.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
@@ -10,10 +11,12 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 import {gitTree, hash} from './inputs.mjs';
 import {isolatedContract, isolatedExperimentDigest, isolatedExperimentPaths, matchesIsolatedContract} from './isolated-contract.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
-import {checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, imageRuntime} from './isolated-runtime.mjs';
+import {checkIsolatedInputs} from './isolated-runtime.mjs';
 import {historicalIsolatedFixture} from './historical-isolated-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
+const currentTree = gitTree(root, execFileSync('git',
+  ['--no-replace-objects', 'rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
 const tree = gitTree(root, isolatedContract.reviewRevision);
 const originalBytes = gunzipSync(readFileSync(join(root,
   'docs/reviews/evidence/2026-10-06-local-isolated-session-8bbe08fca.json.gz')), {maxOutputLength: 8 * 1024 * 1024});
@@ -37,8 +40,9 @@ test('the reviewed current experiment matches actual Git and every experiment fi
   assert.equal(original.reuseAuthorized, false);
   assert(originalConsumer.checkIsolatedInputs({runtime: original.prepared.runtime, manifest: original.prepared.manifest, tree: originalTree, local: true}));
   assert(originalConsumer.checkIsolatedResult({payload: original.answer.payload, manifest: original.prepared.manifest, before: originalConsumer.snapshotFromGit(originalTree)}));
+  // Relabeling claims this current Source, not the old tree under a new reader.
   assert.throws(() => checkIsolatedInputs({runtime: original.prepared.runtime,
-    manifest: original.prepared.manifest, tree: originalTree, local: true}), /Wrong reviewed source cohort/u);
+    manifest: original.prepared.manifest, tree: currentTree, local: true}), /Wrong reviewed source cohort/u);
   assert.deepEqual(original.answer.payload.report.results.map(entry => entry.id).sort(), [...mutationIds].sort());
   // The actual local kernel/image remain outside the Actions contract.
   assert.equal(matchesIsolatedContract(original.prepared.manifest), false);
@@ -71,10 +75,11 @@ test('refreshing the finite experiment does not relax toolchain, host or kernel 
 
 test('CPU observations remain bound independently of the reviewed experiment files', () => {
   const manifest = original.prepared.manifest;
-  const before = imageRuntime(manifest, {local: true});
+  const before = originalConsumer.imageRuntime(manifest, {local: true});
   const changed = {...manifest, platformInputs: {...manifest.platformInputs, models: ['another CPU']}};
-  assert.notEqual(encode(imageRuntime(changed, {local: true})), encode(before));
+  assert.notEqual(encode(originalConsumer.imageRuntime(changed, {local: true})), encode(before));
   const payload = {...original.answer.payload, platformInputs: changed.platformInputs};
-  assert.throws(() => checkIsolatedResult({payload, manifest,
-    before: snapshotFromGit(gitTree(root, original.revision))}), /Changed kernel\/CPU execution profile/u);
+  // This is the historical CPU observation, consumed under its original policy.
+  assert.throws(() => originalConsumer.checkIsolatedResult({payload, manifest,
+    before: originalConsumer.snapshotFromGit(gitTree(root, original.revision))}), /Changed kernel\/CPU execution profile/u);
 });

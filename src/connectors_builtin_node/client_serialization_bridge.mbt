@@ -193,6 +193,14 @@ pub fn client_program_serialization_plan_graph_coordinates(
 }
 
 ///|
+#export_name("clientProgramSerializationJsonLeafFieldCount")
+pub fn client_program_serialization_json_leaf_field_count(
+  component : @publication_host.ClientSerializationPlanGraph,
+) -> Int {
+  @client_local_host.client_serialization_json_leaf_field_count(component)
+}
+
+///|
 #export_name("clientProgramAcquiredSerializationPlanGraph")
 pub fn client_program_acquired_serialization_plan_graph(
   owner : @publication_host.PreparedClientProgram,
@@ -1428,4 +1436,12 @@ pub fn client_program_issue_generated_content(
     max_depth,
     max_text_units,
   })
+}
+
+///|
+#export_name("clientProgramSerializationInputRowBound")
+pub fn client_program_serialization_input_row_bound(
+  graph : @publication_host.ClientSerializationPlanGraph,
+) -> Int {
+  @client_local_host.client_serialization_input_row_bound(graph).unwrap_or(-1)
 }

@@ -3,6 +3,7 @@
 // business domain, Result grant, Reader or replacement installation.
 priv struct LocalCommandRunObservationOriginal {
   operation : @local_host.NativeLocalStoreOperation
+  mut journal_operation : @local_host.NativeLocalStoreOperation?
   mut root_bridge : @local_sqlite.NativeStoreOperationOriginal?
   mut store : @local_store.Store?
   mut failure : @local_store.NativePublicationStoreOpenFailure?
@@ -10,6 +11,11 @@ priv struct LocalCommandRunObservationOriginal {
   mut parent_failure : @local_filesystem.NativeRootOpenFailure?
   mut root : @local_filesystem.Root?
   mut root_failure : @local_filesystem.NativeRootOpenFailure?
+  mut saved_effect_review : @local_host.NativeLocalSavedEffectReview?
+  // Same successful Resolution's borrowed continuation. This command retains
+  // it before any later claim/row constructor; it is not a second execution
+  // owner, renewed approval, callback or physical cleanup acknowledgement.
+  mut effect_resume : @local_host.NativeLocalEffectResumeOriginal?
   mut selected_namespace : String?
   mut attempted : Bool
   // Retain the exact failed Store receipt with this original across cleanup.
@@ -21,12 +27,13 @@ priv struct LocalCommandRunObservationOriginal {
 // Read. Activation and all original/configuration checks occur before Store IO.
 fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
   self : LocalCommandPreparationOriginal,
+  journal? : Bool = false,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.pair is Some(pair) &&
     self.journal is Some(capture) &&
     self.runtime is Some(runtime) &&
-    self.business is None &&
+    self.saved_observation_business_disjoint() &&
     self.run_observation is None &&
     !self.phase_open &&
     !self.journal_read_open &&
@@ -45,8 +52,9 @@ fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
     Ok(value) => value
     Err(issue) => return Err(CommandStoreOperation(issue))
   }
-  self.run_observation = Some({
+  let retained : LocalCommandRunObservationOriginal = {
     operation,
+    journal_operation: None,
     root_bridge: None,
     store: None,
     failure: None,
@@ -54,10 +62,23 @@ fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
     parent_failure: None,
     root: None,
     root_failure: None,
+    saved_effect_review: None,
+    effect_resume: None,
     selected_namespace: None,
     attempted: false,
     _retained_store_issue: None,
-  })
+  }
+  // Retain the first original before preparing the separate Journal carrier.
+  self.run_observation = Some(retained)
+  if journal {
+    match
+      @local_host.prepare_native_local_run_observation_store_operation(
+        capture, runtime, library,
+      ) {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(value) => retained.journal_operation = Some(value)
+    }
+  }
   Ok(())
 }
 
@@ -69,7 +90,7 @@ fn LocalCommandPreparationOriginal::open_run_observation_store(
   run : LocalRunInstallation,
 ) -> @local_store.Store raise ClientStop {
   guard self.run_observation is Some(original) &&
-    self.business is None &&
+    self.saved_observation_business_disjoint() &&
     self.journal_read_open &&
     !self.closing &&
     !self.closed else {
@@ -167,6 +188,18 @@ fn LocalCommandPreparationOriginal::close_run_observation(
   if self.journal_read_open || self.phase_open {
     return Err(CommandRunObservationPending)
   }
+  // Cut the dependent continuation before its Saved originals. Retiring
+  // this DATA does not erase the durable Resolution/lease, refund work, stop
+  // an operation or acknowledge physical Store/Root cleanup below.
+  if original.effect_resume is Some(continuation) {
+    continuation.retire_read_aliases()
+    original.effect_resume = None
+  }
+  if original.saved_effect_review is Some(review) {
+    // Read aliases do not own deletion of the historical encrypted evidence.
+    review.retire_read_aliases()
+    original.saved_effect_review = None
+  }
   if original.store is Some(store) {
     match store.reconcile_original_return() {
       Err(issue) => return Err(CommandRunObservationStore(issue))
@@ -221,6 +254,12 @@ fn LocalCommandPreparationOriginal::close_run_observation(
     }
   }
   original.root_bridge = None
+  if original.journal_operation is Some(journal) {
+    match journal.close_captured_journal_database() {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(_) => original.journal_operation = None
+    }
+  }
   match original.operation.close_checked() {
     Err(issue) => Err(CommandStoreOperation(issue))
     Ok(_) => {
@@ -281,7 +320,7 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     self.runtime is Some(actual_runtime) &&
     physical_equal(actual_runtime, runtime.physical) &&
     self.run_observation is Some(observation) &&
-    self.business is None &&
+    self.saved_observation_business_disjoint() &&
     self.journal_read_open &&
     !self.closing &&
     !self.closed &&
@@ -362,5 +401,40 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
   match refreshed {
     Ok(value) => value
     Err(issue) => stop(local_saved_state_issue(issue))
+  }
+}
+
+///|
+// A saved continuation can select the existing physical execution facility,
+// while this same command retains its distinct original observation Store.
+// Never admit fresh Request/Compute state or a second business Store here.
+fn LocalCommandPreparationOriginal::saved_observation_business_disjoint(
+  self : Self,
+) -> Bool {
+  match self.business {
+    None => true
+    Some(business) =>
+      (
+        business.profile.kind == SavedEffectApply ||
+        (
+          business.profile.kind == SourceFreeCompute &&
+          business.selected_profile is None &&
+          business.domain is None &&
+          business.execution is None &&
+          business.operation is None &&
+          business.request_intent is None &&
+          business.request_body is None
+        )
+      ) &&
+      business.request_input is None &&
+      business.request_initial is None &&
+      business.request_parent is None &&
+      business.request_run is None &&
+      business.effect_model is None &&
+      business.values_work is None &&
+      business.model_work.is_empty() &&
+      business.store is None &&
+      business.store_failure is None &&
+      !business.active
   }
 }

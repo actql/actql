@@ -22,7 +22,9 @@ pub(all) enum NativePublicationStoreIssue {
   SinkProgress(@publication.DeliverySinkProgressIssue)
   DeliveryIssuance(@publication.DeliveryIssuanceIssue)
   DeliveryGrantUsage(@publication.DeliveryGrantUsageIssue)
+  PublicationPreparation(@local.ClientProgramValidationIssue)
   PublicationCommit(@publication.PublicationCommitIssue)
+  EffectfulPublication(@publication.EffectfulPublicationCommitIssue)
   PublicationCommitIssuance(@publication.PublicationCommitIssuanceIssue)
   PublicationCommitConflict
   ClockRegression

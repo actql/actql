@@ -110,8 +110,8 @@ test "owned physical buffers precharge construction and clear released reference
 ///|
 fn layout_ledger(slots : Int, bytes : Int, work : Int) -> LayoutLedger {
   {
-    slots: { limit: slots, live: 0, peak: 0, },
-    bytes: { limit: bytes, live: 0, peak: 0, },
+    slots: { ..row_workspace(slots), live: 0, peak: 0, },
+    bytes: { ..row_workspace(bytes), live: 0, peak: 0, },
     work: { remaining: work, max_frames: 0, },
     traffic: None,
   }

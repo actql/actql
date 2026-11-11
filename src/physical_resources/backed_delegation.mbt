@@ -26,6 +26,7 @@ pub struct BackedExecutionRegion[P, C] {
   mut owner_borrow : SharedBorrow?
   children : Array[BackedExecutionDelegation[P, C]]
   mut closing : Bool
+  priv mut working : (PlatformVMWorkingCapacity, Int64, Int64)?
 }
 
 ///|
@@ -37,6 +38,9 @@ pub struct BackedExecutionDelegation[P, C] {
   extent : BackedExecutionExtent
   access : BackedExecutionAccess
   limits : LedgerLimits
+  // A growable in-process child separates declared policy from bytes already
+  // acquired by its original physical owner. None preserves fixed extents.
+  priv current_window : Ref[Int64]?
   mut peak_retention : Int64
   // The original logical reservation's open flag is the settlement state.
   // None remains unknown final usage; it never means zero usage or unsent.
@@ -96,6 +100,7 @@ pub fn[P, C] issue_backed_execution_region(
     owner_borrow: Some(borrow),
     children: [],
     closing: false,
+    working: None,
   })
 }
 
@@ -116,14 +121,24 @@ fn[P, C] check_backed_region_current(
     !physical_equal(borrow.allocation, allocation) ||
     borrow.returned ||
     allocation.released ||
-    !allocation.retiring ||
+    (region.working is None && !allocation.retiring) ||
     !capacity.reservation.open {
     return Err(Retired)
   }
   match check_original_resources_mutable(capacity.ledger) {
-    Err(issue) => Err(Resource(issue))
-    Ok(_) => Ok(())
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
   }
+  if region.working is Some((working, _, _)) {
+    match require_platform_vm_capacity(working.vm, capacity.ledger, capacity) {
+      Err(_) => return Err(Resource(ChildFundingUnavailable))
+      Ok(_) => ()
+    }
+    if !physical_equal(working.allocation, allocation) {
+      return Err(ForeignOriginal)
+    }
+  }
+  Ok(())
 }
 
 ///|
@@ -168,19 +183,56 @@ pub fn[P, C] reserve_backed_execution_delegation(
   limits : LedgerLimits,
   overhead_retained : Int64,
   overhead_execution : Int64,
+  initial_window? : Int64? = None,
 ) -> Result[BackedExecutionDelegation[P, C], BackedExecutionIssue] {
   let (capacity, allocation) = match backed_region_current(region, provider) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if region.closing || capacity.closing {
+  if region.closing ||
+    capacity.closing ||
+    (region.working is Some((working, _, _)) && working.closing) {
     return Err(RegionClosing)
   }
   if !backed_extent_valid(extent, allocation.bytes) ||
     limits.retained_bytes < 0L ||
     limits.execution_bytes < 0L ||
-    limits.retained_bytes > extent.payload_length ||
-    limits.execution_bytes > extent.payload_length - limits.retained_bytes {
+    (
+      region.working is None &&
+      initial_window is None &&
+      (
+        limits.retained_bytes > extent.payload_length ||
+        limits.execution_bytes > extent.payload_length - limits.retained_bytes
+      )
+    ) {
+    return Err(InvalidExtent)
+  }
+  if initial_window is Some(bytes) &&
+    (
+      region.working is Some(_) ||
+      access != ExclusiveWrite ||
+      !region.children.is_empty() ||
+      bytes <= 0L ||
+      bytes > extent.payload_length
+    ) {
+    return Err(InvalidExtent)
+  }
+  for existing in region.children {
+    if existing.current_window is Some(_) {
+      return Err(ExtentConflict)
+    }
+  }
+  // This closed VM binding delegates one original child and grows only that
+  // child's actual claim. It is not a mapped window or shared read region.
+  if region.working is Some(_) &&
+    (
+      access != ExclusiveWrite ||
+      !region.children.is_empty() ||
+      extent.offset != 0L ||
+      extent.payload_offset != 0L ||
+      extent.length != allocation.bytes ||
+      extent.payload_length != allocation.bytes
+    ) {
     return Err(InvalidExtent)
   }
   for other in region.children {
@@ -218,6 +270,7 @@ pub fn[P, C] reserve_backed_execution_delegation(
     extent,
     access,
     limits,
+    current_window: initial_window.map(bytes => Ref(bytes)),
     peak_retention: 0L,
     final_usage: None,
     live_usage_reported: false,
@@ -311,7 +364,20 @@ pub fn[P, C] backed_execution_delegation_description(
   match
     check_backed_execution_delegation_current(region, provider, child, ticket) {
     Err(issue) => Err(issue)
-    Ok(_) => Ok((ticket.extent, ticket.access, ticket.limits))
+    Ok(_) => {
+      let extent = if region.working is Some(_) {
+        let bytes = region.allocation.unwrap().bytes
+        {
+          offset: 0L,
+          length: bytes,
+          payload_offset: 0L,
+          payload_length: bytes,
+        }
+      } else {
+        ticket.extent
+      }
+      Ok((extent, ticket.access, ticket.limits))
+    }
   }
 }
 
@@ -321,11 +387,28 @@ fn[P, C] backed_usage_valid(
   usage : LedgerUsage,
 ) -> Bool {
   let limits = ticket.limits
-  usage.held_bytes >= 0L &&
+  // Reject signed reports before subtracting their fields from either bound.
+  // In particular Int64 minimum cannot become a positive remaining window.
+  if usage.held_bytes < 0L ||
+    usage.reserved_retention_bytes < 0L ||
+    usage.reserved_execution_bytes < 0L ||
+    usage.peak_retention_bytes < 0L {
+    return false
+  }
+  let window = match ticket.current_window {
+    Some(window) => {
+      let bytes = window.val
+      usage.held_bytes <= bytes &&
+      usage.reserved_retention_bytes <= bytes - usage.held_bytes &&
+      usage.peak_retention_bytes <= bytes &&
+      usage.reserved_execution_bytes <=
+      bytes - usage.held_bytes - usage.reserved_retention_bytes
+    }
+    None => true
+  }
+  window &&
   usage.held_bytes <= limits.retained_bytes &&
-  usage.reserved_retention_bytes >= 0L &&
   usage.reserved_retention_bytes <= limits.retained_bytes - usage.held_bytes &&
-  usage.reserved_execution_bytes >= 0L &&
   usage.reserved_execution_bytes <= limits.execution_bytes &&
   usage.peak_retention_bytes >=
   usage.held_bytes + usage.reserved_retention_bytes &&
@@ -363,7 +446,8 @@ pub fn[P, C] report_backed_execution_delegation(
   if !logical.reservation.open {
     return Err(Retired)
   }
-  if !backed_usage_valid(ticket, usage) {
+  if !backed_usage_valid(ticket, usage) ||
+    !platform_vm_backed_usage_fits(region, usage) {
     return Err(Resource(InvalidCharge))
   }
   match
@@ -435,7 +519,11 @@ pub fn[P, C] settle_backed_execution_after_owner_ack(
     return Err(CleanupPending)
   }
   if logical.reservation.open {
-    if final_usage is Some(usage) && !backed_usage_valid(ticket, usage) {
+    if final_usage is Some(usage) &&
+      (
+        !backed_usage_valid(ticket, usage) ||
+        !platform_vm_backed_usage_fits(region, usage)
+      ) {
       return Err(Resource(InvalidCharge))
     }
     match
@@ -496,5 +584,6 @@ pub fn[P, C] close_backed_execution_region(
   region.allocation = None
   region.provider = None
   region.owner_borrow = None
+  region.working = None
   Ok(true)
 }

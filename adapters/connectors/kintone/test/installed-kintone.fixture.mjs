@@ -1,3 +1,5 @@
+import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
+import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
@@ -6,7 +8,7 @@ import {inspect} from 'node:util';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
-import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
+import {loadInstalledSource, installedSourceIdentity} from '../../../host-node/installed-source.mjs';
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
 
 const repo = new URL('../../../../', import.meta.url);
@@ -25,13 +27,34 @@ export const record = (id, label = 'APP-7') => ({$id: {type: '__ID__', value: id
 
 export async function installedKintoneFixture(t, {formRead = 'allow', recordsRead = 'allow',
   guestSpaceId, faults = []} = {}) {
+  const sources = [], captures = [], dependentCleanup = [];
+  let loaderParent, fixtureRoot, fixtureTls, fixtureState;
+  // Retain the real parent before open, and order its child retirement before
+  // the loopback TLS fixture. This hook also covers partial fixture setup.
+  t.after(async () => {
+    const failures = [];
+    for (const captured of captures) try {await captured.close();} catch (cause) {failures.push(cause);}
+    try {await loaderParent?.close();} catch (cause) {failures.push(cause);}
+    if (fixtureRoot && fixtureTls && fixtureState) {
+      try {
+        await writeFile(join(fixtureRoot, 'original-fixture-observations.json'), JSON.stringify({
+          source: 'Fresh own namespace; original requests and assertions unchanged',
+          exchanges: fixtureTls.seen(), fixtureFailures: fixtureState.fixtureFailures}, null, 2) + '\n', {mode: 0o600});
+        t.diagnostic(`Retained owned kintone fixture: ${fixtureRoot}`);
+      } catch (cause) {failures.push(cause);}
+    }
+    for (const close of dependentCleanup.toReversed()) try {await close();} catch (cause) {failures.push(cause);}
+    if (failures.length) throw new AggregateError(failures, 'KintoneFixtureCleanupUnconfirmed');
+  });
   const parent = new URL('../../../../_build/kintone-record-fixtures/', import.meta.url);
   await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent.pathname, 'read-'));
+  fixtureRoot = root;
   const prefix = guestSpaceId === undefined ? '/k/v1/' : `/k/guest/${guestSpaceId}/v1/`;
   const state = {secret: 'kintone-test-api-token', resolutions: 0,
     forms: 0, pages: 0, responseBodies: [], resolve: undefined,
     form: undefined, page: undefined, fixtureFailures: []};
+  fixtureState = state;
   const serve = async (exchange, kind) => {
     try {
       assert.equal(exchange.method, 'POST');
@@ -68,10 +91,11 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
       throw cause;
     }
   };
-  const tls = await openHttpsExchangeFixture(t, {faults,
+  const tls = await openHttpsExchangeFixture({after: close => dependentCleanup.push(close)}, {faults,
     routes: [{method: 'POST', pathname: prefix + 'app/form/fields.json',
       handle: exchange => serve(exchange, 'form')},
     {method: 'POST', pathname: prefix + 'records.json', handle: exchange => serve(exchange, 'page')}]});
+  fixtureTls = tls;
   const authority = generateKeyPairSync('ed25519');
   const credentialPrivateKeyPath = join(root, 'credential-authority.key');
   await writeFile(credentialPrivateKeyPath, authority.privateKey.export({format: 'pem', type: 'pkcs8'}), {mode: 0o600});
@@ -102,24 +126,17 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
       maxDeclarationBytes: 200000, maxDeclarationNodes: 20000}};
   const path = join(root, 'source.json');
   await writeFile(path, JSON.stringify(profile));
-  const sources = [], captures = [];
-  t.after(async () => {
-    const failures = [];
-    for (const captured of captures) try {await captured.close();} catch (cause) {failures.push(cause);}
-    for (const source of sources) try {await source.close();} catch (cause) {failures.push(cause);}
-    await writeFile(join(root, 'original-fixture-observations.json'), JSON.stringify({
-      source: 'Fresh own namespace; original requests and assertions unchanged',
-      exchanges: tls.seen(), fixtureFailures: state.fixtureFailures}, null, 2) + '\n', {mode: 0o600});
-    t.diagnostic(`Retained owned kintone fixture: ${root}`);
-    if (failures.length) throw new AggregateError(failures, 'KintoneFixtureCleanupUnconfirmed');
-  });
+  loaderParent = createInstalledLoaderParent({root, principalId: 'operator', moon: common});
+  loaderParent.open();
+  const identity = () => installedSourceIdentity(path, {
+    configurationReader: installedSourceConfigurationReader(loaderParent.services)});
   const resolveSecret = async () => {
     state.resolutions++;
     await state.resolve?.();
     return state.secret;
   };
   const load = async (moon = common) => {
-    const source = await loadInstalledSource(path, {root, principalId: 'operator', moon, runtimeUrl,
+    const source = await loaderParent.load(loadInstalledSource, path, {root, principalId: 'operator', moon, runtimeUrl,
       baseEnvironmentWire: await readFile(new URL('spec/local-check-environment.json', repo), 'utf8'), resolveSecret});
     sources.push(source);return source;
   };
@@ -144,12 +161,16 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
       readFile(new URL('spec/contracts/actql-aoa.json', repo), 'utf8').then(JSON.parse),
       readFile(new URL('spec/contracts/actql-query-acquisition.json', repo), 'utf8'),
       readFile(new URL('spec/contracts/actql-query-process-evidence.json', repo), 'utf8')]);
-    return {preparedProgram: program, registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
-      fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered']), query, evidence};
+    const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+    const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    // The query requirement consumes the same Common's admitted sequence
+    // contracts original, never raw registry text pretending to be that port.
+    const contracts = checked(common.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
+    return {preparedProgram: program, registry: contracts, values, fragment, ordered, query, evidence};
   };
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1, 65536n,
     100000000n, 100000000n, 0));
   return {root, tls, state, site, sitePath, metadata, metadataPath, profile, path,
-    sources, captures, load, prepare, ledger, resolveSecret};
+    sources, captures, load, identity, prepare, ledger, resolveSecret};
 }

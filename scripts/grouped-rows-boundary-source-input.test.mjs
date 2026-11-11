@@ -5,6 +5,19 @@ import {groupedRowsBoundarySuccesses, groupedRowsBoundaryRefusals}
   from './fixtures/grouped-rows-boundary-source-input.mjs';
 import {analyticFrameParameterProgram} from './fixtures/analytic-frame-parameter-source-input.mjs';
 
+test('grouped ROWS operand refusals retain the original parser failure phase', () => {
+  const operands = ['(id)', '+(@before + 1)', '+(-1)', '(+1.5)', '(9007199254740992)'];
+  assert.deepEqual(groupedRowsBoundaryRefusals.slice(0, 5), operands.map((operand, index) => ({
+    name: 'grouped-rows-refuse-operand-' + index,
+    format: 'sql',
+    text: 'SELECT FIRST_VALUE(amount) OVER '
+      + `(ORDER BY id ROWS ${operand} PRECEDING) AS first FROM records`,
+    parameterDeclarations: {before: {type: 'number', nullable: false}},
+    parameters: {before: 1},
+    expectedCode: 'ClientProgramInvalidInput',
+  })));
+});
+
 test('grouped ROWS fixtures retain independent JSON intervals values and full ordered schema', () => {
   assert.equal(groupedRowsBoundarySuccesses.length, 7);
   const cases = new Map(groupedRowsBoundarySuccesses.map(item => [item.name, item]));

@@ -18,6 +18,22 @@ fn command_preparation_cleanup_cause(
         NativeStorageSqliteDomainMissing => "NativeStorageSqliteDomainMissing"
       }
     CommandUnavailable => "CommandUnavailable"
+    CommandRequestPreparation(cause) =>
+      match cause {
+        ForeignOriginal => "ForeignOriginal"
+        WrongPhase => "WrongPhase"
+        Policy => "Policy"
+        Initial(_) => "Initial"
+        Capacity(_) => "Capacity"
+        ProgramJson(_) => "ProgramJson"
+        ProgramCheck(_) => "ProgramCheck"
+        Parameters(_) => "Parameters"
+        Intent(_) => "Intent"
+        SourceInput(_) => "SourceInput"
+        Work(_) => "Work"
+        ParameterDeclarations(_) => "ParameterDeclarations"
+        ParameterSource(_) => "ParameterSource"
+      }
     CommandHost(cause) =>
       match cause {
         Unavailable => "Unavailable"
@@ -44,6 +60,7 @@ fn command_preparation_cleanup_cause(
       match cause {
         Domain(_) => "Domain"
         Child(_) => "Child"
+        Initialization(_) => "Initialization"
       }
     CommandStoreOperation(cause) =>
       match cause {
@@ -54,7 +71,363 @@ fn command_preparation_cleanup_cause(
         StoreOperationExecution(_) => "StoreOperationExecution"
         StoreOperationSqlite(_) => "StoreOperationSqlite"
       }
+    CommandSavedResolution(cause) =>
+      match cause {
+        SavedResolutionUnavailable => "SavedResolutionUnavailable"
+        SavedResolutionOriginal(_) => "SavedResolutionOriginal"
+        SavedResolutionReviewer(_) => "SavedResolutionReviewer"
+        SavedResolutionKey(_) => "SavedResolutionKey"
+        SavedResolutionProof(_) => "SavedResolutionProof"
+        SavedResolutionSigning(_) => "SavedResolutionSigning"
+        SavedResolutionAccount(_) => "SavedResolutionAccount"
+        SavedResolutionHost(_) => "SavedResolutionHost"
+        SavedResolutionEncoding => "SavedResolutionEncoding"
+      }
     CommandBusinessChildren => "CommandBusinessChildren"
+    CommandSavedFileResource(cause) =>
+      "SavedFileResource" + local_submission_ledger_tag(cause).to_string()
+    CommandSavedFileEntry(cause) =>
+      match cause {
+        Unavailable => "SavedFileEntryUnavailable"
+        Domain(Bootstrap(_)) => "SavedFileEntryDomainBootstrap"
+        Domain(Accounting(_)) => "SavedFileEntryDomainAccounting"
+        Resource(ledger) =>
+          "SavedFileEntryResource" +
+          local_submission_ledger_tag(ledger).to_string()
+      }
+    CommandSavedEffectOutput(cause) =>
+      match cause {
+        Snapshot(_) => "SavedPublicationSnapshot"
+        SnapshotCleanup(_, _) => "SavedPublicationSnapshotCleanup"
+        OutputCleanup(_, _) | StoreCleanup(_, _) | BindingCleanup(_, _) =>
+          "SavedPublicationOutputCleanup"
+        Store(_) => "SavedPublicationOutputStore"
+        Binding(_) => "SavedPublicationOutputBinding"
+        _ => "SavedPublicationOutput"
+      }
+    CommandSavedEffectCompletion(cause) =>
+      match cause {
+        Member(issue) =>
+          match issue {
+            ActivePhysicalOwner(_) => "SavedEffectMemberPhysicalOwner"
+            MissingTerminalReceipt(_) => "SavedEffectMemberMissingReceipt"
+            ForeignLedgerHead(_) => "SavedEffectMemberForeignLedger"
+            _ => "SavedEffectMemberReceipt"
+          }
+        Set(issue) =>
+          match issue {
+            MemberReceipt(_, _) => "SavedEffectSetMemberReceipt"
+            InvalidInventory => "SavedEffectSetInventory"
+            _ => "SavedEffectSetReceipt"
+          }
+        Final(issue) =>
+          match issue {
+            InvalidComputation => "SavedEffectFinalComputation"
+            References(_) => "SavedEffectFinalReferences"
+            _ => "SavedEffectFinalReceipt"
+          }
+        Admission(issue) =>
+          match issue {
+            ResultEvidence(_) => "SavedEffectFinalResultEvidence"
+            FinalChain(_) => "SavedEffectFinalChain"
+            _ => "SavedEffectFinalAdmission"
+          }
+      }
+    CommandSavedEffectPublication(cause) =>
+      match cause {
+        Original(_) => "SavedPublicationOriginal"
+        Journal(_) => "SavedPublicationJournal"
+        Service(_) => "SavedPublicationService"
+        Construction => "SavedPublicationConstruction"
+        Publisher(_) => "SavedPublicationPublisher"
+      }
+    CommandSavedFileResume(cause) =>
+      match cause {
+        HostAttestationUnavailable => "SavedFileOriginalUnavailable"
+        HostAttestationJournal(_) => "SavedFileJournal"
+        _ => "SavedFileOriginalAuthority"
+      }
+    CommandBusinessSource(cause) =>
+      match cause {
+        InvalidInput => "SourceInvalidInput"
+        Unavailable => "SourceUnavailable"
+        ForeignOriginal => "SourceForeignOriginal"
+        Capacity => "SourceCapacity"
+        FileLimit => "SourceFileLimit"
+        Filesystem(_) => "SourceFilesystem"
+        Execution(_) => "SourceExecution"
+        Resource(_) => "SourceResource"
+        Row(_) => "SourceRow"
+        Document(_) => "SourceDocument"
+        Mapping(_) => "SourceMapping"
+        ManagedRead(_) => "SourceManagedRead"
+        Content(_) => "SourceContent"
+        Store(_) => "SourceStore"
+        Lookup(_) => "SourceLookup"
+      }
+    CommandBusinessEffectProposals(cause) =>
+      match cause {
+        ImportObservation(original) =>
+          match original {
+            ForeignInput => "EffectImportForeignInput"
+            _ => "EffectImportObservation"
+          }
+        Imports(original) =>
+          match original {
+            MissingScope => "EffectImportedScopeMissing"
+            _ => "EffectImportedEvidence"
+          }
+        HostExecution(original) =>
+          match original {
+            InvalidLimits => "EffectHostLimits"
+            Fenced => "EffectHostFenced"
+            UnsupportedGraph => "EffectHostGraph"
+            MissingLocalModule => "EffectHostModule"
+            Driver(_) => "EffectHostDriver"
+            Estimate(_) => "EffectHostEstimate"
+            FinalizationLimit => "EffectHostFinalization"
+            MissingOutput => "EffectHostOutput"
+          }
+        PublicExport(original) =>
+          match original {
+            InvalidState => "EffectPublicExportState"
+            _ => "EffectPublicExport"
+          }
+        PublicManifest(original) =>
+          match original {
+            ManifestIssuanceEncoding => "EffectPublicManifestEncoding"
+            _ => "EffectPublicManifest"
+          }
+        PublicReceipt(original) =>
+          match original {
+            ReceiptIssuanceEncoding => "EffectPublicReceiptEncoding"
+            _ => "EffectPublicReceipt"
+          }
+        PublicBindings(original) =>
+          match original {
+            ForeignMaterials => "EffectPublicBindingsOwner"
+            _ => "EffectPublicBindings"
+          }
+        PublicNormalization(original) =>
+          match original {
+            MissingOriginalJournal => "EffectPublicNormalizationOriginal"
+            _ => "EffectPublicNormalization"
+          }
+        PublicCapture(original) =>
+          match original {
+            ForeignInput => "EffectPublicCaptureInput"
+            _ => "EffectPublicCapture"
+          }
+        CapturedSource(original) =>
+          match original {
+            CaptureIssuanceReferenceMismatch(_) =>
+              "EffectCapturedSourceReference"
+            _ => "EffectCapturedSource"
+          }
+        LocalSource(original) =>
+          match original {
+            InvalidLocalReference(_) => "EffectLocalSourceReference"
+            _ => "EffectLocalSource"
+          }
+        PolicyDependency(original) =>
+          match original {
+            MissingUnit => "EffectProposalsPolicyMissingUnit"
+            MissingDependency => "EffectProposalsPolicyMissingDependency"
+            Encoding(_) => "EffectProposalsPolicyEncoding"
+            ForeignBody => "EffectProposalsPolicyForeignBody"
+            BudgetExceeded => "EffectProposalsPolicyBudget"
+          }
+        Inventory(original) =>
+          match original {
+            MissingDependency => "EffectInventoryMissingDependency"
+            _ => "EffectInventory"
+          }
+        PreviewSource(original) =>
+          match original {
+            ForeignRun => "EffectPreviewSourceRun"
+            _ => "EffectPreviewSource"
+          }
+        PreviewIdentity(original) =>
+          match original {
+            ForeignInput => "EffectPreviewIdentityInput"
+            _ => "EffectPreviewIdentity"
+          }
+        PreviewBody(original) =>
+          match original {
+            PreviewShape(_) => "EffectPreviewBodyShape"
+            _ => "EffectPreviewBody"
+          }
+        PreviewBinding(original) =>
+          match original {
+            ForeignInput => "EffectPreviewBindingInput"
+            _ => "EffectPreviewBinding"
+          }
+        PreviewDispatch(original) =>
+          match original {
+            InvalidLimits => "EffectPreviewDispatchLimits"
+            _ => "EffectPreviewDispatch"
+          }
+        PreviewKeys(original) =>
+          match original {
+            KeyInventoryMismatch => "EffectPreviewKeyInventory"
+            _ => "EffectPreviewKeys"
+          }
+        PreviewPlan(original) =>
+          match original {
+            InvalidMember => "EffectPreviewPlanMember"
+            _ => "EffectPreviewPlan"
+          }
+        Manifest(original) =>
+          match original {
+            IncompleteResults => "EffectProposalsIncompleteResults"
+            IncompleteTableInputs => "EffectProposalsIncompleteTableInputs"
+            _ => "EffectProposalsManifest"
+          }
+        Dependency(original) =>
+          match original {
+            ForeignInput => "EffectProposalsDependencyForeignInput"
+            Dependency(_) => "EffectProposalsDependencyClosure"
+            _ => "EffectProposalsDependency"
+          }
+        Materials(original) =>
+          match original {
+            RunMismatch => "EffectProposalsMaterialsRunMismatch"
+            _ => "EffectProposalsMaterials"
+          }
+        Definition(original) =>
+          match original {
+            MissingResult => "EffectProposalsDefinitionMissingResult"
+            _ => "EffectProposalsDefinition"
+          }
+        Artifact(original) =>
+          match original {
+            ForeignOwner => "EffectProposalsArtifactForeignOwner"
+            ForeignExport => "EffectProposalsArtifactForeignExport"
+            ForeignRun => "EffectProposalsArtifactForeignRun"
+            _ => "EffectProposalsArtifact"
+          }
+        Source(original) =>
+          match original {
+            Invocation(_) => "EffectProposalsSourceInvocation"
+            Relation(_) => "EffectProposalsSourceRelation"
+            Dependency(_) => "EffectProposalsSourceDependency"
+          }
+        Keyed(original) =>
+          match original {
+            Identity(_) => "EffectProposalsKeyedContract"
+            Wire(_) => "EffectProposalsKeyedWire"
+            _ => "EffectProposalsKeyedIdentity"
+          }
+        Managed(original) =>
+          match original {
+            InsufficientCapacity => "EffectProposalsInsufficientCapacity"
+            Ledger(_) => "EffectProposalsLedger"
+            _ => "EffectProposalsManaged"
+          }
+        Capture(original) =>
+          match original {
+            ForeignCapture => "EffectProposalsForeignCapture"
+            Physical(_) => "EffectProposalsPhysical"
+            _ => "EffectProposalsCapture"
+          }
+        Proposal(original) =>
+          match original {
+            ForeignBinding => "EffectProposalsForeignBinding"
+            RowCountMismatch => "EffectProposalsRowCountMismatch"
+            _ => "EffectProposalsProjection"
+          }
+        ManagedExport(original) =>
+          match original {
+            ForeignInput | Binding(ForeignOutput) =>
+              "EffectProposalsForeignOutput"
+            Export(_) => "EffectProposalsExportBody"
+            Bridge(_) => "EffectProposalsExportBridge"
+            _ => "EffectProposalsExport"
+          }
+        ManagedPublicExport(original) =>
+          match original {
+            Export(InvalidState) => "EffectPublicExportState"
+            Transformation(_) => "EffectPublicExportTransformation"
+            Bridge(_) => "EffectPublicExportBridge"
+            _ => "EffectPublicExport"
+          }
+        Completed(original) =>
+          match original {
+            ForeignMaterial => "EffectProposalsForeignMaterial"
+            Closed => "EffectProposalsClosed"
+            _ => "EffectProposalsCompleted"
+          }
+      }
+    CommandBusinessSourceIdentity(cause) =>
+      match cause {
+        Capture(issue) =>
+          match issue {
+            Unavailable => "SourceIdentityUnavailable"
+            _ => "SourceIdentityCapture"
+          }
+        Logical(issue) =>
+          match issue {
+            ForeignIdentity => "SourceIdentityForeignIdentity"
+            ForeignPrepared | ForeignRequirement =>
+              "SourceIdentityForeignSource"
+            _ => "SourceIdentityLogical"
+          }
+        Observation(issue) =>
+          match issue {
+            SourceEvidence(_) => "SourceIdentityEvidence"
+            _ => "SourceIdentityObservation"
+          }
+        Read(issue) =>
+          match issue {
+            ForeignRun => "ReadForeignRun"
+            InvalidBootstrap => "ReadInvalidBootstrap"
+            Resource(_) => "ReadResource"
+          }
+      }
+    CommandBusinessModelGraph(cause) =>
+      match cause {
+        Preparation(Policy) => "ModelGraphPreparationPolicy"
+        Preparation(ForeignOriginal) => "ModelGraphPreparationForeignOriginal"
+        Preparation(Capacity(_)) => "ModelGraphPreparationCapacity"
+        Preparation(_) => "ModelGraphPreparation"
+        ModelGraph(UnsupportedProgram) => "ModelGraphUnsupportedProgram"
+        ModelGraph(ForeignExecution) => "ModelGraphForeignExecution"
+        ModelGraph(Input(UnrepresentableContract)) => "ModelGraphInputContract"
+        ModelGraph(Input(UnsupportedCarrier)) => "ModelGraphInputCarrier"
+        ModelGraph(Input(Pipeline(_))) => "ModelGraphInputPipeline"
+        ModelGraph(Input(_)) => "ModelGraphInput"
+        ModelGraph(Encoding) => "ModelGraphEncoding"
+        ModelGraph(_) => "ModelGraphConstruction"
+        _ => "ModelGraphRequest"
+      }
+    CommandBusinessModel(cause) =>
+      match cause {
+        ForeignOriginal => "ModelForeignOriginal"
+        NotOpened => "ModelNotOpened"
+        CleanupPending => "ModelCleanupPending"
+        Account(_) => "ModelAccount"
+        Original(_) => "ModelOriginal"
+        Model(_) => "ModelExecution"
+        Binding(_) => "ModelBinding"
+        Dispatch(_) => "ModelDispatch"
+        Egress(_) => "ModelEgress"
+        Evidence(_) => "ModelEvidence"
+        Capture(_) => "ModelCapture"
+        Store(_) => "ModelStore"
+        Start(_) => "ModelStart"
+        Review(_) => "EffectReview"
+        Encoding => "ModelEncoding"
+      }
+    CommandBusinessEffectAcceptance(cause) =>
+      match cause {
+        Journal(_) => "EffectAcceptanceJournal"
+        MissingRunAdmission => "EffectAcceptanceMissingRunAdmission"
+        UnresolvedHistory => "EffectAcceptanceUnresolvedHistory"
+        ForeignPreparation => "EffectAcceptanceForeignPreparation"
+        ChangedIntent => "EffectAcceptanceChangedIntent"
+        ForeignRun => "EffectAcceptanceForeignRun"
+        Materials(_) => "EffectAcceptanceMaterials"
+      }
     CommandBusinessPublication => "CommandBusinessPublication"
     CommandBusinessStore(cause) =>
       match cause {
@@ -80,7 +453,9 @@ fn command_preparation_cleanup_cause(
         SinkProgress(_) => "SinkProgress"
         DeliveryIssuance(_) => "DeliveryIssuance"
         DeliveryGrantUsage(_) => "DeliveryGrantUsage"
+        PublicationPreparation(_) => "PublicationPreparation"
         PublicationCommit(_) => "PublicationCommit"
+        EffectfulPublication(_) => "EffectfulPublication"
         PublicationCommitIssuance(_) => "PublicationCommitIssuance"
         PublicationCommitConflict => "PublicationCommitConflict"
         ClockRegression => "ClockRegression"
@@ -118,7 +493,9 @@ fn command_preparation_cleanup_cause(
         SinkProgress(_) => "SinkProgress"
         DeliveryIssuance(_) => "DeliveryIssuance"
         DeliveryGrantUsage(_) => "DeliveryGrantUsage"
+        PublicationPreparation(_) => "PublicationPreparation"
         PublicationCommit(_) => "PublicationCommit"
+        EffectfulPublication(_) => "EffectfulPublication"
         PublicationCommitIssuance(_) => "PublicationCommitIssuance"
         PublicationCommitConflict => "PublicationCommitConflict"
         ClockRegression => "ClockRegression"
@@ -253,6 +630,82 @@ fn command_preparation_cleanup_cause(
         AdoptionJournal(_) => "AdoptionJournal"
       }
     CommandApplication(_) => "CommandApplication"
+    CommandProjectMock(cause) =>
+      match cause {
+        ForeignOriginal => "ProjectMockForeignOriginal"
+        AlreadyPreparing => "ProjectMockAlreadyPreparing"
+        Environment => "ProjectMockEnvironment"
+        Publication(issue) =>
+          match issue {
+            Limit => "ProjectMockPublicationLimit"
+            Alias(_) => "ProjectMockPublicationAlias"
+            _ => "ProjectMockPublication"
+          }
+        Mapping(cause) =>
+          match cause {
+            OutputLimit => "ProjectMockWriteMappingLimit"
+            _ => "ProjectMockWriteMapping"
+          }
+        Runtime(cause) =>
+          match cause {
+            CleanupPending => "ProjectMockWriteRuntimeCleanupPending"
+            Changed => "ProjectMockWriteRuntimeChanged"
+            _ => "ProjectMockWriteRuntime"
+          }
+        WriteHost(cause) =>
+          match cause {
+            CustodyLost => "ProjectMockWriteHostCustodyLost"
+            TransactionUnknown => "ProjectMockWriteHostTransactionUnknown"
+            _ => "ProjectMockWriteHost"
+          }
+        WriteInstallation(cause) =>
+          match cause {
+            Limit => "ProjectMockWriteInstallationLimit"
+            InvalidMaterials => "ProjectMockWriteInstallationMaterials"
+            _ => "ProjectMockWriteInstallation"
+          }
+        Source(issue) =>
+          match issue {
+            InvalidSpecification => "ProjectMockSourceInvalidSpecification"
+            InvalidContracts => "ProjectMockSourceInvalidContracts"
+            Declaration(OutputLimit) => "ProjectMockSourceDeclarationLimit"
+            _ => "ProjectMockSourceDeclaration"
+          }
+        Task(original) =>
+          match original.kind {
+            InvalidLimits => "ProjectMockTaskInvalidLimits"
+            BodyLimit | TaskLimit | WorkLimit => "ProjectMockTaskLimit"
+            _ => "ProjectMockTaskInvalid"
+          }
+        Answers(original) => local_project_mock_answer_cleanup_cause(original)
+        Dependencies(original) =>
+          match original {
+            Missing(_) => "ProjectMockDependencyMissing"
+            Body(_, issue) =>
+              match issue.kind {
+                InvalidLimits => "ProjectMockDependencyInvalidLimits"
+                BodyLimit | TaskLimit | WorkLimit =>
+                  "ProjectMockDependencyLimit"
+                _ => "ProjectMockDependencyInvalid"
+              }
+            UnsupportedPolicy(_) => "ProjectMockDependencyUnsupportedPolicy"
+            MediaRole(_, _) => "ProjectMockDependencyMediaRole"
+          }
+        Provider(original) =>
+          match original {
+            ForeignDependencies => "ProjectMockProviderForeignDependencies"
+            ForeignProvider => "ProjectMockProviderForeignOriginal"
+            UnsupportedPrompt => "ProjectMockProviderUnsupportedPrompt"
+          }
+        Installation(original) =>
+          match original {
+            ForeignOriginal => "ProjectMockInstallationForeignOriginal"
+            Retired => "ProjectMockInstallationRetired"
+            Busy => "ProjectMockInstallationBusy"
+            MissingAnswer => "ProjectMockInstallationMissingAnswer"
+            Answers(cause) => local_project_mock_answer_cleanup_cause(cause)
+          }
+      }
     CommandFilesystem(cause) =>
       match cause {
         InvalidLimit => "InvalidLimit"
@@ -261,6 +714,7 @@ fn command_preparation_cleanup_cause(
         Filesystem(_) => "Filesystem"
         Cleanup(_, _) => "Cleanup"
         InvalidUtf8 => "InvalidUtf8"
+        PreparationUnavailable => "PreparationUnavailable"
       }
     CommandFilesystemCleanup(cause) =>
       match cause {
@@ -282,5 +736,22 @@ fn command_preparation_cleanup_cause(
         Seal(_) => "Seal"
         Cleanup(_) => "Cleanup"
       }
+  }
+}
+
+///|
+// Closed original Model issue labels only, not Task/document strings or
+// execution/refusal classification. The retained issue remains authoritative.
+fn local_project_mock_answer_cleanup_cause(
+  issue : @model.ModelMockAnswerIssue,
+) -> String {
+  match issue {
+    InvalidLimits => "ProjectMockAnswerInvalidLimits"
+    BodyLimit | WorkLimit | EntryLimit => "ProjectMockAnswerLimit"
+    InvalidBody => "ProjectMockAnswerInvalidBody"
+    TaskIdentity => "ProjectMockAnswerTaskIdentity"
+    OutputValue => "ProjectMockAnswerOutputValue"
+    ForeignOriginal => "ProjectMockAnswerForeignOriginal"
+    Retired => "ProjectMockAnswerRetired"
   }
 }

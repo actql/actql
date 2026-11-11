@@ -17,6 +17,20 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py'
 COMPILER_OUTPUT = ROOT / 'packages/python-local-runtime/native/pre-root/compiler_core_abi.generated.h'
 SCALAR = {'Int': 'i32', 'Int64': 'i64'}
+# Only these original imports lower borrowed source buffers to wasm32 payload
+# offsets. Scalar exports and every other import remain scalar-only. The source
+# annotations must keep each buffer alive through the whole foreign operation.
+BORROWED_IMPORTS = {
+    'journal_query_header': ('src/client_host_wasm/journal_observation.mbt',
+        'physical_journal_query_header', {
+            'namespace_buffer': 'Bytes', 'key_buffer': 'Bytes',
+            'header_buffer': 'FixedArray[Byte]',
+        }),
+    'journal_copy_row': ('src/client_host_wasm/journal_observation.mbt',
+        'physical_journal_copy_row', {
+            'key_buffer': 'FixedArray[Byte]', 'body_buffer': 'FixedArray[Byte]',
+        }),
+}
 PUBLIC = re.compile(r'^pub fn (\w+)\((.*?)\)\s*->\s*(\w+)\s*\{', re.S | re.M)
 IMPORT = re.compile(r'^fn (\w+)\(([^()]*)\)\s*->\s*(\w+)\s*=\s*"actql_host"\s*"([^"]+)"', re.S | re.M)
 FAMILIES = (
@@ -43,7 +57,10 @@ def unit(symbol: str, name: str) -> str:
     if name in {'max_slots', 'attempts', 'holdings', 'count',
                 'reserved_attempts', 'live_reservations', 'live_delegations'}:
         return 'count in ' + symbol + '; original named collection/chunk bounds'
-    if name == 'offset':
+    borrowed = BORROWED_IMPORTS.get(symbol.removeprefix('actql_host.'))
+    if symbol.startswith('actql_host.') and borrowed is not None and name in borrowed[2]:
+        return 'borrowed wasm32 byte-buffer payload offset; lifetime spans the entire synchronous original-memory import'
+    if name == 'offset' or name.endswith('_offset'):
         return 'private bounded wasm32 payload offset; synchronous same-instance memory borrow only'
     if name in {'start', 'index', 'byte'}:
         return ('byte value0..255' if name == 'byte' else
@@ -64,18 +81,55 @@ def unit(symbol: str, name: str) -> str:
     raise ValueError('Unclassified ABI parameter unit: ' + symbol + '.' + name)
 
 
-def parameters(raw: str) -> tuple[tuple[str, str], ...]:
-    result = []
+def parameters(raw: str, *, borrowed: dict[str, str] | None = None) -> tuple[tuple[str, str], ...]:
+    result, buffers = [], {}
     for part in raw.split(','):
         if not part.strip():
             continue
-        match = re.fullmatch(r'\s*(\w+)\s*:\s*(Int|Int64)\s*', part)
+        match = re.fullmatch(r'\s*(\w+)\s*:\s*(Int|Int64|Bytes|FixedArray\s*\[\s*Byte\s*\])\s*', part)
         if match is None:
             raise ValueError('Unsupported scalar ABI parameter declaration')
-        result.append((match[1], SCALAR[match[2]]))
+        kind = re.sub(r'\s+', '', match[2])
+        if kind not in SCALAR:
+            if borrowed is None or borrowed.get(match[1]) != kind:
+                raise ValueError('Unsupported borrowed ABI parameter declaration')
+            buffers[match[1]] = kind
+        result.append((match[1], SCALAR.get(kind, 'i32')))
+    if buffers != (borrowed or {}):
+        raise ValueError('Missing original borrowed ABI parameter declaration')
     if len({name for name, _ in result}) != len(result):
         raise ValueError('Duplicate scalar ABI parameter')
     return tuple(result)
+
+
+def import_parameters(raw: str, prefix: str, path: str, local: str,
+                      name: str) -> tuple[tuple[str, str], ...]:
+    expected = BORROWED_IMPORTS.get(name)
+    if expected is None:
+        return parameters(raw)
+    source, symbol, buffers = expected
+    if path != source or local != symbol:
+        raise ValueError('Foreign original borrowed ABI import declaration')
+    # Prefix is already comment/literal-masked. Only real adjacent annotations
+    # count, never documentation or a string that mentions the borrow contract.
+    annotations = []
+    for line in reversed(prefix.splitlines()):
+        value = line.strip()
+        if not value:
+            continue
+        if not value.startswith('#'):
+            break
+        annotations.append(value)
+    if len(annotations) != 2 or annotations.count('#unsafe_skip_stub_check') != 1:
+        raise ValueError('Missing original borrowed ABI import annotations')
+    borrow = next((re.fullmatch(r'#borrow\(([^()]*)\)', item) for item in annotations
+                   if item != '#unsafe_skip_stub_check'), None)
+    if borrow is None:
+        raise ValueError('Invalid original borrowed ABI import annotation')
+    names = [item.strip() for item in borrow[1].split(',')]
+    if len(names) != len(set(names)) or set(names) != set(buffers):
+        raise ValueError('Incomplete original borrowed ABI import annotation')
+    return parameters(raw, borrowed=buffers)
 
 
 def declaration_source(text: str, *, mask_literals: bool = True) -> str:
@@ -254,7 +308,8 @@ def render(root: Path = ROOT) -> str:
     remaining = set(export_map)
     exports, imports, origins, names = {}, {}, {}, {}
     sources = sorted((root / 'src/client_host_wasm').glob('*.mbt'))
-    sources += [root / 'src/physical_resources/imported_child_ledger_wasm.mbt']
+    sources += [root / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                root / 'src/physical_resources/platform_vm_capacity_wasm.mbt']
     for path in sources:
         text = path.read_text()
         if '#export_name(' in text:
@@ -278,7 +333,8 @@ def render(root: Path = ROOT) -> str:
             local, raw, result, name = match.groups()
             if name in imports or result not in SCALAR:
                 raise ValueError('Duplicate or unsupported ABI import')
-            args = parameters(raw)
+            args = import_parameters(raw, code[:match.start()],
+                                     str(path.relative_to(root)), local, name)
             imports[name] = (' '.join(kind for _, kind in args), SCALAR[result])
             names['actql_host.' + name] = args
             origins['actql_host.' + name] = (str(path.relative_to(root)), local)

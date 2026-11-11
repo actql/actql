@@ -358,6 +358,14 @@ test "Native Checkpoint metadata refuses another original request and missing Ru
     is Err(Journal(ChangedIntent)),
   )
   let before = host.journal.retained(request).unwrap().unwrap()
+  let accepted_submission = host.journal
+    .retained_submission(reference)
+    .unwrap()
+    .unwrap()
+  let saved_submission = host.database
+    .read("client_submitted_intents", reference.request_id)
+    .unwrap()
+  assert_eq(saved_submission.revision, accepted_submission.revision)
   let table = @utf8.encode("client_runs")
   let key = @utf8.encode(@host.client_request_scope_cid(request))
   assert_true(
@@ -375,10 +383,79 @@ test "Native Checkpoint metadata refuses another original request and missing Ru
   )
   // The accepted Submission is never converted into a replacement Run.
   assert_true(host.journal.retained(request).unwrap() is None)
-  assert_eq(
-    host.journal.retained_submission(reference).unwrap().unwrap().run_admission.unwrap().revision,
-    0L,
-  )
+  // Current admission refuses the missing Run; the independently observed
+  // physical Submission must retain its exact accepted bytes and revision.
+  assert_true(host.journal.retained_submission(reference) is Err(CustodyLost))
+  let after_submission = host.database
+    .read("client_submitted_intents", reference.request_id)
+    .unwrap()
+  assert_eq(after_submission.body, saved_submission.body)
+  assert_eq(after_submission.revision, saved_submission.revision)
+  assert_eq(accepted_submission.run_admission.unwrap().revision, 0L)
   assert_true(before.physical_start_claimed)
   host.close().unwrap()
+}
+
+///|
+test "Native saved State reads original Checkpoint lifecycle without a completed Manifest or invented counter" {
+  let name = "local-checkpoint-saved-state"
+  let (host, reference, request, _) = local_checkpoint_lookup_fixture(name)
+  let original = local_checkpoint_lookup_call(host, reference, request)
+    .unwrap()
+    .unwrap()
+  let before = run_record_body(host.journal.retained(request).unwrap().unwrap()).unwrap()
+  let state = host
+    .lookup_submitted_run_state(
+      epoch_test_crypto(),
+      "operator",
+      "cli",
+      reference,
+      request,
+      1003.0,
+    )
+    .unwrap()
+  assert_true(state.original is None)
+  let submitted = host.journal.retained_submission(reference).unwrap().unwrap()
+  let run = host.journal.retained(request).unwrap().unwrap()
+  assert_true(
+    restore_native_saved_run_state(
+      { ..submitted, run_state_observation: Some((1L, None)), },
+      run,
+    ).unwrap()
+    is None,
+  )
+  assert_true(
+    restore_native_saved_run_state(
+      { ..submitted, run_state_original: Some("missing original metadata"), },
+      run,
+    ).unwrap()
+    is None,
+  )
+  assert_eq(
+    state.wire(),
+    native_client_original_checkpoint_state(original).wire,
+  )
+  assert_eq(
+    state.control_revision(),
+    native_client_original_checkpoint_revision(original),
+  )
+  assert_eq(
+    run_record_body(host.journal.retained(request).unwrap().unwrap()).unwrap(),
+    before,
+  )
+  host.close().unwrap()
+  let cold = checkpoint_lookup_host_fixture(name, existing=true)
+  let saved = cold
+    .lookup_submitted_run_state(
+      epoch_test_crypto(),
+      "operator",
+      "cli",
+      reference,
+      request,
+      1004.0,
+    )
+    .unwrap()
+  assert_eq(saved.wire(), state.wire())
+  assert_eq(saved.control_revision(), state.control_revision())
+  cold.close().unwrap()
 }

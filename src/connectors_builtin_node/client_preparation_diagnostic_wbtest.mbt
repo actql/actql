@@ -1,7 +1,8 @@
 ///|
 // Pure DATA inputs reconstructed from the original GCS source-qualified helpers.
 // They do not issue a Site, credential, acquisition ticket or execution grant.
-// The independent 3 * 2 * 8192 bound is 49152, even for an empty path list.
+// The independent full-run estimate is 3 * 2 * 8192 = 49152. An estimate
+// above the cumulative budget is optional planning DATA, including empty paths.
 fn original_lookup_diagnostic_environment(
   one_short : Bool,
 ) -> @program_check.CheckEnvironment {
@@ -41,19 +42,18 @@ fn original_lookup_diagnostic_programs() -> Array[String] {
 }
 
 ///|
-test "original lookup rejection projection preserves stage and join step without compiler tags" {
+test "original lookup estimate above cumulative budget preserves runtime admission" {
   let one_short = original_lookup_diagnostic_environment(true)
   for program in original_lookup_diagnostic_programs() {
-    let rejected = client_program_prepare_effect_free_with_parameters(
+    let ready = client_program_prepare_effect_free_with_parameters(
       program,
       "json",
       one_short,
       None,
     )
-    assert_true(client_program_preparation_ready(rejected) is None)
-    assert_eq(
-      client_program_preparation_decoded_response_limit_json(rejected),
-      Some("{\"stageIndex\":0,\"stepIndex\":2}"),
+    assert_true(client_program_preparation_ready(ready) is Some(_))
+    assert_true(
+      client_program_preparation_decoded_response_limit_json(ready) is None,
     )
   }
 }
@@ -206,6 +206,8 @@ test "Request original observation bridge returns optional String through the ac
       0,
       "corr:" + "c".repeat(32),
       None,
+      None,
+      None,
     )
   }
   let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
@@ -259,6 +261,8 @@ test "Request original observation bridge never upgrades undisclosable NeedsInpu
       None,
       0,
       "corr:" + "c".repeat(32),
+      None,
+      None,
       None,
     )
     .unwrap()
@@ -525,6 +529,401 @@ test "native Source document terminal projects original invalid Program instead 
     assert_eq(
       request_diagnostic_checked_issue_code(result),
       Some("check_invalid_input"),
+    )
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+test "original Query implementation refusal is distinct from unavailable Host capability" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let result = client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      "{\"format\":\"sql\",\"text\":\"WITH records AS (SELECT 1 AS id, 1 AS amount) SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10\"}",
+    ),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(result is Err(_))
+  assert_eq(
+    request_diagnostic_checked_issue_code(result),
+    Some("source_implementation_limit"),
+  )
+  // These original unavailable-capability facts do not acquire a language
+  // implementation verdict merely because both decline before dispatch.
+  assert_eq(
+    client_source_preparation_issue_code(UnsupportedCarrier),
+    "source_unsupported",
+  )
+  assert_eq(
+    client_source_preparation_issue_code(CommandTargetOriginalsUnavailable),
+    "source_unsupported",
+  )
+  assert_eq(
+    client_source_preparation_issue_code(RecordTargetOriginalsUnavailable),
+    "source_unsupported",
+  )
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "original Query refusal projects its same supplied type violation without a semantic outcome" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let result = client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      "{\"format\":\"sql\",\"text\":\"SELECT missing AS n FROM records WHERE amount >= @minimum\",\"parameterDeclarations\":{\"minimum\":{\"type\":\"number\"}}}",
+    ),
+    request_diagnostic_test_json("{\"minimum\":\"twenty\"}"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(
+    result
+    is Err(
+      @client_local_host.ClientRequestTerminalIssue::QueryLowering(
+        WithBinding(_, _)
+      )
+    ),
+  )
+  assert_eq(
+    request_diagnostic_checked_issue_code(result),
+    Some("source_invalid_input"),
+  )
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "original selector absence uses the same prepared publication Catalog without another resolution" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let wire = "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  let publication = @source_publication.prepare_published_query_environment(
+    environment, wire,
+  ).unwrap()
+  let range = client_program_check_prepared_source_selector_range(
+    environment,
+    publication,
+    [environment],
+  ).unwrap()
+  let proof = client_program_check_source_selector_namespace(
+    range,
+    "registrations",
+    "sha256:" + "d".repeat(64),
+    "ctx:" + "a".repeat(64),
+    "rev:" + "b".repeat(64),
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"original-selector","stages":[{"id":"main","inputs":{"rows":{"connector":"missing","resource":"r","view":"records"}},"steps":[{"from":"rows","select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"main","result":"out"}}}}
+  let (parent, input) = request_diagnostic_test_parent()
+  let result = client_program_prepare_request_native_computation(
+    parent,
+    input,
+    request_diagnostic_test_json(document),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(result is Err(CheckOutcome(_)))
+  let project = (proof, receipt) => {
+    client_program_project_request_check_outcome(
+      parent,
+      receipt,
+      result,
+      wire,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      document.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      proof,
+      None,
+      None,
+    )
+  }
+  let original = project(Some(proof), input).unwrap().unwrap()
+  assert_true(original.contains("\"verdict\":\"invalid\""))
+  assert_true(original.contains("\"code\":\"source_selector_unregistered\""))
+  assert_true(original.contains("\"namespace\":\"registrations\""))
+  assert_true(original.contains("\"connector\":\"missing\""))
+  assert_true(!original.contains("\"location\""))
+  assert_true(project(Some(proof), request_diagnostic_test_receipt()) is Err(_))
+  // Equal complete coverage from a separately parsed Catalog cannot stand
+  // in for the actual resolver owner, even with the same Environment/CIDs.
+  let independent = client_program_check_source_selector_namespace(
+    client_program_check_source_selector_range(environment, [environment]).unwrap(),
+    "registrations",
+    "sha256:" + "d".repeat(64),
+    "ctx:" + "a".repeat(64),
+    "rev:" + "b".repeat(64),
+  ).unwrap()
+  let separate = project(Some(independent), input).unwrap().unwrap()
+  assert_true(separate.contains("\"verdict\":\"undetermined\""))
+  assert_true(!separate.contains("source_selector_unregistered"))
+  let hidden = project(None, input).unwrap().unwrap()
+  assert_true(hidden.contains("\"verdict\":\"undetermined\""))
+  assert_true(!hidden.contains("source_selector_unregistered"))
+  client_program_abort_request_preparation(parent).unwrap()
+  assert_true(project(Some(proof), input).unwrap() is None)
+}
+
+///|
+test "prepared selector range rejects foreign originals incomplete coverage and registration budget" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let other = original_lookup_diagnostic_environment(false)
+  assert_eq(
+    @program_check.checking_environment_cid(environment),
+    @program_check.checking_environment_cid(other),
+  )
+  let wire = "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  let publication = @source_publication.prepare_published_query_environment(
+    environment, wire,
+  ).unwrap()
+  let foreign = @source_publication.prepare_published_query_environment(
+    other, wire,
+  ).unwrap()
+  assert_true(
+    client_program_check_prepared_source_selector_range(
+      environment,
+      publication,
+      [environment],
+    )
+    is Some(_),
+  )
+  assert_true(
+    client_program_check_prepared_source_selector_range(other, publication, [
+      other,
+    ])
+    is None,
+  )
+  assert_true(
+    client_program_check_prepared_source_selector_range(environment, foreign, [
+      environment,
+    ])
+    is None,
+  )
+  assert_true(
+    client_program_check_prepared_source_selector_range(
+      environment,
+      publication,
+      [],
+    )
+    is None,
+  )
+  assert_true(
+    client_program_check_prepared_source_selector_range(
+      environment,
+      publication,
+      Array::make(129, environment),
+    )
+    is None,
+  )
+  assert_true(
+    client_program_check_source_selector_range(
+      environment,
+      Array::make(129, environment),
+    )
+    is None,
+  )
+}
+
+///|
+// Invoke the actual existing JS classifier with the SAME opaque result and
+// canonical MoonBit projection. No error tag/Option layout or check is copied.
+extern "js" fn request_source_profile_public_error_test(
+  loader : RequestDiagnosticTestLoader,
+  result : Result[String, @client_local_host.ClientRequestTerminalIssue],
+  project : (Result[String, @client_local_host.ClientRequestTerminalIssue]) -> String?,
+) -> Bool =
+  #|(loader,result,project)=>{const {checkedRequestProgramPreparation}=loader('../../../../../adapters/host-node/client-program-preparation.mjs');const {runtimeField}=loader('../../../../../adapters/host-common/compiler-binding.generated.mjs');let calls=0;try{checkedRequestProgramPreparation({clientProgramRequestPreparationIssueCode(value){calls++;if(value!==result)throw new Error('SubstitutedResult');return project(value);}},result);return false;}catch(error){return calls===1&&error.code==='ClientProgramRejected'&&error.cause===runtimeField(result,0);}}
+
+///|
+test "Request checked Source ARRAY refusal reaches existing public rejection without recheck" {
+  let assets = @publication_host.client_local_product_assets()
+  let environment = @publication_host.admit_client_check_environment(
+    assets.environment,
+    "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for format in ["sql", "aql-text"] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      request_diagnostic_test_json(
+        "{\"format\":\"" + format + "\",\"text\":\"SELECT [[1,2]] AS value\"}",
+      ),
+      request_diagnostic_test_json("null"),
+      environment,
+      publication,
+      None,
+    ).unwrap()
+    let result = client_program_finish_request_computation(
+      parent, receipt, environment, publication,
+    )
+    assert_true(
+      result
+      is Err(
+        Preparation(
+          SourceInput(
+            Source(
+              @publication_host.ArrayProfile(
+                @source_frontend.UnsupportedNestedArray(_, _, _)
+              )
+            )
+          )
+        )
+      ),
+    )
+    assert_eq(
+      client_program_request_preparation_issue_code(result),
+      Some("source_unsupported"),
+    )
+    assert_true(
+      request_source_profile_public_error_test(
+        request_diagnostic_test_loader(request_diagnostic_test_url()),
+        result,
+        client_program_request_preparation_issue_code,
+      ),
+    )
+    @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+  }
+}
+
+///|
+// Read the retained original only; no replacement error or checker call.
+fn request_unpivot_original_lowering_cause(
+  issue : @client_local_host.ClientRequestQueryLoweringIssue,
+) -> String {
+  match issue {
+    WithBinding(original, _)
+    | BindingFailure(original, _)
+    | BindingException(original, _) =>
+      request_unpivot_original_lowering_cause(original)
+    Publication(Frontend(QueryLowering(UnsupportedProjection))) =>
+      "unsupported_projection"
+    _ => "other"
+  }
+}
+
+///|
+extern "js" fn request_unpivot_original_fixture_source(
+  loader : RequestDiagnosticTestLoader,
+  safe : Bool,
+) -> NativeJsonValue =
+  #|(loader,safe)=>{const {unpivotRowLabelRefusals}=loader('../../../../../scripts/fixtures/unpivot-row-label-source-input.mjs');const value=unpivotRowLabelRefusals.find(item=>item.name==='unpivot-row-label-refusal-exact-integer-gap');return {format:value.format,text:safe?value.text.replace('9223372036854775807','9007199254740991'):value.text,parameterDeclarations:value.parameterDeclarations};}
+
+///|
+extern "js" fn request_unpivot_original_fixture_parameters(
+  loader : RequestDiagnosticTestLoader,
+) -> NativeJsonValue =
+  #|(loader)=>loader('../../../../../scripts/fixtures/unpivot-row-label-source-input.mjs').unpivotRowLabelRefusals.find(item=>item.name==='unpivot-row-label-refusal-exact-integer-gap').parameters
+
+///|
+// Pass the SAME Unit result through the actual exported String-result bridge
+// exactly as JS does. No Result adaptation or error/tag reconstruction.
+extern "js" fn request_unpivot_original_fixture_public_error(
+  loader : RequestDiagnosticTestLoader,
+  result : Result[Unit, @client_local_host.ClientRequestTerminalIssue],
+  project : (Result[String, @client_local_host.ClientRequestTerminalIssue]) -> String?,
+  safe : Bool,
+) -> Bool =
+  #|(loader,result,project,safe)=>{const {checkedRequestProgramPreparation}=loader('../../../../../adapters/host-node/client-program-preparation.mjs');const {runtimeField}=loader('../../../../../adapters/host-common/compiler-binding.generated.mjs');const {unpivotRowLabelRefusals}=loader('../../../../../scripts/fixtures/unpivot-row-label-source-input.mjs');const fixture=unpivotRowLabelRefusals.find(item=>item.name==='unpivot-row-label-refusal-exact-integer-gap');let calls=0;try{checkedRequestProgramPreparation({clientProgramRequestPreparationIssueCode(value){calls++;if(value!==result)throw new Error('SubstitutedResult');return project(value);}},result);return false;}catch(error){return calls===1&&error.code===(safe?'ClientProgramImplementationLimit':fixture.expectedCode)&&error.cause===runtimeField(result,0);}}
+
+///|
+test "Request exact UNPIVOT integer fixture keeps original unsafe syntax and safe implementation refusal distinct" {
+  let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for safe in [false, true] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let result = client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      request_unpivot_original_fixture_source(loader, safe),
+      request_unpivot_original_fixture_parameters(loader),
+      environment,
+      publication,
+      None,
+    )
+    if safe {
+      let cause = match result {
+        Err(QueryLowering(original)) =>
+          request_unpivot_original_lowering_cause(original)
+        _ => "not_query_lowering"
+      }
+      assert_eq(cause, "unsupported_projection")
+      assert_eq(
+        request_diagnostic_checked_issue_code(result),
+        Some("source_implementation_limit"),
+      )
+    } else {
+      assert_true(
+        result
+        is Err(
+          QuerySyntax(
+            Frontend(
+              QuerySyntax(
+                {
+                  issue: Syntax(
+                    "UNPIVOT row alias requires a String or integer literal"
+                  ),
+                  span: Some(_),
+                }
+              )
+            )
+          )
+        ),
+      )
+      assert_eq(
+        request_diagnostic_checked_issue_code(result),
+        Some("source_invalid_input"),
+      )
+    }
+    assert_true(
+      request_unpivot_original_fixture_public_error(
+        loader, result, client_program_request_preparation_issue_code, safe,
+      ),
     )
     @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   }

@@ -1,5 +1,6 @@
 import {decodeRetainedFixture} from './retained-fixture-values.mjs';
 import {observeRetainedGraphDispatch} from './retained-graph-observer.mjs';
+import {publicQueryResultOracles} from './public-query-input.mjs';
 // Fresh process, installed packages only: restore published Results, without
 // submitting source or invoking a compiler to recreate missing data.
 import assert from 'node:assert/strict';
@@ -36,17 +37,20 @@ async function readRetained(mode, options, directory) {
     const item = retained[mode];
     const execution = await client.attach(item.ref);
     assert.equal((await execution.status()).status, 'succeeded');
-    assert.deepEqual(await execution.result('answer').all(), item.expected);
-    assert.deepEqual((await execution.result('answer').describe()).columns, item.columns);
+    assert.deepEqual(await execution.result('main').all(), item.expected);
+    assert.deepEqual((await execution.result('main').describe()).columns, item.columns);
     assert.equal(accepted(directory), before, 'restoring Results creates no Run');
     console.log(`Exact strings retained after fresh ${mode} Host process`);
   } finally { await client.close(); }
 }
 if (mode === undefined || mode === 'local') await readRetained('local', {mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: resolve('local-state'), sourceProfilePath: sourceProfilePath('local'), hostCapacityPolicy}}, 'local-state');
+  installation: {directory: resolve('local-state'), sourceProfilePath: sourceProfilePath('local'), hostCapacityPolicy,
+    ...(retained.local.authorization === undefined ? {} : {authorization: retained.local.authorization})}}, 'local-state');
 if (mode === undefined || mode === 'remote') {
 const host = await openInstalledRemoteHttpHost({directory: resolve('remote-state'),
-  sourceProfilePath: sourceProfilePath('remote'), hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
+  sourceProfilePath: sourceProfilePath('remote'), hostCapacityPolicy,
+  ...(retained.remote.authorization === undefined ? {} : {authorization: retained.remote.authorization}),
+  authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined});
 const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);
@@ -87,7 +91,7 @@ async function readRetainedCohort(cohort, options) {
     for (const {source, ref, submissionRef} of cohort.samples) {
       const execution = await client.attach(ref);
       assert.equal((await execution.status()).status, 'succeeded');
-      const results = source.results ?? {answer: {rows: source.expected, columns: source.columns}};
+      const results = publicQueryResultOracles(source);
       for (const [name, oracle] of Object.entries(results)) {
         const actual = await execution.result(name).all();
         if (oracle.unordered) {
@@ -97,7 +101,7 @@ async function readRetainedCohort(cohort, options) {
           assert.deepEqual((await execution.result(name).describe()).columns, oracle.columns);
         }
       }
-      const {name, text, expected, columns, results: resultOracles, sourceRows,
+      const {name, text, expected, columns, results: resultOracles, resultName, sourceRows,
         sourceReadCount, sourceReadSessionCount, ...input} = source;
       const replayed = await client.startSource(text, {...input, submissionRef});
       assert.deepEqual(replayed.ref, ref);
@@ -119,20 +123,20 @@ for (const cohort of cohorts) {
   worker?.check();
   const verifyNoPhysicalReplay = cohort.expectedSampleNames !== undefined;
   const replayAuthorization = verifyNoPhysicalReplay
-    ? observeRetainedGraphDispatch(cohort.authorization, physicalDispatches) : undefined;
+    ? observeRetainedGraphDispatch(cohort.authorization, physicalDispatches) : cohort.authorization;
   const beforePhysical = physicalDispatches.length;
   if (cohort.mode === 'local') {
     await readRetainedCohort(cohort, {mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: cohort.directory, sourceProfilePath: cohort.sourceProfilePath,
         hostCapacityPolicy: cohort.hostCapacityPolicy,
         ...(cohort.retainedRelationOutput === true ? {retainedRelationOutput:true} : {}),
-        ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {})}});
+        ...(replayAuthorization === undefined ? {} : {authorization: replayAuthorization})}});
   } else {
     assert.equal(cohort.mode, 'remote');
     const host = await openInstalledRemoteHttpHost({directory: cohort.directory,
       sourceProfilePath: cohort.sourceProfilePath, hostCapacityPolicy: cohort.hostCapacityPolicy,
       ...(cohort.retainedRelationOutput === true ? {retainedRelationOutput:true} : {}),
-      ...(verifyNoPhysicalReplay ? {authorization: replayAuthorization} : {}),
+      ...(replayAuthorization === undefined ? {} : {authorization: replayAuthorization}),
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     const server = createServer({key: await readFile('remote.key'),
       cert: await readFile('remote.crt')}, host.handler);

@@ -146,13 +146,18 @@ test('chunk limits are validated and snapshotted by the connector configuration'
     assert.throws(() => validateLimits({...limits, maxChunkRows: value}), {code: 'InvalidLimits'});
     assert.throws(() => validateLimits({...limits, maxChunkBytes: value}), {code: 'InvalidLimits'});
   }
-  const supplied = {...limits};
+  for (const value of [-1, 1.5, Infinity, NaN]) {
+    assert.throws(() => validateLimits({...limits, maxSourceRows: value}), {code: 'InvalidLimits'});
+  }
+  const supplied = {...limits, maxSourceRows: 3};
   const prepared = prepareDuckDBStrategyConfiguration({transportLimits: supplied,
     importLimits: {maxRows: 100, maxCells: 100}});
   supplied.maxChunkRows = 9999;
   supplied.maxChunkBytes = 999999;
+  supplied.maxSourceRows = 9999;
   assert.equal(preparedStrategyConfiguration(prepared).transportLimits.maxChunkRows, 17);
   assert.equal(preparedStrategyConfiguration(prepared).transportLimits.maxChunkBytes, 8192);
+  assert.equal(preparedStrategyConfiguration(prepared).transportLimits.maxSourceRows, 3);
 });
 
 test('cancellation between split batches stops delivery without refunding fetched rows', async () => {

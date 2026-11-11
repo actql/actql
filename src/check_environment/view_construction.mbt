@@ -132,43 +132,14 @@ pub fn observe_protocol_view_construction(
   }).unwrap()
   let child = @decode.indexed_child_construction_extent()
   let field = @decode.indexed_field_construction_extent()
-  // The generated constructor and its literal Arrays come from the SAME
-  // schema walk, including every optional rule. Literal Strings stay borrowed.
-  // One view frame at a time: <=2N pending Visit/Next carriers, original
-  // Cursors/Some, stack backing, one current object seen-Map and one unique
-  // text-array seen-Map. The generator admits uniqueItems only for text leaves;
-  // these maps do not form an unbounded nested unique-array stack.
-  // Fixed14H10R14W = budget1/0/1, scalar outcomes6/2/9 and typed stop7/8/4.
-  // A scalar's original DecodeIssue may construct its actual ancestry path.
-  let shape_frame = @shape.collection_construction_extent({
-    records: 14L +
-    3L * max_nodes +
-    max_path +
-    child.record_headers +
-    field.record_headers,
-    record_references: 10L +
-    6L * max_nodes +
-    max_path +
-    child.reference_slots +
-    field.reference_slots,
-    record_words: 14L +
-    3L * max_nodes +
-    max_path +
-    child.scalar_words +
-    field.scalar_words,
-    reference_arrays: 2L,
-    reference_items: 2L * max_nodes + max_path,
-    scalar_arrays: 0L,
-    scalar_items: 0L,
-    maps: if views > 0 {
-      2L
-    } else {
-      0L
-    },
-    map_entries: max_fields + max_items,
-  }).unwrap()
   let shape_scratch = @shape.add_collection_construction_extents(
-    shape_frame,
+    source_view_shape_frame_construction(
+      max_nodes,
+      max_fields,
+      max_items,
+      max_path,
+      views > 0,
+    ),
     source_view_rule_construction(),
   ).unwrap()
   // Each actual mode is a fresh typed record; its selected default is the

@@ -24,6 +24,37 @@ pub fn parameter_syntax_value_phase_construction_inventory(
     is Some(body) else {
     return None
   }
+  value_phase_construction_inventory(body, geometry, root_path_depth, max_depth)
+}
+
+///|
+/// The same existing non-reference Value constructor phase, retaining its
+/// supplied original checked Contract. Geometry is bounded constructor DATA,
+/// not evidence that a value has that type or permission to admit a value.
+/// This entry adds no Parameter reader, syntax or declaration construction.
+pub fn contract_value_phase_construction_inventory(
+  original : @contract.Contract,
+  geometry : @decode.SubtreeConstructionGeometry,
+  root_path_depth : Int64,
+  max_depth : Int,
+) -> ParameterValuePhaseConstructionInventory? {
+  if root_path_depth < 0L || max_depth < 0 {
+    return None
+  }
+  guard contract_value_body_construction_inventory(original, geometry)
+    is Some(body) else {
+    return None
+  }
+  value_phase_construction_inventory(body, geometry, root_path_depth, max_depth)
+}
+
+///|
+fn value_phase_construction_inventory(
+  body : ParameterValueBodyConstructionInventory,
+  geometry : @decode.SubtreeConstructionGeometry,
+  root_path_depth : Int64,
+  max_depth : Int,
+) -> ParameterValuePhaseConstructionInventory? {
   // CheckedValue1H2R. Its Value/containers/backing were expanded once by
   // the same body owner and are retained, not recomputed or duplicated here.
   let checked : @shape.CollectionConstructionExtent = {

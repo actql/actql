@@ -25,8 +25,38 @@ pub fn capture_client_run_observation_originals(
     Ok(_) => ()
     Err(issue) => return Err(Compilation(issue))
   }
-  let prepared = compiled.prepared
-  let authorization = compiled.authorization
+  checked_client_run_observation_originals(
+    definition,
+    compiled.prepared,
+    compiled.authorization,
+  )
+}
+
+///|
+/// Retain the SAME Effect compiler evidence at first admission. This projection
+/// neither creates an Effect-free compilation nor reissues authorization.
+pub fn capture_client_effect_run_observation_originals(
+  owner : PreparedClientEffectComputation,
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue] {
+  match bind_client_effect_compiled_run(owner, allowed, definition) {
+    Ok(_) => ()
+    Err(issue) => return Err(Compilation(EffectBinding(issue)))
+  }
+  checked_client_run_observation_originals(
+    definition,
+    allowed.prepared,
+    allowed.authorization,
+  )
+}
+
+///|
+fn checked_client_run_observation_originals(
+  definition : @publication.PublicationContract,
+  prepared : @publication.RunEvidenceValue,
+  authorization : @publication.RunEvidenceValue,
+) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue] {
   match
     @publication.validate_original_interactive_run_evidence(
       definition, prepared, authorization,
@@ -62,13 +92,7 @@ pub fn restore_client_run_observation_originals(
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  match
-    @publication.validate_original_interactive_run_evidence(
-      definition, prepared, authorization,
-    ) {
-    Ok(_) => Ok({ prepared, authorization, })
-    Err(issue) => Err(Binding(issue))
-  }
+  checked_client_run_observation_originals(definition, prepared, authorization)
 }
 
 ///|

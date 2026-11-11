@@ -144,6 +144,21 @@ lower bound, retention, and grant expiry. The service returns an explicit
 session so failed sinks can record a confirmed prefix or retain cleanup
 responsibility instead of losing an active reader behind a convenience API.
 
+The Native relation-file reader consumes Query and whole-input reads issued by
+one installed managed Plan. Query capture borrows the Plan's retained original
+acquisition, declaration and selected provider; an equal provider quote cannot
+replace that original. File listings retain their original ResourceRef issuer
+and monotonic clock. Both routes use the same Native capture holder, physical
+Ledger and child-first cleanup; neither route creates an auxiliary Run or Ledger.
+
+The accounted listing constructor retains the acquisition's original
+configuration in its existing report holder before a response borrow can match
+the derived listing configuration. Row owns the additional H1/R2/W1 tariff in
+both its planner projection and actual reservation. This is one reference and
+its Some carrier, not copied Catalog/schema data. Only confirmed Row cleanup
+severs it together with report/scan backing. It supplies no read permission or
+completion evidence.
+
 ## SQLite integration
 
 The native SQLite adapter is the first integration slice for a Node-free local
@@ -462,3 +477,21 @@ observation's currentness check still precede witness issuance. This does not
 change permission, storage identity, resource admission or cleanup credit.
 
 This consolidation does not broaden native Host or bootstrap platform support.
+
+### Original file replacement observation
+
+The Native row-file child retains the original Writer replacement acknowledgment
+instead of discarding its returned generation. Its opaque immutable observation
+binds the selected file and row, checked expected version and changes, exact
+submitted replacement bytes, and the returned device/inode/size generation.
+The existing filesystem owner returns this observation only after its staging
+and directory synchronization and generation confirmation succeed. Attempted
+replacement, submitted bytes, a later read or successful cleanup cannot create
+it. A post-rename synchronization error retains uncertainty without a retry.
+
+The original update quote includes the returned generation, observation and
+optional holder beside the existing replacement buffer. The shared child census
+includes its retained slot. A receiving Host must retain the same observation
+on its own backing before child retirement; closing the child only severs that
+child's alias. Historical replacement evidence is separate from current write
+permission, a Journal receipt commit, Result publication and physical cleanup.

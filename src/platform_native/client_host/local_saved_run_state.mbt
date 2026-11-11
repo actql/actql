@@ -2,7 +2,8 @@
 /// Saved original outcome only. The SQL Submission metadata revision is never
 /// exposed as a public control revision. Control remains the actual Run row.
 struct NativeClientSavedRunState {
-  original : @host.ClientRunStateOriginal
+  original : @host.ClientRunStateOriginal?
+  state_wire : String
   control_revision : Int64
 }
 
@@ -10,7 +11,7 @@ struct NativeClientSavedRunState {
 pub fn NativeClientSavedRunState::wire(
   self : NativeClientSavedRunState,
 ) -> String {
-  self.original.state_wire()
+  self.state_wire
 }
 
 ///|
@@ -178,6 +179,10 @@ fn NativeClientRunJournal::retain_observed_run_state(
       let wire = state.wire()
       let body = match
         submitted_intent_body(
+          before_construction=submitted_encode_construction(
+            self.database,
+            operations,
+          ),
           original.reference,
           original.intent,
           run_admission=original.run_admission,
@@ -225,7 +230,11 @@ fn NativeClientRunJournal::retain_observed_run_state(
       if current_publication.binding != publication.binding {
         return Err(CustodyLost)
       }
-      Ok({ original: state, control_revision: run.revision, })
+      Ok({
+        original: Some(state),
+        state_wire: state.state_wire(),
+        control_revision: run.revision,
+      })
     },
     reads~,
   )

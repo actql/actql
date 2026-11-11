@@ -1,0 +1,394 @@
+{
+  "qualification": "Reviewed source and semantic correspondence only; not installed funding, composed workflow or artifact acceptance",
+  "declarations": [
+    {
+      "module": "src/physical_resources/original_captured_prefix.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "591858e8fd5752b78906bbd3a2bbe8d63d5f12e00216e5884f9b20eec008abb5",
+      "role": "common-semantics",
+      "owner": "Existing physical Resource ledger census, Source capture, prefix and keyed child owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "original_borrowed_captured_inputs_available",
+          "declaration": "original_borrowed_captured_inputs_available ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , ) - > Bool"
+        },
+        {
+          "name": "original_borrowed_reservation_available",
+          "declaration": "original_borrowed_reservation_available ( identity : OriginalLedgerIdentity , ledger : Ledger , reservation : Reservation , ) - > Bool"
+        },
+        {
+          "name": "original_captured_inputs_cleanup_match",
+          "declaration": "original_captured_inputs_cleanup_match ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , ) - > Int ?"
+        },
+        {
+          "name": "original_captured_inputs_live",
+          "declaration": "original_captured_inputs_live ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , settled : Bool , ) - > Bool"
+        },
+        {
+          "name": "original_captured_inputs_match",
+          "declaration": "original_captured_inputs_match ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , ) - > Bool"
+        },
+        {
+          "name": "original_captured_inputs_prefix_available",
+          "declaration": "original_captured_inputs_prefix_available ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , ) - > Bool"
+        },
+        {
+          "name": "original_captured_inputs_prefix_reservation_available",
+          "declaration": "original_captured_inputs_prefix_reservation_available ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , prefix : Reservation , ) - > Bool"
+        },
+        {
+          "name": "original_captured_prefix_available",
+          "declaration": "original_captured_prefix_available ( ledger : Ledger , reservation : Reservation , holding : Holding , ) - > Bool"
+        },
+        {
+          "name": "original_captured_prefix_reservation_available",
+          "declaration": "original_captured_prefix_reservation_available ( ledger : Ledger , reservation : Reservation , holding : Holding , prefix : Reservation , ) - > Bool"
+        },
+        {
+          "name": "original_cleanup_reservation_matches",
+          "declaration": "original_cleanup_reservation_matches ( ledger : Ledger , reservation : Reservation , serial : Int , ) - > Bool"
+        },
+        {
+          "name": "original_ledger_preparation_available",
+          "declaration": "original_ledger_preparation_available ( identity : OriginalLedgerIdentity , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "original_borrowed_captured_inputs_available",
+            "original_borrowed_reservation_available",
+            "original_captured_inputs_cleanup_match",
+            "original_captured_inputs_live",
+            "original_captured_inputs_match",
+            "original_captured_inputs_prefix_available",
+            "original_captured_inputs_prefix_reservation_available",
+            "original_captured_prefix_available",
+            "original_captured_prefix_reservation_available",
+            "original_cleanup_reservation_matches",
+            "original_ledger_preparation_available"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/physical_resources/borrowed_captured_inputs_wbtest.mbt",
+                "anchor": "test \"shared captured inputs borrow exact originals after retained preparation without resetting history\""
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/original_keyed_preparation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "0dd95adeccdff36c07716ab084764ee20e7ee852717cb735d6057d3256e2b64f",
+      "role": "common-semantics",
+      "owner": "Existing physical Resource ledger census, Source capture, prefix and keyed child owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "original_keyed_child_preparation_available",
+          "declaration": "original_keyed_child_preparation_available ( identity : OriginalLedgerIdentity , ledger : Ledger , assembly : Reservation , accepted_children : Int , prefix ? : Reservation ?"
+        },
+        {
+          "name": "original_keyed_inputs_child_preparation_available",
+          "declaration": "original_keyed_inputs_child_preparation_available ( identity : OriginalLedgerIdentity , ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , assembly : Reservation , accepted_children : Int , prefix ? : Reservation ?"
+        },
+        {
+          "name": "original_keyed_inputs_prefix_dependents_retired",
+          "declaration": "original_keyed_inputs_prefix_dependents_retired ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , prefix : Reservation , ) - > Bool"
+        },
+        {
+          "name": "original_keyed_prefix_dependents_retired",
+          "declaration": "original_keyed_prefix_dependents_retired ( ledger : Ledger , prefix : Reservation , ) - > Bool"
+        },
+        {
+          "name": "original_ledger_captured_inputs_preparation_available",
+          "declaration": "original_ledger_captured_inputs_preparation_available ( identity : OriginalLedgerIdentity , originals : Array [ ( Reservation , Holding ) ] , prefix ? : Reservation ?"
+        },
+        {
+          "name": "original_ledger_captured_preparation_available",
+          "declaration": "original_ledger_captured_preparation_available ( identity : OriginalLedgerIdentity , prefix ? : Reservation ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "original_keyed_child_preparation_available",
+            "original_keyed_inputs_child_preparation_available",
+            "original_keyed_inputs_prefix_dependents_retired",
+            "original_keyed_prefix_dependents_retired",
+            "original_ledger_captured_inputs_preparation_available",
+            "original_ledger_captured_preparation_available"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/original_keyed_serialization.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "db7585cb69144efaefb7dcb5136e1ae8d74102b7aec87e53aee674b30a48c068",
+      "role": "common-semantics",
+      "owner": "Existing physical Resource ledger census, Source capture, prefix and keyed child owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "original_keyed_inputs_lookup_dependents_retired",
+          "declaration": "original_keyed_inputs_lookup_dependents_retired ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , assembly : Reservation , prefix ? : Reservation ?"
+        },
+        {
+          "name": "original_keyed_inputs_serialization_preparation_available",
+          "declaration": "original_keyed_inputs_serialization_preparation_available ( identity : OriginalLedgerIdentity , ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , prefix : Reservation , assembly : Reservation , children : Int , ) - > Bool"
+        },
+        {
+          "name": "original_keyed_lookup_dependents_retired",
+          "declaration": "original_keyed_lookup_dependents_retired ( ledger : Ledger , assembly : Reservation , ) - > Bool"
+        },
+        {
+          "name": "original_keyed_serialization_preparation_available",
+          "declaration": "original_keyed_serialization_preparation_available ( identity : OriginalLedgerIdentity , ledger : Ledger , prefix : Reservation , assembly : Reservation , children : Int , ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "original_keyed_inputs_lookup_dependents_retired",
+            "original_keyed_inputs_serialization_preparation_available",
+            "original_keyed_lookup_dependents_retired",
+            "original_keyed_serialization_preparation_available"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/original-captured-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

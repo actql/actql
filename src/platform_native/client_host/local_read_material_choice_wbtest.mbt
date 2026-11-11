@@ -36,9 +36,13 @@ test "Native material is an explicit original destination rather than a stdout a
 
 ///|
 test "Native material destination admission keeps closed spelling and missing null refusals" {
+  let file = admit_native_local_read_selection(
+    local_read_original_wire.replace_all(old="stdout", new="file"),
+  ).unwrap()
+  assert_true(file.sink is File)
   for
     spelling in [
-      "Material", "table", "file", "client-material", "stdout material",
+      "Material", "table", "File", "client-material", "stdout material",
     ] {
     assert_true(
       admit_native_local_read_selection(

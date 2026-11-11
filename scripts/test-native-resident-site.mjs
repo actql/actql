@@ -4,8 +4,9 @@
 // and runs it in a separate executor holder. The executor entry count is
 // read from a synced evidence file, never from transport logs.
 import assert from 'node:assert/strict';
+import {prepareNativeResidentHttpLibrary, prepareNativeResidentSite, prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import test from 'node:test';
-import {execFileSync, spawn} from 'node:child_process';
+import {execFileSync, fork, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
 import {request as httpsRequest} from 'node:https';
@@ -22,6 +23,7 @@ import {residentSourceEnvironment, sourceProgram, sourceRows,
   retainedSourceSchemaCid, retainedChainProgram, retainedChainRows,
   retainedChainSchemaCid} from './fixtures/resident-source.mjs';
 import {prepareResidentEffectComputation, runResidentEffectComputation,
+  residentEffectSourceEnvironment,
   residentEffectSourceContractCid} from
   './fixtures/resident-effect-computation.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
@@ -32,7 +34,8 @@ import {openSqliteCoordinatorDispatchJournal} from
 import {createRemoteSiteCoordinator} from
   '../adapters/host-node/remote-site-coordinator.mjs';
 import {allowAllAuthorization} from '../adapters/host-node/authorization-fixture.mjs';
-import {observationAckLossProxy} from './fixtures/observation-ack-loss-proxy.mjs';
+import {cancellationAckMatches, observationAckLossProxy} from './fixtures/observation-ack-loss-proxy.mjs';
+import {prepareMaintenanceTestExecutable} from './fixtures/native-maintenance-executable.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
 import {pinnedEngineContracts} from
@@ -43,6 +46,219 @@ import {openSqliteTransferJournal} from
   '../adapters/site-node/sqlite-transfer-journal.mjs';
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
+// Attribute existing preparation work separately from fixture and execution time.
+// These closed phase labels contain no paths, case values or private failure data.
+function timedResidentPreparation(phase, prepare) {
+  const started = performance.now(); let succeeded = false;
+  try { const original = prepare(); succeeded = true; return original; }
+  finally {
+    try {
+      console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({scope: 'resident-preparation',
+        phase, milliseconds: Math.round(performance.now() - started), succeeded}));
+    } catch { /* Timing output cannot replace the original return or failure. */ }
+  }
+}
+
+// This harness's post-install watchdog owns only its fresh test process group.
+// Phase DATA is not a child stop, Store release, Site capacity or Host ACK.
+const residentPhaseKinds = new Set([
+  'bundle-activated', 'engine-contracts-enter', 'engine-contracts-return',
+  'run-environment-enter', 'run-environment-return', 'run-prepare-return',
+  'run-compile-return', 'run-allowed-return', 'run-definition-return',
+  'run-materials-enter', 'run-materials-return', 'oversized-materials-check',
+  'oversized-materials-return', 'result-definition-enter', 'result-definition-return',
+  'site-start', 'first-dispatch-enter', 'first-dispatch-return',
+  'wait-for-enter', 'wait-for-return', 'within-enter', 'within-return',
+  'concurrent-controls-stop-enter', 'concurrent-left-exit-return',
+  'concurrent-right-exit-return', 'concurrent-controls-stop-return',
+  'finally-enter', 'owned-children-closed', 'proxy-close-enter',
+  'gateway-close-enter', 'receiver-close-enter', 'store-cleanup-enter',
+  'cleanup-calls-returned',
+]);
+
+// Retain an earlier consumer refusal even when repeated relay offers fill the
+// tail. Closed labels only: no request identities, frame bodies or messages.
+function residentConsumerFailureSummary(lines) {
+  const kinds = new Set(['holder-started', 'holder-exited', 'holder-input-invalid',
+    'holder-input-frame', 'effect-computation-custody-retained', 'consumer-relayed',
+    'consumer-refused', 'consumer-unavailable', 'consumer-accept-pending',
+    'consumer-executed', 'consumer-failed', 'consumer-already-started']);
+  const reasons = new Set(['materials', 'retained-input', 'holder-custody', 'envelope',
+    'bundle-holding', 'owned-execution', 'journal', 'protocol', 'envelope-missing',
+    'values', 'start-claim-lost', 'start-cancelled', 'executor-entry-unrecorded',
+    ...['foreign-coordinator', 'foreign-site', 'stale-generation', 'foreign-runtime',
+      'foreign-connector', 'foreign-grant', 'foreign-issuer', 'unsupported-budget',
+      'materials-missing', 'materials-rejected', 'task-materials-rejected',
+      'foreign-source', 'unsupported-task', 'not-current', 'queue-full']
+      .flatMap(reason => [reason, 'refused-' + reason])]);
+  const selected = new Map();
+  const boundaries = new Set(['execution-family', 'producer-route',
+    'consumer-preparation', 'successor-custody']);
+  for (const line of lines) {
+    if (!kinds.has(line?.kind)) continue;
+    if (line.kind === 'holder-input-frame' && line.operation !== 'consumer') continue;
+    const value = {kind: line.kind};
+    if (line.kind === 'holder-input-frame') value.operation = 'consumer';
+    if (line.kind === 'consumer-relayed') value.sent = line.sent === 'true' ? true
+      : line.sent === 'false' ? false : 'unselected';
+    if (line.reason !== undefined) value.reason = reasons.has(line.reason) ? line.reason : 'unselected';
+    if (line.boundary !== undefined) value.boundary = boundaries.has(line.boundary) ? line.boundary : 'unselected';
+    const key = JSON.stringify(value), previous = selected.get(key);
+    if (previous) previous.count++;
+    else selected.set(key, {...value, count: 1});
+  }
+  return [...selected.values()];
+}
+
+// First exact scalar line from the existing scoped Read failure emitter only.
+// Decimal strings preserve uint64 values; this is no allocation or cleanup ACK.
+function residentAllocationFailureSummary(stderr) {
+  const names = ['requested', 'known', 'depth', 'active', 'current', 'occupied',
+    'peak', 'control', 'pages', 'page_bytes', 'status', 'extent_domain',
+    'managed_prepared', 'managed_preparing', 'managed_remaining', 'managed_maximum'];
+  const pattern = new RegExp('^actql-scoped-allocation-failed' + names.map(name =>
+    ' ' + name + '=' + (name === 'status' ? '(-?(?:0|[1-9][0-9]{0,9}))'
+      : '((?:0|[1-9][0-9]{0,19}))')).join('') + '\\r?$', 'gm');
+  for (const match of stderr.matchAll(pattern)) {
+    const values = match.slice(1);
+    if (values.some((value, index) => index === 10
+      ? BigInt(value) < -2147483648n || BigInt(value) > 2147483647n
+      : BigInt(value) > 18446744073709551615n)) continue;
+    return Object.fromEntries(names.map((name, index) => [name, values[index]]));
+  }
+  return null;
+}
+
+// Publish only the same closed observer DATA already printed by this original
+// failure. Raw scratch and errors remain private; publication cannot replace it.
+async function retainResidentConsumerFailureSummary(directory, lines, stderr = '') {
+  const observations = residentConsumerFailureSummary(lines);
+  console.error('ACTQL_NATIVE_RESIDENT_CONSUMER_FAILURE ' + JSON.stringify(observations));
+  try {
+    await writeFile(join(directory, 'resident-consumer-summary.json'),
+      JSON.stringify({version: 1, diagnosticOnly: true, observations,
+        allocationFailure: residentAllocationFailureSummary(stderr)}) + '\n',
+      {flag: 'wx', mode: 0o600});
+  } catch {
+    console.error('NativeResidentFailureSummaryUnavailable');
+  }
+}
+
+async function runResidentPhaseWatchdog(script, {
+  forkChild = fork, phaseTimeoutMilliseconds = 120000, killGraceMilliseconds = 5000,
+  report = value => console.error('ACTQL_NATIVE_RESIDENT_WATCHDOG ' + JSON.stringify(value)),
+} = {}) {
+  const child = forkChild(script, process.argv.slice(2), {
+    env: {...process.env, ACTQL_TEST_RESIDENT_PHASE_CHILD: '1'},
+    detached: true, stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+  });
+  let timer, forceTimer, armed = false, timedOut = false, forceStopRequested = false,
+    supervisorSignal, lastPhase;
+  const signalOriginalGroup = signal => {
+    try { process.kill(-child.pid, signal); }
+    catch (error) { if (error.code !== 'ESRCH') throw error; }
+  };
+  const groupExists = () => {
+    try { process.kill(-child.pid, 0); return true; }
+    catch (error) { if (error.code === 'ESRCH') return false; throw error; }
+  };
+  return await new Promise((resolve, reject) => {
+    let closed, finished = false;
+    const finish = () => {
+      if (finished || closed === undefined) return;
+      finished = true;
+      clearTimeout(timer); clearTimeout(forceTimer);
+      resolve({...closed, code: timedOut ? 124 : supervisorSignal === 'SIGINT' ? 130
+        : supervisorSignal === 'SIGTERM' ? 143 : closed.code, timedOut, lastPhase});
+    };
+    const stopOriginalGroup = (event, signal) => {
+      if (timedOut || supervisorSignal !== undefined) return;
+      if (event === 'timeout') timedOut = true;
+      else supervisorSignal = signal;
+      report({event, ...lastPhase, cleanup: 'unconfirmed'});
+      signalOriginalGroup('SIGTERM');
+      forceTimer = setTimeout(() => {
+        signalOriginalGroup('SIGKILL');
+        forceStopRequested = true;
+        finish();
+      }, killGraceMilliseconds);
+    };
+    const onTerm = () => stopOriginalGroup('supervisor-signal', 'SIGTERM');
+    const onInterrupt = () => stopOriginalGroup('supervisor-signal', 'SIGINT');
+    process.once('SIGTERM', onTerm);
+    process.once('SIGINT', onInterrupt);
+    const returnSignalHandlers = () => {
+      process.removeListener('SIGTERM', onTerm);
+      process.removeListener('SIGINT', onInterrupt);
+    };
+    child.once('close', returnSignalHandlers);
+    child.once('error', returnSignalHandlers);
+    child.on('message', value => {
+      if (timedOut || supervisorSignal !== undefined || value?.kind !== 'native-resident-phase' ||
+          !residentPhaseKinds.has(value.phase) ||
+          !Number.isSafeInteger(value.line) || value.line < 0 || value.line > 10000) return;
+      lastPhase = {phase: value.phase, line: value.line};
+      report({event: 'phase', ...lastPhase});
+      if (value.phase === 'bundle-activated') armed = true;
+      if (!armed) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => stopOriginalGroup('timeout'), phaseTimeoutMilliseconds);
+    });
+    child.once('error', error => {
+      clearTimeout(timer); clearTimeout(forceTimer); reject(error);
+    });
+    child.once('close', (code, signal) => {
+      closed = {code, signal};
+      if ((!timedOut && supervisorSignal === undefined) || forceStopRequested || !groupExists()) finish();
+      // A descendant that ignored TERM still belongs to this original test
+      // group. Keep the existing grace before its bounded forced shutdown.
+      // If KILL preceded this close event, its expired timer cannot settle us
+      // again. Return the same nonzero/unconfirmed result as close-before-KILL.
+    });
+  });
+}
+
+// The irreconcilable-allocation fixture deliberately retains durable debt.
+// Recreate only its owned observer process abruptly: graceful close cannot
+// acknowledge that debt, and process death is never a resource cleanup ACK.
+async function crashResidentReconciliationObserver(site) {
+  assert.equal(site.child.kill('SIGKILL'), true,
+    'the original reconciliation observer must still be live');
+  const [code, signal] = await site.exited;
+  assert.equal(code, null);
+  assert.equal(signal, 'SIGKILL');
+}
+
+// These are process-exit observations only. The original controls still own
+// their graceful shutdown; a stalled control remains watchdog failure.
+async function stopConcurrentResidentControls(left, right) {
+  residentPhase('concurrent-controls-stop-enter');
+  left.child.kill('SIGTERM');
+  right.child.kill('SIGTERM');
+  await Promise.all([
+    left.exited.then(() => residentPhase('concurrent-left-exit-return')),
+    right.exited.then(() => residentPhase('concurrent-right-exit-return')),
+  ]);
+  residentPhase('concurrent-controls-stop-return');
+}
+
+function residentPhase(phase) {
+  if (!residentPhaseKinds.has(phase)) throw new Error('InvalidResidentDiagnosticPhase');
+  const line = Number(new Error().stack?.split('\n').slice(2)
+    .map(frame => /test-native-resident-site\.mjs:(\d+):/u.exec(frame)?.[1])
+    .find(value => value !== undefined) ?? 0);
+  const value = {kind: 'native-resident-phase', phase, line};
+  if (typeof process.send === 'function') process.send(value);
+  else console.error('ACTQL_NATIVE_RESIDENT_PHASE ' + JSON.stringify(value));
+}
+
+if (process.env.ACTQL_TEST_RESIDENT_PHASE_CHILD !== '1' && !process.env.NODE_TEST_CONTEXT) {
+  const outcome = await runResidentPhaseWatchdog(fileURLToPath(import.meta.url));
+  if (outcome.signal !== null && !outcome.timedOut) {
+    console.error('ACTQL_NATIVE_RESIDENT_WATCHDOG ' + JSON.stringify({event: 'child-signal', signal: outcome.signal}));
+  }
+  process.exitCode = outcome.code ?? 1;
+} else {
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const retainedChainMode = process.argv.includes('--retained-chain-only') ||
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CHAIN_ONLY === '1';
@@ -98,6 +314,18 @@ const cancelMode = process.argv.includes('--cancel-only') ||
 const releaseMaintenanceMode = process.argv.includes('--release-maintenance-only') ||
   process.env.ACTQL_TEST_RESIDENT_RELEASE_MAINTENANCE_ONLY === '1';
 const releaseObservationMode = process.argv.includes('--release-observation-only');
+const releaseStoppedRecoveryMode = process.argv.includes('--release-stopped-recovery-only');
+const releaseColdRecoveryMode = process.argv.includes('--release-cold-recovery-only');
+const holderReclaimMode = process.argv.includes('--holder-reclaim-only');
+const restartReclaimMode = process.argv.includes('--restart-reclaim-only');
+const holderKillPoints = Object.freeze(['before-intent', 'after-intent', 'allocated', 'owned',
+  'payload-written', 'sealed', 'reclaimed']);
+const holderReclaimPoint = process.argv.find(value => value.startsWith('--holder-reclaim-point='))
+  ?.slice('--holder-reclaim-point='.length);
+if (holderReclaimPoint !== undefined && (!holderReclaimMode || !holderKillPoints.includes(holderReclaimPoint))) {
+  throw new Error('Invalid focused holder reclamation point');
+}
+
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -105,18 +333,6 @@ if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
 await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-resident-site-'));
 const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
-const sqliteLibrary = process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
-  (process.platform === 'darwin' ? '/usr/lib/libsqlite3.dylib'
-    : 'libsqlite3.so.0');
-const httpLibrary = process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY ??
-  (process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib'
-    : 'libcurl.so.4');
-const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
-  (process.platform === 'darwin'
-    ? ['/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib',
-      '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib']
-      .find(path => existsSync(path)) ?? 'libcrypto.3.dylib'
-    : 'libcrypto.so.3');
 const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
   ? 'aarch64-apple-darwin'
   : process.platform === 'linux' && process.arch === 'x64'
@@ -149,21 +365,25 @@ const observationFailures = [];
 // It is not another production ledger or independent execution authority.
 const retainedCoordinatorRecords = new Map();
 const running = new Set();
+// Select the same original Site environment as the bundle/application callers;
+// build tools retain their separate producer environment.
+const siteProcessEnvironment = Object.freeze({PATH: '/usr/bin:/bin', LANG: 'C'});
+let acceptanceFailed = false;
 async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
-  execFileSync(moon, ['build', '--target', 'native', '--strip',
-    'src/cmd/native_remote_resident_site', 'src/cmd/native_runtime_bundle'],
-  {cwd: repository, stdio: 'inherit'});
-  execFileSync(moon, ['build', '--target', 'js', '--release',
-    'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'});
-  execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
+  const httpLibrary = timedResidentPreparation('http-component', () => prepareNativeResidentHttpLibrary());
+  const executable = timedResidentPreparation('resident-command', () => prepareNativeResidentSite(repository,
+    join(root, 'resident-producer')));
+  timedResidentPreparation('portable-core-build', () => execFileSync(moon, ['build', '--target', 'js', '--release',
+    'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'}));
+  timedResidentPreparation('portable-owner-build', () => execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
     'coordinator-core', 'run-host-core', ...(retainedConsumerMode ? ['transfer-core'] : [])],
-  {cwd: repository, stdio: 'inherit'});
-  const executable = join(repository, '_build/native/debug/build/cmd/' +
-    'native_remote_resident_site/native_remote_resident_site.exe');
-  const bundleTool = join(repository, '_build/native/debug/build/cmd/' +
-    'native_runtime_bundle/native_runtime_bundle.exe');
+  {cwd: repository, stdio: 'inherit'}));
+  const bundleTool = timedResidentPreparation('bundle-command', () => prepareNativeRuntimeBundle(repository,
+    join(root, 'runtime-bundle-producer')));
+  const bundleLibraries = timedResidentPreparation('bundle-components', () => prepareNativeRuntimeBundleLibraries(repository,
+    join(root, 'runtime-bundle-components')));
   const moonModule = await import(pathToFileURL(join(repository,
     '_build/js/release/build/connectors_builtin_node/' +
     'connectors_builtin_node.js')).href);
@@ -204,10 +424,8 @@ try {
   await writeFile(tokenFile, `${token}\n`, {mode: 0o600});
   await chmod(tokenFile, 0o600);
   const siteKey = 'resident-site';
-  const durableObservationMode = process.argv.includes('--observation-replay-only') ||
-    process.argv.includes('--redelivery-only') || process.argv.includes('--output-report-only') ||
-    cancelMode || retainedConsumerMode;
-  const startGateway = async port => startHttpsOutboundSiteGateway({
+  const startGateway = async port => {
+  const transport = await startHttpsOutboundSiteGateway({
     ...(port === undefined ? {} : {port}),
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
@@ -257,13 +475,6 @@ try {
           if (JSON.parse(value.body).version === 'actql-remote-output-plan/0.1') {
             return Object.freeze({});
           }
-          // The foundation fixture exercises direct dispatch transport. Only
-          // its Output path uses the durable Coordinator receiver; the R1/R2
-          // modes independently exercise durable dispatch observations.
-          if (!durableObservationMode &&
-              JSON.parse(value.body).version !== 'actql-remote-output-result/0.1') {
-            return Object.freeze({});
-          }
           if (crashOutputReceiver !== undefined &&
               JSON.parse(value.body).version === 'actql-remote-output-result/0.1') {
             const crash = crashOutputReceiver;
@@ -299,6 +510,16 @@ try {
       },
     idlePollMilliseconds: 200,
   });
+  return Object.freeze({...transport,
+    async dispatch(value) {
+      // Admit the same original Coordinator intent before transport can send
+      // this dispatch. Status and Release then share its real current owner;
+      // a fixture callback without that owner is not a cleanup receipt.
+      await ensureOutputReceiver(value.dispatch);
+      return transport.dispatch(value);
+    },
+  });
+  };
   gateway = await startGateway();
 
   // The Cloud's Result ingress: a direct Transfer destination.
@@ -366,7 +587,7 @@ try {
     {mode: 0o600});
   await writeFile(join(bundleInput, 'component.bin'), component, {mode: 0o700});
   const bundleCommon = ['--store-root', runtimeRoot, '--sqlite-library',
-    sqliteLibrary, '--crypto-library', cryptoLibrary, '--target-triple',
+    bundleLibraries.sqliteLibrary, '--crypto-library', bundleLibraries.cryptoLibrary, '--target-triple',
     targetTriple, '--authority-root', bundleInput, '--trust-config-name',
     'trust.json', '--capacity-bytes', '268435456', '--max-bundles', '4',
     '--max-owners', '8', '--max-record-bytes', '1048576'];
@@ -374,10 +595,13 @@ try {
     'resident-install', '--signature-key-id', 'key-a', '--bundle-cid',
     envelope.runtimeBundleCid, '--input-root', bundleInput, '--manifest-name',
     'manifest.json', '--signature-name', 'signature.txt', '--component-name',
-    'component.bin'], {stdio: 'inherit'});
+    'component.bin'], {env: siteProcessEnvironment, stdio: 'inherit'});
   execFileSync(bundleTool, [...bundleCommon, 'activate', '--bundle-cid',
-    envelope.runtimeBundleCid], {stdio: 'inherit'});
+    envelope.runtimeBundleCid], {env: siteProcessEnvironment, stdio: 'inherit'});
+  residentPhase('bundle-activated');
+  residentPhase('engine-contracts-enter');
   const [registry, values, fragment] = await pinnedEngineContracts(repository);
+  residentPhase('engine-contracts-return');
   await writeFile(join(engineRoot, 'registry.json'), registry);
   await writeFile(join(engineRoot, 'values.json'), values);
   await writeFile(join(engineRoot, 'fragment.json'), fragment);
@@ -386,8 +610,8 @@ try {
   const programText = effectComputationMode ? await readFile(join(repository,
     'packages/run-host-core/fixtures/source-compute-effect.program.json'), 'utf8') : retainedChainMode ? retainedChainProgram : retainedConsumerMode ? retainedSourceProgram : sourceMode ? sourceProgram : await readFile(join(repository,
     'packages/sdk/fixtures/values.json'), 'utf8');
-  const environmentWire = effectComputationMode ? (await readFile(join(repository,
-    'packages/run-host-core/fixtures/source-compute-effect.environment.json'), 'utf8')).trimEnd() : sourceMode ? (await residentSourceEnvironment(repository)).wire
+  const environmentWire = effectComputationMode ? await residentEffectSourceEnvironment(repository)
+    : sourceMode ? (await residentSourceEnvironment(repository)).wire
     : (await readFile(join(repository,
       'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd();
   const now = Date.now();
@@ -403,20 +627,26 @@ try {
     // One independent public compiler owner on the issuing side. Keep its
     // actual checked Program/compilation/admission/Definition throughout;
     // no installed Node preparation or same-process wire re-admission.
+    residentPhase('run-environment-enter');
     const retainedEnvironment = runHost.admitEnvironment(environmentWire,
       environmentCid, {rela: true});
+    residentPhase('run-environment-return');
     const retainedPrepared = runHost.prepare(programText, 'json', retainedEnvironment);
+    residentPhase('run-prepare-return');
     const retainedCompilation = sourceMode ? runHost.compileTasks(retainedPrepared)
       : runHost.compileValues(retainedPrepared);
+    residentPhase('run-compile-return');
     const allowed = (sourceMode ? runHost.issueAllowedTaskRun : runHost.issueAllowedRun)(
       retainedPrepared, retainedCompilation, {
         executionContextCid: physicalCid('resident-execution-context'),
         hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: validUntil,
       });
+    residentPhase('run-allowed-return');
     const retainedAdmission = allowed.admission;
     const retainedDefinition = (sourceMode ? runHost.issueTaskRunDefinition
       : runHost.issueSourceFreeRunDefinition)(retainedPrepared, retainedCompilation,
       retainedAdmission, 'resident-scope', 'resident-run-1', createdAt, validUntil);
+    residentPhase('run-definition-return');
     const originalDefinition = runHost.privateRunDefinition(retainedDefinition);
     const definition = {wire: originalDefinition.wire, identity: originalDefinition.cid};
     const compiled = {
@@ -426,11 +656,13 @@ try {
         : runHost.privateCompilationWires)(retainedCompilation).compiledPlan},
     };
     const materialsIssuer = sourceMode ? runHost.issueTaskRunMaterials : runHost.issueSourceFreeRunMaterials;
+    residentPhase('run-materials-enter');
     const materials = materialsIssuer(retainedPrepared,
       retainedCompilation, retainedAdmission, retainedDefinition, {
         environment: retainedEnvironment, environmentWire,
         document: programText, format: 'json',
       });
+    residentPhase('run-materials-return');
     assert.equal(runHost.privateRunDefinition(retainedDefinition).cid, definition.identity);
     const projected = JSON.parse(materials);
     assert.equal(projected.prepared_invocation, compiled.preparedEvidence.wire);
@@ -441,12 +673,14 @@ try {
     assert.equal(projected.valid_until, validUntil);
     // Individual inputs remain valid, but quoting both makes the aggregate
     // materials exceed the cap. Exercise this through the installed issuer too.
+    residentPhase('oversized-materials-check');
     assert.throws(() => materialsIssuer(retainedPrepared,
       retainedCompilation, retainedAdmission, retainedDefinition, {
         environment: retainedEnvironment, environmentWire, format: 'json',
         document: '\t'.repeat(65536 - Buffer.byteLength(programText)) + programText,
         parametersWire: '\t'.repeat(65534) + '{}',
       }), {code: 'RunHostRunMaterialsRejected'});
+    residentPhase('oversized-materials-return');
     return {compiled, definition, retainedEnvironment, retainedPrepared, retainedCompilation,
       retainedAdmission, retainedDefinition, materials};
   })();
@@ -521,11 +755,13 @@ try {
     });
   };
   // The Result the Coordinator publishes, from the ordinary Client owners.
+  residentPhase('result-definition-enter');
   const hostPrepared = effectComputationMode ? undefined : runHost.prepare(programText, 'json',
     runHost.admitEnvironment(environmentWire, JSON.parse(environmentWire).evidence_bundle_cid, {rela: true}));
   const resultDefinitionCid = effectComputationMode ? undefined : sourceMode ? runHost.taskResultDefinitions(hostPrepared,
     runHost.compileTasks(hostPrepared))[0].cid : runHost.resultDefinitions(hostPrepared,
       runHost.compileValues(hostPrepared))[0].cid;
+  residentPhase('result-definition-return');
   // The Coordinator queries until the execution settled and its output
   // subject is observed; an executor entry is recorded before execution.
   const settledQuery = async (dispatch, tag) => {
@@ -575,7 +811,7 @@ try {
 
   const entryLog = join(root, 'executor-entry.log');
   const common = [
-    '--sqlite-library', sqliteLibrary, '--crypto-library', cryptoLibrary,
+    '--sqlite-library', bundleLibraries.sqliteLibrary, '--crypto-library', bundleLibraries.cryptoLibrary,
     '--http-library', httpLibrary, '--journal', join(root, 'journal.sqlite3'),
     '--runtime-root', runtimeRoot, '--bundle-issuer', 'bundle-authority-a',
     '--bundle-key-id', 'key-a', '--bundle-public-key-root', bundleInput,
@@ -617,10 +853,11 @@ try {
       configured[configured.indexOf(flag) + 1] =
         `${(operation === 'observations' ? observationOrigin : controlOrigin)}/v1/sites/${siteKey}/generations/1/outbound/${operation}`;
     }
+    residentPhase('site-start');
     const child = spawn(executable, ['run', ...configured,
       '--transfer-origin', origin, '--transfer-journal', transferJournal,
       ...extra], {
-      cwd: root, stdio: ['ignore', 'pipe', 'pipe']});
+      cwd: root, env: siteProcessEnvironment, stdio: ['ignore', 'pipe', 'pipe']});
     const lines = [];
     let buffer = '';
     child.stdout.on('data', chunk => {
@@ -641,21 +878,23 @@ try {
     return {child, lines, exited, stderr: () => stderr};
   };
   const waitFor = async (predicate, what, milliseconds = 30_000) => {
+    residentPhase('wait-for-enter');
     const deadline = Date.now() + milliseconds;
     while (Date.now() < deadline) {
-      if (await predicate()) return;
+      if (await predicate()) { residentPhase('wait-for-return'); return; }
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     throw new Error(`timed out waiting for ${what}`);
   };
   const within = async (promise, what, milliseconds = 60_000) => {
+    residentPhase('within-enter');
     let timer;
     try {
       return await Promise.race([promise, new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error(`timed out waiting for ${what}`)),
           milliseconds);
       })]);
-    } finally { clearTimeout(timer); }
+    } finally { clearTimeout(timer); residentPhase('within-return'); }
   };
   const entries = async () => existsSync(entryLog)
     ? (await readFile(entryLog, 'utf8')).split('\n').filter(Boolean) : [];
@@ -719,6 +958,175 @@ try {
   };
   let expectedEntries = 0;
 
+  const provesCapacityFree = async (tag, attempt) => {
+    const proof = startSite(['--publication-capacity-bytes', '40']);
+    currentSite = proof;
+    const dispatch = dispatchFor(`resident-${tag}`, attempt);
+    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      `${tag} entry`);
+    await deliverAndRelease(dispatch, await settledQuery(dispatch, tag), tag);
+    await waitFor(() => proof.lines.some(line =>
+      line.kind === 'holder-released' && line.payloads === '1'),
+    `${tag} released`);
+    assert.ok(!proof.lines.some(line => line.kind === 'output-failed'));
+    proof.child.kill('SIGTERM');
+    await proof.exited;
+    assert.equal(reservedPayloadBytes(), 0);
+  };
+  // Output intents in the Site journal whose cleanup is not recorded
+  // complete, and the payload records of the Store, read from their
+  // databases.
+  const payloadRecords = () => {
+    const database = new DatabaseSync(join(publicationRoot,
+      '.actql-publication.sqlite3'), {readOnly: true});
+    database.exec('PRAGMA busy_timeout = 5000');
+    try {
+      return new Map(database.prepare('SELECT record_key, revision FROM ' +
+        'actql_records WHERE namespace = ?').all('publication_payload')
+        .map(row => [row.record_key, Number(row.revision)]));
+    } finally {
+      database.close();
+    }
+  };
+  const verifyKilledHolderReclamation = async points => {
+    // 16. The holder is killed with SIGKILL at each step of keeping its
+    //     output: before and after the durable intent, while the payload is
+    //     written, right after the seal, and after the reclaim but before the
+    //     intent is completed. The Site reclaims what the dead holder left
+    //     (holding the slot), completes the intent, changes no other payload
+    //     record and never executes again; a Store sized for one payload then
+    //     takes the next Run.
+    // A staging file nobody's record owns stays untouched by every reclaim.
+    const foreignStaging = join(publicationRoot,
+      `stage-${'f'.repeat(64)}`);
+    await writeFile(foreignStaging, 'foreign', {mode: 0o600});
+    // Identity and content, not access times: the file is neither removed
+    // nor replaced nor written.
+    const foreignStagingState = async () => {
+      const {ino, size, mtimeMs} = await stat(foreignStaging);
+      return JSON.stringify({ino, size, mtimeMs,
+        content: await readFile(foreignStaging, 'utf8')});
+    };
+    const foreignStagingBefore = await foreignStagingState();
+    for (const point of points) {
+      const index = holderKillPoints.indexOf(point);
+      const tag = `killed-${point}`;
+      const killed = startSite(['--publication-capacity-bytes', '40',
+        '--holder-kill-at', point]);
+      currentSite = killed;
+      const dispatch = dispatchFor(`resident-${tag}`, 50 + index * 2);
+      await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+        dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
+      expectedEntries += 1;
+      await waitFor(async () => (await entries()).length === expectedEntries,
+        `${tag} entry`);
+      const others = payloadRecords();
+      const output = requestOutput(dispatch, await planOutput(dispatch,
+        await settledQuery(dispatch, tag), tag)).catch(error => error);
+      let release;
+      if (point === 'reclaimed') {
+        await within(output, `${tag} output`);
+        release = gateway.release({dispatch}).catch(error => error);
+      }
+      await waitFor(() => killed.lines.some(line =>
+        line.kind === 'holder-killed' && line.point === point), `${tag} kill`);
+      gateway.withdraw({dispatch});
+      await output;
+      const withdrawnRelease = await release;
+      if (withdrawnRelease !== undefined && withdrawnRelease.state?.[2] !== 2) {
+        assert.equal(withdrawnRelease.code, 'RemoteDispatchWithdrawn');
+      }
+      if (point === 'after-intent') {
+        // Death proves no release permission. The exact unfinished Output
+        // remains owned until the Coordinator sends its original Release.
+        await waitFor(() => killed.lines.some(line =>
+          line.kind === 'orphan-reclaim-pending' && line.reason === 'store'),
+        `${tag} retained before Release`);
+        assert.equal(pendingIntents().length, 1);
+        assert.equal(reservedPayloadBytes(), 0);
+      }
+      const released = withdrawnRelease?.state?.[2] === 2 ? withdrawnRelease
+        : await within(gateway.release({dispatch}), `${tag} original Release`);
+      assert.equal(released.state[2], 2, `${tag} cleanup is formally Released`);
+      // The Site reports the reclaim after its database writes; the line is
+      // awaited first so the checks below are not ahead of it.
+      if (point !== 'before-intent') {
+        await waitFor(() => killed.lines.some(line =>
+          line.kind === 'orphans-reclaimed'), `${tag} reclaimed by the Site`);
+      }
+      await waitFor(() => pendingIntents().length === 0 &&
+        reservedPayloadBytes() === 0, `${tag} reclaimed after the holder died`);
+      const after = payloadRecords();
+      for (const [key, revision] of others) {
+        assert.equal(after.get(key), revision, `${tag} other payload unchanged`);
+      }
+      assert.equal(await foreignStagingState(), foreignStagingBefore,
+        `${tag} foreign staging untouched`);
+      // No private allocation file is left behind.
+      assert.deepEqual((await readdir(publicationRoot))
+        .filter(name => name.startsWith('alloc-')), [], `${tag} allocation gone`);
+      assert.equal((await entries()).length, expectedEntries);
+      killed.child.kill('SIGTERM');
+      await killed.exited;
+      await provesCapacityFree(`after-${tag}`, 51 + index * 2);
+    }
+
+  };
+
+
+  const sleep = milliseconds =>
+    new Promise(resolve => setTimeout(resolve, milliseconds));
+
+  const verifyRestartReclamation = async () => {
+    // 18. The holder dies right after the seal and its control process never
+    //     reclaims (acceptance hook: reclaim passes skipped), then the control
+    //     process is killed too. The same formal Release lets the restarted
+    //     Site reclaim the payload; process death alone grants no release.
+    const neglecting = startSite(['--publication-capacity-bytes', '40',
+      '--holder-kill-at', 'sealed', '--control-reclaim-failures', '1000000']);
+    currentSite = neglecting;
+    const restartDispatch = dispatchFor('resident-restart-reclaim', 72);
+    await within(gateway.dispatch({dispatch: restartDispatch,
+      inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(restartDispatch)}),
+    'restart dispatch');
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      'restart entry');
+    const restartOutput = requestOutput(restartDispatch, await planOutput(
+      restartDispatch, await settledQuery(restartDispatch, 'restart'),
+      'restart')).catch(error => error);
+    await waitFor(() => neglecting.lines.some(line =>
+      line.kind === 'holder-killed'), 'restart holder killed');
+    gateway.withdraw({dispatch: restartDispatch});
+    await restartOutput;
+    await sleep(1000);
+    assert.equal(pendingIntents().length, 1);
+    assert.ok(reservedPayloadBytes() > 0);
+    neglecting.child.kill('SIGKILL');
+    await neglecting.exited;
+    const restartedSite = startSite(['--publication-capacity-bytes', '40']);
+    currentSite = restartedSite;
+    await waitFor(() => restartedSite.lines.some(line =>
+      line.kind === 'orphan-reclaim-pending' && line.reason === 'store'),
+    'restart retains output before Release');
+    assert.equal(pendingIntents().length, 1);
+    const restartReleased = await within(gateway.release({dispatch: restartDispatch}),
+      'restart original Release');
+    assert.equal(restartReleased.state[2], 2);
+    await waitFor(() => restartedSite.lines.some(line =>
+      line.kind === 'orphans-reclaimed'), 'reclaimed after restart');
+    assert.equal(pendingIntents().length, 0);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal((await entries()).length, expectedEntries);
+    restartedSite.child.kill('SIGTERM');
+    await restartedSite.exited;
+    await provesCapacityFree('after-restart-reclaim', 73);
+  };
+
   if (cancelMode) {
     const bundleHoldings = () => {
       const database = new DatabaseSync(join(runtimeRoot,
@@ -772,12 +1180,11 @@ try {
           key: await readFile(join(root, 'server.key')),
           cert: await readFile(join(root, 'server.crt')),
           ca: await readFile(join(root, 'ca.crt')),
-          loseAck: body => {
-            const value = JSON.parse(body);
-            return !lostReply && value.dispatch_request_cid === siteControl.identity(dispatch) &&
-              value.version === 'actql-remote-dispatch-status/0.1' &&
-              value.state[0] === (mode === 'running-lost-reply' ? 2 : 5);
-          }, allowDispatch: () => true, onAckLost: () => { lostReply = true; },
+          loseAck: body => cancellationAckMatches(body, {
+            dispatchRequestCid: siteControl.identity(dispatch),
+            executionState: mode === 'running-lost-reply' ? 2 : 5,
+            cancelOffers, lostReply,
+          }), allowDispatch: () => true, onAckLost: () => { lostReply = true; },
           transformReply: (_body, upstream) => {
             if (upstream.status === 200) {
               const envelope = upstream.body.toString('utf8');
@@ -831,7 +1238,8 @@ try {
       }
       if (mode === 'lost-reply' || mode === 'running-lost-reply') {
         await waitFor(() => lostReply, 'cancellation observation ACK lost');
-        await waitFor(() => site.lines.some(line => line.kind === 'cancel-unreported'),
+        await waitFor(() => site.lines.some(line => line.kind === 'cancel-unreported' &&
+          line.request_cid === siteControl.identity(dispatch)),
           'Site reports unconfirmed cancellation reply');
       }
       if (mode === 'unseen-restart' || mode === 'lost-reply') {
@@ -1638,10 +2046,21 @@ try {
     failing.child.kill('SIGTERM');
     await failing.exited;
     }
-  } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode || releaseObservationMode) {
+  } else if (restartReclaimMode) {
+    await verifyRestartReclamation();
+  } else if (holderReclaimMode) {
+    // The full suite opens this Store before adding the foreign staging file.
+    // An isolated selection must do that through the same real Site too: a
+    // fresh Store correctly refuses an already populated unknown directory.
+    await provesCapacityFree('before-holder-reclaim', 49);
+    await verifyKilledHolderReclamation(holderReclaimPoint === undefined
+      ? holderKillPoints : [holderReclaimPoint]);
+  } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode || releaseObservationMode || releaseStoppedRecoveryMode || releaseColdRecoveryMode) {
     // The same physical Site and journals must discharge release after a
     // bounded failure, a lost control reply, and loss of the live holder.
     const releaseModes = releaseObservationMode ? ['recovered-observation'] : releaseMaintenanceMode ? ['maintenance'] :
+      releaseStoppedRecoveryMode ? ['holder-exit', 'recovery-interrupted', 'maintenance'] :
+      releaseColdRecoveryMode ? ['recovery-interrupted', 'maintenance'] :
       ['recovered-observation', 'release-failure', 'lost-release', 'holder-exit', 'recovery-interrupted', 'maintenance'];
     for (const [index, mode] of releaseModes.entries()) {
       let lostRelease = false;
@@ -1680,7 +2099,7 @@ try {
       }
       let site = startSite(mode === 'release-failure' ? ['--holder-release-failures', '3'] :
         mode === 'recovered-observation' ? ['--holder-kill-at', 'report-handoff'] :
-        mode === 'maintenance' ? ['--holder-kill-at', 'report-handoff'] :
+        mode === 'maintenance' ? ['--holder-kill-at', 'report-handoff', '--control-report-kill-at', 'after-ack-save'] :
         mode === 'holder-exit' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-close-failures', '1'] :
           mode === 'recovery-interrupted' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-kill-at', 'after-transition'] : [],
       {controlOrigin: mode === 'lost-release' || mode === 'recovered-observation' ? ackLossProxy.origin : gateway.origin});
@@ -1691,11 +2110,14 @@ try {
       await waitFor(async () => (await entries()).length === index + 1, `${mode} entry`);
       const terminal = await settledQuery(dispatch, mode);
       await within(requestOutput(dispatch, await planOutput(dispatch, terminal, mode)), `${mode} output`);
+      const releaseObservationStart = observationBodies.length;
       let released = gateway.release({dispatch}).catch(error => error);
       if (mode === 'holder-exit' || mode === 'recovery-interrupted' || mode === 'maintenance' || mode === 'recovered-observation') {
         await waitFor(() => site.lines.some(line => line.kind === 'holder-killed'), 'holder exit');
-        await waitFor(() => pendingIntents().length === 0 && reservedPayloadBytes() === 0,
-          'orphan physical cleanup');
+        if (mode !== 'maintenance') {
+          await waitFor(() => pendingIntents().length === 0 && reservedPayloadBytes() === 0,
+            'orphan physical cleanup');
+        }
       }
       if (mode === 'lost-release') {
         await waitFor(() => lostRelease, 'lost release response');
@@ -1703,7 +2125,16 @@ try {
         await released;
         released = gateway.release({dispatch});
       }
-      const firstRelease = await within(released, `${mode} release`);
+      if (mode === 'recovery-interrupted') {
+        // The original Release remains pending across the actual cold restart;
+        // an intermediate cleanup transition cannot retire its delivery.
+        assert.deepEqual(await within(site.exited, 'recovery interrupted after durable transition'), [null, 'SIGKILL']);
+        assert(site.lines.some(line => line.kind === 'release-recovery-killed'));
+        site = startSite();
+        currentSite = site;
+      }
+      const firstRelease = mode === 'maintenance' ? undefined
+        : await within(released, `${mode} release`);
       if (mode === 'recovered-observation') {
         assert.equal(firstRelease.state[2], 2, 'the first recovery must report formal Released');
         releaseObserved = true;
@@ -1715,8 +2146,12 @@ try {
       }
       if (mode === 'maintenance') {
         await waitFor(() => reportState().pending === 0, 'maintenance durable Output ACK');
-        site.child.kill('SIGTERM');
-        await site.exited;
+        // The existing ACK-save interruption stops the controller before it
+        // can receive Release; EOF triggers the holder's original handoff kill.
+        // Keep the same waiter for the later explicit maintenance observation.
+        assert.deepEqual(await within(site.exited, 'maintenance original control stop'), [null, 'SIGKILL']);
+        assert(site.lines.some(line => line.kind === 'control-report-killed' &&
+          line.point === 'after-ack-save'));
         const savedAttempt = site.lines.find(line => line.kind === 'accepted' &&
           line.request_cid === siteControl.identity(dispatch)).attempt;
         const beforeJournal = new DatabaseSync(journalPath, {readOnly: true});
@@ -1737,23 +2172,31 @@ try {
         // enter execute without its inherited slot; cleanup acquires no
         // execution binding and does not alter executable attestation.
         const maintenanceExecutable = join(root, 'maintenance.exe');
-        await writeFile(maintenanceExecutable, Buffer.concat([
-          await readFile(executable), Buffer.from('\nmaintenance-test-binary\n')]), {mode: 0o700});
+        await prepareMaintenanceTestExecutable(executable, maintenanceExecutable);
         assert.notEqual(physicalCid(await readFile(maintenanceExecutable)), componentCid);
+        // Address the same original transfer store as the stopped controller;
+        // these two physical inputs are appended by startSite, not by common.
+        const maintenanceCommon = [...common, '--transfer-origin', receiver.origin,
+          '--transfer-journal', join(root, 'site-transfer.sqlite3')];
+        let maintenanceSequence = 0;
         const operate = async (operation, requestCid = siteControl.identity(dispatch)) => {
           const args = operation === 'recover-release' ?
-            [operation, '--attempt', savedAttempt, '--expect-dispatch', requestCid, ...common] :
-            [operation, '--attempt', savedAttempt, '--claimant', 'maintenance-must-not-execute', ...common];
+            [operation, '--attempt', savedAttempt, '--expect-dispatch', requestCid, ...maintenanceCommon] :
+            [operation, '--attempt', savedAttempt, '--claimant', 'maintenance-must-not-execute', ...maintenanceCommon];
           const process = spawn(maintenanceExecutable, args, {cwd: root,
-            stdio: ['ignore', 'pipe', 'pipe']});
+            env: siteProcessEnvironment, stdio: ['ignore', 'pipe', 'pipe']});
           running.add(process);
           const closed = once(process, 'close');
           let stdout = '', stderr = '';
           process.stdout.on('data', chunk => { stdout += chunk; });
           process.stderr.on('data', chunk => { stderr += chunk; });
           try {
-            const [code] = await within(closed, 'maintenance bounded completion');
-            return {code, stdout, stderr};
+            const [code, signal] = await within(closed, 'maintenance bounded completion');
+            const outcome = {code, signal, stdout, stderr};
+            await writeFile(join(root, `maintenance-outcome-${maintenanceSequence++}.json`),
+              JSON.stringify(outcome), {mode: 0o600, flag: 'wx'});
+            assert.equal(signal, null, 'maintenance must reach its own checked entry');
+            return outcome;
           } finally {
             if (process.exitCode === null && process.signalCode === null) {
               process.kill('SIGKILL'); await closed;
@@ -1763,15 +2206,15 @@ try {
         };
         const mismatch = await operate('execute');
         assert.notEqual(mismatch.code, 0);
-        assert.match(mismatch.stdout, /executor slot is not held/u);
+        assert.match(mismatch.stderr, /executor slot is not held/u);
         const foreign = await operate('recover-release', physicalCid('foreign-dispatch'));
         assert.notEqual(foreign.code, 0);
         assert.match(foreign.stdout, /dispatch-mismatch/u);
-        const firstObservation = gateway.query({dispatch});
         const recovered = await operate('recover-release');
         assert.equal(recovered.code, 0, recovered.stderr);
         assert.match(recovered.stdout, /release-recovery-observed/u);
-        const first = await within(firstObservation, 'maintenance formal observation');
+        const first = await within(released, 'maintenance formal release observation');
+        assert.equal(first.state[2], 2, 'only actual maintenance cleanup retires Release');
         for (let retry = 0; retry < 2; retry++) {
           const nextObservation = gateway.query({dispatch});
           const repeated = await operate('recover-release');
@@ -1786,19 +2229,21 @@ try {
         site = startSite(); currentSite = site;
       }
       if (mode === 'holder-exit') {
-        const pending = await within(gateway.release({dispatch}), 'recovery close failure');
-        assert.equal(pending.state[2], 0, 'close failure must not publish Released');
+        // A Release waiter ends only after its admitted durable cleanup ACK.
+        // Inspect the earlier admitted status from this same exchange instead
+        // of requiring a pending response to retire the Release delivery.
+        const pending = observationBodies.slice(releaseObservationStart)
+          .map(body => JSON.parse(body)).find(value =>
+            value.version === 'actql-remote-dispatch-status/0.1' &&
+            value.dispatch_request_cid === siteControl.identity(dispatch) &&
+            value.state[0] === 3 && value.state[2] === 1);
+        assert.ok(pending, 'close failure retains the admitted CleanupReleasing state');
+        assert(site.lines.some(line => line.kind === 'release-recovery-pending' &&
+          line.reason === 'bundle-close' &&
+          line.request_cid === siteControl.identity(dispatch)));
+        assert.equal(firstRelease.state[2], 2,
+          'Release delivery ends only after the real recovery publishes Released');
         await within(gateway.release({dispatch}), 'recover stopped holder release');
-      }
-      if (mode === 'recovery-interrupted') {
-        const interrupted = gateway.release({dispatch}).catch(error => error);
-        assert.deepEqual(await within(site.exited, 'recovery interrupted after durable transition'), [null, 'SIGKILL']);
-        assert(site.lines.some(line => line.kind === 'release-recovery-killed'));
-        gateway.withdraw({dispatch});
-        await interrupted;
-        site = startSite();
-        currentSite = site;
-        await within(gateway.release({dispatch}), 'resumed recovery');
       }
       const observed = await within(gateway.query({dispatch}), `${mode} cleanup observation`);
       assert.equal(observed.state[2], 2, `${mode}: physical cleanup must have a formal Released observation`);
@@ -1964,13 +2409,13 @@ try {
     currentSite = site;
     assert.deepEqual(await within(site.exited, 'checked refusal'), [0, null]);
     assert.equal(reportState().pending, 1);
-    const inspection = execFileSync(executable, [...common, 'output-reports'], {encoding: 'utf8'})
+    const inspection = execFileSync(executable, [...common, 'output-reports'], {encoding: 'utf8', env: siteProcessEnvironment})
       .trim().split('\n').map(line => JSON.parse(line));
     const attention = inspection.find(line => line.kind === 'output-report-state');
     assert.equal(attention.state, 'attention');
     assert.equal(attention.reason, 'authorization_denied');
     execFileSync(executable, [...common, 'retry-output-report', '--intent-cid',
-      attention.intent_cid], {stdio: 'pipe'});
+      attention.intent_cid], {stdio: 'pipe', env: siteProcessEnvironment});
     invalidAck = undefined;
     const initialReportCount = observationBodies.filter(body =>
       JSON.parse(body).version === 'actql-remote-output-result/0.1').length;
@@ -2333,16 +2778,19 @@ try {
   const site = startSite();
   currentSite = site;
   const first = dispatchFor('resident-dispatch-1', 1);
+  residentPhase('first-dispatch-enter');
   const observed = await within(gateway.dispatch({dispatch: first,
     inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(first)}),
   'first dispatch');
+  residentPhase('first-dispatch-return');
   // An authenticated status can still be Accepted while the holder starts.
   // Bind this observation to the original admitted Run; query progress below.
   assert.equal(observed.dispatchRequestCid, siteControl.identity(first));
   assert.equal(JSON.parse(siteControl.requestJson(first)).run_definition_cid,
     runHost.privateRunDefinition(retainedDefinition).cid);
   assert.ok(site.lines.some(line => line.kind === 'accepted'));
-  assert.ok(site.lines.some(line => line.kind === 'holder-started'));
+  await waitFor(() => site.lines.some(line => line.kind === 'holder-started'),
+    'original holder start');
   await waitFor(() => site.lines.some(line => line.kind === 'executed'),
     'holder execution');
   // The Coordinator's query is answered from the durable journal.
@@ -2391,7 +2839,7 @@ try {
       currentSite = rejecting;
       const dispatch = dispatchFor(`packed-materials-refusal-${index}`, 90 + index);
       const envelope = JSON.parse(materialsEnvelope(dispatch));
-      envelope.run_materials_json = JSON.stringify(mutate(projected));
+      envelope.run_materials_json = JSON.stringify(mutate(JSON.parse(materials)));
       const outcome = gateway.dispatch({dispatch, inputBindingBody: '{}',
         dispatchEnvelope: JSON.stringify(envelope)}).catch(error => error);
       await waitFor(() => rejecting.lines.some(line => line.kind === 'refused' &&
@@ -2451,12 +2899,15 @@ try {
     line.reason === 'credential-unavailable'), 'credential refusal');
   await chmod(tokenFile, 0o600);
   const second = dispatchFor('resident-dispatch-2', 4);
-  const secondSettled = await within(gateway.dispatch({dispatch: second,
+  const secondObserved = await within(gateway.dispatch({dispatch: second,
     inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(second)}),
   'second dispatch');
-  assert.notEqual(secondSettled.state[0], 0);
+  // A status may still be Accepted after credential repair. Completion is
+  // established by the same original dispatch's durable query below.
+  assert.equal(secondObserved.dispatchRequestCid, siteControl.identity(second));
   await waitFor(async () => (await entries()).length === 2, 'second entry');
   const secondTerminal = await settledQuery(second, 'second');
+  assert.equal(secondTerminal.dispatchRequestCid, secondObserved.dispatchRequestCid);
   assert.equal(secondTerminal.state[0], 3);
   await within(gateway.release({dispatch: second}), 'second release');
 
@@ -2519,9 +2970,7 @@ try {
   assert.equal(fifthTerminal.state[0], 3);
   await within(gateway.release({dispatch: fifth}), 'fifth release');
   assert.equal((await entries()).length, 5);
-  left.child.kill('SIGTERM');
-  right.child.kill('SIGTERM');
-  await Promise.all([left.exited, right.exited]);
+  await stopConcurrentResidentControls(left, right);
 
   // 8. A released output also frees its payload in the Site's Store: runs
   //    one after another never exhaust a Store sized for one payload.
@@ -2604,24 +3053,6 @@ try {
   assert.equal(reservedPayloadBytes(), 0);
   // One more Run through a Store sized for one payload: it succeeds only if
   // no earlier payload is still reserved.
-  const provesCapacityFree = async (tag, attempt) => {
-    const proof = startSite(['--publication-capacity-bytes', '40']);
-    currentSite = proof;
-    const dispatch = dispatchFor(`resident-${tag}`, attempt);
-    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
-      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
-    expectedEntries += 1;
-    await waitFor(async () => (await entries()).length === expectedEntries,
-      `${tag} entry`);
-    await deliverAndRelease(dispatch, await settledQuery(dispatch, tag), tag);
-    await waitFor(() => proof.lines.some(line =>
-      line.kind === 'holder-released' && line.payloads === '1'),
-    `${tag} released`);
-    assert.ok(!proof.lines.some(line => line.kind === 'output-failed'));
-    proof.child.kill('SIGTERM');
-    await proof.exited;
-    assert.equal(reservedPayloadBytes(), 0);
-  };
   // An https origin nothing listens on.
   const deadOrigin = await new Promise(resolve => {
     const socket = createServer();
@@ -2741,8 +3172,8 @@ try {
     const blocked = startSite([], options);
     currentSite = blocked;
     const dispatch = dispatchFor(`resident-${tag}`, attempt);
-    // The gateway answers the dispatch once the attempt has started.
-    const started = within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+    // An authenticated Accepted status can answer before a holder claims.
+    const observed = within(gateway.dispatch({dispatch, inputBindingBody: '{}',
       dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
     try {
       await waitFor(() => blocked.lines.some(line => line.kind === 'accepted'),
@@ -2755,8 +3186,8 @@ try {
     } finally {
       await chmod(locked, 0o700);
     }
-    const startedState = await started;
-    assert.notEqual(startedState.state[0], 0);
+    const acceptedState = await observed;
+    assert.equal(acceptedState.dispatchRequestCid, siteControl.identity(dispatch));
     expectedEntries += 1;
     await waitFor(async () => (await entries()).length === expectedEntries,
       `${tag} entry after repair`);
@@ -2772,91 +3203,8 @@ try {
     assert.equal(reservedPayloadBytes(), 0);
   }
 
-  // Output intents in the Site journal whose cleanup is not recorded
-  // complete, and the payload records of the Store, read from their
-  // databases.
-  const payloadRecords = () => {
-    const database = new DatabaseSync(join(publicationRoot,
-      '.actql-publication.sqlite3'), {readOnly: true});
-    database.exec('PRAGMA busy_timeout = 5000');
-    try {
-      return new Map(database.prepare('SELECT record_key, revision FROM ' +
-        'actql_records WHERE namespace = ?').all('publication_payload')
-        .map(row => [row.record_key, Number(row.revision)]));
-    } finally {
-      database.close();
-    }
-  };
-  const sleep = milliseconds =>
-    new Promise(resolve => setTimeout(resolve, milliseconds));
 
-  // 16. The holder is killed with SIGKILL at each step of keeping its
-  //     output: before and after the durable intent, while the payload is
-  //     written, right after the seal, and after the reclaim but before the
-  //     intent is completed. The Site reclaims what the dead holder left
-  //     (holding the slot), completes the intent, changes no other payload
-  //     record and never executes again; a Store sized for one payload then
-  //     takes the next Run.
-  // A staging file nobody's record owns stays untouched by every reclaim.
-  const foreignStaging = join(publicationRoot,
-    `stage-${'f'.repeat(64)}`);
-  await writeFile(foreignStaging, 'foreign', {mode: 0o600});
-  // Identity and content, not access times: the file is neither removed
-  // nor replaced nor written.
-  const foreignStagingState = async () => {
-    const {ino, size, mtimeMs} = await stat(foreignStaging);
-    return JSON.stringify({ino, size, mtimeMs,
-      content: await readFile(foreignStaging, 'utf8')});
-  };
-  const foreignStagingBefore = await foreignStagingState();
-  const killPoints = ['before-intent', 'after-intent', 'allocated', 'owned',
-    'payload-written', 'sealed', 'reclaimed'];
-  for (const [index, point] of killPoints.entries()) {
-    const tag = `killed-${point}`;
-    const killed = startSite(['--publication-capacity-bytes', '40',
-      '--holder-kill-at', point]);
-    currentSite = killed;
-    const dispatch = dispatchFor(`resident-${tag}`, 50 + index * 2);
-    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
-      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
-    expectedEntries += 1;
-    await waitFor(async () => (await entries()).length === expectedEntries,
-      `${tag} entry`);
-    const others = payloadRecords();
-    const output = requestOutput(dispatch, await planOutput(dispatch,
-      await settledQuery(dispatch, tag), tag)).catch(error => error);
-    let release;
-    if (point === 'reclaimed') {
-      await within(output, `${tag} output`);
-      release = gateway.release({dispatch}).catch(error => error);
-    }
-    await waitFor(() => killed.lines.some(line =>
-      line.kind === 'holder-killed' && line.point === point), `${tag} kill`);
-    gateway.withdraw({dispatch});
-    await output;
-    await release;
-    // The Site reports the reclaim after its database writes; the line is
-    // awaited first so the checks below are not ahead of it.
-    if (point !== 'before-intent') {
-      await waitFor(() => killed.lines.some(line =>
-        line.kind === 'orphans-reclaimed'), `${tag} reclaimed by the Site`);
-    }
-    await waitFor(() => pendingIntents().length === 0 &&
-      reservedPayloadBytes() === 0, `${tag} reclaimed after the holder died`);
-    const after = payloadRecords();
-    for (const [key, revision] of others) {
-      assert.equal(after.get(key), revision, `${tag} other payload unchanged`);
-    }
-    assert.equal(await foreignStagingState(), foreignStagingBefore,
-      `${tag} foreign staging untouched`);
-    // No private allocation file is left behind.
-    assert.deepEqual((await readdir(publicationRoot))
-      .filter(name => name.startsWith('alloc-')), [], `${tag} allocation gone`);
-    assert.equal((await entries()).length, expectedEntries);
-    killed.child.kill('SIGTERM');
-    await killed.exited;
-    await provesCapacityFree(`after-${tag}`, 51 + index * 2);
-  }
+  await verifyKilledHolderReclamation(holderKillPoints);
 
   // 17. While the holder that owns an intent is alive, another control
   //     process of the Site does not reclaim it: it cannot take the slot.
@@ -2892,42 +3240,7 @@ try {
   living.child.kill('SIGTERM');
   await living.exited;
 
-  // 18. The holder dies right after the seal and its control process never
-  //     reclaims (acceptance hook: reclaim passes skipped), then the control
-  //     process is killed too. A restarted Site reclaims the payload.
-  const neglecting = startSite(['--publication-capacity-bytes', '40',
-    '--holder-kill-at', 'sealed', '--control-reclaim-failures', '1000000']);
-  currentSite = neglecting;
-  const restartDispatch = dispatchFor('resident-restart-reclaim', 72);
-  await within(gateway.dispatch({dispatch: restartDispatch,
-    inputBindingBody: '{}',
-    dispatchEnvelope: materialsEnvelope(restartDispatch)}),
-  'restart dispatch');
-  expectedEntries += 1;
-  await waitFor(async () => (await entries()).length === expectedEntries,
-    'restart entry');
-  const restartOutput = requestOutput(restartDispatch, await planOutput(
-    restartDispatch, await settledQuery(restartDispatch, 'restart'),
-    'restart')).catch(error => error);
-  await waitFor(() => neglecting.lines.some(line =>
-    line.kind === 'holder-killed'), 'restart holder killed');
-  gateway.withdraw({dispatch: restartDispatch});
-  await restartOutput;
-  await sleep(1000);
-  assert.equal(pendingIntents().length, 1);
-  assert.ok(reservedPayloadBytes() > 0);
-  neglecting.child.kill('SIGKILL');
-  await neglecting.exited;
-  const restartedSite = startSite(['--publication-capacity-bytes', '40']);
-  currentSite = restartedSite;
-  await waitFor(() => restartedSite.lines.some(line =>
-    line.kind === 'orphans-reclaimed'), 'reclaimed after restart');
-  assert.equal(pendingIntents().length, 0);
-  assert.equal(reservedPayloadBytes(), 0);
-  assert.equal((await entries()).length, expectedEntries);
-  restartedSite.child.kill('SIGTERM');
-  await restartedSite.exited;
-  await provesCapacityFree('after-restart-reclaim', 73);
+  await verifyRestartReclamation();
 
   // 19. The intent cannot be kept (a real journal write failure: another
   //     connection holds the write lock past the busy timeout). The holder
@@ -3043,7 +3356,7 @@ try {
   const oversized = dispatchFor('resident-oversized-materials', 80);
   const oversizedEnvelope = JSON.parse(materialsEnvelope(oversized));
   oversizedEnvelope.run_materials_json = 'x'.repeat(262145);
-  assert.throws(() => gateway.dispatch({dispatch: oversized,
+  await assert.rejects(gateway.dispatch({dispatch: oversized,
     inputBindingBody: '{}',
     dispatchEnvelope: JSON.stringify(oversizedEnvelope)}),
   {code: 'MoonBitHostFailure'});
@@ -3162,8 +3475,7 @@ try {
       }
       assert.equal(blocked.lines.some(line => line.kind === 'holder-started'), false);
       assert.equal((await entries()).length, expectedEntries);
-      blocked.child.kill('SIGTERM');
-      await blocked.exited;
+      await crashResidentReconciliationObserver(blocked);
       assert.deepEqual(allocationRecords(), durable);
       assert.deepEqual(pendingIntents(siteJournal), pendingBefore);
       assert.equal(reservedPayloadBytes(publication), capacityBefore);
@@ -3393,22 +3705,26 @@ try {
   assert.equal(new Set(keys).size, keys.length);
   console.log('native resident Site acceptance passed');
 } catch (error) {
+  acceptanceFailed = true;
   console.error('resident Site test failed:', error);
   if (observationFailures.length) {
     console.error('Coordinator observation failures:', observationFailures);
   }
   if (currentSite !== undefined) {
+    const stderr = currentSite.stderr();
     if (retainedConsumerMode) {
       await writeFile(join(root, 'resident-failure-lines.json'), JSON.stringify(currentSite.lines),
         {mode: 0o600});
+      await retainResidentConsumerFailureSummary(root, currentSite.lines, stderr);
     }
     console.error('resident Site output:', JSON.stringify(retainedConsumerMode
       ? currentSite.lines.filter(line => line.kind !== 'accepted').slice(-30)
       : currentSite.lines));
-    console.error('resident Site stderr:', currentSite.stderr());
+    console.error('resident Site stderr:', stderr);
   }
   throw error;
 } finally {
+  residentPhase('finally-enter');
   // Keep ownership until each tracked control process has actually stopped;
   // resource close/removal must not race an unconfirmed child exit.
   await Promise.all([...running].map(async child => {
@@ -3417,14 +3733,20 @@ try {
     child.kill('SIGKILL');
     await closed;
   }));
+  residentPhase('owned-children-closed');
+  residentPhase('proxy-close-enter');
   if (ackLossProxy !== undefined) await ackLossProxy.close().catch(() => {});
+  residentPhase('gateway-close-enter');
   if (gateway !== undefined) await gateway.close().catch(() => {});
+  residentPhase('receiver-close-enter');
   if (receiver !== undefined) await receiver.close().catch(() => {});
   receiverJournal?.close();
   observationStore?.close();
   receiverStore?.close();
+  residentPhase('store-cleanup-enter');
   await receiverStore?.cleanup();
-  if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+  residentPhase('cleanup-calls-returned');
+  if (!acceptanceFailed && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
     await rm(root, {recursive: true, force: true});
   } else {
     console.error(`native resident Site scratch kept: ${root}`);
@@ -3432,9 +3754,15 @@ try {
 }
 }
 
-if (process.env.NODE_TEST_CONTEXT) {
-  await test(effectComputationMode ? 'Native resident private Effect computation' : cancelMode ? 'Native resident cancellation and reconstruction' :
-    'Native resident Site acceptance', runAcceptance);
-} else {
-  await runAcceptance();
+try {
+  if (process.env.NODE_TEST_CONTEXT) {
+    await test(effectComputationMode ? 'Native resident private Effect computation' : cancelMode ? 'Native resident cancellation and reconstruction' :
+      'Native resident Site acceptance', runAcceptance);
+  } else {
+    await runAcceptance();
+  }
+} finally {
+  if (process.connected) process.disconnect();
+}
+
 }

@@ -144,7 +144,9 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
   const f = await fixture(t, JSON.stringify(body));
   await f.store.commitPhysicalHolding({version:'actql-local-physical-holding/0.1',
     namespace:'effect-capture', holding_cid:captureCid, manifest_cid:capturedCid, objects:[]}, []);
-  let pending = true, releases = 0, retries = 0, retired = 0, resource, reserves = 0;
+  let pending = true, releases = 0, retries = 0, retired = 0, resource, reserves = 0, completed = 0;
+  let begins = 0, admissions = 0;
+  const recoveryEvents = [];
   const original = new Error('original schema release');
   const schema = {prepared:{status:() => ({pending}),
     async release() {releases++; throw original;},
@@ -155,8 +157,12 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
       assert.equal(definition, run.identity); return schema;
     }};
   const control = {
-    admit(name, wire) {return name === 'run_definition' ? run
-      : {name, wire, identity:name === 'captured_run' ? capturedCid : cid(name)};},
+    admit(name, wire) {
+      assert.equal(begins, 1, 'same original begin must precede every admission');
+      admissions++; recoveryEvents.push('admit:' + name);
+      return name === 'run_definition' ? run
+        : {name, wire, identity:name === 'captured_run' ? capturedCid : cid(name)};
+    },
     admitRunEvidence:() => ({}), admitEffectComputationPreview:() => ({}),
     effectComputationCaptureHoldingCid:() => captureCid,
     effectComputationRecordHoldingCid:() => f.holding,
@@ -175,12 +181,24 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
     },
     reserveEffectCaptureRecovery:assert.fail,
   };
-  const originalDefinition = {}, moon = {clientProgramPrepareInstalledEffectCaptureRecovery(
+  const originalDefinition = {}, recovery = {}, moon = {clientProgramPrepareInstalledEffectCaptureRecovery(
     _run, _prepared, _request, definition) {
-    assert.equal(definition, originalDefinition); return {$tag:1, _0:{}};
+    assert.equal(definition, originalDefinition); return {$tag:1, _0:recovery};
+  }, clientProgramBeginInstalledEffectCaptureRecovery(value) {
+    assert.equal(this, moon); assert.equal(value, recovery);
+    assert.equal(admissions, 0); assert.equal(reserves, 0);
+    assert.equal(completed, 0); assert.equal(retired, 0);
+    begins++; recoveryEvents.push('begin'); return {$tag:1, _0:undefined};
   }, clientProgramReserveInstalledEffectCaptureRecovery(_value, bytes) {
-    assert.ok(bytes > 0); reserves++; return {$tag:1, _0:undefined};
-  }, clientProgramRetireInstalledEffectCaptureRecovery() {
+    assert.equal(begins, 1);
+    assert.equal(_value,recovery);assert.ok(bytes > 0); reserves++; return {$tag:1, _0:undefined};
+  }, clientProgramReserveInstalledEffectCaptureDecoded(value, wire) {
+    assert.equal(value,recovery);assert.equal(wire, JSON.stringify(body)); return {$tag:1, _0:undefined};
+  }, clientProgramCompleteInstalledEffectCaptureRecovery(value) {
+    assert.equal(value,recovery);assert.equal(reserves,1);assert.equal(retired,0);
+    completed++;return {$tag:1, _0:undefined};
+  }, clientProgramRetireInstalledEffectCaptureRecovery(value) {
+    assert.equal(value,recovery);
     assert.equal(pending, false); retired++; return {$tag:1, _0:undefined};
   }};
   const limits = {maxWireBytes:16384, maxNodes:4096, maxDepth:64};
@@ -191,10 +209,15 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
   const recovered = await recoverCompletedEffectfulComputation({store, control, runDefinition:run,
     contractLimits:limits}, resources);
   assert.equal(recovered.storedResults.results.length, 0); assert.equal(reserves, 1); assert.equal(retired, 0);
+  assert.equal(begins, 1); assert.ok(admissions > 0);
+  assert.deepEqual(recoveryEvents.slice(0, 2), ['begin', 'admit:run_definition']);
+  assert.equal(completed,1);
   await assert.rejects(resources.close(), error => error.cleanupPending === true && error.cleanupHandle.status().pending);
   assert.equal(releases, 1); assert.equal(retired, 0);
   assert.equal(await resources.close(), true); assert.equal(retries, 1); assert.equal(retired, 1);
   assert.equal(await resources.close(), true); assert.equal(releases, 1); assert.equal(retries, 1);
+  assert.equal(completed,1);
+  assert.equal(begins,1, 'cleanup must not re-enter admission or reserve another peak');
   assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
   assert.notEqual(await f.store.inspectPhysicalHolding(captureCid), undefined);
 });
@@ -243,6 +266,21 @@ test('capture recovery keeps malformed JSON refusal inside the same temporary pl
     error.code === 'InvalidCompletedEffectfulCaptureRecord' && error.cause instanceof SyntaxError);
   c.assertReleased();
   assert.equal((await f.store.retirePhysicalHolding(f.holding)).cleanup.status().pending, false);
+});
+
+test('decoded capture capacity refuses before JSON.parse and preserves the same plaintext cleanup and primary', async t => {
+  const f = await fixture(t, '{'), c = captureOptions(f, new Error('unexpected typed admission'));
+  const primary = new Error('original decoded capacity refusal'), events = [];
+  await assert.rejects(recoverCompletedEffectfulComputation(c.options, {
+    begin() {events.push('begin');},
+    reserve(bytes) {assert.ok(bytes > 0); events.push('buffers');},
+    reserveDecoded(wire) {assert.equal(wire, '{'); events.push('trees'); throw primary;},
+    finish(failed, cause) {assert.equal(failed, true); assert.equal(cause, primary); events.push('finish');},
+    retainCleanup() {assert.fail('No typed child exists before its reservation');},
+  }), error => error === primary);
+  assert.deepEqual(events, ['begin', 'buffers', 'trees', 'finish']);
+  c.assertReleased();
+  assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
 });
 
 

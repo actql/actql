@@ -85,29 +85,20 @@ test "standard keyed acquisition derives unpublished left input bounds" {
 }
 
 ///|
-test "keyed acquisition shortage retains the join and does not substitute an output ceiling" {
-  guard keyed_capacity_request_fixture(true) is NeedsInputs(requests) else {
-    fail("expected positive keyed input bound request")
+test "keyed acquisition retains genuine zero without requesting a positive pre-count proof" {
+  let program = match keyed_capacity_request_fixture(true) {
+    Checked(program) => program
+    Rejected(diagnostic) => raise diagnostic_cause(diagnostic)
+    NeedsInputs(_) => fail("zero must not require a positive keyed input proof")
   }
-  assert_eq(input_request_count(requests), 1)
-  let request = input_request_at(requests, 0).unwrap()
-  guard request.kind is KeyedAcquisitionInputRows(source) else {
-    fail("wrong keyed request kind")
-  }
-  assert_true(physical_equal(input_request_source(request).unwrap(), source))
-  assert_eq(input_request_origin(request), ProgramDocument)
+  let proof = keyed_input_proof_at(program, 0).unwrap()
+  assert_true(keyed_input_runtime_admission(proof) is None)
   assert_eq(
-    diagnostic_location_source_path(
-      diagnostic_location(input_requests_diagnostic(requests)).unwrap(),
+    @wire.value(
+      @wire.program_proof_witness(
+        proof_claim(keyed_input_proof_bound(proof).unwrap()),
+      ),
     ),
-    "keyed.actql",
+    0L,
   )
-  assert_eq(input_request_path(request), [
-    @source.Key("stages"),
-    @source.Index(0),
-    @source.Key("steps"),
-    @source.Index(2),
-  ])
-  assert_true(keyed_capacity_request_fixture(false) is Checked(_))
-  assert_true(input_request_at(requests, 1) is None)
 }

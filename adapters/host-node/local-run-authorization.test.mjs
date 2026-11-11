@@ -2,12 +2,55 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-import {mkdtemp, writeFile, rm} from 'node:fs/promises';
+import {mkdtemp, writeFile, rm, readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
+import {heldValuesProgram, writeSyntheticHistoricalHeldValues} from '../../scripts/fixtures/synthetic-historical-held-values.mjs';
 import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
-import {sourceReadAccountConfiguration} from './local-account-config.mjs';
+import {canonicalJson, observeInstalledAccount, sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {loadExecutionAuthorizationRuntime} from './authorization.mjs';
+
+test('packed Salesforce fixtures grant only the owner original Run and named Result reads', async () => {
+  const text = readFileSync(new URL('../../scripts/test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const accounts = new Map();
+  function collect(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'canonicalJson' &&
+        node.arguments[0]?.type === 'ObjectExpression') {
+      const value = node.arguments[0];
+      const id = value.properties.find(item => item.key?.name === 'account_id')?.value?.value;
+      if (id === 'packed-account' || id === 'packed-effect-account') {
+        accounts.set(id, new Function('orgId', 'composedModel', 'userInfo',
+          `return (${text.slice(value.start, value.end)});`)('fixture-org', undefined,
+          () => ({username: 'fixture-owner'})));
+      }
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(collect);
+      else if (value !== null && typeof value === 'object') collect(value);
+    }
+  }
+  collect(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(accounts.size, 2);
+  const moon = await loadExecutionAuthorizationRuntime();
+  for (const [id, account] of accounts) {
+    const wire = canonicalJson(account);
+    assert.equal(JSON.parse(moon.executionAuthorizationAccountJson(
+      moon.executionAuthorizationAdmit(wire))).state, 'admitted');
+    const scope = {namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope'};
+    const authority = createLocalReadAuthorizations({moon,
+      authorization: {accountConfiguration: wire}, principalId: 'fixture-owner', ...scope});
+    const request = {principalId: 'fixture-owner', indexKey: scope};
+    assert.equal(await authority.run(request), true, id);
+    const names = id === 'packed-account' ? ['records'] : ['answer', 'classified', 'records', 'updates'];
+    for (const resultName of names) assert.equal(await authority.result({...request, resultName}), true, resultName);
+    assert.equal(await authority.result({...request, resultName: 'foreign'}), false);
+    assert.equal(await authority.run({...request, principalId: 'foreign'}), false);
+    assert.equal(await authority.run({...request, indexKey: {...scope, namespaceId: 'foreign'}}), false);
+  }
+});
 
 // Execute the actual installed Host's public-entry function, not a duplicate
 // route implementation or a full embedded/Common Host qualification.
@@ -38,6 +81,75 @@ function entrance(authorizeLocalRun) {
 const facts = {principalId: 'person', connection: {mode: 'local', owner: 'local'},
   ref: {namespaceId: 'local', authorityScopeCid: 'sha256:' + '1'.repeat(64),
     runDefinitionCid: 'sha256:' + '2'.repeat(64)}};
+
+// Execute only this original fixture adapter with explicit issuer/Journal
+// ports. This is not a real Common, durable Journal or ordinary Host test.
+test('cancel fixture publishes its state through the same original Journal frame', () => {
+  const text = readFileSync(new URL('./client-cancel-response-loss.fixture.mjs', import.meta.url), 'utf8');
+  const properties = [];
+  const scan = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key?.name === 'observeRun') properties.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(scan);
+      else if (value !== null && typeof value === 'object') scan(value);
+    }
+  };
+  scan(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(properties.length, 1);
+  const fn = properties[0].value;
+  const original = {runDefinition: {}, resultNames: ['answer'], revision: 12,
+    dispatchReserved: true, preDispatchFailureConfirmed: false,
+    cancellationRequested: false, physicalStartReserved: true, physicalCloseConfirmed: false};
+  const moon = {}, control = {runDefinitionRunId(value) { assert.equal(value, original.runDefinition); return 'original'; }};
+  const state = Object.freeze({run_id: 'original', status: 'running', result_availability: {}});
+  const cancellation = Object.freeze({revision: 12, cancellation_requested: false, physical_stop: 'unknown'});
+  const failure = new Error('Original Journal publication failure');
+  let publishes = 0, reject = false;
+  const journal = {
+    lookupRunDefinition(ref, requestControl, publicationControl) {
+      assert.equal(ref, facts.ref); assert.equal(requestControl, moon); assert.equal(publicationControl, control);
+      return original;
+    },
+    publishRunState(frame, observed, requestControl, publicationControl) {
+      publishes++;
+      assert.equal(frame, original); assert.equal(requestControl, moon); assert.equal(publicationControl, control);
+      assert.equal(Object.hasOwn(observed, 'control'), false, 'The Journal owns the same original control projection');
+      assert.equal(observed.result_availability, state.result_availability);
+      assert.equal(Object.hasOwn(observed, 'revision'), false, 'The Journal alone issues the observation revision');
+      if (reject) throw failure;
+      return JSON.stringify({...observed, control: cancellation, revision: 19});
+    },
+  };
+  const observe = new Function('assert', 'journal', 'moon', 'publicationControl',
+    'issueInstalledUnpublishedRunState', 'issueInstalledRunControlObservation',
+    'return function ' + text.slice(fn.start, fn.end))(assert, journal, moon, control, () => state,
+    () => assert.fail('The fixture must not repeat the Journal control issuer'));
+  const actual = observe({ref: facts.ref});
+  assert.equal(publishes, 1); assert.equal(actual.revision, 19);
+  assert.deepEqual(actual.control, cancellation); assert.equal(Object.isFrozen(actual), true);
+  reject = true;
+  assert.throws(() => observe({ref: facts.ref}), error => error === failure);
+  assert.equal(publishes, 2);
+});
+
+test('historical fixture rejects missing duplicate or nondelegating run entries before state I/O', async () => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-held-delegate-',
+    label: 'Historical write-delegate selection controls'});
+  const read = {entry_id: 'read-original', outcome: 'allow'};
+  const delegate = {entry_id: 'run-acceptance', outcome: 'delegate'};
+  for (const entries of [[read], [read, delegate, delegate],
+    [read, {...delegate, outcome: 'allow'}]]) {
+    await assert.rejects(writeSyntheticHistoricalHeldValues({directory: join(scratch.path, 'unstarted-state'),
+      document: JSON.stringify(heldValuesProgram), requestId: 'unaccepted-fixture-request',
+      runtimeRootUrl: new URL('../../', import.meta.url),
+      expressionContractUrl: pathToFileURL(join(scratch.path, 'unprovided-contract.json')),
+      authorization: {accountConfiguration: JSON.stringify({account_id: 'authored-fixture', entries})}}),
+    {code: 'ERR_ASSERTION'});
+  }
+  assert.deepEqual(await readdir(scratch.path), []);
+  await scratch.passed();
+});
 
 test('public Run observation entry requires its actual Account read exactly once', async () => {
   let calls = 0;
@@ -107,4 +219,170 @@ test('actual Account keeps Run-read and named-Result-read distinct and current',
     'the same Account owner already observed this policy change');
   assert.equal(await authority.run({...request, principalId: 'foreign'}), false);
   assert.equal(await authority.run({...request, indexKey: {...facts.ref, namespaceId: 'foreign'}}), false);
+});
+
+test('Sheets public fixture admits only owner Run and answer reads while keeping business denial', async () => {
+  const source = readFileSync(new URL('../connectors/sheets/test/sheets-public-acceptance.fixture.mjs', import.meta.url), 'utf8');
+  const declarations = new Map();
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && ['entry', 'configuration'].includes(node.id.name)) {
+      assert.equal(declarations.has(node.id.name), false);
+      declarations.set(node.id.name, source.slice(node.init.start, node.init.end));
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(declarations.size, 2);
+  const configuration = new Function('canonicalJson', 'owner',
+    `const entry=(${declarations.get('entry')}); return (${declarations.get('configuration')});`)(canonicalJson, 'fixture-owner');
+  const moon = await loadExecutionAuthorizationRuntime();
+  const scope = {namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope'};
+  for (const commit of ['delegate', 'deny']) {
+    const wire = configuration('sheets:fixture/book', commit, true);
+    assert.equal(JSON.parse(moon.executionAuthorizationAccountJson(
+      moon.executionAuthorizationAdmit(wire))).state, 'admitted');
+    const body = JSON.parse(wire);
+    assert.equal(body.entries.find(entry => entry.entry_id === 'range-effect').outcome, commit);
+    for (const principalId of ['fixture-owner', 'foreign-reader']) {
+      const authority = createLocalReadAuthorizations({moon, authorization: {accountConfiguration: wire}, principalId, ...scope});
+      const facts = {principalId, indexKey: scope};
+      assert.equal(await authority.run(facts), principalId === 'fixture-owner');
+      assert.equal(await authority.result({...facts, resultName: 'answer'}), principalId === 'fixture-owner');
+      assert.equal(await authority.result({...facts, resultName: 'unrelated'}), false);
+    }
+  }
+});
+
+const checkpointWrapper = readFileSync(new URL('../../scripts/test-packed-client-checkpoint.mjs', import.meta.url), 'utf8');
+const checkpointWrapperAst = parse(checkpointWrapper, {ecmaVersion: 'latest', sourceType: 'module'});
+function checkpointActor(name) {
+  const write = checkpointWrapperAst.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AwaitExpression' &&
+    node.expression.argument.callee?.name === 'writeFile' &&
+    node.expression.argument.arguments[0]?.arguments?.some(arg => arg.value === name));
+  assert.ok(write, 'Select the actual installed Host actor');
+  const template = write.expression.argument.arguments[1];
+  assert.equal(template.type, 'TemplateLiteral');
+  if (template.expressions.length === 0) return template.quasis[0].value.cooked;
+  assert.equal(name, 'remote-host.mjs');
+  assert.equal(template.expressions.length, 1);
+  const expression = template.expressions[0];
+  assert.equal(expression.type, 'CallExpression');
+  assert.equal(expression.optional, false);
+  assert.equal(expression.callee.type, 'MemberExpression');
+  assert.equal(expression.callee.computed, false);
+  assert.equal(expression.callee.object.name, 'JSON');
+  assert.equal(expression.callee.property.name, 'stringify');
+  assert.equal(expression.arguments.length, 1);
+  assert.equal(expression.arguments[0].type, 'Identifier');
+  assert.equal(expression.arguments[0].name, 'hostCapacityPolicy');
+  const policy = JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json',
+    import.meta.url), 'utf8')).host_policy_profile.capacity;
+  return template.quasis[0].value.cooked + JSON.stringify(policy) + template.quasis[1].value.cooked;
+}
+
+test('packed Checkpoint fixture separates owner observation from business authorization', async () => {
+  const hostSource = checkpointActor('remote-host.mjs');
+  const hostAst = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = hostAst.body.flatMap(node => node.type === 'VariableDeclaration'
+    ? node.declarations : []).find(node => node.id.name === 'configuration');
+  assert.ok(declaration);
+  const configuration = new Function('outcome', 'canonical', 'userInfo',
+    `return (${hostSource.slice(declaration.init.start, declaration.init.end)});`);
+  const moon = await loadExecutionAuthorizationRuntime();
+  const scope = {namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope'};
+  for (const outcome of ['allow', 'deny', 'delegate', 'missing']) {
+    const wire = configuration(outcome, canonicalJson, () => ({username: 'fixture-owner'}));
+    const authorization = wire === undefined ? {} : {accountConfiguration: wire};
+    const account = observeInstalledAccount(moon, authorization);
+    if (wire !== undefined) {
+      assert.equal(JSON.parse(moon.executionAuthorizationAccountJson(account)).state, 'admitted');
+    }
+    const authority = createLocalReadAuthorizations({moon, principalId: 'fixture-owner', ...scope,
+      authorization});
+    const facts = {principalId: 'fixture-owner', indexKey: scope};
+    assert.equal(await authority.run(facts), outcome !== 'missing', outcome);
+    assert.equal(await authority.result({...facts, resultName: 'answer'}), outcome !== 'missing', outcome);
+    assert.equal(await authority.result({...facts, resultName: 'unrelated'}), false);
+    assert.equal(await authority.run({...facts, principalId: 'reviewer-principal'}), false);
+    if (wire !== undefined) {
+      for (const resource of ['duckdb-acquired', 'source-free-values']) {
+        const decision = moon.executionAuthorizationEvaluate(account, 'fixture-owner',
+          'actql-remote-host', resource, 'write');
+        assert.equal(JSON.parse(moon.executionAuthorizationEvaluationJson(decision)).outcome, outcome);
+      }
+    }
+  }
+});
+
+// Execute the authored packed refusal actor and its actual scenario wiring.
+// These explicit ports test fixture expectations, not a packed Host/runtime.
+test('packed Checkpoint refusal actor preserves missing-Account lookup denial only', async () => {
+  const clientSource = checkpointActor('client.mjs');
+  const clientAst = parse(clientSource, {ecmaVersion: 'latest', sourceType: 'module'});
+  const steps = clientAst.body.flatMap(node => node.type === 'VariableDeclaration'
+    ? node.declarations : []).find(node => node.id.name === 'steps');
+  const refused = steps.init.properties.find(node => node.key.name === 'refused').value;
+  const actor = new Function('assert', 'as', 'requestId', 'text', 'getSubmissionOutcome', 'process',
+    'return async function ' + clientSource.slice(refused.start, refused.end));
+  const scenarios = [];
+  const collect = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'ForOfStatement' && node.left.declarations?.[0]?.id.type === 'ArrayPattern' &&
+        node.left.declarations[0].id.elements.map(item => item.name).join(',') === 'outcome,code,lookup') {
+      scenarios.push(node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(collect);
+      else if (value !== null && typeof value === 'object') collect(value);
+    }
+  };
+  collect(checkpointWrapperAst);
+  assert.equal(scenarios.length, 1);
+  const calls = [];
+  const run = async (outcome, env, lookupFailure) => {
+    const submissionRef = {nonce: outcome + '-a'};
+    const refusal = {kind: 'preparation_failed', submissionRef, problem: {code: env.CODE}};
+    const visited = [];
+    const client = {
+      newSubmission: () => submissionRef,
+      async startSource() { throw {code: 'SubmissionPreparationFailed', refusal}; },
+      async lookupSubmission(ref) {
+        assert.equal(ref, submissionRef); visited.push('lookup');
+        // Independent fixture contract: missing Account never supplies Run-read.
+        const code = lookupFailure ?? (outcome === 'missing' ? 'ClientConnectionDenied' : undefined);
+        if (code) throw Object.assign(new Error(code), {code});
+        return refusal;
+      },
+      async checkpoints() {visited.push('checkpoints'); return {items: []};},
+    };
+    await actor(assert, async token => {
+      assert.equal(token, 'owner-token'); return client;
+    }, submissionRef.nonce, 'original source', error => error.refusal, {env})();
+    assert.deepEqual(visited, ['lookup', 'checkpoints']);
+    calls.push({outcome, env});
+  };
+  const matrix = new Function('withHost', 'client', 'assert', 'counts', 'none',
+    'return (async () => {' + checkpointWrapper.slice(scenarios[0].start, scenarios[0].end) + '})();');
+  await matrix(async (outcome, hostEnv, action) => {
+    assert.equal(hostEnv.OUTCOME, outcome); await action(outcome);
+  }, async (outcome, step, args, env) => {
+    assert.equal(step, 'refused'); assert.deepEqual(args, [outcome + '-a']);
+    await run(outcome, env);
+  }, assert, async () => [], []);
+  assert.deepEqual(calls, [
+    {outcome: 'deny', env: {CODE: 'ACTQL_E_ACCOUNT_DENIED', LOOKUP: 'allowed'}},
+    {outcome: 'missing', env: {CODE: 'ACTQL_E_ACCOUNT_CONFIG_INVALID', LOOKUP: 'denied'}},
+  ]);
+  for (const CODE of ['ACTQL_E_DELEGATION_REJECTED', 'ACTQL_E_DELEGATION_UNAVAILABLE']) {
+    await run('delegate', {CODE});
+  }
+  await assert.rejects(run('missing', calls[1].env, 'ClientHostFailure'),
+    {code: 'ERR_ASSERTION'}, 'A different Host failure is not the expected permission refusal');
+  await assert.rejects(run('deny', calls[0].env, 'ClientConnectionDenied'),
+    {code: 'ClientConnectionDenied'}, 'Authorized refusal recovery must still succeed');
 });

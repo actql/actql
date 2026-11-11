@@ -13,6 +13,103 @@ fn import_binding_test_body(
 }
 
 ///|
+test "saved local Model correspondence rejects foreign Unit and duplicate INFER realization" {
+  // Isolate correspondence over admitted bodies. Body/graph completeness
+  // and actual Model issuance have their own distinct tests.
+  let leaf = relation_fixture_cid("1")
+  fn unit(name : String) -> CapturedEffectDependencyBody raise {
+    import_binding_test_body(
+      "local_dependencies",
+      "{\"version\":\"actql-local-unit-dependencies/0.1\",\"local_body_cid\":\"" +
+      leaf +
+      "\",\"used_parameter_declarations_cid\":\"" +
+      leaf +
+      "\",\"local_contract_closure_cid\":\"" +
+      leaf +
+      "\",\"import_interface_cids\":[],\"incoming_gate_contract_cids\":[],\"unit_namespace\":{\"program_id\":\"p\",\"node_id\":\"" +
+      name +
+      "\"}}",
+    )
+  }
+  fn observation(
+    unit : String,
+    outcomes : String,
+  ) -> CapturedEffectDependencyBody raise {
+    import_binding_test_body(
+      "local_model_observation",
+      "{\"version\":\"actql-local-model-observation/0.1\",\"unit_definition_cid\":\"" +
+      unit +
+      "\",\"source_ordinal\":2,\"input_logical_relation_cid\":\"" +
+      leaf +
+      "\",\"input_relation_schema_cid\":\"" +
+      leaf +
+      "\",\"outcome_logical_relation_cid\":\"" +
+      outcomes +
+      "\",\"outcome_relation_schema_cid\":\"" +
+      leaf +
+      "\"}",
+    )
+  }
+  fn invocation(
+    unit : String,
+    observations : Array[String],
+  ) -> CapturedEffectDependencyBody raise {
+    let list = "[" + observations.map(cid => "\"" + cid + "\"").join(",") + "]"
+    import_binding_test_body(
+      "local_computation",
+      "{\"version\":\"actql-local-computation-semantics/0.1\",\"unit_definition_cid\":\"" +
+      unit +
+      "\",\"used_values_cid\":\"" +
+      leaf +
+      "\",\"local_contracts_cid\":\"" +
+      leaf +
+      "\",\"policy_cid\":\"" +
+      leaf +
+      "\",\"observation_cids\":" +
+      list +
+      "}",
+    )
+  }
+  let original = unit("original")
+  let foreign = unit("foreign")
+  let observed = observation(original.node.identity, relation_fixture_cid("2"))
+  let other = observation(original.node.identity, relation_fixture_cid("3"))
+  let foreign_observed = observation(
+    foreign.node.identity,
+    relation_fixture_cid("2"),
+  )
+  assert_eq(
+    validate_effect_dependency_import_bindings([
+      original,
+      observed,
+      invocation(original.node.identity, [observed.node.identity]),
+    ]),
+    Ok(()),
+  )
+  assert_eq(
+    validate_effect_dependency_import_bindings([
+      original,
+      foreign,
+      foreign_observed,
+      invocation(original.node.identity, [foreign_observed.node.identity]),
+    ]),
+    Err(InvalidBody),
+  )
+  assert_eq(
+    validate_effect_dependency_import_bindings([
+      original,
+      observed,
+      other,
+      invocation(original.node.identity, [
+        observed.node.identity,
+        other.node.identity,
+      ]),
+    ]),
+    Err(InvalidBody),
+  )
+}
+
+///|
 test "recovery import correspondence rejects independently valid substitutions" {
   // These are admitted bodies, not caller-authored graph edges. This test
   // isolates cross-body correspondence; closure/bounds are tested separately.

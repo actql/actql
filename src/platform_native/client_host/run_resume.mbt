@@ -105,6 +105,9 @@ struct NativeClientEffectResumeClaim {
   resolution_cid : String
   intent_id : String
   claim : @checkpoint.ResumeClaim
+  // The SAME permission parsed after cryptographic admission above. Retain
+  // it on this claim rather than reparsing its immutable wire per target/IO.
+  approval : @checkpoint.ResumedApproval
 }
 
 ///|
@@ -241,6 +244,7 @@ pub fn NativeClientRunJournal::claim_effect_resume(
       resolution_cid: verified.resolution_cid,
       intent_id,
       claim: { claimant, generation, },
+      approval,
     }
     Ok(if settlement_only { SettlementOnly(claim) } else { Claimed(claim) })
   })

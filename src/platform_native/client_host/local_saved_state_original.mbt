@@ -26,6 +26,25 @@ fn restore_native_saved_run_state(
 ) -> Result[NativeClientSavedRunState?, NativeClientRunJournalIssue] {
   guard submitted.run_state_original is Some(wire) &&
     submitted.run_state_observation is Some((revision, Some(key))) else {
+    // The authenticated Run row already owns this exact Checkpoint lifecycle
+    // projection. It is not a completed Result/Manifest observation and issues
+    // no missing historical counter. Preserve its original optional-revision
+    // wire; never substitute the SQL/control revision for an observation.
+    let unobserved = match submitted.run_state_observation {
+      None | Some((0L, None)) => true
+      _ => false
+    }
+    if submitted.run_state_original is None &&
+      unobserved &&
+      run.checkpoint is Some(checkpoint) {
+      return Ok(
+        Some({
+          original: None,
+          state_wire: checkpoint.state.wire,
+          control_revision: run.revision,
+        }),
+      )
+    }
     return Ok(None)
   }
   let state = match submitted.restored_state_original {
@@ -53,5 +72,11 @@ fn restore_native_saved_run_state(
     observation.wire(revision).to_option() != Some(state.state_wire()) {
     return Err(CustodyLost)
   }
-  Ok(Some({ original: state, control_revision: run.revision, }))
+  Ok(
+    Some({
+      original: Some(state),
+      state_wire: state.state_wire(),
+      control_revision: run.revision,
+    }),
+  )
 }

@@ -259,6 +259,62 @@ fn client_captured_task_tuple_matches(
 }
 
 ///|
+// A checked slice can add unknown provenance without changing any original
+// Source contributor. Reuse only the already checked conservative policy:
+// equal CIDs alone cannot substitute foreign occurrences, roles or copies.
+fn client_publication_unknown_policy_join(
+  left : @checked.PublicationSourcePolicy,
+  right : @checked.PublicationSourcePolicy,
+) -> @checked.PublicationSourcePolicy? {
+  let count = @checked.effective_policy_occurrence_count(left.effective)
+  guard left.cid != right.cid &&
+    left.unknown_provenance != right.unknown_provenance &&
+    count > 0 &&
+    count == @checked.effective_policy_occurrence_count(right.effective) &&
+    @checked.effective_policy_source_count(left.effective) ==
+    @checked.effective_policy_source_count(right.effective) else {
+    return None
+  }
+  for index in 0..<count {
+    let same = match
+      (
+        @checked.effective_policy_occurrence_at(left.effective, index),
+        @checked.effective_policy_occurrence_at(right.effective, index),
+      ) {
+      (Some(@checked.DirectPolicy(a)), Some(@checked.DirectPolicy(b))) =>
+        physical_equal(a, b)
+      (
+        Some(@checked.KeyedResponsePolicy(a)),
+        Some(@checked.KeyedResponsePolicy(b)),
+      ) => physical_equal(a, b)
+      (
+        Some(@checked.KeyedStaticRequestPolicy(a)),
+        Some(@checked.KeyedStaticRequestPolicy(b)),
+      ) => physical_equal(a, b)
+      _ => false
+    }
+    if !same {
+      return None
+    }
+  }
+  for index in 0..<@checked.effective_policy_source_count(left.effective) {
+    if @checked.effective_policy_source_at(left.effective, index) !=
+      @checked.effective_policy_source_at(right.effective, index) {
+      return None
+    }
+  }
+  // The immutable nominal occurrences above also bind their original response
+  // policies. No response CID is inferred from a surrounding Catalog or source.
+  let conservative = if left.unknown_provenance { left } else { right }
+  if @checked.publication_policy_classification(conservative)
+    is @environment.Unknown {
+    Some(conservative)
+  } else {
+    None
+  }
+}
+
+///|
 /// Resolve effective policy from every exact checked final Result occurrence.
 /// Missing, incompatible, or incomplete two-source provenance is rejected;
 /// the first acquisition policy is never promoted to a Run-wide policy.
@@ -267,12 +323,11 @@ pub fn prepared_client_publication_data_policy_cid(
 ) -> String? {
   let graph = value.graph
   let program = @strategy.graph_program(graph)
-  let source_owner = @checked.source_identity(program)
   let count = @strategy.graph_result_count(graph)
   if count == 0 {
     return None
   }
-  let mut selected : String? = None
+  let mut selected : @checked.PublicationSourcePolicy? = None
   for result in 0..<count {
     guard @strategy.graph_result_task(graph, result) is Some(task) &&
       @strategy.graph_task_unit_index(graph, task) is Some(unit) &&
@@ -305,32 +360,67 @@ pub fn prepared_client_publication_data_policy_cid(
       }
     }
     guard found is Some(policy) else { return None }
-    if prepared_client_acquisition_count(value) == 2 {
-      let covered = [false, false]
-      if @checked.publication_policy_source_count(policy) != 2 {
-        return None
-      }
-      for index in 0..<2 {
-        let check = @checked.publication_policy_source_at(policy, index).unwrap()
-        let subject = @checked.source_execution_subject(check)
-        if !physical_equal(subject.owner, source_owner) ||
-          subject.stage < 0 ||
-          subject.stage > 1 ||
-          subject.input != 0 ||
-          covered[subject.stage] ||
-          !(@checked.source_execution_kind(check) is @checked.CarrierResponse) {
-          return None
-        }
-        covered[subject.stage] = true
-      }
-      if covered != [true, true] {
-        return None
-      }
+    if prepared_client_acquisition_count(value) == 2 &&
+      !client_publication_policy_covers_source_responses(program, policy) {
+      return None
     }
     match selected {
-      None => selected = Some(policy.cid)
-      Some(cid) => if cid != policy.cid { return None }
+      None => selected = Some(policy)
+      Some(prior) =>
+        if prior.cid != policy.cid {
+          selected = client_publication_unknown_policy_join(prior, policy)
+          if selected is None {
+            return None
+          }
+        }
     }
   }
-  selected
+  selected.map(policy => policy.cid)
+}
+
+///|
+// Whole-Run two-Direct publication retains every actual response original,
+// including a downstream keyed response. Source coordinates and equal CIDs
+// are not substitutes for the same checked occurrence. The policy owns the
+// existing inventory; this read-only comparison constructs no second policy.
+fn client_publication_policy_covers_source_responses(
+  program : @checked.CheckedProgram,
+  policy : @checked.PublicationSourcePolicy,
+) -> Bool {
+  let owner = @checked.source_identity(program)
+  let policy_count = @checked.publication_policy_source_count(policy)
+  let mut responses = 0
+  for index in 0..<@checked.source_execution_count(program) {
+    let original = @checked.source_execution_at(program, index).unwrap()
+    let response = match @checked.source_execution_kind(original) {
+      @checked.CarrierResponse =>
+        @checked.source_execution_subject(original).request
+        is @acquisition.Direct(_, _)
+      @checked.KeyedResponse(_) => true
+      _ => false
+    }
+    if response {
+      if !physical_equal(
+          @checked.source_execution_subject(original).owner,
+          owner,
+        ) {
+        return false
+      }
+      let mut occurrences = 0
+      for policy_index in 0..<policy_count {
+        if @checked.publication_policy_source_at(policy, policy_index)
+          is Some(candidate) &&
+          physical_equal(candidate, original) {
+          occurrences += 1
+        }
+      }
+      if occurrences != 1 {
+        return false
+      }
+      responses += 1
+    }
+  }
+
+  // Extra, duplicate or foreign policy entries cannot fill a missing original.
+  responses == policy_count
 }

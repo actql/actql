@@ -9,6 +9,9 @@
 pub fn[T] funded_read_consumer_handed_off_origin(
   value : FundedReadConsumer[T],
 ) -> T? {
+  if value.claim is Some(claim) && claim.children is Some(_) {
+    return original_read_child_origin(claim, value, true)
+  }
   guard value.claim is Some(claim) &&
     claim.phase is ConsumerHandedOff(current) &&
     physical_equal(current, value) &&

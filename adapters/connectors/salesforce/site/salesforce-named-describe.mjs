@@ -14,6 +14,7 @@ const describeOriginals = new WeakMap();
 const versionPattern = /^v[1-9][0-9]*\.[0-9]+$/;
 const namePattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const describeOperation = 'salesforce:catalog:describe';
+export {describeOperation as salesforceDescribeOperation};
 export const NAMED_EVIDENCE_VERSION = 'actql-salesforce-named-evidence/0.1';
 
 const count = value => Number.isInteger(value) && value >= 0 &&
@@ -33,7 +34,7 @@ export async function describeSalesforceResources({
   maxObservationBytes, resources, authorizationForDescribe, credential,
   describeLimits: requestedLimits, retainEvidence = false,
   retainPublicationOriginals = false,
-  maxRetainedBytes = 0, callResource = callHttpsCredentialResource, signal,
+  maxRetainedBytes = 0, callResource = callHttpsCredentialResource, signal, controlConstruction,
 }) {
   if (!moon || !versionPattern.test(apiVersion) ||
       typeof connectionRevision !== 'string' || connectionRevision === '' ||
@@ -50,7 +51,8 @@ export async function describeSalesforceResources({
       (retainPublicationOriginals && !retainEvidence) ||
       (retainEvidence && (!count(maxRetainedBytes) ||
         maxRetainedBytes === 0)) ||
-      typeof callResource !== 'function') {
+      typeof callResource !== 'function' ||
+      controlConstruction !== undefined && typeof controlConstruction !== 'function') {
     fail('InvalidSalesforceNamedDescribe');
   }
   const limits = ownInvocationLimits(requestedLimits);
@@ -59,7 +61,11 @@ export async function describeSalesforceResources({
       !count(limits.maxFields) || !count(limits.maxNameUnits)) {
     fail('InvalidSalesforceCatalogLimits');
   }
-  const sync = checked(moon.salesforceCatalogBeginNamed([...resources]));
+  // The same Run control frame backs each synchronous phase. The HTTP await
+  // stays outside it; retained Catalog/evidence backing survives between phases.
+  const construct = callback => controlConstruction === undefined ? callback()
+    : controlConstruction(undefined, callback, []);
+  const sync = construct(() => checked(moon.salesforceCatalogBeginNamed([...resources])));
   const prefix = `/services/data/${apiVersion}/sobjects/`;
   const bodies = [];
   const originalResponses = [];
@@ -96,20 +102,22 @@ export async function describeSalesforceResources({
         maxResponseBytes: Math.min(limits.maxBytes, remaining), signal,
       });
       if (retainPublicationOriginals) originalResponses.push(Object.freeze({name, response, path: `${prefix}${name}/describe`}));
-      const bytes = Buffer.from(response.body);
-      retainedBytes += retainEvidence ? bytes.byteLength : 0;
-      bodies.push(retainEvidence ? bytes.toString('base64') : null);
-      useCids.push(response.useCid);
-      digests.push(moon.salesforceCatalogResponseSha256(response.body));
-      if (response.accepted) {
-        checked(moon.salesforceCatalogDescribe(sync, name, response.body,
-          limits.maxBytes, limits.maxNodes, limits.maxDepth,
-          limits.maxFields, limits.maxNameUnits));
-      } else {
-        checked(moon.salesforceCatalogUnavailable(sync, name,
-          moon.salesforceCatalogHttpFailure(response.statusCode,
-            response.body, limits.maxBytes)));
-      }
+      construct(() => {
+        const bytes = Buffer.from(response.body);
+        retainedBytes += retainEvidence ? bytes.byteLength : 0;
+        bodies.push(retainEvidence ? bytes.toString('base64') : null);
+        useCids.push(response.useCid);
+        digests.push(moon.salesforceCatalogResponseSha256(response.body));
+        if (response.accepted) {
+          checked(moon.salesforceCatalogDescribe(sync, name, response.body,
+            limits.maxBytes, limits.maxNodes, limits.maxDepth,
+            limits.maxFields, limits.maxNameUnits));
+        } else {
+          checked(moon.salesforceCatalogUnavailable(sync, name,
+            moon.salesforceCatalogHttpFailure(response.statusCode,
+              response.body, limits.maxBytes)));
+        }
+      });
     } catch (error) {
       if (error?.code === 'MoonBitHostFailure' ||
           error?.code === 'InvalidHostRuntimeResult') throw error;
@@ -134,37 +142,39 @@ export async function describeSalesforceResources({
     digests.push(undefined);
     bodies.push(null);
   }
-  const observation = checked(moon.salesforcePrepareCatalogObservation(
-    sync, scope.namespaceId, scope.principal, scope.environment,
-    connectionRevision, orgId, scope.siteKey, scope.siteGeneration,
-    scope.connectorRegistration, scope.connectorRevision,
-    scope.resourceOrigin, scope.runInvocationCid, scope.dispatchRequestCid,
-    syncOccurrence, '', useCids, digests, maxObservationBytes));
-  const observationJson = moon.salesforceCatalogObservationJson(observation);
-  const outcomes = resources.map(name =>
-    moon.salesforceCatalogResourceState(sync, name));
-  const result = Object.freeze({
-    observation, observationJson,
-    observationCid: moon.salesforceCatalogObservationCid(observation),
-    status: interruptionCode === undefined ? 'observed' : 'interrupted',
-    interruptionCode,
-    evidence: retainEvidence ? Object.freeze({
-      version: NAMED_EVIDENCE_VERSION,
-      names: Object.freeze([...resources]),
-      outcomes: Object.freeze(outcomes),
-      describeBodyBase64: Object.freeze(bodies),
-      describeUseCids: Object.freeze(useCids.map(value => value ?? null)),
-      describeResponseSha256: Object.freeze(
-        digests.map(value => value ?? null)),
-      describeLimits: Object.freeze({...limits}),
-      maxObservationBytes,
-      observationJson,
-    }) : undefined,
+  return construct(() => {
+    const observation = checked(moon.salesforcePrepareCatalogObservation(
+      sync, scope.namespaceId, scope.principal, scope.environment,
+      connectionRevision, orgId, scope.siteKey, scope.siteGeneration,
+      scope.connectorRegistration, scope.connectorRevision,
+      scope.resourceOrigin, scope.runInvocationCid, scope.dispatchRequestCid,
+      syncOccurrence, '', useCids, digests, maxObservationBytes));
+    const observationJson = moon.salesforceCatalogObservationJson(observation);
+    const outcomes = resources.map(name =>
+      moon.salesforceCatalogResourceState(sync, name));
+    const result = Object.freeze({
+      observation, observationJson,
+      observationCid: moon.salesforceCatalogObservationCid(observation),
+      status: interruptionCode === undefined ? 'observed' : 'interrupted',
+      interruptionCode,
+      evidence: retainEvidence ? Object.freeze({
+        version: NAMED_EVIDENCE_VERSION,
+        names: Object.freeze([...resources]),
+        outcomes: Object.freeze(outcomes),
+        describeBodyBase64: Object.freeze(bodies),
+        describeUseCids: Object.freeze(useCids.map(value => value ?? null)),
+        describeResponseSha256: Object.freeze(
+          digests.map(value => value ?? null)),
+        describeLimits: Object.freeze({...limits}),
+        maxObservationBytes,
+        observationJson,
+      }) : undefined,
+    });
+    if (retainPublicationOriginals && interruptionCode === undefined) {
+      describeOriginals.set(result, {credential, responses: Object.freeze(originalResponses)});
+    }
+    return result;
   });
-  if (retainPublicationOriginals && interruptionCode === undefined) {
-    describeOriginals.set(result, {credential, responses: Object.freeze(originalResponses)});
-  }
-  return result;
 }
 
 // The same physical Credential Owner confirms the original grant/use and raw
@@ -220,7 +230,7 @@ export function withSalesforceNamedDescribeOriginals(result, credential, consume
 /// observation (`expectedObservationCid`); no credential or provider I/O is
 /// used, and the result stays incomplete.
 export function recoverNamedSalesforceObservation({moon, evidence,
-  expectedObservationCid}) {
+  expectedObservationCid, beforeRecover}) {
   if (!moon || evidence?.version !== NAMED_EVIDENCE_VERSION ||
       !Array.isArray(evidence.names) ||
       typeof evidence.observationJson !== 'string' ||
@@ -236,10 +246,18 @@ export function recoverNamedSalesforceObservation({moon, evidence,
   }
   const binding = JSON.parse(evidence.observationJson).binding;
   const limits = evidence.describeLimits;
+  // The caller's existing member token already funds the encoded input and
+  // binary/lexical prelude. Wider inventories keep the complete old quote
+  // BEFORE allocation; the exact one-body case grows after observing bytes.
+  if (beforeRecover !== undefined && typeof beforeRecover !== 'function') {
+    fail('InvalidSalesforceNamedEvidence');
+  }
+  if (n !== 1) beforeRecover?.(evidence, undefined);
+  const bodies = evidence.describeBodyBase64.map(value => value === null ? undefined
+    : Buffer.from(value, 'base64'));
+  if (n === 1) beforeRecover?.(evidence, bodies);
   const observation = checked(moon.salesforceRecoverNamedCatalogObservation(
-    evidence.observationJson, [...evidence.names],
-    evidence.describeBodyBase64.map(value => value === null ? undefined
-      : Buffer.from(value, 'base64')),
+    evidence.observationJson, [...evidence.names], bodies,
     [...evidence.outcomes],
     binding.namespace_id, binding.principal, binding.environment,
     binding.connection_revision, binding.org_id, binding.site_key,

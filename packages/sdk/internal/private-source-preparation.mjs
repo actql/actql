@@ -22,7 +22,9 @@ const unavailable = () => Object.assign(new Error('NodeSourceManagedAdmissionUna
 export function captureSourcePreparation(port) {
   if (port === undefined) return undefined;
   const entry = descriptor(port, sourcePreparationPort);
-  if (entry === undefined) return undefined;
+  // Only a remote transport has no local port. An installed in-process Host
+  // must supply its own preparation receiver, never a legacy capture path.
+  if (entry === undefined) throw unavailable();
   if (!hasOwn(entry, 'value') || entry.value === null ||
       typeof entry.value !== 'object') throw unavailable();
   const receiver = entry.value;

@@ -6,10 +6,7 @@ import {isAbsolute} from 'node:path';
 import {readFile} from 'node:fs/promises';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
-import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
-import {createInstalledRowSource, installRowSourceAuthorization,
-  openRowSourceCredentialSite, rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
+import {readSourceProfileJson, captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {readSnowflakeSqlApi, SNOWFLAKE_SQL_READ_OPERATION} from '../site/snowflake-sql-read.mjs';
 import {checkSnowflakeKeyPairProfile, openSnowflakeKeyPairMaterial} from '../site/snowflake-key-pair.mjs';
 
@@ -72,10 +69,10 @@ function checkSite(site) {
     ...(selected === undefined ? {} : {keyPair: selected})});
 }
 
-async function readInputs(profile) {
+async function readInputs(profile, readJson = readSourceProfileJson) {
   const installed = checkInstalledSnowflakeSourceProfile(profile);
-  const site = checkSite(await readSourceProfileJson(installed.siteProfilePath));
-  const metadata = await readSourceProfileJson(installed.metadataPath);
+  const site = checkSite(await readJson(installed.siteProfilePath));
+  const metadata = await readJson(installed.metadataPath);
   const keys = ['version', 'connectorId', 'resource', 'database', 'schema', 'table', 'apiOrigin', 'bodies'];
   if (!closed(metadata, keys) || metadata.version !== 'actql-snowflake-read-metadata/0.1' ||
       !['connectorId', 'resource', 'database', 'schema', 'table'].every(key => metadata[key] === installed[key]) ||
@@ -88,20 +85,27 @@ async function readInputs(profile) {
     if (typeof body !== 'string' || body.length > Math.ceil(installed.limits.maxBytes / 3) * 4) {
       fail('InvalidInstalledSnowflakeMetadata');
     }
-    const bytes = Buffer.from(body, 'base64');
-    if (bytes.byteLength > installed.limits.maxBytes || bytes.toString('base64') !== body) {
+    if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(body)) {
       fail('InvalidInstalledSnowflakeMetadata');
     }
-    return bytes;
+    const padding = body.endsWith('==') ? 2 : body.endsWith('=') ? 1 : 0;
+    const bytes = body.length / 4 * 3 - padding;
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    if (bytes > installed.limits.maxBytes || padding !== 0 &&
+        (alphabet.indexOf(body[body.length - padding - 1]) & (padding === 2 ? 15 : 3)) !== 0) {
+      fail('InvalidInstalledSnowflakeMetadata');
+    }
+    return Object.freeze({encoded: body, bytes});
   });
   return {installed, site, metadata, bodies};
 }
 
 // All exact target strings are semantic data, including Unicode normalization.
 // Their digest supplements the standard Host's configuration canonicalizer.
-export async function installedSnowflakeSourceIdentityParts(profile, providerProfile, read) {
-  const {installed, site, metadata} = await readInputs(providerProfile);
-  const ca = site.caPath === undefined ? undefined : await readFile(site.caPath);
+export async function installedSnowflakeSourceIdentityParts(profile, providerProfile, read, _entry, {configurationReader} = {}) {
+  const readers = captureConfigurationReaders(configurationReader, read, () => fail('SnowflakeSourceConstructionUnavailable'));
+  const {installed, site, metadata} = await readInputs(providerProfile, readers.readJson);
+  const ca = site.caPath === undefined ? undefined : await (readers.readOriginalBytes ?? readFile)(site.caPath);
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)},
     site, {exactTargetCid: cid({connectorId: installed.connectorId, resource: installed.resource,
       database: installed.database, schema: installed.schema, table: installed.table,
@@ -110,8 +114,12 @@ export async function installedSnowflakeSourceIdentityParts(profile, providerPro
 }
 
 export async function loadInstalledSnowflakeSource(profile, {root, principalId, moon,
-  baseEnvironmentWire, runtimeBundleCid, resolveSecret, installation}) {
-  const {installed, site: siteProfile, metadata, bodies} = await readInputs(profile);
+  baseEnvironmentWire, runtimeBundleCid, resolveSecret, installation, construction}) {
+  if (construction === undefined || typeof construction.prepareNativeDeclaration !== 'function' ||
+      typeof construction.openRowSite !== 'function' || typeof construction.createRowSource !== 'function' ||
+      typeof construction.configurationReader?.readOriginalBytes !== 'function') fail('SnowflakeSourceConstructionUnavailable');
+  const readers = construction.configurationReader;
+  const {installed, site: siteProfile, metadata, bodies} = await readInputs(profile, readers.readJson);
   const {limits} = installed;
   const responseLimits = moon.clientProgramSnowflakeResponseLimits(limits.maxBytes, limits.maxNodes,
     limits.maxDepth, limits.maxColumns, limits.maxNameUnits, limits.maxHandleUnits,
@@ -120,14 +128,21 @@ export async function loadInstalledSnowflakeSource(profile, {root, principalId, 
     limits.maxNameUnits, limits.maxDescriptionBytes, limits.maxNodes, limits.maxDepth);
   const declarationLimits = moon.clientProgramSnowflakeDeclarationLimits(limits.maxDeclarationBytes,
     limits.maxDeclarationNodes, limits.maxDepth, 1, limits.maxColumns);
-  const description = checked(moon.clientProgramSnowflakeDescribeTable(installed.database,
-    installed.schema, installed.table, bodies, responseLimits, descriptionLimits));
-  const declaration = checked(moon.clientProgramSnowflakeGenerateReadDeclaration(description,
-    installed.resource, installed.connectorId, revision, descriptionLimits, declarationLimits));
-  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
-  const authorization = await installRowSourceAuthorization({root, principalId,
-    connectorRegistration: registration, accountConfiguration: installed.accountConfigurationWire});
+  const {description, declaration, declared} = construction.prepareNativeDeclaration(Object.freeze({
+    capacity: () => moon.clientProgramSnowflakeReadDeclarationConstructionCapacity(
+      bodies.map(body => body.bytes), bodies.reduce((sum, body) => sum + body.encoded.length, 0),
+      installed.database.length + installed.schema.length + installed.table.length,
+      installed.resource.length, installed.connectorId.length, revision.length,
+      responseLimits, descriptionLimits, declarationLimits),
+    project() {
+      const decoded = bodies.map(body => Buffer.from(body.encoded, 'base64'));
+      const description = checked(moon.clientProgramSnowflakeDescribeTable(installed.database,
+        installed.schema, installed.table, decoded, responseLimits, descriptionLimits));
+      const declaration = checked(moon.clientProgramSnowflakeGenerateReadDeclaration(description,
+        installed.resource, installed.connectorId, revision, descriptionLimits, declarationLimits));
+      return Object.freeze({description, declaration});
+    },
+  }));
   const connection = `snowflake:${installed.connectorId}`;
   const target = (resource, fields) => Object.freeze({version: 'actql-installed-snowflake-target/0.1',
     apiOrigin: siteProfile.apiOrigin, database: installed.database, schema: installed.schema,
@@ -139,36 +154,21 @@ export async function loadInstalledSnowflakeSource(profile, {root, principalId, 
     Array.isArray(binding.fields) && new Set(binding.fields).size === binding.fields.length &&
     binding.fields.every(field => allFields.includes(field)) &&
     canonical(binding) === canonical(target(resource, binding.fields));
-  const ca = siteProfile.caPath === undefined ? undefined : await readFile(siteProfile.caPath);
-  const material = siteProfile.keyPair === undefined ? undefined : openSnowflakeKeyPairMaterial(
-    siteProfile.keyPair, {maxSecretBytes: limits.maxSecretBytes, resolveMaterial: resolveSecret});
-  let originalSite;
-  try {
-    originalSite = await openRowSourceCredentialSite({profile: {...siteProfile,
-    resourceOrigin: siteProfile.apiOrigin}, principalId, authorization, connection,
-    connectorRegistration: registration, connectorRevision: revision, runtimeBundleCid,
-    commonMoon: moon, ca, admitsApprovalTarget,
+  const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes(siteProfile.caPath);
+  const {authorization, site} = await construction.openRowSite({
+    profile: Object.freeze({...siteProfile, resourceOrigin: siteProfile.apiOrigin}),
+    accountConfiguration: installed.accountConfigurationWire, connection, ca, admitsApprovalTarget,
+    ...(siteProfile.keyPair === undefined ? {} : {prepareSecretMaterial: () =>
+      openSnowflakeKeyPairMaterial(siteProfile.keyPair, {maxSecretBytes: limits.maxSecretBytes, resolveMaterial: resolveSecret})}),
     responseHeaders: installation?.responseHeaders ?? ['content-encoding'],
-    resolveSecret: material?.resolveSecret ?? resolveSecret ?? (async () => {
+    resolveSecret: resolveSecret ?? (async () => {
       const secret = process.env[siteProfile.tokenEnvironment];
       if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
       return secret;
     })});
-  } catch (cause) {
-    material?.close();
-    throw cause;
-  }
-  const site = material === undefined ? originalSite : Object.freeze({...originalSite,
-    close() {
-      const result = originalSite.close();
-      material.close();
-      return result;
-    }});
-  try {
+  {
     const preparedReads = new WeakMap();
-    return await createInstalledRowSource({moon, declaration, declared,
-      environmentWire: environment.wire, connectorId: installed.connectorId,
-      connectorRegistration: registration, connectorRevision: revision, site, authorization,
+    return await construction.createRowSource({
       readOperation: SNOWFLAKE_SQL_READ_OPERATION, physicalTarget: target,
       bindingCid: cid({version: 'actql-installed-snowflake-binding/0.1',
         contextCid: authorization.context.contextCid, runtimeBundleCid,
@@ -193,7 +193,5 @@ export async function loadInstalledSnowflakeSource(profile, {root, principalId, 
           authenticationType: siteProfile.authenticationType,
           credential: site.credential, callResource: site.callResource});
       }});
-  } catch (cause) {
-    throw await retainInstalledHostInitializationFailure(cause, {sourceProfile: site});
   }
 }

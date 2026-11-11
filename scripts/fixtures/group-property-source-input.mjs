@@ -208,15 +208,18 @@ export const groupHavingImplicitAliasSuccesses = [
   {name: 'group-property-having-implicit-collision-alias', format: 'aql-text',
     text: havingCollisionSource + 'SELECT payload.score, COUNT(*) AS n FROM colliding '
       + 'GROUP BY score, colliding.score HAVING score > 10 ORDER BY score',
-    parameterDeclarations, parameters, expected: [{score: 20, n: 1}], columns, sourceReadCount: 0},
+    parameterDeclarations: {a: payload, b: payload},
+    parameters: {a: parameters.a, b: parameters.b}, expected: [{score: 20, n: 1}], columns, sourceReadCount: 0},
   {name: 'group-property-having-implicit-collision-qualified-input', format: 'aql-text',
     text: havingCollisionSource + 'SELECT payload.score, COUNT(*) AS n FROM colliding '
       + 'GROUP BY score, colliding.score HAVING colliding.score > 10 ORDER BY score',
-    parameterDeclarations, parameters, expected: [{score: 10, n: 1}], columns, sourceReadCount: 0},
+    parameterDeclarations: {a: payload, b: payload},
+    parameters: {a: parameters.a, b: parameters.b}, expected: [{score: 10, n: 1}], columns, sourceReadCount: 0},
   {name: 'group-property-having-implicit-collision-where-input', format: 'aql-text',
     text: havingCollisionSource + 'SELECT payload.score, COUNT(*) AS n FROM colliding '
       + 'WHERE score > 10 GROUP BY score ORDER BY score',
-    parameterDeclarations, parameters, expected: [{score: 10, n: 1}], columns, sourceReadCount: 0},
+    parameterDeclarations: {a: payload, b: payload},
+    parameters: {a: parameters.a, b: parameters.b}, expected: [{score: 10, n: 1}], columns, sourceReadCount: 0},
 ];
 export const groupHavingImplicitAliasRefusals = [
   text('having-implicit-ambiguous-group',

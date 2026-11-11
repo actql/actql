@@ -27,6 +27,7 @@ test "Preview identity and readmission retain exact nested JSON data" {
   let (wire, identity) = author_effect_preview_semantic_wire(
     template, run, authoring, 8192, 256, 12,
   ).unwrap()
+  assert_eq(effect_preview_authoring_context_cid(identity), authoring)
   // Independently authored actql-effect-preview-row/0.1 preimage, using
   // payload above for after.value and intended_changes.value, was hashed
   // with Python SHA-256. The complete before value remains {"Name":"Before"}.
@@ -45,6 +46,7 @@ test "Preview identity and readmission retain exact nested JSON data" {
   let readmitted = admit_effect_preview_identity(
     wire, run, authoring, 8192, 256, 12,
   ).unwrap()
+  assert_eq(effect_preview_authoring_context_cid(readmitted), authoring)
   assert_eq(
     effect_preview_row_intended_value_wire(readmitted, 0, 0),
     Some(payload),
@@ -1159,5 +1161,50 @@ test "Command contract minimum absence stays distinct from Mapping none" {
   assert_true(
     effect_preview_member_resolved_contract(original_command, 0)
     is Some(Command(_, _)),
+  )
+}
+
+///|
+test "Retained Preview admission keeps the same complete original body" {
+  let a = preview_identity_test_cid("a")
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let (wire, _) = author_effect_preview_semantic_wire(
+    preview_identity_test_wire(
+      run,
+      authoring,
+      preview_identity_test_cid("4"),
+      "001000000000001",
+      a,
+      a,
+    ),
+    run,
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let (identity, original) = admit_effect_preview_identity_with_original(
+    wire, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_eq(@json.stringify_value(original, 8192, 256, 12), wire)
+  guard @json.object_field(original, "effects") is Some(@json.Array(effects)) &&
+    @json.array_at(effects, 0) is Some(effect_value) &&
+    @json.object_field(effect_value, "changes") is Some(@json.Array(changes)) &&
+    @json.array_at(changes, 0) is Some(row) &&
+    @json.object_field(row, "before") is Some(before) &&
+    @json.object_field(before, "value") is Some(full_before) else {
+    fail("Expected original complete before")
+  }
+  assert_eq(
+    @json.stringify_value(full_before, 8192, 256, 12),
+    "{\"Name\":\"Before\"}",
+  )
+  assert_eq(effect_preview_run_identity(identity), run)
+  assert_true(
+    admit_effect_preview_identity_with_original(
+      wire, a, authoring, 8192, 256, 12,
+    )
+    is Err(_),
   )
 }

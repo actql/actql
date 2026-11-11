@@ -18,6 +18,7 @@ import * as githubComment from '../connectors/github/site/github-comment-create.
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
+import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../connectors/github/site/github-issue-graphql-read.mjs';
 import {prepareSheetsAppend, sendSheetsAppend, SHEETS_APPEND_OPERATION,
@@ -30,9 +31,9 @@ const rowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta
 const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
 const derivedNode = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
 assert.ok(derivedNode);
-const deriveInstalledRowWriteOriginal = Function('createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
+const deriveInstalledRowWriteOriginal = Function('createHash', 'nodeTypes', 'canonicalJson', 'ownHttpRequest', 'ownRequestHeaders',
   'ownResponseHeaderNames', 'invokeScopedCredentialOperation', 'localContractLimits', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
-  createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
+  createHash, nodeTypes, canonicalJson, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
 const deriveInstalledRowWrite = (...args) => deriveInstalledRowWriteOriginal(...args).driver;
 
 // Actual private member constructor and existing exact-JSON decoder. The
@@ -171,6 +172,42 @@ test('standard declared GET metadata check preserves the original absent body',a
       assert.equal(Object.hasOwn(operation,'body'),false);return response;
     }});
   assert.deepEqual([reads,projects],[1,1]);
+});
+
+test('standard metadata projection uses its original managed control frame after HTTP', async () => {
+  const events=[],parent={},prepared={},requestOriginal={},plan={};let active=false;
+  const runtime={clientProgramInstalledEffectOperationControlConstructionBegin(p,v,r,selected){
+    assert.deepEqual([p,v,r,selected],[parent,prepared,requestOriginal,plan]);assert(!active);active=true;events.push('begin');return {$tag:1};},
+    clientProgramInstalledEffectOperationControlConstructionComplete(){assert(active);active=false;events.push('complete');return {$tag:1};}};
+  const run={runtime,value:parent,prepared,request:requestOriginal,operationPlan:plan,readPlan(){},closed:false};
+  const control=prepareInstalledEffectControlConstruction(run);run.controlConstruction=control;run.retireControlConstruction=control.retire;
+  const check={resource:'forms',operation:'fixture:form',
+    http:{origin,method:'GET',path:'/form',maxRequestBytes:200,maxResponseBytes:400},body(){return undefined;},
+    project(context){assert.equal(this,check);assert(active);assert.equal(context.request,request);events.push('project');}};
+  const driver=deriveInstalledRowWrite(declaration({check}),'fixture');
+  const {request}=driver.prepareRequest({member,value:{name:'original'}});
+  check.project=()=>assert.fail('the captured original projector is required');
+  await driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},controlConstruction:control,
+    callResource(){assert(!active);events.push('http');return response;}});
+  assert.deepEqual(events,['begin','complete','http','begin','project','complete']);assert.equal(control.retire(),true);
+});
+
+test('standard metadata invalid async projection keeps the original control borrower until settlement', async () => {
+  let resolve,completed=0;
+  const pending=new Promise(yes=>{resolve=yes;});
+  const runtime={clientProgramInstalledEffectOperationControlConstructionBegin:()=>({$tag:1}),
+    clientProgramInstalledEffectOperationControlConstructionComplete(){completed++;return {$tag:1};}};
+  const run={runtime,value:{},prepared:{},request:{},operationPlan:{},readPlan(){},closed:false};
+  const control=prepareInstalledEffectControlConstruction(run);run.controlConstruction=control;run.retireControlConstruction=control.retire;
+  const driver=deriveInstalledRowWrite(declaration({check:{resource:'forms',operation:'fixture:form',
+    http:{origin,method:'GET',path:'/form',maxRequestBytes:200,maxResponseBytes:400},body(){return undefined;},
+    project(){return pending;}}}),'fixture');
+  const {request}=driver.prepareRequest({member,value:{name:'original'}});
+  await assert.rejects(driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
+    controlConstruction:control,callResource:()=>response}),{code:'InvalidInstalledEffectControlConstruction'});
+  assert.equal(completed,1,'only the earlier request body completed');assert.equal(run.selecting,true);assert.equal(control.retire(),false);
+  resolve();await pending;await Promise.resolve();
+  assert.equal(run.selecting,false);assert.equal(control.retire(),true);
 });
 
 test('absent declared metadata body preserves POST invalid-body and unsupported HEAD refusals',async()=>{
@@ -411,6 +448,7 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
     githubCommentSubjectJson() {checks++;return '{"subject":{"node_id":"I_original","number":7}}';}};
   const site = {apiOrigin: origin}, repository = Object.freeze({nodeId: 'repository',databaseId:7,nameWithOwner:'owner/original'});
   const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
+    ...githubComment,
     GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
     site, repository, boundaryCid, providerMoon, commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000,maxNodes:10_000,maxDepth:32},
     prepareGitHubCommentRequest, commentValue: (_resource, value) => value,
@@ -422,12 +460,21 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
   });
   const driver = deriveInstalledRowWrite(write, 'github');
   const value = {body: 'original comment', subject_id: 'I_original'};
-  const prepared = driver.prepareRequest({member, value});
-  const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id, body: value.body});
-  assert.deepEqual(prepared.request, old); assert.equal(prepared.requestCid, old.requestCid);
-  assert.equal(driver.requestFacts(prepared.request).value, value);
-  assert.equal(await driver.checkRequest({request: prepared.request,authorization:authorization(GITHUB_GRAPHQL_READ_OPERATION),
+  const logical = driver.prepareRequest({member, value});
+  assert.deepEqual(logical.request, githubComment.prepareGitHubCommentLogicalRequest({origin,
+    subjectId: value.subject_id, body: value.body}));
+  assert.equal(driver.capabilityRequestCid(logical.request), logical.requestCid);
+  assert.equal(driver.requestFacts(logical.request).value, value);
+  assert.equal(await driver.checkRequest({request: logical.request,authorization:authorization(GITHUB_GRAPHQL_READ_OPERATION),
     credential:{},callResource:()=>({...response,statusCode:200})}), undefined); assert.equal(checks, 1);
+  const requestTag = `sha256:${'e'.repeat(64)}`;
+  const prepared = driver.finalizeRequest({request: logical.request, requestTag});
+  assert.strictEqual(driver.finalizeRequest({request: logical.request, requestTag}), prepared);
+  const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id,
+    body: `${value.body}\n\n<!-- actql:effect:${requestTag} -->`});
+  assert.deepEqual(prepared.request, {...old, logicalBody: value.body, requestTag});
+  assert.equal(prepared.requestCid, old.requestCid);
+  assert.equal(driver.requestFacts(prepared.request).value, value);
   const calls = [], context = {request: prepared.request, authorization: authorization(GITHUB_COMMENT_CREATE_OPERATION),
     credential: {}, callResource: args => {calls.push(args); return response;}};
   const actual = await driver.send(context);
@@ -603,6 +650,7 @@ test('standard cold recovery uses saved original requests without calling the pr
     const sameEffectValue = ${selected('sameEffectValue')};
     const entryOf = ${selected('entryOf')};
     const orderedSourceIndexes = ${selected('orderedSourceIndexes')};
+    const validateRecoveredEntries = ${selected('validateRecoveredEntries')};
     return ${selected('recoveredEntries')};`)(...Object.values(ports));
   // If the standard driver supplies the existing capture codec, retain its
   // original output; a legacy driver has no such saved request material.
@@ -810,20 +858,42 @@ test('actual Sheets constructor binding forwards the original opaque profile wit
     nodeTypes, SHEETS_LIMITS, code => {throw Object.assign(new Error(code), {code});});
   const columns = Object.freeze([Object.freeze({name:'é😀',type:'string',nullable:false})]);
   const original = Object.freeze({}), calls = [];
-  const provider = {sheetsAppendConstructionProfile(...args) {assert.equal(this,provider);calls.push(args);return original;}};
+  const provider = {sheetsAppendRequestConstructionProfile(...args) {assert.equal(this,provider);calls.push(args);return original;}};
   const bound = bind(provider,columns);
   // Replacing the namespace property cannot substitute another original method.
-  provider.sheetsAppendConstructionProfile = () => assert.fail('replacement must not run');
+  provider.sheetsAppendRequestConstructionProfile = () => assert.fail('replacement must not run');
   assert.equal(bound.installedStandardCreateConstructionProfile(512,32,8),original);
-  assert.deepEqual(calls,[[Buffer.byteLength(JSON.stringify(columns)),1,512,
+  assert.deepEqual(calls,[[Buffer.byteLength(JSON.stringify(columns)),1,512,32,8,
     SHEETS_LIMITS.maxRequestBytes,SHEETS_LIMITS.maxResponseBytes,SHEETS_LIMITS.maxNodes,SHEETS_LIMITS.maxDepth]]);
   assert.ok(Object.isFrozen(bound));
   let getters=0;
-  const accessor = Object.defineProperty({},'sheetsAppendConstructionProfile',{get(){getters++;return ()=>original;}});
-  for (const bad of [accessor,new Proxy(provider,{}),{sheetsAppendConstructionProfile:async()=>original},{}]) {
+  const accessor = Object.defineProperty({},'sheetsAppendRequestConstructionProfile',{get(){getters++;return ()=>original;}});
+  for (const bad of [accessor,new Proxy(provider,{}),{sheetsAppendRequestConstructionProfile:async()=>original},{}]) {
     assert.throws(()=>bind(bad,columns),{code:'InstalledStandardCreateRuntimeUnavailable'});
   }
   assert.equal(getters,0);
+});
+
+test('actual automatic CREATE factory forwards the same earlier proposal bounds separately from Preview', () => {
+  const found=[];
+  const walk=node=>{
+    if(!node||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&node.id.name==='planRecipe')found.push(node.init);
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else walk(value);
+  };
+  walk(rowTree);assert.equal(found.length,1);
+  const node=found[0],moon={},providerMoon={},construction={},credential={},credentialSite={},selected={};
+  const limits={preview:{maxWireBytes:1000000,maxNodes:100000,maxDepth:64},body:{maxBytes:100000,maxNodes:10000,maxDepth:16}};
+  const choose=Function('automatic','prepareInstalledStandardCreatePlanRecipe','moon','providerMoon','construction',
+    'installedRowCredentialOperationSite','site','limits','resourceTextUnits','suppliedRecipe',`return (${rowSource.slice(node.start,node.end)});`);
+  const result=choose(true,options=>{
+    assert.equal(options.moon,moon);assert.equal(options.providerMoon,providerMoon);assert.equal(options.construction,construction);
+    assert.equal(options.credentialSite,credentialSite);assert.equal(options.limits,limits.preview);
+    assert.deepEqual(options.requestInput,{maxWireBytes:100000,maxNodes:10000,maxDepth:16});assert(Object.isFrozen(options.requestInput));
+    return selected;
+  },moon,providerMoon,construction,original=>{assert.equal(original,credential);return credentialSite;},
+  {credential},limits,7,undefined);
+  assert.equal(result,selected);
 });
 
 function selectedSheetsInitialization(ports, name = 'load') {
@@ -865,7 +935,7 @@ test('actual Sheets initial caller keeps original configuration declaration Mapp
   const services={async openRowSite(options) {assert.equal(this,services);assert.equal(options.installation,installation);
     assert.equal(options.sourceInitialization,scope);assert.deepEqual(calls,['/explicit/site','declaration','/explicit/publication','mappings']);
     calls.push('site');return {authorization,site:siteOwner};}};
-  const providerMoon={sheetsAppendConstructionProfile(){assert.fail('No native quote before existing Effect factory');}};
+  const providerMoon={sheetsAppendRequestConstructionProfile(){assert.fail('No native quote before existing Effect factory');}};
   const {captureConfigurationReaders} = await import('./source-profile-json.mjs');
   const load=selectedSheetsInitialization({nodeTypes,captureConfigurationReaders,registration:'sheets',revision:'sheets/0.1',
     publicationVersion:'actql-sheets-publication/0.1',targetVersion:'actql-installed-sheets-target/0.1',
@@ -1277,4 +1347,73 @@ test('Command construction requires SAME driver definition provider and immutabl
   assert.throws(()=>capture(definition,driver,Object.freeze({}),construction),{code:'InvalidInstalledEffectDriverConstruction'});
   const bad=Object.freeze({...construction,write:Object.freeze({...construction.write,operation:'sheets:clear'})});
   assert.throws(()=>capture(definition,Object.freeze({...driver,managedPlanConstruction:bad}),provider,bad),{code:'InvalidInstalledEffectDriverConstruction'});
+});
+
+
+test('actual member capture caller defers SAME original recovery until Preview and retains failing siblings', async () => {
+  const {prepareInstalledEffectRequestChild} = await import('./installed-effect-plan.mjs');
+  const {retainInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
+  const matches = [];
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'captureStage') matches.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(rowTree); assert.equal(matches.length, 1);
+  const statements = matches[0].body.body;
+  const slice = node => rowSource.slice(node.start, node.end);
+  const initialize = statements.filter(node => node.type === 'ForOfStatement' &&
+    slice(node).includes('retainInstalledRowCaptureChild('));
+  const recovery = statements.filter(node => node.type === 'ForOfStatement' &&
+    slice(node).includes('await retained.prepare()'));
+  assert.equal(initialize.length, 1); assert.equal(recovery.length, 1);
+  const vector = statements.filter(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value=>value.id.name==='memberCaptures'));
+  assert.equal(vector.length,1);
+  const source = 'const requestChildren=[],proposals=[],currents=[]; let entries;' + slice(vector[0]) +
+    slice(initialize[0]) + '\nreturn {requestChildren,proposals,currents,finish:async originalEntries=>{' +
+    'entries=originalEntries; const connectorRecovery=[];' + slice(recovery[0]) + ';return connectorRecovery;}};';
+  const open = Function('members','ownerOf','managedEffect','moon','prepared','identity',
+    'retainInstalledRowCaptureChild','prepareInstalledEffectRequestChild','retireRequestAliases',
+    'assertCurrent','signal','fail','recipeOf',source);
+  for (const failing of [false,true]) {
+    const events=[],members=[{memberIndex:0},{memberIndex:1}],parent={},prepared={},identity={},plan={};
+    const tokens=members.map(()=>({})); let retired=false;
+    const moon={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
+      clientProgramInstalledEffectOperationConstructionRetain(p,original,intent,selected,index,perRow) {
+        assert.strictEqual(p,parent);assert.strictEqual(original,prepared);assert.strictEqual(intent,identity);
+        assert.strictEqual(selected,plan);assert.equal(perRow,false);events.push('borrow'+index);
+        return {$tag:1,_0:tokens[index]};
+      } ,clientProgramInstalledEffectOperationConstructionBegin(token) {
+        assert(tokens.includes(token));return {$tag:1,_0:undefined};
+      },clientProgramInstalledEffectOperationConstructionComplete(token) {
+        events.push('complete'+tokens.indexOf(token));return {$tag:1,_0:undefined};
+      },clientProgramInstalledEffectOperationRetire(token) {assert(retired);return {$tag:1,_0:true};}};
+    const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
+      readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
+    const descriptions=[{},{}],entries=[[{}],[{}]];
+    const owners=members.map((member,index)=>({managedPlanRecipe:{captureConstruction:{operationIndex:0},
+      memberOperations:[{operation:'capture'}]},owned:{recoveryEntry(context) {
+        assert.strictEqual(this,owners[index].owned);assert.strictEqual(context.member,member);
+        assert.strictEqual(context.current,descriptions[index]);assert.strictEqual(context.entries,entries[index]);
+        events.push('recovery'+index);if(failing&&index===1)throw undefined;
+        return {kind:'original',wire:'wire'+index,observationCid:'cid'+index};
+      }}}));
+    const capture=open(members,member=>owners[member.memberIndex],managedEffect,moon,prepared,identity,
+      retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,()=>retired,undefined,undefined,
+      code=>{throw Object.assign(new Error(code),{code});},member=>owners[member.memberIndex].managedPlanRecipe);
+    assert.deepEqual(events,['borrow0','borrow1']);assert.equal(capture.requestChildren.length,2);
+    assert.deepEqual(capture.proposals,[[],[]]);capture.currents.push(...descriptions);events.push('Preview');
+    if(failing){let caught=false;try{await capture.finish(entries);}catch(error){caught=true;assert.strictEqual(error,undefined);}
+      assert(caught);assert.deepEqual(events,['borrow0','borrow1','Preview','recovery0','complete0','recovery1']);}
+    else assert.deepEqual(await capture.finish(entries),[
+      {memberIndex:0,kind:'original',wire:'wire0',observationCid:'cid0'},
+      {memberIndex:1,kind:'original',wire:'wire1',observationCid:'cid1'}]);
+    assert(capture.requestChildren.every(value=>value.prepared.status().pending));
+    retired=true;for(const child of capture.requestChildren)await child.prepared.release();
+    assert(capture.requestChildren.every(value=>value.prepared.status().pending===false));
+  }
 });

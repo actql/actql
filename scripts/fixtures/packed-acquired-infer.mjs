@@ -125,6 +125,7 @@ const checked = value => {
 const client = await connect({mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: join(root, 'host'),
     sourceProfilePath: join(root, 'source-profile.json'),
+    hostCapacityPolicy: base.host_policy_profile.capacity,
     modelInstallation: installation, authorization,
     registerModelProviders: moon => [{providerId: 'models/packed',
       bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-acquired-risk-model'}),

@@ -157,6 +157,7 @@ fn original_keyed_declaration_environment(
 fn original_keyed_run_fixture(
   selector_free? : Bool = false,
   relation_versions? : Bool = false,
+  unknown_left_rows? : Bool = false,
   serialization_max_bytes? : Int = 4096,
   typed_content_input? : Bool = false,
 ) -> (
@@ -201,9 +202,9 @@ fn original_keyed_run_fixture(
         join_step.get("join") is Some(Object(join)) else {
         abort("fixture version-history steps")
       }
-      // Ordinary Source cardinality is unknown. An explicit take provides
-      // existing producer membership, rather than borrowing a Host ceiling
-      // or adding FILES facts which do not describe this Relation.
+      // The optional take provides an actual static bound. Its companion
+      // keeps the same ordinary Source and checked target without that bound;
+      // a preserving filter neither counts rows nor invents FILES evidence.
       // Preserve the existing scan/filter/select acquisition. The later
       // bounded Local prefix, not an invented Source query, owns these guards.
       join["left"] = @json.parse("\"bounded\"")
@@ -217,7 +218,11 @@ fn original_keyed_run_fixture(
           "{\"from\":\"unique_names\",\"sort\":[{\"field\":\"name\",\"dir\":\"asc\",\"nulls\":\"last\"}],\"as\":\"ordered_names\"}",
         ),
         @json.parse(
-          "{\"from\":\"ordered_names\",\"take\":3,\"as\":\"bounded\"}",
+          if unknown_left_rows {
+            "{\"from\":\"ordered_names\",\"filter\":{\"literal\":true},\"as\":\"bounded\"}"
+          } else {
+            "{\"from\":\"ordered_names\",\"take\":3,\"as\":\"bounded\"}"
+          },
         ),
       ]
       for index in 2..<steps.length() {
@@ -272,6 +277,12 @@ fn original_keyed_run_fixture(
   let keyed = @publication_host.select_client_single_keyed_acquisition(prepared)
     .unwrap()
     .unwrap()
+  if unknown_left_rows {
+    let (rows, keys, _, _) = @publication_host.client_keyed_lookup_capacity(
+      keyed, 4096, 100000,
+    ).unwrap()
+    assert_true(rows is None && keys is None)
+  }
   let (_, direct, _) = @publication_host.client_keyed_direct_acquisition_coordinates(
     keyed,
   ).unwrap()
@@ -440,8 +451,9 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     source, "fixture-original-keyed-empty", original_row_query_contract_fixture,
     original_row_evidence_contract_fixture,
   ).unwrap()
-  // Independently calculated existing empty assembly envelope:
-  // retention = 64*8 + 4096; workspace = 64*32 + 64*8 + 4096.
+  // The empty assembly owns only its fixed 4096-byte control envelope.
+  // The max-work ceiling allocates no absent key/copy traversal. The original
+  // Direct capture independently retains its three bytes and two execution bytes.
   // These canonical-layout budgets are not a normal Node physical profile.
   let (scope, ledger) = original_row_scope(
     compiled,
@@ -450,7 +462,7 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     retained_bytes=@row_source_host.row_acquisition_retained_capacity(
         acquisition,
       ) +
-      4608L +
+      4096L +
       3L,
     execution_bytes=@row_source_host.row_acquisition_execution_capacity(
         acquisition,
@@ -542,8 +554,19 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     assembled_usage.reserved_attempts,
     captured_usage.reserved_attempts + 1,
   )
-  assert_eq(assembled_usage.reserved_retention_bytes, 4611L)
-  assert_eq(assembled_usage.reserved_execution_bytes, 6658L)
+  // Same constructor retains left receipt/identity, Source cache, start time,
+  // issuer and completion references plus one consumed-work word: 6*8 + 8.
+  // The central tariff is unchanged; later payloads are funded only on use.
+  // Preserve this capture's independently supplied retained3/execution2.
+  let original_identity_fields = 6L * 8L + 8L
+  assert_eq(
+    assembled_usage.reserved_retention_bytes,
+    4096L + original_identity_fields + 3L,
+  )
+  assert_eq(
+    assembled_usage.reserved_execution_bytes,
+    4096L + original_identity_fields + 2L,
+  )
   assert_eq(assembled_usage.holdings, 1)
   // Zero progress is neither cleanup acknowledgment nor permission to return
   // the buffer's reservation. It must not close the original Direct child.

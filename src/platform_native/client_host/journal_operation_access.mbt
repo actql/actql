@@ -4,6 +4,10 @@
 // Journal, permission, initialization route or acknowledgement.
 priv struct NativeClientJournalOperationAccess {
   reads : NativeClientJournalReadAccess
+  before_construction : ((Int, Int, Int) -> Result[
+    Unit,
+    @host.ClientJournalEncodingIssue,
+  ])?
   read_evidence_usage : (String, Int64, Int64) -> Result[
     (Int64, Int64),
     @sqlite.NativeSqliteIssue,
@@ -37,6 +41,93 @@ priv struct NativeClientJournalOperationAccess {
     Bool,
     @sqlite.NativeSqliteIssue,
   ]
+  grow_capacity : (
+    String,
+    String,
+    @sqlite.NativeCapacityUsage,
+    Int64,
+    Int64,
+    Int64,
+    Int64,
+  ) -> Result[Unit, @sqlite.NativeSqliteIssue]
+}
+
+///|
+// Replace only the exact previous metadata reservation in the caller's
+// transaction. Both counters grow; no physical holding, Model attempt or
+// consumed work is released. The caller must roll back the entire transaction
+// on failure and retain its original Unknown if that rollback is unobserved.
+fn grow_journal_capacity_in_transaction(
+  database : @sqlite.Database,
+  table_name : String,
+  key : String,
+  previous : @sqlite.NativeCapacityUsage,
+  bytes : Int64,
+  objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  if previous.reserved_bytes < 0L ||
+    previous.reserved_objects < 0L ||
+    bytes <= 0L ||
+    objects <= 0L ||
+    max_bytes < previous.reserved_bytes ||
+    max_objects < previous.reserved_objects ||
+    bytes > max_bytes - previous.reserved_bytes ||
+    objects > max_objects - previous.reserved_objects {
+    return Err(@sqlite.CapacityExceeded)
+  }
+  if previous.reserved_bytes != 0L || previous.reserved_objects != 0L {
+    match
+      database.release_capacity_in_transaction(
+        table_name,
+        key,
+        previous.reserved_bytes,
+        previous.reserved_objects,
+      ) {
+      Ok(true) => ()
+      Ok(false) => return Err(@sqlite.Collision)
+      Err(issue) => return Err(issue)
+    }
+  }
+  match
+    database.reserve_capacity_in_transaction(
+      table_name,
+      key,
+      previous.reserved_bytes + bytes,
+      previous.reserved_objects + objects,
+      max_bytes,
+      max_objects,
+    ) {
+    Ok(true) => Ok(())
+    Ok(false) => Err(@sqlite.Collision)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn grow_client_journal_capacity(
+  database : @sqlite.Database,
+  table_name : String,
+  key : String,
+  previous : @sqlite.NativeCapacityUsage,
+  bytes : Int64,
+  objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+  access : NativeClientJournalOperationAccess?,
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  match access {
+    None =>
+      grow_journal_capacity_in_transaction(
+        database, table_name, key, previous, bytes, objects, max_bytes, max_objects,
+      )
+    Some(original) if physical_equal(database, original.reads.database) =>
+      (original.grow_capacity)(
+        table_name, key, previous, bytes, objects, max_bytes, max_objects,
+      )
+    _ => Err(@sqlite.Collision)
+  }
 }
 
 ///|
@@ -204,4 +295,21 @@ fn read_client_journal_evidence_usage(
       (original.read_evidence_usage)(request_wire, max_entries, max_bytes)
     _ => Err(@sqlite.Collision)
   }
+}
+
+///|
+// The same entered Read pays every emission of its original submitted row,
+// including admission and saved-state CAS. Without an operation, keep the
+// legacy finite codec; a foreign Database cannot lend this reservation.
+fn submitted_encode_construction(
+  database : @sqlite.Database,
+  access : NativeClientJournalOperationAccess?,
+) -> ((Int, Int, Int) -> Result[Unit, @host.ClientJournalEncodingIssue])? {
+  access.bind(original => {
+    if physical_equal(database, original.reads.database) {
+      original.before_construction
+    } else {
+      Some((_, _, _) => Err(@host.ClientJournalEncodingIssue::Encoding))
+    }
+  })
 }

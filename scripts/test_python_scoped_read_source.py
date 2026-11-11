@@ -20,7 +20,59 @@ def entry(data):
     return {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
 
 
+class ScopedReadCommandTests(unittest.TestCase):
+    def test_explicit_x64_cli_target_reaches_the_existing_verified_preparer(self):
+        # This checks routing only. Source pins and actual copied output remain
+        # covered by the existing preparation tests; no compilation is implied.
+        for target in ('aarch64-apple-darwin', 'aarch64-unknown-linux-gnu',
+                       'x86_64-unknown-linux-gnu'):
+            with self.subTest(target=target), \
+                    patch.object(PREPARE, 'prepare', return_value={'target': target}) as selected, \
+                    patch('builtins.print') as output:
+                PREPARE.main(['--moonbit', '/pinned/moon', '--destination', '/fresh/stage',
+                              '--target', target])
+                selected.assert_called_once_with(Path('/pinned/moon'), Path('/fresh/stage'),
+                                                 target=target)
+                output.assert_called_once_with(json.dumps({'target': target}))
+
+
 class CurrentProviderClosureTests(unittest.TestCase):
+    def test_default_darwin_binaries_are_not_replaced_by_local_linux_inputs(self):
+        manifest = json.loads((CANDIDATE / 'scoped-read-source.json').read_bytes())
+        self.assertEqual(manifest['target'], 'aarch64-apple-darwin')
+        # Independent pins for the existing selected compiler, not this host's
+        # toolchain. Linux overrides must remain confined to source_targets.
+        expected = {
+            'lib/libmoonbitrun.o': {'bytes': 188920, 'sha256':
+                'd9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96'},
+            'lib/libbacktrace.a': {'bytes': 281872, 'sha256':
+                'a0ed98ead4be023f2840063c0e1c016fe581895c936759e68fd6e0e23dfaf9b7'},
+        }
+        selected = PREPARE._select_target(manifest, 'aarch64-apple-darwin')
+        for path, pin in expected.items():
+            with self.subTest(path=path):
+                item = next(item for item in selected['inputs']
+                            if item['root'] == 'moonbit' and item['path'] == path)
+                self.assertEqual({key: item[key] for key in ('bytes', 'sha256')}, pin)
+                self.assertEqual(selected['outputs'][item['output']], pin)
+        for target in ('aarch64-unknown-linux-gnu', 'x86_64-unknown-linux-gnu'):
+            selected = PREPARE._select_target(manifest, target)
+            for path, pin in manifest['source_targets'][target]['binary_inputs'].items():
+                with self.subTest(target=target, path=path):
+                    item = next(item for item in selected['inputs']
+                                if item['root'] == 'moonbit' and item['path'] == path)
+                    self.assertEqual({key: item[key] for key in ('bytes', 'sha256')}, pin)
+                    self.assertEqual(selected['outputs'][item['output']], pin)
+                    self.assertNotEqual(pin, expected[path])
+
+    def test_existing_linux_process_recipe_keeps_current_source_identities(self):
+        root = CANDIDATE.parents[3]
+        manifest = json.loads((CANDIDATE / 'linux-x64-process-source.json').read_bytes())
+        for item in manifest['inputs']:
+            with self.subTest(path=item['path']):
+                self.assertEqual(entry((root / item['path']).read_bytes()),
+                                 {key: item[key] for key in ('bytes', 'sha256')})
+
     def test_real_provider_patch_and_derived_outputs_match(self):
         manifest = json.loads((CANDIDATE / 'scoped-read-source.json').read_bytes())
         source_patch = PREPARE._read(CANDIDATE, manifest['patch']['path'], manifest['patch'])
@@ -110,6 +162,30 @@ class ScopedReadSourceTests(unittest.TestCase):
         self.assertEqual((self.destination / 'libmoonbitrun.o').read_bytes(), b'linux-object')
         self.assertEqual(result['compiled'], 0)
         self.assertIs(result['installed_supplier'], False)
+
+    def test_x64_bundle_variant_keeps_its_explicit_profile_and_exact_binary_inputs(self):
+        self.add_linux_binaries()
+        import copy
+        original = self.manifest['source_targets']['aarch64-unknown-linux-gnu']
+        variant = copy.deepcopy(original)
+        variant['required_defines'].append('ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY')
+        self.manifest['source_targets']['x86_64-unknown-linux-gnu'] = variant
+        result = self.prepare('x86_64-unknown-linux-gnu')
+        self.assertEqual(result['target'], 'x86_64-unknown-linux-gnu')
+        self.assertIn('ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY', result['required_defines'])
+        self.assertNotIn('ACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN', result['required_defines'])
+        self.assertEqual(result['compiled'], 0)
+        self.assertIs(result['installed_supplier'], False)
+
+    def test_x64_bundle_cannot_substitute_the_default_process_profile(self):
+        self.add_linux_binaries()
+        import copy
+        variant = copy.deepcopy(self.manifest['source_targets']['aarch64-unknown-linux-gnu'])
+        variant['required_defines'].append('ACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN')
+        self.manifest['source_targets']['x86_64-unknown-linux-gnu'] = variant
+        with self.assertRaisesRegex(ValueError, 'Invalid selected source target recipe'):
+            self.prepare('x86_64-unknown-linux-gnu')
+        self.assertFalse(self.destination.exists())
 
     def test_linux_objects_do_not_satisfy_default_darwin_selection(self):
         self.add_linux_binaries()

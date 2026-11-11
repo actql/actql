@@ -302,10 +302,15 @@ fn measure_client_task_fragment_construction(
   max_nodes : Int,
   max_depth : Int,
   serialization_input? : @lower.PreparedSerialization? = None,
+  source_selection? : Array[Int]? = None,
 ) -> Result[ClientTaskFragmentConstruction, ClientTaskFragmentIssue] {
   let (initial, pipeline) = match
     measure_client_task_pipeline_construction(
-      input, max_wire_bytes, max_nodes, max_depth,
+      input,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      source_selection~,
     ) {
     Ok(geometry) => geometry
     Err(issue) => return Err(Pipeline(issue))
@@ -375,6 +380,7 @@ fn measure_client_task_fragment_construction(
         max_nodes,
         max_depth,
         header_writer,
+        source_selection~,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
@@ -405,9 +411,13 @@ fn measure_client_task_fragment_construction(
         max_nodes,
         max_depth,
         writer,
+        source_selection~,
       ) {
       Ok(_) =>
         Ok({
+          pipeline_geometry: None,
+          fragment_geometry: None,
+          output_contract_geometry: None,
           initial_pipeline: initial,
           pipeline,
           fragment: @encode.finish_measurement_usage(writer),
@@ -698,6 +708,7 @@ fn[P, C] emit_client_task_fragment_body(
   max_nodes : Int,
   max_depth : Int,
   writer : @encode.Writer,
+  source_selection? : Array[Int]? = None,
 ) -> Result[Unit, ClientTaskFragmentIssue] raise @encode.EncodeFailure {
   let prepared = @lower.bound_preparation(owner)
   let checked = @lower.pipeline(prepared)
@@ -706,6 +717,11 @@ fn[P, C] emit_client_task_fragment_body(
   @encode.begin_object(writer)
   let input_count = client_task_fragment_input_count(owner, selected)
   for index in 0..<input_count {
+    if selected is None &&
+      source_selection is Some(indices) &&
+      !indices.contains(index) {
+      continue
+    }
     let input = if selected is Some(step) {
       @lower.node_at(prepared, step)
       .bind(node => @lower.node_input_target(node, index))
@@ -751,6 +767,7 @@ fn issue_client_task_fragment_body(
   max_nodes : Int,
   max_depth : Int,
   serialization_input? : @lower.PreparedSerialization? = None,
+  source_selection? : Array[Int]? = None,
 ) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
   let pipeline = construction.body
   let logical_cid = @canonical.cid_value(
@@ -811,6 +828,7 @@ fn issue_client_task_fragment_body(
         max_nodes,
         max_depth,
         writer,
+        source_selection~,
       ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)

@@ -146,6 +146,46 @@ pub fn client_program_admit_effect_run_materials(
 }
 
 ///|
+
+///|
+/// Reuse the exact already-backed compiler original from this Request. The
+/// existing materials Owner still binds saved evidence, full inputs and the
+/// independently selected Request/Run; no compiler, Run or grant is issued.
+#export_name("clientProgramAdmitEffectRunMaterialsWithCompilation")
+pub fn client_program_admit_effect_run_materials_with_compilation(
+  wire : String,
+  expected_run_cid : String,
+  compilation : @publication_host.ClientEffectCompilation,
+  expected_request : @publication_host.ClientRequestIdentity,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+) -> Result[
+  @publication_host.ClientEffectRunMaterials,
+  ClientEffectOriginalBridgeIssue,
+] {
+  let manifests = match client_effect_original_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @publication_host.admit_client_effect_run_materials(
+    wire,
+    expected_run_cid,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    manifests,
+    client_effect_original_limits(),
+    client_program_effect_limits(),
+    expected_request=Some(expected_request),
+    original_compilation=Some(compilation),
+  ).map_err(issue => Materials(issue))
+}
+
+///|
 #export_name("clientProgramEffectRunMaterialsPrepared")
 pub fn client_program_effect_run_materials_prepared(
   value : @publication_host.ClientEffectRunMaterials,
@@ -245,6 +285,30 @@ pub fn client_program_effect_target_selection_current(
 }
 
 ///|
+#export_name("clientProgramEffectTargetSelectionCurrentData")
+pub fn client_program_effect_target_selection_current_data(
+  original : @publication_host.ClientEffectUpdateTargetSelections,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  installations : Array[@publication_host.ClientEffectTargetInstallationData],
+  observations : String,
+) -> Bool {
+  @publication_host.client_effect_target_selection_current_data(
+    original, prepared, installations, observations,
+  )
+}
+
+///|
+#export_name("clientProgramIssueEffectTargetInstallationData")
+pub fn client_program_issue_effect_target_installation_data(
+  facts : Array[String],
+) -> Result[
+  (String, String, @publication_host.ClientEffectTargetInstallationData),
+  @publication_host.ClientEffectUpdateTargetIssue,
+] {
+  @publication_host.issue_client_effect_target_installation_data(facts)
+}
+
+///|
 #export_name("clientProgramIssueEffectTargetInstallation")
 pub fn client_program_issue_effect_target_installation(
   facts : String,
@@ -256,6 +320,15 @@ pub fn client_program_issue_effect_target_installation(
 #export_name("clientProgramEffectTargetInstallationsShape")
 pub fn client_program_effect_target_installations_shape(wire : String) -> Bool {
   @publication_host.client_effect_target_installations_shape(wire)
+}
+
+///|
+#export_name("clientProgramEffectTargetInstallationsDataEqual")
+pub fn client_program_effect_target_installations_data_equal(
+  left : Array[String],
+  right : Array[String],
+) -> Bool {
+  @publication_host.client_effect_target_installations_data_equal(left, right)
 }
 
 ///|

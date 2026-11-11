@@ -1,11 +1,11 @@
 ///|
-// Allocate only after bounded checked preparation, before the first durable
-// Submission or Run action. The declared Host maximum is not initialized
+// Acquire the existing conservative installed facility BEFORE semantic
+// preparation, and before the first durable Submission or Run action. The declared Host maximum is not initialized
 // execution capacity. Every partial acquisition remains on this same carrier.
-fn LocalCommandPreparationOriginal::prepare_business_capacity(
+fn LocalCommandPreparationOriginal::prepare_business_request_capacity(
   self : LocalCommandPreparationOriginal,
   capture : @local_host.NativeLocalJournalCapture,
-  requirements : @local_values.ClientLocalRequirements,
+  input : LocalCommandBusinessInput,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.host is Some(host) &&
     self.journal is Some(journal) &&
@@ -24,35 +24,38 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
     return Err(CommandUnavailable)
   }
   let maximum = business.profile.limits
-  let supported = requirements.maximum_limits()
-  if supported.planning_work > maximum.planning_work ||
-    supported.attempts > maximum.attempts ||
-    supported.holdings > maximum.holdings ||
-    supported.transfer_bytes > maximum.transfer_bytes ||
-    supported.retained_bytes > maximum.retained_bytes ||
-    supported.execution_bytes > maximum.execution_bytes {
-    return Err(CommandUnavailable)
-  }
-  let selected = local_command_selected_business_limits(
-    maximum,
-    requirements.simultaneous_limits(),
-  )
+  // This is the pre-existing installer ceiling, not inferred Program demand.
+  // The SAME Request reservation grows within it before each constructor.
+  let selected = maximum
+  business.request_input = Some(input)
   if selected.retained_bytes > 9223372036854775807L - selected.execution_bytes {
     return Err(CommandUnavailable)
   }
-  let payload = selected.retained_bytes + selected.execution_bytes
-  guard local_command_domain_bytes(payload) is Some(bytes) &&
+  // The existing shared Owner quotes its complete fixed Request entrance.
+  // The already selected Native control block covers first Reader/callback
+  // bookkeeping; it is a physical prefix, not another logical reservation.
+  guard @local_values.client_request_preparation_control_capacity(
+      @local_values.client_local_resource_policy(),
+    )
+    is Some((control_retained, control_execution)) &&
+    native_storage_sum([control_retained, control_execution]) is Ok(control) &&
+    native_storage_sum([
+      self.profile.read_budget.bootstrap_retained,
+      self.profile.read_budget.bootstrap_execution,
+    ])
+    is Ok(prefix) &&
+    prefix >= control &&
+    prefix > 0L &&
+    prefix <= business.profile.payload_facility_bytes &&
+    local_command_domain_bytes(prefix) is Some(bytes) &&
     bytes <= business.profile.domain_bytes else {
     return Err(CommandUnavailable)
   }
-  // Retain the exact selection before any physical attempt; a failed attempt
-  // cannot choose a different capacity or obtain another provisioning credit.
-  business.selected_profile = Some({
-    kind: SourceFreeCompute,
-    domain_bytes: bytes,
-    payload_facility_bytes: payload,
-    limits: selected,
-  })
+  // Preserve the same immutable MAX selection. Record actual initial backing
+  // separately BEFORE any physical attempt; partial failure retains both.
+  business.selected_profile = Some(business.profile)
+  business.initial_window_bytes = Some(prefix)
+  business.initial_domain_bytes = Some(bytes)
   native_timing_amount(53, maximum.retained_bytes)
   native_timing_amount(54, maximum.execution_bytes)
   native_timing_amount(55, selected.retained_bytes)
@@ -92,8 +95,12 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
   let prepared = match (acquired, returned) {
     (Ok(_), Ok(_)) =>
       try {
-        command_preparation_value(self.prepare_business_execution(host))
-        command_preparation_value(self.prepare_business_operation())
+        command_preparation_value(self.prepare_business_execution(host, input))
+        // The fixed static caller has no Store/Run operation child. Its SAME
+        // Request reservation funds parsing, checking and metadata only.
+        if input.operation != "check" {
+          command_preparation_value(self.prepare_business_operation())
+        }
         Ok(())
       } catch {
         LocalCommandPreparationStop(issue) => Err(issue)
@@ -187,5 +194,159 @@ fn LocalCommandPreparationOriginal::prepare_saved_result_operation(
       Err(issue)
     }
     Ok(_) => resumed
+  }
+}
+
+///|
+// Actual Saved constructor demand, never a fresh input/Request allowance.
+// Retain each selected amount and partial domain before the next fallible
+// acquisition; the SAME Host Read is returned on both success and failure.
+fn LocalCommandPreparationOriginal::prepare_saved_effect_capacity(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.run_observation is Some(observation) &&
+    observation.effect_resume is Some(_) else {
+    return Err(CommandUnavailable)
+  }
+  if self.business is Some(business) &&
+    business.profile.kind == SavedEffectApply &&
+    business.selected_profile is Some(_) &&
+    business.domain is Some(_) &&
+    business.execution is Some(_) &&
+    business.operation is Some(_) &&
+    business.saved_effect_files is Some(_) &&
+    self.saved_observation_business_disjoint() &&
+    self.journal is Some(original) &&
+    physical_equal(original, capture) &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None {
+    return Ok(())
+  }
+  self.prepare_saved_effect_construction_capacity(capture, capacity)
+}
+
+///|
+// The SAME already selected Saved business facility can back restoration
+// before signing. This prefix issues no Resume, claim, Request, dispatch or
+// Ledger view. The later activation wrapper still requires the original
+// signed Resume. Retain each physical stage before the next fallible step.
+fn LocalCommandPreparationOriginal::prepare_saved_effect_construction_capacity(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.host is Some(host) &&
+    self.journal is Some(actual) &&
+    physical_equal(actual, capture) &&
+    self.journal_read_open &&
+    self.run_observation is Some(observation) &&
+    observation.saved_effect_review is Some(_) &&
+    self.business is Some(business) &&
+    business.profile.kind == SavedEffectApply &&
+    self.saved_observation_business_disjoint() &&
+    business.selected_profile is None &&
+    business.domain is None &&
+    business.execution is None &&
+    business.operation is None &&
+    self.backing_scope is None &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None else {
+    return Err(CommandUnavailable)
+  }
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  let execution = @execution.execution_capacity_execution_bytes(capacity)
+  let limits = business.profile.limits
+  guard retained > 0L &&
+    execution > 0L &&
+    retained <= limits.retained_bytes &&
+    execution <= limits.execution_bytes &&
+    native_storage_sum([retained, execution]) is Ok(payload) &&
+    payload <= business.profile.payload_facility_bytes &&
+    local_command_domain_bytes(payload) is Some(bytes) &&
+    bytes <= business.profile.domain_bytes else {
+    return Err(CommandUnavailable)
+  }
+  business.selected_profile = Some(business.profile)
+  business.initial_window_bytes = Some(payload)
+  business.initial_domain_bytes = Some(bytes)
+  match capture.suspend_original_read_for_preparation() {
+    Err(issue) => return Err(CommandAdoption(issue))
+    Ok(_) => ()
+  }
+  let acquired = try {
+    let scope = command_preparation_value(
+      host.borrow_backing().map_err(issue => CommandHost(issue)),
+    )
+    self.backing_scope = Some(scope)
+    command_preparation_value(
+      host
+      .enter_backing_borrow_scope(scope)
+      .map_err(issue => CommandHost(issue)),
+    )
+    self.backing_entered = true
+    command_preparation_value(self.prepare_business_domain(host, scope))
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => Err(issue)
+  }
+  let returned = self.finish_business_backing_scope(host)
+  let prepared = match (acquired, returned) {
+    (Ok(_), Ok(_)) =>
+      try {
+        command_preparation_value(self.prepare_saved_effect_execution(host))
+        command_preparation_value(self.prepare_business_operation())
+        Ok(())
+      } catch {
+        LocalCommandPreparationStop(issue) => Err(issue)
+      }
+    (Err(issue), _) | (_, Err(issue)) => Err(issue)
+  }
+  let resumed = capture
+    .resume_original_read_after_preparation()
+    .map_err(issue => CommandAdoption(issue))
+  match prepared {
+    Err(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+    Ok(_) => resumed
+  }
+}
+
+///|
+// The existing original retained execution, without issuing a new Request
+// preparation, input producer, Run admission or Model/Source computation.
+fn LocalCommandPreparationOriginal::prepare_saved_effect_execution(
+  self : Self,
+  host : @initial_arena.InstalledArenaHost,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.business is Some(business) &&
+    business.profile.kind == SavedEffectApply &&
+    business.selected_profile is Some(selected) &&
+    business.domain is Some(domain) &&
+    business.execution is None &&
+    business.request_initial is None &&
+    business.request_parent is None else {
+    return Err(CommandUnavailable)
+  }
+  match
+    host.prepare_domain_read(domain, execution_ceiling=selected.domain_bytes) {
+    Err(issue) => return Err(CommandDomain(issue))
+    Ok(_) => ()
+  }
+  match host.prepare_domain_retained_execution(domain) {
+    Err(issue) => Err(CommandRetainedExecution(issue))
+    Ok(PendingRetainedExecution(execution, issue)) => {
+      business.execution = Some(execution)
+      Err(CommandRetainedExecution(issue))
+    }
+    Ok(ReadyRetainedExecution(execution)) => {
+      business.execution = Some(execution)
+      Ok(())
+    }
   }
 }

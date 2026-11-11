@@ -3,9 +3,18 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {groupedQueryCases} from './fixtures/grouped-query-programs.mjs';
-import {compileCapturedQueryJson, compileQueryJson,
+import {canonicalText} from './check-canonical-json.mjs';
+import {hexIntegerSuccesses, hexIntegerRefusals} from './fixtures/hex-integer-source-input.mjs';
+import {compileCapturedQueryJson as compileCapturedQueryWithCatalogJson, compileQueryJson,
   compileValuesQueryJson} from
   '../_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js';
+
+const sourceEnvironment = JSON.parse(await readFile(new URL(
+  '../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+const sourceEnvironmentWire = canonicalText(sourceEnvironment);
+const sourceEnvironmentCid = sourceEnvironment.evidence_bundle_cid;
+const compileCapturedQueryJson = (...args) => compileCapturedQueryWithCatalogJson(
+  ...args, sourceEnvironmentWire, sourceEnvironmentCid);
 
 const fixture = name => fileURLToPath(new URL(
   `../spec/frontend/fixtures/${name}`, import.meta.url));
@@ -15,6 +24,32 @@ const input = expected.stages[0].inputs.orders;
 const fields = Object.keys(input.schema);
 const sql = await readFile(fixture('query-pair.standard.sql'), 'utf8');
 const pipe = await readFile(fixture('query-pair.pipe.sql'), 'utf8');
+
+test('packed analytic LEAD fixture preserves its original quoted output name', async () => {
+  const source = await readFile(new URL('./test-node-client-package.mjs', import.meta.url), 'utf8');
+  const expression = /\['lead',\s*((?:'(?:\\.|[^'\\])*'\s*\+\s*)*'(?:\\.|[^'\\])*')\s*,/u.exec(source);
+  assert(expression, 'Keep the actual packed LEAD caller');
+  // Only the selected literal-string expression is evaluated, not the packed
+  // installer, Host or any of its stateful acceptance steps.
+  const sql = new Function('return (' + expression[1] + ');')();
+  const compile = text => compileCapturedQueryJson(text, 'records', 'remote',
+    JSON.stringify({connector: 'crm/main', resource: 'r'}),
+    JSON.stringify(['id', 'amount']), 'fixture.analytic_lead');
+  const wire = compile(sql);
+  assert.notEqual(wire, '');
+  const program = JSON.parse(wire);
+  const analytic = program.stages.flatMap(stage => stage.steps)
+    .find(step => step.analytic)?.analytic;
+  assert.deepEqual(analytic, {partition_by: [],
+    order_by: [{field: 'id', dir: 'asc', nulls: 'first'}],
+    functions: {following: {fn: 'lead', expr: {field: 'id'}}}});
+  const result = program.results.answer.from;
+  assert.deepEqual(program.stages.find(stage => stage.id === result.stage)
+    .results[result.result].fields, ['id', 'following']);
+  assert(sql.includes('`following`'));
+  assert.equal(compile(sql.replace('`following`', 'following')), '',
+    'The original reserved bare output name remains refused');
+});
 
 test('SQL and Pipe grouping preserve independent predicate and projection Programs', () => {
   for (const {name, source, expected: program} of groupedQueryCases) {
@@ -108,14 +143,19 @@ test('INFER KEEP and omitted KEEP match independent complete Program fixtures', 
     const text = await readFile(fixture(`infer-keep/${name}.aql`), 'utf8');
     const expected = JSON.parse(await readFile(
       fixture(`infer-keep/${name}.expected-program.json`), 'utf8'));
-    const actual = compileValuesQueryJson(text, 'tickets', 'tickets',
+    const wire = compileValuesQueryJson(text, 'tickets', 'tickets',
       JSON.stringify(input), JSON.stringify(['id', 'text', 'secret']),
       'fixture.infer_keep');
-    assert.notEqual(actual, '');
-    assert.deepEqual(JSON.parse(actual), expected);
+    assert.notEqual(wire, '');
+    const actual = JSON.parse(wire);
+    assert.deepEqual(actual, expected);
+    // Omitted KEEP is KEEP (*); explicit KEEP still has its authored subset.
+    // These are public Result fields, independent of internal join-back slots.
+    assert.deepEqual(actual.stages[0].results.rows.fields, name === 'omitted'
+      ? ['id', 'text', 'secret', 'assessment'] : ['id', 'risk']);
     // Lowering emits no second Values/source acquisition or model egress from KEEP.
     assert.equal(expected.stages[0].steps.filter(step => step.values).length, 1);
-    assert.deepEqual(expected.stages[0].steps.find(step => step.infer).infer.input,
+    assert.deepEqual(actual.stages[0].steps.find(step => step.infer).infer.input,
       {text: {field: 'text'}});
   }
 });
@@ -124,8 +164,7 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
   const expected = {version: 'actql/0.1', id: 'fixture.cte_capture',
     stages: [
       {id: 'capture', inputs: {orders: input}, steps: [
-        {from: 'orders', filter: {literal: true}},
-        {select: fields, as: 'aql_capture_0'}],
+        {from: 'orders', select: fields, as: 'aql_capture_0'}],
       results: {source: {from: 'aql_capture_0', fields}}},
       // Captured JOINs use common Script lowering: one retained Source Result
       // feeds a single CTE producer used by both sides of the JOIN. Author this
@@ -141,8 +180,9 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
     results: {answer: {from: {stage: 'main', result: 'rows'}}}};
   for (const predicate of ['', ' WHERE amount > 0']) {
     const authored = structuredClone(expected);
-    if (predicate !== '') authored.stages[0].steps[0].filter =
-      {gt: [{field: 'amount'}, {literal: 0}]};
+    if (predicate !== '') authored.stages[0].steps = [
+      {from: 'orders', filter: {gt: [{field: 'amount'}, {literal: 0}]}},
+      {select: fields, as: 'aql_capture_0'}];
     const wire = compileCapturedQueryJson(
       'WITH seed AS (SELECT id, amount FROM orders' + predicate + ') '
         + 'SELECT l.id AS id FROM seed l JOIN seed r ON l.id = r.id ORDER BY id',
@@ -161,4 +201,60 @@ test('real-source CTE JOIN preserves one normal acquisition and shared producer'
     assert.equal(join.from, producer.as);
     assert.equal(join.join.with, producer.as);
   }
+});
+
+test('captured CTE and subquery compilation retains the original fixture Catalog', () => {
+  const declaration = {connector: 'crm/main', resource: 'r'};
+  const args = ['records', 'remote', JSON.stringify(declaration),
+    JSON.stringify(['id', 'amount']), 'fixture.catalog_capture'];
+  const queries = [
+    'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) SELECT id FROM chosen',
+    'SELECT outer_rows.id FROM (SELECT DISTINCT inner_rows.id FROM '
+      + '(SELECT id FROM records WHERE id > 1) AS inner_rows '
+      + 'ORDER BY id LIMIT 2) AS outer_rows',
+    'WITH chosen AS (SELECT id, amount FROM records WHERE id > 1) '
+      + 'SELECT l.id AS left_id, r.id AS right_id '
+      + 'FROM chosen AS l JOIN chosen AS r ON l.id = r.id',
+  ];
+  for (const query of queries) {
+    const wire = compileCapturedQueryJson(query, ...args);
+    assert.notEqual(wire, '', query);
+    const program = JSON.parse(wire);
+    assert.equal(program.stages.length, 2);
+    assert.deepEqual(program.stages[0].inputs.remote, declaration);
+    assert.deepEqual(program.stages[1].inputs.remote,
+      {result: {stage: 'capture', result: 'source'}});
+    assert.equal(compileCapturedQueryWithCatalogJson(query, ...args,
+      sourceEnvironmentWire, 'sha256:' + '0'.repeat(64)), '');
+    assert.equal(compileCapturedQueryWithCatalogJson(query, ...args,
+      '{}', sourceEnvironmentCid), '');
+    assert.equal(compileCapturedQueryJson(query, ...[
+      ...args.slice(0, 2), JSON.stringify({connector: 'foreign', resource: 'r'}), ...args.slice(3),
+    ]), '');
+  }
+});
+
+
+test('SQL signed hex zero normalizes without admitting canonical JSON negative zero', () => {
+  const fixture = hexIntegerSuccesses.find(item => item.text === 'SELECT -0X0 AS value');
+  assert(fixture);
+  assert.equal(hexIntegerRefusals.some(item => item.text === fixture.text), false);
+  const values = {values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}, as: 'seed'};
+  const emitted = compileValuesQueryJson(fixture.text, 'seed', 'seed',
+    JSON.stringify(values), '["unit"]', 'fixture.hex_signed_zero');
+  assert.notEqual(emitted, '');
+  const literals = [];
+  (function visit(value) {
+    if (!value || typeof value !== 'object') return;
+    if (Object.hasOwn(value, 'literal') && typeof value.literal === 'number') literals.push(value.literal);
+    Object.values(value).forEach(visit);
+  })(JSON.parse(emitted));
+  assert.deepEqual(literals, [0]);
+  assert.equal(Object.is(literals[0], -0), false);
+  const jsonValues = '{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":0}]},"as":"seed"}';
+  assert.notEqual(compileValuesQueryJson('SELECT value FROM seed', 'seed', 'seed',
+    jsonValues, '["value"]', 'fixture.json_positive_zero'), '');
+  assert.equal(compileValuesQueryJson('SELECT value FROM seed', 'seed', 'seed',
+    jsonValues.replace('"value":0', '"value":-0'),
+    '["value"]', 'fixture.json_negative_zero'), '');
 });

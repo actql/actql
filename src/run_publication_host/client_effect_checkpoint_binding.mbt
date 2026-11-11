@@ -84,16 +84,19 @@ fn validate_client_effect_review_checkpoint_subject(
   }
   // Inspection remains possible after expiry. These checks prohibit extending
   // the ORIGINAL evidence window; a current start/approval check is separate.
+  guard @publication.run_definition_lifetime(definition) is Some((_, until)) else {
+    return Err(OriginalLifetime)
+  }
+  // Both lifetimes have an exclusive end. The Checkpoint may end exactly at
+  // the Run deadline; this is interval containment, not a start at that time.
+  // Checking its creation with the original admission also preserves the
+  // Run/admission deadline and immutable compilation/context correspondence.
   if !client_effect_run_start_current(
       allowed,
       definition,
       artifact.checkpoint.created_at,
     ) ||
-    !client_effect_run_start_current(
-      allowed,
-      definition,
-      artifact.checkpoint.expires_at,
-    ) {
+    artifact.checkpoint.expires_at > until {
     return Err(OriginalLifetime)
   }
   Ok(())

@@ -1,5 +1,7 @@
 ///|
-fn serialized_infer_fixture_program() -> @publication_host.PreparedClientProgram {
+fn serialized_infer_fixture_program(
+  trailing_projection? : Bool = false,
+) -> @publication_host.PreparedClientProgram {
   // Independently sealed Node crypto vector, not a product-derived oracle.
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:836444f3888092768af981447509670f2efc05bc047bf2665a951603c93b160d","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"document":{"media_type":"application/x-ndjson","nullable":false,"type":"content_ref"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:60859537e680a59e68650f78be73ce2c818e3f3f2e37460568c8a54877c03d7a","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:d0ff84aab70965d97df8303954e5ab59e9b554de3251ca53f55da56577eedde2","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
@@ -19,6 +21,16 @@ fn serialized_infer_fixture_program() -> @publication_host.PreparedClientProgram
     )
   let source =
     #|{"version":"actql/0.1","id":"generated-content-model","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2},{"id":1}]},"as":"seed"},{"serialize":{"format":"jsonl","fields":["id"],"name":"out.jsonl","preserve_order":true,"bounds":{"max_rows":2,"max_bytes":18}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]},"as":"unique"},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"document":{"field":"content"}}},"as":"inferred"}],"results":{"answer":{"from":"inferred","fields":["name","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"answer"}}}}
+  let source = if trailing_projection {
+    source
+    .replace(
+      old="\"as\":\"inferred\"}],",
+      new="\"as\":\"inferred\"},{\"select\":[\"name\",\"outcome\",\"value\"],\"as\":\"projected\"}],",
+    )
+    .replace(old="\"from\":\"inferred\"", new="\"from\":\"projected\"")
+  } else {
+    source
+  }
   fixture_prepared(source~, environment_wire=environment)
 }
 
@@ -1182,6 +1194,93 @@ test "actual serialized Content reaches checked Infer mapping without replaying 
 }
 
 ///|
+test "serialized Infer completion uses its selected prefix before a later checked projection" {
+  let prepared = serialized_infer_fixture_program(trailing_projection=true)
+  let (output, _, live) = serialized_infer_fixture_output(prepared)
+  let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+    prepared,
+  ).unwrap()
+  let limits = standard_limits()
+  let segment = @relation.prepare_serialization_infer_input_segment(
+    output,
+    3,
+    @publication_host.client_standard_values_sequence_limits(),
+    100000,
+    10000,
+  ).unwrap()
+  assert_eq(@relation.generated_sequence_step_count(segment), 1)
+  assert_eq(@relation.generated_sequence_step_index_at(segment, 0), Some(2))
+  let owner = @publication_host.client_infer_occurrence_preparation(occurrence)
+  let semantic = @lower.prepare_sequence_with_infer_boundary(
+    owner,
+    3,
+    @publication_host.client_standard_values_sequence_limits(),
+    serialization=Some(1),
+  ).unwrap()
+  let contracts = @relation.admit_relation_registry(
+    @canonical.from_json(
+      @json.parse(infer_fixture_registry),
+      10000,
+      100,
+      100000,
+    ),
+    @canonical.from_json(@json.parse(infer_fixture_values), 10000, 100, 100000),
+    { max_body_bytes: 100000, max_body_nodes: 10000, max_body_depth: 100, },
+  ).unwrap()
+  let whole = @relation.prepare_generated_sequence(
+    contracts,
+    semantic,
+    [],
+    [
+      @lower.node_id(
+        @lower.node_at(@lower.bound_preparation(owner), 2).unwrap(),
+      ),
+    ],
+    100000,
+    10000,
+  ).unwrap()
+  let selected = @relation.select_generated_sequence_range(whole, 2, 2).unwrap()
+  assert_true(@lower.sequence_count(semantic) > 3)
+  let active = @input.start_client_serialized_infer_input(
+    occurrence,
+    segment,
+    1,
+    output,
+    limits.input,
+    limits.measurement,
+    limits.mapping,
+  ).unwrap()
+  let mut rows = None
+  for _ in 0..<10000 {
+    match @input.advance_client_infer_input(active, 7).unwrap() {
+      Continue(..) => ()
+      Complete(value, ..) => {
+        rows = Some(value)
+        break
+      }
+      _ => abort("original serialized prefix did not complete")
+    }
+  }
+  let rows = rows.unwrap()
+  let completion = @relation.prepare_infer_completion(selected, rows, 3).unwrap()
+  assert_true(@relation.infer_completion_matches_rows(completion, rows))
+  assert_eq(@relation.completion_preparation_terminal_step(completion), 3)
+  assert_true(
+    @relation.prepare_infer_completion(
+      @relation.select_generated_sequence_range(whole, 1, 1).unwrap(),
+      rows,
+      3,
+    )
+    is None,
+  )
+  assert_true(@input.cleanup_client_infer_input(active).unwrap())
+  assert_true(@relation.prepare_infer_completion(selected, rows, 3) is None)
+  assert_true(@relation.completed_output_available(output))
+  live.val = false
+  assert_false(@relation.completed_output_available(output))
+}
+
+///|
 test "completed Infer mapping rejects equal foreign owners and keeps borrowed cleanup separate" {
   let prepared = fixture_prepared()
   let (producer, _, _, _) = call_identity_fixture(prepared)
@@ -1373,5 +1472,241 @@ test "serialized Infer cancellation and mapping exhaustion preserve generation c
     assert_true(live.val)
     live.val = false
     assert_false(@relation.completed_output_available(output))
+  }
+}
+
+///|
+fn generated_original_startup_plan(
+  prepared : @publication_host.PreparedClientProgram,
+) -> @publication_host.ClientInferPlanGraph raise {
+  let step = 3
+  let policy = @publication_host.admit_source_free_result_policy_body(
+    "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563", "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+    10000, 1000, 20,
+  ).unwrap()
+  let sequence = @publication_host.client_standard_values_sequence_limits()
+  assert_true(
+    @publication_host.issue_prepared_client_serialization_plan_graph(
+      prepared, 0, 1, policy, 2, 18, 3, sequence, 100000, 10000, 100,
+    )
+    is Err(_),
+  )
+  let content = @publication_host.issue_prepared_client_serialization_plan_component(
+    prepared, 0, 1, policy, 2, 18, 3, sequence, 100000, 10000, 100,
+  ).unwrap()
+  let component = @canonical.from_json(
+    @json.parse(@publication_host.client_serialization_plan_graph_wire(content)),
+    10000,
+    100,
+    100000,
+  )
+  assert_true(
+    @canonical.object_field(component, "root_refs")
+    is Some(@canonical.Array(roots)) &&
+    @canonical.array_values(roots).is_empty(),
+  )
+  // Independently sealed Model execution vector. These references do not
+  // admit provider bodies, media transport or current egress authority.
+  let execution_wire =
+    #|{"backoff_contract_cid":"sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56","default_publication":"outcomes","max_attempts_per_slot":1,"max_total_attempts":1,"max_total_cost_units":0,"max_total_duration_ms":500,"max_total_token_reservation":33,"max_total_wire_bytes":133072,"media_input_contracts":{"document":"sha256:03213e7e836021f73b99d57eb5ea5855cd8430cd85b4a4079a8d92eede531507"},"model_task_contract_cid":"sha256:836444f3888092768af981447509670f2efc05bc047bf2665a951603c93b160d","retry_classification_contract_cid":"sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90","self_cid":"sha256:4393328509ccd287c21d7cc029062dd0f5833907fcdd81d4adf33ef493950097","version":"actql-model-execution-contract/0.1"}
+  let execution = @publication_host.read_prepared_client_infer_model_execution(
+    prepared,
+    step,
+    @utf8.encode(execution_wire),
+    "sha256:4393328509ccd287c21d7cc029062dd0f5833907fcdd81d4adf33ef493950097",
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 10, },
+    100000,
+  ).unwrap()
+  let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+    prepared,
+  ).unwrap()
+  let graph = @publication_host.issue_prepared_client_serialized_infer_plan_graph(
+    occurrence, content, execution, sequence, 100000, 10000, 100,
+  ).unwrap()
+  graph
+}
+
+///|
+test "generated original Model startup uses the same broader parent before any provider invocation" {
+  let prepared = serialized_infer_fixture_program()
+  let graph = generated_original_startup_plan(prepared)
+  let (compiled, definition) = original_input_capacity_run(prepared, graph)
+  let (_, _, _, generation) = serialized_infer_fixture_material(
+    prepared,
+    run=Some(compiled),
+    definition=Some(definition),
+  )
+  let limits = standard_limits()
+  // Explicit logical component frames. The parent also funds Content/Effect
+  // duties, so it is deliberately broader than this one Model's ceiling.
+  let ledger = @resources.create_ledger(limits.model.ledger).unwrap()
+  let quantities : @model.ModelQuantityCapacity = {
+    limits: { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+    per_attempt: { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+  }
+  @resources.configure_quantities(ledger, quantities.limits).unwrap()
+  let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+  let scope = @publication_host.begin_client_model_read_scope(
+    compiled, definition, graph, ledger, bootstrap, 12, 8, 4,
+  ).unwrap()
+  let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, graph, 7L, 5L,
+  ).unwrap()
+  let calls = Ref(0)
+  let provider = original_funded_start_provider(calls)
+  let active = start_original_generated(
+    prepared,
+    compiled,
+    generation.unwrap(),
+    graph,
+    provider,
+    limits,
+    definition,
+    consumer,
+    7L,
+    5L,
+    100L,
+    5L,
+  ).unwrap()
+  bind_run(active, compiled, definition).unwrap()
+  bind_quantity_capacity(active, quantities).unwrap()
+  // Startup only: preserve the installed media checks and forbid physical send.
+  require_model_call_entry(active).unwrap()
+  restrict_model_send_slots(active, [false]).unwrap()
+  for _ in 0..<10000 {
+    if active.model is Some(_) {
+      break
+    }
+    assert_true(
+      advance(active, 1).unwrap() is Continue(_),
+      msg="same generated parent startup must not refuse RequestIdentity",
+    )
+  }
+  assert_true(active.model is Some(_))
+  assert_eq(calls.val, 0)
+  assert_true(active.original_preparation.unwrap().startup is Some(_))
+  assert_true(cancel(active))
+  assert_true(fixture_finish(active, initial_work=active.work) is Stopped(_))
+  assert_true(cleanup(active).unwrap())
+  original_composed_test_release(ledger, consumer)
+}
+
+///|
+test "generated Model consumes its original physical allowance through Content preflight and actual provider call" {
+  for full_startup in [false, true] {
+    let prepared = serialized_infer_fixture_program()
+    let graph = generated_original_startup_plan(prepared)
+    let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+      prepared,
+    ).unwrap()
+    let selected = prepared_composed_bounds(occurrence, graph).unwrap()
+    let (compiled, definition) = original_input_capacity_run(prepared, graph)
+    let (_, _, live, generation) = serialized_infer_fixture_material(
+      prepared,
+      run=Some(compiled),
+      definition=Some(definition),
+    )
+    // These are independently declared startup controls, not the complete
+    // native Model allowance. The same Plan funds both, once, on one parent.
+    let startup_retained = if full_startup {
+      selected.model.ledger.retained_bytes
+    } else {
+      14464L
+    }
+    let startup_execution = if full_startup {
+      selected.model.ledger.execution_bytes
+    } else {
+      14464L
+    }
+    let model_limits = {
+      ..selected.model.ledger,
+      retained_bytes: selected.model.ledger.retained_bytes + startup_retained,
+      execution_bytes: selected.model.ledger.execution_bytes + startup_execution,
+    }
+    let ledger = @resources.create_ledger({
+      ..model_limits,
+      retained_bytes: model_limits.retained_bytes + 3L + 7L,
+      execution_bytes: model_limits.execution_bytes + 2L + 5L,
+    }).unwrap()
+    @resources.configure_quantities(ledger, {
+      tokens: 33L,
+      cost_units: 0L,
+      duration_ms: 500L,
+    }).unwrap()
+    let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+    let scope = @publication_host.begin_client_model_read_scope(
+      compiled,
+      definition,
+      graph,
+      ledger,
+      bootstrap,
+      12,
+      8,
+      4,
+      model_limits=Some(model_limits),
+    ).unwrap()
+    let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
+    let consumer = @publication_host.claim_client_model_read_preparation(
+      read, compiled, definition, graph, 7L, 5L,
+    ).unwrap()
+    let calls = Ref(0)
+    let provider = original_funded_start_provider(calls)
+    let active = start_original_generated(
+      prepared,
+      compiled,
+      generation.unwrap(),
+      graph,
+      provider,
+      standard_limits(),
+      definition,
+      consumer,
+      7L,
+      5L,
+      startup_retained,
+      startup_execution,
+    ).unwrap()
+    assert_true(
+      @publication_host.client_model_read_consumer_model_limits(
+        consumer, compiled, definition, graph,
+      ).unwrap()
+      is Some(original) &&
+      physical_equal(original, model_limits),
+    )
+    bind_run(active, compiled, definition).unwrap()
+    let account = evidence_account(@authorization.Allow)
+    let permit = @publication_host.issue_client_infer_dispatch_admission(
+      compiled,
+      definition,
+      account,
+      "fixture-principal",
+      "2026-10-12T00:00:00.000Z",
+      observe_current=() => Ok((account, "2026-10-12T00:00:00.000Z")),
+    ).unwrap()
+    bind_dispatch_admission(active, permit).unwrap()
+    serialized_infer_fixture_physical(
+      active,
+      @publication_host.client_infer_plan_graph_execution_contract(graph),
+      provider,
+      live,
+    )
+    let terminal = fixture_finish(active)
+    assert_true(
+      terminal is Complete(_, ..),
+      msg="original generated call must complete through physical preflight",
+    )
+    assert_eq(calls.val, 1)
+    assert_true(
+      @publication_host.client_model_read_consumer_model_limits(
+        consumer, compiled, definition, graph,
+      )
+      is Err(@publication_host.ForeignRun),
+    )
+    let usage = @resources.quantity_usage(ledger)
+    assert_eq(usage.consumed.tokens, 3L)
+    assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+    assert_true(cleanup(active).unwrap())
+    original_composed_test_release(ledger, consumer)
+    assert_eq(@resources.quantity_usage(ledger), usage)
   }
 }

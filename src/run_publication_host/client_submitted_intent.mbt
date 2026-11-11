@@ -3,6 +3,9 @@
 /// authorization or verified conclusion is manufactured by this admission.
 struct ClientSubmittedIntent {
   wire : String
+  // Exact byte count from the SAME canonical text emission. Journal
+  // inventory must not allocate another complete UTF8 body just to count it.
+  wire_bytes : Int
   cid : String
   stop_before_commit : Bool
   read_only : Bool
@@ -260,7 +263,9 @@ fn prepare_client_submitted_intent_value(
     @canonical.object_field_count(parameters) is None {
     return Err(InvalidEnvelope)
   }
-  let wire = @canonical.stringify_value(value, max_bytes, max_nodes, max_depth) catch {
+  let (wire, bytes, _, _) = @canonical.stringify_value_with_usage(
+    value, max_bytes, max_nodes, max_depth,
+  ) catch {
     _ => return Err(Limit)
   }
   let writer = @encode.hashing_writer(
@@ -279,6 +284,7 @@ fn prepare_client_submitted_intent_value(
     @encode.end_object(writer)
     Ok({
       wire,
+      wire_bytes: bytes,
       cid: "sha256:" + @encode.finish_hash(writer),
       stop_before_commit,
       read_only,
@@ -298,13 +304,19 @@ pub fn[T] prepare_captured_client_submitted_intent(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  max_key_units_out? : Ref[Int]? = None,
 ) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue] {
   if !valid_client_submitted_intent_limits(max_bytes, max_nodes, max_depth) {
     return Err(InvalidLimits)
   }
   let value = match
     captured_client_submitted_intent_value(
-      input, reader, max_bytes, max_nodes, max_depth,
+      input,
+      reader,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_key_units_out~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -320,13 +332,15 @@ fn[T] captured_client_submitted_intent_value(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  max_key_units_out? : Ref[Int]? = None,
 ) -> Result[@canonical.CanonicalValue, ClientSubmittedIntentIssue] {
   let parsed = match
-    @source.admit_captured_json(input, reader, {
-      max_input_bytes: max_bytes,
-      max_nodes,
-      max_depth,
-    }) {
+    @source.admit_captured_json(
+      input,
+      reader,
+      { max_input_bytes: max_bytes, max_nodes, max_depth, },
+      max_key_units_out~,
+    ) {
     Ok(value) => value
     Err(error) =>
       return Err(

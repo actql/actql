@@ -73,6 +73,7 @@ pub fn admit_retained_effectful_final_run_evidence(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  computation? : RetainedEffectfulComputation? = None,
 ) -> Result[EffectfulFinalRunEvidence, EffectfulPublicationCommitIssue] {
   let definitions = definitions.copy()
   let artifacts = artifacts.copy()
@@ -86,14 +87,43 @@ pub fn admit_retained_effectful_final_run_evidence(
     Err(issue) => return Err(ResultEvidence(issue))
     Ok(_) => ()
   }
-  let (final_receipt, outcomes) = match
-    admit_effectful_final_run_evidence_with_outcomes(
-      run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
-      captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
-      max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Err(issue) => return Err(FinalChain(issue))
-    Ok(value) => value
+  let (final_receipt, outcomes) = match computation {
+    None =>
+      match
+        admit_effectful_final_run_evidence_with_outcomes(
+          run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+          captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
+          max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Err(issue) => return Err(FinalChain(issue))
+        Ok(value) => value
+      }
+    Some(original) => {
+      guard retained_effectful_computation_matches(
+        original, run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+        captured_run, preview, max_wire_bytes, max_nodes, max_depth,
+      ) else {
+        return Err(FinalChain(FinalReferences(ForeignComputation)))
+      }
+      // SAME fully checked computation/rows; final outcomes still undergo
+      // all original receipt/reference validators. No row reparse/reexecution.
+      match
+        admit_effectful_final_receipt_evidence(
+          run_definition,
+          computation_receipt,
+          captured_run,
+          original.inputs.preview.unwrap(),
+          set_receipt_wire,
+          member_receipt_wires,
+          final_receipt_wire,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Err(issue) => return Err(FinalChain(FinalReferences(issue)))
+        Ok(value) => value
+      }
+    }
   }
   let declared_results = match manifest_result_names(manifest) {
     Err(_) =>

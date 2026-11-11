@@ -91,8 +91,10 @@ pub fn begin_client_original_keyed_lookup_response(
     Ok(value) => value
     Err(issue) => return Err(Acquisition(issue))
   }
-  @publication_host.begin_client_keyed_lookup_response(lookup, request, read).map_err(issue => {
-      Lookup(issue)
-    },
-  )
+  @publication_host.begin_client_keyed_lookup_response(
+    lookup,
+    request,
+    read,
+    capture=Some(capture),
+  ).map_err(issue => Lookup(issue))
 }

@@ -1,7 +1,9 @@
+import {installedSourceEnvironmentConstructionReader} from './installed-host-services.mjs';
+import {composeInstalledInventoryEnvironment} from './installed-funded-environment.mjs';
 // Private installation routing over published facts. Selecting an owner never
 // prepares an Effect, acquires a provider, or grants an execution permission.
 import {isAbsolute} from 'node:path';
-import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings}
+import {verifyInstalledConnectorBindings}
   from './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
@@ -218,25 +220,33 @@ function inventoryCleanup() {
 }
 
 export async function composeInstalledEffects(paths, options, load) {
+  // Capture the options once: later callbacks cannot switch the admitted
+  // service/runtime or revive a missing-services diagnostic path.
+  options = Object.freeze({...options});
+  installedSourceEnvironmentConstructionReader(options?.installationServices, options?.moon);
   const effects = [];
   const cleanup = inventoryCleanup();
   const refs = new Set(), cids = new Set(), bindings = new Map();
-  let environmentWire;
+  let environmentWire, environmentOriginal;
   try {
     for (const path of paths) {
       const effect = await load(path, options, cleanup.retain);
       // Compose and validate every member before loading the next. The common
       // composer independently admits the publication and the growing result.
-      const combined = composeInstalledCheckEnvironment(options.moon,
-        options.baseEnvironmentWire, environmentWire, effect.environmentWire);
-      verifyInstalledConnectorBindings(environmentWire === undefined ? undefined :
-        {environmentWire, connectorBindings: [...bindings.values()]}, effect);
-      for (const [ref, identity] of ownedContracts(effect)) {
-        if (refs.has(ref) || cids.has(identity)) fail('InstalledEffectMappingAmbiguous');
-        refs.add(ref);
-        cids.add(identity);
-      }
+      const combinedOriginal = composeInstalledInventoryEnvironment(options.installationServices, options.moon,
+          options.baseEnvironmentWire, environmentOriginal, effect.environmentOriginal ?? effect.environmentWire, () => {
+            verifyInstalledConnectorBindings(environmentWire === undefined ? undefined :
+              {environmentWire, connectorBindings: [...bindings.values()]}, effect);
+            for (const [ref, identity] of ownedContracts(effect)) {
+              if (refs.has(ref) || cids.has(identity)) fail('InstalledEffectMappingAmbiguous');
+              refs.add(ref);
+              cids.add(identity);
+            }
+            return effects.length + 1 === paths.length;
+      });
+      const combined = combinedOriginal.wire;
       environmentWire = combined;
+      environmentOriginal = combinedOriginal;
       for (const binding of effect.connectorBindings ?? []) {
         if (!bindings.has(binding.connectorId)) bindings.set(binding.connectorId, binding);
       }
@@ -249,7 +259,7 @@ export async function composeInstalledEffects(paths, options, load) {
     const queryUpdateTargets = installedUpdateTargets({effects, environmentWire, connectorBindings,
       effectSelectors: Object.freeze(effects.flatMap(effect => effect.effectSelectors))},
     effects.flatMap(effect => effect.queryUpdateTargets ?? []));
-    return Object.freeze({effects: Object.freeze(effects), environmentWire, queryUpdateTargets,
+    return Object.freeze({effects: Object.freeze(effects), environmentWire, environmentOriginal, queryUpdateTargets,
       queryTableBindings: Object.freeze(effects.flatMap(effect => effect.queryTableBindings ?? [])),
       queryTableWriteAccesses: Object.freeze(effects.flatMap(effect => effect.queryTableWriteAccesses ?? [])),
       connectorBindings, close: cleanup.close});

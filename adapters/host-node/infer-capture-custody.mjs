@@ -186,13 +186,13 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       await operation.stop();
       if (!await cleanup()) throw pending();
     }});
-  function retainCompleted() {
+  function retainCompleted(publicationOriginal = operation) {
     if (reclaimed || publicationCleaned) throw new Error('InstalledInferCaptureUnavailable');
     if (capture !== undefined) return true;
     // The actual original operation selects and reserves terminal publication
     // capacity before these additional captures/exporters/metadata are built.
     // Its initial record and per-slot/raw phases require earlier startup funds.
-    operation.reserveOriginalPublicationCapacity?.();
+    publicationOriginal.reserveOriginalPublicationCapacity?.();
     captureOutput ??= operation.acquireOutput();
     if (captureOutput === undefined) throw new Error('InstalledInferOutputUnavailable');
     capture = operation.acquireCapture();

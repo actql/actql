@@ -143,7 +143,7 @@ fn relation_pipeline_provider(
     limits.candidate_work,
     1,
   ).unwrap()
-  @local_connector.local_module_managed_provider(implementation, sequence).unwrap()
+  @local_connector.local_module_managed_provider(implementation, 0, sequence).unwrap()
 }
 
 ///|
@@ -176,10 +176,16 @@ fn relation_pipeline_child_reference(
   let mut already_terminal = 0
   let stage_values = []
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
-    let selected = @execution.select_generated_sequence_step(
-      sequence,
-      @execution.generated_sequence_step_index_at(sequence, index).unwrap(),
-    ).unwrap()
+    // Compare the same physical task view as the parent provider: singleton
+    // tasks retain the original completion; chains select each occurrence.
+    let selected = if @execution.generated_sequence_step_count(sequence) == 1 {
+      sequence
+    } else {
+      @execution.select_generated_sequence_step(
+        sequence,
+        @execution.generated_sequence_step_index_at(sequence, index).unwrap(),
+      ).unwrap()
+    }
     let reads = if index == 0 {
       [first]
     } else {

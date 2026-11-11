@@ -33,3 +33,17 @@ test "existing literal extent aliases the same generic recipe without changing U
   assert_eq(canonical_fields[0].key, "é")
   assert_true(parse_json("{\"é\":1,\"e\\u0301\":2}", limits) is Err(_))
 }
+
+///|
+test "native normalized key backing refuses overflow after an otherwise representable output" {
+  assert_true(
+    captured_json_construction_extent(
+      1,
+      1,
+      normalize_keys=true,
+      key_units=2305843009213693951L,
+      max_key_units=0,
+    )
+    is None,
+  )
+}

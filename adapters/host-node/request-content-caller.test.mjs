@@ -7,6 +7,7 @@ import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mj
 import {contentGenerationControl} from '../host-common/runtime-core.mjs';
 import {localOutputLimits, localContractLimits} from './local-values-plan.mjs';
 import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
+import {canonical} from './fixtures/file-listing-source.fixture.mjs';
 
 // Actual methods with explicit Core/current ports. These are not a compiled
 // Common ABI, a physical capacity admission or an ordinary Content receipt.
@@ -544,4 +545,169 @@ test('installed Local and HTTP Content caller always forwards its selected prepa
     ['keyed',originals[0],originals[1],originals[3],originals[2],originals[4]],['ledger',...originals]]);
   assert.throws(()=>construct(...Object.entries(ports).map(([key,value])=>key==='preparation'?undefined:value)),TypeError);
   assert.equal(constructed,1,'an absent owner must not install the legacy Content route');
+});
+
+
+// These are the actual installed caller and explicit original/Core ports.
+// The selected 32-byte writer is the same bound used by execution, not a new
+// resource allowance or an assertion of normal physical admission.
+function modelContentWorkspaceFixture({closeInBounds = false, workspaceFailure} = {}) {
+  const prepared = {}, request = {}, compiled = {}, definition = {}, graph = {}, serializationGraph = {};
+  const plan = {kind: 'infer', compiled, runDefinition: definition, inferGraph: graph, serializationGraph};
+  const model = {compiled, runDefinition: definition, graph, serializationGraph};
+  const selectedGeneration = Object.freeze({maxRows: 1, maxBytes: 32, jsonLeafFields: 1});
+  const workspaces = []; let retained, boundsReads = 0, hostCalls = 0;
+  const control = {
+    workspaceCapacity(options) {
+      if (options.generation.maxBytes === 32 && workspaceFailure !== undefined) throw workspaceFailure;
+      const workspace = Object.freeze({generation: options.generation, output: options.output,
+        identitySlots: options.identitySlots});
+      workspaces.push(workspace); return workspace;
+    },
+    requestPrefixCapacity() { return Object.freeze({retainedBytes: 1n, executionBytes: 1n}); },
+  };
+  const core = {contentGenerationControl: control, publicationControl: {
+    checkClientCompiledRunOwner(c, p) { assert.equal(c, compiled); assert.equal(p, prepared); },
+    checkedClientSerializationGenerationLimits(c, g) {
+      assert.equal(c, compiled); assert.equal(g, serializationGraph); boundsReads++;
+      if (closeInBounds) retained.retired = true;
+      return selectedGeneration;
+    },
+  }};
+  const run = installNodeContentRun({moon: {clientProgramAcquisitionCount: () => 1}, core,
+    registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
+    namespaceId: 'namespace', authorityScopeCid: 'authority', storeAuthorityCid: 'store',
+    ownerPrincipal: 'owner', now: () => '2026-11-02T00:00:00.000Z', authorize: () => true,
+    preparedRunRequired: true, assertRunCurrent() {},
+    retainPreparation(p, original) { assert.equal(p, prepared); original.inputHolder = {}; retained = original; },
+    prepareModelManagedRun(p, r, actual) {
+      assert.equal(p, prepared); assert.equal(r, request); assert.equal(actual, model); hostCalls++;
+      assert.equal(actual.contentPreparation, retained);
+      if (!closeInBounds && workspaceFailure === undefined) {
+        // Observe the pre-existing workspace before any assertion about the
+        // new retained selector field: baseline must fail on the real 10MB
+        // versus 32B constructor input, not an absent test-only property.
+        assert.equal(retained.workspace.generation.maxBytes, selectedGeneration.maxBytes);
+        assert.equal(retained.workspace.generation.maxRows, selectedGeneration.maxRows);
+        assert.equal(retained.workspace.generation, retained.generationLimits);
+      }
+      return {value: {}, serialization: {}};
+    },
+  });
+  return {prepare: () => run.prepareModelRun({preparedProgram: prepared, plan, request, model}),
+    counts: () => ({boundsReads, hostCalls, workspaces: workspaces.length}),
+    retained: () => retained};
+}
+
+test('Model Content workspace retains the original selected generation bounds before Host construction', () => {
+  const f = modelContentWorkspaceFixture(); f.prepare(); f.prepare();
+  assert.deepEqual(f.counts(), {boundsReads: 1, hostCalls: 1, workspaces: 2});
+  assert.equal(f.retained().generationLimits.maxBytes, 32);
+  assert.equal(f.retained().generationLimits.maxRows, 1);
+  assert.equal(f.retained().workspace.output, f.retained().outputLimits);
+  assert.equal(f.retained().outputLimits.maxRows, 1);
+  assert.equal(f.retained().outputLimits.maxColumns, 1);
+  assert.equal(f.retained().outputLimits.maxWireNodes, 3);
+  assert.equal(f.retained().outputLimits.maxLogicalWireNodes, 6);
+  assert.equal(f.retained().outputLimits.maxValueNodes, 4);
+  assert.equal(f.retained().identitySlots, 152);
+  assert.equal(f.retained().workspace.identitySlots, 152);
+});
+
+test('Model Content workspace refuses a retired original after bounds selection before any Host child', () => {
+  const f = modelContentWorkspaceFixture({closeInBounds: true});
+  assert.throws(f.prepare, {message: 'ForeignInstalledContentRun'});
+  assert.deepEqual(f.counts(), {boundsReads: 1, hostCalls: 0, workspaces: 1});
+});
+
+test('Model Content workspace keeps the same constructor failure without selection or Host retry', () => {
+  const primary = new Error('original selected workspace refused');
+  const f = modelContentWorkspaceFixture({workspaceFailure: primary});
+  assert.throws(f.prepare, cause => cause === primary);
+  assert.throws(f.prepare, cause => cause === primary);
+  assert.deepEqual(f.counts(), {boundsReads: 1, hostCalls: 0, workspaces: 1});
+  assert.equal(f.retained().failure, primary);
+});
+
+
+test('Content generation projection keeps the original compiled schema and refuses foreign or invalid shape DATA', () => {
+  const compiled = {}, rawCompiled = {}, selection = {}, graph = {};
+  let count = 3, reads = 0;
+  const getter = method('../host-common/runtime-core.mjs', 'checkedClientSerializationGenerationLimits', {
+    compiledContent(actual) { assert.equal(actual, compiled); return rawCompiled; },
+    serializationPlanTokens: new WeakMap([[selection, graph]]),
+    runtimeField: (value, index) => value[`_${index}`],
+    moon: {
+      clientProgramCompiledRunSerializationGraph(actual) { assert.equal(actual, rawCompiled); return graph; },
+      clientProgramSerializationPlanGraphCoordinates(actual) { assert.equal(actual, graph); return {_0: 0, _1: 3}; },
+      clientProgramSerializationPlanGraphWire(actual) {
+        assert.equal(actual, graph);
+        return '{"nodes":[{"kind":"content_barrier","node_id":"task_0_serialize_3","barrier":{"serialization":{"bounds":{"max_rows":1,"max_bytes":32}}}}]}';
+      },
+      clientProgramSerializationJsonLeafFieldCount(actual) { assert.equal(actual, graph); reads++; return count; },
+    },
+  });
+  assert.deepEqual(getter(compiled, selection), {maxRows: 1, maxBytes: 32, jsonLeafFields: 3});
+  count = -1;
+  assert.deepEqual(getter(compiled, selection), {maxRows: 1, maxBytes: 32, jsonLeafFields: undefined});
+  assert.throws(() => getter(compiled, {...selection}), /Foreign Content compilation graph/);
+  assert.equal(reads, 2);
+  count = -2;
+  assert.throws(() => getter(compiled, selection), /Content compilation input shape unavailable/);
+});
+
+
+test('Content fixture selects the same one-page wire extents before its installed reader constructor', async () => {
+  const names = ['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth', 'maxRows',
+    'maxTotalRows', 'maxPages', 'pageSize', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes',
+    'maxValueNodes', 'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'];
+  const declared = {catalog_cid: 'original declaration', views: [{fields: ['destination', 'content', 'name']}]};
+  const command={destination:'original destination',content:'original content'};
+  declared.command_bodies=[canonical(command)];
+  const fixture={declarationViewsWire:'original declaration wire',declared,command,
+    commandCatalogCid:declared.catalog_cid,commandContracts:{}};
+  // Exact existing profile fields with a smaller control for the same min law.
+  // These are DATA limits, not a Resource admission or an installed runtime.
+  for (const nodeCeiling of [100000, 1024]) {
+    const policy = Object.freeze(Object.fromEntries([...names, 'maxSecretBytes'].map((name, index) =>
+      [name, [1000000, 100000000, nodeCeiling, 64, 100, 100, 100, 100,
+        4000000, 1000000, 9180448, 10000, 1000000, 10000000, 100000, 100, 65536][index]])));
+    const installation = {}, services = {}, moon = {}, origin = 'https://127.0.0.1:12345';
+    let declarations = 0, profiles = 0, constructors = 0;
+    const sourceInitialization = {prepareAuthoredCommands(wire, authored) {
+      assert.equal(wire,fixture.declarationViewsWire);
+      assert.equal(authored.operation,'files.write');
+      assert.strictEqual(authored.contracts,fixture.commandContracts);
+      assert.deepEqual(authored.commands,[{resource:'transfers',body:canonical(command)}]);
+      assert.ok(Object.isFrozen(authored));assert.ok(Object.isFrozen(authored.commands));
+      declarations++;
+      return {declaration: {}, declared, environment: {wire: 'original environment'}};
+    }};
+    const reached = new Error('original installed reader constructor boundary');
+    const load = method('./fixtures/managed-content-source.fixture.mjs', 'load', {
+      assert, canonical, fixture, origin, installedJsonSourceReaderLimitNames: names,
+      captureInstalledSourceServices(value) {
+        assert.equal(value, services);
+        return (name, args) => {
+          assert.equal(args.installation, installation);
+          assert.equal(args.sourceInitialization, sourceInitialization);
+          if (name === 'sourceReaderImplementationProfile') {
+            profiles++; assert.equal(args.metadataResponses, 0); assert.equal(args.originUnits, origin.length);
+            return policy;
+          }
+          assert.equal(name, 'sourceReaderImplementation'); constructors++;
+          const expected = {...policy, maxPages: 1, maxResponseBytes: 8192,
+            maxTotalResponseBytes: 8192, maxRows: 1, maxTotalRows: 1,
+            maxNodes: Math.min(nodeCeiling, 8192), maxRowsWireBytes: 8192, maxRowsWireNodes: 8192};
+          assert.deepEqual(args.limits, expected);
+          assert.equal(args.columnCount, 3);
+          assert.ok(Object.isFrozen(args.limits));
+          throw reached; // Before target, Site, reader, Source or physical use.
+        };
+      },
+    }, {methodOnly: true});
+    await assert.rejects(load(undefined, {moon, installation, sourceInitialization, installationServices: services}, {}),
+      cause => cause === reached);
+    assert.deepEqual([declarations, profiles, constructors], [1, 1, 1]);
+  }
 });

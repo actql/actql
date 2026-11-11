@@ -1,6 +1,6 @@
 ///|
 fn native_client_effect_ledger_limits() -> @checkpoint.WireLimits {
-  { max_wire_bytes: 65536, max_nodes: 128, max_depth: 16, }
+  native_client_effect_storage_profile.ledger
 }
 
 ///|

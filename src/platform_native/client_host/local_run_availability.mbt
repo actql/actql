@@ -179,6 +179,7 @@ fn NativeClientRunJournal::retain_run_availability_observation(
   authority : NativeLocalPolicyAuthority,
   operations : NativeClientJournalOperationAccess,
 ) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
+  guard prior.original is Some(prior_original) else { return Err(CustodyLost) }
   self.transaction_with_reads(
     () => {
       if !authority.current_for(self, original.request) {
@@ -197,14 +198,14 @@ fn NativeClientRunJournal::retain_run_availability_observation(
         @publication.publication_contract_identity(original.definition) ||
         run.run_observation_originals is None ||
         run.publication_binding != Some(binding) ||
-        submission.run_state_original != Some(prior.original.wire()) {
+        submission.run_state_original != Some(prior_original.wire()) {
         return Err(CustodyLost)
       }
       guard submission.run_state_observation is Some((revision, Some(key))) else {
         return Err(CustodyLost)
       }
       let prior_observation = match
-        native_saved_state_observation(run, prior.original, revision) {
+        native_saved_state_observation(run, prior_original, revision) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -234,7 +235,11 @@ fn NativeClientRunJournal::retain_run_availability_observation(
           Ok(_) => return Err(CustodyLost)
           Err(issue) => return Err(issue)
         }
-        return Ok({ original: prior.original, control_revision: run.revision, })
+        return Ok({
+          original: prior.original,
+          state_wire: prior.wire(),
+          control_revision: run.revision,
+        })
       }
       let next = match observation.next_revision(Some(key), revision) {
         Ok(value) => value
@@ -255,6 +260,10 @@ fn NativeClientRunJournal::retain_run_availability_observation(
       }
       let body = match
         submitted_intent_body(
+          before_construction=submitted_encode_construction(
+            self.database,
+            Some(operations),
+          ),
           submission.reference,
           submission.intent,
           run_admission=submission.run_admission,
@@ -295,7 +304,11 @@ fn NativeClientRunJournal::retain_run_availability_observation(
         Ok(_) => return Err(CustodyLost)
         Err(issue) => return Err(issue)
       }
-      Ok({ original: state, control_revision: run.revision, })
+      Ok({
+        original: Some(state),
+        state_wire: state.state_wire(),
+        control_revision: run.revision,
+      })
     },
     reads=Some(operations.reads),
   )
@@ -391,7 +404,11 @@ fn NativeLocalHostConnection::refresh_original_run_availability(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let manifest = prior.original.original_manifest()
+  // Pending Checkpoint lifecycle has no published Result Manifest. Its exact
+  // authenticated state already says not_published; do not turn this into a
+  // Store observation, grant Result access, or advance an observation counter.
+  guard prior.original is Some(prior_original) else { return Ok(prior) }
+  let manifest = prior_original.original_manifest()
   let binding = match run_observation_store_binding(store, namespace_id) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))

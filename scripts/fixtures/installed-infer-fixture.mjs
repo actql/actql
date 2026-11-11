@@ -45,7 +45,7 @@ export function configuration(base, {instructions = 'Classify urgency.'} = {}) {
       payload: {format: 'packed-risk/0.1', instructions}},
     {version: 'actql-model-retry-policy/0.1', retryable_failures: []},
     {version: 'actql-model-backoff/0.1', delays_ms: []},
-  ].map(body => ({cid: cid(body),
+  ].map(body => Object.freeze({cid: cid(body),
     bodyWire: canonical({...body, self_cid: cid(body)})}));
   const task = {
     schema: 'actql.model_task/0.1', task_id: 'model-task:packed-risk.v1',
@@ -74,11 +74,13 @@ export function configuration(base, {instructions = 'Classify urgency.'} = {}) {
     max_total_cost_units: 0, max_total_duration_ms: 500,
     max_total_wire_bytes: 66536, max_total_token_reservation: 33,
     media_input_contracts: {}, default_publication: 'outcomes'};
-  return {taskCid, installation: {
+  // Caller-owned authored originals enter the funded Request reader frozen.
+  // Freezing changes no wire/CID and does not replace its actual admission.
+  return {taskCid, installation: Object.freeze({
     environmentWire: canonical({...environment,
       evidence_bundle_cid: cid(environment)}),
-    executionContracts: [{modelTaskCid: taskCid, cid: cid(execution),
-      bodyWire: canonical({...execution, self_cid: cid(execution)})}],
-    dependencyBodies: bodies,
-  }};
+    executionContracts: Object.freeze([Object.freeze({modelTaskCid: taskCid, cid: cid(execution),
+      bodyWire: canonical({...execution, self_cid: cid(execution)})})]),
+    dependencyBodies: Object.freeze(bodies),
+  })};
 }

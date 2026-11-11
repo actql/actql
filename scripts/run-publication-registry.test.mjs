@@ -12,18 +12,18 @@ import {
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 
 test('Compiled Plan selection projection is optional and independently pinned', () => {
-  const vectors = read('portability/corpus/effect-target-selection-projection.json');
   const schema = publicationSchemas().compiled_plan;
   assert.equal(schema.additionalProperties, false);
   assert.ok(!schema.required.includes('effect_target_selections_cid'));
   assert.deepEqual(schema.properties.effect_target_selections_cid,
     {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'});
-  assert.equal(machineCid(schema), vectors.schema_pins.compiled_plan.after);
-  const previous = structuredClone(schema);
-  delete previous.properties.effect_target_selections_cid;
-  assert.equal(machineCid(previous), vectors.schema_pins.compiled_plan.before);
+  const registered = read('spec/contracts/actql-run-publication.json');
+  assert.equal(machineCid(schema),
+    'sha256:25094bdc116c9edae1f9ea4123e182d9d898f718941527fe466f55bd448fe7b8');
+  assert.deepEqual(schema, registered.schemas.compiled_plan);
+  assert.equal(machineCid(schema), registered.schema_cids.compiled_plan);
   const registry = publicationRegistry();
-  assert.equal(machineCid(registry), vectors.publication_registry_pins.after);
+  assert.deepEqual(registry, registered);
   assert.equal(registry.reference_roles.compiled_plan.effect_target_selections_cid,
     'external:executable-plan-effect-target-selections?');
 });

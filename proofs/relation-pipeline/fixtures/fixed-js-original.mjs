@@ -6,20 +6,23 @@ import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {hash, gitTree} from '../../ci-evidence/inputs.mjs';
 import {pipelinePristineSourcePaths} from '../../ci-evidence/isolation.mjs';
+import {checkCurrentSource, snapshot} from '../inventory.mjs';
 import {mutationPart} from '../mutation-parts.mjs';
 import {variants} from '../mutation-registry.mjs';
 import {applyMutation} from '../sites.mjs';
 import {fixedJsAction} from '../fixed-js-scope.mjs';
 import {body, boundFixture, payload as executionPayload} from '../fixture.mjs';
-const revision = 'f2a191b51fd6ecd7b70486c6e8fa33204fa8964e';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
+// Only these controlled DATA copies bind current sources; the captured archive
+// remains an unchanged historical input, never a current execution receipt.
+const revision = checkCurrentSource(root);
 const bytes = gunzipSync(readFileSync(new URL('../../../docs/reviews/evidence/2026-10-08-pipeline-pristine-normal-f2a191b51.json.gz', import.meta.url)), {maxOutputLength: 4 * 1024 * 1024});
 if (hash(bytes) !== '0a81ea5af7e6c061696c486a3615262a512d67d8edd3c3d9d9c1e304bbbef68f') throw new Error('Changed fixture original');
 const original = JSON.parse(bytes), tree = gitTree(root, revision);
 tree.prefetch(pipelinePristineSourcePaths(tree));
 const digest = value => hash(JSON.stringify(value));
 export function controlledFixedJsOriginal() {
-  const source = original.report.source, files = {};
+  const source = snapshot(root), files = {};
   const workspaces = {mutable: {id: 'controlled-mutable', root: '/controlled/mutable'},
     pristine: {id: 'controlled-pristine', root: '/controlled/pristine'}};
   const restorationOwner = {id: 'controlled-new-owner', root: workspaces.mutable.root};

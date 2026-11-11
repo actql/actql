@@ -6,6 +6,7 @@ import {
   "actql/actql/connectors/salesforce/host",
   "actql/actql/execution_relation",
   "actql/actql/run_publication",
+  "actql/actql/source_value",
 }
 
 // Values
@@ -89,6 +90,32 @@ pub fn salesforce_collection_write_response_row_cid(@catalog.WriteCollectionResp
 
 pub fn salesforce_collection_write_response_row_count(@catalog.WriteCollectionResponse) -> Int
 
+pub fn salesforce_effect_capture_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
+
+pub fn salesforce_effect_construction_profile(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+
+pub fn salesforce_effect_current_metadata_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Int, Bytes) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+
+pub fn salesforce_effect_driver_construction_capacity() -> @execution_relation.ExecutionCapacity?
+
+pub fn salesforce_effect_input_capture_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
+
+pub fn salesforce_effect_metadata_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn salesforce_effect_metadata_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+
+pub fn salesforce_effect_recovery_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Bytes) -> Array[@execution_relation.ExecutionCapacity]?
+
+pub fn salesforce_effect_recovery_preview_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn salesforce_effect_request_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn salesforce_effect_response_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn salesforce_effect_target_construction_capacity(Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn salesforce_effect_target_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+
 pub fn salesforce_execution_mapping_body(@catalog.ExecutionMapping) -> String
 
 pub fn salesforce_execution_mapping_cid(@catalog.ExecutionMapping) -> String
@@ -110,6 +137,8 @@ pub fn salesforce_managed_query_finish(@host.ManagedQuery) -> @execution_relatio
 pub fn salesforce_managed_query_next_path(@host.ManagedQuery) -> String? raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_managed_query_row_count(@host.ManagedQuery) -> Int64
+
+pub fn salesforce_observation_construction_dimensions(@catalog.CatalogObservation) -> Array[Int]
 
 pub fn salesforce_observed_preview_row_fields(@catalog.TargetPreviewRow) -> Array[String]
 

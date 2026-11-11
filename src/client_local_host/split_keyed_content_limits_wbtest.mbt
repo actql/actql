@@ -2,9 +2,6 @@
 // Actual checked AQL and declaration-derived demand, not an operational Run,
 // physical Source, allocation guarantee or permission positive.
 priv struct SplitKeyedContentLimitsFixture {
-  document : String
-  environment : @checked.CheckEnvironment
-  declaration : @row_source_host.RowDeclaration
   prepared : @publication_host.PreparedClientProgram
   direct : ClientInstalledCaptureCapacity
   keyed : @publication_host.ClientKeyedAcquisition
@@ -14,7 +11,12 @@ priv struct SplitKeyedContentLimitsFixture {
 }
 
 ///|
-fn split_keyed_content_limits_fixture() -> SplitKeyedContentLimitsFixture raise {
+fn split_keyed_content_limits_fixture() -> (
+  SplitKeyedContentLimitsFixture,
+  String,
+  @checked.CheckEnvironment,
+  @row_source_host.RowDeclaration,
+) raise {
   let source_contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
     source_query_original_values,
@@ -107,22 +109,20 @@ fn split_keyed_content_limits_fixture() -> SplitKeyedContentLimitsFixture raise 
     declaration,
     original_keyed_child_limits(),
   ).unwrap()
-  {
+  // These are the same checked originals, not reconstructed DATA. Keep the
+  // portable fixture shape separate from the extra originals its JS callers
+  // retain; tuple projection supplies no physical retirement acknowledgement.
+  (
+    { prepared, direct, keyed, capacity, task, step, },
     document,
     environment,
     declaration,
-    prepared,
-    direct,
-    keyed,
-    capacity,
-    task,
-    step,
-  }
+  )
 }
 
 ///|
 test "split keyed Content keeps its original checked path instead of equal task ordinals" {
-  let value = split_keyed_content_limits_fixture()
+  let (value, _, _, _) = split_keyed_content_limits_fixture()
   let (_, keyed_task, _) = @publication_host.client_keyed_acquisition_coordinates(
     value.keyed,
   ).unwrap()
@@ -152,7 +152,7 @@ test "split keyed Content keeps its original checked path instead of equal task 
       max_work=0,
     ),
   )
-  let foreign = split_keyed_content_limits_fixture()
+  let (foreign, _, _, _) = split_keyed_content_limits_fixture()
   assert_false(
     @publication_host.client_keyed_acquisition_reaches_serialization(
       foreign.prepared,
@@ -186,7 +186,7 @@ test "split keyed Content quote sums retained Sources and prefix without another
     Some(source_query_original_fragment),
     None,
   ).unwrap()
-  let value = split_keyed_content_limits_fixture()
+  let (value, _, _, _) = split_keyed_content_limits_fixture()
   // Independent DATA increments test demand addition, never a capacity issuer.
   let quote = (retained, executing) => {
     keyed_captured_local_installed_limits(
@@ -213,13 +213,10 @@ test "split keyed Content quote sums retained Sources and prefix without another
   let count = @strategy.graph_task_count(
     @publication_host.prepared_client_graph(value.prepared),
   )
-  let (_, keys, _, _) = @publication_host.client_keyed_lookup_capacity(
-    value.keyed,
-    4096,
-    1000000,
-  ).unwrap()
-  assert_eq(baseline.attempts, count + keys.to_int() + 2)
-  assert_eq(baseline.holdings, count + keys.to_int() + 1)
+  // Only the first child is quoted. A static key bound is neither the
+  // cumulative Run allowance nor a demand to reserve every possible child.
+  assert_eq(baseline.attempts, count + 3)
+  assert_eq(baseline.holdings, count + 2)
   assert_true(quote(-1L, 9L) is None)
   assert_true(quote(7L, -1L) is None)
   assert_true(quote(9223372036854775807L, 9L) is None)
@@ -234,7 +231,7 @@ test "split keyed Content prefix retains JOIN through sort but never replays acq
     Some(source_query_original_fragment),
     None,
   ).unwrap()
-  let value = split_keyed_content_limits_fixture()
+  let (value, _, _, _) = split_keyed_content_limits_fixture()
   let sequence = prepare_client_acquired_serialization_prefix(
     value.prepared,
     value.task,

@@ -127,6 +127,10 @@ fn retire_model_call_entry_persistence(entry : ModelCallEntry) -> Unit {
 fn retire_model_entering(state : ModelState) -> Unit {
   if state.progress.entry is Some(entry) {
     retire_model_call_entry_persistence(entry)
+    // The owner is retiring this entering slot after send/terminal cleanup.
+    // An escaped ACK keeps its original Entry, but the Entry must not retain
+    // its ACK in return. This severs no pending persistence or physical duty.
+    entry.acknowledgement = None
     state.progress.entry = None
   }
 }

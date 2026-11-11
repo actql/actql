@@ -139,3 +139,14 @@ pub fn client_program_project_public_model_task_environment(
     },
   )
 }
+
+///|
+/// DATA correspondence only: the same admitted complete Source closure may
+/// describe a checked downstream Model. It supplies no Local input or grant.
+#export_name("clientProgramComposedInferSourcesMatch")
+pub fn client_program_composed_infer_sources_match(
+  sources : @publication_host.ClientInferComposedSources,
+  occurrence : @publication_host.ClientInferOccurrence,
+) -> Bool {
+  @publication_host.client_infer_composed_sources_matches(sources, occurrence)
+}

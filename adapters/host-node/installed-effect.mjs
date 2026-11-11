@@ -22,7 +22,8 @@ import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
   reserveInstalledSourceRuntimeIdentity, withInstalledSourceLoading,
-  beginInstalledSourceInitialization, finishInstalledSourceInitialization} from './installed-host-services.mjs';
+  beginInstalledSourceInitialization, finishInstalledSourceInitialization,
+  bindInstalledSourceConstruction, retainBoundInstalledSourceFailure} from './installed-host-services.mjs';
 export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -70,6 +71,25 @@ async function readProfile(path, read = readProfileJson) {
   try { profile = await read(path); }
   catch (cause) { refuse('InvalidInstalledEffectProfile', cause); }
   return profile;
+}
+
+// The retained original text selects the same shared profile recipe as
+// Source. Split/snapshot and the later checked profile are distinct native
+// constructors; neither borrows a finished JSON reader's parser workspace.
+async function readConstructedProfile(path, readers, configurationReader) {
+  if (configurationReader === undefined) {
+    const profile = await readProfile(path, (path, options) => readProfileJson(path, options, readers.readJson));
+    return {profile, ...splitUpdateTargetProfile(profile)};
+  }
+  const construction = await readProfile(path, selected => {
+    if (typeof readers.readProfile !== 'function') refuse('InstalledConfigurationReaderUnavailable');
+    return readers.readProfile(selected, {maxBytes: 8 * 1024 * 1024});
+  });
+  // Only read/parse/FD-close belongs to that wrapper. Preserve the original
+  // later split or constructor/current refusal rather than relabeling it.
+  const value = construction.construct(() => Object.freeze({
+    profile: construction.value, ...splitUpdateTargetProfile(construction.value)}));
+  return Object.freeze({...value, construction});
 }
 
 // Select the installed connector of an Effect profile. An unknown version
@@ -121,12 +141,15 @@ async function providerRuntime(entry, runtimeUrl, readRuntimeIdentity = installe
 // Only installation references and published, immutable declarations enter
 // this identity. The referenced Site profile contains credential references,
 // never an access token; no profile contents are returned to the caller.
-export async function installedEffectIdentity(path, {connectorTable} = {}) {
-  const profile = await readProfile(path);
-  const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
+export async function installedEffectIdentity(path, {connectorTable, configurationReader} = {}) {
+  const readers = captureConfigurationReaders(configurationReader, undefined,
+    () => refuse('InstalledConfigurationReaderUnavailable'));
+  const read = (path, options) => readProfileJson(path, options, readers.readJson);
+  const {profile, providerProfile, queryUpdateTargets, construction} = await readConstructedProfile(path, readers, configurationReader);
   const {entry, module} = await selectInstallation(profile, connectorTable);
-  module.check(providerProfile);
-  const parts = await module.identityParts(providerProfile, readProfileJson, entry);
+  if (construction === undefined) module.check(providerProfile);
+  else construction.construct(() => module.check(providerProfile));
+  const parts = await module.identityParts(providerProfile, read, entry, {configurationReader});
   if (!Array.isArray(parts) || parts.length === 0) {
     refuse('InvalidInstalledEffectProfile');
   }
@@ -178,10 +201,10 @@ async function loadEffect(path, {root, principalId, moon,
       : installedSourceConfigurationReader(installationServices);
     const readers = captureConfigurationReaders(configurationReader, undefined,
       () => refuse('InstalledConfigurationReaderUnavailable'));
-    const profile = await readProfile(path, (path, options) => readProfileJson(path, options, readers.readJson));
-    const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
+    const {profile, providerProfile, queryUpdateTargets, construction} = await readConstructedProfile(path, readers, configurationReader);
     const {entry, module} = await selectInstallation(profile, connectorTable);
-    const checked = module.check(providerProfile);
+    const checked = construction === undefined ? module.check(providerProfile)
+      : construction.construct(() => module.check(providerProfile));
     const readRuntimeIdentity = installationServices === undefined ? undefined
       : reserveInstalledSourceRuntimeIdentity(installationServices);
     const runtime = await providerRuntime(entry, runtimeUrl, readRuntimeIdentity);
@@ -194,7 +217,8 @@ async function loadEffect(path, {root, principalId, moon,
         principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
         ledgerRoot: join(root, 'state', 'effects', 'ledger'),
         ...(installationServices === undefined ? {} : {installationServices}),
-        ...(sourceInitialization === undefined ? {} : {sourceInitialization}),
+        ...(sourceInitialization === undefined ? {} : {sourceInitialization,
+          construction: bindInstalledSourceConstruction(installationServices, sourceInitialization, checked, construction)}),
         ...(configurationReader === undefined ? {} : {configurationReader}), ...runtime});
       own(installed);
       verifyInstalledConnectorRegistration(entry, installed);
@@ -220,8 +244,10 @@ async function loadEffect(path, {root, principalId, moon,
       finishInstalledSourceInitialization(sourceInitialization, installed);
       return adapter;
     } catch (cause) {
-      finishInstalledSourceInitialization(sourceInitialization, installed, cause, true);
-      throw cause;
+      const failure = await retainBoundInstalledSourceFailure(sourceInitialization, cause, installed);
+      finishInstalledSourceInitialization(sourceInitialization, installed, failure, true);
+      own(undefined);
+      throw failure;
     }
   });
 }

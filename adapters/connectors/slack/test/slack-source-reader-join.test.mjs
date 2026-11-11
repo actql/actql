@@ -25,7 +25,7 @@ if(mode!=='current'){
   const source=read(path,true).replace(/from '([^']+)'/gu,(_match,name)=>'from '+JSON.stringify(new URL(name,new URL(path,root)).href));
   sequence=(await import('data:text/javascript,'+encodeURIComponent(source))).prepareSlackSourceReadSequence;
 }
-function property(source,name){
+function property(source,name,within){
   let selected;
   const visit=node=>{
     if(!node||typeof node!=='object')return;
@@ -35,7 +35,10 @@ function property(source,name){
     for(const value of Object.values(node))if(Array.isArray(value))value.forEach(visit);
     else if(value&&typeof value==='object')visit(value);
   };
-  visit(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(selected);return selected;
+  const parsed=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const owner=within===undefined?parsed:parsed.body.map(node=>node.declaration??node)
+    .find(node=>node.type==='FunctionDeclaration'&&node.id.name===within);
+  assert(owner);visit(owner);assert(selected);return selected;
 }
 const limits=Object.freeze({maxResponseBytes:8192,maxTotalResponseBytes:24576,maxNodes:512,maxDepth:16,
   maxRows:10,maxTotalRows:20,maxPages:4,pageSize:10,maxCursorBytes:128,maxIdentityBytes:128,
@@ -64,7 +67,8 @@ test('actual Slack service reader RowRun and Catalog join carries bounded POST a
       const response=Object.freeze({accepted:true,statusCode:200,body:Buffer.from(JSON.stringify(body))});
       input.responseCustody.retain(response);return response;}};
   const implementation={runtimeBundleCid:runtime,value:{capacity,limits:{...limits,maxPages:5}},
-    slackLimits:{original:limits,sequences:{users:{operation:'slack:users:list',maxUses:4,
+    [mode==='original'?'slackLimits':'readSequenceConstruction']:{original:limits,originalLimits:limits,maxRequestBytes:2,
+      sequences:{users:{operation:'slack:users:list',maxUses:4,
       children:[{operation:'slack:workspace:identity',maxUses:1}]}}}};
   const constructor={scope:{}};
   const sourceImplementations=new WeakMap([[selection,implementation]]),selected=new WeakMap([[installation,runtime]]),
@@ -73,11 +77,13 @@ test('actual Slack service reader RowRun and Catalog join carries bounded POST a
   const ports={services:Object.freeze({}),current(){},publicationOnly:false,nodeTypes,fail,requireSourceConstructor:()=>selection,
     sourceImplementations,selected,siteInstallations,sourceContexts,
     installedRowCredentialOperationSite:()=>originalSite,createInstalledCredentialSourceReader};
-  const create=Function(...Object.keys(ports),'return '+property(serviceSource,'createSourceReader')+';')(...Object.values(ports));
+  // Select the actual service Owner, separately from the bound initialization
+  // wrapper that forwards this same constructor under original Source custody.
+  const create=Function(...Object.keys(ports),'return '+property(serviceSource,'createSourceReader','createInstalledHostServices')+';')(...Object.values(ports));
   const factory=create({installation,implementation:implementation.value,site,
     prepareReadSequence({resource,columns},apply){return sequence({moon:provider,workspaceId:'T-original',resource,names:columns,limits},apply);}});
   const readerDemand=constructor.scope.readerDemand;
-  assert.equal(readerDemand.sequences,implementation.slackLimits.sequences);
+  assert.equal(readerDemand.sequences,implementation[mode==='original'?'slackLimits':'readSequenceConstruction'].sequences);
   const rowPorts={readerDemand,operation:'slack:users:list',nodeTypes,fail,currentRead,prepared:{},access:{},signal:undefined,
     owner:{resource:'users'},site:rowSite,runInvocationCid:'run',dispatchRequestCid:'dispatch',grant,directReadIdentity:undefined,
     nonce:'request',text:value=>typeof value==='string'&&value.length>0};

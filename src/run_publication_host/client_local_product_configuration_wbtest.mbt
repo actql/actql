@@ -398,3 +398,95 @@ test "product assembly requires a canonical finite original clock" {
     )
   }
 }
+
+///|
+test "finite Mock product originals retain the closed selected Account and Result names" {
+  let task = "sha256:" + "a".repeat(64)
+  let subjects : @authorization.LocalMockAccountSubjects = {
+    account_id: "local-cli",
+    principal: "local-cli",
+    control_connection: "local",
+    sources: [
+      ("salesforce", "Opportunity"),
+      ("drive", "files"),
+      ("drive", "contents"),
+    ],
+    model_tasks: [task],
+    request_target: None,
+    update_target: Some(("salesforce", "Opportunity")),
+    signing_key_resource: None,
+  }
+  let make = fn(mock) {
+    client_local_product_finite_originals(
+      "/Users/operator/.actql-local",
+      "/product/lib/sqlite.dylib",
+      "/product/lib/crypto.dylib",
+      "2026-10-12T00:00:00.000Z",
+      product_test_assets(),
+      mock~,
+    )
+  }
+  let baseline = make(None).unwrap()
+  let selected = make(Some(subjects)).unwrap()
+  assert_eq(selected.length(), baseline.length())
+  assert_eq(
+    product_test_original(selected, "account.json"),
+    @authorization.local_mock_account_configuration(subjects).unwrap(),
+  )
+  for name in ["read.json", "material-read.json", "file-read.json"] {
+    let value = product_asset_value(product_test_original(selected, name)).unwrap()
+    assert_true(
+      product_test_field(value, ["native", "result_read", "accepted_run_policy"])
+      is @canonical.Bool(true),
+    )
+    assert_true(
+      @canonical.object_field(
+        product_test_field(value, ["native", "result_read"]),
+        "data_policy_cids",
+      )
+      is None,
+    )
+    let unchanged = product_asset_value(product_test_original(baseline, name)).unwrap()
+    assert_true(
+      @canonical.object_field(
+        product_test_field(unchanged, ["native", "result_read"]),
+        "accepted_run_policy",
+      )
+      is None,
+    )
+    guard product_test_field(value, ["native", "result_read", "result_names"])
+      is @canonical.Array(names) else {
+      fail("missing original Result selection")
+    }
+    assert_eq(@canonical.array_count(names), 3)
+    for index, expected in ["answer", "main", "updates"] {
+      assert_eq(
+        product_test_text(@canonical.array_at(names, index).unwrap()),
+        expected,
+      )
+    }
+  }
+  // A fresh Mock selection changes only these four initial originals. It
+  // cannot rewrite a restored Account, deadline, Run policy or compiler asset.
+  for (name, bytes) in baseline {
+    if name != "account.json" &&
+      name != "read.json" &&
+      name != "material-read.json" &&
+      name != "file-read.json" {
+      assert_eq(
+        product_common_test_bytes(bytes),
+        product_test_original(selected, name),
+      )
+    }
+  }
+  assert_true(
+    make(Some({ ..subjects, principal: "another-host", }))
+    is Err(UnsupportedAsset),
+  )
+  assert_true(
+    make(
+      Some({ ..subjects, update_target: Some(("salesforce", "unselected")), }),
+    )
+    is Err(UnsupportedAsset),
+  )
+}

@@ -26,6 +26,7 @@ import {
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
   "actql/actql/source_value",
+  "actql/actql/sourceview_input",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
@@ -87,7 +88,7 @@ pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
 pub fn begin_parsed_source_registration(ParsedCheckRegistry, @stage_parameters.Source) -> Result[ParsedSourceRegistration, ParsedSourceRegistrationIssue]
 
-pub fn begin_request_policy_subjects(CheckedProgram, CompileLimits) -> RequestPolicySubjectPreparation raise UnitBuildFailure
+pub fn begin_request_policy_subjects(CheckedProgram, CompileLimits, cumulative_work? : Int64?) -> RequestPolicySubjectPreparation raise UnitBuildFailure
 
 pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environment.SourceDataPolicy, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
 
@@ -211,6 +212,8 @@ pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_re
 
 pub fn effect_computation_supplied(EffectComputationCandidate) -> @decode_core.Cursor?
 
+pub fn effect_program_common_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
+
 pub fn effect_program_completion_free_inventory(EffectProgramStaticCandidate) -> Result[CompletionFreeInventory, CompletionFreeInventoryIssue]
 
 pub fn effect_program_local_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
@@ -236,6 +239,10 @@ pub fn effective_policy_classification(EffectivePolicy) -> @check_environment.Da
 pub fn effective_policy_occurrence_at(EffectivePolicy, Int) -> SourcePolicyOccurrence?
 
 pub fn effective_policy_occurrence_count(EffectivePolicy) -> Int
+
+pub fn effective_policy_source_at(EffectivePolicy, Int) -> String?
+
+pub fn effective_policy_source_count(EffectivePolicy) -> Int
 
 pub fn emit_analytic_numeric_slot(AnalyticNumericSlot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -325,6 +332,8 @@ pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
 
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
+pub fn independent_supplied_binding_issue(CheckOutcome, @stage_syntax.Program, @decode_core.Cursor?) -> @parameter_binding.Issue?
+
 pub fn infer_item_limit_claim(InferItemLimit) -> @capacity_witness.LimitClaim
 
 pub fn infer_item_limit_matches(InferItemLimit, CheckedProgram, Int, Int) -> Bool
@@ -363,6 +372,8 @@ pub fn interval_search_limit_selection(IntervalSearchLimit) -> @pipeline_check_c
 
 pub fn interval_search_limit_source(IntervalSearchLimit) -> UnitOperationSource
 
+pub fn keyed_execution_requirement(KeyedExecution) -> @sourceview_resolution.LookupRequirement
+
 pub fn keyed_input_proof_acquired(KeyedInputProof) -> ReidentifiedSourceInput?
 
 pub fn keyed_input_proof_at(CheckedProgram, Int) -> KeyedInputProof?
@@ -375,6 +386,8 @@ pub fn keyed_input_proof_execution(KeyedInputProof) -> SourceExecution
 
 pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
 
+pub fn keyed_input_runtime_admission(KeyedInputProof) -> KeyedExecution?
+
 pub fn local_common_normalization_entry_at(LocalCommonNormalizationInventory, Int) -> (String, String, String, String)?
 
 pub fn local_common_normalization_entry_count(LocalCommonNormalizationInventory) -> Int
@@ -384,6 +397,8 @@ pub fn local_common_normalization_inventory_matches(LocalCommonNormalizationInve
 pub fn local_common_normalization_inventory_requirements(LocalCommonNormalizationInventory) -> @pipeline_check_context.StageRequirementClosure
 
 pub fn local_common_normalization_inventory_work(LocalCommonNormalizationInventory) -> Int
+
+pub fn local_common_update_completion_free_inventory_matches(LocalCommonUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
 
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
 
@@ -509,6 +524,8 @@ pub fn observe_supplement_checked_request_value_policies(CheckedProgram, Array[H
 
 pub fn observe_supplement_effect_request_value_policies(EffectComputationCandidate, Array[HostRequestValuePolicyEvidence], CompileLimits) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
 
+pub fn original_check_diagnostic_outcome(CheckDiagnostic) -> CheckOutcome
+
 pub fn parsed_carriers_construction_extent(ParsedCarriersInput) -> @check_environment.RegistryConstructionExtent
 
 pub fn parsed_carriers_inspection_extent(ParsedCheckRegistry) -> @check_environment.RegistryConstructionExtent
@@ -530,6 +547,8 @@ pub fn parsed_catalog_retained_extent(ParsedCatalogInput) -> @check_environment.
 pub fn parsed_catalog_semantic_work(ParsedCatalogInput) -> Int
 
 pub fn parsed_check_carriers_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_collected_source_inputs(ParsedCheckRegistry) -> @sourceview_input.Inputs?
 
 pub fn parsed_check_contents_inspection_bound(ParsedCheckRegistry) -> Int64
 
@@ -658,6 +677,8 @@ pub fn prepare_effect_computation_input(@stage_syntax.Program, CheckEnvironment,
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
+
+pub fn prepare_keyed_acquisition_source_policies(CheckedProgram, KeyedExecution, Int, Int, Int, Int) -> KeyedAcquisitionSourcePolicies raise UnitBuildFailure
 
 pub fn prepare_parsed_carriers_input(ParsedCheckRegistry) -> Result[ParsedCarriersInput, ParsedCheckPreludeIssue]
 
@@ -1415,12 +1436,18 @@ pub enum InputRequestKind {
   NumericReductionProfile(@decode_core.Cursor)
   AggregateStringByteLimit(@decode_core.Cursor)
   TemporalSearchInputRows(@decode_core.Cursor, SearchInputSide)
-  KeyedAcquisitionInputRows(@decode_core.Cursor)
 }
 
 type InputRequests
 
 type IntervalSearchLimit
+
+pub struct KeyedAcquisitionSourcePolicies {
+  left : PublicationSourcePolicy?
+  request : EffectivePolicy
+  output : PublicationSourcePolicy?
+  original : SourceExecution
+}
 
 pub struct KeyedExecution {
   owner : @pipeline_check_context.SourceProducerContext
@@ -1428,8 +1455,8 @@ pub struct KeyedExecution {
   index : Int
   join : @sourceview_resolution.KeyedJoin
   bounds : @sourceview_resolution.LookupBounds
-  counts : @sourceview_resolution.LookupCounts
-  producer : @capacity_graph_preflight.TargetMembership
+  requirement : @sourceview_resolution.LookupRequirement
+  producer : @capacity_graph_preflight.TargetMembership?
 }
 
 type KeyedInputProof
@@ -1444,12 +1471,14 @@ pub(all) enum LocalCommonNormalizationIssue {
   UnsupportedRequirement
 } derive(Eq, @debug.Debug)
 
+type LocalCommonUpdateCompletionFreeInventory
+
 type LocalCompletionFreeInventory
 
 pub(all) enum LocalDependencyBodyIssue {
   MissingUnit
   MissingDependency
-  Encoding
+  Encoding(@encode_core.EncodeFailure)
   ForeignBody
   BudgetExceeded
 } derive(Eq, @debug.Debug)
@@ -1815,6 +1844,7 @@ pub struct SourceExecutionSubject {
 pub enum SourcePolicyOccurrence {
   DirectPolicy(DirectSourcePolicy)
   KeyedResponsePolicy(SourceExecution)
+  KeyedStaticRequestPolicy(SourceExecution)
 }
 
 pub(all) enum SourceReadAuthority {

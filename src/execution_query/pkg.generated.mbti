@@ -18,6 +18,8 @@ pub fn admit_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @exec
 
 pub fn advance_captured_file_locator(CapturedFileLocator) -> CapturedFileLocatorPoll
 
+pub fn advance_captured_source_cell_identity(CapturedSourceCellIdentityScan, Int, @execution_relation.ExecutionCapacity) -> Result[(Bool, Int), CapturedSourceIssue]
+
 pub fn append_captured_source_identity_scan(CapturedSourceIdentityScan, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Unit, CapturedSourceIdentityScanIssue]
 
 pub fn bind_captured_source(CapturedInputSource, @lowering_relation.BoundPrepared, Int) -> Result[@execution_relation.BoundProducerInput, CapturedSourceIssue]
@@ -28,6 +30,8 @@ pub fn bind_query_receipt(QuerySequence, @execution_relation.CapturedRows) -> Re
 
 pub fn cancel_captured_file_locator(CapturedFileLocator) -> Unit
 
+pub fn cancel_captured_source_cell_identity(CapturedSourceCellIdentityScan) -> Bool
+
 pub fn cancel_captured_source_identity_scan(CapturedSourceIdentityScan) -> Bool
 
 pub fn[P] capture_verified_source(TrustedCapturePort[P], P) -> Result[CapturedInputSource, CapturedSourceIssue]
@@ -35,6 +39,12 @@ pub fn[P] capture_verified_source(TrustedCapturePort[P], P) -> Result[CapturedIn
 pub fn[P] capture_verified_source_input(SourceInputCapturePort[P], P) -> Result[CapturedInputSource, CapturedSourceIssue]
 
 pub fn captured_source_available(CapturedInputSource) -> Bool
+
+pub fn captured_source_cell_identity_next_capacity(CapturedSourceCellIdentityScan) -> @execution_relation.ExecutionCapacity?
+
+pub fn captured_source_cell_identity_start_capacity(CapturedInputSource) -> @execution_relation.ExecutionCapacity?
+
+pub fn captured_source_cell_identity_work(CapturedSourceCellIdentityScan) -> Int64
 
 pub fn captured_source_identity_scan_storage(CapturedSourceIdentityScan) -> @execution_relation.ProducerStorage?
 
@@ -52,6 +62,8 @@ pub fn captured_source_original_input_read(CapturedInputSource) -> @execution_re
 
 pub fn captured_source_relation_dependency_bodies(CapturedSourceRelationIdentity, CapturedInputSource) -> (String, String)?
 
+pub fn captured_source_relation_identity_has_input_binding(CapturedSourceRelationIdentity, @execution_relation.SuppliedRelationRead) -> Bool
+
 pub fn captured_source_relation_identity_matches_source(CapturedSourceRelationIdentity, CapturedInputSource) -> Bool
 
 pub fn captured_source_relation_logical_cid(CapturedSourceRelationIdentity) -> String
@@ -66,15 +78,21 @@ pub fn captured_source_statistics(CapturedInputSource) -> CapturedSourceStatisti
 
 pub fn captured_source_storage(CapturedInputSource, Int, Int) -> Result[@execution_relation.ProducerStorage, CapturedSourceIssue]
 
+pub fn clear_captured_source_relation_dependency_bodies(CapturedSourceRelationIdentity) -> Unit
+
 pub fn evaluate_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits, @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, QuerySequenceIssue]
 
 pub fn execute_query_receipt(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits) -> Result[@execution_relation.CompletedSequence, QuerySequenceIssue]
 
 pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), QueryGuardIssue]
 
+pub fn finish_captured_source_cell_identity(CapturedSourceCellIdentityScan) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
+
 pub fn finish_captured_source_identity_scan(CapturedSourceIdentityScan) -> Result[CapturedSourceRelationIdentity, CapturedSourceIdentityScanIssue]
 
 pub fn identify_captured_source_relation(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, retain_body_bytes? : Int) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
+
+pub fn keyed_response_input_index(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin) -> Result[Int, KeyedInputRequestIssue]
 
 pub fn keyed_response_input_schema(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin, @sourceview_resolution.KeyedRowRequest) -> Result[@relation_schema.Schema, KeyedInputRequestIssue]
 
@@ -112,6 +130,8 @@ pub fn start_captured_file_locator(CapturedInputSource, @execution_relation.Supp
 
 pub fn start_captured_keyed_request(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedJoin, @execution_relation.CapturedRows, Int, @sourceview_resolution.RequestLimits) -> Result[(@sourceview_resolution.KeyedRowRequestCursor, Int), KeyedInputRequestIssue]
 
+pub fn start_captured_source_cell_identity(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[CapturedSourceCellIdentityScan, CapturedSourceIssue]
+
 pub fn start_captured_source_identity(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[CapturedSourceIdentityPreparation, CapturedSourceIssue]
 
 pub fn start_captured_source_result_export(CapturedInputSource, @execution_relation.ManagedResultOccurrence, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
@@ -130,6 +150,8 @@ pub enum CapturedFileLocatorPoll {
 }
 
 type CapturedInputSource
+
+type CapturedSourceCellIdentityScan
 
 type CapturedSourceIdentityPreparation
 pub fn CapturedSourceIdentityPreparation::advance(Self, Int) -> Result[(Bool, Int), CapturedSourceIssue]
@@ -160,7 +182,7 @@ pub struct CapturedSourceRelationIdentity {
   logical_relation_cid : String
   schema_cid : String
   row_count : Int
-  dependency_bodies : (String, String)?
+  mut dependency_bodies : (String, String)?
 }
 
 pub struct CapturedSourceStatistics {

@@ -112,7 +112,7 @@ fn client_keyed_invocation_original_facts(
   let acquisition = lookup.left.acquisition
   guard acquisition.program is KeyedPure(owner) &&
     physical_equal(owner, run.owner) &&
-    physical_equal(capture, lookup.left.source) &&
+    client_keyed_left_single_source_matches(lookup.left, capture) &&
     client_captured_task_tuple_matches(owner, capture, identity, requirement, 0) &&
     client_keyed_lookup_observation_wires(keyed) is Some(_) else {
     return Err(@publication.RunEvidenceReferenceMismatch("source_owner"))
@@ -258,6 +258,14 @@ fn client_keyed_observation_covers_sources(
 fn client_single_direct_observation_covers_sources(
   owner : PreparedClientProgram,
 ) -> Bool {
+  client_direct_observations_cover_sources(owner, 1)
+}
+
+///|
+fn client_direct_observations_cover_sources(
+  owner : PreparedClientProgram,
+  count : Int,
+) -> Bool {
   let checked = @strategy.graph_program(owner.graph)
   let mut selections = 0
   for index in 0..<@checked.source_execution_count(checked) {
@@ -274,5 +282,5 @@ fn client_single_direct_observation_covers_sources(
       _ => ()
     }
   }
-  selections == 1
+  selections == count
 }

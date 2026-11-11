@@ -16,6 +16,8 @@ pub fn read_bounded_text_file_in_current_read_context_with_custody(String, Strin
 
 pub fn read_bounded_text_file_with_custody(String, String, Int64, trim_newline? : Bool, diagnostic_ceiling? : Int?) -> Result[String, NativeBoundedTextFailure]
 
+pub fn read_observed_ordinary_text_file_in_current_read_context_with_custody(String, String, Int, (Int64) -> Bool) -> Result[String, NativeBoundedTextFailure]
+
 // Errors
 
 // Types and methods
@@ -31,6 +33,7 @@ pub(all) enum NativeBoundedTextIssue {
   Filesystem(@filesystem.NativeFilesystemIssue)
   Cleanup(@filesystem.NativeFilesystemIssue, @filesystem.NativeFilesystemIssue)
   InvalidUtf8
+  PreparationUnavailable
 }
 
 // Type aliases

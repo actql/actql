@@ -1,31 +1,28 @@
 ///|
 // One actual installed Query material/requirement pair, shared by the actual
-// Model capture and keyed Content constructors. Reuse the SAME issuer
-// controls and existing writer/collection inventory; their finite envelope is
-// charged once for this operation, not multiplied by Program tasks. Variable
-// sequence/AST/schema DATA already has request_program_plan_quote backing.
-// Provider constructor controls remain trusted fixed Host overhead. No rows,
+// Model capture and keyed Content constructors. Reuse the SAME issuer writer
+// controls and collection inventory, charged once for each selected capture.
+// Variable sequence/AST/schema DATA already has request_program_plan_quote
+// backing. Select collection bounds from those SAME admitted query shapes;
+// the default is only a conservative floor for existing narrow constructors.
+// Both borrowed schema traversals fit that selected bound without copying
+// their original fields. Provider controls remain trusted Host overhead. No rows,
 // Provider read, execution capacity or successful admission is inferred here.
-fn request_local_query_construction_bytes() -> Int64? {
+fn request_local_query_construction_bytes(max_fields? : Int) -> Int64? {
   let limits = installed_local_query_material_limits()
-  guard @encode.text_writer_construction_inventory(
-      limits.max_bytes,
+  let fields = max_fields.unwrap_or(limits.max_fields)
+  guard fields >= 0 else { return None }
+  guard request_local_query_writer_construction_units(
       limits.max_nodes,
       limits.max_depth,
     )
-    is Some(text) &&
-    @encode.hash_writer_construction_inventory(
-      limits.max_nodes,
-      limits.max_depth,
-    )
-    is Some(hash) &&
+    is Some(writers) &&
     @shape.collection_construction_extent({
-      records: limits.max_fields.to_int64(),
-      record_references: 2L * limits.max_fields.to_int64(),
+      records: fields.to_int64(),
+      record_references: 2L * fields.to_int64(),
       record_words: 0L,
       reference_arrays: 3L,
-      reference_items: 2L * limits.max_fields.to_int64() +
-      limits.max_parameters.to_int64(),
+      reference_items: 2L * fields.to_int64() + limits.max_parameters.to_int64(),
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 1L,
@@ -33,13 +30,7 @@ fn request_local_query_construction_bytes() -> Int64? {
     })
     is Some(collections) &&
     @execution.compose_preparation_representation([
-      {
-        record_headers: 2L * text.record_headers + hash.record_headers,
-        reference_slots: 2L * text.reference_slots + hash.reference_slots,
-        scalar_words: 2L * text.scalar_words + hash.scalar_words,
-        owned_utf16_units: 2L * text.owned_utf16_units,
-        owned_wire_bytes: 2L * limits.max_bytes.to_int64(),
-      },
+      writers,
       {
         record_headers: collections.record_headers,
         reference_slots: collections.reference_slots,
@@ -61,6 +52,93 @@ fn request_local_query_construction_bytes() -> Int64? {
     return None
   }
   @execution.preparation_representation_cost(units)
+}
+
+///|
+// Observe only the structural shape of the SAME admitted Program request.
+// This existing shape entry cannot discharge query-time/current/authorization.
+// Construction still enters the original full issuer with its original query.
+fn request_local_original_query_construction_bytes(
+  prepared : @publication_host.PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+) -> Int64? {
+  guard stage >= 0 &&
+    source_index >= 0 &&
+    @context.program_identity_stage_requests(
+      @checked.source_identity(
+        @strategy.graph_program(
+          @publication_host.prepared_client_graph(prepared),
+        ),
+      ),
+      stage,
+    )
+    is Some(requests) &&
+    @sourceviews.derive_query_acquisition_shape(requests, source_index, 1000000)
+    is Ok(query) &&
+    installed_local_query_requirement_limits(query) is Ok(limits) else {
+    return None
+  }
+  request_local_query_construction_bytes(max_fields=limits.max_fields)
+}
+
+///|
+// The SAME canonical writer inventories as the original constructor quote.
+// Output domains remain unchanged when only live cursor geometry is reduced.
+fn request_local_query_writer_construction_units(
+  nodes : Int,
+  depth : Int,
+) -> @execution.PreparationRepresentationUnits? {
+  let limits = installed_local_query_material_limits()
+  guard @encode.text_writer_construction_inventory(
+      limits.max_bytes,
+      nodes,
+      depth,
+    )
+    is Some(text) &&
+    @encode.hash_writer_construction_inventory(nodes, depth) is Some(hash) else {
+    return None
+  }
+  Some({
+    record_headers: 2L * text.record_headers + hash.record_headers,
+    reference_slots: 2L * text.reference_slots + hash.reference_slots,
+    scalar_words: 2L * text.scalar_words + hash.scalar_words,
+    owned_utf16_units: 2L * text.owned_utf16_units,
+    owned_wire_bytes: 2L * limits.max_bytes.to_int64(),
+  })
+}
+
+///|
+// Both QueryMaterial and QueryRequirement return immutable EncodedDocuments,
+// never their writers/frames/key Maps. All text/wire output bounds, collection
+// and original issuer controls remain charged. Six separate returned CID
+// Strings (material's three plus requirement/schema's three) are kept too.
+// Only completed writer traversal scratch is returned, never output backing.
+fn request_local_query_finished_writer_bytes() -> Int64? {
+  let limits = installed_local_query_material_limits()
+  guard request_local_query_writer_construction_units(
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Some(full) &&
+    request_local_query_writer_construction_units(1, 0) is Some(closed) &&
+    @execution.preparation_representation_cost(full) is Some(full_bytes) &&
+    @execution.compose_preparation_representation([
+      closed,
+      {
+        record_headers: 6L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 6L * (7L + 64L),
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(retained) &&
+    @execution.preparation_representation_cost(retained) is Some(retained_bytes) &&
+    full_bytes >= retained_bytes else {
+    return None
+  }
+  Some(full_bytes - retained_bytes)
 }
 
 ///|
@@ -125,7 +203,10 @@ pub fn[I] prepare_request_keyed_content_plan(
   owner.phase = Selecting
   preparation_module_call(
     () => {
-      guard request_local_query_construction_bytes() is Some(query) &&
+      guard request_local_original_query_construction_bytes(
+          prepared, stage, source_index,
+        )
+        is Some(query) &&
         request_model_material_body_bytes(2, index => {
           if index == 0 {
             query_contract_body

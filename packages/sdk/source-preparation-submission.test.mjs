@@ -492,3 +492,76 @@ test('selected capture cannot replace or repeat the SDK original native snapshot
     } finally {await client.close();}
   }
 });
+
+for (const units of [65535, 65536, 65537]) {
+  test(`text Program ${units} UTF-16 units keeps one observed original snapshot`, async () => {
+    const {validClientBody} = await import('../client-wire/index.mjs');
+    // Receiver double establishes the actual SDK's ordering/identity, not a
+    // Resource grant. Installed owner capacity is tested by the normal caller.
+    const receipt = {}, events = [];let reads = 0, serializations = 0, sends = 0, finishes = 0;
+    const text = '日😀\\\n'.repeat(Math.floor(units / 5)) + 'x'.repeat(units % 5);
+    assert.equal(text.length, units);
+    const parameters = {toJSON() {serializations++; return {get n() {reads++;return 7;}};}};
+    let wire, body, observedUnits = 0, observedValues = 0;
+    const {client} = await fixture({
+      beforeSourceSnapshot(kind) {assert.equal(kind, 'aql');events.push('before');return receipt;},
+      assertSourceSnapshotCurrent(actual) {assert.equal(actual, receipt);},
+      captureSourceSnapshot(actual, original, snapshot) {
+        assert.equal(actual, receipt);assert.equal(reads, 0);assert.equal(serializations, 0);
+        events.push('snapshot');
+        return snapshot(original, (units, document, values) => {
+          assert(units >= observedUnits && values >= observedValues);
+          observedUnits = units;observedValues = values;
+          if (document !== undefined) wire = document;
+        });
+      },
+      bindSourceSnapshot(actual, original) {
+        assert.equal(actual, receipt);body = original;
+        assert.equal(original.input.text, text);assert.equal(original.parameters.n, 7);
+        assert.equal(reads, 1);assert.equal(serializations, 1);
+        assert.deepEqual(JSON.parse(wire), original);assert(observedUnits >= text.length);
+        events.push('bind');
+      },
+      publishSourceSnapshot() {}, bindSourceRequest(actual, original, packet) {
+        assert.equal(actual, receipt);assert.equal(original, body);
+        assert.equal(packet.input.text, text);
+      },
+      intentCid(actual, original) {assert.equal(actual, receipt);assert.equal(original, body);return cid('d');},
+      finishSourceProducer(actual, terminal) {
+        assert.equal(actual, receipt);assert.equal(terminal, 'returned');finishes++;
+      },
+    }, (operation, packet) => {
+      assert.equal(operation, 'submit-intent');assert(validClientBody(operation, packet));
+      sends++;return readySubmissionAttempt(packet, admission);
+    });
+    try {
+      const result = await client.startSource(text, {format: 'sql', parameters,
+        submissionRef: originalSubmission(`text-observed-${units}`)});
+      assert.equal(getSubmissionOutcome(result).kind, 'ready');
+      assert.deepEqual(events, ['before', 'snapshot', 'bind']);
+      assert.equal(sends, 1);assert.equal(finishes, 1);
+      assert.equal(reads, 1);assert.equal(serializations, 1);
+      assert(new TextEncoder().encode(text).length > text.length);
+    } finally {await client.close();}
+  });
+}
+
+test('large text snapshot keeps the same selected owner refusal before send', async () => {
+  const policy = Object.assign(new Error('PreparationCapacityExceeded'), {code: 'PreparationCapacityExceeded'});
+  let sends = 0, finishes = 0;
+  const {client} = await fixture({
+    beforeSourceSnapshot() {return {};}, assertSourceSnapshotCurrent() {},
+    captureSourceSnapshot(_receipt, original, snapshot) {
+      return snapshot(original, units => {if (units > 65536) throw policy;});
+    },
+    bindSourceSnapshot() {assert.fail('RefusedSnapshotMustNotBind');},
+    publishSourceSnapshot() {}, bindSourceRequest() {assert.fail('RefusedSnapshotMustNotSend');},
+    intentCid() {assert.fail('RefusedSnapshotMustNotHash');},
+    finishSourceProducer(_receipt, terminal) {assert.equal(terminal, 'failed');finishes++;},
+  }, () => {sends++;assert.fail('RefusedSnapshotMustNotSend');});
+  try {
+    await assert.rejects(client.startSource('x'.repeat(65537), {format: 'sql',
+      submissionRef: originalSubmission('text-selected-refusal')}), cause => cause === policy);
+    assert.equal(sends, 0);assert.equal(finishes, 1);
+  } finally {await client.close();}
+});

@@ -33,7 +33,7 @@ fn analytic_scale_sample(count : Int, aggregate : Bool) -> (Int, Int) raise {
   }
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace = { limit: count * 100 + 1000, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(count * 100 + 1000), live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 0),
     input,
@@ -103,7 +103,7 @@ test "analytic frame demand uses one interval pass per source" {
       }),
     }
     let control = { remaining: 100000000, max_frames: 100, }
-    let workspace = { limit: count * 100 + 1000, live: 0, peak: 0, }
+    let workspace = { ..row_workspace(count * 100 + 1000), live: 0, peak: 0, }
     let state = start_analytic_evaluation(
       analytic,
       input,
@@ -214,7 +214,7 @@ fn analytic_numeric_scale_sample(
   })
   let maximum = 100000000
   let control = { remaining: maximum, max_frames: 100, }
-  let workspace = { limit: workspace_limit, live: 0, peak: 0, }
+  let workspace = { ..row_workspace(workspace_limit), live: 0, peak: 0, }
   let result = evaluate_rows_with_workspace(
     row_kernel(owner, 0),
     input,

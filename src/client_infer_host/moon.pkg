@@ -12,6 +12,7 @@ import {
   "actql/actql/model_execution" @model,
   "actql/actql/execution_relation" @relation,
   "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/check_environment" @environment,
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/encode_core" @encode,
@@ -24,7 +25,6 @@ import {
 import {
   "actql/actql/infer_typing" @infer,
   "actql/actql/connectors/local/driver" @local_driver,
-  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/physical_host_dispatch" @host_driver,
   "actql/actql/connectors_builtin_node" @node_fixture,
   "actql/actql/value_admission" @admitted,

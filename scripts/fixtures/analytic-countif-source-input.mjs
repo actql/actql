@@ -55,5 +55,5 @@ export const analyticCountifRefusals = [
 export const analyticCountifExecutionFailures = [{
   name: 'analytic-countif-demanded-expression-failure', format: 'sql',
   text: 'SELECT COUNTIF(1 / 0 > 0) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM records',
-  resultNames: ['answer'], sourceReadSessionCount: 1,
+  resultNames: ['main'], sourceReadSessionCount: 1,
 }];

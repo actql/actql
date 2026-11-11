@@ -19,6 +19,7 @@ import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from '../../benchmark
 import {externalRestDefinition, externalRestProvider} from './provider.fixture.mjs';
 import {externalRestConfiguration} from './configuration.mjs';
 import {prepareExternalRestCohort} from './installed-modules.mjs';
+import {publishStandardRestBarrier} from './cancel-conformance.mjs';
 
 const selectedInput = process.env.ACTQL_REST_CONFORMANCE_INPUT;
 assert(typeof selectedInput === 'string' && isAbsolute(selectedInput),
@@ -50,8 +51,8 @@ test('one generated npm REST connector cancels during its held original second p
   const provider = Object.freeze({...originalProvider, async handle(request) {
     const reply = originalProvider.handle(request);
     if (request.target === '/v1/customers?after=page-2') {
-      await save(join(output, 'public/page2-entered.json'), {page: 2, replyHeld: true,
-        originalFirstPageAlreadyReturned: true, recordedRequests: originalProvider.requests()});
+      await publishStandardRestBarrier(join(output, 'public/page2-entered.json'), JSON.stringify({page: 2, replyHeld: true,
+        originalFirstPageAlreadyReturned: true, recordedRequests: originalProvider.requests()}, null, 2) + '\n');
       await heldReply.promise;
     }
     return reply;

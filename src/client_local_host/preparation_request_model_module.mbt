@@ -10,6 +10,8 @@ fn request_model_module_container_bytes(
   installed_providers : Int,
   provider_captures? : Int = 0,
   input_segments? : Int = 0,
+  model_components? : Int = 0,
+  whole_inputs? : Bool = false,
 ) -> Int64? {
   // A captured Stage can also own the serialized Model continuation. Its
   // Compute tail is then empty, but the module's fixed containers still exist.
@@ -20,14 +22,50 @@ fn request_model_module_container_bytes(
     provider_captures >= 0 &&
     provider_captures <= captures &&
     input_segments >= 0 &&
-    input_segments <= 2 &&
+    model_components >= 0 &&
+    model_components <= tasks &&
+    input_segments.to_int64() <= 2L * tasks.to_int64() &&
     @local.local_module_container_inventory(
-      tasks - captures,
+      if whole_inputs {
+        tasks
+      } else {
+        tasks - captures
+      },
       installed_providers,
     )
     is Some(containers) &&
     @execution.compose_preparation_representation([
       containers,
+      // Only the plural constructor owns this extra ordered Array and its
+      // original prefix/suffix pair records. Singles keep their old fields.
+      closed_values_program_arrays(
+        if model_components > 1 {
+          1L
+        } else {
+          0L
+        },
+        if model_components > 1 {
+          model_components.to_int64()
+        } else {
+          0L
+        },
+        true,
+      ),
+      {
+        record_headers: if model_components > 1 {
+          model_components.to_int64() + 1L
+        } else {
+          0L
+        },
+        reference_slots: if model_components > 1 {
+          2L * model_components.to_int64() + 1L
+        } else {
+          0L
+        },
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
       // The two actual optional module fields and each retained Some carrier.
       {
         record_headers: input_segments.to_int64(),
@@ -67,10 +105,40 @@ fn[I] begin_request_model_module(
   installed_providers : Int,
   query_time : @publication_host.ClientQueryTimePreparation?,
   provider_captures? : Int = 0,
+  component_inputs? : Bool = false,
+  whole_inputs? : Bool = false,
 ) -> Result[
   @publication_host.PreparedClientProgram,
   ClientRequestProgramPlanIssue,
 ] {
+  let retained_graphs = match owner.program_domain_compilation_inputs {
+    Some(RequestModelCompilation(_, _, original_contracts, original)) => {
+      guard physical_equal(original_contracts, contracts) &&
+        compilation.infers.length() == 1 &&
+        physical_equal(compilation.infers[0], original) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      compilation.infers
+    }
+    Some(RequestModelsCompilation(_, _, original_contracts, originals)) => {
+      guard physical_equal(original_contracts, contracts) &&
+        originals.length() > 1 &&
+        originals.length() == compilation.infers.length() else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      for index, original in originals {
+        if !physical_equal(original, compilation.infers[index]) {
+          return Err(Preparation(ForeignOriginal))
+        }
+      }
+      originals
+    }
+    _ => return Err(Preparation(ForeignOriginal))
+  }
+  guard retained_graphs.length() > 0 else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let graph = retained_graphs[0]
   guard owner.phase == ModelPlanReserved &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
@@ -78,11 +146,6 @@ fn[I] begin_request_model_module(
     owner.program_capacity is Some(capacity) &&
     owner.program_compilation is Some(@publication_host.Tasks(artifact)) &&
     physical_equal(artifact, compilation) &&
-    owner.program_domain_compilation_inputs
-    is Some(RequestModelCompilation(_, _, original_contracts, graph)) &&
-    physical_equal(original_contracts, contracts) &&
-    compilation.infers.length() == 1 &&
-    physical_equal(compilation.infers[0], graph) &&
     owner.program_source_free is None &&
     owner.program_captured is None &&
     owner.program_model is None &&
@@ -128,6 +191,31 @@ fn[I] begin_request_model_module(
     }
   }
   let dag = @publication_host.prepared_client_graph(prepared)
+  let mut input_segments = 0L
+  if component_inputs {
+    for original in retained_graphs {
+      if original.serialization is None {
+        input_segments += if @publication_host.client_infer_occurrence_terminal(
+            original.occurrence,
+          ) {
+          1L
+        } else {
+          2L
+        }
+      }
+    }
+  } else if captures == 1 && graph.serialization is None {
+    input_segments = if @publication_host.client_infer_occurrence_terminal(
+        graph.occurrence,
+      ) {
+      1L
+    } else {
+      2L
+    }
+  }
+  if input_segments > 2147483647L {
+    return Err(Preparation(Policy))
+  }
   guard @strategy.graph_captured_prefix(dag) == captures &&
     (captures == 0 || captures == 1 || captures == 2) &&
     owner.program_plan_quote is Some((quoted_r, quoted_e)) &&
@@ -136,12 +224,10 @@ fn[I] begin_request_model_module(
       captures,
       installed_providers,
       provider_captures~,
-      input_segments=if captures == 1 && graph.serialization is None {
-        if @publication_host.client_infer_occurrence_terminal(graph.occurrence) {
-          1
-        } else {
-          2
-        }
+      whole_inputs~,
+      input_segments=input_segments.to_int(),
+      model_components=if component_inputs {
+        retained_graphs.length()
       } else {
         0
       },
@@ -166,6 +252,206 @@ fn[I] begin_request_model_module(
 }
 
 ///|
+// Only the existing native protocol path needs these Source controls. Fund
+// them before preflight, then dispose the cursor/tuple before returning this
+// exact temporary debit on the SAME still-working original reservation.
+fn[I] request_native_model_protocol_construction_bytes(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  query : String,
+  evidence : String,
+  receipts : String,
+) -> Result[Int64, ClientRequestProgramPlanIssue] {
+  guard owner.program_capacity is Some(capacity) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  match
+    reserve_request_domain_graph_construction(
+      owner, input, prepared, request_model_material_preflight_control_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The checked grow retained its exact absolute target. Read that DATA,
+  // not the same current callback again merely to recover the prior debit.
+  guard owner.program_domain_quote is Some((quoted_r, quoted_e)) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let r = quoted_r - request_model_material_preflight_control_bytes
+  let e = quoted_e - request_model_material_preflight_control_bytes
+  let bytes = request_model_material_body_bytes(
+    3,
+    index => {
+      if index == 0 {
+        query
+      } else if index == 1 {
+        evidence
+      } else {
+        receipts
+      }
+    },
+    source_geometry=true,
+  )
+  // Source owns no physical child, and all three cursors have returned here.
+  let returned = @resources.reconcile_working_preparation_phase(
+    capacity, input, r, e,
+  )
+  guard owner.phase == Selecting &&
+    owner.input is Some(original_input) &&
+    physical_equal(original_input, input) &&
+    owner.compiled_program is Some(original_prepared) &&
+    physical_equal(original_prepared, prepared) &&
+    owner.program_capacity is Some(original_capacity) &&
+    physical_equal(original_capacity, capacity) &&
+    owner.program_domain_quote == Some((quoted_r, quoted_e)) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  match returned {
+    Err(issue) => return Err(Preparation(Capacity(issue)))
+    Ok(_) => ()
+  }
+  owner.program_domain_quote = None
+  match bytes {
+    None => Err(Preparation(Policy))
+    Some(value) => Ok(value)
+  }
+}
+
+///|
+// Native pending capacity retains only its original Query requirement and
+// scalar capacity. Its protocol parse/admission/registry and all completed
+// Query writer frames have returned before any module/provider callback.
+// Keep every later Graph/input grow and all actual Query output backing.
+fn[I] reconcile_request_native_model_construction(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  scratch : Int64,
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  guard owner.phase == Selecting &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(body) &&
+    physical_equal(body, prepared) &&
+    owner.program_capacity is Some(capacity) &&
+    owner.program_domain_quote is Some((r, e)) &&
+    scratch >= 0L &&
+    scratch < r &&
+    scratch <= e else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let result = @resources.reconcile_working_preparation_phase(
+    capacity,
+    input,
+    r - scratch,
+    e - scratch,
+  )
+  guard owner.phase == Selecting &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(body) &&
+    physical_equal(body, prepared) &&
+    owner.program_capacity is Some(original_capacity) &&
+    physical_equal(original_capacity, capacity) &&
+    owner.program_domain_quote == Some((r, e)) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  match result {
+    Err(issue) => Err(Preparation(Capacity(issue)))
+    Ok(_) => {
+      owner.program_domain_quote = Some((r - scratch, e - scratch))
+      Ok(())
+    }
+  }
+}
+
+///|
+// The actual existing input/suffix lowering, selected by the SAME checked
+// occurrence. Each constructor grows the same Request before invoking it.
+fn[I] construct_request_model_input(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  graph : @publication_host.ClientInferPlanGraph,
+  contracts : ClientInstalledSequenceContracts,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  (@execution.GeneratedSequence, @execution.GeneratedSequence?),
+  ClientRequestProgramPlanIssue,
+] {
+  let mut input_prefix = None
+  let mut input_suffix = None
+  if graph.serialization is Some(_) {
+    return Err(Installed(Unsupported))
+  }
+  let input_calls = if @publication_host.client_infer_occurrence_terminal(
+      graph.occurrence,
+    ) {
+    1L
+  } else {
+    2L
+  }
+  guard owner.program_data is Some(data) &&
+    program_check_data_extent_cost(data) is Some(variable) &&
+    @execution.checked_preparation_add_product(0L, variable, input_calls)
+    is Some(bytes) else {
+    return Err(Preparation(Policy))
+  }
+  match
+    reserve_request_domain_graph_construction(owner, input, prepared, bytes) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The actual Model input and suffix precede their one deferred
+  // provider. They replace the legacy early lowering, not its originals.
+  let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    graph.occurrence,
+  )
+  let prefix = match
+    prepare_client_local_sequences_owned(
+      Pure(prepared),
+      contracts,
+      contracts.original.values_body,
+      contracts.original.fragment_body,
+      contracts.original.ordered_body,
+      selected_task=Some(task),
+      infer_prefix=Some((task, step - 1)),
+      query_time=query_time.map(original => (original, request)),
+    ) {
+    Err(issue) => return Err(Installed(issue))
+    Ok(value) => value
+  }
+  guard prefix.get(0) is Some(original_prefix) else {
+    return Err(Installed(Unsupported))
+  }
+  input_prefix = Some(original_prefix)
+  if input_calls == 2L {
+    let suffix = match
+      prepare_client_local_sequences_owned(
+        Pure(prepared),
+        contracts,
+        contracts.original.values_body,
+        contracts.original.fragment_body,
+        contracts.original.ordered_body,
+        selected_task=Some(task),
+        infer_suffix=Some((task, step)),
+        query_time=query_time.map(original => (original, request)),
+      ) {
+      Err(issue) => return Err(Installed(issue))
+      Ok(value) => value
+    }
+    guard suffix.get(0) is Some(original_suffix) else {
+      return Err(Installed(Unsupported))
+    }
+    input_suffix = Some(original_suffix)
+  }
+  guard input_prefix is Some(prefix) else { return Err(Installed(Unsupported)) }
+  Ok((prefix, input_suffix))
+}
+
+///|
 /// Construct the original configured module on this SAME Request, after its
 /// variable Plan debit and actual module containers are backed. The returned
 /// module is retained before any later Plan/Scope/current callback can fail.
@@ -183,19 +469,95 @@ pub fn[I] prepare_request_model_source_free_module(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  component_factory? : ((
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local.ManagedProvider)? = None,
+  components_factory? : ((
+    Int,
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local.ManagedProvider)? = None,
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientRequestProgramPlanIssue,
 ] {
+  if (
+      component_factory is Some(_) &&
+      (compilation.infers.length() != 1 || components_factory is Some(_))
+    ) ||
+    (components_factory is Some(_) && compilation.infers.length() < 2) {
+    return Err(Preparation(ForeignOriginal))
+  }
+  // The plural callback contributes one actual provider per compiler member.
+  // Add that inventory HERE, once, beside its checked module construction;
+  // the higher bridge supplies only its existing fixed family provider count.
+  let installed_providers = if components_factory is Some(_) {
+    guard request_model_provider_count(
+        installed_providers,
+        compilation.infers.length(),
+      )
+      is Some(total) else {
+      return Err(Installed(InsufficientCapacity))
+    }
+    total
+  } else {
+    installed_providers
+  }
   preparation_module_call(
     () => {
       let prepared = match
         begin_request_model_module(
-          owner, input, request, compiled, definition, compilation, contracts, 0,
-          installed_providers, query_time,
+          owner,
+          input,
+          request,
+          compiled,
+          definition,
+          compilation,
+          contracts,
+          0,
+          installed_providers,
+          query_time,
+          component_inputs=component_factory is Some(_) ||
+            components_factory is Some(_),
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
+      }
+      let mut input_prefix = None
+      let mut input_suffix = None
+      let mut component_inputs = None
+      if component_factory is Some(_) {
+        let (prefix, suffix) = match
+          construct_request_model_input(
+            owner,
+            input,
+            prepared,
+            request,
+            compilation.infers[0],
+            contracts,
+            query_time,
+          ) {
+          Err(issue) => return Err(issue)
+          Ok(value) => value
+        }
+        input_prefix = Some(prefix)
+        input_suffix = suffix
+      } else if components_factory is Some(_) {
+        let inputs = []
+        for graph in compilation.infers {
+          let original = match
+            construct_request_model_input(
+              owner, input, prepared, request, graph, contracts, query_time,
+            ) {
+            Err(issue) => return Err(issue)
+            Ok(value) => value
+          }
+          inputs.push(original)
+        }
+        component_inputs = Some(inputs)
       }
       let original = match
         prepare_installed_mock_model_source_free_with_contracts(
@@ -206,7 +568,21 @@ pub fn[I] prepare_request_model_source_free_module(
           contracts.original.fragment_body,
           contracts.original.ordered_body,
           retained_output~,
-          provider_factory~,
+          provider_factory=capacity => {
+            let providers = provider_factory(capacity)
+            if component_factory is Some(construct) &&
+              input_prefix is Some(prefix) {
+              providers.push(construct(capacity, prefix, input_suffix))
+            } else if components_factory is Some(construct) &&
+              component_inputs is Some(inputs) {
+              for index, original in inputs {
+                providers.push(
+                  construct(index, capacity, original.0, original.1),
+                )
+              }
+            }
+            providers
+          },
           query_time=query_time.map(value => (value, request)),
         ) {
         Err(issue) => return Err(Installed(issue))
@@ -255,13 +631,55 @@ pub fn[I] prepare_request_model_capture_module(
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   providers? : Array[@execution.ExecutionCapacity?]? = None,
+  whole_sources? : Array[ClientInstalledWholeSourceCapacity] = [],
+  native_source_ref? : String? = None,
+  native_database_schema? : String? = None,
+  native_table? : String? = None,
+  native_receipt_body? : String? = None,
   component_factory? : ((
     @execution.ExecutionCapacity,
     @execution.GeneratedSequence,
     @execution.GeneratedSequence?,
   ) -> @local.ManagedProvider)? = None,
+  components_factory? : ((
+    Int,
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local.ManagedProvider)? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientRequestProgramPlanIssue] {
-  let count = declarations.length()
+  let native = native_source_ref is Some(_)
+  let whole = !whole_sources.is_empty()
+  let count = if whole {
+    whole_sources.length()
+  } else if native {
+    1
+  } else {
+    declarations.length()
+  }
+  if whole && (native || !declarations.is_empty() || providers is Some(_)) {
+    return Err(Installed(Unsupported))
+  }
+  if (
+      native &&
+      (
+        !declarations.is_empty() ||
+        providers is Some(_) ||
+        native_database_schema is None ||
+        native_table is None ||
+        native_receipt_body is None
+      )
+    ) ||
+    (
+      !native &&
+      (
+        native_database_schema is Some(_) ||
+        native_table is Some(_) ||
+        native_receipt_body is Some(_)
+      )
+    ) {
+    return Err(Installed(Unsupported))
+  }
   if (count != 1 && count != 2) ||
     transport_bytes.length() != count ||
     transport_execution_bytes.length() != count ||
@@ -270,6 +688,25 @@ pub fn[I] prepare_request_model_capture_module(
       (originals.length() != count || originals.any(value => value is None))
     ) {
     return Err(Installed(Unsupported))
+  }
+  if (
+      component_factory is Some(_) &&
+      (compilation.infers.length() != 1 || components_factory is Some(_))
+    ) ||
+    (components_factory is Some(_) && compilation.infers.length() < 2) {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let installed_providers = if components_factory is Some(_) {
+    guard request_model_provider_count(
+        installed_providers,
+        compilation.infers.length(),
+      )
+      is Some(total) else {
+      return Err(Installed(InsufficientCapacity))
+    }
+    total
+  } else {
+    installed_providers
   }
   preparation_module_call(
     () => {
@@ -286,29 +723,85 @@ pub fn[I] prepare_request_model_capture_module(
           installed_providers,
           query_time,
           provider_captures=if providers is Some(_) { count } else { 0 },
+          component_inputs=component_factory is Some(_) ||
+            components_factory is Some(_),
+          whole_inputs=whole,
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
-      guard request_model_material_body_bytes(2, index => {
-          if index % 2 == 0 {
-            query_contract_body
-          } else {
-            evidence_contract_body
+      let protocol_bytes = if whole {
+        0L
+      } else if native {
+        match
+          request_native_model_protocol_construction_bytes(
+            owner,
+            input,
+            prepared,
+            query_contract_body,
+            evidence_contract_body,
+            native_receipt_body.unwrap(),
+          ) {
+          Err(issue) => return Err(issue)
+          Ok(value) => value
+        }
+      } else {
+        match
+          request_model_material_body_bytes(2, index => {
+            if index == 0 {
+              query_contract_body
+            } else {
+              evidence_contract_body
+            }
+          }) {
+          None => return Err(Preparation(Policy))
+          Some(value) => value
+        }
+      }
+      let direct = match request_model_direct_occurrences_owned(owner, input) {
+        Ok(value) => value
+        Err(issue) => return Err(Installed(issue))
+      }
+      if @publication_host.client_direct_acquisition_occurrence_count(direct) !=
+        count {
+        return Err(Installed(ForeignOriginal))
+      }
+      let bytes = if whole {
+        // Complete inputs construct no Query; their same Request keeps the
+        // original Source capacities. Query paths retain measured demand.
+        protocol_bytes
+      } else {
+        let mut query_bytes = 0L
+        for index in 0..<count {
+          guard @publication_host.client_direct_acquisition_occurrence_at(
+              direct, index,
+            )
+            is Some((stage, source_input, task)) &&
+            task == index &&
+            request_local_original_query_construction_bytes(
+              prepared, stage, source_input,
+            )
+            is Some(original_bytes) &&
+            @execution.checked_preparation_add_product(
+              query_bytes, original_bytes, 1L,
+            )
+            is Some(total) else {
+            return Err(Preparation(Policy))
           }
-        })
-        is Some(protocol_bytes) &&
-        request_local_query_construction_bytes() is Some(query_bytes) &&
-        @execution.checked_preparation_add_product(
-          protocol_bytes,
-          query_bytes,
-          count.to_int64(),
-        )
-        is Some(bytes) else {
-        return Err(Preparation(Policy))
+          query_bytes = total
+        }
+        guard @execution.checked_preparation_add_product(
+            protocol_bytes, query_bytes, 1L,
+          )
+          is Some(bytes) else {
+          return Err(Preparation(Policy))
+        }
+        bytes
       }
       let model = compilation.infers[0]
-      let input_calls = if count == 1 && model.serialization is None {
+      let input_calls = if components_factory is None &&
+        (count == 1 || component_factory is Some(_)) &&
+        model.serialization is None {
         if @publication_host.client_infer_occurrence_terminal(model.occurrence) {
           1L
         } else {
@@ -340,6 +833,21 @@ pub fn[I] prepare_request_model_capture_module(
       // same original. Pass the bound invocation, never sample another clock.
       let mut input_prefix = None
       let mut input_suffix = None
+      let mut component_inputs = None
+      if components_factory is Some(_) {
+        let inputs = []
+        for graph in compilation.infers {
+          let original = match
+            construct_request_model_input(
+              owner, input, prepared, request, graph, contracts, query_time,
+            ) {
+            Err(issue) => return Err(issue)
+            Ok(value) => value
+          }
+          inputs.push(original)
+        }
+        component_inputs = Some(inputs)
+      }
       if input_calls > 0L {
         let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
           model.occurrence,
@@ -390,22 +898,45 @@ pub fn[I] prepare_request_model_capture_module(
       // are backed before the first parse/Query call on this SAME Request.
       // Every acquisition borrows these SAME admitted protocol originals. Do
       // not parse/check the identical installation bodies for a second Source.
-      let protocols = match
-        @row_source_host.admit_row_acquisition_contracts(
-          query_contract_body, evidence_contract_body,
-        ) {
-        Err(issue) => return Err(ModelSource(issue))
-        Ok(value) => value
+      let protocols = if native || whole {
+        None
+      } else {
+        match
+          @row_source_host.admit_row_acquisition_contracts(
+            query_contract_body, evidence_contract_body,
+          ) {
+          Err(issue) => return Err(ModelSource(issue))
+          Ok(value) => Some(value)
+        }
       }
       let captures = []
-      for stage in 0..<count {
+      for index in 0..<count {
+        guard @publication_host.client_direct_acquisition_occurrence_at(
+            direct, index,
+          )
+          is Some((stage, source_input, task)) &&
+          task == index else {
+          return Err(Installed(ForeignOriginal))
+        }
+        if whole {
+          let source = whole_sources[index]
+          if !@publication_host.client_source_acquisition_matches_program(
+              prepared,
+              stage,
+              source_input,
+              source.original,
+            ) {
+            return Err(Installed(ForeignOriginal))
+          }
+          continue
+        }
         let requirement = match
           (match query_time {
             Some(original) =>
               prepare_local_query_requirement_at_query_time(
                 prepared,
                 stage,
-                0,
+                source_input,
                 original,
                 request,
                 contracts,
@@ -417,7 +948,7 @@ pub fn[I] prepare_request_model_capture_module(
               prepare_local_query_requirement(
                 prepared,
                 stage,
-                0,
+                source_input,
                 contracts,
                 contracts.original.values_body,
                 contracts.original.fragment_body,
@@ -427,16 +958,37 @@ pub fn[I] prepare_request_model_capture_module(
           Err(issue) => return Err(ModelQuery(issue))
           Ok(value) => value
         }
+        if native_source_ref is Some(source_ref) {
+          if @planning.query_requirement_source(requirement).0 != source_ref {
+            return Err(Installed(ForeignOriginal))
+          }
+          // The same checked Query feeds its original native pending budget;
+          // no RowDeclaration, RowAcquisition or provider is manufactured.
+          let pending = match
+            prepare_client_duckdb_capture_capacity(
+              requirement,
+              native_database_schema.unwrap(),
+              native_table.unwrap(),
+              query_contract_body,
+              evidence_contract_body,
+              native_receipt_body.unwrap(),
+            ) {
+            Err(_) => return Err(Installed(Unsupported))
+            Ok(value) => value
+          }
+          captures.push(installed_pending_duckdb_capture_capacity(pending))
+          continue
+        }
         let source = match
-          @row_source_host.prepare_row_source(requirement, declarations[stage]) {
+          @row_source_host.prepare_row_source(requirement, declarations[index]) {
           Err(issue) => return Err(ModelSource(@row_source_host.Source(issue)))
           Ok(value) => value
         }
         let acquisition = match
           @row_source_host.prepare_declared_row_acquisition_with_contracts(
             source,
-            declarations[stage].connector_registration,
-            protocols,
+            declarations[index].connector_registration,
+            protocols.unwrap(),
           ) {
           Err(issue) => return Err(ModelSource(issue))
           Ok(value) => value
@@ -446,7 +998,7 @@ pub fn[I] prepare_request_model_capture_module(
             Some(originals) =>
               installed_provider_row_capture_capacity(
                 acquisition,
-                originals[stage],
+                originals[index],
               )
             None => installed_row_capture_capacity(acquisition)
           }) {
@@ -454,6 +1006,24 @@ pub fn[I] prepare_request_model_capture_module(
           Some(value) => value
         }
         captures.push(capacity)
+      }
+      if native {
+        guard request_local_query_finished_writer_bytes() is Some(writers) &&
+          @execution.checked_preparation_add_product(
+            protocol_bytes,
+            writers,
+            count.to_int64(),
+          )
+          is Some(returned) else {
+          return Err(Preparation(Policy))
+        }
+        match
+          reconcile_request_native_model_construction(
+            owner, input, prepared, returned,
+          ) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
       }
       let original = match
         prepare_installed_mock_model_capture_plan(
@@ -473,10 +1043,20 @@ pub fn[I] prepare_request_model_capture_module(
             if component_factory is Some(construct) &&
               input_prefix is Some(prefix) {
               providers.push(construct(capacity, prefix, input_suffix))
+            } else if components_factory is Some(construct) &&
+              component_inputs is Some(inputs) {
+              for index, original in inputs {
+                providers.push(
+                  construct(index, capacity, original.0, original.1),
+                )
+              }
             }
             providers
           },
           query_time~,
+          direct_occurrences=Some(direct),
+          runtime_admission=true,
+          whole_sources~,
         ) {
         Err(issue) => return Err(Installed(issue))
         Ok(value) => value
@@ -523,4 +1103,66 @@ pub fn prepared_request_model_input_suffix(
     Ok(_) => ()
   }
   Ok(original.model_input_suffix)
+}
+
+///|
+/// Select the checked Direct inventory once while this SAME Model Plan input
+/// is retained. The module reuses the original; coordinates are only source
+/// selection DATA, never a Source read, provider grant or a new owner.
+pub fn[I] request_model_direct_occurrences(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientDirectAcquisitionOccurrences,
+  ClientInstalledManagedRunIssue,
+] {
+  if owner.phase != ModelPlanReserved {
+    return Err(ForeignOriginal)
+  }
+  request_model_direct_occurrences_owned(owner, input)
+}
+
+///|
+fn[I] request_model_direct_occurrences_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientDirectAcquisitionOccurrences,
+  ClientInstalledManagedRunIssue,
+] {
+  guard (owner.phase == ModelPlanReserved || owner.phase == Selecting) &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) &&
+    owner.program_capacity is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.program_model_direct is Some(original) {
+    if !installed_direct_occurrences_match_owner(original, Pure(prepared)) {
+      return Err(ForeignOriginal)
+    }
+    return Ok(original)
+  }
+  let selected = match installed_direct_occurrences_owned(Pure(prepared)) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  owner.program_model_direct = Some(selected)
+  Ok(selected)
+}
+
+///|
+fn request_model_provider_count(families : Int, models : Int) -> Int? {
+  guard families >= 0 &&
+    models >= 0 &&
+    @execution.checked_preparation_add_product(
+      families.to_int64(),
+      models.to_int64(),
+      1L,
+    )
+    is Some(total) &&
+    total <= 2147483647L else {
+    return None
+  }
+  Some(total.to_int())
 }

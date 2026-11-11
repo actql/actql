@@ -35,7 +35,7 @@ pub fn start_client_keyed_file_locator(
   read : @execution.SuppliedRelationRead,
 ) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue] {
   if !client_keyed_file_locator_available(lookup, request) ||
-    !physical_equal(source, lookup.left.source) {
+    !client_keyed_left_source_matches(lookup.left, source) {
     return Err(Assembly("invalid_file_locator_request"))
   }
   if !charge_keyed_lookup_input_work(lookup, 1) {
@@ -58,6 +58,45 @@ pub fn start_client_keyed_file_locator(
     return Err(Assembly("file_locator_unavailable"))
   }
   Ok({ lookup, request, cursor, })
+}
+
+///|
+pub fn start_client_composed_keyed_file_locator(
+  lookup : ClientKeyedLookupInput,
+  request : ClientKeyedRequest,
+  sources : Array[@query.CapturedInputSource],
+  reads : Array[@execution.SuppliedRelationRead?],
+) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue] {
+  guard lookup.left.composed is Some(original) &&
+    client_keyed_file_locator_available(lookup, request) &&
+    sources.length() == original.sources.length() &&
+    reads.length() == sources.length() &&
+    client_composed_keyed_original_current(original) else {
+    return Err(Assembly("invalid_file_locator_request"))
+  }
+  let mut selected = None
+  for index, source in sources {
+    if !physical_equal(source, original.sources[index]) {
+      return Err(ForeignLeft)
+    }
+    guard reads[index] is Some(read) else { continue }
+    match start_client_keyed_file_locator(lookup, request, source, read) {
+      Ok(locator) => {
+        if selected is Some(previous) {
+          cancel_client_keyed_file_locator(previous)
+          cancel_client_keyed_file_locator(locator)
+          return Err(Assembly("ambiguous_file_locator"))
+        }
+        selected = Some(locator)
+      }
+      Err(Assembly("file_locator_unavailable")) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  match selected {
+    Some(value) => Ok(value)
+    None => Err(Assembly("file_locator_unavailable"))
+  }
 }
 
 ///|

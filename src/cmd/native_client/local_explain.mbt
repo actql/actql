@@ -33,7 +33,7 @@ fn local_static_plan_view(
       let compiled = @run_host.issue_prepared_client_task_compilation(
         prepared,
         manifests,
-        @run_host.client_standard_values_sequence_limits(),
+        @run_host.prepared_client_values_sequence_limits(prepared),
         1000,
         1000,
         65536,
@@ -132,24 +132,9 @@ fn local_explain_for_environment(
     Err(issue) => local_stop_native_preparation(issue)
   }
   let wire = local_static_plan_view(prepared)
-  local_explain_reply(wire, child.flags.get("json").unwrap_or(false))
-}
-
-///|
-// The same selected Host/configuration/current observation used by Local check
-// remains live across input reading and static compilation. Its command-local
-// reporting key stays private and is never a signing or execution authority.
-fn LocalCheckContext::explain(
-  self : LocalCheckContext,
-  input_root : String,
-  child : @argparse.Matches,
-) -> String raise ClientStop {
-  if !self.current() {
-    stop("LocalCheckContextUnavailable")
-  }
-  let reply = local_explain_for_environment(self.environment, input_root, child)
-  if !self.current() {
-    stop("LocalCheckContextUnavailable")
-  }
-  reply
+  local_explain_reply(
+    wire,
+    child.flags.get("json").unwrap_or(false),
+    verbose=child.flags.get("verbose").unwrap_or(false),
+  )
 }

@@ -203,7 +203,12 @@ test "Values filter keeps exact and one-short row profile admission" {
       )
       is None,
     )
-    for invalid in [0, 10001] {
+    // Positive row policy is independent of actual demand and resource bounds.
+    assert_true(
+      @publication_host.with_prepared_client_values_row_limit(prepared, 10001)
+      is Some(_),
+    )
+    for invalid in [-1, 0] {
       assert_true(
         @publication_host.with_prepared_client_values_row_limit(
           prepared, invalid,

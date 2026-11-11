@@ -118,7 +118,8 @@ function validateExecutionOrigin(origin) {
   assert(['repositoryId', 'workflowId', 'runId', 'runAttempt', 'jobId'].every(key => positive(origin[key])));
   assert(sha(origin.testedRevision) && sha(origin.runHeadRevision));
   assert.equal(origin.workflowPath, '.github/workflows/ci.yml');
-  assert(['push', 'pull_request', 'workflow_dispatch'].includes(origin.event));
+  assert(['push', 'pull_request', 'workflow_dispatch', 'schedule'].includes(origin.event));
+  if (origin.event === 'schedule') assert.equal(origin.branch, 'main', 'Scheduled evidence requires main');
   assert(typeof origin.branch === 'string' && origin.branch.length > 0);
   return origin;
 }

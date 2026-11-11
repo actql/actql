@@ -34,7 +34,7 @@ try {
   await writeFile(output, JSON.stringify({pid: process.pid, ref: run.ref, status: status.status,
     first, second, request, lookupCounts, rows, readAttempt,
     description, readState, rowsYielded, originalAfterRead,
-    valuesHostPolicyOriginal: retained?.valuesHostPolicyOriginal,
+    runAdmissionEvidence: retained,
     counts: fixture.counts}));
   if (newRead) console.log('RESTORED_READ_121_PHASE', 'saved');
 } finally {

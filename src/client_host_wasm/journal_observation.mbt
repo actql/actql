@@ -9,48 +9,39 @@ fn physical_journal_current_operation(ticket : Int) -> Int64 = "actql_host" "jou
 fn physical_journal_schema(ticket : Int) -> Int = "actql_host" "journal_schema"
 
 ///|
-fn physical_journal_begin(
+// Literal little-endian u32 key length, u32 body length and i64 revision.
+// The original ticket retains the row until the second bounded import succeeds.
+// Borrow the buffers through the actual import, not an earlier offset extractor.
+#unsafe_skip_stub_check
+#borrow(namespace_buffer, key_buffer, header_buffer)
+fn physical_journal_query_header(
   ticket : Int,
   mode : Int,
+  namespace_buffer : Bytes,
   namespace_bytes : Int,
+  key_buffer : Bytes,
   key_bytes : Int,
-) -> Int = "actql_host" "journal_begin"
+  header_buffer : FixedArray[Byte],
+) -> Int = "actql_host" "journal_query_header"
 
 ///|
-fn physical_journal_query_copy(
+#unsafe_skip_stub_check
+#borrow(key_buffer, body_buffer)
+fn physical_journal_copy_row(
   ticket : Int,
-  index : Int,
-  offset : Int,
-  length : Int,
-) -> Int = "actql_host" "journal_query_copy"
+  key_buffer : FixedArray[Byte],
+  key_bytes : Int,
+  body_buffer : FixedArray[Byte],
+  body_bytes : Int,
+) -> Int = "actql_host" "journal_copy_row"
 
 ///|
-// Source-pinned wasm32 payload borrow. The synchronous Host validates this
-// same instance's original memory; no Moon object/header is decoded in Python.
+// Source-pinned wasm32 payload offset only. Callers must retain the Bytes
+// separately across any later foreign call; this extraction extends no loan.
+// Python validates original memory and never decodes a Moon object header.
 #borrow(bytes)
 extern "wasm" fn journal_bytes_offset(bytes : Bytes) -> Int =
   #|(func (param i32) (result i32) local.get 0)
-
-///|
-fn physical_journal_query(ticket : Int) -> Int = "actql_host" "journal_query"
-
-///|
-fn physical_journal_length(ticket : Int, field : Int) -> Int = "actql_host" "journal_length"
-
-///|
-fn physical_journal_copy(
-  ticket : Int,
-  field : Int,
-  index : Int,
-  offset : Int,
-  length : Int,
-) -> Int = "actql_host" "journal_copy"
-
-///|
-fn physical_journal_revision(ticket : Int) -> Int64 = "actql_host" "journal_revision"
-
-///|
-fn physical_journal_release(ticket : Int) -> Int = "actql_host" "journal_release"
 
 ///|
 /// Original Core inputs and transient physical query custody only. The Host
@@ -127,6 +118,33 @@ fn journal_query_row(
 }
 
 ///|
+// Validate the literal header before either exact-sized payload allocation.
+// This pure private decoder is independently exercised with malformed headers.
+fn journal_row_header(header : Bytes) -> Result[(Int, Int, Int64), Int] {
+  if header.length() != 16 {
+    return Err(-41)
+  }
+  let mut key_length = 0
+  let mut body_length = 0
+  let mut revision = 0L
+  for index in 0..<4 {
+    key_length = key_length | (header[index].to_int() << (8 * index))
+    body_length = body_length | (header[4 + index].to_int() << (8 * index))
+  }
+  for index in 0..<8 {
+    revision = revision | (header[8 + index].to_int().to_int64() << (8 * index))
+  }
+  if key_length <= 0 ||
+    key_length > 4096 ||
+    body_length < 0 ||
+    body_length > 262144 ||
+    revision < 0L {
+    return Err(-41)
+  }
+  Ok((key_length, body_length, revision))
+}
+
+///|
 /// Shared physical transfer for an original scoped namespace-reader loan.
 /// The owning caller supplies its existing typed current fence before/after
 /// every query. This transfer cannot issue scope, completeness or permission.
@@ -143,85 +161,52 @@ fn physical_journal_row(
   }
   let namespace_bytes = @utf8.encode(table_name)
   let key_bytes = @utf8.encode(key)
-  if namespace_bytes.length() > 4096 ||
-    key_bytes.length() > 4096 ||
-    physical_journal_begin(
-      physical,
-      mode,
-      namespace_bytes.length(),
-      key_bytes.length(),
-    ) !=
-    0 {
+  if namespace_bytes.length() > 4096 || key_bytes.length() > 4096 {
     return Err(-41)
   }
-  let mut ordinal = 0
-  for bytes in [namespace_bytes, key_bytes] {
-    let mut index = 0
-    while index < bytes.length() {
-      let length = (bytes.length() - index).min(16384)
-      if physical_journal_query_copy(
-          physical,
-          ordinal,
-          journal_bytes_offset(bytes) + index,
-          length,
-        ) !=
-        length {
-        return Err(-41)
-      }
-      ordinal += length
-      index += length
-    }
-  }
-  let code = physical_journal_query(physical)
+  // The original current/journal ticket's physical-copy reservation includes
+  // a separate 64-byte header/control envelope before this allocation. The
+  // existing fixed VM and row reservations still own the exact-sized fields.
+  // This replaces the old input list, fields Array and two tuple staging loop;
+  // none of that removed staging is needed to fund the new header.
+  let header : FixedArray[Byte] = FixedArray::make(16, 0)
+  let code = physical_journal_query_header(
+    physical,
+    mode,
+    namespace_bytes,
+    namespace_bytes.length(),
+    key_bytes,
+    key_bytes.length(),
+    header,
+  )
   if code == 1 {
-    if physical_journal_release(physical) != 0 {
-      return Err(-41)
-    }
     return current().map(_ => None)
   }
   if code != 0 {
     return Err(-41)
   }
-  let key_length = physical_journal_length(physical, 0)
-  let body_length = physical_journal_length(physical, 1)
-  let revision = physical_journal_revision(physical)
-  if key_length <= 0 ||
-    key_length > 4096 ||
-    body_length < 0 ||
-    body_length > 262144 ||
-    revision < 0L {
+  let (key_length, body_length, revision) = match
+    journal_row_header(header.unsafe_reinterpret_as_bytes()) {
+    Ok(fields) => fields
+    Err(code) => return Err(code)
+  }
+  let actual_key : FixedArray[Byte] = FixedArray::make(key_length, 0)
+  let body : FixedArray[Byte] = FixedArray::make(body_length, 0)
+  if physical_journal_copy_row(
+      physical, actual_key, key_length, body, body_length,
+    ) !=
+    0 {
     return Err(-41)
   }
-  let fields : Array[Bytes] = []
-  for (field, length) in [(0, key_length), (1, body_length)] {
-    let bytes : FixedArray[Byte] = FixedArray::make(length, 0)
-    let payload = bytes.unsafe_reinterpret_as_bytes()
-    let mut index = 0
-    while index < length {
-      let count = (length - index).min(16384)
-      if physical_journal_copy(
-          physical,
-          field,
-          index,
-          journal_bytes_offset(payload) + index,
-          count,
-        ) !=
-        count {
-        return Err(-41)
-      }
-      index += count
-    }
-    fields.push(payload)
+  let actual_key = @utf8.decode(actual_key.unsafe_reinterpret_as_bytes()) catch {
+    _ => return Err(-41)
   }
-  let actual_key = @utf8.decode(fields[0]) catch { _ => return Err(-41) }
-  if physical_journal_release(physical) != 0 {
-    return Err(-41)
-  }
+  let body = body.unsafe_reinterpret_as_bytes()
   match current() {
     Ok(_) => ()
     Err(code) => return Err(code)
   }
-  Ok(Some({ key: actual_key, body: fields[1], revision, }))
+  Ok(Some({ key: actual_key, body, revision, }))
 }
 
 ///|

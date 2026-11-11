@@ -5,7 +5,7 @@ import {readLocalRetainedInput} from './retained-input.mjs';
 import {localComputeFaultInjection, localRetainedStore,
   localSnapshotStore, localExecutionPauseHandler} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
-import {closeCompletedLocalManagedOutput, closeCompletedLocalManagedOutputAsync, continueLocalManagedFailureCleanup} from './managed-output-custody.mjs';
+import {closeCompletedLocalManagedOutput, closeCompletedLocalManagedOutputAsync, continueLocalManagedFailureCleanup, refreshCompletedLocalManagedScratch} from './managed-output-custody.mjs';
 import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows, withManagedOutputRows} from
@@ -433,6 +433,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             ...(snapshotDiagnostic == null ? {} : {snapshot: snapshotDiagnostic}),
           }),
         });
+        // Finish only runnable retirement of this completed Local scratch.
+        // The same live material and any retained provider cleanup remain
+        // owned; the next task cannot depend on a whole-Run cleanup pass.
+        await refreshCompletedLocalManagedScratch(operations, () => available);
         const outputRows = operations.output_rows();
         const storageBytes = BigInt(operations.storage_bytes);
         // Safe Transfer advertisement for the row-wire fallback. It covers a
@@ -466,6 +470,11 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         return Object.freeze({
           completed,
           material,
+          // Retire only stopped-provider scratch, keeping this SAME live
+          // material/Reference/holding available to later Effect consumers.
+          refreshCompletedScratch: () => refreshCompletedLocalManagedScratch(
+            operations, () => available,
+          ),
           withRows: (emit, readSignal, commit) => withManagedOutputRows(
             material, emit, readSignal, commit,
           ),

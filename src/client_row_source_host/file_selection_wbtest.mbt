@@ -25,6 +25,7 @@ fn selection_read_fixture(
   selection : RowFileSelection,
   max_work? : Int = 100000,
   reports? : RowListingReports? = None,
+  metadata_retention? : RowListingRetention? = None,
 ) -> RowSourceRead {
   let resource = @contract.read_checked(
     row_presence_cursor(
@@ -139,6 +140,7 @@ fn selection_read_fixture(
         limits,
         resolved_rows=Some(resolved),
         selection=Some(selection),
+        retention=metadata_retention,
       ),
     ),
     keyed: None,

@@ -9,6 +9,7 @@ import {loadInstalledSource, installedSourceIdentity} from '../../../host-node/i
 import {connectEmbeddedLocal} from '../../../host-node/embedded-local.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedSnowflakeFixture as fixture} from './installed-snowflake.fixture.mjs';
+import {installedFailureCode} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {pending, resultBody, decimal38} from './snowflake-read.fixture.mjs';
 import {publicSnowflakeInstallation} from './public-snowflake.fixture.mjs';
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -28,10 +29,7 @@ async function keyPairFixture(t) {
   const profile = {...f.profile, limits: {...f.profile.limits, maxSecretBytes: 4096}};
   await writeFile(f.siteProfilePath, JSON.stringify(site)); await writeFile(f.path, JSON.stringify(profile));
   let current = rsa;
-  const source = await loadInstalledSource(f.path, {root: f.root, principalId: 'operator', moon: f.moon,
-    runtimeUrl, baseEnvironmentWire,
-    resolveSecret: async value => {lookups.push(value); return pem(current);}});
-  t.after(() => source.close());
+  const source = await f.load({resolveSecret: async value => {lookups.push(value); return pem(current);}});
   return {...f, source, site, profile, lookups, rotate: () => {current = rotated;}};
 }
 function acceptJwt(entry) {
@@ -92,7 +90,8 @@ test('key-pair/token ambiguity and OAuth key-pair substitution refuse before mat
   for (const site of [{...f.site, keyPair: {accountIdentifier: 'org-acct', user: 'user', privateKeyEnvironment: 'KEY'}},
     {...f.site, tokenEnvironment: undefined, authenticationType: 'KEYPAIR_JWT', keyPair: null}]) {
     await writeFile(f.siteProfilePath, JSON.stringify(site));
-    await assert.rejects(f.load(), error => /^(InvalidInstalledSnowflakeSite|InvalidSnowflakeKeyPairProfile)$/u.test(error.code));
+    await assert.rejects(f.load(), error => installedFailureCode('InvalidInstalledSnowflakeSite')(error) ||
+      installedFailureCode('InvalidSnowflakeKeyPairProfile')(error));
   }
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
 });

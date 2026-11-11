@@ -41,6 +41,37 @@ test('fresh preparation is counted once and nested comparison costs are not summ
   request.receipts.forEach((receipt, index) => assert(canonicalReceipt(receipt).equals(originals[index])));
 });
 
+test('six-phase cost correspondence retains nonzero input inspection exactly once', () => {
+  const request = fixture();
+  request.isolatedExecution.costs.inputInspectionMilliseconds = 7;
+  request.receipts[1].execution.milliseconds += 7;
+  const originals = request.receipts.map(canonicalReceipt);
+  const result = checkCostObservation(request);
+  assert.equal(result.knownProducerMilliseconds, 62);
+  assert.equal(result.actions[1].currentMilliseconds, 24);
+  assert.equal(result.actions[1].exclusiveMilliseconds, 21);
+  assert.equal(result.netRunnerSavingsMilliseconds, null);
+  request.receipts.forEach((receipt, index) => assert(canonicalReceipt(receipt).equals(originals[index])));
+});
+
+test('six-phase cost correspondence refuses omitted extra invalid and unbound phases', () => {
+  for (const [alter, message] of [
+    [r => delete r.isolatedExecution.costs.inputInspectionMilliseconds, /Missing\/extra cost field/],
+    [r => r.isolatedExecution.costs.unlistedMilliseconds = 0, /Missing\/extra cost field/],
+    [r => r.isolatedExecution.costs.inputInspectionMilliseconds = -1, /Invalid cost observation/],
+    [r => r.isolatedExecution.costs.inputInspectionMilliseconds = 0.5, /Invalid cost observation/],
+    [r => r.isolatedExecution.costs.inputInspectionMilliseconds = NaN, /Invalid cost observation/],
+    [r => r.isolatedExecution.costs.inputInspectionMilliseconds = Number.MAX_SAFE_INTEGER + 1, /Invalid cost observation/],
+    [r => r.receipts[1].execution.milliseconds -= 7, /Wrong isolated action cost envelope/],
+  ]) {
+    const request = fixture();
+    request.isolatedExecution.costs.inputInspectionMilliseconds = 7;
+    request.receipts[1].execution.milliseconds += 7;
+    alter(request);
+    assert.throws(() => checkCostObservation(request), message);
+  }
+});
+
 test('reused origin cost remains historical, current count/time is null, and preparation/acquisition is retained', () => {
   const request = fixture(true), result = checkCostObservation(request), row = result.actions[1];
   assert.equal(result.knownProducerMilliseconds, 41);

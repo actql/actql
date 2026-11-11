@@ -129,6 +129,8 @@ fn control_bundle_test_install(
 
 ///|
 test "control Bundle cleanup keeps original Store and Slot until physical ACK before report" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (store, path) = control_bundle_test_open("control-bundle-report")
   let installer = control_bundle_test_install(store, "1")
   installer.append(b"runtime-one").unwrap()
@@ -164,17 +166,29 @@ test "control Bundle cleanup keeps original Store and Slot until physical ACK be
     store=Some(store),
   )
   assert_true(
-    advance_control_bundle_custody_cleanup(original) is Some(Retiring(same)) &&
+    advance_control_bundle_custody_cleanup(
+      original,
+      report_progress=observe_progress,
+    )
+    is Some(Retiring(same)) &&
     physical_equal(same, original),
   )
   assert_true(original.store is Some(same) && physical_equal(same, store))
   assert_eq(slot.verify_current_hold(), Ok(()))
   assert_false(original.slot_retired)
   assert_true(
-    advance_control_bundle_custody_cleanup(original) is Some(Retiring(_)),
+    advance_control_bundle_custody_cleanup(
+      original,
+      report_progress=observe_progress,
+    )
+    is Some(Retiring(_)),
   )
   pending_install.cancel().unwrap()
-  let pending = match advance_control_bundle_custody_cleanup(original) {
+  let pending = match
+    advance_control_bundle_custody_cleanup(
+      original,
+      report_progress=observe_progress,
+    ) {
     Some(Responding(same)) => same
     _ => {
       fail(
@@ -222,10 +236,13 @@ test "control Bundle cleanup keeps original Store and Slot until physical ACK be
   let next_slot = @slot.open_native_executor_slot(path + "/original.slot").unwrap()
   assert_true(next_slot.try_acquire().unwrap())
   assert_true(next_slot.close())
+  assert_eq(progress_events, [])
 }
 
 ///|
 test "control Bundle uncertain action keeps original typed duty after physical cleanup" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let (store, path) = control_bundle_test_open("control-bundle-uncertain")
   let slot = @slot.open_native_executor_slot(path + "/original.slot").unwrap()
   assert_true(slot.try_acquire().unwrap())
@@ -237,7 +254,11 @@ test "control Bundle uncertain action keeps original typed duty after physical c
     store=Some(store),
   )
   assert_true(
-    advance_control_bundle_custody_cleanup(original) is Some(Unconfirmed(same)) &&
+    advance_control_bundle_custody_cleanup(
+      original,
+      report_progress=observe_progress,
+    )
+    is Some(Unconfirmed(same)) &&
     physical_equal(same, original),
   )
   assert_true(original.store is None)
@@ -247,13 +268,37 @@ test "control Bundle uncertain action keeps original typed duty after physical c
     is BundleCustodyUncertain(@agent.Store(@bundle.CleanupPending)),
   )
   assert_true(
-    advance_control_bundle_custody_cleanup(original) is Some(Unconfirmed(same)) &&
+    advance_control_bundle_custody_cleanup(
+      original,
+      report_progress=observe_progress,
+    )
+    is Some(Unconfirmed(same)) &&
     physical_equal(same, original),
   )
+  assert_eq(progress_events, [
+    (
+      "bundle-custody-unconfirmed",
+      [
+        ("reason", "original-store-outcome"),
+        ("category", "store"),
+        ("slot-state", "retired"),
+      ],
+    ),
+    (
+      "bundle-custody-unconfirmed",
+      [
+        ("reason", "original-store-outcome"),
+        ("category", "store"),
+        ("slot-state", "retired"),
+      ],
+    ),
+  ])
 }
 
 ///|
 test "control Bundle failed constructor keeps its original cleanup carrier through retirement" {
+  let progress_events : Array[(String, Array[(String, String)])] = []
+  let observe_progress = (kind, fields) => progress_events.push((kind, fields))
   let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
   let root = @filesystem.open_root(parent).unwrap()
   root.create_directory("control-bundle-open-failure").unwrap() |> ignore
@@ -297,9 +342,18 @@ test "control Bundle failed constructor keeps its original cleanup carrier throu
   )
   assert_false(original.slot_retired)
   assert_true(failure.issue() is @bundle.Database(@sqlite.DatabaseOpen(_)))
-  assert_true(advance_control_bundle_custody_cleanup(original) is None)
+  assert_true(
+    advance_control_bundle_custody_cleanup(
+      original,
+      report_progress=observe_progress,
+    )
+    is None,
+  )
   assert_true(original.failed_store is None)
   assert_true(original.slot_retired)
   assert_true(failure.issue() is @bundle.Database(@sqlite.DatabaseOpen(_)))
   assert_true(retry_control_bundle_custody_cleanup(original))
+  assert_eq(progress_events, [
+    ("bundle-custody-refused", [("reason", "store-open-failed")]),
+  ])
 }

@@ -104,6 +104,7 @@ priv enum PublicationCommitPhase {
 struct PublicationCommitPreparation {
   mut inputs : PublicationCommitInputs?
   mut retained_capture : CapturedRunIssuancePreparation?
+  mut retained_effectful : EffectfulFinalRunEvidence?
   max_workspace : Int
   mut phase : PublicationCommitPhase
   mut live : Int
@@ -135,8 +136,8 @@ pub fn start_effect_free_publication_commit_check(
   max_depth : Int,
   max_workspace : Int,
 ) -> PublicationCommitPreparation {
-  {
-    inputs: Some({
+  new_publication_commit_preparation(
+    {
       origin: BorrowedInputs,
       computation: {
         run_definition,
@@ -158,15 +159,9 @@ pub fn start_effect_free_publication_commit_check(
       request,
       attempt,
       index_entry,
-    }),
-    retained_capture: None,
+    },
     max_workspace,
-    phase: BeginResultEvidence,
-    live: 12,
-    peak: 12,
-    closed: false,
-    view: None,
-  }
+  )
 }
 
 ///|
@@ -349,7 +344,11 @@ fn PublicationCommitPreparation::advance_bindings(
       )
       if done {
         child.cancel()
-        if preparation.retained_capture is Some(original) &&
+        if preparation.retained_effectful is Some(_) {
+          // The same typed final original already proves computation. Keep
+          // all remaining request/attempt/index work in the bounded checker.
+          preparation.phase = BeginReferences
+        } else if preparation.retained_capture is Some(original) &&
           original.matches_computation(chain) {
           preparation.phase = BeginReferences
         } else {
@@ -452,6 +451,7 @@ pub fn PublicationCommitPreparation::cancel(
   }
   preparation.inputs = None
   preparation.retained_capture = None
+  preparation.retained_effectful = None
   preparation.phase = Done
   preparation.live = 0
   preparation.closed = true
@@ -503,5 +503,23 @@ pub fn publication_commit_preparation_fixture_phase(
       }
     BeginReferences => "references"
     Done => "done"
+  }
+}
+
+///|
+fn new_publication_commit_preparation(
+  inputs : PublicationCommitInputs,
+  max_workspace : Int,
+) -> PublicationCommitPreparation {
+  {
+    inputs: Some(inputs),
+    retained_capture: None,
+    retained_effectful: None,
+    max_workspace,
+    phase: BeginResultEvidence,
+    live: 12,
+    peak: 12,
+    closed: false,
+    view: None,
   }
 }

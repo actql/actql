@@ -102,7 +102,7 @@ test "Snowflake SQL API same original POST status and partition preserve decimal
   assert_true(@snowflake_read.statement_read_complete(statement))
   assert_true(@snowflake_read.next_statement_request(statement) is Ok(None))
   assert_eq(@resources.ledger_usage(ledger).transferred_bytes, transfer)
-  let captured = @snowflake_read.capture_result_read(read).unwrap()
+  let captured = snowflake_capture_result(read).unwrap()
   let input = @query.captured_source_storage(
     @row_host.row_capture_source(captured).unwrap(),
     10000,
@@ -613,7 +613,7 @@ test "Snowflake SQL API complete opaque dot handle observation needs no path can
     assert_eq(@snowflake_read.statement_read_handle(statement), Some(handle))
     assert_true(@snowflake_read.statement_read_complete(statement))
     assert_true(@snowflake_read.next_statement_request(statement) is Ok(None))
-    assert_true(@snowflake_read.capture_result_read(read) is Ok(_))
+    assert_true(snowflake_capture_result(read) is Ok(_))
     snowflake_assert_retired(read, ledger)
   }
 }

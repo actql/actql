@@ -66,7 +66,7 @@ export const joinStarExecutionFailures = [
     text: JSON.stringify(exceededValuesJoin), resultNames: ['answer'], sourceReadSessionCount: 0},
   {name: 'join-star-values-ceiling-source-exceeded', format: 'sql',
     text: valuesJoinCeilingSql.replace('MAX_OUTPUT_ROWS 5', 'MAX_OUTPUT_ROWS 1'),
-    resultNames: ['answer'], sourceReadSessionCount: 0},
+    resultNames: ['main'], sourceReadSessionCount: 0},
 ];
 const sql = 'SELECT * FROM records AS l JOIN (SELECT 2 AS k) AS r '
   + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 ORDER BY id';
@@ -143,21 +143,21 @@ export const joinStarSuccesses = [
   }),
   success('set-target-unique-range', 'FROM records AS l |> RIGHT JOIN (SELECT 3 AS k) AS r '
     + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 |> SET amount = 99 '
-    + '|> SELECT amount AS current, l.amount AS original, r.k AS matched |> ORDER BY original', {
+    + '|> SELECT amount AS `current`, l.amount AS original, r.k AS matched |> ORDER BY original', {
     format: 'aql-text',
     columns: [column('current'), column('original', nullable), column('matched')],
     expected: [{current: 99, original: 30, matched: 3}, {current: 99, original: 30, matched: 3}],
   }),
   success('set-target-unmatched-range', 'FROM records AS l |> RIGHT JOIN (SELECT 9 AS k) AS r '
     + 'ON l.id = r.k MAX_OUTPUT_ROWS 10 |> SET amount = 99 '
-    + '|> SELECT amount AS current, l.amount AS original, r.k AS matched |> ORDER BY original', {
+    + '|> SELECT amount AS `current`, l.amount AS original, r.k AS matched |> ORDER BY original', {
     format: 'aql-text',
     columns: [column('current'), column('original', nullable), column('matched')],
     expected: [{current: 99, original: null, matched: 9}],
   }),
   success('set-target-coalesced-using', 'FROM records AS l |> RIGHT JOIN records AS r '
     + 'USING (id) MAX_OUTPUT_ROWS 10 |> SET id = -id '
-    + '|> SELECT id AS current, l.id AS left_original, r.id AS right_original |> ORDER BY right_original', {
+    + '|> SELECT id AS `current`, l.id AS left_original, r.id AS right_original |> ORDER BY right_original', {
     format: 'aql-text',
     columns: [column('current'), column('left_original', nullable), column('right_original')],
     expected: [{current: -1, left_original: 1, right_original: 1},

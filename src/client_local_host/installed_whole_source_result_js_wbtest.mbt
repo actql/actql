@@ -351,6 +351,7 @@ fn whole_source_result_publication_fixture(
         Driver(ManagedCompletion(_)) => "Driver.ManagedCompletion"
         Driver(_) => "Driver.Other"
         FinalizationLimit => "FinalizationLimit"
+        Estimate(_) => "Estimate"
         MissingOutput => "MissingOutput"
       }
       fail("whole result execution: " + label)

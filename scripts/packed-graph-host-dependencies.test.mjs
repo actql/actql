@@ -132,20 +132,26 @@ test('fixed-hop node predicate source controls are copied and included in normal
 
 test('any-direction Graph controls are staged and exercised in normal and focused acceptance', async () => {
   const {graphAnyDirectionSuccesses: successes, graphAnyDirectionRefusals: refusals,
-    graphAnyDirectionExecutionFailures: failures, graphAnyDirectionOverCeiling: overCeiling}
+    graphAnyDirectionExecutionFailures: failures, graphAnyDirectionCompleteWalk: completeWalk}
     = await import('./fixtures/graph-any-direction-source-input.mjs');
-  assert.equal(successes.length, 12);
+  assert.equal(successes.length, 13);
   assert.equal(refusals.length, 7);
-  assert.equal(failures.length, 1);
+  assert.equal(failures.length, 0);
   assert.equal(new Set([...successes, ...refusals, ...failures].map(item => item.name)).size, 20);
-  assert.equal(overCeiling.results.matched.rows.length, 20);
-  assert.equal(failures[0].text, overCeiling.text);
-  assert.deepEqual(failures[0].parameters, overCeiling.parameters);
+  assert.ok(successes.includes(completeWalk));
+  assert.deepEqual(completeWalk.results.matched.rows,
+    [0, ...Array(6).fill(1), ...Array(13).fill(2)].map(depth => ({depth})));
   // A lower bound from the declared JSON identity fields alone: domain CID,
   // element definition, object keys and number key type. No product meter.
   const identityText = 71 + 1 + 'definitiondomainkeykey_typeskindnumber'.length;
   const identityOccurrences = 3 + 6 * 5 + 13 * 7;
   assert.ok(identityText * identityOccurrences > 10000);
+  // This storage-sized number is not a selected cumulative traversal budget.
+  // The consumer law scopes max_value_bytes to each top-level value. The
+  // ordinary case verifies every complete Result row; explicit output limits
+  // are covered through the existing Core traversal limit argument.
+  const capacity = JSON.parse(await readFile(new URL('../spec/contracts/actql-consumer-capacity.json', import.meta.url), 'utf8'));
+  assert.ok(capacity.laws.value_scope.includes('each top-level value'));
   for (const [mode, depths] of [
     ['walk', [0, 1, 1, 2, 2, 2, 2]], ['trail', [0, 1, 1, 2, 2]], ['acyclic', [0]],
   ]) {

@@ -4,19 +4,173 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
-import {openNodeInferOperation} from './infer-operation.mjs';
+import {openNodeInferOperation, retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
 import {inferTaskPublicationPlan} from './local-values-plan.mjs';
 import {inferPublicationExecution} from './infer-result-publication.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 import {createInferIoNotification} from './infer-io-notification.mjs';
+import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {selectedInferOriginalCurrentStateCodec,
   selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
 
+// Borrow the existing Request's Model Plan and Scope. This is the
+// same installed Run; configured providers keep their current/claim/stop owner.
+function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model, acquired) {
+  const group = model?.group;
+  const managed = model?.managed, scope = model?.scope, component = model?.component;
+  const original = managed?.value, request = managed?.request, graph = selected.graph,
+    compiled = plan.compiled, definition = plan.runDefinition, budget = model?.budget,
+    publication = model?.publicationCapacity;
+  const sourceLedger = acquired?.ledger, captured = acquired?.captured;
+  const current = () => {
+    if (model === null || typeof model !== 'object' || model.closed || model.scopeFinished ||
+        model.prepared !== prepared || model.selection !== selected || model.graph !== graph || selected.graph !== graph ||
+        model.control !== control || model.compiled !== compiled || plan.compiled !== compiled ||
+        model.runDefinition !== definition || plan.runDefinition !== definition ||
+        scope === undefined || model.scope !== scope || model.budget !== budget ||
+        component === undefined || model.component !== component ||
+        typeof component.bindOriginal !== 'function' ||
+        typeof publication !== 'function' || model.publicationCapacity !== publication ||
+        model.originalReadInstallation !== undefined || model.managed !== managed ||
+        managed?.closed || managed?.model !== (group ?? model) ||
+        group !== undefined && (!Array.isArray(group.components) || !group.components.includes(model) ||
+          group.closed || group.scopeFinished) || original === undefined ||
+        managed.value !== original || managed.request !== request ||
+        managed.runtime !== moon || managed.prepared !== prepared ||
+        acquired !== undefined && (moon.clientProgramAcquisitionCount(prepared) !== 1 ||
+          managed.value !== acquired.managedRun || acquired.ledger !== sourceLedger ||
+          model.sourceLedger !== sourceLedger || acquired.captured !== captured)) {
+      throw new TypeError('InvalidInstalledRequestModelPreparation');
+    }
+  };
+  current();
+  if (model.taken || model.readAttempted || model.read !== undefined) {
+    throw new TypeError('InvalidInstalledRequestModelPreparation');
+  }
+  const publicationCapacity = () => {
+    current();
+    return Reflect.apply(publication, model, []);
+  };
+  return Object.freeze({selection: selected, control, compiled: plan.compiled, component,
+    assertRuntimeCurrent: current,
+    runDefinition: plan.runDefinition, scope, publicationCapacity,
+    readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
+    modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
+    retain() {
+      current();
+      if (model.taken || model.readAttempted) throw new TypeError('InvalidInstalledRequestModelPreparation');
+      model.taken = true;
+    },
+    openSourceFreeHost(registry, values, fragment, ordered, providers) {
+      current();
+      if (!model.taken || model.hostAttempted || moon.clientProgramAcquisitionCount(prepared) !== 0) {
+        throw new TypeError('InvalidInstalledRequestModelPreparation');
+      }
+      model.hostAttempted = true;
+      return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
+        original, prepared, request, registry, values, fragment, ordered, providers));
+    },
+    ...(acquired === undefined ? {} : {openCapturedHost(captures) {
+      current();
+      if (!model.taken || model.hostAttempted || !Array.isArray(captures) ||
+          captures.length !== 1 || captures[0] !== captured ||
+          typeof moon.clientProgramOpenInstalledManagedCaptureHost !== 'function') {
+        throw new TypeError('InstalledComposedInferHostUnavailable');
+      }
+      model.hostAttempted = true;
+      return checked(moon.clientProgramOpenInstalledManagedCaptureHost(original,
+        prepared, request, captures.map(value => value.capture.source())));
+    }}),
+    prepareRead() {
+      current();
+      if (model.readAttempted && Object.hasOwn(model, 'readFailure')) throw model.readFailure;
+      if (!model.taken || model.readAttempted) throw new TypeError('InvalidInstalledRequestModelPreparation');
+      model.readAttempted = true;
+      try {
+        model.read = control.prepareCheckedClientInferOriginalRead(plan.compiled,
+          plan.runDefinition, selected.graph, scope, model.budget);
+        return Object.freeze({control, compiled: plan.compiled, runDefinition: plan.runDefinition,
+          scope, read: model.read, publicationCapacity,
+          readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
+          modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
+      } catch (cause) {model.readFailure = cause; throw cause;}
+    },
+    async retire() {
+      if (model.closed && model.scopeFinished) return true;
+      current();
+      retireNodeInferOriginalRead(model);
+      model.read = undefined;
+      if (control.finishCheckedClientInferOriginalReadScope(plan.compiled,
+        plan.runDefinition, selected.graph, scope, true) !== true) return false;
+      model.scopeFinished = true;
+      // The existing Host registry still owns Run/parent retirement and alias
+      // severing. Finishing this Scope does not report whole-Host cleanup.
+      model.closed = true;
+      return true;
+    }});
+}
+
+// One original group view on the same installed Run. All component reads and
+// scopes retire before its existing Request/Host cleanup; the first pending
+// scope never prevents cleanup from reaching the remaining actual children.
+function sourceFreeModelsPreparation(moon, control, prepared, plan, selected, model, acquired, preparationHolder) {
+  const members = model?.components, scopes = model?.scopes, managed = model?.managed;
+  const current = () => {
+    if (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
+        model.components !== members || model.selection !== selected || model.closed || model.scopeFinished ||
+        !Array.isArray(scopes) || model.scopes !== scopes || scopes.length !== members.length ||
+        model.graph !== selected.graph || model.control !== control || model.compiled !== plan.compiled ||
+        model.runDefinition !== plan.runDefinition || managed?.model !== model || managed.closed ||
+        model.managed !== managed || managed.value === undefined || managed.prepared !== prepared ||
+        acquired !== undefined && (managed.value !== acquired.managedRun || model.sourceLedger !== acquired.ledger) ||
+        members.some((member, index) => member.group !== model || member.managed !== managed ||
+          member.selection !== selected.components[index] || member.graph !== selected.graph[index] ||
+          member.scope !== scopes[index])) throw new TypeError('InvalidInstalledRequestModelPreparation');
+  };
+  current();
+  const originals = Object.freeze(members.map((member, index) =>
+    sourceFreeModelPreparation(moon, control, prepared, plan, selected.components[index], member)));
+  return Object.freeze({control, compiled: plan.compiled, runDefinition: plan.runDefinition,
+    selection: selected, components: originals, preparationHolder, sourceCoordinates: selected.sourceCoordinates,
+    retain() {current(); for (const original of originals) original.retain(); model.taken = true;},
+    ...(acquired === undefined ? {
+    openSourceFreeHost(registry, values, fragment, ordered, providers) {
+      current();
+      if (!model.taken || model.hostAttempted || moon.clientProgramAcquisitionCount(prepared) !== 0 ||
+          !Array.isArray(providers) || providers.length !== members.length ||
+          providers.some((provider, index) => provider !== members[index].component.provider)) {
+        throw new TypeError('InvalidInstalledRequestModelPreparation');
+      }
+      model.hostAttempted = true;
+      return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
+        managed.value, prepared, managed.request, registry, values, fragment, ordered, providers));
+    },
+    } : {openCapturedHost(captures) {
+      current();
+      if (!model.taken || model.hostAttempted || !Array.isArray(captures) ||
+          captures.length !== moon.clientProgramAcquisitionCount(prepared) ||
+          typeof moon.clientProgramOpenInstalledManagedCaptureHost !== 'function') {
+        throw new TypeError('InstalledComposedInferHostUnavailable');
+      }
+      model.hostAttempted = true;
+      return checked(moon.clientProgramOpenInstalledManagedCaptureHost(managed.value,
+        prepared, managed.request, captures.map(value => value.capture.source())));
+    }}),
+    async retire() {
+      if (model.closed && model.scopeFinished) return true;
+      current();
+      for (const member of members) {retireNodeInferOriginalRead(member); member.read = undefined;}
+      if (finishNodeInferOriginalReadScopes(model) !== true) return false;
+      model.scopeFinished = true; model.closed = true;
+      return true;
+    }});
+}
+
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
-  checkpoints, prepareAcquisition, sourceAccessFor, runContent, prepareKeyedRecovery,
-  prepareOriginalMockRun, prepareOriginalModelRun,
+  checkpoints, prepareAcquisition, prepareRetainedAcquisition, prepareRetainedCaptureAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
+  prepareOriginalMockRun, prepareOriginalModelRun, prepareModelRecoveryPlan,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
   const run = async ({preparedProgram, plan, store, principalId, signal,
@@ -26,26 +180,99 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
     }
-    if (selected.localMock) {
+    let computeSuffix = selected.computeSuffix;
+    if (selected.restoredRun === undefined && selected.components !== undefined) {
+      if (typeof prepareOriginalModelRun !== 'function') {
+        throw new TypeError('InvalidInstalledRequestModelPreparation');
+      }
+      const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
+      if (originalPreparation !== undefined || replay || sourceCount > 0 &&
+          (acquiredInfer?.managedRun === undefined || preparationHolder === undefined) ||
+          sourceCount === 0 && acquiredInfer !== undefined) throw new TypeError('InvalidInstalledRequestModelPreparation');
+      const model = prepareOriginalModelRun(preparedProgram, plan, selected);
+      const original = sourceFreeModelsPreparation(moon, control, preparedProgram, plan, selected, model, acquiredInfer, preparationHolder);
+      return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
+        store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork, submission,
+        existingModel, modelClaim, assertCurrent, modelController, inferEvidence, checkpoints,
+        prepareAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid, storeAuthorityCid,
+        now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
+        originalPreparation: original});
+    }
+    let directRequestModel, restoredRequestModel;
+    const configuredModel = selected.restoredRun === undefined && !selected.localMock && selected.originalReadInstallation === undefined &&
+      selected.occurrence !== undefined && selected.components === undefined &&
+      selected.serializationGraph === undefined && moon.clientProgramAcquisitionCount(preparedProgram) <= 1;
+    if (selected.localMock || configuredModel) {
       const sourceFree = moon.clientProgramAcquisitionCount(preparedProgram) === 0;
-      if (sourceFree && originalPreparation === undefined &&
+      if (configuredModel) {
+        if (originalPreparation !== undefined ||
+            (sourceFree ? acquiredInfer !== undefined : acquiredInfer?.captured === undefined || preparationHolder === undefined) ||
+            typeof prepareOriginalModelRun !== 'function') {
+          throw new TypeError('InvalidInstalledRequestModelPreparation');
+        }
+        originalPreparation = sourceFreeModelPreparation(moon, control, preparedProgram, plan, selected,
+          prepareOriginalModelRun(preparedProgram, plan, selected), acquiredInfer);
+      } else if (sourceFree && originalPreparation === undefined &&
           typeof prepareOriginalMockRun === 'function') {
         originalPreparation = prepareOriginalMockRun(preparedProgram, plan);
       }
       if (originalPreparation?.control !== control || originalPreparation.compiled !== plan.compiled ||
           originalPreparation.runDefinition !== plan.runDefinition ||
           (sourceFree ? acquiredInfer !== undefined || typeof originalPreparation.openSourceFreeHost !== 'function'
-            : acquiredInfer?.sources?.length !== 2)) {
+            : configuredModel ? acquiredInfer?.captured === undefined : acquiredInfer?.sources?.length !== 2)) {
         throw new TypeError('InvalidInstalledMockModelPreparation');
       }
-      return runInstalledComposedInfers({moon, control, preparedProgram, plan,
-        selected: {components: [selected]}, store, principalId, signal, retainExecution,
-        acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
-        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
-        namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
-        registry, values, fragment, ordered, computeConfigurations, originalPreparation});
+      if (!sourceFree) {
+        if (preparationHolder === undefined || originalPreparation.selection !== selected ||
+            typeof originalPreparation.component?.bindOriginal !== 'function' ||
+            typeof originalPreparation.openCapturedHost !== 'function') {
+          throw new TypeError('InvalidInstalledMockModelPreparation');
+        }
+        originalPreparation = Object.freeze({...originalPreparation, preparationHolder});
+      }
+      // A captured task is already complete in the DAG. When the original
+      // checked Program has just that one task, its terminal Model still runs
+      // through the original kernel/publication owner, not a captured Result.
+      if (configuredModel && !sourceFree && moon.clientProgramTaskCount(preparedProgram) === 1) {
+        directRequestModel = originalPreparation;
+        originalPreparation = undefined;
+      } else {
+        return runInstalledComposedInfers({moon, control, preparedProgram, plan,
+          selected: {components: [selected]}, store, principalId, signal, retainExecution,
+          acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
+          modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
+          namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
+          registry, values, fragment, ordered, computeConfigurations, originalPreparation});
+      }
     }
-    const originalInstallation = selected.originalReadInstallation;
+    if (selected.restoredRun !== undefined) {
+      // The restored typed owner is the same Journal-selected compilation,
+      // not a fresh ordinary Request module or an unbacked legacy admission.
+      control.checkRestoredClientInferRunOwner(selected.restoredRun, preparedProgram);
+      if (selected.restoredRun.compiled !== plan.compiled || selected.restoredRun.graph !== selected.graph ||
+          selected.restoredRun.runDefinition !== plan.runDefinition || existingModel === undefined) {
+        throw new TypeError('ForeignRestoredInferOriginal');
+      }
+      if (originalPreparation !== undefined || typeof prepareModelRecoveryPlan !== 'function') {
+        throw new TypeError('InstalledModelRecoveryPreparationUnavailable');
+      }
+      restoredRequestModel = prepareModelRecoveryPlan(preparedProgram, plan, selected);
+      if (restoredRequestModel?.control !== control || restoredRequestModel.compiled !== plan.compiled ||
+          restoredRequestModel.runDefinition !== plan.runDefinition || restoredRequestModel.selection !== selected ||
+          ['retain', 'retire', 'assertRuntimeCurrent'].some(name => typeof restoredRequestModel[name] !== 'function')) {
+        throw new TypeError('ForeignRestoredInferOriginalPreparation');
+      }
+      if (selected.components !== undefined || moon.clientProgramTaskCount(preparedProgram) !== 1) {
+        return runInstalledComposedInfers({moon, control, preparedProgram, plan,
+          selected: selected.components === undefined ? {...selected, components: [selected]} : selected,
+          store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork, submission,
+          existingModel, modelClaim, assertCurrent, modelController, inferEvidence, checkpoints,
+          prepareAcquisition, prepareRetainedCaptureAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid, storeAuthorityCid,
+          now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
+          originalPreparation: restoredRequestModel});
+      }
+    }
+    const originalInstallation = restoredRequestModel === undefined ? selected.originalReadInstallation : undefined;
     const requestComposed = originalInstallation !== undefined && acquiredInfer !== undefined &&
       selected.occurrence !== undefined && selected.serializationGraph === undefined &&
       selected.components === undefined && !replay && typeof prepareOriginalModelRun === 'function';
@@ -140,15 +367,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // its overlap with the caller's input; no late grant is inferred here.
       originalPreparation = Object.freeze({...originalPreparation});
     }
-    if (selected.components !== undefined) {
-      return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
-        store, principalId, signal, retainExecution, acquiredInfer, replay,
-        beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
-        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
-        namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
-        registry, values, fragment, ordered, computeConfigurations});
-    }
-    const keyed = !requestComposed && selected.occurrence !== undefined && selected.serializationGraph === undefined &&
+    const keyed = directRequestModel === undefined && !requestComposed && selected.occurrence !== undefined && selected.serializationGraph === undefined &&
       checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) !== undefined;
     // The current installed read/layout supplier has no adopted Content overlap.
     // Refuse before generation/recovery or keyed input construction; support
@@ -187,24 +406,41 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           control.admitRunEvidence('source_evidence', source.source_evidence_wire,
             {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}));
     } catch (error) { modelController.release(token); throw error; }
-    let operation, captureOwner, continuation, evidenceCopy, contentChild, keyedContentChild, composedExecution,
-      serializedInput, restoredReferenceIssuer, keyedInput, receivingKeyed, prepareDeferredOriginalRead;
+    let operation, captureOwner, continuation, sourceContinuation, evidenceCopy, contentChild, keyedContentChild, composedExecution,
+      serializedInput, restoredReferenceIssuer, keyedInput, receivingKeyed, prepareDeferredOriginalRead, composedInput;
     let captureCloseAttempted = false, captureReleased = false;
     let continuationCloseAttempted = false, continuationReleased = false;
     // These are phases of the same existing retained custody, not another
     // cleanup Owner. A failed physical close keeps this exact original record.
     let originalReadStopped = false, originalReadCloseAttempted = false;
-    let originalReadPhysicalReleased = originalPreparation === undefined && originalInstallation === undefined;
+    let originalReadPhysicalReleased = directRequestModel === undefined && restoredRequestModel === undefined &&
+      originalPreparation === undefined && originalInstallation === undefined;
     let originalReadSettled = originalReadPhysicalReleased;
     let originalScopeReleased = originalReadPhysicalReleased;
     let originalCleanupFlight;
     const cleanupPending = () => evidenceCopy?.cleanupPending() === true || !captureReleased ||
       continuation !== undefined && !continuationReleased ||
+      sourceContinuation !== undefined ||
       contentChild?.cleanupPending() === true || keyedContentChild?.cleanupPending() === true ||
-      !originalReadSettled || !originalScopeReleased || originalPreparation !== undefined;
+      !originalReadSettled || !originalScopeReleased || originalPreparation !== undefined ||
+      directRequestModel !== undefined || restoredRequestModel !== undefined;
     // The same original read/Scope duty is shared by the single-stage and
     // adopted composed drivers. Neither child calls the outer cleanup owner.
     const retireOriginalPreparation = async () => {
+      if (restoredRequestModel !== undefined) {
+        if (await restoredRequestModel.retire() !== true) return false;
+        restoredRequestModel = undefined;
+        originalPreparation = undefined;
+        originalReadStopped = originalReadPhysicalReleased = originalReadSettled = originalScopeReleased = true;
+        return true;
+      }
+      if (directRequestModel !== undefined) {
+        if (!await directRequestModel.retire()) return false;
+        directRequestModel = undefined;
+        originalPreparation = undefined;
+        originalReadStopped = originalReadPhysicalReleased = originalReadSettled = originalScopeReleased = true;
+        return true;
+      }
       if (originalPreparation === undefined) return true;
       const original = originalPreparation, model = requestModel, scope = original.scope, read = original.read;
       const sameOriginal = () => {
@@ -318,7 +554,11 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         if (await keyedContentChild.cleanup() === false || keyedContentChild.cleanupPending() !== false) return false;
         keyedContentChild = undefined;
       }
-      if (originalPreparation !== undefined && captureReleased &&
+      if (sourceContinuation !== undefined) {
+        if (await sourceContinuation.close() === false) return false;
+        sourceContinuation = undefined;
+      }
+      if ((originalPreparation !== undefined || directRequestModel !== undefined || restoredRequestModel !== undefined) && captureReleased &&
           (continuation === undefined || continuationReleased)) {
         if (!await retireOriginalPreparation()) return false;
       }
@@ -346,6 +586,118 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         originalScopeReleased = true;
       }
       modelController.release(token); throw error;
+    }
+    if (restoredRequestModel !== undefined) {
+      restoredRequestModel.retain();
+      const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
+      if (sourceCount !== 0) {
+        const coordinates = restoredRequestModel.sourceCoordinates;
+        const saved = restoredInput?.snapshot.sourceContinuation;
+        if (sourceCount !== 1 || !Array.isArray(coordinates) || coordinates.length !== 1 ||
+            !Array.isArray(coordinates[0]) || coordinates[0].length !== 3 ||
+            coordinates[0].some(part => !Number.isSafeInteger(part) || part < 0) ||
+            saved === undefined || checkpoints === undefined ||
+            typeof prepareRetainedAcquisition !== 'function' || typeof restoredRequestModel.prepareSource !== 'function' ||
+            typeof sourceAccessFor !== 'function' ||
+            typeof sourceAdapterFor !== 'function') {
+          throw new Error('ModelSourceClosureCustodyUnavailable');
+        }
+        const [stage, input, task] = coordinates[0];
+        const occurrence = Object.freeze({stage, input, task});
+        const current = () => {
+          assertCurrent?.();
+          restoredRequestModel.assertRuntimeCurrent();
+          signal.throwIfAborted();
+        };
+        current();
+        const declaredResults = Array.from({length: moon.clientProgramResultCount(preparedProgram)},
+          (_, index) => moon.clientProgramResultName(preparedProgram, index));
+        // Keep the exact continuation in the retained cleanup custody before
+        // any asynchronous authorization/preparation can fail. SavedInputScope
+        // already owns this Model input; consuming it still needs current
+        // permission for its original installed Source.
+        sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
+          acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+          submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
+          currentRun: () => {try {current(); return true;} catch {return false;}},
+          restore: {view: {kind: 'model_invocation', prepareAttemptId: null, runId,
+            runDefinitionCid: plan.runDefinition.identity}, continuation: saved}});
+        const preparedSource = restoredRequestModel.prepareSource(occurrence, selectedSource =>
+          prepareRetainedAcquisition(preparedProgram, occurrence, selectedSource));
+        current();
+        const adapter = sourceAdapterFor(preparedSource);
+        if (adapter === undefined) throw new Error('InstalledComposedInferSourceOwnerUnavailable');
+        const source = {occurrence, preparedSource, adapter};
+        sourceContinuation.accessFor(sourceAccessFor(preparedSource), occurrence);
+        await sourceContinuation.prepared([source]);
+        current();
+        const retained = await sourceContinuation.beforeRead(source);
+        current();
+        if (retained.retained === undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
+        // Authorization consumes retained custody only. Do not restore a
+        // second Source capture, parse its rows or borrow another Ledger.
+      }
+      originalPreparation = restoredRequestModel.restoreRead(restoredInput);
+      let prefix = selected.computePrefix;
+      if (selected.deferredRestoredSegments === true) {
+        // The same recovery Scope already retains this fallible Read. Lower
+        // its checked segments once; restoring saved rows never runs the
+        // prefix or issues another Source read, Request, Plan or Ledger.
+        restoredRequestModel.assertRuntimeCurrent();
+        const segments = checked(moon.clientProgramPrepareComposedInferSegments(
+          preparedProgram, selected.occurrence, registry, values, fragment, ordered));
+        prefix = runtimeField(segments, 0);
+        computeSuffix = runtimeField(segments, 1);
+        restoredRequestModel.assertRuntimeCurrent();
+      }
+      composedInput = {occurrence: selected.occurrence, prefix, inputs: []};
+    } else if (directRequestModel !== undefined) {
+      // Retained cleanup precedes the original Source admission and read. A
+      // refusal keeps this same Scope; there is no unowned/standalone fallback.
+      directRequestModel.retain();
+      const occurrence = acquiredInfer.occurrence ?? acquiredInfer.preparedSource?.occurrence;
+      if (checkpoints === undefined || acquiredInfer.preparedSource === undefined || acquiredInfer.adapter === undefined ||
+          occurrence === undefined || ['stage', 'input', 'task'].some(name =>
+            !Number.isSafeInteger(occurrence[name]) || occurrence[name] < 0)) {
+        throw new Error('ModelSourceClosureCustodyUnavailable');
+      }
+      const current = () => {
+        assertCurrent?.();
+        directRequestModel.assertRuntimeCurrent();
+        signal.throwIfAborted();
+      };
+      current();
+      const declaredResults = Array.from({length: moon.clientProgramResultCount(preparedProgram)},
+        (_, index) => moon.clientProgramResultName(preparedProgram, index));
+      // Retain this SAME already captured Source before the Model checkpoint
+      // stores its input. No acquisition, replacement capture or new grant.
+      sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
+        acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+        submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
+        currentRun: () => {try {current();return true;} catch {return false;}}});
+      const source = {occurrence, preparedSource: acquiredInfer.preparedSource, adapter: acquiredInfer.adapter};
+      sourceContinuation.accessFor(acquiredInfer.sourceAccess, occurrence);
+      await sourceContinuation.prepared([source]);
+      current();
+      const approvalOriginal = acquiredInfer.sourceAccess?.originalCheckpointApproval;
+      if (approvalOriginal !== undefined && typeof approvalOriginal !== 'function') {
+        throw new Error('ModelSourceClosureCustodyUnavailable');
+      }
+      await sourceContinuation.captured(source, acquiredInfer.captured, acquiredInfer.sourceEvidenceWire,
+        acquiredInfer.captureStartedAt, acquiredInfer.captureCompletedAt,
+        approvalOriginal === undefined ? undefined : Reflect.apply(approvalOriginal, acquiredInfer.sourceAccess, []));
+      current();
+      const admitted = control.admitComposedInferSources(selected.occurrence,
+        [acquiredInfer.captured], [acquiredInfer.sourceEvidence], authorityScopeCid,
+        acquiredInfer.captureStartedAt, acquiredInfer.captureCompletedAt);
+      directRequestModel.assertRuntimeCurrent();
+      // The module compiled this prefix once before adoption. Read its SAME
+      // native Run/Request original; the early selection intentionally has no
+      // independently prepared segments. No Plan alias is recreated in JS.
+      composedInput = {occurrence: selected.occurrence,
+        prefix: checked(moon.clientProgramInstalledManagedRunModelInputPrefix(
+          acquiredInfer.managedRun, preparedProgram)), inputs: [], sources: admitted};
+      originalPreparation = directRequestModel.prepareRead();
     }
     if (originalInstallation !== undefined) {
       // Custody exists before the first issuer. A failed issuer is atomic;
@@ -477,7 +829,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           composedExecution = value;
         }, acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim,
         assertCurrent: () => {assertCurrent?.(); assertOriginalRuntime();}, modelController,
-        inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
+        inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
         registry, values, fragment, ordered, computeConfigurations, originalPreparation: original});
     }
@@ -541,15 +893,19 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     }
     operation = openNodeInferOperation({moon, preparedProgram,
       step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
-      acquiredInput: restoredInput === undefined ? acquiredInfer?.input : undefined,
+      acquiredInput: restoredInput === undefined && directRequestModel === undefined ? acquiredInfer?.input : undefined,
+      composedInput,
       restoredInput, serializedInput, restoredReferenceIssuer, keyedInput,
-      durableCalls: true, computeSuffix: selected.computeSuffix,
+      durableCalls: true, computeSuffix,
       observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
       provider: selected.provider, quantityCapacity: selected.quantityCapacity,
       physicalPreflight: selected.physicalPreflight, egressAdmission: selected.egressAdmission,
-      assertRuntimeCurrent: originalInstallation === undefined ? undefined : assertOriginalRuntime,
-      originalPreparation,
-      ioNotification: selected.entryPersistence === 'async' ? createInferIoNotification() : undefined,
+      assertRuntimeCurrent: restoredRequestModel?.assertRuntimeCurrent ?? directRequestModel?.assertRuntimeCurrent ??
+        (originalInstallation === undefined ? undefined : assertOriginalRuntime),
+      originalPreparation: restoredRequestModel === undefined ? originalPreparation : undefined,
+      restoredPreparation: restoredRequestModel === undefined ? undefined : originalPreparation,
+      ioNotification: (composedInput === undefined || directRequestModel !== undefined || restoredRequestModel !== undefined) &&
+        selected.entryPersistence === 'async' ? createInferIoNotification() : undefined,
       retainOperation(value) { operation = value; }});
     captureOwner = openNodeInferCaptureCustody({moon, control, operation,
       plan, store, storeAuthorityCid, replay: false, durableCalls: true, faultInjection,
@@ -578,7 +934,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             continuation = await modelController.open({operation, preparedCallSet: boundary.preparedCallSet,
               plan, selected, principalId, declaredResults, submission, signal,
               existing: existingModel, inputToken: token, claim: modelClaim,
-              originalPreparation});
+              originalPreparation,
+              ...(sourceContinuation === undefined || restoredInput !== undefined ? {}
+                : {sourceContinuation: await sourceContinuation.retainAll()})});
             captureOwner.configureModelJournal({observe: continuation.observe, entry: continuation.entry});
             // Saved/unknown records first re-enter the same normal owner without
             // any fresh permission. A still-unsent slot yields Waiting again.
@@ -587,10 +945,11 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           const decision = await continuation.authorize();
           assertOriginalRuntime();
           if (decision.status === 'waiting_checkpoint') return decision;
-          if (originalPreparation!==undefined) {
-            // Same actual journal now has the original CallSet. Complete its
-            // saved Resource cut and nominal fence removal before next advance
-            // can create an Entry. Authorization and physical send stay separate.
+          if (originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')) {
+            // This explicit Node read-layout selection owns the storage
+            // origin and codec for its saved Resource cut. A common managed
+            // Read retains its own same-parent consumer/current/Entry gates;
+            // it cannot serialize a Node installation it never selected.
             await continuation.prepareOriginalResourcesForDispatch();
             assertOriginalRuntime();
           }
@@ -622,22 +981,41 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         evidenceCopy = copy;
       }});
   };
-  run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity}) => {
+  run.sourceOccurrence = (prepared, index) => {
+    const coordinates = selections.get(prepared)?.sourceCoordinates?.[index];
+    return coordinates === undefined ? undefined
+      : Object.freeze({stage: coordinates[0], input: coordinates[1], task: coordinates[2]});
+  };
+  run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity, sourceCapacities}) => {
     control.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     const selected = selections.get(preparedProgram);
-    if (selected?.graph !== plan.inferGraph || selected.originalReadInstallation === undefined ||
-        selected.occurrence === undefined || selected.components !== undefined ||
-        selected.serializationGraph !== undefined || moon.clientProgramAcquisitionCount(preparedProgram) !== 1 ||
+    const complete = Array.isArray(selected?.components);
+    const capacities = sourceCapacities ?? [sourceCapacity];
+    if (selected?.localMock) {
+      if (selected.graph !== plan.inferGraph || typeof prepareOriginalMockRun !== 'function') {
+        throw new TypeError('InstalledModelSourcePreparationUnavailable');
+      }
+      const original = prepareOriginalMockRun(preparedProgram, plan);
+      if (original?.control !== control || original.compiled !== plan.compiled ||
+          original.runDefinition !== plan.runDefinition || typeof original.prepareAcquiredLedger !== 'function') {
+        throw new TypeError('InvalidInstalledMockModelPreparation');
+      }
+      return original.prepareAcquiredLedger(capacities, registry, values, fragment, ordered);
+    }
+    if (selected?.graph !== plan.inferGraph || !complete && selected.occurrence === undefined || selected.serializationGraph !== undefined ||
+        !Array.isArray(capacities) || capacities.length !== moon.clientProgramAcquisitionCount(preparedProgram) ||
+        capacities.length < 1 || capacities.length > 2 ||
         typeof prepareOriginalModelRun !== 'function' ||
         typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
       throw new TypeError('InstalledModelSourcePreparationUnavailable');
     }
     const model = prepareOriginalModelRun(preparedProgram, plan, selected), managed = model?.managed;
     if (model?.closed || model?.scopeFinished || model?.taken || model?.readAttempted ||
-        model?.selection !== selected || model?.component === undefined ||
+        model?.selection !== selected || (complete ? model?.components?.some(member =>
+          member.component === undefined || member.taken || member.readAttempted || member.read !== undefined) : model?.component === undefined) ||
         model?.graph !== selected.graph || model?.compiled !== plan.compiled ||
         model?.runDefinition !== plan.runDefinition ||
-        managed?.closed || managed?.value === undefined || sourceCapacity?.managedRun !== managed.value) {
+        managed?.closed || managed?.value === undefined || capacities.some(value => value?.managedRun !== managed.value)) {
       throw new TypeError('InvalidInstalledRequestModelPreparation');
     }
     if (model.sourceLedgerAttempted) {
@@ -647,9 +1025,17 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const original = managed.value, request = managed.request;
     model.sourceLedgerAttempted = true;
     try {
-      const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(original,
-        preparedProgram, request, [sourceCapacity.capacity], [sourceCapacity.transferBytes],
-        [sourceCapacity.executionBytes], registry, values, fragment, ordered));
+      const whole = capacities.some(value => value.wholeInput === true);
+      if (whole && (capacities.some(value => value.wholeInput !== true) ||
+          typeof moon.clientProgramInstalledManagedWholeSourcesLedger !== 'function')) {
+        throw new TypeError('InstalledModelSourcePreparationUnavailable');
+      }
+      const ledger = checked(whole
+        ? moon.clientProgramInstalledManagedWholeSourcesLedger(original, preparedProgram, request,
+          capacities.map(value => value.capacity), capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes))
+        : moon.clientProgramInstalledManagedRunPrepareLedger(original,
+          preparedProgram, request, capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
+          capacities.map(value => value.executionBytes), registry, values, fragment, ordered));
       // This is the original parent's Ledger getter, with no new child. A
       // callback that retires/replaces its record cannot resurrect that alias.
       if (model.closed || model.scopeFinished || model.managed !== managed || managed.closed ||

@@ -11,7 +11,7 @@ import {openReadOpeningFixture, connectOpeningHost, openingProgram}
 const expected = {
   normal: ['host_delivery_succeeded', 'The Host confirmed this Delivery and issued its release receipt.'],
   'before-commit': ['lookup_unresolved', 'This lookup found no DeliveryAttempt; whether the read opened remains unresolved.'],
-  'after-commit': ['attempt_recorded', 'The Host recorded this DeliveryAttempt; no delivery outcome is available yet.'],
+  'after-commit': ['delivery_streaming', 'The Host reports that this Delivery is streaming; completion is not confirmed.'],
 };
 const hint = 'Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.';
 
@@ -104,6 +104,12 @@ for (const entrance of ['local', 'https']) {
           assert.equal(sdk.explainReadFailure({...failure}), undefined);
         }
         const lookup = await result.deliveryAttempt(reader.attemptId);
+        if (phase === 'after-commit') {
+          assert.equal(lookup.kind, 'found');
+          assert.equal(lookup.record.state, 'streaming');
+          assert.equal(lookup.record.sequence, 0);
+          assert.equal(lookup.hostReleaseReceipt, null);
+        }
         const before = [...operations];
         assert.equal(typeof sdk.explainDeliveryAttempt, 'function', '[check-mutation:delivery-observation-classification]');
         const explanation = sdk.explainDeliveryAttempt(lookup);
@@ -123,7 +129,15 @@ for (const entrance of ['local', 'https']) {
             createHash('sha256').update('{"id":1}\n{"id":2}\n').digest('hex'));
         } else {
           assert.equal(Object.hasOwn(explanation, 'hostReleaseReceiptCid'), false);
-          assert.equal(Object.hasOwn(explanation, 'hostConfirmedByteCount'), false);
+          if (phase === 'after-commit') {
+            assert.equal(explanation.recordSequence, 0);
+            assert.equal(explanation.hostConfirmedByteCount, 0);
+            assert.equal(explanation.exposure, 'exact');
+          } else {
+            assert.equal(Object.hasOwn(explanation, 'hostConfirmedByteCount'), false);
+            assert.equal(Object.hasOwn(explanation, 'recordSequence'), false);
+            assert.equal(Object.hasOwn(explanation, 'exposure'), false);
+          }
         }
         for (const forbidden of ['rowsYielded', 'runStatus', 'stopped', 'cleanupComplete', 'applicationPersisted', 'permission', 'grantUses']) {
           assert.equal(Object.hasOwn(explanation, forbidden), false);

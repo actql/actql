@@ -4,6 +4,8 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
+import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
+import {finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
 
 // Run the original Local caller and cleanup with explicit Host/Core ports.
 // These observations are not a Common issuer, backing proof or physical ACK.
@@ -200,10 +202,10 @@ const hostEnd = hostSource.indexOf('    prepareManagedComputeRun(runtime,', host
 const retireStart = hostSource.indexOf('    retireManagedComputeRun(prepared) {');
 const retireEnd = hostSource.indexOf('    isOriginalManagedComputePreparationRefusal(', retireStart);
 assert(hostStart >= 0 && hostEnd > hostStart && retireStart >= 0 && retireEnd > retireStart);
-function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false, nodeModel = false, onScopeFinish} = {}) {
+function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false, nodeModel = false, configuredModel = false, group = false, managedProfile = false, onScopeFinish} = {}) {
   const prepared = {}, request = {}, sdkRequest = {}, original = {}, value = {}, parent = {}, input = {}, compilation = {};
   const scope = {}, calls = [], model = {compiled: {}, runDefinition: {}, graph: {}, scope: undefined};
-  const record = {mockSourceProfile: {}}, originalInstallation = {releaseRequestDomainAliases() {}}, originals = {};
+  const record = {mockSourceProfile: {}, ...(managedProfile ? {managedSourceProfile: {}} : {})}, originalInstallation = {releaseRequestDomainAliases() {}}, originals = {};
   if (missingSelectionRetirement) delete originalInstallation.releaseRequestDomainAliases;
   const primary = new Error('original-check-after-adopt');
   let finish = true, physicalDone = false, payloadSevered = false, severFailure;
@@ -218,19 +220,30 @@ function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false,
   }
   const control = {
     finishCheckedClientInferOriginalReadScope(c, d, g, s, complete) {
-      assert.deepEqual([c, d, g, s, complete], [model.compiled, model.runDefinition, model.graph, scope, true]);
-      calls.push('scope'); onScopeFinish?.(); return finish;
+      const index = group ? model.graph.indexOf(g) : -1;
+      assert.deepEqual([c, d, g, s, complete], [model.compiled, model.runDefinition,
+        group ? model.graph[index] : model.graph, group ? model.scopes[index] : scope, true]);
+      calls.push(group ? 'scope'+index : 'scope'); onScopeFinish?.(index); return finish;
     },
   };
   model.control = control;
   if (nodeModel) model.originalReadInstallation = {};
+  if (group) {
+    model.graph = Object.freeze([{}, {}]);
+    model.scopes = Object.freeze([scope, {}]);
+    model.components = Object.freeze(model.graph.map((graph, index) => ({group: model, control,
+      compiled: model.compiled, runDefinition: model.runDefinition, graph, scope: model.scopes[index]})));
+  }
+  if (nodeModel || configuredModel || group) model.selection = {graph: model.graph};
   model.releaseAliases = function() {
     assert.equal(this, model); calls.push('aliases');
-    if (model.scopeFinished !== true || model.read !== undefined) throw new Error('OriginalChildrenPending');
+    if (model.scopeFinished !== true || model.read !== undefined ||
+        model.components?.some(member => !member.scopeFinished || member.read !== undefined)) throw new Error('OriginalChildrenPending');
     if (!refuse && !payloadSevered) assert.fail('Alias retirement must follow the original payload sever');
     physicalDone = true;
   };
   const moon = {
+    clientProgramAcquisitionCount: () => 0,
     clientProgramInstalledManagedRunRetire(v) {
       assert.equal(this, moon); assert.equal(v, value); calls.push('retire');
       payloadSevered = true;
@@ -261,6 +274,7 @@ function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false,
     return run.modelPlan;
   };
   const ports = {sourceManaged: manager, moon, record, originalInstallation, originals, finishInstalledEffectModelScope,
+    finishNodeInferOriginalReadScopes,
     runtimeCore: () => ({publicationControl: control}),
     clientOperationError: code => Object.assign(new Error(code), {code}),
     assertSourceManagedInstallationCurrent(actual, o) {assert.equal(actual, manager); assert.equal(o, originals);},
@@ -315,6 +329,48 @@ test('Host Model failed construction retains its original Scope and partial modu
   f.setFinish(true); f.retire();
   assert.equal(f.record.computeRuns.has(f.prepared), false); assert.equal(f.record.computeLiveRuns.size, 0);
   assert.equal(run.closed, true); assert(!f.calls.includes('retire')); assert(!f.calls.includes('sever'));
+});
+
+test('Host complete Model failed construction reaches every original Scope before parent alias retirement', () => {
+  const primary = new Error('original complete Model completion'), f = hostFixture({group: true, refuse: primary});
+  assert.throws(f.begin, cause => cause === primary);
+  const run = f.record.computeRuns.get(f.prepared), members = f.model.components;
+  f.setFinish(false);
+  assert.throws(f.retire, {code: 'InstalledMockModelCleanupPending'});
+  assert.deepEqual(f.calls.slice(-3), ['scope0', 'scope1', 'scope0']);
+  assert.equal(f.record.computeRuns.get(f.prepared), run);
+  assert(members.every(member => member.scopeFinished !== true));
+  assert(!f.calls.includes('aliases'));
+  f.setFinish(true); f.retire();
+  assert(members.every(member => member.scopeFinished && member.closed));
+  assert.equal(run.closed, true); assert(!f.calls.includes('retire')); assert(!f.calls.includes('sever'));
+  assert.equal(f.record.computeRuns.has(f.prepared), false);
+});
+
+test('Host complete Model unstarted adoption closes every Scope before original Run and parent retirement', () => {
+  let f;
+  f = hostFixture({group: true, onScopeFinish() {
+    assert.throws(f.retire, {code: 'InstalledModelCleanupPending'});
+  }});
+  const run = f.begin(); f.setFinish(false);
+  assert.throws(f.retire, {code: 'InstalledModelCleanupPending'});
+  assert(!f.calls.includes('retire')); assert(!f.calls.includes('aliases'));
+  f.setFinish(true); const finish = f.retire(); finish();
+  assert(f.model.components.every(member => member.scopeFinished));
+  assert.deepEqual(f.calls.slice(-4), ['retire', 'aliases', 'sever', 'finish']);
+  assert.equal(run.closed, true);
+});
+
+test('Host complete Model refuses a replaced original group during Scope callbacks without retiring its parent', () => {
+  let f, original;
+  f = hostFixture({group: true, refuse: new Error('original refusal'), onScopeFinish() {
+    f.model.components = Object.freeze([...original].reverse());
+  }});
+  assert.throws(f.begin, /original refusal/); original = f.model.components;
+  assert.throws(f.retire, /InvalidInstalledRequestModelPreparation/);
+  assert(!f.calls.includes('aliases')); assert(!f.calls.includes('retire'));
+  assert(original.every(member => member.scopeFinished !== true));
+  assert.equal(f.record.computeRuns.has(f.prepared), true);
 });
 
 test('Host Model releases retained selection and early Plan before consumed parent return while keeping pending originals', () => {
@@ -404,8 +460,7 @@ test('actual Model custody selector borrows original handler and dispatch tokens
     {canRetireManagedPreparation: () => true, managesInstalledSources: () => true},
     {kindOf: p => inventories.get(p).kind}, moon, value => value.$tag === 1, (value, index) => value['_'+index]);
   for (const facts of [{kind: 'effectful', infers: [{}], serializations: [], acquisitions: 2},
-    {kind: 'effect_free', infers: [{}], serializations: [{}], acquisitions: 0},
-    {kind: 'effect_free', infers: [{}, {}], serializations: [], acquisitions: 2}]) {
+    {kind: 'effect_free', infers: [{}], serializations: [{}], acquisitions: 0}]) {
     const foreign = {}; inventories.set(foreign, facts); assert.equal(selector(foreign), false);
   }
   let retired = 0;
@@ -435,9 +490,9 @@ test('Model Source prepare forwards its original adopted Run and Request and rec
     const primary = new Error('original-after-prepare-current'), preparedReads = new WeakMap();
     let resolve, forwarded, current = true;
     const adapter = {prepare(value) {forwarded = value; return new Promise(done => {resolve = done;});}};
-    const holder = Function('adapter', 'sameRun', 'preparedReads', 'fail',
+    const holder = Function('adapter', 'sameRun', 'preparedReads', 'effectRuns', 'fail',
       `return ({${source.slice(method.start, method.end)}});`)(adapter,
-      value => {assert.equal(value, prepared); if (!current) throw primary; return run;}, preparedReads,
+      value => {assert.equal(value, prepared); if (!current) throw primary; return run;}, preparedReads, new WeakMap(),
       code => {throw Object.assign(new Error(code), {code});});
     const pending = holder.prepare(facts);
     if (requestOwned) {
@@ -457,8 +512,12 @@ test('Model Source prepare forwards its original adopted Run and Request and rec
 
 test('Mock Effect reader consumes the same planned original and retires physical bytes separately', async () => {
   const properties = new Map();
+  const readFunctions = [];
   const walk = node => {
     if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && ['readOriginal', 'projectOriginal'].includes(node.id?.name)) {
+      readFunctions.push(source.slice(node.start, node.end));
+    }
     if (node.type === 'Property' && ['prepareSourceRead', 'readPages', 'closeSourceRead'].includes(node.key?.name)) {
       properties.set(node.key.name, node);
     }
@@ -466,9 +525,11 @@ test('Mock Effect reader consumes the same planned original and retires physical
       if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
     }
   };
-  walk(outer); assert.equal(properties.size, 3);
+  walk(outer); assert.equal(properties.size, 3); assert.equal(readFunctions.length, 2);
   const prepared = {}, request = {}, parent = {}, nativeRead = {}, declaration = {}, raw = {},
-    row = {}, acquisition = {}, charge = {}, bytes = Buffer.from('original document');
+    row = {}, acquisition = {}, charge = {}, bytes = Buffer.from('original document'),
+    document = {}, projection = {}, physical = {declaration, resource: 'source.users',
+      itemsPath: [], keyPath: ['id'], primaryIdentity: ['id'], writableFields: []};
   const run = {preparationKind: 'effect-plan', prepared, request, value: parent};
   const originalReads = new WeakMap(), effectReads = new Set();
   let reads = 0, closes = 0, retires = 0, pending = true;
@@ -477,26 +538,43 @@ test('Mock Effect reader consumes the same planned original and retires physical
   const moon = {clientProgramEffectAcquisitionCount: p => {assert.strictEqual(p, prepared); return 1;},
     clientProgramInstalledManagedRunSourceRead() {assert.fail('no second Source original');},
     clientProgramInstalledSourceReadRetire(value) {assert.strictEqual(value, nativeRead); retires++;},
-    clientProgramMockChurnRiskAcceptChargedDocument(r, c, a, left, right, actualBytes, bound) {
-      same([r, c, a, left, right, actualBytes, bound], [row, charge, acquisition, declaration, declaration, bytes, 2097152]);
+    clientProgramRelationAdmitDocument(actualBytes, wire, nodes, depth, rows, retained) {
+      same([actualBytes, wire, nodes, depth, rows, retained], [bytes, 1048576, 4096, 32, 100, 16777216]);
+      return document;
+    },
+    clientProgramRelationProjectTargetDocument(original, selected, resource, items, key, identity, writable) {
+      same([original, selected, resource, items, key, identity, writable],
+        [document, declaration, physical.resource, physical.itemsPath, physical.keyPath,
+          physical.primaryIdentity, physical.writableFields]);
+      return projection;
+    },
+    clientProgramRelationAcceptChargedDocument(r, c, a, selected, bound) {
+      same([r, c, a, selected, bound], [row, charge, acquisition, projection, 16777216]);
     }};
   const sourceManaged = {assertCurrent() {}, prepareRead(p, d, original, occurrence) {
-    same([p, d, original], [prepared, declaration, parent]); assert.equal(occurrence.stage, 0); return raw;
+    same([p, d, original], [prepared, declaration, parent]);
+    assert.deepEqual(occurrence, {stage: 0, input: 0, task: 0}); return raw;
   }};
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const closeFunctions = outer.body.body.filter(node => node.type === 'FunctionDeclaration' &&
     ['closeRead', 'closePhysicalRead', 'releaseEffectSourceAliases'].includes(node.id.name)).map(node => source.slice(node.start, node.end)).join('\n');
   const same = (actual, expected) => actual.forEach((value, i) => assert.strictEqual(value, expected[i]));
-  const ports = {moon, sourceManaged, originalReads, effectReads, declaration, index: 0,
-    bundle: {sources: [{declaration}, {declaration}]}, checked: value => value, fail,
+  const ports = {moon, sourceManaged, originalReads, effectReads, effectRuns: new WeakMap([[prepared, new WeakRef(run)]]), declaration, index: 0,
+    original: {fileBindings: [], physical: [physical]},
+    bundle: {sources: [{declaration, physical: [physical]}, {declaration, physical: []}]},
+    current() {sourceManaged.assertCurrent();}, checked: value => value, fail,
     sameRun(p) {assert.strictEqual(p, prepared); return run;}};
   const code = [...properties.values()].map(node => source.slice(node.start, node.end)).join(',');
-  const api = Function(...Object.keys(ports), closeFunctions + ';return {callbacks:{' + code + '},closeRead};')(...Object.values(ports));
+  const api = Function(...Object.keys(ports), closeFunctions + '\n' + readFunctions.join('\n') +
+    ';return {callbacks:{' + code + '},closeRead};')(...Object.values(ports));
   assert.strictEqual(api.callbacks.prepareSourceRead({checkedOwner: prepared, effectful: true, declaration,
-    occurrence: {stage: 0, input: 0}, managedRun: parent, originalRead: nativeRead}), nativeRead);
+    occurrence: {stage: 0, input: 0, task: 0}, managedRun: parent, originalRead: nativeRead}), nativeRead);
   assert.equal(effectReads.size, 1);
-  await api.callbacks.readPages({rowRun: {originalRead: nativeRead, run: row, acquisition},
+  await api.callbacks.readPages({resource: physical.resource,
+    rowRun: {originalRead: nativeRead, run: row, acquisition},
     chargePage: value => {assert.strictEqual(value, bytes); return charge;}, verifyRead: async () => {}});
+  assert.strictEqual(run.mockSourceReads[0].document, document);
+  assert.strictEqual(run.mockSourceReads[0].projections.get(physical), projection);
   await assert.rejects(api.callbacks.closeSourceRead(nativeRead), {code: 'InstalledMockSourceCleanupPending'});
   assert.equal(retires, 0); assert.equal(reads, 1); assert.equal(run.mockSourceReads[0].closed, false);
   pending = false; assert.equal((await api.callbacks.closeSourceRead(nativeRead)).pending, false);
@@ -508,15 +586,24 @@ test('Mock Effect reader consumes the same planned original and retires physical
 const graphMethodStart = managerSource.indexOf('    prepareModelGraph(');
 const graphMethodEnd = managerSource.indexOf('    prepareModelCompilation(', graphMethodStart);
 assert(graphMethodStart >= 0 && graphMethodEnd > graphMethodStart);
-function requestGraphFixture({serialized = true, missingPort = false, replaceAfter = false, refuse} = {}) {
+function requestGraphFixture({serialized = true, missingPort = false, replaceAfter = false, refuse,
+  effectful = false, foreignEffectBorrow = false} = {}) {
   const prepared = {}, request = {}, parent = {}, input = {}, holder = {}, occurrence = {}, execution = {};
   const component = serialized ? {} : undefined, graph = {}, admission = {}, calls = [];
-  const state = {prepared, parent, holder, contentGraph: component, compilationFamily: 'model'};
+  const state = {prepared, parent, holder, contentGraph: component,
+    compilationFamily: effectful ? undefined : 'model',
+    compilationKind: effectful ? 'effectful' : 'effect_free'};
+  if (effectful) state.effectBorrowMethods = {clientProgramEffectPreparationInputRead(value) {
+    assert.equal(value, holder); return foreignEffectBorrow ? undefined : prepared;
+  }};
   const producer = {preparation: state, receipt: input};
   let object;
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const moon = {
-    clientProgramPreparationBorrowRead(value) {assert.equal(value, holder); return prepared;},
+    clientProgramPreparationBorrowRead(value) {
+      assert.equal(effectful, false, 'Effect never becomes a Program borrower');
+      assert.equal(value, holder); return prepared;
+    },
     clientProgramRequestProgramModuleIssueCode() {assert.fail('No issue reclassification on success');},
     clientProgramPrepareRequestModelGraph(...args) {
       assert.equal(this, moon); assert.equal(serialized, false);
@@ -547,6 +634,33 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
   return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component, constructSerialized),
     foreign: () => object.prepareModelGraph(prepared, request, occurrence, execution, {}, constructSerialized)};
 }
+
+test('Request Effect Model Graph uses its original Effect borrower and same existing typed constructor', () => {
+  const f = requestGraphFixture({serialized: false, effectful: true});
+  assert.equal(f.invoke(), f.graph);
+  assert.equal(f.state.modelGraph, f.graph);
+  assert.equal(f.state.compilationFamily, undefined);
+  assert.deepEqual(f.calls, ['original Model']);
+  assert.equal(f.state.preparing, false);
+  // Plural original Graph construction stays in the typed Core's ordered
+  // occurrence checks. The Host closes this entrance once compilation exists.
+  f.state.modelCompilation = {};
+  assert.throws(f.invoke, {code: 'ForeignInstalledSourceProducer'});
+  assert.deepEqual(f.calls, ['original Model']);
+});
+
+test('Request Effect Model Graph refuses a foreign Effect borrower and keeps a post-current original for cleanup', () => {
+  const missing = requestGraphFixture({serialized: false, effectful: true, foreignEffectBorrow: true});
+  assert.throws(missing.invoke, {code: 'ForeignInstalledSourceProducer'});
+  assert.deepEqual(missing.calls, []);
+  const changed = requestGraphFixture({serialized: false, effectful: true, replaceAfter: true});
+  assert.throws(changed.invoke, {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(changed.state.modelGraph, changed.graph);
+  assert.equal(changed.state.preparationFailed, true);
+  const failure = changed.state.preparationFailure;
+  assert.throws(changed.invoke, cause => cause === failure);
+  assert.deepEqual(changed.calls, ['original Model']);
+});
 
 test('Request Model Graph forwards the same retained Content original to one typed parent constructor', () => {
   const original = requestGraphFixture();
@@ -581,7 +695,7 @@ test('Request Model Graph keeps constructor failure or changed Content on the sa
 });
 
 
-function installedModelRequestFixture({serialized = false, refusePlan, refuseScope, acquisitions = 0} = {}) {
+function installedModelRequestFixture({serialized = false, refusePlan, refuseScope, acquisitions = 0, multiple = false} = {}) {
   let constructor;
   const walk = n => {
     if (!n || typeof n !== 'object') return;
@@ -590,8 +704,10 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   };
   walk(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(constructor);
   const prepared = {}, request = {}, graph = {}, compilation = {}, definition = {}, scope = {}, queryTime = {}, calls = [];
-  const selected = {graph, occurrence: {}, originalReadInstallation: {}, serializationGraph: serialized ? {} : undefined};
-  const plan = {compiled: compilation, runDefinition: definition, inferGraph: graph,
+  const members = multiple ? Object.freeze([{graph: {}, occurrence: {}}, {graph: {}, occurrence: {}}]) : undefined;
+  const selected = multiple ? {components: members, graph: Object.freeze(members.map(member => member.graph))}
+    : {graph, occurrence: {}, originalReadInstallation: {}, serializationGraph: serialized ? {} : undefined};
+  const plan = {compiled: compilation, runDefinition: definition, inferGraph: selected.graph,
     serializationGraph: selected.serializationGraph, queryTimePreparation: queryTime};
   const inferSelections = new WeakMap([[prepared, selected]]), earlyMockInferPlans = new WeakMap();
   const control = {}, moon = {clientProgramAcquisitionCount: () => acquisitions};
@@ -603,11 +719,16 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
     assert.equal(earlyMockInferPlans.get(prepared).model, model);
     assert.equal(model.compiled, compilation); assert.equal(model.runDefinition, definition);
     assert.equal(model.originalReadInstallation, selected.originalReadInstallation);
+    if (multiple) assert.deepEqual(model.components.map(member => member.graph), selected.graph);
     assert.equal(model.queryTimePreparation, queryTime);
     if (managed !== undefined) {assert.equal(managed.model, model); calls.push('same adopted Run'); return managed;}
     assert.equal(Object.getOwnPropertyDescriptor(model, 'scope').writable, true);
     assert.equal(model.scope, undefined); calls.push('construct');
     managed = {model, value: {}}; model.scope = scope;
+    if (multiple) {
+      model.scopes = Object.freeze([scope, {}]);
+      model.components.forEach((member, index) => {member.scope = model.scopes[index];});
+    }
     if (refuseScope !== undefined) throw refuseScope;
     return managed;
   }};
@@ -629,7 +750,8 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   let admission;
   const findAdmission = n => {
     if (!n || typeof n !== 'object') return;
-    if (n.type === 'FunctionExpression' && n.params.length === 1 && n.params[0].name === 'submission' &&
+    if (n.type === 'FunctionExpression' && n.params.length === 2 && n.params[0].name === 'submission' &&
+        n.params[1].name === 'held' &&
         hostSource.slice(n.start, n.end).includes('prepareInstalledRequestModelRun')) {assert(!admission); admission = n;}
     for (const v of Object.values(n)) {if (Array.isArray(v)) v.forEach(findAdmission); else if (v && typeof v === 'object') findAdmission(v);}
   };
@@ -637,9 +759,10 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   const failures = new WeakMap(), admissionPorts = {...ports,
     requestOf: () => ({requested: request, acquisitionCount: acquisitions, effectful: false}),
     journal: {resolveDefinition: () => saved ? {physicalStartReserved: true} : undefined}, namespaceId: 'fixture',
-    prepareInstalledRequestModelRun: construct, admissionFailures: failures};
+    prepareInstalledRequestModelRun: construct, admissionFailures: failures,
+    missingModelExecutionRefusals: new WeakSet()};
   const admit = Function(...Object.keys(admissionPorts), 'return (' + hostSource.slice(admission.start, admission.end) + ');')(...Object.values(admissionPorts));
-  return {invoke, admit: () => admit(submission), saved: () => {saved = true;}, failures, submission,
+  return {invoke, admit: held => admit(submission, held), saved: () => {saved = true;}, failures, submission,
     calls, scope, prepared, selected, plan, request, early: () => earlyMockInferPlans.get(prepared),
     foreignRequest: () => construct(submission, {}, selected),
     get managed() {return managed;}};
@@ -788,7 +911,7 @@ test('Host unadopted Model Scope cleanup keeps original thrown causes and pendin
 });
 
 
-test('actual acquired Model admission retains one Request compiler prefix and Scope and refuses an unbacked plain acquired Model', () => {
+test('actual acquired Model admission retains one Request compiler prefix and Scope with its selected physical or generic plan', () => {
   const f = installedModelRequestFixture({serialized: true, acquisitions: 1});
   f.admit(); f.admit();
   assert.equal(f.early().model.scope, f.scope); assert.equal(f.early().managed, f.managed);
@@ -796,8 +919,172 @@ test('actual acquired Model admission retains one Request compiler prefix and Sc
   assert.equal(f.calls.filter(v => v === 'construct').length, 1);
   assert.equal(f.calls.filter(v => v === 'same prefix').length, 1);
   const plain = installedModelRequestFixture({acquisitions: 1});
-  assert.throws(plain.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
-  assert.equal(plain.early(), undefined);
+  plain.selected.originalReadInstallation = undefined;
+  plain.admit(); plain.admit();
+  assert.equal(plain.early().model.originalReadInstallation, undefined);
+  assert.equal(plain.calls.filter(value => value === 'construct').length, 1);
+  const serialized = installedModelRequestFixture({acquisitions: 1, serialized: true});
+  serialized.selected.originalReadInstallation = undefined;
+  assert.throws(serialized.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
+  assert.equal(serialized.early(), undefined);
+});
+
+test('source-free configured Model admission retains its generic Request Plan without inventing a Node read', () => {
+  const f = installedModelRequestFixture();
+  f.selected.originalReadInstallation = undefined;
+  f.admit(); f.admit();
+  assert.equal(f.early().model.selection, f.selected);
+  assert.equal(f.early().model.originalReadInstallation, undefined);
+  assert.equal(f.early().model.scope, f.scope);
+  assert.equal(f.early().managed, f.managed);
+  assert.equal(f.calls.filter(value => value === 'compile/Definition').length, 1);
+  assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+  assert.throws(f.foreignRequest, {code: 'ForeignInstalledModelPreparation'});
+  const content = installedModelRequestFixture({serialized: true});
+  content.selected.originalReadInstallation = undefined;
+  assert.throws(content.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
+  assert.equal(content.early(), undefined);
+});
+
+test('a configured source-free Model cancelled before dispatch finishes its original untaken Scope before Run retirement', () => {
+  const f = hostFixture({configuredModel: true}), run = f.begin();
+  f.setFinish(false);
+  assert.throws(f.retire, {code: 'InstalledModelCleanupPending'});
+  assert.equal(run.model, f.model); assert.equal(f.model.scope, f.scope);
+  assert.equal(f.calls.includes('retire'), false);
+  f.setFinish(true); const finish = f.retire();
+  assert.equal(f.model.scopeFinished, true); assert.equal(f.calls.filter(value => value === 'scope').length, 2);
+  assert.deepEqual(f.calls.slice(-3), ['retire', 'aliases', 'sever']); finish();
+});
+
+const installedInferSource = readFileSync(new URL('./installed-infer-run.mjs', import.meta.url), 'utf8');
+const sourceFreePreparationNode = parse(installedInferSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'sourceFreeModelPreparation');
+assert(sourceFreePreparationNode);
+const sourceFreePreparation = Function('checked', 'retireNodeInferOriginalRead',
+  'return ' + installedInferSource.slice(sourceFreePreparationNode.start, sourceFreePreparationNode.end))(
+  value => value, retirementFor(() => true));
+
+function sourceFreePreparationFixture({readFailure, captured = false} = {}) {
+  const prepared = {}, selected = {graph: {}}, plan = {compiled: {}, runDefinition: {}}, scope = {}, read = {};
+  const calls = [], host = {}, publication = {};
+  const component = Object.freeze({provider: {}, bindOriginal() {return component;}});
+  let finished = false;
+  const captureSource = {}, capturedInput = {capture: {source: () => captureSource}}, sourceLedger = {};
+  const moon = {clientProgramAcquisitionCount: p => {assert.equal(p, prepared); return captured ? 1 : 0;},
+    clientProgramOpenInstalledManagedCaptureHost(...args) {
+      assert.deepEqual(args, [managed.value, prepared, managed.request, [captureSource]]);
+      calls.push('original captured Host'); return host;
+    },
+    clientProgramOpenInstalledManagedSourceFreeComposedInferHost(...args) {
+      assert.deepEqual(args, [managed.value, prepared, managed.request, 'registry', 'values', 'fragment', 'ordered', ['provider']]);
+      calls.push('original Host'); return host;
+    }};
+  const control = {
+    prepareCheckedClientInferOriginalRead(...args) {
+      assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, scope, model.budget]);
+      calls.push('original read'); if (readFailure) throw readFailure; return read;
+    },
+    settleCheckedClientInferOriginalReadPreparation(...args) {
+      assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, read, true]);
+      calls.push('settle');
+    },
+    finishCheckedClientInferOriginalReadScope(...args) {
+      assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, scope, true]);
+      calls.push('finish'); return finished;
+    }};
+  const managed = {runtime: moon, prepared, value: {}, request: {}}, model = {
+    prepared, selection: selected, graph: selected.graph, control, ...plan, scope, managed, component,
+    budget: {readRetainedBytes: 41n, readExecutionBytes: 42n, modelRetainedBytes: 43n, modelExecutionBytes: 44n},
+    publicationCapacity: () => publication};
+  managed.model = model;
+  const acquired = !captured ? undefined : {captured: capturedInput, ledger: sourceLedger, managedRun: managed.value};
+  if (captured) model.sourceLedger = sourceLedger;
+  const make = () => sourceFreePreparation(moon, control, prepared, plan, selected, model, acquired);
+  return {make, model, managed, selected, scope, read, host, publication, component, calls,
+    acquired,
+    finish: () => {finished = true;}};
+}
+
+test('configured source-free Model uses its original Run and defers its one read until the component consumes it', async () => {
+  const f = sourceFreePreparationFixture(), original = f.make();
+  assert.equal(original.selection, f.selected); assert.equal(original.scope, f.scope);
+  assert.strictEqual(original.component, f.component);
+  assert.throws(original.prepareRead, /InvalidInstalledRequestModelPreparation/);
+  original.retain(); assert.throws(original.retain, /InvalidInstalledRequestModelPreparation/);
+  assert.equal(original.openSourceFreeHost('registry', 'values', 'fragment', 'ordered', ['provider']), f.host);
+  assert.throws(() => original.openSourceFreeHost(), /InvalidInstalledRequestModelPreparation/);
+  assert.deepEqual(f.calls, ['original Host']);
+  const admitted = original.prepareRead();
+  assert.equal(admitted.read, f.read); assert.equal(admitted.scope, f.scope);
+  assert.equal(admitted.publicationCapacity(), f.publication);
+  assert.throws(original.prepareRead, /InvalidInstalledRequestModelPreparation/);
+  assert.equal(await original.retire(), false);
+  assert.equal(f.model.closed, undefined); assert.equal(f.model.read, undefined);
+  f.finish(); assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
+  assert.deepEqual(f.calls, ['original Host', 'original read', 'settle', 'finish', 'finish']);
+  assert.throws(admitted.publicationCapacity, /InvalidInstalledRequestModelPreparation/);
+});
+
+test('configured acquired Model consumes its same captured input and original Run ledger without a replacement read', async () => {
+  const f = sourceFreePreparationFixture({captured: true}), original = f.make();
+  original.retain();
+  assert.throws(() => original.openSourceFreeHost(), /InvalidInstalledRequestModelPreparation/);
+  assert.throws(() => original.openCapturedHost([{...f.acquired.captured}]), /InstalledComposedInferHostUnavailable/);
+  assert.equal(original.openCapturedHost([f.acquired.captured]), f.host);
+  assert.throws(() => original.openCapturedHost([f.acquired.captured]), /InstalledComposedInferHostUnavailable/);
+  assert.equal(original.prepareRead().read, f.read);
+  assert.deepEqual(f.calls, ['original captured Host', 'original read']);
+  assert.equal(await original.retire(), false); f.finish(); assert.equal(await original.retire(), true);
+  const changed = sourceFreePreparationFixture({captured: true}), held = changed.make();
+  changed.acquired.ledger = {};
+  assert.throws(held.retain, /InvalidInstalledRequestModelPreparation/);
+});
+
+test('configured source-free Model keeps a refused original read and rejects a substituted managed Run', async () => {
+  const failure = new Error('original read refusal'), f = sourceFreePreparationFixture({readFailure: failure});
+  const original = f.make(); original.retain();
+  assert.throws(original.prepareRead, cause => cause === failure);
+  assert.throws(original.prepareRead, cause => cause === failure);
+  assert.deepEqual(f.calls, ['original read']);
+  assert.equal(await original.retire(), false); f.finish(); assert.equal(await original.retire(), true);
+  const changed = sourceFreePreparationFixture(), live = changed.make();
+  changed.model.managed = {...changed.managed};
+  assert.throws(live.retain, /InvalidInstalledRequestModelPreparation/);
+  await assert.rejects(live.retire(), /InvalidInstalledRequestModelPreparation/);
+  assert.deepEqual(changed.calls, []);
+});
+
+test('configured source-free Host binds the retained module provider without constructing another provider', async () => {
+  const selected = {graph: {}, occurrence: {}}, plan = {compiled: {}, runDefinition: {wire: '{"run_id":"fixture"}'}};
+  const calls = [], provider = {}, primary = new Error('same original Host refusal');
+  let owner, component, original;
+  component = Object.freeze({provider, bindOriginal(context) {
+    assert.strictEqual(context.selected, selected);
+    assert.strictEqual(context.originalPreparation, original);
+    assert.strictEqual(context.plan, plan);
+    calls.push('bind'); return component;
+  }});
+  original = {selection: selected, control: {}, ...plan, component,
+    retain() {calls.push('retain');},
+    openSourceFreeHost(registry, values, fragment, ordered, providers) {
+      assert.deepEqual([registry, values, fragment, ordered], ['registry', 'values', 'fragment', 'ordered']);
+      assert.strictEqual(providers[0], provider); assert.equal(providers.length, 1);
+      calls.push('same provider'); throw primary;
+    },
+    async retire() {calls.push('retire'); return true;}};
+  await assert.rejects(runInstalledComposedInfers({
+    moon: {clientProgramAcquisitionCount: () => 0, clientProgramResultCount: () => 0,
+      clientProgramInferPlanBoundary: graph => {assert.strictEqual(graph, selected.graph); return [0];},
+      clientProgramComposedInferLocalProvider: () => assert.fail('Do not construct a second Model provider')},
+    control: original.control, preparedProgram: {}, plan, selected: {components: [selected]},
+    registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
+    modelController: {discover: () => []}, originalPreparation: original,
+    signal: new AbortController().signal, retainExecution(value) {owner = value;},
+  }), error => error === primary);
+  assert.deepEqual(calls, ['retain', 'bind', 'same provider']);
+  assert.equal(await owner.cleanup(), true);
+  assert.deepEqual(calls, ['retain', 'bind', 'same provider', 'retire']);
 });
 
 // Exercise the actual facade -> Host -> manager path. A facade carries no
@@ -876,4 +1163,420 @@ test('Request serialized Model preserves native Graph across actual facade Host 
   assert.throws(() => f.control.prepareClientRequestSerializedInferGraph(f.parent, f.input,
     f.occurrence, {...f.selected}, f.execution, f.admission), /Foreign Content compilation graph/u);
   assert.deepEqual(f.calls, ['same native Content'], 'A copied facade never enters the Core constructor');
+});
+
+const modelModuleConstructor = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'prepareRequestMockModelPlan');
+assert(modelModuleConstructor);
+const modelBudgetConstructor = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retainRequestModelBoundsAndBudget');
+assert(modelBudgetConstructor);
+
+test('Source-free Model module retains the output required by its existing configured Host', () => {
+  for (const {physical, serialized, retainedOutput, mock = false, expected} of [
+    {physical: false, serialized: false, retainedOutput: false, expected: true},
+    {physical: false, serialized: false, retainedOutput: false, mock: true, expected: false},
+    {physical: true, serialized: false, retainedOutput: false, expected: false},
+    {physical: false, serialized: true, retainedOutput: false, expected: false},
+    {physical: true, serialized: false, retainedOutput: true, expected: true},
+  ]) {
+    const prepared = {}, request = {}, parent = {}, input = {}, compilation = {};
+    const compiled = {}, definition = {}, occurrence = {}, graph = {}, bounds = {};
+    const module = {}, plan = {}, admission = {}, initialControl = {};
+    let moduleCalls = 0, planCalls = 0;
+    const moon = {
+      clientProgramAcquisitionCount: value => {assert.strictEqual(value, prepared); return 0;},
+      clientProgramPreparedComposedInferBounds: () => assert.fail('Keep the original selected bounds'),
+      clientProgramComposedInferRetainedLimits: value => {
+        assert.strictEqual(value, bounds); return [1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n];
+      },
+      clientProgramPrepareRequestModelSourceFreeModule() {},
+      clientProgramPrepareRequestModelSourceFreeComponentModule() {},
+    };
+    const model = {compiled, runDefinition: definition, occurrence, graph, selection: {selectedBounds: bounds, localMock: mock}};
+    if (physical) model.originalReadInstallation = {
+      nodeInstallation: {layout: {retained_bytes: 31n, execution_bytes: 41n}},
+      modelRetainedBytes: 51n, modelExecutionBytes: 61n,
+      bootstrap: {maxReservations: 7, maxHoldings: 8, maxDelegations: 9},
+    };
+    const run = {runtime: moon, prepared, request, model};
+    const prefix = {}, suffix = () => {}, provider = {};
+    const component = Object.freeze({provider, bindOriginal() {return component;}});
+    const control = {
+      prepareCheckedClientRequestModelSourceFreeModule(...args) {
+        assert.deepEqual(args.slice(0, 7), [parent, input, request, compiled, definition, compilation, admission]);
+        assert.strictEqual(args[7], expected);
+        moduleCalls++; return module;
+      },
+      prepareCheckedClientRequestModelSourceFreeComponentModule(...args) {
+        assert.equal(physical || serialized || mock, false);
+        assert.deepEqual(args.slice(0, 7), [parent, input, request, compiled, definition, compilation, admission]);
+        assert.strictEqual(args[7], true);
+        assert.strictEqual(args[9]({}, prefix, suffix), provider);
+        assert.strictEqual(model.component, component, 'Retain the same provider before module construction returns');
+        moduleCalls++; return module;
+      },
+      prepareCheckedClientRequestModelSourceFreePlan(...args) {
+        assert.deepEqual(args, [parent, input, module, request, compiled, definition, occurrence, graph, bounds]);
+        assert.equal(physical, false); planCalls++; return plan;
+      },
+      prepareCheckedClientRequestNodeModelSourceFreePlan(...args) {
+        assert.deepEqual(args, [parent, input, module, request, compiled, definition,
+          occurrence, graph, bounds, model.originalReadInstallation]);
+        assert.equal(physical, true); planCalls++; return plan;
+      },
+    };
+    model.control = control;
+    if (serialized) {
+      model.serializationGraph = {};
+      run.contentPreparation = {prepared, managed: run,
+        plan: {compiled, runDefinition: definition, serializationGraph: model.serializationGraph},
+        contentControl: {prepareModelRequestPrefix() {return {};}}};
+    }
+    const originals = {installation: {projectRuntime: moon, initialControl,
+      retainedRelationOutput: retainedOutput, computeRuns: new WeakMap([[prepared, run]])}};
+    const construct = Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
+      'prepareInstalledSequenceContractOriginal', 'runtimeCore', 'checked', 'clientOperationError', 'openNodeComposedInferProvider',
+      hostSource.slice(modelBudgetConstructor.start, modelBudgetConstructor.end) + '\nreturn ' +
+        hostSource.slice(modelModuleConstructor.start, modelModuleConstructor.end))(
+      value => assert.strictEqual(value, originals),
+      (value, actual) => {assert.strictEqual(value, originals); assert.strictEqual(actual, prepared); return request;},
+      value => {assert.strictEqual(value, originals); return {moon, control: initialControl, contracts: {}, admission};},
+      value => {assert.strictEqual(value, moon); return {publicationControl: control};},
+      value => value, code => Object.assign(new Error(code), {code}), options => {
+        assert.strictEqual(options.selected, model.selection);
+        assert.strictEqual(options.inputPrefix, prefix);
+        assert.strictEqual(options.bindComputeSuffix, suffix);
+        assert.strictEqual(options.deferred, true);
+        return component;
+      });
+    assert.strictEqual(construct(originals, run, model, compilation, parent, input), plan);
+    assert.strictEqual(run.preparedSequences, module);
+    assert.strictEqual(run.modelPlan, plan);
+    assert.equal(moduleCalls, 1); assert.equal(planCalls, 1);
+  }
+});
+
+
+// Actual adoption method with explicit nominal Core ports. The port records
+// the same selected declaration; it does not issue a Run or Model allowance.
+test('Model adoption forwards only the same selected quantity limits before Scope and Run binding', () => {
+  const begin = managerSource.indexOf('    adoptModelPreparation(');
+  const end = managerSource.indexOf('    selectDomainSourceInput(', begin);
+  assert(begin > 0 && end > begin);
+  const method = managerSource.slice(begin, end).trim().replace(/,$/u, '');
+  for (const quantities of [undefined, Object.freeze({tokens: 33n, costUnits: 0n, durationMs: 500n})]) {
+    const parent = {}, input = {}, prepared = {}, request = {}, identity = {}, plan = {}, scope = {}, active = {};
+    const events = [], holder = {}, model = {graph: {}, scope: undefined,
+      selection: Object.freeze({quantityCapacity: quantities === undefined ? undefined : Object.freeze({limits: quantities})})};
+    const ok = value => ({$tag: 1, _0: value});
+    const moon = {
+      clientProgramPreparationBorrowRead(value) {assert.strictEqual(value, holder); return prepared;},
+      clientProgramPrepareRequestModelReadScope(...args) {
+        assert.equal(quantities, undefined); assert.deepEqual(args, [parent, input, plan]); events.push('scope'); return ok(scope);
+      },
+      clientProgramPrepareRequestModelReadScopeWithQuantities(...args) {
+        assert(quantities); assert.deepEqual(args, [parent, input, plan, 33n, 0n, 500n]); events.push('quantities then scope'); return ok(scope);
+      },
+      clientProgramCompleteRequestModelPreparation(...args) {assert.deepEqual(args, [parent, input, plan]); assert.strictEqual(model.scope, scope); events.push('complete'); return ok(undefined);},
+      clientProgramAdoptRequestModelPreparation(...args) {assert.deepEqual(args, [parent, identity, scope]); events.push('adopt'); return ok(active);},
+    };
+    const state = {parent, prepared, compilationFamily: 'model', modelCompilation: {}, modelGraph: model.graph,
+      holder, context: {runtime: moon}, original: {}};
+    const producer = {preparation: state, receipt: input};
+    const object = Function('current', 'callbacks', 'originals', 'producerForRequest', 'types', 'fail', 'registerRequestRun', 'checked',
+      `return ({${method}});`)(() => {}, {request: () => request}, {}, () => producer,
+      {isProxy: () => false}, code => {throw new Error(code);}, (run, construct) => {run.value = construct();},
+      value => {assert.equal(value.$tag, 1); return value._0;});
+    const run = object.adoptModelPreparation(prepared, identity, plan, model);
+    assert.strictEqual(run.model, model); assert.strictEqual(run.value, active); assert.strictEqual(model.scope, scope);
+    assert.deepEqual(events, [quantities === undefined ? 'scope' : 'quantities then scope', 'complete', 'adopt']);
+  }
+});
+
+
+const sourceFreeGroupPreparationNode = parse(installedInferSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'sourceFreeModelsPreparation');
+assert(sourceFreeGroupPreparationNode);
+function sourceFreeGroupFixture({captured = false} = {}) {
+  const prepared={}, plan={compiled:{},runDefinition:{}}, scopes=Object.freeze([{},{}]), reads=[{},{}], calls=[], publication={}, host={};
+  const selected={components:Object.freeze([{graph:{},occurrence:{}},{graph:{},occurrence:{}}])};
+  selected.graph=Object.freeze(selected.components.map(value=>value.graph));
+  const model={prepared, selection:selected, graph:selected.graph, scopes, scope:scopes[0],...plan};
+  let finish=false;
+  const moon={clientProgramAcquisitionCount:p=>{assert.equal(p,prepared);return captured ? 2 : 0;},
+    clientProgramOpenInstalledManagedSourceFreeComposedInferHost(...args) {
+      assert.deepEqual(args,[managed.value,prepared,managed.request,'registry','values','fragment','ordered',
+        model.components.map(member=>member.component.provider)]);
+      calls.push('one original Host'); return host;
+    },clientProgramOpenInstalledManagedCaptureHost(...args) {
+      assert.deepEqual(args,[managed.value,prepared,managed.request,['source0','source1']]);
+      calls.push('one captured original Host'); return host;
+    }};
+  const control={prepareCheckedClientInferOriginalRead(compiled,definition,graph,scope,budget) {
+    const index=selected.graph.indexOf(graph);assert(index>=0);assert.equal(compiled,plan.compiled);assert.equal(definition,plan.runDefinition);
+    assert.equal(scope,scopes[index]);assert.equal(budget,model.components[index].budget);calls.push('read'+index);return reads[index];
+  },finishCheckedClientInferOriginalReadScope(compiled,definition,graph,scope,complete) {
+    const index=selected.graph.indexOf(graph);assert(index>=0);assert.equal(scope,scopes[index]);assert.equal(complete,true);
+    assert.equal(compiled,plan.compiled);assert.equal(definition,plan.runDefinition);calls.push('finish'+index);return finish;
+  }};
+  const managed={runtime:moon,prepared,request:{},value:{},model};model.control=control;model.managed=managed;
+  model.components=Object.freeze(selected.components.map((selection,index)=>({prepared,selection,graph:selection.graph,
+    control,...plan,group:model,managed,scope:scopes[index],read:undefined,
+    budget:{readRetainedBytes:7n,readExecutionBytes:5n,modelRetainedBytes:100n,modelExecutionBytes:200n},
+    publicationCapacity:()=>publication,component:Object.freeze({provider:{},bindOriginal(){}})})));
+  const construct=Function('checked','retireNodeInferOriginalRead','finishNodeInferOriginalReadScopes',
+    installedInferSource.slice(sourceFreePreparationNode.start,sourceFreePreparationNode.end)+';'+
+    installedInferSource.slice(sourceFreeGroupPreparationNode.start,sourceFreeGroupPreparationNode.end)+';return sourceFreeModelsPreparation;')(
+      value=>value,member=>{if(member.read===undefined)return;const index=model.components.indexOf(member);assert.equal(member.read,reads[index]);calls.push('retire'+index);},finishNodeInferOriginalReadScopes);
+  const acquired = captured ? {managedRun: managed.value, ledger: {}} : undefined;
+  if (captured) model.sourceLedger = acquired.ledger;
+  return {model,selected,plan,reads,calls,host,publication,make:()=>construct(moon,control,prepared,plan,selected,model,acquired, captured ? {} : undefined),
+    finish:()=>{finish=true;}};
+}
+
+test('complete source-free Model caller binds original child reads and reaches all children before parent retirement', async()=>{
+  const f=sourceFreeGroupFixture(), original=f.make(); original.retain();
+  assert.equal(original.openSourceFreeHost('registry','values','fragment','ordered',
+    f.model.components.map(member=>member.component.provider)),f.host);
+  const second=original.components[1].prepareRead(), first=original.components[0].prepareRead();
+  assert.equal(second.read,f.reads[1]);assert.equal(first.read,f.reads[0]);
+  assert.equal(await original.retire(),false);
+  assert.deepEqual(f.calls,['one original Host','read1','read0','retire0','retire1','finish0','finish1','finish0']);
+  assert.equal(f.model.closed,undefined);assert(f.model.components.every(member=>member.read===undefined));
+  f.finish();assert.equal(await original.retire(),true);assert.equal(await original.retire(),true);
+  assert(f.model.components.every(member=>member.scopeFinished===true));
+  assert.throws(first.publicationCapacity,/InvalidInstalledRequestModelPreparation/);
+});
+
+test('complete source-free Model caller refuses a replaced original component group before read or Host entry',()=>{
+  const f=sourceFreeGroupFixture(), original=f.make();
+  f.model.components=Object.freeze([...f.model.components].reverse());
+  assert.throws(original.retain,/InvalidInstalledRequestModelPreparation/);
+  assert.deepEqual(f.calls,[]);
+});
+
+test('complete source-free Host reuses every retained provider and exact child original without reconstruction',async()=>{
+  const selections=Object.freeze([{graph:{},occurrence:{}},{graph:{},occurrence:{}}]), calls=[];
+  const plan={compiled:{},runDefinition:{wire:'{"run_id":"fixture"}'}}, primary=new Error('original complete Host refusal');
+  const originals=Object.freeze(selections.map((selection,index)=>{const original={selection};
+    original.component=Object.freeze({provider:{},bindOriginal(context) {
+      assert.equal(context.selected,selection);assert.equal(context.originalPreparation,original);calls.push('bind'+index);
+    }});return original;}));
+  let owner;
+  const original={...plan,selection:{components:selections},components:originals,
+    retain(){calls.push('retain-all');},openSourceFreeHost(_registry,_values,_fragment,_ordered,providers) {
+      assert.deepEqual(providers,originals.map(value=>value.component.provider));calls.push('one original Host');throw primary;
+    },async retire(){calls.push('retire-all');return true;}};
+  await assert.rejects(runInstalledComposedInfers({moon:{clientProgramAcquisitionCount:()=>0,clientProgramResultCount:()=>0,
+    clientProgramInferPlanBoundary(graph){const index=selections.findIndex(value=>value.graph===graph);assert(index>=0);return [index];},
+    clientProgramComposedInferLocalProvider(){assert.fail('Do not create another provider');}},
+    control:{},preparedProgram:{},plan,selected:{components:selections},modelController:{discover:()=>[]},
+    signal:new AbortController().signal,retainExecution(value){owner=value;},originalPreparation:original,
+  }),error=>error===primary);
+  assert.deepEqual(calls,['retain-all','bind0','bind1','one original Host']);
+  assert.equal(await owner.cleanup(),true);assert.deepEqual(calls.slice(-1),['retire-all']);
+});
+
+
+test('complete captured Model caller opens the same original Host and all reads without a sourcefree or Ledger fallback', async () => {
+  const f = sourceFreeGroupFixture({captured: true}), original = f.make();
+  assert.equal(original.openSourceFreeHost, undefined); assert(original.preparationHolder);
+  original.retain();
+  const captures = [0, 1].map(index => ({capture: {source() {f.calls.push('source'+index); return 'source'+index;}}}));
+  assert.equal(original.openCapturedHost(captures), f.host);
+  original.components[1].prepareRead(); original.components[0].prepareRead();
+  assert.deepEqual(f.calls.slice(0, 5), ['source0', 'source1', 'one captured original Host', 'read1', 'read0']);
+  f.finish(); assert.equal(await original.retire(), true);
+  assert(f.model.components.every(member => member.scopeFinished));
+});
+
+
+test('complete installed Model constructor retains every original member across one compiler and same Request adoption', () => {
+  for (const acquisitions of [0, 2]) {
+    const f = installedModelRequestFixture({multiple: true, acquisitions}), model = f.invoke();
+    assert.equal(model, f.early().model); assert.equal(f.invoke(), model);
+    assert.equal(model.graph, f.selected.graph); assert.equal(model.components.length, 2);
+    assert(model.components.every((member, index) => member.graph === model.graph[index] &&
+      member.compiled === f.plan.compiled && member.runDefinition === f.plan.runDefinition && member.managed === f.managed));
+    assert.equal(f.calls.filter(value => value === 'compile/Definition').length, 1);
+    assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+  }
+  const primary = new Error('original complete Scope refusal'), f = installedModelRequestFixture({multiple: true, acquisitions: 2, refuseScope: primary});
+  assert.throws(f.invoke, cause => cause === primary); assert.throws(f.invoke, cause => cause === primary);
+  assert(f.early().model.components.every(member => member.scope !== undefined));
+  assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+});
+
+
+test('complete Host Model retains the actual installed Source profile instead of classifying the group by its absent singular read installation', () => {
+  const f = hostFixture({group: true, managedProfile: true}), run = f.begin();
+  assert.equal(run.sourceProfile, f.record.managedSourceProfile);
+  assert.notEqual(run.sourceProfile, f.record.mockSourceProfile);
+  const finish = f.retire(); finish(); assert.equal(run.closed, true);
+});
+
+
+test('complete Model group forwards one original installed quantity scope before all Scope and Run binding', () => {
+  const begin = managerSource.indexOf('    adoptModelPreparation(');
+  const end = managerSource.indexOf('    modelSourceCoordinates(', begin);
+  assert(begin > 0 && end > begin);
+  const method = managerSource.slice(begin, end).trim().replace(/,$/u, '');
+  for (const missingRoot of [false, true]) {
+    const parent = {}, input = {}, prepared = {}, request = {}, identity = {}, plan = {}, active = {}, holder = {};
+    const quantityCapacity = Object.freeze({limits: Object.freeze({tokens: 66n, costUnits: 0n, durationMs: 1000n})});
+    const selections = Object.freeze([0, 1].map(() => Object.freeze({graph: {}, quantityCapacity})));
+    const graph = Object.freeze(selections.map(value => value.graph)), scopes = [{}, {}], events = [];
+    const model = {graph, scope: undefined, scopes: undefined,
+      selection: Object.freeze({components: selections, quantityCapacity: missingRoot ? undefined : quantityCapacity})};
+    model.components = Object.freeze(selections.map(selection => ({group: model, selection, graph: selection.graph, scope: undefined})));
+    const ok = value => ({$tag: 1, _0: value});
+    const moon = {
+      clientProgramPreparationBorrowRead(value) {assert.equal(value, holder); return prepared;},
+      clientProgramPrepareRequestModelsReadScopesWithQuantities(...args) {
+        assert.equal(missingRoot, false);
+        assert.deepEqual(args, [parent, input, plan, 66n, 0n, 1000n]);
+        events.push('same quantities before scopes'); return ok(scopes);
+      },
+      clientProgramCompleteRequestModelPreparation(...args) {
+        assert.deepEqual(args, [parent, input, plan]); assert.equal(model.scopes, scopes);
+        assert(Object.isFrozen(scopes)); assert(model.components.every((member, index) => member.scope === scopes[index]));
+        events.push('complete'); return ok(undefined);
+      },
+      clientProgramAdoptRequestModelsPreparation(...args) {
+        assert.deepEqual(args, [parent, identity, scopes]); events.push('adopt'); return ok(active);
+      },
+    };
+    const state = {parent, prepared, compilationFamily: 'model', modelCompilation: {}, modelGraph: graph,
+      holder, context: {runtime: moon}, original: {}};
+    const producer = {preparation: state, receipt: input};
+    const object = Function('current', 'callbacks', 'originals', 'producerForRequest', 'types', 'fail', 'registerRequestRun', 'checked',
+      `return ({${method}});`)(() => {}, {request: () => request}, {}, () => producer,
+      {isProxy: () => false}, code => {throw new Error(code);}, (run, construct) => {run.value = construct();},
+      value => {assert.equal(value.$tag, 1); return value._0;});
+    if (missingRoot) {
+      assert.throws(() => object.adoptModelPreparation(prepared, identity, plan, model), /InstalledModelQuantityCapacityUnavailable/u);
+      assert.deepEqual(events, []); assert.equal(model.scope, undefined);
+    } else {
+      const run = object.adoptModelPreparation(prepared, identity, plan, model);
+      assert.equal(run.model, model); assert.equal(run.value, active); assert.equal(model.scope, scopes[0]);
+      assert.deepEqual(events, ['same quantities before scopes', 'complete', 'adopt']);
+    }
+  }
+});
+
+// A cold Host can have both installations after a prior ordinary operation.
+// Model consumers must use the same manager selected by requestPreparation /
+// fundedPreparation, never another manager merely because it also exists.
+test('Model consumers retain the original funded Request manager when both installations exist', () => {
+  const names = ['prepareManagedModelMaterials', 'prepareManagedModelBinding',
+    'prepareManagedModelGraph', 'prepareManagedModelCompilation'];
+  const methods = new Map();
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.method && names.includes(node.key.name)) {
+      assert(!methods.has(node.key.name)); methods.set(node.key.name, node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(methods.size, names.length);
+  const moon = {}, prepared = {}, request = {}, originals = {};
+  const selected = {}, currentFailure = new Error('original manager is no longer current');
+  const implementations = names.map(name => hostSource.slice(methods.get(name).start, methods.get(name).end));
+  for (const sourcePresent of [true, false]) {
+    const calls = [];
+    const source = {}, compute = {};
+    const original = sourcePresent ? source : compute;
+    for (const method of ['prepareModelMaterials', 'prepareModelBinding',
+      'prepareModelGraph', 'prepareModelCompilation']) {
+      original[method] = (actual, parent) => {
+        assert.strictEqual(actual, prepared); assert.strictEqual(parent, request);
+        calls.push(method); return selected;
+      };
+      if (sourcePresent) compute[method] = () => assert.fail('Foreign manager cannot borrow this Request');
+    }
+    let refuseCurrent = false;
+    const current = value => {
+      assert.strictEqual(value, original);
+      if (refuseCurrent) throw currentFailure;
+    };
+    const host = Function('moon', 'sourceManaged', 'computeManaged', 'originals',
+      'clientOperationError', 'assertSourceManagedInstallationCurrent',
+      'assertManagedComputeInstallationCurrent', 'originalSourceManagedHostRequest', 'runtimeCore',
+      'return ({' + implementations.join(',') + '});')(
+      moon, sourcePresent ? source : undefined, compute, originals,
+      code => Object.assign(new Error(code), {code}), current, current,
+      (actual, value) => {assert.strictEqual(actual, originals); assert.strictEqual(value, prepared); return request;},
+      () => ({publicationControl: {}}));
+    for (const name of names) assert.strictEqual(host[name](moon, prepared), selected);
+    assert.equal(calls.length, names.length);
+    refuseCurrent = true;
+    for (const name of names) assert.throws(() => host[name](moon, prepared), error => error === currentFailure);
+    for (const name of names) assert.throws(() => host[name]({}, prepared), {code: 'NodeManagedRunCompilationUnavailable'});
+    assert.equal(calls.length, names.length, 'No foreign fallback or construction after the original current failure');
+  }
+});
+
+test('historical acquired Model admission forwards the same adopted Run to original Source dispatch', () => {
+  const f = installedModelRequestFixture({acquisitions: 1});
+  const held = {};
+  f.admit(held);
+  assert.strictEqual(held.managedRun, f.managed.value);
+  f.admit(held);
+  assert.strictEqual(held.managedRun, f.managed.value);
+  assert.equal(f.calls.filter(value => value === 'compile/Definition').length, 1);
+  assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+  assert.equal(f.failures.has(f.submission), false);
+});
+
+test('multiple Model custody keeps the same original handler and dispatch borrows through retirement', () => {
+  let selection;
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id?.name === 'localPreparationCustody') selection = node.init.arguments[0];
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) child.forEach(walk);
+      else if (child && typeof child === 'object') walk(child);
+    }
+  };
+  walk(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(selection);
+  const inventories = new WeakMap(), prepared = {}, holders = new Set(), handler = {};
+  inventories.set(prepared, {kind: 'effect_free', infers: [{}, {}], serializations: [], acquisitions: 2});
+  holders.add(handler);
+  const moon = {
+    clientProgramSerializationOccurrences: p => inventories.get(p).serializations,
+    clientProgramComposedInferOccurrences: p => ({$tag: 1, _0: inventories.get(p).infers}),
+    clientProgramAcquisitionCount: p => inventories.get(p).acquisitions,
+    clientProgramPreparationBorrowRead: token => {assert(holders.has(token)); return prepared;},
+    clientProgramPreparationBorrowSibling(token) {
+      assert.equal(token, handler); const child = {}; holders.add(child); return {$tag: 1, _0: child};
+    },
+    clientProgramPreparationBorrowReturn(token) {
+      assert(holders.delete(token)); return {$tag: 1, _0: holders.size === 0};
+    },
+  };
+  const selector = Function('preparation', 'prepareSubmit', 'moon', 'runtimeIsOk', 'runtimeField',
+    `return (${hostSource.slice(selection.start, selection.end)});`)(
+    {canRetireManagedPreparation: () => true, managesInstalledSources: () => true},
+    {kindOf: p => inventories.get(p).kind}, moon, value => value.$tag === 1, (value, index) => value['_'+index]);
+  for (const facts of [{kind: 'effectful', infers: [{}], serializations: [], acquisitions: 2},
+    {kind: 'effect_free', infers: [{}], serializations: [{}], acquisitions: 0}]) {
+    const foreign = {}; inventories.set(foreign, facts); assert.equal(selector(foreign), false);
+  }
+  let retired = 0;
+  const registry = installLocalPreparationRegistry(selector, p => {
+    assert.equal(p, prepared); retired++; return () => {if (holders.size) throw new Error('OriginalBorrowPending');};
+  }, {runtime: moon, borrow: p => {assert.equal(p, prepared); return handler;}});
+  const request = registry.capture({kind: 'program', input: {}, parameters: null});
+  const handle = registry.adopt(prepared, request), submission = registry.attach(registry.copy(request), handle);
+  const dispatch = registry.begin(submission); assert.equal(holders.size, 2);
+  assert.throws(dispatch.retire, /OriginalBorrowPending/); assert.equal(holders.size, 1);
+  assert.equal(submission.preparedProgram, prepared);
+  registry.finishHandler(request); assert.equal(holders.size, 0);
+  dispatch.retire(); assert.equal(retired, 1);
+  assert.throws(() => submission.preparedProgram, /Retired/);
 });

@@ -57,6 +57,12 @@ const groupControl = {version: 'actql/0.1', id: 'fixture.group_signed_literal', 
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const grouped = (name, text, extra = {}) => acquired('group-' + name, text,
   groupExpected, {columns: groupColumns, sourceRows: groupRows, ...extra});
+// Preserve the former refusal's implicit ordinary source rows explicitly.
+// Signed expression zero normalizes to +0, so both equal GROUP expressions
+// preserve amount, NULL and multiplicity. No ORDER BY promises a row order.
+const signedZeroSourceRows = [{id: 3, amount: 30}, {id: 1, amount: null},
+  {id: 2, amount: 20}, {id: 3, amount: 30}];
+const signedZeroGroups = [{bucket: 20, n: 1}, {bucket: 30, n: 2}, {bucket: null, n: 1}];
 export const signedLiteralSuccesses = [
   grouped('json-control', JSON.stringify(groupControl), {format: 'json'}),
   grouped('selected-plus', 'SELECT amount + +1 AS bucket, COUNT(*) AS n FROM records '
@@ -68,6 +74,11 @@ export const signedLiteralSuccesses = [
   {expected: [{bucket: 1, n: 2}]}),
   grouped('empty', 'SELECT amount + +1 AS bucket, COUNT(*) AS n FROM records '
     + 'GROUP BY amount + 1 ORDER BY bucket NULLS LAST', {sourceRows: [], expected: []}),
+  success('signed-literal-negative-zero-key', 'SELECT amount + -(-0) AS bucket, COUNT(*) AS n FROM records '
+    + 'GROUP BY amount + -(-0)', signedZeroGroups, groupColumns, {
+    sourceRows: signedZeroSourceRows, sourceReadCount: undefined, sourceReadSessionCount: 1,
+    results: {main: {rows: signedZeroGroups, columns: groupColumns, unordered: true}},
+  }),
   acquired('distinct-signed-literal', 'SELECT DISTINCT amount + +1 AS value FROM records '
     + 'ORDER BY records.amount + 1 NULLS LAST', [{value: -3}, {value: 1}, {value: null}],
   {columns: [column('value', true)]}),
@@ -89,15 +100,13 @@ export const unaryPlusRefusals = [
 export const signedLiteralRefusals = [
   {name: 'different-key', text: 'SELECT amount + +2 AS bucket, COUNT(*) AS n FROM records '
     + 'GROUP BY amount + 1', expectedCode: 'ClientProgramInvalidInput'},
-  {name: 'negative-zero-key', text: 'SELECT amount + -(-0) AS bucket, COUNT(*) AS n FROM records '
-    + 'GROUP BY amount + -(-0)', expectedCode: 'ClientProgramInvalidInput'},
   {name: 'removed-input', text: 'SELECT DISTINCT amount + +1 AS value FROM records ORDER BY id',
-    expectedCode: 'ClientProgramImplementationLimit'},
+    expectedCode: 'ClientProgramInvalidInput'},
 ].map(value => ({...value, name: 'unary-plus-signed-literal-' + value.name, format: 'sql'}));
 unaryPlusRefusals.push(...signedLiteralRefusals);
 export const unaryPlusExecutionFailures = [{
   name: 'unary-plus-demanded-operand', format: 'sql',
-  text: 'SELECT +(1 / 0) AS value', resultNames: ['answer'], sourceReadSessionCount: 0,
+  text: 'SELECT +(1 / 0) AS value', resultNames: ['main'], sourceReadSessionCount: 0,
 }];
 
 // GROUP validates the original unary-plus key, then reuses its numeric value.
@@ -146,4 +155,4 @@ unaryPlusSuccesses.push(...groupedUnaryPlusSuccesses);
 unaryPlusRefusals.push(...groupedUnaryPlusRefusals);
 unaryPlusExecutionFailures.push({name: 'unary-plus-group-demanded-key', format: 'sql',
   text: 'SELECT 1 / 0 AS value, COUNT(*) AS n GROUP BY +(1 / 0)',
-  resultNames: ['answer'], sourceReadSessionCount: 0});
+  resultNames: ['main'], sourceReadSessionCount: 0});

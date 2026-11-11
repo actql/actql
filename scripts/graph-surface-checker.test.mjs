@@ -15,6 +15,12 @@ import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
+const installedAoA = read('spec/contracts/actql-aoa.json');
+const installedSequenceContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+  JSON.stringify(read(installedAoA.pipeline_registry_file)),
+  JSON.stringify(installedAoA.execution_contracts['REL.values']),
+  JSON.stringify(installedAoA.execution_contracts['ACTQL.expression_fragment/0.1']),
+  JSON.stringify(installedAoA.execution_contracts['REL.derive.ordered'])));
 const {evidence_bundle_cid: ignored, ...base} = read('spec/local-check-environment.json');
 void ignored;
 base.host_policy_profile = {...base.host_policy_profile,
@@ -83,7 +89,7 @@ test('existing installed Local providers execute the keyed constructor and MATCH
   const ready = moon.clientProgramPreparationReady(prepare(owner));
   const aoa = read('spec/contracts/actql-aoa.json');
   const setup = moon.clientProgramOpenSourceFreeLocalHost(ready,
-    JSON.stringify(read(aoa.pipeline_registry_file)), JSON.stringify(aoa.execution_contracts['REL.values']),
+    installedSequenceContracts, JSON.stringify(aoa.execution_contracts['REL.values']),
     1n, 0n, 0n, 0n, JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
   assert.ok(setup, 'the existing Local owner admits all four exact selected tasks');
@@ -105,7 +111,7 @@ for (const boundary of ['success','cleanup-failure','snapshot-cancel','factory-t
     const ready = moon.clientProgramPreparationReady(prepare(owner));
     const aoa = read('spec/contracts/actql-aoa.json');
     const setup = moon.clientProgramOpenSourceFreeLocalHost(ready,
-      JSON.stringify(read(aoa.pipeline_registry_file)),JSON.stringify(aoa.execution_contracts['REL.values']),
+      installedSequenceContracts,JSON.stringify(aoa.execution_contracts['REL.values']),
       1n,0n,0n,0n,JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
       JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
     assert.ok(setup);
@@ -216,7 +222,7 @@ test('keyed constructor Host in-flight cancellation never publishes partial Grap
   const ready = moon.clientProgramPreparationReady(prepare(owner));
   const aoa = read('spec/contracts/actql-aoa.json');
   const setup = moon.clientProgramOpenSourceFreeLocalHost(ready,
-    JSON.stringify(read(aoa.pipeline_registry_file)), JSON.stringify(aoa.execution_contracts['REL.values']),
+    installedSequenceContracts, JSON.stringify(aoa.execution_contracts['REL.values']),
     1n, 0n, 0n, 0n, JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
   assert.ok(setup);
@@ -302,7 +308,7 @@ for (const scenario of [
     assert.ok(ready);
     const aoa = read('spec/contracts/actql-aoa.json');
     const setup = moon.clientProgramOpenSourceFreeLocalHost(ready,
-      JSON.stringify(read(aoa.pipeline_registry_file)), JSON.stringify(aoa.execution_contracts['REL.values']),
+      installedSequenceContracts, JSON.stringify(aoa.execution_contracts['REL.values']),
       1n,0n,0n,0n,JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
       JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
     assert.ok(setup);
@@ -401,7 +407,7 @@ for (const scenario of [
       assert(matchTask>=0,'the formal Plan must select the current MATCH provider');
       const aoa=read('spec/contracts/actql-aoa.json');
       const setup=moon.clientProgramOpenSourceFreeLocalHost(ready,
-        JSON.stringify(read(aoa.pipeline_registry_file)),JSON.stringify(aoa.execution_contracts['REL.values']),
+        installedSequenceContracts,JSON.stringify(aoa.execution_contracts['REL.values']),
         1n,0n,0n,0n,JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
         JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
       assert.ok(setup);
@@ -427,7 +433,9 @@ for (const scenario of [
               if(task===matchTask)matchCompleted ||= report.complete;
               if(task===targetTask && !report.complete && report.work>0n && !sawPrivateWork){
                 sawPrivateWork=true;
-                if(cancel)setTimeout(()=>controller.abort(),0);
+                // Abort at this observed private-work boundary; a later timer can
+                // run after the tiny fixture has already published its output.
+                if(cancel)controller.abort();
               }
               return polled;
             };

@@ -53,7 +53,7 @@ test('packed SDK public exports and browser bundle include their presentation mo
     assert.equal(typeof sdk.connect, 'function');
     assert.equal(host.connectInProcess, sdk.connectInProcess);
     assert.equal(typeof host.canonicalJson, 'function');
-    assert.equal(sdk.getCheckReasonCatalogInfo().revision, '2026-10-16.1');
+    assert.equal(sdk.getCheckReasonCatalogInfo().revision, '2026-10-25.1');
     assert.equal(sdk.getCheckReasonCatalogEntry('parameter_value_required').family, 'requirement');
     for (const name of ['formatSubmission', 'formatCancellation',
       'formatReadFailure', 'formatEffectUncertainty']) {

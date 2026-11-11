@@ -150,9 +150,9 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
   method(matchName, [checkedOwner, source,
     ...(!effectful || task !== 0 ? [task] : [])], true);
   const identifyName = effectful
-    ? 'clientProgramIdentifyCapturedEffectSourceRelation'
-    : 'clientProgramIdentifyCapturedSourceRelation';
-  method(identifyName, [source], ok(identity));
+    ? 'clientProgramIdentifyRowCaptureEffectSourceRelation'
+    : 'clientProgramIdentifyRowCaptureSourceRelation';
+  method(identifyName, [source, capture], ok(identity));
   const logicalName = effectful
     ? task === 0 ? 'clientProgramEffectIssueCapturedSourceLogical'
       : 'clientProgramEffectIssueCapturedSourceLogicalAt'
@@ -732,4 +732,94 @@ test('accounted Row capture original is retained once and refuses foreign receiv
   assert.throws(() => Reflect.apply(get, {...result.capture}, []), {code: 'ForeignInstalledSourceCapture'});
   owner.close();
   assert.throws(() => result.capture.originalRowCapture(), {code: 'ForeignInstalledSourceCapture'});
+});
+
+// The real session owns the original borrow and cleanup; these explicit Core
+// ports inspect only the JS handoff, not a replacement Ledger or admission.
+function bodyConstructionFixture({missingConstruction = false, failConstruction,
+  reenterStop = false, phase = 'announced-body', chargedOnly = false} = {}) {
+  const acquisition = {}, ledger = {}, run = {}, borrow = {}, capacity = {};
+  const events = [];
+  let cleanup, reserve, stopped = false, constructionReads = 0, chargedReads = 0;
+  const originalConstruction = function(actualBorrow, actualCapacity) {
+    assert.equal(this, moon);assert.equal(actualBorrow, borrow);assert.equal(actualCapacity, capacity);
+    events.push('construct');
+    if (failConstruction !== undefined) throw failConstruction;
+    if (reenterStop) assert.throws(() => session.close(), {code: 'MoonBitHostFailure'});
+    return ok(undefined);
+  };
+  const originalCharged = function(actualBorrow, actualCapacity) {
+    assert.equal(this, moon);assert.equal(actualBorrow, borrow);assert.equal(actualCapacity, capacity);
+    events.push('charged');return ok(undefined);
+  };
+  const moon = {
+    clientProgramRowSourceStartProviderAccounted() {return ok(run);},
+    clientProgramRowSourceBorrowResponses(actualRun, original) {
+      assert.equal(actualRun, run);assert.equal(original, acquisition);return ok(borrow);
+    },
+    clientProgramRowSourceBindResponseCleanup(original, observe) {
+      assert.equal(original, borrow);cleanup = observe;events.push('bind');return ok(undefined);
+    },
+    get clientProgramRowSourceGrowResponseCapacity() {chargedReads++;return originalCharged;},
+    get clientProgramRowSourceGrowResponseConstructionCapacity() {
+      constructionReads++;return missingConstruction ? undefined : originalConstruction;
+    },
+    clientProgramRowSourceRetireResponseWorkspace() {return ok(undefined);},
+    clientProgramRowSourceCloseAccounted() {
+      if (!cleanup()) return {$tag: 0, _0: 'original reader pending'};
+      events.push('close');return ok(undefined);
+    },
+    clientProgramRowSourceCaptureCleanup() {return ok(true);},
+  };
+  const signal = new AbortController().signal;
+  const options = Object.freeze({signal, verifyRead() {assert.equal(this, options);events.push('verify');}});
+  const receiver = {prepare(original, retain, grow) {
+    assert.equal(this, receiver);assert.equal(original, options);assert.equal(typeof retain, 'function');
+    reserve = grow;
+    return Object.freeze({read() {
+      // A later namespace mutation must not replace either captured method.
+      Object.defineProperties(moon, {
+        clientProgramRowSourceGrowResponseCapacity: {value() {assert.fail('reread charged method');}},
+        clientProgramRowSourceGrowResponseConstructionCapacity: {value() {assert.fail('reread construction method');}},
+      });
+      if (chargedOnly) reserve(capacity);else reserve(capacity, phase);events.push('allocate-body');
+      reserve(capacity);return 'original-result';
+    }, requestStop() {stopped = true;events.push('stop');},
+    observe() {return {cleanupConfirmed: stopped};}});
+  }};
+  const session = startInstalledRowRun({moon, acquisition, ledger, nonce: 'body',
+    capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n}});
+  return {session, events, read: () => session.readProvider({prepare: receiver.prepare, receiver, options}),
+    reserve: () => reserve(capacity, phase), reads: () => [chargedReads, constructionReads]};
+}
+
+test('announced body uses the same cleanup-bound RowRun before allocation and keeps charged response distinct', async () => {
+  const f = bodyConstructionFixture();
+  assert.equal(await f.read(), 'original-result');
+  assert.deepEqual(f.events, ['bind', 'verify', 'construct', 'allocate-body', 'charged']);
+  assert.deepEqual(f.reads(), [1, 1]);
+  assert.throws(f.reserve, {code: 'InstalledSourceClosed'});
+  f.session.close();assert.deepEqual(f.events.slice(-2), ['stop', 'close']);
+});
+
+test('announced body refuses absent port invalid phase and original backing failure before allocation', async () => {
+  const cause = Object.freeze({original: 'capacity-refusal'});
+  for (const options of [{missingConstruction: true}, {phase: 'untrusted'}, {failConstruction: cause}]) {
+    const f = bodyConstructionFixture(options);
+    await assert.rejects(f.read(), error => options.failConstruction === undefined
+      ? error.code === 'InstalledSourceResponseConstructionUnavailable' : error === cause);
+    assert.equal(f.events.includes('allocate-body'), false);
+    f.session.close();assert.equal(f.events.at(-1), 'close');
+  }
+  const old = bodyConstructionFixture({missingConstruction: true, chargedOnly: true});
+  // The ordinary one-argument charged response keeps its existing ABI.
+  assert.equal(await old.read(), 'original-result');old.session.close();
+});
+
+test('announced body original-current reentry cannot allocate or use a stopped reader', async () => {
+  const f = bodyConstructionFixture({reenterStop: true});
+  await assert.rejects(f.read(), {code: 'InstalledSourceClosed'});
+  assert.equal(f.events.includes('allocate-body'), false);
+  assert.throws(f.reserve, {code: 'InstalledSourceClosed'});
+  f.session.close();assert.equal(f.events.at(-1), 'close');
 });

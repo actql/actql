@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {closeManagedFixtureExecution} from './managed-fixture-cleanup.mjs';
+import {runInNewContext} from 'node:vm';
+import {closeManagedFixtureExecution, managedFixtureCleanupDiagnostic} from './managed-fixture-cleanup.mjs';
 
 function fixture(reason = new Error('LocalManagedOutputCleanupPending')) {
   let released = false, closes = 0, cleanups = 0;
@@ -51,4 +52,203 @@ test('fixture cleanup retains the original pending failure when explicit recover
   });
   assert.equal(f.execution.cleanupPending(), true);
   assert.equal(f.counts().closes, 1);
+});
+
+import {readFileSync} from 'node:fs';
+import {retainFirstAndLatestCleanupError} from '../../../../host-common/managed-failure.mjs';
+// The actual retained-chain caller body, not a second cleanup implementation.
+// Only explicit original-child ports are supplied to this Source-bound unit.
+function retainedChainCloseStep() {
+  const source=readFileSync(new URL('./retained-values-chain.test.mjs',import.meta.url),'utf8');
+  const start='      const child = ';
+  assert.equal(source.split(start).length,2);
+  const body=source.slice(source.indexOf(start),source.indexOf('    }, async () => {',source.indexOf(start)));
+  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  return new AsyncFunction('owner','execution','assert','closeManagedFixtureExecution','retainFirstAndLatestCleanupError','state',
+    `let executionCloseStarted=state.started;const cleanupErrors=state.errors??=[];try{${body}}finally{state.started=executionCloseStarted;}`);
+}
+test('retained chain connects its original child to the existing bounded cleanup consumer',async()=>{
+  const f=fixture(),state={started:false};
+  await retainedChainCloseStep()(undefined,f.execution,assert,closeManagedFixtureExecution,retainFirstAndLatestCleanupError,state);
+  assert.equal(state.started,true);
+  assert.deepEqual(f.counts(),{closes:1,cleanups:4});
+  assert.equal(f.failure.cleanupHandle.status().pending,false);
+  assert.deepEqual(state.errors,[f.failure]);
+});
+
+test('retained chain refuses a physical release exception without retiring or replacing its child',async()=>{
+  const f=fixture(new Error('PhysicalReleaseUnavailable')),state={started:false};
+  await assert.rejects(retainedChainCloseStep()(undefined,f.execution,assert,closeManagedFixtureExecution,retainFirstAndLatestCleanupError,state),error=>{
+    assert.equal(error.errors[0],f.failure);assert.equal(error.errors[1].code,'ERR_ASSERTION');return true;
+  });
+  assert.equal(f.execution.cleanupPending(),true);assert.equal(state.started,true);
+  assert.deepEqual(f.counts(),{closes:1,cleanups:0});
+});
+test('retained chain continuation never repeats failed close or treats pending cleanup as ACK',async()=>{
+  const f=fixture(),state={started:false},failure=new Error('RecoveryUnavailable');
+  const cleanup=f.execution.cleanup;let allow=false;
+  f.execution.cleanup=async()=>{if(!allow)throw failure;return cleanup();};
+  const step=()=>retainedChainCloseStep()(undefined,f.execution,assert,closeManagedFixtureExecution,retainFirstAndLatestCleanupError,state);
+  await assert.rejects(step(),error=>{assert.deepEqual(error.errors,[f.failure,failure]);return true;});
+  assert.equal(state.started,true);assert.deepEqual(f.counts(),{closes:1,cleanups:0});
+  allow=true;
+  for(let attempt=0;attempt<3;attempt++){await assert.rejects(step(),{code:'ERR_ASSERTION'});assert.equal(f.execution.cleanupPending(),true);}
+  await step();assert.equal(f.execution.cleanupPending(),false);
+  assert.deepEqual(f.counts(),{closes:1,cleanups:4});
+});
+
+test('fixture pending diagnostics retain closed codes without exposing primary values or invoking getters',()=>{
+  const primary=Object.assign(new Error('raw rows must not print'),{code:'private-value',actual:'private-key'});
+  const classified=Object.assign(new Error('arbitrary message'),{code:'ERR_ASSERTION'});
+  assert.equal(managedFixtureCleanupDiagnostic(new AggregateError([primary,classified])), 'AggregateError/Error/ERR_ASSERTION');
+  assert.equal(managedFixtureCleanupDiagnostic(undefined),'undefined/none/none');
+  let reads=0;const accessor={get code(){reads++;throw Error('must not run');},get errors(){reads++;throw Error('must not run');}};
+  assert.equal(managedFixtureCleanupDiagnostic(accessor),'opaque/none/none');assert.equal(reads,0);
+  const proxy=new Proxy({}, {getOwnPropertyDescriptor(){throw undefined;}});
+  assert.equal(managedFixtureCleanupDiagnostic(proxy),'opaque');
+});
+
+function originalFixtureAssertion(file = 'retained-values-chain.test.mjs') {
+  try {
+    runInNewContext('assert.equal("hidden-row", "hidden-key")', {assert}, {
+      filename: `file:///fixture/adapters/connectors/duckdb/node/test/${file}`,
+    });
+  } catch (error) { return error; }
+  assert.fail('the original assertion must fail');
+}
+
+test('fixture pending diagnostics identify the original assertion site and operator without operand data', () => {
+  const error = originalFixtureAssertion();
+  const diagnostic = managedFixtureCleanupDiagnostic(error);
+  assert.match(diagnostic, /^ERR_ASSERTION@retained-values-chain\.test\.mjs:\d+:\d+:strictEqual\/none\/none$/u);
+  for (const value of ['hidden-row', 'hidden-key', 'file://', '/fixture/']) {
+    assert.equal(diagnostic.includes(value), false);
+  }
+  assert.equal(error.actual, 'hidden-row');
+  assert.equal(error.expected, 'hidden-key');
+  const second = originalFixtureAssertion('managed-fixture-cleanup.mjs');
+  assert.match(managedFixtureCleanupDiagnostic(new AggregateError([error, second])),
+    /^AggregateError\/ERR_ASSERTION@retained-values-chain\.test\.mjs:\d+:\d+:strictEqual\/ERR_ASSERTION@managed-fixture-cleanup\.mjs:\d+:\d+:strictEqual$/u);
+});
+
+test('fixture assertion sites refuse foreign frames, accessors and custom stack formatters', () => {
+  assert.equal(managedFixtureCleanupDiagnostic(originalFixtureAssertion('foreign.mjs')), 'ERR_ASSERTION/none/none');
+  let reads = 0;
+  const accessor = originalFixtureAssertion();
+  Object.defineProperty(accessor, 'stack', {get() { reads++; throw Error('must not run'); }});
+  assert.equal(managedFixtureCleanupDiagnostic(accessor), 'ERR_ASSERTION/none/none');
+  const message = originalFixtureAssertion();
+  Object.defineProperty(message, 'message', {get() { reads++; throw Error('must not run'); }});
+  assert.equal(managedFixtureCleanupDiagnostic(message), 'ERR_ASSERTION/none/none');
+  const original = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace');
+  const formatted = originalFixtureAssertion();
+  try {
+    Object.defineProperty(Error, 'prepareStackTrace', {configurable: true,
+      get() { reads++; throw Error('must not run'); }});
+    assert.equal(managedFixtureCleanupDiagnostic(formatted), 'ERR_ASSERTION/none/none');
+    Object.defineProperty(Error, 'prepareStackTrace', {configurable: true,
+      value() { reads++; throw Error('must not run'); }});
+    assert.equal(managedFixtureCleanupDiagnostic(formatted), 'ERR_ASSERTION/none/none');
+  } finally {
+    if (original) Object.defineProperty(Error, 'prepareStackTrace', original);
+    else delete Error.prepareStackTrace;
+  }
+  assert.equal(reads, 0);
+});
+
+test('fixture assertion sites ignore operand frames, unknown operators and oversized stacks', () => {
+  const injected = new assert.AssertionError({actual: 1, expected: 2, operator: 'strictEqual',
+    message: 'hidden\n    at file:///fixture/adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs:999:8'});
+  assert.equal(managedFixtureCleanupDiagnostic(injected), 'ERR_ASSERTION/none/none');
+  const operator = originalFixtureAssertion();
+  operator.operator = 'hidden-operator';
+  assert.equal(managedFixtureCleanupDiagnostic(operator), 'ERR_ASSERTION/none/none');
+  const oversized = originalFixtureAssertion();
+  Object.defineProperty(oversized, 'stack', {value: 'x'.repeat(32769)});
+  assert.equal(managedFixtureCleanupDiagnostic(oversized), 'ERR_ASSERTION/none/none');
+});
+
+// Exercise the actual receipt observer without importing another Common or
+// constructing a second implementation of its cancellation boundary.
+function receiptFinalizationObserver(operation, dispatch, cancellation) {
+  const source = readFileSync(new URL('./retained-values-chain.test.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("              if (name === 'advance_finalization' && mode === 'cancel-during-receipt') {");
+  const end = source.indexOf("              if (name !== 'advance')", start);
+  assert(start >= 0 && end > start);
+  return new Function('operation', 'dispatch', 'cancellation', `
+    const observedDispatch = 5, name = 'advance_finalization', mode = 'cancel-during-receipt';
+    let scheduled = false, receiptProgress = 0n;
+    const receiptTrace = [];
+    const advance = (() => {${source.slice(start, end)}})();
+    return {advance, observations: () => ({scheduled, receiptProgress, receiptTrace})};
+  `)(operation, dispatch, cancellation);
+}
+
+test('receipt cancellation is delivered at the original pending dispatch before another quantum', () => {
+  const controller = new AbortController(), calls = [];
+  const result = {$tag: 1, _0: {complete: false, progress: 4n, work: 1n}};
+  const operation = {advance_finalization(quantum) { calls.push(quantum); return result; },
+    material: () => null};
+  const observer = receiptFinalizationObserver(operation, 5, controller);
+  assert.strictEqual(observer.advance(32), result);
+  assert.equal(controller.signal.aborted, true,
+    'the selected pending receipt must receive cancellation before returning to the driver');
+  assert.deepEqual(calls, [1]);
+  assert.deepEqual(observer.observations(), {scheduled: true, receiptProgress: 4n,
+    receiptTrace: [{progress: 4n, complete: false, material: false}]});
+});
+
+test('receipt cancellation uses the original bounded driver stop before a following dispatch', async () => {
+  const source = readFileSync(new URL('../../../../local-node/strategy-bundle.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('const yieldToHost =');
+  const end = source.indexOf('export function localStrategyContribution(', start);
+  assert(start >= 0 && end > start);
+  const finalize = new Function(source.slice(start, end) + '\nreturn runManagedFinalization;')();
+  const controller = new AbortController();
+  let advances = 0, cancels = 0, stopped = false, followingDispatch = false;
+  const operation = {
+    prepare_finalization: () => ({$tag: 1}),
+    advance_finalization() { advances++; return {$tag: 1, _0: {complete: false, progress: 4n, work: 1n}}; },
+    material: () => null,
+    request_cancel() { cancels++; stopped = true; },
+    execution_stopped: () => stopped,
+    advance() { assert.fail('the original stop already settled its execution'); },
+  };
+  const observer = receiptFinalizationObserver(operation, 5, controller);
+  const original = new Proxy(operation, {get(target, name, receiver) {
+    return name === 'advance_finalization' ? observer.advance : Reflect.get(target, name, receiver);
+  }});
+  await assert.rejects(async () => {
+    await finalize(original, value => { assert.equal(value.$tag, 1); return value._0; },
+      controller.signal, 1, 0n, () => 0n);
+    followingDispatch = true;
+  }, error => error === controller.signal.reason);
+  assert.equal(advances, 1);
+  assert.equal(cancels, 1);
+  assert.equal(followingDispatch, false);
+});
+
+test('receipt observer preserves dispatch, completion, material and single-request fences', () => {
+  for (const {dispatch = 5, complete = false, progress = 4n, material = null, failed = false} of [
+    {dispatch: 4}, {progress: 3n}, {progress: 5n}, {complete: true},
+    {material: {}}, {failed: true},
+  ]) {
+    const controller = new AbortController();
+    const result = failed ? {$tag: 0} : {$tag: 1, _0: {complete, progress, work: 1n}};
+    const observer = receiptFinalizationObserver({advance_finalization: () => result,
+      material: () => material}, dispatch, controller);
+    assert.strictEqual(observer.advance(32), result);
+    assert.equal(controller.signal.aborted, false);
+    assert.equal(observer.observations().scheduled, false);
+  }
+  const controller = new AbortController();
+  let requests = 0;
+  const observer = receiptFinalizationObserver({
+    advance_finalization: () => ({$tag: 1, _0: {complete: false, progress: 4n, work: 1n}}),
+    material: () => null,
+  }, 5, {abort() { requests++; controller.abort(); }});
+  observer.advance(32);
+  observer.advance(32);
+  assert.equal(controller.signal.aborted, true);
+  assert.equal(requests, 1);
 });

@@ -82,3 +82,45 @@ test "original Contract body inventory refuses unsupported constructors and malf
     is None,
   )
 }
+
+///|
+test "Decimal row text upper bound follows original coefficient and canonical wire owners" {
+  for
+    (precision, scale, text) in [
+      (1, 0, "-9"),
+      (8, 2, "-999999.99"),
+      (38, 0, "-" + "9".repeat(38)),
+      (38, 38, "-0." + "9".repeat(38)),
+    ] {
+    let original = @contract.decimal_contract(precision, scale, nullable=false).unwrap()
+    let wire = "\"" + text + "\""
+    let cursor = json_steps_cursor(wire)
+    let geometry = @decode.observe_subtree_construction_geometry(cursor)
+    let (value, nodes, bytes) = admit_usage(original, cursor, {
+      max_nodes: 1,
+      max_depth: 0,
+      max_text_bytes: 100,
+    }).unwrap()
+    assert_eq(nodes, 1)
+    assert_eq(canonical_scalar_text(value, 100), Some(text))
+    assert_eq(typed_steps_wire(value), wire)
+    // Sign, point and leading zero are codec syntax, not Number conversion.
+    // Precision remains the original admitted Contract's actual precision.
+    assert_true(bytes <= precision + 3)
+    assert_true(wire.length() <= precision + 5)
+    let body = contract_value_body_construction_inventory(original, geometry).unwrap()
+    assert_eq(body.owned_value_utf16_units, precision.to_int64() + 1L)
+    assert_eq(
+      body.owned_decimal_scratch_utf16_units,
+      2L + 3L * Int::min(geometry.max_text_utf16, precision).to_int64(),
+    )
+  }
+  let original = @contract.decimal_contract(38, 38, nullable=true).unwrap()
+  let (absent, nodes, text) = admit_usage(original, json_steps_cursor("null"), {
+    max_nodes: 1,
+    max_depth: 0,
+    max_text_bytes: 0,
+  }).unwrap()
+  assert_eq((nodes, text), (1, 0))
+  assert_eq(typed_steps_wire(absent), "null")
+}

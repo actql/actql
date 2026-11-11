@@ -44,11 +44,17 @@ import {prepareCapturedDuckDBSource, openCapturedDuckDBSource} from
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
-function retainedAuthorization(accountId, observe) {
+function retainedAuthorization(accountId, resultNames, observe) {
   const keys = generateKeyPairSync('ed25519');
   return {
     accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
-      account_id: accountId, entries: [{entry_id: 'write', outcome: 'allow',
+      account_id: accountId, entries: [{entry_id: 'control-result-read', outcome: 'allow',
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        // Account selectors are canonical sets, including the Run read.
+        resource: {any_of: ['run', ...resultNames.map(name => `result/${name}`)].sort()},
+        operation: {any_of: ['read']}, exclusions: []},
+      {entry_id: 'write', outcome: 'allow',
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []}]}),
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
@@ -63,14 +69,27 @@ function retainedAuthorization(accountId, observe) {
 test('installed HTTP status denies an unregistered Run with a public code',
   async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-status-denied-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
     const principalId = userInfo().username;
-    const host = await openInstalledRemoteHttpHost({directory,
+    let host, server;
+    t.after(async () => {
+      // Retire the ingress before its Host and durable state, including on an
+      // assertion failure. A live keep-alive socket must not hold teardown.
+      try {
+        if (server) {
+          server.closeAllConnections();
+          await new Promise((resolve, reject) => server.close(error =>
+            error ? reject(error) : resolve()));
+        }
+      } finally {
+        try { if (host) await host.close(); }
+        finally { await rm(directory, {recursive: true, force: true}); }
+      }
+    });
+    host = await openInstalledRemoteHttpHost({directory,
+      authorization: retainedAuthorization('status-unregistered', []),
       authenticate: () => principalId});
-    t.after(async () => { await host.close(); });
-    const server = createServer(host.handler);
+    server = createServer(host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    t.after(() => new Promise(resolve => server.close(resolve)));
     const authorityScopeCid = `sha256:${createHash('sha256')
       .update(JSON.stringify({version: 'actql-local-owner-scope/0.1',
         root: directory, principalId})).digest('hex')}`;
@@ -149,9 +168,8 @@ test('embedded Host reuses equivalent installation options, not object identity'
 test('public source-free Program uses installed retained Relation output',
   async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
     let outputRepresentations;
-    const authorization = retainedAuthorization('retained-source-free', (name, detail) => {
+    const authorization = retainedAuthorization('retained-source-free', ['rows'], (name, detail) => {
       if (name === 'computed') outputRepresentations = detail.outputRepresentations;
     });
     const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
@@ -159,7 +177,10 @@ test('public source-free Program uses installed retained Relation output',
         authorization}}).catch(error => {
       assert.fail(error.primaryFailure?.stack ?? error.stack);
     });
-    t.after(() => client.close());
+    t.after(async () => {
+      await client.close();
+      await rm(directory, {recursive: true, force: true});
+    });
     const program = {version: 'actql/0.1', id: 'public-retained-values',
       stages: [{id: 'source', inputs: {}, steps: [{values: {
         schema: {id: {type: 'number', nullable: false}},
@@ -178,14 +199,17 @@ test('public source-free Program uses installed retained Relation output',
 
 test('public Events Bridge publishes managed producer and two consumer Results', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-events-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   let outputRepresentations;
-  const authorization = retainedAuthorization('retained-events', (name, detail) => {
+  const authorization = retainedAuthorization('retained-events',
+    ['published', 'consumed_a', 'consumed_b'], (name, detail) => {
     if (name === 'computed') outputRepresentations = detail.outputRepresentations;
   });
   const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     installation: {directory, retainedRelationOutput: true, authorization}});
-  t.after(() => client.close());
+  t.after(async () => {
+    await client.close();
+    await rm(directory, {recursive: true, force: true});
+  });
   const program = {version: 'actql/0.1', id: 'public-retained-events', stages: [{
     id: 'values', inputs: {}, steps: [{values: {schema: {
       event_id: {type: 'number', nullable: false},
@@ -245,14 +269,17 @@ test('public Events Bridge publishes managed producer and two consumer Results',
 
 test('public Vectors Bridge publishes managed producer and two consumer Results', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-vectors-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   let outputRepresentations;
-  const authorization = retainedAuthorization('retained-vectors', (name, detail) => {
+  const authorization = retainedAuthorization('retained-vectors',
+    ['published', 'consumed_a', 'consumed_b'], (name, detail) => {
     if (name === 'computed') outputRepresentations = detail.outputRepresentations;
   });
   const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     installation: {directory, retainedRelationOutput: true, authorization}});
-  t.after(() => client.close());
+  t.after(async () => {
+    await client.close();
+    await rm(directory, {recursive: true, force: true});
+  });
   const program = {version: 'actql/0.1', id: 'public-retained-vectors', stages: [{
     id: 'values', inputs: {}, steps: [{values: {schema: {
       id: {type: 'number', nullable: false},
@@ -301,7 +328,13 @@ test('public Vectors Bridge publishes managed producer and two consumer Results'
 
 test('installed Host admits only an exact Result policy original', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-result-policy-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  let host, completed = false;
+  t.after(async () => {
+    // Node runs after hooks in registration order. Keep the original Store
+    // available until its actual Host close completes; pending close keeps it.
+    await host?.close();
+    if (completed) await rm(directory, {recursive: true, force: true});
+  });
   const wire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
   const original = {kind: 'data_policy',
     cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`, wire};
@@ -313,10 +346,10 @@ test('installed Host admits only an exact Result policy original', async t => {
     authenticate: () => userInfo().username,
     resultDataPolicy: {kind: original.kind, cid: original.cid}}),
   {name: 'TypeError', message: 'InvalidHostResultDataPolicy'});
-  const host = await openInstalledRemoteHttpHost({directory,
+  host = await openInstalledRemoteHttpHost({directory,
     authenticate: () => userInfo().username, resultDataPolicy: original});
-  t.after(async () => host.close());
   assert.equal(typeof host.handler, 'function');
+  completed = true;
 });
 
 test('installed Effect identity compares declarations and generation semantics',

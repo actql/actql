@@ -2,6 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/source_frontend",
+  "actql/actql/query_syntax",
   "actql/actql/client_source_publication" @source_publication,
   "actql/actql/effect_program_binding" @effect_binding,
   "actql/actql/publication_payload" @payload,
@@ -11,6 +12,7 @@ import {
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/execution_query" @query,
   "actql/actql/physical_resources" @resources,
+  "actql/actql/client_row_source_host" @row_host,
   "actql/actql/encode_core" @encode,
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
@@ -39,6 +41,7 @@ import {
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/effect_application" @effect,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/relation_join_shape" @join,
   "actql/actql/relation_typing" @relation,
   "actql/actql/expression_typing" @expression,
   "actql/actql/infer_typing" @infer,
@@ -63,7 +66,6 @@ import {
 
 import {
   "actql/actql/physical_strategy" @strategy_view,
-  "actql/actql/client_row_source_host" @row_host,
   "actql/actql/capacity_law",
   "moonbitlang/core/debug",
   "actql/actql/bounded_execution" @bounded,

@@ -207,29 +207,61 @@ function guardJournalCurrentness(journal, assertCurrent) {
   return operationFreeze(operationDefineProperties({}, descriptors));
 }
 
-// One lifetime support counter for this Journal's two original writable
-// connections. A finite value is not physical WAL/mapping backing, an issuer,
-// a lock against another writer, or a new Run/resource Ledger. The selected
-// facility must separately cover this whole bound before its first acquisition.
+// One live WAL support bound for this Journal's two original writable
+// connections. Work stays charged until their actual native checkpoint
+// acknowledges truncation. This is not physical backing or Run authority.
 function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
   if (maxFrames === undefined) return undefined;
   const integer = BigInt, floor = Math.floor, ceil = Math.ceil;
   const maximum = integer(maxFrames);
   // The original DB and WAL are jointly bounded before cold native inspection.
   // Reserve the worst original WAL at SQLite's minimum supported page size;
-  // a fresh file or later checkpoint does not replenish this lifetime amount.
+  // absence or a logical transaction exit alone cannot release these frames.
   let reserved = integer(sourceBytes) / 536n;
   if (reserved > maximum) fail('ClientRequestJournalWalUnavailable');
   const character = String.prototype.charCodeAt;
+  const connections = [];
+  let active = false;
   let originalPage, transactionFrames;
   const amount = units => transactionFrames === undefined ? 0n :
     integer(units) * transactionFrames;
-  const check = units => {
+  const reclaim = () => {
+    // Never checkpoint an original active transaction or infer release from
+    // a failed COMMIT/ROLLBACK. A busy/failed checkpoint keeps every charge.
+    if (connections.length === 0 || connections.some(original => original.inTransaction() !== false)) {
+      return false;
+    }
+    const result = connections[0].checkpoint();
+    if (result?.busy !== 0 || result.log !== 0 || result.checkpointed !== 0 ||
+        connections.some(original => original.inTransaction() !== false)) return false;
+    reserved = 0n;
+    return true;
+  };
+  const check = (units, transactionStart = false) => {
     const frames = amount(units);
-    if (frames > maximum - reserved) fail('ClientRequestJournalWalUnavailable');
+    if (frames > maximum) fail('ClientRequestJournalWalUnavailable');
+    // A transaction cannot reclaim prior work in its body. Try once at its
+    // original BEGIN boundary, without refunding busy or concurrent work or
+    // refusing an otherwise supported transaction just because reuse is busy.
+    if ((transactionStart && reserved > 0n) || frames > maximum - reserved) {
+      if (!reclaim() && frames > maximum - reserved) fail('ClientRequestJournalWalUnavailable');
+    }
     return frames;
   };
   return Object.freeze({
+    register(original) {
+      if (connections.length === 2) fail('ClientRequestJournalWalUnavailable');
+      connections.push(original);
+      return () => {
+        const index = connections.indexOf(original);
+        if (index !== -1) connections.splice(index, 1);
+      };
+    },
+    enter() {
+      if (active) fail('ClientRequestJournalSqlCleanupPending');
+      active = true;
+    },
+    leave() { active = false; },
     configure(page) {
       if (originalPage !== undefined && originalPage !== page) {
         fail('ClientRequestJournalWalUnavailable');
@@ -260,7 +292,7 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
       for (let index = 0; index < sql.length; index++) {
         if (applyOriginal(character, sql, [index]) === 59) statements++;
       }
-      check(statements + (sql === 'COMMIT' ? 0 : 1));
+      check(statements + (sql === 'COMMIT' ? 0 : 1), sql === 'BEGIN IMMEDIATE');
       reserved += amount(statements);
     },
   });
@@ -289,9 +321,10 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
     // Latch before those callbacks, not after native acquisition. This is a
     // synchronous operation fence, not native close or returned byte credit.
     if (operationActive) fail('ClientRequestJournalSqlCleanupPending');
+    walFrames?.enter();
     operationActive = true;
   };
-  const endOperation = () => { operationActive = false; };
+  const endOperation = () => { if (operationActive) walFrames?.leave(); operationActive = false; };
   const consume = (sql, isPrepare) => {
     assertCurrent?.();
     if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
@@ -406,6 +439,32 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
       },
     });
   };
+  let checkpoint;
+  const prepareWalCheckpoint = () => {
+    if (walFrames === undefined || checkpoint !== undefined) return;
+    const sql = 'PRAGMA wal_checkpoint(TRUNCATE)';
+    const bytes = consume(sql, true);
+    const statement = applyOriginal(prepare, connection, [sql]);
+    prepared++; retainedSqlBytes += bytes;
+    statements.push(statement);
+    const get = statement.get, run = statement.run, iterate = statement.iterate;
+    if ([get, run, iterate].some(method => typeof method !== 'function')) {
+      fail('ClientRequestJournalSqlUnavailable');
+    }
+    checkpoint = {statement, get};
+  };
+  const retireWal = walFrames?.register(Object.freeze({
+    inTransaction: () => applyOriginal(isTransaction, connection, []),
+    checkpoint() {
+      // This private native control uses the same finite SQL/operand and
+      // retained-statement envelope. It cannot reenter the public SQL port.
+      if (checkpoint === undefined) fail('ClientRequestJournalWalUnavailable');
+      operands([]);
+      const result = applyOriginal(checkpoint.get, checkpoint.statement, []);
+      assertCurrent?.();
+      return result;
+    },
+  }));
   return Object.freeze({database: Object.freeze({
     prepare(sql) {
       beginOperation();
@@ -452,8 +511,12 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
       } finally { endOperation(); }
     },
     get isTransaction() { return applyOriginal(isTransaction, connection, []); },
-  }), retireClosedNativeAliases() {
+  }), prepareWalCheckpoint() {
+    beginOperation();
+    try { prepareWalCheckpoint(); } finally { endOperation(); }
+  }, retireClosedNativeAliases() {
     retired = true;
+    retireWal?.(); checkpoint = undefined;
     statements.length = cursors.length = 0;
     statementsBySql?.clear();
   }});
@@ -468,7 +531,7 @@ function journalDatabaseGeometry(database, maxDatabaseBytes, walFrames) {
   const pages = Math.floor(maxDatabaseBytes / page);
   if (pages < 1 || pages > 4294967294) fail('ClientRequestJournalDatabaseUnavailable');
   // max_page_count has PragFlg_NeedSchema in the selected SQLite. Configure
-  // this same non-refilling WAL counter from the observed page geometry, then
+  // this same live WAL support bound from the observed page geometry, then
   // select MEMORY before that pragma can load schema and its internal reader.
   // Neither operation supplies backing or acknowledges another connection.
   walFrames?.configure(page);
@@ -476,10 +539,13 @@ function journalDatabaseGeometry(database, maxDatabaseBytes, walFrames) {
 }
 
 function boundJournalDatabaseExtent(database, maxDatabaseBytes, executionLimits, walFrames,
-  temporarySelected = false, retainedGeometry) {
+  temporarySelected = false, retainedGeometry, prepareWalCheckpoint) {
   if (maxDatabaseBytes === undefined) return;
   const {page, pages} = retainedGeometry ?? journalDatabaseGeometry(database, maxDatabaseBytes, walFrames);
   if (!temporarySelected) selectJournalTemporaryStorage(database, executionLimits);
+  // Reserve the same native checkpoint statement after MEMORY is effective,
+  // before normal metadata work can exhaust its finite preparation envelope.
+  prepareWalCheckpoint?.();
   const observed = database.prepare(`PRAGMA max_page_count = ${pages}`).get().max_page_count;
   if (!Number.isSafeInteger(observed) || observed < 1 || observed > pages) {
     fail('ClientRequestJournalDatabaseUnavailable');
@@ -695,8 +761,10 @@ export function validateSourceInventory(wire) {
         canonical !== wire ||
         !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2 ||
         !value.acquisitions.every(validBoundSourceOccurrence) ||
-        value.acquisitions[0].checkedSource.requirementCid ===
-          value.acquisitions[1].checkedSource.requirementCid) fail('InvalidClientSourceInventory');
+        (value.acquisitions.every(item => item.checkedSource.requirementCid !== undefined)
+          ? value.acquisitions[0].checkedSource.requirementCid === value.acquisitions[1].checkedSource.requirementCid
+          : value.acquisitions[0].stage === value.acquisitions[1].stage &&
+            value.acquisitions[0].input === value.acquisitions[1].input)) fail('InvalidClientSourceInventory');
     return wire;
   }
   if (value?.version === 'actql-client-keyed-source-inventory/0.1') {
@@ -1809,6 +1877,7 @@ export function openClientRequestJournal(directory, {
         retainedGeometry = journalDatabaseGeometry(database, maxDatabaseBytes, walFrames);
       }
       selectJournalTemporaryStorage(database, primaryExecutionLimits);
+      selectedSql?.prepareWalCheckpoint();
       temporarySelected = true;
       // SQLite is the format authority for this already-owned database.
       // Bound only schema metadata here; do not materialize historical rows.
@@ -1831,7 +1900,7 @@ export function openClientRequestJournal(directory, {
       inspectJournalNativeStorage(database, directoryAdmission);
     }
     boundJournalDatabaseExtent(database, maxDatabaseBytes, primaryExecutionLimits, walFrames,
-      temporarySelected, retainedGeometry);
+      temporarySelected, retainedGeometry, selectedSql?.prepareWalCheckpoint);
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     // Fresh schema is one unpublished FULL transaction. Reuse these same DDL
@@ -3018,7 +3087,8 @@ export function openClientRequestJournal(directory, {
       // The primary connection's Pager setting cannot constrain this new
       // original connection. Select the same finite extent before its first
       // schema/control write, retaining its existing separate close duty.
-      boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes, primaryExecutionLimits, walFrames);
+      boundJournalDatabaseExtent(selectedObservation, maxDatabaseBytes, primaryExecutionLimits, walFrames,
+        false, undefined, observationSql?.prepareWalCheckpoint);
       selectedObservation.exec('PRAGMA busy_timeout = 0');
       const storage = openClientObservationStorage(selectedObservation,
         createSqliteTransaction(selectedObservation, 'ClientObservation'));

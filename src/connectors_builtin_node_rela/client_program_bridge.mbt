@@ -324,6 +324,36 @@ pub fn client_program_preparation_issue_code(
 }
 
 ///|
+// The original read-only lowerer terminal is matched directly, never rebuilt
+// as a fabricated Request result just to recurse through its classification.
+fn client_program_query_lowering_issue_code(
+  issue : @client_local_host.ClientRequestQueryLoweringIssue,
+) -> String? {
+  match issue {
+    WithBinding(
+      _,
+      BindingInput(Supplied, Value(ValueIssue(WrongType | UnexpectedNull, ..)))
+    )
+    | WithBinding(
+      _,
+      BindingInput(
+        Supplied,
+        Value(Decode({ kind: WrongType | UnexpectedNull, .. }))
+      )
+    ) => Some("source_invalid_input")
+    WithBinding(original, _)
+    | BindingFailure(original, _)
+    | BindingException(original, _) =>
+      client_program_query_lowering_issue_code(original)
+    Publication(Frontend(issue)) =>
+      Some(client_source_preparation_issue_code(Frontend(issue)))
+    Publication(Publication(Declarations)) =>
+      Some(client_source_preparation_issue_code(Declarations))
+    _ => None
+  }
+}
+
+///|
 /// Project the original Request terminal through the SAME existing semantic
 /// issue projection. No document, getter, checker or compiler is entered here.
 /// None deliberately preserves foreign/current/resource/Host uncertainty; it
@@ -333,13 +363,14 @@ pub fn client_program_request_preparation_issue_code(
   result : Result[String, @client_local_host.ClientRequestTerminalIssue],
 ) -> String? {
   let issue : ClientProgramBridgeIssue = match result {
-    Err(QuerySyntax(Frontend(issue)))
-    | Err(QueryLowering(Publication(Frontend(issue))))
-    | Err(Publication(Frontend(issue))) =>
+    Err(QueryLowering(issue)) =>
+      return client_program_query_lowering_issue_code(issue)
+    Err(QuerySyntax(Frontend(issue))) | Err(Publication(Frontend(issue))) =>
       return Some(client_source_preparation_issue_code(Frontend(issue)))
-    Err(QueryLowering(Publication(Publication(Declarations))))
-    | Err(Publication(Publication(Declarations))) =>
+    Err(Publication(Publication(Declarations))) =>
       return Some(client_source_preparation_issue_code(Declarations))
+    Err(Preparation(SourceInput(Source(@publication_host.ArrayProfile(issue))))) =>
+      return Some(client_source_preparation_issue_code(ArrayProfile(issue)))
     Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
     Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
     Err(Preparation(ProgramCheck(Compilation(Syntax(issue)))))
@@ -785,6 +816,19 @@ pub fn client_program_installed_managed_run_compilation_original(
   prepared : @publication_host.PreparedClientProgram,
 ) -> @publication_host.ClientRunCompilation? {
   @client_local_host.installed_managed_run_compilation_original(run, prepared)
+}
+
+///|
+/// Read only the actual adopted Model Plan's already retained input prefix.
+#export_name("clientProgramInstalledManagedRunModelInputPrefix")
+pub fn client_program_installed_managed_run_model_input_prefix(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @execution.GeneratedSequence,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_managed_run_model_input_prefix(run, prepared)
 }
 
 ///|
@@ -2543,6 +2587,7 @@ pub fn client_program_captured_source_dependency_bodies(
 fn identify_installed_captured_source(
   source : @query.CapturedInputSource,
   retain_body_bytes : Int,
+  columns? : Int = 100,
 ) -> Result[@query.CapturedSourceRelationIdentity, @query.CapturedSourceIssue] {
   @query.identify_captured_source_relation(
     source,
@@ -2554,20 +2599,20 @@ fn identify_installed_captured_source(
       max_work: 1000000,
     },
     {
-      max_columns: 100,
+      max_columns: columns,
       max_order_work: 1000000,
       max_bytes: 10000000,
       max_nodes: 1000000,
       max_depth: 64,
     },
     {
-      max_columns: 100,
+      max_columns: columns,
       max_order_work: 1000000,
       max_bytes: 10000000,
       max_nodes: 1000003,
       max_depth: 66,
     },
-    { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
+    { max_fields: columns, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
     65536,
     retain_body_bytes~,
   )
@@ -3278,6 +3323,8 @@ pub fn client_program_effect_preparation_issue_code(
           Input(SourcePreparation(_)) => "invalid_input_owner"
           Preparation(Syntax(_)) => "program_syntax"
           Preparation(Candidate(_)) => "effect_candidate_rejected"
+          Preparation(RequestValuePolicies(_) | RequestValuePolicyConstruction) =>
+            "effect_request_policy_rejected"
           Preparation(Mapping(_)) => "effect_mapping_rejected"
           Preparation(Static(_)) => "effect_static_rejected"
           Preparation(Stage(_)) => "stage_rejected"
@@ -7733,6 +7780,7 @@ pub fn client_program_compile_local_effects(
 fn compile_client_local_effects(
   prepared : @publication_host.PreparedClientEffectComputation,
   infer : @publication_host.ClientInferPlanGraph?,
+  infers? : Array[@publication_host.ClientInferPlanGraph] = [],
 ) -> Result[
   @publication_host.ClientEffectCompilation,
   ClientProgramEffectCompilationBridgeIssue,
@@ -7744,13 +7792,14 @@ fn compile_client_local_effects(
   @publication_host.issue_prepared_client_effect_compilation(
     prepared,
     manifests,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_effect_sequence_limits(prepared),
     1000,
     10000,
     1000000,
     100000,
     100,
     infer~,
+    infers~,
   ).map_err(issue => Compilation(issue))
 }
 
@@ -8618,11 +8667,13 @@ pub fn client_program_effect_publication_data_policy_cid(
 pub fn client_program_effect_acquisition_count(
   value : @publication_host.PreparedClientEffectComputation,
 ) -> Int {
-  @strategy.graph_captured_prefix(
-    @strategy.checked_effect_computation_graph(
-      @publication_host.prepared_client_effect_computation_graph(value),
-    ),
+  @publication_host.select_client_effect_direct_acquisition_occurrences(
+    value, 1000000,
   )
+  .map(value => {
+    @publication_host.client_direct_acquisition_occurrence_count(value)
+  })
+  .unwrap_or(-1)
 }
 
 ///|
@@ -9112,8 +9163,47 @@ pub fn client_program_row_source_prepare_mapping(
   resource : String,
   sources_json : String,
 ) -> String {
+  client_row_source_prepare_mapping(
+    declaration, writes_json, resource, sources_json, false,
+  )
+}
+
+///|
+/// The same installed Mapping continuation for a declared full Relation UPDATE.
+/// Closed write facts carry no replacement schema or current authority.
+#export_name("clientProgramRowSourcePrepareUpdateMapping")
+pub fn client_program_row_source_prepare_update_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources_json : String,
+) -> String {
+  client_row_source_prepare_mapping(
+    declaration, writes_json, resource, sources_json, true,
+  )
+}
+
+///|
+fn client_row_source_prepare_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources_json : String,
+  update : Bool,
+) -> String {
   let refused = (name : String) => {
     ({ "issue": name.to_json() } : Json).stringify()
+  }
+  // Keep the established CREATE entry unchanged. The new UPDATE entrance
+  // validates the bounded complete source map before stdlib reconstruction.
+  if update &&
+    @source.parse_json(sources_json, {
+      max_input_bytes: 4000000,
+      max_nodes: 400000,
+      max_depth: 64,
+    })
+    is Err(_) {
+    return refused("InvalidSpecification")
   }
   let parsed = @json.parse(sources_json) catch {
     _ => return refused("InvalidSpecification")
@@ -9134,10 +9224,16 @@ pub fn client_program_row_source_prepare_mapping(
         @client_row_source_host.RowMappingSource),
     )
   }
-  match
+  let prepared = if update {
+    @client_row_source_host.prepare_row_update_mapping(
+      declaration, writes_json, resource, sources,
+    )
+  } else {
     @client_row_source_host.prepare_row_mapping(
       declaration, writes_json, resource, sources,
-    ) {
+    )
+  }
+  match prepared {
     Ok(mapping) =>
       (
         {
@@ -9161,4 +9257,49 @@ pub fn client_program_row_source_prepare_mapping(
       refused(name)
     }
   }
+}
+
+///|
+#export_name("clientProgramEffectInferOccurrences")
+pub fn client_program_effect_infer_occurrences(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> Result[Array[@publication_host.ClientInferOccurrence], @infer_host.Issue] {
+  match @publication_host.prepared_client_effect_infer_occurrences(prepared) {
+    Some(originals) => Ok(originals)
+    None => Err(@infer_host.InvalidAdvance)
+  }
+}
+
+///|
+#export_name("clientProgramCompileLocalEffectsWithInfers")
+pub fn client_program_compile_local_effects_with_infers(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+) -> Result[
+  @publication_host.ClientEffectCompilation,
+  ClientProgramEffectCompilationBridgeIssue,
+] {
+  compile_client_local_effects(prepared, None, infers=graphs)
+}
+
+///|
+#export_name("clientProgramEffectCompilationInferOriginals")
+pub fn client_program_effect_compilation_infer_originals(
+  value : @publication_host.ClientEffectCompilation,
+) -> Array[
+  (
+    @publication_host.ClientInferPlanGraph,
+    @publication_host.ClientInferOccurrence,
+    @check_environment.ModelExecutionContract,
+  ),
+]? {
+  @publication_host.client_effect_compilation_infer_originals(value).map(originals => {
+    originals.map(original => {
+      (
+        original.0,
+        original.1,
+        @publication_host.client_infer_plan_graph_execution_contract(original.0),
+      )
+    })
+  })
 }

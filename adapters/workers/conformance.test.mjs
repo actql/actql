@@ -4,6 +4,46 @@ import {createHash} from 'node:crypto';
 import {buildConformance} from './build.mjs';
 import {createTestRuntime} from './runtime.mjs';
 import {runCase, cancellationCase} from './conformance.mjs';
+import {ledgerUsageSnapshot, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
+import {ledgerUsageFields, ledgerUsageSpentFields} from '../host-common/ledger-contract.generated.mjs';
+
+// The test transport serializes exact Int64 values as canonical decimal text.
+// Core owns the complete layout and the distinction between spent and pending.
+const usageCounts = usage => {
+  assert.ok(Array.isArray(usage));
+  return usage.map(value => {
+    assert.equal(typeof value,'string');
+    assert.match(value,/^(?:0|[1-9][0-9]*)$/u);
+    return BigInt(value);
+  });
+};
+const noPendingUsage = usage => {
+  assert.equal(ledgerUsageHasPendingResources(usageCounts(usage)),false);
+};
+const settledUsage = ({beforeCloseUsage,finalUsage}) => {
+  const before = ledgerUsageSnapshot(usageCounts(beforeCloseUsage));
+  const after = ledgerUsageSnapshot(usageCounts(finalUsage));
+  noPendingUsage(finalUsage);
+  for (const field of ledgerUsageSpentFields) {
+    const key = field.replace(/_([a-z])/gu,(_,letter) => letter.toUpperCase());
+    assert.equal(after[key],before[key],field);
+  }
+};
+
+test('Worker cleanup observations preserve spent counters and reject every live counter or malformed layout', () => {
+  const empty = ledgerUsageFields.map(() => '0');
+  noPendingUsage(empty);
+  for (const [index,{name}] of ledgerUsageFields.entries()) {
+    const usage = empty.with(index,'1');
+    if (ledgerUsageSpentFields.includes(name)) noPendingUsage(usage);
+    else assert.throws(() => noPendingUsage(usage));
+  }
+  for (const usage of [empty.slice(0,-1),[...empty,'0'],empty.with(0,''),
+    empty.with(0,'00'),empty.with(0,'-1'),empty.with(0,0),
+    empty.with(0,'2147483648'),empty.with(6,'9223372036854775808')]) {
+    assert.throws(() => noPendingUsage(usage));
+  }
+});
 
 test('immediate and pending-preparation cancellation cannot start Local work on Node or workerd', async () => {
   const {source} = await buildConformance();
@@ -20,7 +60,7 @@ test('immediate and pending-preparation cancellation cannot start Local work on 
       assert.equal(worker.consumed,0);
       assert.equal(worker.after[1],'0');
       assert.equal(worker.after[2],'0');
-      assert.deepEqual(worker.after.slice(4),['0','0','0','0']);
+      noPendingUsage(worker.after);
       assert.equal(worker.cleanupPending,false);
       assert.equal(worker.prepared,waiting ? 1 : 0);
       assert.equal(worker.finished,waiting ? 2 : 0);
@@ -56,7 +96,7 @@ test('product checker through Local selection execution consumer and recovery ag
         site.runtimeRevision === 'actql-in-process-site/0.1'),
       'standard Workers execution must pass through the shared Site surface');
       assert.equal(worker.released,true);
-      assert.deepEqual(worker.finalUsage.slice(4),['0','0','0','0']);
+      settledUsage(worker);
     }
     assert.equal(outgoing,0);
   } finally { await runtime.dispose(); }
@@ -95,8 +135,8 @@ test('same-isolate Runs retain independent outputs budgets and cancellation', as
       assert.equal(failed.released,true);
       assert.equal(success.status,'completed');
       assert.equal(success.outputs[2].cid,cid([{id:4}]));
-      assert.deepEqual(failed.finalUsage.slice(4),['0','0','0','0']);
-      assert.deepEqual(success.finalUsage.slice(4),['0','0','0','0']);
+      settledUsage(failed);
+      settledUsage(success);
     }
   } finally { await runtime.dispose(); }
 });
@@ -146,7 +186,7 @@ test('semantic arithmetic failure row slot and expression span survive the Worke
         assert.deepEqual(worker.arithmetic,node.arithmetic);
         assert.equal(worker.diagnostic,node.diagnostic);
         assert.equal(worker.cleanupPending,false);
-        assert.deepEqual(worker.finalUsage.slice(4),['0','0','0','0']);
+        settledUsage(worker);
       }
     }
     const response = await runtime.dispatchFetch('http://worker.test/',{

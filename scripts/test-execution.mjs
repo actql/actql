@@ -103,15 +103,25 @@ export function assertTestExecution(kind, command, args, result) {
 export function runFocusedTests(kind, args, options = {}) {
   const command = kind === 'node' ? process.execPath : 'moon';
   const selected = kind === 'node' ? nodeTestArguments(args) : ['test', ...args];
-  const {evidenceScratch = join(options.cwd ?? process.cwd(), '_build', 'focused-evidence'),
+  const {evidenceScratch = join(options.cwd ?? process.cwd(), '_build', 'focused-evidence'), expectedTests,
     ...spawnOptions} = options;
+  if (expectedTests !== undefined && (!Number.isSafeInteger(expectedTests) || expectedTests < 1)) {
+    throw new Error('Expected test count must be a positive safe integer');
+  }
   const env = options.env ?? process.env;
   let evidence, evidenceError, result, checked;
   try {
     evidence = createCommandEvidence({scratch: evidenceScratch,
       cwd: options.cwd ?? process.cwd(), env, prefix: 'focused-test-'});
   } catch (error) { evidenceError = error; }
-  const classify = result => testExecutionResult(kind, command, selected, result);
+  const classify = result => {
+    const checked = testExecutionResult(kind, command, selected, result);
+    if (expectedTests !== undefined && checked.counts?.tests !== expectedTests) {
+      return {...checked, status: checked.status || 1,
+        diagnostic: checked.diagnostic + `; expected tests=${expectedTests}`};
+    }
+    return checked;
+  };
   if (evidence) {
     const capture = evidence.capture(command, selected,
       {killSignal: 'SIGKILL', ...spawnOptions, maxBuffer: 64 * 1024 * 1024}, classify);

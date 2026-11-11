@@ -6,6 +6,7 @@ from actql_sdk import (
     Query as Query, QueryReader as QueryReader,
     AsyncQuery as AsyncQuery, AsyncQueryReader as AsyncQueryReader,
     ClientError as ClientError, RequestConflict as RequestConflict, Observation as Observation, RunState as RunState, Signer as Signer,
+    CheckObservation as CheckObservation, CheckReport as CheckReport, CheckReason as CheckReason,
     get_submission_input as get_submission_input, get_check_input as get_check_input,
     get_submission_check_observation as get_submission_check_observation,
     resolve_check_location as resolve_check_location,
@@ -15,3 +16,5 @@ from actql_sdk import (
 )
 
 def open(*, state_dir: str | _PathLike[str] = ..., signer: Signer | None = ...) -> Client: ...
+
+connect = Client.connect

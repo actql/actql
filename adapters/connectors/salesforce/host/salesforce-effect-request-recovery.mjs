@@ -110,7 +110,7 @@ export function recoverPreparedSalesforceSingleRequests({
 export function recoverCapturedSalesforceSingleRequests({
   moon, recovered, recorded, previewWire, runIdentityCid,
   authoringContextCid, previewLimits, bodyLimits, requestLimits,
-  maxMembers, maxRows, maxRetainedBytes, memberIndexes,
+  maxMembers, maxRows, maxRetainedBytes, memberIndexes, reserveRecoveryInput,
 }) {
   if (!Array.isArray(recovered?.connectorRecovery) ||
       !Array.isArray(recorded?.members) ||
@@ -181,9 +181,11 @@ export function recoverCapturedSalesforceSingleRequests({
       fail('InvalidSalesforceCapturedRequestRecovery');
     }
     const catalog = named ? {observation: recoverNamedSalesforceObservation({
-      moon, evidence: retained, expectedObservationCid: entry.observationCid})}
-      : recoverRetainedSalesforceCatalog({moon, retained,
-        expectedObservationCid: entry.observationCid, maxRetainedBytes});
+      moon, evidence: retained, expectedObservationCid: entry.observationCid,
+      ...(reserveRecoveryInput === undefined ? {} : {beforeRecover: (evidence, bodies) =>
+        reserveRecoveryInput(memberIndex, {evidence, bodies})})})}
+      : (reserveRecoveryInput?.(memberIndex, {fallback: true}), recoverRetainedSalesforceCatalog({moon, retained,
+        expectedObservationCid: entry.observationCid, maxRetainedBytes}));
     const binding = JSON.parse(retained.observationJson).binding;
     if (binding.resource_origin !== profile.resourceOrigin ||
         binding.run_invocation_cid !== previewBody.invocation_cid) {
@@ -203,6 +205,10 @@ export function recoverCapturedSalesforceSingleRequests({
       resourceOrigin: profile.resourceOrigin,
       claims: recorded.members[memberIndex].claims});
   });
+  // No Catalog decoder or member-profile frame remains active. Drop this
+  // duplicate JS Preview forest before the native identity constructor; only
+  // the original wire and the retained Catalog/projection outputs continue.
+  previewBody = undefined;
   const result = recoverPreparedSalesforceSingleRequests({moon, previewWire,
     runIdentityCid, authoringContextCid, members,
     previewLimits, bodyLimits, requestLimits, maxMembers, maxRows,

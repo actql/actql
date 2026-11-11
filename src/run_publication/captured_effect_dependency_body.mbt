@@ -5,6 +5,50 @@ struct CapturedEffectDependencyBody {
   node : CapturedEffectDependencyNode
   wire : String
   value : @json.CanonicalValue
+  wire_usage : (Int, Int, Int)?
+}
+
+///|
+/// Original final encoder facts of this same admitted body. These DATA are
+/// neither permission nor a resource grant and do not traverse its tree.
+pub fn captured_effect_dependency_body_wire_usage(
+  body : CapturedEffectDependencyBody,
+) -> (Int, Int, Int)? {
+  body.wire_usage
+}
+
+///|
+/// Same admitted object width. Text length cannot supply this field count.
+pub fn captured_effect_dependency_body_field_count(
+  body : CapturedEffectDependencyBody,
+) -> Int? {
+  @json.object_field_count(body.value)
+}
+
+///|
+/// Compare already admitted semantic fields with the original Model input.
+/// This projection does not parse/hash either body again and does not attest
+/// physical Model execution, an output holding, Store custody or permission.
+pub fn local_model_observation_matches_input(
+  body : CapturedEffectDependencyBody,
+  unit_definition_cid : String,
+  source_ordinal : Int,
+  input : RunEvidenceValue,
+) -> Bool {
+  body.node.kind == "local_model_observation" &&
+  input.name == "model_input_artifact" &&
+  evidence_string(body.value, "unit_definition_cid") ==
+  Some(unit_definition_cid) &&
+  model_scope_count(body.value, "source_ordinal") ==
+  Some(source_ordinal.to_int64()) &&
+  evidence_string(input.value, "unit_definition_cid") ==
+  Some(unit_definition_cid) &&
+  model_scope_count(input.value, "source_ordinal") ==
+  Some(source_ordinal.to_int64()) &&
+  evidence_string(body.value, "input_logical_relation_cid") ==
+  evidence_string(input.value, "logical_relation_cid") &&
+  evidence_string(body.value, "input_relation_schema_cid") ==
+  evidence_string(input.value, "relation_schema_cid")
 }
 
 ///|
@@ -47,10 +91,15 @@ pub fn admit_publication_effect_dependency_body(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
+  if is_lookup_effect_dependency_kind(kind) {
+    return admit_lookup_effect_dependency_body(
+      kind, wire, max_bytes, max_nodes, max_depth,
+    )
+  }
   if ![
       "result_artifact", "derivation_evidence", "ordering_evidence", "acquisition_relation",
       "acquisition_scope", "result_retention_policy", "table_input_artifact", "table_input_derivation",
-      "table_input_ordering",
+      "table_input_ordering", "request_key_set",
     ].contains(kind) {
     return Err(WrongDependencyKind)
   }
@@ -71,6 +120,27 @@ pub fn admit_publication_effect_dependency_body(
     return Err(InvalidBody)
   }
   let value = contract.value
+  if kind == "request_key_set" {
+    guard dependency_single_reference(
+        value, "source_view_contract_cid", "source_view_contract",
+      )
+      is Some(source) &&
+      dependency_single_reference(value, "request_schema_cid", "request_schema")
+      is Some(schema) else {
+      return Err(InvalidBody)
+    }
+    return Ok({
+      node: {
+        kind,
+        identity: contract.identity,
+        canonical_bytes: @utf8.encode(wire).length(),
+        references: [source, schema],
+      },
+      wire,
+      value,
+      wire_usage: None,
+    })
+  }
   let table = kind == "table_input_artifact" ||
     kind == "table_input_derivation" ||
     kind == "table_input_ordering"
@@ -102,8 +172,22 @@ pub fn admit_publication_effect_dependency_body(
       ]
     "derivation_evidence" | "table_input_derivation" =>
       [
-        ("producer_contract_cid", producer_kind),
-        ("computation_contract_cid", "local_dependencies"),
+        (
+          "producer_contract_cid",
+          if table {
+            producer_kind
+          } else {
+            "relation_producer"
+          },
+        ),
+        (
+          "computation_contract_cid",
+          if table {
+            "local_dependencies"
+          } else {
+            "relation_computation"
+          },
+        ),
         ("logical_value_cid", "relation_value"),
         ("relation_schema_cid", "relation_schema"),
         ("scope_cid", "acquisition_scope"),
@@ -213,6 +297,7 @@ pub fn admit_publication_effect_dependency_body(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }
 
@@ -235,6 +320,21 @@ pub fn captured_effect_dependency_body_kind(
   value : CapturedEffectDependencyBody,
 ) -> String {
   value.node.kind
+}
+
+///|
+/// Bounded metadata from the SAME admitted body's reference interpretation.
+/// This neither resolves a Catalog nor attests current authority or custody.
+pub fn captured_effect_dependency_body_references(
+  value : CapturedEffectDependencyBody,
+  max_references : Int,
+) -> Array[(String, String)]? {
+  if max_references < 0 || value.node.references.length() > max_references {
+    return None
+  }
+  Some(
+    value.node.references.map(reference => (reference.kind, reference.identity)),
+  )
 }
 
 ///|
@@ -317,6 +417,7 @@ pub fn admit_source_effect_dependency_body(
     },
     wire,
     value: evidence.value,
+    wire_usage: None,
   })
 }
 
@@ -347,6 +448,19 @@ pub fn admit_local_effect_dependency_body(
         [("unit_definition_cid", "local_dependencies")],
         [],
         ["table_input_name"],
+      )
+    "local_model_observation" =>
+      (
+        "actql-local-model-observation/0.1",
+        [
+          ("unit_definition_cid", "local_dependencies"),
+          ("input_logical_relation_cid", "relation_value"),
+          ("input_relation_schema_cid", "relation_schema"),
+          ("outcome_logical_relation_cid", "relation_value"),
+          ("outcome_relation_schema_cid", "relation_schema"),
+        ],
+        [],
+        ["source_ordinal"],
       )
     "local_computation" =>
       (
@@ -464,7 +578,14 @@ pub fn admit_local_effect_dependency_body(
     }
   }
   for field in extra {
-    if kind == "gate_requirement" &&
+    if kind == "local_model_observation" && field == "source_ordinal" {
+      guard @json.object_field(value, field) is Some(@json.Number(raw)) &&
+        @scalar.read_safe_integer(raw) is Some(ordinal) &&
+        ordinal >= 0L &&
+        ordinal < 2147483647L else {
+        return Err(InvalidBody)
+      }
+    } else if kind == "gate_requirement" &&
       [
         "completion_contracts", "completion_nodes", "effect_contracts", "effect_nodes",
       ].contains(field) {
@@ -529,6 +650,7 @@ pub fn admit_local_effect_dependency_body(
     },
     wire,
     value,
+    wire_usage: None,
   })
 }
 
@@ -564,8 +686,18 @@ pub fn validate_captured_effect_dependency_bodies(
     let references : Array[CapturedEffectDependencyReference] = []
     for reference in body.node.references {
       let allowed = match reference.kind {
-        "relation_producer" => ["local_result_definition", "source_contract"]
-        "local_observation" => ["source_evidence", "result_import_observation"]
+        "relation_producer" =>
+          [
+            "local_result_definition", "source_contract", "carrier_contract", "relation_schema",
+          ]
+        "relation_computation" =>
+          ["local_dependencies", "task_fragment", "lookup_barrier"]
+        "relation_carrier" => ["carrier_contract", "relation_schema"]
+        "local_observation" =>
+          [
+            "source_evidence", "result_import_observation", "local_model_observation",
+            "lookup_evidence",
+          ]
         _ => []
       }
       if allowed.is_empty() {

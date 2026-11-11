@@ -3,7 +3,7 @@
 import {runtimeField, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
+import {recordCheckpointApproval, checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
@@ -76,7 +76,8 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       if (typeof state.gate.assertCurrent !== 'function') fail('SourceCurrentAuthorityUnavailable');
       state.gate.assertCurrent();
     }
-    if (!currentApproval(state.checkpointCid)) fail('ApprovalExpired');
+    if (!currentApproval(state.checkpointCid) ||
+        state.earlierCheckpointCids?.some(cid=>!currentApproval(cid))) fail('ApprovalExpired');
     originalCurrent();
   };
   const sourceCurrent = state => {
@@ -165,20 +166,30 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       fail('SourceCaptureObservationUnavailable');
     }
     const binding = bindingFor(runDefinitionCid, state.scope, acquisition, sourceEvidenceWire);
-    const exported = checked(moon.clientProgramExportSourceCapture(captured.capture.source(),
-      captured.requirement, binding));
-    const originalRead = captured.capture.originalRead?.();
+    const wholeInput = captured.inputKind === 'whole-input';
+    if (captured.inputKind !== undefined && !wholeInput) fail('HeldAcquisitionChanged');
+    // Whole custody retains the actual Source/input snapshot. Its kind only
+    // selects the typed owner; it cannot manufacture a Query requirement.
+    const retained = wholeInput ? state.source.adapter.retainedCapture(state.source.preparedSource) : undefined;
+    if (wholeInput && retained.wholeInput !== true) fail('HeldAcquisitionChanged');
+    const exported = checked(wholeInput
+      ? moon.clientProgramExportWholeSourceCapture(captured.capture.source(), retained.capacity, binding)
+      : moon.clientProgramExportSourceCapture(captured.capture.source(), captured.requirement, binding));
+    const originalRead = wholeInput ? undefined : captured.capture.originalRead?.();
     const originalFacts = originalRead === undefined ? undefined :
-      checked(moon.clientProgramExportSourceOriginalRead(originalRead));
+      checked(moon.clientProgramExportQuerySourceOriginalRead(originalRead, captured.requirement));
     const record = {version: CAPTURE, run_definition_cid: runDefinitionCid,
       scope: state.scope, acquisition: acquisition ?? null, binding,
-      requirement_cid: moon.clientProgramSourceCaptureExportRequirement(exported),
-      descriptor: moon.clientProgramSourceCaptureExportDescriptor(exported),
-      rows: moon.clientProgramSourceCaptureExportRows(exported),
+      ...(wholeInput ? {input_kind: 'whole-input', source_identity: runtimeField(exported, 0),
+        schema_cid: runtimeField(exported, 1), rows_cid: runtimeField(exported, 2), rows: runtimeField(exported, 3)}
+        : {requirement_cid: moon.clientProgramSourceCaptureExportRequirement(exported),
+          descriptor: moon.clientProgramSourceCaptureExportDescriptor(exported),
+          rows: moon.clientProgramSourceCaptureExportRows(exported)}),
       ...(originalFacts === undefined ? {} : {original_input: {version: ORIGINAL_INPUT,
         schema_cid: runtimeField(originalFacts, 0), rows_cid: runtimeField(originalFacts, 1), rows: runtimeField(originalFacts, 2)}}),
       source_evidence_wire: sourceEvidenceWire,
       ...(state.checkpointCid === undefined ? {} : {checkpoint_cid: state.checkpointCid}),
+      ...(state.earlierCheckpointCids === undefined ? {} : {earlier_checkpoint_cids: state.earlierCheckpointCids}),
       capture_started_at: startedAt, capture_completed_at: completedAt};
     const wire = canonicalJson(record);
     if (Buffer.byteLength(wire) > 2_000_000) fail('SourceCaptureRetentionLimitExceeded');
@@ -223,6 +234,11 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       }
       captureStartedAt = saved.capture_started_at ?? undefined;
       captureCompletedAt = saved.capture_completed_at ?? undefined;
+      // The actual checked source-free Program never issued a Source capture
+      // ledger. Its validated empty closure is not a missing acquired Source.
+      // Model/Effect evidence and their original cleanup remain independent.
+      if (restore !== undefined && states.size === 0 &&
+          moon.clientProgramEffectAcquisitionCount(acquired.prepared) === 0) return;
       const references = await checkpoints.computationSourceReferences(restoring.view);
       current();
       if (references.length > states.size) fail('DuplicateRetainedSourceCapture');
@@ -235,7 +251,10 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
             state === undefined || !same(record.scope, state.scope) ||
             state.record !== undefined ||
             state.captureCid !== undefined && state.captureCid !== captureCid ||
-            !currentApproval(record.checkpoint_cid)) fail('HeldAcquisitionChanged');
+            !currentApproval(record.checkpoint_cid) ||
+            record.earlier_checkpoint_cids !== undefined && (!Array.isArray(record.earlier_checkpoint_cids) ||
+              record.earlier_checkpoint_cids.some(cid=>typeof cid!=='string'||!currentApproval(cid)))) fail('HeldAcquisitionChanged');
+        state.earlierCheckpointCids = record.earlier_checkpoint_cids;
         state.captureCid = captureCid;
         state.record = record;
         state.checkpointCid = record.checkpoint_cid;
@@ -299,52 +318,100 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     restore(source, record, ledger) {
       const state = states.get(source.occurrence.task);
       sourceCurrent(state);
-      const {requirement, capacity, referenceIssuer} = source.adapter.retainedCapture(source.preparedSource);
+      const {requirement, capacity, referenceIssuer, wholeInput = false} = source.adapter.retainedCapture(source.preparedSource);
       const binding = bindingFor(runDefinitionCid, state.scope, record.acquisition,
         record.source_evidence_wire);
+      // The current installed owner selects the variant, before any saved
+      // DATA reaches Core. Core then checks its exact Source and row identity.
+      if (wholeInput !== (record.input_kind === 'whole-input') ||
+          record.input_kind !== undefined && record.input_kind !== 'whole-input' ||
+          wholeInput && (['requirement_cid', 'descriptor', 'original_input'].some(key => Object.hasOwn(record, key)) ||
+            !Array.isArray(record.source_identity) || !record.source_identity.every(value => typeof value === 'string') ||
+            typeof record.schema_cid !== 'string' || typeof record.rows_cid !== 'string' ||
+            !Array.isArray(record.rows) || !record.rows.every(value => typeof value === 'string'))) fail('HeldAcquisitionChanged');
       const input = record.original_input;
       if (input !== undefined && (input === null || Array.isArray(input) ||
           Object.keys(input).sort().join(',') !== 'rows,rows_cid,schema_cid,version' ||
           input.version !== ORIGINAL_INPUT || typeof input.schema_cid !== 'string' ||
           typeof input.rows_cid !== 'string' || !Array.isArray(input.rows) ||
           !input.rows.every(row => typeof row === 'string'))) fail('HeldAcquisitionChanged');
-      const owner = checked(moon.clientProgramRestoreSourceCapture(requirement,
+      const custodyAvailable = () => {
+        try { sourceCurrent(state); return true; }
+        catch { return false; }
+      };
+      const owner = checked(wholeInput
+        ? moon.clientProgramRestoreWholeSourceCapture(capacity, binding, record.binding,
+          record.source_identity, record.schema_cid, record.rows_cid, record.rows,
+          ledger, custodyAvailable, referenceIssuer)
+        : moon.clientProgramRestoreSourceCapture(requirement,
         record.requirement_cid, binding, record.binding, record.descriptor,
-        record.rows, ledger, capacity,
-        () => {
-          try { sourceCurrent(state); return true; }
-          catch { return false; }
-        }, referenceIssuer,
+        record.rows, ledger, capacity, custodyAvailable, referenceIssuer,
         input === undefined ? undefined : runtimeTriple(input.schema_cid, input.rows_cid, input.rows)));
       restorations.add(owner);
       const capturedSource = moon.clientProgramSourceCaptureSource(owner);
       if (capturedSource === undefined) fail('SourceCaptureCustodyUnavailable');
       const pure = acquired.kind === 'infer';
-      if (pure && moon.clientProgramCapturedTaskSourceMatches(acquired.prepared,
+      if (pure && !wholeInput && moon.clientProgramCapturedTaskSourceMatches(acquired.prepared,
           capturedSource, source.occurrence.task) !== true) fail('HeldAcquisitionChanged');
-      const identity = checked((pure ? moon.clientProgramIdentifyCapturedSourceRelation
-        : moon.clientProgramIdentifyCapturedEffectSourceRelation)(capturedSource));
-      const logicalInput = checked((pure ? moon.clientProgramIssueCapturedTaskSourceLogical
-        : moon.clientProgramEffectIssueCapturedSourceLogicalAt)(
-        acquired.prepared, capturedSource, identity, requirement, source.occurrence.task));
+      const identity = checked(wholeInput
+        ? (pure ? moon.clientProgramIdentifyWholeCapturedSourceRelation
+          : moon.clientProgramIdentifyWholeCapturedEffectSourceRelation)(capturedSource, capacity)
+        : (pure ? moon.clientProgramIdentifyQueryCapturedSourceRelation
+          : moon.clientProgramIdentifyQueryCapturedEffectSourceRelation)(capturedSource, requirement));
+      const logicalInput = checked(wholeInput
+        ? (pure ? moon.clientProgramIssueWholeSourceInputLogical
+          : moon.clientProgramIssueEffectWholeSourceInputLogical)(
+          acquired.prepared, capturedSource, identity, capacity)
+        : (pure ? moon.clientProgramIssueCapturedTaskSourceLogical
+          : moon.clientProgramEffectIssueCapturedSourceLogicalAt)(
+          acquired.prepared, capturedSource, identity, requirement, source.occurrence.task));
       const close = async () => {
         if (!moon.clientProgramCloseSourceCapture(owner)) fail('SourceCaptureCleanupPending');
         restorations.delete(owner);
       };
-      const captured = Object.freeze({identity, logicalInput, requirement, capturedSource,
+      const captured = Object.freeze({identity, logicalInput,
+        ...(wholeInput ? {inputKind: 'whole-input', wholeCapacity: capacity} : {requirement}), capturedSource,
         checkedSource: state.scope.checkedSource, occurrence: source.occurrence,
         acquisition: record.acquisition,
         capture: Object.freeze({source: () => moon.clientProgramSourceCaptureSource(owner),
           originalRead: () => moon.clientProgramSourceCaptureOriginalRead(owner),
-          retainTask: (dag, task) => checked(moon.clientProgramSourceCaptureRetainTask(owner, dag, task)),
+          ...(wholeInput ? {originalCapturedInput() {
+            if (this !== captured.capture) fail('SourceCaptureCustodyUnavailable');
+            return checked(moon.clientProgramRestoredWholeSourceCaptureInput(owner));
+          }} : {}),
+          retainTask: (dag, task) => checked(wholeInput
+            ? moon.clientProgramSourceCaptureRetainInput(owner, dag, task)
+            : moon.clientProgramSourceCaptureRetainTask(owner, dag, task)),
           close}), close,
       });
       state.captured = captured;
       return {captured, sourceEvidenceWire: record.source_evidence_wire};
     },
-    async captured(source, captured, sourceEvidenceWire, startedAt, completedAt) {
+    async captured(source, captured, sourceEvidenceWire, startedAt, completedAt, originalApproval) {
       const state = states.get(source.occurrence.task);
       sourceCurrent(state);
+      if (originalApproval !== undefined) {
+        const facts = checkpointApprovalFacts(originalApproval);
+        const matches = (left, right) => left === undefined || right === undefined
+          ? left === right : same(left, right);
+        // Singular read approvals may omit an installation fact. Keep the
+        // actual Source scope binding; a supplied approval fact must match it.
+        if (originalApproval.action !== 'dispatch' || originalApproval.boundary !== 'acquisition' ||
+            facts === undefined || typeof facts.checkpointCid !== 'string' ||
+            facts.principalId !== principalId || !matches(facts.readTuple, state.scope.readTuple) ||
+            !matches(facts.checkedSource, state.scope.checkedSource) ||
+            !matches(facts.physicalBinding, state.scope.physicalBinding) ||
+            facts.installationBinding !== undefined && !matches(facts.installationBinding, state.scope.installationBinding) ||
+            facts.occurrence !== undefined && ['stage','input','task'].some(name=>facts.occurrence[name]!==source.occurrence[name]) ||
+            facts.earlierCheckpointCids !== undefined && (!Array.isArray(facts.earlierCheckpointCids) ||
+              facts.earlierCheckpointCids.some(cid=>typeof cid!=='string'))) fail('HeldAcquisitionChanged');
+        // Preserve the original Checkpoint issuer's exact read approval. A
+        // copied decision or an arbitrary approved CID cannot enter this path.
+        state.checkpointCid = facts.checkpointCid;
+        state.earlierCheckpointCids = facts.earlierCheckpointCids;
+        facts.assertCurrent?.();
+        sourceCurrent(state);
+      }
       state.captured = captured;
       state.material = {captured, sourceEvidenceWire, startedAt, completedAt};
       captureStartedAt ??= startedAt;

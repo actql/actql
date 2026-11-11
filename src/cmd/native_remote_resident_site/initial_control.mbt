@@ -34,6 +34,51 @@ extern "C" fn retire_resident_entry_ffi(
 extern "C" fn resident_control_diagnostic_ffi(stage : Int) -> Unit = "actql_resident_initial_control_diagnostic"
 
 ///|
+/// Closed acquire/enter literals select fixed diagnostics before the Read is
+/// entered. Never encode or print the message here. Unknown failures retain
+/// stage 1; stages 2 and 3 still describe the original cleanup boundaries.
+fn resident_initial_failure_stage(message : String) -> Int {
+  match message {
+    "original installed command entry unavailable" => 101
+    "installed command recipe unavailable" => 102
+    "installed command source unavailable" => 103
+    "installed command supplier refused" => 104
+    "installed command acquisition refused" => 105
+    "installed command acquisition pending" => 106
+    "original bootstrap missing" => 107
+    "installed command claim refused" => 108
+    "installed command borrow refused" => 109
+    "installed command scope refused" => 110
+    "installed command original capacity unavailable" => 111
+    "installed component selection exceeds original backing" => 112
+    "installed managed extent unavailable" => 113
+    "installed managed layout unavailable" => 114
+    "installed components exhaust original Read payload" => 115
+    "installed command domain allocation refused" => 116
+    "installed command region refused" => 117
+    "installed command loan refused" => 118
+    "installed command loan pending" => 119
+    "original command loan missing" => 120
+    "installed command view refused" => 121
+    "installed command view pending" => 122
+    "original command view missing" => 123
+    "installed command domain refused" => 124
+    "installed command domain pending" => 125
+    "original command domain missing" => 126
+    "installed command transfer refused" => 127
+    "installed command parent scope leave pending" => 128
+    "installed command read context refused" => 129
+    "original command backing missing" => 130
+    "installed command read entry refused" => 131
+    "installed command Read control refused" => 132
+    "installed command control entry refused" => 133
+    "installed command control leave pending" => 134
+    "installed command working supplier refused" => 135
+    _ => 1
+  }
+}
+
+///|
 #borrow(message)
 extern "C" fn resident_command_failure_ffi(
   message : Bytes,
@@ -74,6 +119,7 @@ struct ResidentInitialControl {
     ResidentEntryOriginal,
     ResidentEntryOriginal,
   ]?
+  mut control_entered : Bool
   mut read_entered : Bool
   mut read_payload_bytes : Int64
   mut sqlite_heap_bytes : Int64
@@ -91,6 +137,8 @@ struct ResidentInitialControl {
   mut http_client_attempted : Bool
   mut http_client : @http.Client?
   mut failed_http_client : @http.NativeHttpClientCreateFailure?
+  // Retirement only forbids further loads. It is not a cleanup ACK.
+  mut libraries_retiring : Bool
   // Select the controller's terminal report only after its normal return.
   // This marker is not cleanup evidence; close() still checks every Owner.
   mut controller_returned : Bool
@@ -108,6 +156,7 @@ fn capture_resident_initial_control() -> ResidentInitialControl {
     loan: None,
     view: None,
     domain: None,
+    control_entered: false,
     read_entered: false,
     read_payload_bytes: 0L,
     sqlite_heap_bytes: 0L,
@@ -125,6 +174,7 @@ fn capture_resident_initial_control() -> ResidentInitialControl {
     http_client_attempted: false,
     http_client: None,
     failed_http_client: None,
+    libraries_retiring: false,
     controller_returned: false,
     retired: false,
   }
@@ -197,6 +247,15 @@ fn ResidentInitialControl::acquire(
   .enter_borrow_scope(self.original, scope)
   .resident_initial_require("installed command scope refused")
   self.scope_entered = true
+  // The fixed Read/control basis is charged before this same Host selects
+  // its payload. Domain bytes cannot consume bookkeeping still owed later.
+  host
+  .prepare_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command Read control refused")
+  if !host.enter_backed_read_control(self.original, scope) {
+    stop("installed command control entry refused")
+  }
+  self.control_entered = true
   // This is the SAME already-reserved arena's actual remaining capacity,
   // including its charged control layout, not a second numerical grant.
   let available = host
@@ -231,6 +290,10 @@ fn ResidentInitialControl::acquire(
     .issue_backed_region(self.original, allocation)
     .resident_initial_require("installed command region refused")
   self.region = Some(region)
+  // Region/allocation controls retain their original pages. Finish their
+  // actual cohort before constructing the separate loan/view/domain phase;
+  // initial_payload_capacity already kept this next block out of the payload.
+  self.advance_control_phase()
   let child_limits : @resources.LedgerLimits = {
     planning_work: 16,
     attempts: 1,
@@ -276,6 +339,9 @@ fn ResidentInitialControl::acquire(
     }
   }
   guard self.view is Some(view) else { stop("original command view missing") }
+  // Lending/mapping retains a separate original constructor cohort from the
+  // following physical domain carrier. No aliases or child debt are retired.
+  self.advance_control_phase()
   match
     host
     .acquire_backed_domain(self.original, view, self.original)
@@ -292,12 +358,19 @@ fn ResidentInitialControl::acquire(
   host
   .transfer_backed_domain(self.original, domain, self.original)
   .resident_initial_require("installed command transfer refused")
+  host
+  .leave_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command control leave pending")
+  self.control_entered = false
   // The existing provider refuses entry into a different domain while the
   // parent arena is entered. Return only that scope, retaining its same loan.
   host
   .leave_borrow_scope(self.original, scope)
   .resident_initial_require("installed command parent scope leave pending")
   self.scope_entered = false
+  host
+  .prepare_backed_domain_growth(self.original, domain, self.original)
+  .resident_initial_require("installed command working supplier refused")
   // Read construction is attempted once on the same retained domain. A failed
   // physical or accounting step keeps that carrier for child-first cleanup.
   host
@@ -308,6 +381,31 @@ fn ResidentInitialControl::acquire(
     execution_ceiling=self.read_payload_bytes,
   )
   .resident_initial_require("installed command read context refused")
+}
+
+///|
+/// Finish/reconcile this phase before acquiring the same fixed next block.
+/// Every fallible step leaves its exact original cleanup state on this entry.
+fn ResidentInitialControl::advance_control_phase(
+  self : ResidentInitialControl,
+) -> Unit raise CommandStop {
+  self.require_current()
+  guard self.host is Some(host) &&
+    self.scope is Some(scope) &&
+    self.control_entered else {
+    stop("original command backing missing")
+  }
+  host
+  .leave_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command control leave pending")
+  self.control_entered = false
+  host
+  .prepare_backed_read_control(self.original, scope)
+  .resident_initial_require("installed command Read control refused")
+  if !host.enter_backed_read_control(self.original, scope) {
+    stop("installed command control entry refused")
+  }
+  self.control_entered = true
 }
 
 ///|
@@ -342,6 +440,13 @@ fn ResidentInitialControl::close(self : ResidentInitialControl) -> Bool {
     return false
   }
   if self.host is Some(host) {
+    if self.control_entered {
+      guard self.scope is Some(scope) else { return false }
+      if host.leave_backed_read_control(self.original, scope) is Err(_) {
+        return false
+      }
+      self.control_entered = false
+    }
     if self.domain is Some(domain) {
       if self.read_entered {
         if host.leave_backed_read_context(self.original, domain, self.original)
@@ -456,6 +561,7 @@ fn resident_read_payload_bytes(domain_bytes : Int64) -> Int64 raise CommandStop 
 fn ResidentInitialControl::close_libraries(
   self : ResidentInitialControl,
 ) -> Bool {
+  self.libraries_retiring = true
   if self.failed_http_client is Some(original) {
     if original.retry_cleanup() is Err(_) {
       return false
@@ -504,6 +610,13 @@ fn ResidentInitialControl::close_libraries(
     }
     self.sqlite = None
   }
+  // These original selections were parsed inside the SAME managed Read.
+  // Keep them through every pending child/Library close, then drop their
+  // aliases before asking that Read to retire. The retirement fence above
+  // prevents an emptied selection from admitting another acquisition.
+  self.http_path = None
+  self.crypto_path = None
+  self.sqlite_path = None
   true
 }
 
@@ -513,6 +626,7 @@ fn ResidentInitialControl::load_sqlite(
   path : String,
 ) -> Result[@sqlite.Library, String] {
   if self.retired ||
+    self.libraries_retiring ||
     !self.read_entered ||
     resident_entry_current_ffi(self.original) != 1 {
     return Err("original installed command Read unavailable")
@@ -553,6 +667,7 @@ fn ResidentInitialControl::load_crypto(
   path : String,
 ) -> Result[@signature.Library, String] {
   if self.retired ||
+    self.libraries_retiring ||
     !self.read_entered ||
     resident_entry_current_ffi(self.original) != 1 {
     return Err("original installed command Read unavailable")
@@ -615,6 +730,7 @@ fn ResidentInitialControl::load_http(
   path : String,
 ) -> Result[@http.Library, String] {
   if self.retired ||
+    self.libraries_retiring ||
     !self.read_entered ||
     resident_entry_current_ffi(self.original) != 1 {
     return Err("original installed command Read unavailable")

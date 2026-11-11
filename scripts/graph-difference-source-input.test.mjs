@@ -10,7 +10,10 @@ test('Delta expectations retain separate parallel identities and complete contra
       [{name: 'delta', contract: {type: 'json', nullable: false}}]);
     assert.equal(item.sourceReadCount, 0);
     if (!item.results.changes.rows.length) continue;
-    const {delta} = item.results.changes.rows[0];
+    const encoded = item.results.changes.rows[0].delta;
+    assert.deepEqual(Object.keys(encoded), ['$json'],
+      'the public Result uses the checked JSON typed-cell envelope');
+    const delta = encoded.$json;
     assert.equal(delta.version, 'actql-graph-delta/0.1');
     assert.deepEqual(delta.nodes.add, []);
     assert.deepEqual(delta.edges.add, []);

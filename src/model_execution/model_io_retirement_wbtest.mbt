@@ -26,6 +26,10 @@ test "original Model IO access reference survives pending cleanup and retires af
   active.state.output_uses = 1
   assert_false(cleanup_model_execution(active).unwrap())
   assert_true(prepared.io_access is Some(same) && physical_equal(same, access))
+  assert_true(
+    active.state.prepared_call_set is Some(same) &&
+    physical_equal(same, prepared),
+  )
   active.state.output_uses = 0
   assert_false(cleanup_model_execution(active).unwrap())
   assert_true(prepared.io_access is Some(same) && physical_equal(same, access))
@@ -35,11 +39,17 @@ test "original Model IO access reference survives pending cleanup and retires af
   assert_true(cleanup_model_execution(active) is Err(RequestIdentity))
   assert_true(prepared.io_access is Some(same) && physical_equal(same, access))
   assert_true(@resources.capacity_reservation_open(grant.capacity))
+  assert_true(
+    active.state.prepared_call_set is Some(same) &&
+    physical_equal(same, prepared),
+  )
   active.state.original_startup = Some(grant)
   @resources.settle_capacity(foreign.ledger, foreign.capacity).unwrap()
   assert_true(cleanup_model_execution(active).unwrap())
   // Retire this Model's borrowed reference, not the shared Host admission.
   assert_true(prepared.io_access is None)
+  assert_true(active.state.prepared_call_set is None)
+  assert_true(prepared_model_call_count(prepared) is None)
   assert_true(@resources.model_io_access_within_limits(access, 1, 1))
   assert_true(cleanup_model_execution(active).unwrap())
   assert_true(@resources.close_model_io_access(access).unwrap())

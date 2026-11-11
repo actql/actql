@@ -8,10 +8,10 @@ and the parent allowance have not become proved facts.
 
 ## Scope fixed before proof
 
-The current `allocations.json` reviews the aggregate state and metadata cursor
-at main `4fdcffb63f651e3dafa7dceaaf58a36a3e199cdb`. Its SHA-256 is
-`4945d5aebfd02f7865c0e9d20e9dde3015b6ca4fede67d8d1f1b1e740b17bc24`. The prior inventory remains fixed in its original Git
-source and execution records; no old-source compatibility route is retained.
+The current `allocations.json` binds the base retained quote to
+`generated_sequence_capacity` and its existing `execution_capacity_inventory_bytes`
+input dimensions. Its SHA-256 is
+`7803891e6bf94d186f30d4ccd2d3547cb9d507978ee63b3638494a20421de9fc`.
 The gate requires that exact inventory; relabeling a request or shrinking the
 inventory cannot discharge an obligation. This scope is limited to the existing TimeSeries-to-Relation chains, which keep
 the conservative sum of child scratch. It does not establish the max-scratch

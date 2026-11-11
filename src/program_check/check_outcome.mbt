@@ -11,6 +11,45 @@ pub enum CheckOutcome {
 struct CheckDiagnostic {
   cause : LocalConstructionFailure
   category : DiagnosticCategory
+  independent_supplied : IndependentSuppliedBinding?
+}
+
+///|
+// A completed original input read made before Program Source resolution.
+// This is diagnostic DATA, not a CheckedProgram or permission to reuse limits.
+priv struct IndependentSuppliedBinding {
+  program : @syntax.Program
+  source : @stages.Source
+  supplied : @decode.Cursor
+  result : Result[@parameters.BindingResult, @parameters.Issue]
+}
+
+///|
+/// Borrow only the same original input's independently observed refusal.
+/// A different Program/tree position or an absent read supplies no finding.
+pub fn independent_supplied_binding_issue(
+  outcome : CheckOutcome,
+  program : @syntax.Program,
+  supplied : @decode.Cursor?,
+) -> @parameters.Issue? {
+  let diagnostic = match outcome {
+    Rejected(value) => value
+    NeedsInputs(value) => value.diagnostic
+    Checked(_) => return None
+  }
+  guard diagnostic.independent_supplied is Some(original) &&
+    physical_equal(original.program, program) &&
+    @stages.complete_program(original.source) is Some(source_program) &&
+    physical_equal(source_program, program) &&
+    supplied is Some(supplied) &&
+    @decode.tree_index(original.supplied, supplied) ==
+    @decode.tree_index(original.supplied, original.supplied) else {
+    return None
+  }
+  match original.result {
+    Err(issue) => Some(issue)
+    Ok(_) => None
+  }
 }
 
 ///|
@@ -38,7 +77,6 @@ priv enum RequestInventory {
   NumericProfile(@decode.Cursor)
   AggregateStringLimit(@decode.Cursor)
   SearchRows(@decode.Cursor, Bool, Bool)
-  KeyedRows(@decode.Cursor)
 }
 
 ///|
@@ -59,7 +97,6 @@ pub enum InputRequestKind {
   NumericReductionProfile(@decode.Cursor)
   AggregateStringByteLimit(@decode.Cursor)
   TemporalSearchInputRows(@decode.Cursor, SearchInputSide)
-  KeyedAcquisitionInputRows(@decode.Cursor)
 }
 
 ///|
@@ -82,8 +119,7 @@ pub fn input_request_count(value : InputRequests) -> Int {
     | CalendarSelection
     | CalendarArtifact(_)
     | NumericProfile(_)
-    | AggregateStringLimit(_)
-    | KeyedRows(_) => 1
+    | AggregateStringLimit(_) => 1
   }
 }
 
@@ -147,12 +183,6 @@ pub fn input_request_at(value : InputRequests, index : Int) -> InputRequest? {
       }
       AggregateStringByteLimit(source)
     }
-    KeyedRows(source) => {
-      if index != 0 {
-        return None
-      }
-      KeyedAcquisitionInputRows(source)
-    }
     SearchRows(source, left, right) => {
       let side = if index == 0 && left {
         Left
@@ -186,7 +216,6 @@ pub fn input_request_path(value : InputRequest) -> Array[@decode.PathSegment] {
     NumericReductionProfile(source) => @decode.cursor_path(source)
     AggregateStringByteLimit(source) => @decode.cursor_path(source)
     TemporalSearchInputRows(source, _) => @decode.cursor_path(source)
-    KeyedAcquisitionInputRows(source) => @decode.cursor_path(source)
   }
 }
 
@@ -206,7 +235,6 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
     NumericReductionProfile(source) => Some(source)
     AggregateStringByteLimit(source) => Some(source)
     TemporalSearchInputRows(source, _) => Some(source)
-    KeyedAcquisitionInputRows(source) => Some(source)
   }
 }
 
@@ -216,12 +244,19 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
 pub fn construction_failure_diagnostic(
   cause : LocalConstructionFailure,
 ) -> CheckDiagnostic {
-  { cause, category: classify_diagnostic_cause(cause), }
+  {
+    cause,
+    category: classify_diagnostic_cause(cause),
+    independent_supplied: None,
+  }
 }
 
 ///|
-fn rejected(cause : LocalConstructionFailure) -> CheckOutcome {
-  Rejected(construction_failure_diagnostic(cause))
+fn rejected(
+  cause : LocalConstructionFailure,
+  independent_supplied? : IndependentSuppliedBinding? = None,
+) -> CheckOutcome {
+  Rejected({ ..construction_failure_diagnostic(cause), independent_supplied, })
 }
 
 ///|
@@ -236,6 +271,7 @@ fn checking_outcome(
   program : @syntax.Program,
   environment : CheckEnvironment,
   run : () -> CheckedProgram raise LocalConstructionFailure,
+  independent_supplied? : IndependentSuppliedBinding? = None,
 ) -> CheckOutcome {
   Checked(run()) catch {
     error => {
@@ -243,8 +279,6 @@ fn checking_outcome(
         Source(SourceView(Binding(NeedsBindings(missing)))) =>
           Parameters(missing)
         Source(SourceView(Context(Policy(MissingCapacity)))) => CapacityPolicy
-        Source(Requests(Rows(MissingPositiveBound(_, _, source)))) =>
-          KeyedRows(source)
         Source(Checks(Patterns(Timestamp(MissingPolicy(_)))))
         | Source(Checks(Patterns(Regex(MissingPolicy(_)))))
         | Source(Checks(TextBounds(MissingPolicy(_)))) => TextTimePolicy
@@ -264,7 +298,7 @@ fn checking_outcome(
           guard site.requirement is @pipeline.RelationRequirement(pending) &&
             pending.kind is @relation.NumericAggregateObservation &&
             @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
-            return rejected(error)
+            return rejected(error, independent_supplied~)
           }
           let supported = match step.operation {
             @pipeline.WindowGroup(_) => true
@@ -280,13 +314,13 @@ fn checking_outcome(
               site.index,
             )
             is Some(source) else {
-            return rejected(error)
+            return rejected(error, independent_supplied~)
           }
           NumericProfile(source)
         }
         _ => {
           guard search_request_parts(error) is Some((source, left, right)) else {
-            return rejected(error)
+            return rejected(error, independent_supplied~)
           }
           SearchRows(source, left, right)
         }
@@ -295,7 +329,11 @@ fn checking_outcome(
         program,
         environment,
         inventory,
-        diagnostic: { cause: error, category: MissingInput, },
+        diagnostic: {
+          cause: error,
+          category: MissingInput,
+          independent_supplied,
+        },
       })
     }
   }

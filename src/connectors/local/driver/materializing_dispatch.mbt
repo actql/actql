@@ -7,6 +7,9 @@ pub(all) struct LocalManagedMetadataLimits {
   completion_entries : Int
   schema : @execution.RelationSchemaIdentityLimits
   result_workspace_entries : Int
+  // None preserves a caller's already quoted workspace. Some retains the
+  // initial row extent; the SAME task must fund actual growth before export.
+  result_rows_reserved : Int?
   retained_bytes : Int64
 }
 
@@ -317,6 +320,7 @@ fn local_managed_metadata_limits(
       max_depth: limits.wire.max_depth,
     },
     result_workspace_entries: limits.max_rows,
+    result_rows_reserved: None,
     retained_bytes: 0L,
   })
   if selected.name_bytes < 0 ||
@@ -327,6 +331,10 @@ fn local_managed_metadata_limits(
     selected.schema.max_bytes < 0 ||
     selected.schema.max_depth < 0 ||
     selected.result_workspace_entries < 0 ||
+    (
+      selected.result_rows_reserved is Some(rows) &&
+      (rows < 0 || rows > limits.max_rows)
+    ) ||
     selected.retained_bytes < 0L {
     return None
   }
