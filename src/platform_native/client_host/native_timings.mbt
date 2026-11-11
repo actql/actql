@@ -34,3 +34,7 @@ fn native_acceptance_identity(
 ) -> Unit {
   native_acceptance_identity_raw(tag, ordinal, identity, identity.length())
 }
+
+///|
+// Read-only diagnostic snapshot; -1 is unavailable, never zero work or current.
+extern "C" fn native_timing_counter_value(tag : Int) -> Int64 = "actql_native_timing_counter_value"

@@ -1002,6 +1002,25 @@ test('focused work in another worktree does not take the heavy lock', async t =>
   assert.deepEqual(locks(f), []);
 });
 
+test('Native approval OS sampler timeout remains inside the existing owned process group', async t => {
+  const f = fixture(t), pids = join(f.root, 'sampler-descendants');
+  const worker = `require('fs').writeFileSync(${JSON.stringify(pids)}, JSON.stringify([process.pid]));setInterval(()=>{},1000);`;
+  const source = `const {execFile}=require('child_process');
+    execFile('/usr/bin/time', ['-p','-o',${JSON.stringify(join(f.root, 'resource-report'))},
+      process.execPath,'-e',${JSON.stringify(worker)}], {timeout:500, killSignal:'SIGKILL'}, () => {
+      // The sampler is gone; its actual child still belongs to the SAME guard.
+      process.exit(0);
+    });`;
+  const result = await start(f, {timeoutSeconds: cancellationTimeoutSeconds, steps: steps(source)}).done;
+  assert.notEqual(result.code, 0, 'Killing only the sampler cannot establish completion');
+  for (const pid of JSON.parse(readFileSync(pids))) assert.equal(Boolean(live(pid)), false);
+  const record = summary(attempts(f)[0]);
+  assert.equal(record.outputComplete, true);
+  assert.equal(record.locksReleased, true);
+  assert.deepEqual(locks(f), []);
+  // This proves operator process ownership only, not a Native Host/Store ACK.
+});
+
 test('timeout stops inherited descendants and leaves an unrelated process alive', async t => {
   const f = fixture(t), pids = join(f.root, 'pids');
   const unrelated = spawn(process.execPath, ['-e', 'setInterval(()=>{}, 1000)']);

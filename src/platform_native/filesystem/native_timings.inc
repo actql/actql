@@ -15,8 +15,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#define ACTQL_TIMING_PHASES 32
-#define ACTQL_TIMING_COUNTERS 64
+#define ACTQL_TIMING_PHASES 39
+#define ACTQL_TIMING_STACK 32
+#define ACTQL_TIMING_COUNTERS 66
 /* 0 unselected, 1 selecting, 2 disabled, 3 enabled. Never wait on another
  * thread or an inherited initialization. Missed diagnostic entries are named. */
 static _Atomic int actql_timing_selection;
@@ -38,6 +39,8 @@ static _Atomic uint64_t actql_timing_active[ACTQL_TIMING_PHASES];
 static _Atomic uint64_t actql_timing_overlap[ACTQL_TIMING_PHASES];
 static _Atomic uint64_t actql_timing_unmatched[ACTQL_TIMING_PHASES];
 static _Atomic uint64_t actql_timing_exclusive[ACTQL_TIMING_PHASES];
+static _Atomic uint64_t actql_timing_phase_sql[ACTQL_TIMING_PHASES];
+static _Atomic uint64_t actql_timing_phase_current[ACTQL_TIMING_PHASES];
 /* Fixed metadata only: no paths, payloads, borrowed pointers or heap storage. */
 #define ACTQL_ACCEPTANCE_EVENTS 32
 typedef struct { int32_t tag, ordinal; char identity[72]; _Atomic bool ready; } actql_acceptance_event;
@@ -45,8 +48,8 @@ static actql_acceptance_event actql_acceptance_events[ACTQL_ACCEPTANCE_EVENTS];
 static _Atomic unsigned actql_acceptance_count;
 static _Atomic bool actql_acceptance_invalid;
 static bool actql_acceptance_selected;
-typedef struct { int32_t tag; uint64_t start, child_ns; } actql_timing_frame;
-static _Thread_local actql_timing_frame actql_timing_stack[ACTQL_TIMING_PHASES];
+typedef struct { int32_t tag; uint64_t start, child_ns, sql_start, current_start; } actql_timing_frame;
+static _Thread_local actql_timing_frame actql_timing_stack[ACTQL_TIMING_STACK];
 static _Thread_local uint32_t actql_timing_depth;
 static _Thread_local uint64_t actql_timing_dropped_depth;
 
@@ -68,7 +71,17 @@ static bool actql_timing_now(uint64_t *result) {
 static const char *actql_timing_phase_name(int tag) {
   static const char *const names[] = {"startup", "config_auth", "preparation",
     "execution", "save", "close", "saved_result", "journal"};
-  return tag < 8 ? names[tag] : "private_phase";
+  if (tag < 8) return names[tag];
+  switch (tag) {
+    case 32: return "approval_material_complete";
+    case 33: return "approval_reviewer_sign";
+    case 34: return "approval_host_sign";
+    case 35: return "approval_resolution_commit";
+    case 36: return "approval_apply";
+    case 37: return "approval_publish";
+    case 38: return "approval_checkpoint_restore";
+    default: return "private_phase";
+  }
 }
 static const char *actql_timing_counter_name(int tag) {
   switch (tag) {
@@ -88,6 +101,8 @@ static const char *actql_timing_counter_name(int tag) {
     case ACTQL_NATIVE_COUNT_ADOPTION_DIGEST: return "adoption_digest_calls";
     case ACTQL_NATIVE_COUNT_BACKING_ALLOCATED_BYTES: return "backing_allocated_bytes";
     case ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES: return "backing_explicit_zeroed_bytes";
+    case ACTQL_NATIVE_COUNT_SIGNING_FULL_BOUNDARY: return "signing_full_boundary_calls";
+    case ACTQL_NATIVE_COUNT_SIGNING_HELPER_REVALIDATION: return "signing_helper_revalidation_calls";
     default: return "private_counter";
   }
 }
@@ -142,7 +157,7 @@ static void actql_timing_report(void) {
   } while (0)
   ACTQL_TIMING_APPEND("ACTQL_NATIVE_TIMINGS {\"pid\":%ld,\"origin\":\"first_hook\","
     "\"elapsed_ns\":%" PRIu64 ",\"clock_current\":%s,\"nested_inclusive\":true,"
-    "\"child_process_counters\":false,\"phase_slots\":32,\"counter_slots\":64,\"initializing_drops\":%" PRIu64 ","
+    "\"child_process_counters\":false,\"phase_slots\":39,\"counter_slots\":66,\"initializing_drops\":%" PRIu64 ","
     "\"invalid_tags\":%" PRIu64 ",\"invalid_amounts\":%" PRIu64 ",\"clock_failures\":%" PRIu64 ",\"overflow\":%s,"
     "\"stack_overflows\":%" PRIu64 ",\"parallel_observed\":%s}\n",
     (long)actql_timing_process, now >= actql_timing_origin ? now - actql_timing_origin : 0,
@@ -157,11 +172,12 @@ static void actql_timing_report(void) {
     uint64_t unmatched = ACTQL_TIMING_LOAD(actql_timing_unmatched[tag]);
     ACTQL_TIMING_APPEND("ACTQL_NATIVE_PHASE {\"tag\":%d,\"name\":\"%s\","
         "\"begins\":%" PRIu64 ",\"ends\":%" PRIu64 ",\"inclusive_ns\":%" PRIu64 ",\"exclusive_ns\":%" PRIu64 ","
-        "\"active\":%" PRIu64 ",\"overlap\":%" PRIu64 ",\"unmatched_end\":%" PRIu64 "}\n",
+        "\"active\":%" PRIu64 ",\"overlap\":%" PRIu64 ",\"unmatched_end\":%" PRIu64 ",\"sql_prepares\":%" PRIu64 ",\"current_calls\":%" PRIu64 "}\n",
         tag, actql_timing_phase_name(tag), begin, ACTQL_TIMING_LOAD(actql_timing_ends[tag]),
         ACTQL_TIMING_LOAD(actql_timing_elapsed[tag]), ACTQL_TIMING_LOAD(actql_timing_exclusive[tag]),
         ACTQL_TIMING_LOAD(actql_timing_active[tag]),
-        ACTQL_TIMING_LOAD(actql_timing_overlap[tag]), unmatched);
+        ACTQL_TIMING_LOAD(actql_timing_overlap[tag]), unmatched,
+        ACTQL_TIMING_LOAD(actql_timing_phase_sql[tag]), ACTQL_TIMING_LOAD(actql_timing_phase_current[tag]));
   }
   for (int tag = 0; tag < ACTQL_TIMING_COUNTERS; tag++) {
     uint64_t count = ACTQL_TIMING_LOAD(actql_timing_counts[tag]);
@@ -295,7 +311,7 @@ void actql_native_timing_begin(int32_t tag) {
     if (tag < 0 || tag >= ACTQL_TIMING_PHASES) actql_timing_add(&actql_timing_invalid_tags, 1);
     else {
       actql_timing_add(&actql_timing_begins[tag], 1);
-      if (actql_timing_dropped_depth || actql_timing_depth == ACTQL_TIMING_PHASES) {
+      if (actql_timing_dropped_depth || actql_timing_depth == ACTQL_TIMING_STACK) {
         actql_timing_add(&actql_timing_stack_overflows, 1);
         if (actql_timing_dropped_depth != UINT64_MAX) actql_timing_dropped_depth++;
         else atomic_store_explicit(&actql_timing_overflow, true, memory_order_relaxed);
@@ -307,7 +323,9 @@ void actql_native_timing_begin(int32_t tag) {
           uint64_t previous = atomic_fetch_add_explicit(&actql_timing_flights, 1, memory_order_relaxed);
           if (previous > actql_timing_depth)
             atomic_store_explicit(&actql_timing_parallel, true, memory_order_relaxed);
-          actql_timing_stack[actql_timing_depth++] = (actql_timing_frame){tag, now, 0};
+          actql_timing_stack[actql_timing_depth++] = (actql_timing_frame){tag, now, 0,
+            atomic_load_explicit(&actql_timing_counts[ACTQL_NATIVE_COUNT_SQL_QUERY], memory_order_relaxed),
+            atomic_load_explicit(&actql_timing_counts[ACTQL_NATIVE_COUNT_CURRENT], memory_order_relaxed)};
           actql_timing_add(&actql_timing_active[tag], 1);
         }
       }
@@ -330,6 +348,14 @@ void actql_native_timing_end(int32_t tag) {
         actql_timing_add(&actql_timing_elapsed[tag], duration);
         if (duration >= frame.child_ns) actql_timing_add(&actql_timing_exclusive[tag], duration - frame.child_ns);
         else actql_timing_add(&actql_timing_clock_failures, 1);
+        /* Process-counter deltas are inclusive like the containing phase.
+         * parallel_observed labels overlap; these are not exclusive SQL costs. */
+        uint64_t sql = atomic_load_explicit(&actql_timing_counts[ACTQL_NATIVE_COUNT_SQL_QUERY], memory_order_relaxed);
+        uint64_t current = atomic_load_explicit(&actql_timing_counts[ACTQL_NATIVE_COUNT_CURRENT], memory_order_relaxed);
+        if (sql >= frame.sql_start && current >= frame.current_start) {
+          actql_timing_add(&actql_timing_phase_sql[tag], sql - frame.sql_start);
+          actql_timing_add(&actql_timing_phase_current[tag], current - frame.current_start);
+        } else atomic_store_explicit(&actql_timing_overflow, true, memory_order_relaxed);
         actql_timing_depth--;
         if (actql_timing_depth) {
           uint64_t *child = &actql_timing_stack[actql_timing_depth - 1].child_ns;

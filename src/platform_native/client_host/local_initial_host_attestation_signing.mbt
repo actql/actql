@@ -206,6 +206,8 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
     Err(issue) => return Err(HostAttestationPhysical(issue))
     Ok(_) => ()
   }
+  native_timing_begin(34)
+  defer native_timing_end(34)
   if self.entered || self.closed {
     return Err(HostAttestationUnavailable)
   }
@@ -429,6 +431,8 @@ pub fn NativeLocalInitialHostAttestationSigning::close_checked(
 pub fn NativeLocalInitialHostAttestationSigning::admit_original_resolution(
   self : NativeLocalInitialHostAttestationSigning,
 ) -> Result[NativeClientRunRecord, NativeLocalInitialHostAttestationIssue] {
+  native_timing_begin(35)
+  defer native_timing_end(35)
   let wire = match self.original_verified_resolution() {
     Ok(value) => value
     Err(issue) => return Err(issue)

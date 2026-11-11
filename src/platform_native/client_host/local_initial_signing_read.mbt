@@ -27,7 +27,29 @@ fn NativeLocalHostConnection::check_signing_original_read(
     physical_equal(retained, material) else {
     return Err(OriginalResourceScopePending)
   }
-  capture.with_current_adoption_material_in_original_read((actual, current, _) => {
+  // This diagnostic observes only the existing calls. It never performs a
+  // second current probe or makes the result depend on a measured count.
+  let source_before = native_timing_counter_value(37)
+  let package_before = if source_before >= 0L {
+    native_timing_counter_value(59)
+  } else {
+    -1L
+  }
+  let digest_before = if source_before >= 0L {
+    native_timing_counter_value(26)
+  } else {
+    -1L
+  }
+  let material_before = if source_before >= 0L {
+    native_timing_counter_value(33)
+  } else {
+    -1L
+  }
+  let result = capture.with_current_adoption_material_in_original_read((
+    actual,
+    current,
+    _,
+  ) => {
     if !physical_equal(actual, self) || !physical_equal(current, material) {
       return Err(CustodyLost)
     }
@@ -38,6 +60,16 @@ fn NativeLocalHostConnection::check_signing_original_read(
     // Physical database replacement remains distinct from immutable admission.
     self.check_database_file_original()
   })
+  if source_before >= 0L &&
+    (
+      native_timing_counter_value(37) != source_before ||
+      native_timing_counter_value(59) != package_before ||
+      native_timing_counter_value(26) != digest_before ||
+      native_timing_counter_value(33) != material_before
+    ) {
+    native_timing_count(65)
+  }
+  result
 }
 
 ///|
@@ -61,6 +93,9 @@ fn NativeLocalInitialSigningOriginal::check_callback_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  // Existing diagnostic table, dedicated slot: count this actual external /
+  // physical boundary, not immutable helper calls or Account outcomes.
+  native_timing_count(64)
   match self.host.check_binding() {
     Err(issue) => {
       if self.original_read is Some((capture, _)) {

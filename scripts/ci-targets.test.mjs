@@ -277,7 +277,7 @@ test('normal lint executes behavioral operation performance assessment tests', (
   const step = jobs.lint.steps.find(row =>
     row.name === 'Test ordinary operation performance assessment');
   assert.ok(step);
-  assert.equal(step.run, 'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
+  assert.equal(step.run, 'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs scripts/native-approval-performance.test.mjs');
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.

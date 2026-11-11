@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parent.parent
 def check_command_counter_map(mapping):
     owners = {}
     def assign(tag, owner):
-        if type(tag) is not int or not 0 <= tag < 64:
+        if type(tag) is not int or not 0 <= tag < 66:
             raise ValueError(f'invalid counter {tag!r}: {owner}')
         if tag in owners:
             raise ValueError(f'counter {tag} overlaps {owners[tag]} and {owner}')
@@ -15,6 +15,8 @@ def check_command_counter_map(mapping):
     for owner in ('Read', 'SQLite', 'Compute'):
         for tag in domains[owner]: assign(tag, owner)
     for tag in mapping['allocationCounterSlots']: assign(int(tag), 'allocation/command')
+    assign(21, 'Check Environment')
+    for tag in mapping['signingBoundarySlots']: assign(int(tag), 'Signing external boundary')
     product = {int(tag) for tag in mapping['productOriginalCounterSlots']}
     for tag in product: assign(tag, 'Product')
     product_path = ROOT / 'src/platform_native/client_host/local_product_configuration.mbt'
@@ -46,9 +48,21 @@ class CommandCounterMap(unittest.TestCase):
         return {'domainInventorySlots': {'Read': [4,5,6,7,8], 'SQLite': [9,10,11,12,13],
                 'Compute': [14,15,60,61,62]},
                 'allocationCounterSlots': {str(tag): 'allocation/command' for tag in [31,*range(46,60),63]},
+                'signingBoundarySlots': {'64': 'actual external/physical signing boundary', '65': 'unexpected helper revalidation'},
                 'productOriginalCounterSlots': {'28': 'Product original check', '29': 'Product body read'}}
     def test_product_and_domain_amounts_have_distinct_slots(self):
         self.assertEqual(check_command_counter_map(self.mapping())['productSlots'], [28,29])
+    def test_signing_boundary_cannot_reuse_environment_admission_slot(self):
+        mapping = self.mapping(); mapping['signingBoundarySlots'] = {'21': 'signing boundary'}
+        # This actual command source owns Environment admission independently.
+        source = (ROOT / 'src/cmd/native_client/local_command_configuration.mbt').read_text()
+        self.assertIn('native_timing_count(21)', source)
+        expected = (ROOT / 'src/platform_native/client_host/local_initial_signing_read.mbt').read_text()
+        self.assertIn('native_timing_count(64)', expected)
+        self.assertNotIn('native_timing_count(21)', expected)
+        with self.assertRaisesRegex(ValueError, 'counter 21 overlaps'):
+            check_command_counter_map(mapping)
+
     def test_previous_product_slots_collide_before_compilation(self):
         mapping = self.mapping(); mapping['productOriginalCounterSlots'] = {'60': 'check', '61': 'read'}
         with self.assertRaisesRegex(ValueError, 'counter 60 overlaps'):
@@ -118,15 +132,36 @@ class NativeTimingProtocol(unittest.TestCase):
             self.assertNotIn('XXX',json.dumps(rows));self.assertNotIn('Pha256',json.dumps(rows))
     def test_disabled_and_nonliteral_selection_emit_nothing(self):
         for selection in (None,'true','01','0'):self.assertEqual(self.run_protocol('sql',selection),[])
+    def test_approval_stage_names_and_full_boundary_counter_are_distinct(self):
+        rows = self.run_protocol('approval-stages', '1')
+        phases = {x['tag']: x for k, x in rows if k == 'ACTQL_NATIVE_PHASE'}
+        for tag in range(32, 39):
+            self.assertTrue(phases[tag]['name'].startswith('approval_'))
+            self.assertEqual((phases[tag]['begins'], phases[tag]['ends'], phases[tag]['active']), (1, 1, 0))
+        counts = {x['tag']: x for k, x in rows if k == 'ACTQL_NATIVE_COUNTER'}
+        self.assertEqual(counts[64]['name'], 'signing_full_boundary_calls')
+        self.assertEqual(counts[64]['count'], 1)
+        self.assertEqual(counts[21]['count'], 0)
+
+    def test_counter_snapshot_is_read_only_and_missing_is_not_zero(self):
+        self.assertEqual(self.run_protocol('snapshot', None), [])
+        rows = self.run_protocol('snapshot', '1')
+        counts = {x['tag']: x['count'] for k, x in rows if k == 'ACTQL_NATIVE_COUNTER'}
+        self.assertEqual(counts[16], 1)
+        self.assertEqual(len(counts), 66)
+
     def test_actual_sql_calls_preserve_results_and_nested_exclusive_times(self):
         rows=self.run_protocol('sql','1');meta=[x for k,x in rows if k=='ACTQL_NATIVE_TIMINGS'];self.assertEqual(len(meta),1)
         self.assertFalse(meta[0]['overflow']);self.assertFalse(meta[0]['parallel_observed']);self.assertEqual(meta[0]['clock_failures'],0)
         phases={x['tag']:x for k,x in rows if k=='ACTQL_NATIVE_PHASE'};counts={x['tag']:x['count']for k,x in rows if k=='ACTQL_NATIVE_COUNTER' and x['count']}
         self.assertEqual(counts,{0:1,1:1,2:2,3:1})
-        self.assertEqual(sum(k=='ACTQL_NATIVE_COUNTER'for k,x in rows),64)
-        self.assertEqual(sum(k=='ACTQL_NATIVE_PHASE'for k,x in rows),32)
+        self.assertEqual(sum(k=='ACTQL_NATIVE_COUNTER'for k,x in rows),66)
+        self.assertEqual(sum(k=='ACTQL_NATIVE_PHASE'for k,x in rows),39)
         self.assertEqual(phases[0]['exclusive_ns']+phases[3]['exclusive_ns'],phases[0]['inclusive_ns'])
         self.assertEqual(phases[3]['exclusive_ns'],phases[3]['inclusive_ns'])
+        self.assertEqual(phases[3]['sql_prepares'], 1)
+        self.assertEqual(phases[0]['sql_prepares'], 1)
+        self.assertEqual(phases[3]['current_calls'], 0)
         for tag in (0,3):self.assertEqual((phases[tag]['begins'],phases[tag]['ends'],phases[tag]['active']),(1,1,0))
     def test_real_threads_keep_exact_counts_and_label_parallel_time(self):
         rows=self.run_protocol('threads','1');meta=next(x for k,x in rows if k=='ACTQL_NATIVE_TIMINGS');self.assertTrue(meta['parallel_observed'])

@@ -281,6 +281,8 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
     Err(issue) => return Err(OriginalSigningPhysical(issue))
     Ok(_) => ()
   }
+  native_timing_begin(33)
+  defer native_timing_end(33)
   if self.entered || self.closed {
     return Err(OriginalSigningUnavailable)
   }
