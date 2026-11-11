@@ -1,0 +1,8 @@
+SELECT a.id AS id, a.name AS previous_name, @next_name AS next_name
+FROM hubspot.companies AS a
+JOIN hubspot.companies AS b ON a.id = b.id
+JOIN hubspot.companies AS c ON a.id = c.id
+|> WHERE id = @record_id
+|> ASSERT UNIQUE BY (id)
+|> RESULT updates
+|> EFFECT UPDATE hubspot.companies ID id SET (name = next_name);

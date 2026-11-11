@@ -795,6 +795,7 @@ echo "$compiler_bin" >> "$GITHUB_PATH"`,
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval',
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
@@ -808,8 +809,8 @@ node scripts/test-packed-public-query.mjs`,
   ]);
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
     step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
-  assert.equal(approvalSteps.length, 6, 'Each connector/acquisition consumer is independently scheduled');
-  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 6);
+  assert.equal(approvalSteps.length, 7, 'Each connector/acquisition consumer is independently scheduled');
+  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 7);
   for (const step of approvalSteps) {
     assert(step.name.startsWith('Test packed '));
     assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});

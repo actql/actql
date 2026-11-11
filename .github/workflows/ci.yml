@@ -1654,6 +1654,11 @@ jobs:
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval
+      - name: Test packed three-Source HubSpot mock approval and original Saved
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval
       - name: Test packed kintone mock approval and original Saved
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
