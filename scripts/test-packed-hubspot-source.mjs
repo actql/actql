@@ -16,8 +16,9 @@ import {createCommandEvidence} from './packed-query-evidence.mjs';
 // Reuse the original consumer and its normal admission unchanged. The outer
 // command receipt exists before installation, including failed preparation.
 export function collectPackedApprovalEvidence({repository, selection, env = process.env}) {
-  assert(['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval'].includes(selection));
-  const fixtureVariant = selection === '--mock-hubspot-whole-approval' ? 'whole-input' : 'three-source';
+  assert(['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval'].includes(selection));
+  const fixtureVariant = selection === '--mock-hubspot-whole-approval' ? 'whole-input'
+    : selection === '--mock-hubspot-binary-source-approval' ? 'binary-source' : 'three-source';
   const evidence = createCommandEvidence({cwd: repository, env,
     scratch: join(repository, '_build', 'packed-approval-evidence'),
     githubOutput: env.GITHUB_OUTPUT, prefix: fixtureVariant + '-'});
@@ -57,7 +58,7 @@ export function collectPackedApprovalEvidence({repository, selection, env = proc
 }
 
 const evidenceSelection = process.argv[2] === '--ci' &&
-  ['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval'].includes(process.argv[3]);
+  ['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval'].includes(process.argv[3]);
 if (evidenceSelection) {
   assert.equal(process.argv.length, 4, 'Require the unchanged --ci SELECTION contract');
   console.log('PACKED_APPROVAL_EVIDENCE', collectPackedApprovalEvidence({
@@ -71,13 +72,14 @@ const argv = process.argv.slice(2), ci = ['--ci', '--ci-evidence-child'].include
 let [source, release, consumer, selection] = ci ? [repository, undefined, undefined, argv[1]] : argv;
 const selections = ['--approval', '--kintone-approval', '--mock-salesforce-approval',
   '--mock-hubspot-approval', '--mock-hubspot-whole-approval',
-  '--mock-hubspot-three-source-approval', '--mock-kintone-approval'];
+  '--mock-hubspot-three-source-approval', '--mock-hubspot-binary-source-approval', '--mock-kintone-approval'];
 assert(ci ? argv.length === 2 && selections.includes(selection)
   : argv.length === 3 || argv.length === 4 && selections.includes(selection),
   'usage: test-packed-hubspot-source.mjs SOURCE RELEASE CLOSED_APPLICATION [SELECTION] or --ci SELECTION');
 const threeSourceMock = selection === '--mock-hubspot-three-source-approval';
+const binarySourceMock = selection === '--mock-hubspot-binary-source-approval';
 const wholeMock = selection === '--mock-hubspot-whole-approval';
-const mockConnector = wholeMock || threeSourceMock ? 'hubspot'
+const mockConnector = wholeMock || threeSourceMock || binarySourceMock ? 'hubspot'
   : /^--mock-(salesforce|hubspot|kintone)-approval$/u.exec(selection ?? '')?.[1];
 const approvalConnector = mockConnector ?? (selection === '--approval' ? 'hubspot'
   : selection === '--kintone-approval' ? 'kintone' : undefined);
@@ -90,7 +92,7 @@ assert(!process.env.ACTQL_LOCAL_SOURCE_PROFILE && !process.env.ACTQL_LOCAL_EFFEC
 const {admitCompositionRelease} = await import(pathToFileURL(join(source, 'scripts/composition-release-input.mjs')));
 const {inventory} = await import(pathToFileURL(join(source, 'scripts/package-release.mjs')));
 const label = approval
-  ? `ordinary installed ${approvalConnector}${mockConnector ? ' mock' : ''}${threeSourceMock ? ' three-Source' : wholeMock ? ' Whole-input' : ''} approval and original Saved restoration`
+  ? `ordinary installed ${approvalConnector}${mockConnector ? ' mock' : ''}${binarySourceMock ? ' binary same-Unit JOIN' : threeSourceMock ? ' three-Source' : wholeMock ? ' Whole-input' : ''} approval and original Saved restoration`
   : 'ordinary installed HubSpot Source and original Run restoration';
 let scratch, original;
 if (ci) {
@@ -127,6 +129,7 @@ const software = join(consumer, 'node_modules'), softwareAlias = join(applicatio
 const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-mock.mjs',
   ...['mock-project.mjs', 'run.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
     .map(name => `scripts/fixtures/${mockConnector}-approval/` + name),
+  ...(binarySourceMock ? ['scripts/fixtures/hubspot-approval/binary-source-mock-project.mjs'] : []),
   ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'mock-project.mjs',
     'scoped-fds.fixture.mjs', 'installed-child.mjs'].map(name => 'scripts/fixtures/record-approval/' + name),
   'adapters/host-node/fixtures/work-observation.fixture.mjs']
@@ -148,9 +151,10 @@ for (const path of fixtureFiles) {
   // Every approval/Result/Saved/close helper remains the same original file.
   const sourcePath = threeSourceMock && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'
     ? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'
-    : (wholeMock || threeSourceMock) && path === 'scripts/fixtures/hubspot-approval/update.aql'
-      ? threeSourceMock ? 'scripts/fixtures/hubspot-approval/three-source-update.aql'
-        : 'scripts/fixtures/hubspot-approval/whole-update.aql' : path;
+    : (wholeMock || threeSourceMock || binarySourceMock) && path === 'scripts/fixtures/hubspot-approval/update.aql'
+      ? binarySourceMock ? 'scripts/fixtures/hubspot-approval/binary-source-update.aql'
+        : threeSourceMock ? 'scripts/fixtures/hubspot-approval/three-source-update.aql'
+          : 'scripts/fixtures/hubspot-approval/whole-update.aql' : path;
   const from = join(repository, sourcePath), to = join(application, path);
   await mkdir(dirname(to), {recursive: true}); await copyFile(from, to);
   const bytes = await readFile(from);
@@ -167,7 +171,8 @@ try {
       : `scripts/fixtures/packed-${approvalConnector}-approval.mjs` : 'scripts/fixtures/packed-hubspot-public.mjs'],
     {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM',
       env: mockConnector ? {...process.env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: mockConnector,
-        ...((wholeMock || threeSourceMock) ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {})} : process.env});
+        ...((wholeMock || threeSourceMock || binarySourceMock) ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
+        ACTQL_RECORD_APPROVAL_MOCK_VARIANT: binarySourceMock ? 'binary-source' : ''} : process.env});
 } finally {
   // Return only this fresh link, never its original installed software target.
   assert.equal(await readlink(softwareAlias), software);
@@ -183,7 +188,7 @@ const execution = JSON.parse(await readFile(join(focusedRoot, focused[0], '001.r
 assert(execution.complete && execution.outputComplete && execution.status === 0 && execution.verificationStatus === 0);
 assert.deepEqual(execution.counts, {tests: expectedTests, passed: expectedTests,
   failed: 0, cancelled: 0, skipped: 0, todo: 0});
-const receipt = {fixtureVariant: threeSourceMock ? 'three-source' : wholeMock ? 'whole-input' : 'original',
+const receipt = {fixtureVariant: binarySourceMock ? 'binary-source' : threeSourceMock ? 'three-source' : wholeMock ? 'whole-input' : 'original',
   qualification: mockConnector
   ? 'Actual declared mock capture, explicit default Local approval and separate-process original Saved before status on the selected normal installation. No provider or installed Effect acceptance claim.'
   : approval

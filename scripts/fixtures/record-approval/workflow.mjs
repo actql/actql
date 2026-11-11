@@ -20,6 +20,12 @@ function retainCase(original) {
     assert(program.parameters && typeof program.parameters === 'object');
   }
   assert(Array.isArray(value.effect.expectedRows));
+  if (value.effect.additionalResults !== undefined) {
+    assert(value.effect.additionalResults && typeof value.effect.additionalResults === 'object');
+    for (const [name, rows] of Object.entries(value.effect.additionalResults)) {
+      assert(text(name) && name !== value.effect.resultName && Array.isArray(rows));
+    }
+  }
   assert(Array.isArray(value.read.beforeRows) && Array.isArray(value.read.afterRows));
   assert(text(value.review?.target));
   assert(Object.hasOwn(value.review, 'identity'));
@@ -55,6 +61,16 @@ function checkReview(review, summary, ref, expected) {
   }
   assert.deepEqual(row.intended_changes, {state: 'present', value: expected.changes});
   assert.deepEqual(row.after, row.intended_changes);
+}
+
+async function readAdditionalResults(run, effect) {
+  const retained = {};
+  for (const [name, expected] of Object.entries(effect.additionalResults ?? {})) {
+    const rows = await run.result(name).all();
+    assert.deepEqual(rows, expected, 'Independent original Result: ' + name);
+    retained[name] = rows;
+  }
+  return retained;
 }
 
 async function readOriginal(client, value, phase, save) {
@@ -132,7 +148,9 @@ export async function runRecordUpdateApprovalPhase({phase, client,
         assert.equal(terminal.run_id, captured.runId);
         const rows = await run.result(value.effect.resultName).all();
         assert.deepEqual(rows, value.effect.expectedRows);
-        await save('approved', {binding: originalBinding, ref: run.ref, rows});
+        const additionalResults = await readAdditionalResults(run, value.effect);
+        await save('approved', {binding: originalBinding, ref: run.ref, rows,
+          ...(value.effect.additionalResults === undefined ? {} : {additionalResults})});
         await readOriginal(client, value, 'after', save);
       } else {
         const approved = await load('approved');
@@ -143,10 +161,13 @@ export async function runRecordUpdateApprovalPhase({phase, client,
         const rows = await run.result(value.effect.resultName).all();
         assert.deepEqual(rows, value.effect.expectedRows);
         assert.deepEqual(rows, approved.rows);
+        const additionalResults = await readAdditionalResults(run, value.effect);
+        if (value.effect.additionalResults !== undefined) assert.deepEqual(additionalResults, approved.additionalResults);
         const state = await run.status();
         assert.equal(state.status, 'succeeded');
         assert.equal(state.run_id, captured.runId);
-        await save('recovered', {binding: originalBinding, ref: run.ref, rows});
+        await save('recovered', {binding: originalBinding, ref: run.ref, rows,
+          ...(value.effect.additionalResults === undefined ? {} : {additionalResults})});
       }
     }
   } catch (error) {failed = true;primary = error;}

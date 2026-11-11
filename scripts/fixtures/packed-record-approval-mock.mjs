@@ -9,6 +9,8 @@ import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const connector = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR;
+const variant = process.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT || undefined;
+assert(variant === undefined || variant === 'binary-source' && connector === 'hubspot', 'Select one declared mock variant');
 assert(['salesforce', 'hubspot', 'kintone'].includes(connector), 'Select one original mock consumer');
 const execute = promisify(execFile), privateFile = {mode: 0o600, flag: 'wx'};
 const safe = error => ({name: error?.name, code: error?.code, message: error?.message});
@@ -23,8 +25,10 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
   await mkdir(project); await mkdir(home);
   t.diagnostic(`Retained ${connector} mock original root: ${root}`);
   const selection = {recordId: connector === 'salesforce' ? '001MockSelected' : '9007199254740993',
-    previousName: 'Before shared mock approval', nextName: 'After shared mock approval'};
-  const {mockProjectFiles} = await import(new URL(`./${connector}-approval/mock-project.mjs`, import.meta.url));
+    previousName: 'Before shared mock approval', nextName: 'After shared mock approval',
+    ...(variant === undefined ? {} : {variant})};
+  const fixture = variant === 'binary-source' ? 'binary-source-mock-project.mjs' : 'mock-project.mjs';
+  const {mockProjectFiles} = await import(new URL(`./${connector}-approval/${fixture}`, import.meta.url));
   const files = mockProjectFiles(selection);
   for (const [name, body] of Object.entries(files)) {
     const path = join(project, name); await mkdir(dirname(path), {recursive: true});

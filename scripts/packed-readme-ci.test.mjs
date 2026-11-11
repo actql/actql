@@ -76,7 +76,7 @@ test('existing collector keeps the distinct Whole fixture and original cold inpu
   assert.equal(metric.samples[0].verified, true);
 });
 
-test('Whole and three-Source evidence preserves failed commands and requires original nonzero qualification', async t => {
+test('Whole three-Source and binary JOIN evidence preserves failed commands and requires original nonzero qualification', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-approval-evidence-'));
   t.after(() => rm(root, {recursive: true}));
   await mkdir(join(root, 'scripts'));
@@ -111,7 +111,8 @@ test('Whole and three-Source evidence preserves failed commands and requires ori
   const collect = Function('assert', 'createCommandEvidence', 'join', 'process',
     `return (${source.slice(declaration.start, declaration.end)});`)(assert, createCommandEvidence, join, process);
   for (const [selection, variant] of [['--mock-hubspot-whole-approval', 'whole-input'],
-    ['--mock-hubspot-three-source-approval', 'three-source']]) {
+    ['--mock-hubspot-three-source-approval', 'three-source'],
+    ['--mock-hubspot-binary-source-approval', 'binary-source']]) {
     for (const mode of ['pass', 'exit', 'signal', 'missing', 'variant', 'zero']) {
       const output = join(root, `${variant}-${mode}.output`);
       const invoke = () => collect({repository: root, selection, env: {...process.env,
@@ -138,10 +139,18 @@ test('Whole and three-Source evidence preserves failed commands and requires ori
   }
 });
 
-test('Whole and three-Source CI always collects only the invocation bounded diagnostic directory', () => {
+test('Whole three-Source and binary JOIN CI always collects only the invocation bounded diagnostic directory', () => {
   const steps = workflow.jobs['client-packed'].steps;
-  for (const id of ['packed-hubspot-whole', 'packed-hubspot-three-source']) {
+  for (const [id, selection] of [
+    ['packed-hubspot-whole', '--mock-hubspot-whole-approval'],
+    ['packed-hubspot-three-source', '--mock-hubspot-three-source-approval'],
+    ['packed-hubspot-binary-source', '--mock-hubspot-binary-source-approval'],
+  ]) {
     const consumer = steps.find(step => step.id === id); assert(consumer);
+    assert.equal(consumer.run, `node scripts/test-packed-hubspot-source.mjs --ci ${selection}`);
+    assert.equal(consumer.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+    assert.equal(Object.values(workflow.jobs).flatMap(job => job.steps ?? [])
+      .filter(step => step.run?.includes(selection)).length, 1, 'Each original consumer runs once');
     const upload = steps.find(step => step.with?.directory === `\${{ steps.${id}.outputs.evidence-directory }}`);
     assert(upload); assert(steps.indexOf(upload) > steps.indexOf(consumer));
     assert.equal(upload.if, `always() && steps.${id}.outputs.evidence-directory != ''`);
@@ -150,6 +159,7 @@ test('Whole and three-Source CI always collects only the invocation bounded diag
     assert.equal(consumer['continue-on-error'], undefined);
     assert(!Object.hasOwn(upload.with, 'path'), 'Never upload the private application/state scratch');
   }
+  assert(workflow.jobs.client.needs.includes('client-packed'), 'Original consumers remain required');
 });
 test('required README job reuses the exact single producer on Node 22 and 24 with failure retention', () => {
   assert(job); assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);

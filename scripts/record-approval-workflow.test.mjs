@@ -75,7 +75,13 @@ function publicDouble(value) {
   }, async status() {
     events.push('effect:status');return approved ? {status: 'succeeded', run_id: 'same-run'}
       : {status: 'waiting_checkpoint', run_id: 'same-run', checkpoint};
-  }, result(name) {assert.equal(name, value.effect.resultName);events.push('effect:result');
+  }, result(name) {
+    if (name !== value.effect.resultName) {
+      assert(Object.hasOwn(value.effect.additionalResults ?? {}, name));
+      events.push('effect:result:' + name);
+      return {async all() {events.push('effect:rows:' + name);return structuredClone(value.effect.additionalResults[name]);}};
+    }
+    events.push('effect:result');
     return {async all() {events.push('effect:rows');return structuredClone(value.effect.expectedRows);}};}};
   const client = {async startSource(document, options) {
     if (document === value.effect.document) {
@@ -715,4 +721,43 @@ test('kintone approval provider requires credential-bearing Form and exact selec
   assert.equal(response.body.records[0].Subject.value, selection.previousName);
   assert.throws(() => read.handle(f.exchange('POST', read.pathname, {...body, query: 'all'}, headers)));
   assert.equal(f.value.snapshot().writes, 0);
+});
+
+
+test('binary Whole JOIN fixture reads full joined rows and updates before cold same-Run status', async () => {
+  const update = await readFile(new URL('./fixtures/hubspot-approval/binary-source-update.aql', import.meta.url), 'utf8');
+  const read = await readFile(new URL('./fixtures/hubspot-approval/read.aql', import.meta.url), 'utf8');
+  assert.equal(update.split('\nJOIN ').length - 1, 1, 'One existing binary JOIN, no N-ary extension');
+  const {mockProjectFiles} = await import('./fixtures/hubspot-approval/binary-source-mock-project.mjs');
+  const files = mockProjectFiles(selection), catalog = JSON.parse(files['mock/catalog.json']);
+  assert.deepEqual(catalog.connections.hubspot.query_aliases, [
+    {name: 'hubspot.companies', resource: 'companies'},
+    {name: 'hubspot.companies_peer', resource: 'companies'},
+  ]);
+  const value = hubspotUpdateCase({update, read}, {...selection, variant: 'binary-source'});
+  assert.deepEqual(value.effect.additionalResults, {joined: [{id: 'record-1', left_name: 'before',
+    right_id: 'record-1', right_name: 'before', next_name: 'after'}]});
+  const f = publicDouble(value);
+  await phase('capture', value, f); await phase('approve', value, f);
+  const split = f.events.length;
+  await phase('recover', value, f);
+  const cold = f.events.slice(split);
+  assert(cold.indexOf('effect:rows:joined') < cold.indexOf('effect:status'));
+  assert(!cold.some(value => value.startsWith('submit:') || value === 'approve'));
+  assert.deepEqual(f.saved.get('approved').additionalResults, value.effect.additionalResults);
+  assert.deepEqual(f.saved.get('recovered').additionalResults, value.effect.additionalResults);
+  assert.deepEqual(f.saved.get('submitted').ref, f.saved.get('recovered').ref);
+  assert.equal(f.events.filter(value => value === 'effect:result:joined').length, 2);
+  assert.equal(f.events.filter(value => value === 'close').length, 3);
+});
+
+test('binary Whole JOIN fixture refuses incomplete joined Result without losing first close', async () => {
+  const value = hubspotUpdateCase({update: 'authored binary JOIN', read: 'authored source read'},
+    {...selection, variant: 'binary-source'}), f = publicDouble(value);
+  await phase('capture', value, f);
+  const original = f.effect.result;
+  f.effect.result = name => name === 'joined' ? {all: async () => []} : original.call(f.effect, name);
+  await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
+  assert.equal(f.events.at(-1), 'close');
+  assert.equal(f.saved.has('approved'), false);
 });

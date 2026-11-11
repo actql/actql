@@ -1686,6 +1686,18 @@ jobs:
         with:
           directory: ${{ steps.packed-hubspot-three-source.outputs.evidence-directory }}
           name: packed-hubspot-three-source-${{ github.sha }}
+      - name: Test packed binary Whole JOIN HubSpot mock approval and original Saved
+        id: packed-hubspot-binary-source
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-binary-source-approval
+      - name: Retain packed binary Whole JOIN HubSpot qualification and failure evidence
+        if: always() && steps.packed-hubspot-binary-source.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-hubspot-binary-source.outputs.evidence-directory }}
+          name: packed-hubspot-binary-source-${{ github.sha }}
       - name: Test packed kintone mock approval and original Saved
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
