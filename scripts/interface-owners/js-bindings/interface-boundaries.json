@@ -32408,7 +32408,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ce2739334a649cb30031765321d07d05c66b8625f5842ddcfc4705886a3b4be0",
+      "sha256": "2a5415028e6408aad2226cf090ad9c87049d46426b2cfd95c9f72343c3807826",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

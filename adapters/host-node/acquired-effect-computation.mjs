@@ -940,7 +940,10 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         try {await publicationPreparation;} catch { /* The persist caller retains its primary failure. */ }
         publicationPreparation = undefined;
       }
-      if (holding !== undefined) {await holding.commit(); holding = undefined;}
+      // Retire the same original holding without starting a private write
+      // after cancellation/failure. Abort awaits its actual in-flight work,
+      // confirms an already committed original, and retains pending cleanup.
+      if (holding !== undefined) {await holding.abort(); holding = undefined;}
       while (publicationBindings.length > 0) {
         if (moon.clientProgramReleaseInferInvocationBinding(publicationBindings[0]) !== true) return false;
         publicationBindings.shift();

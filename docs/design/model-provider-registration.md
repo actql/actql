@@ -413,6 +413,13 @@ the retained overlap of successive scan/writer projections; no child issues a
 second publication reservation. Pending preparation or Store work is not a
 physical cleanup acknowledgement.
 
+Retiring a partial private holding uses that same holding's abort operation,
+never a new commit. Abort awaits an already running write and reconciles its
+original Store observation; a never-started holding is not published after
+cancellation or failure. Unknown observations or pending prepared cleanup keep
+the same holding and invocation bindings for their original retirement. They
+do not replace the first publication failure or authorize another write.
+
 Each entered Model input may grow its retained input-body peak on the group's
 same original Read token. The group's existing per-child byte fields retain
 those peaks; only that child's positive delta is added to the shared token.

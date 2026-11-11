@@ -5,6 +5,7 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
+import {preparePrivatePublicationHolding as originalPrivateHolding} from '../host-common/private-publication-holding.mjs';
 
 // Actual publication functions with explicit typed Core/Store-plan ports.
 // No runtime source overlay, installed package, real Model or authority claim.
@@ -28,11 +29,16 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 
 // Actual group custody with explicit nominal publication/Store ports. The
 // deferred preparation is not an installed Model, Core ABI or physical ACK.
-function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding, retireCapture} = {}) {
+function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding, retireCapture,
+  store, holdingFactory, originalNames = false} = {}) {
   const events = [], contexts = [], preparedOptions = [], controller = new AbortController();
   const sourcePlan = {}, plan = {compiled: {}, runDefinition: {}}, issuance = {};
   const publication = {binding: {}, observation: {name: 'observation', wire: '{}', identity: 'observation'},
     invocation: {name: 'invocation', wire: '{}', identity: 'invocation'}, plan: {}};
+  if (originalNames) {
+    publication.observation.name = 'observation_set';
+    publication.invocation.name = 'run_invocation';
+  }
   let current = true;
   const selections = Object.freeze([0, 1].map(index => Object.freeze({graph: {index}, occurrence: {index},
     observeAccount: () => ({})})));
@@ -64,7 +70,9 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
           close: async () => true, cleanupPending: () => false}};
     }, preparePrivatePublicationHolding(store, original) {
       events.push('holding-' + original.name);
-      return {async commit() {events.push('commit-' + original.name); await commit?.(original);}};
+      if (holdingFactory !== undefined) return holdingFactory(store, original);
+      return {async commit() {events.push('commit-' + original.name); await commit?.(original);},
+        async abort() {events.push('abort-' + original.name); return true;}};
     }, async acquiredInferEffectPublicationPlan(options) {
       events.push('prepare');
       preparedOptions.push(options);
@@ -74,7 +82,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   const create = new Function(...Object.keys(ports), `return (${groupText.slice(groupNode.start, groupNode.end)});`)(...Object.values(ports));
   const group = create({moon, acquired, infer: {components: selections}, originalModelComponents: components,
     originalModelSelection: {components: selections}, originalPreparation, plan, sourcePlan,
-    signal: controller.signal, modelController: {}, faultInjection,
+    signal: controller.signal, modelController: {}, faultInjection, store,
     current() {if (!current) throw new Error('OriginalCurrentLost');}});
   group.bind({captures: [{}], evidence: [{}], captureStartedAt: 'start', captureCompletedAt: 'end'});
   for (const [index, context] of contexts.entries()) context.retainOperation(operations[index]);
@@ -128,6 +136,90 @@ test('plural pending cancel and lost current prevent private publication and ret
     await f.group.retirePublication();
     assert.equal(f.events.filter(value => value === 'release-binding').length, 1);
   }
+});
+
+test('plural cancellation before private commit never starts Store preparation during retirement', async () => {
+  // Actual private holding Owner with explicit Store ports; no physical Store,
+  // Core grant, installed Model or public cleanup acknowledgment is claimed.
+  const calls = {prepare: 0, commit: 0}, prepared = {status: () => ({pending: false})};
+  let stored, f;
+  const store = {
+    async confirmPrivateEvidence() {return stored;},
+    async preparePrivateEvidence() {
+      calls.prepare++;
+      return {physicalCid: 'original-object', bytes: 2, prepared};
+    },
+    async commitPhysicalHolding(record) {calls.commit++; stored = record;},
+  };
+  f = publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding,
+    faultInjection() {f.cancel();}});
+  await assert.rejects(f.group.persist(), error => error === f.signal.reason);
+  assert.deepEqual(calls, {prepare: 0, commit: 0});
+  assert.equal(await f.group.retirePublication(), true);
+  assert.deepEqual(calls, {prepare: 0, commit: 0});
+  assert.equal(f.events.filter(value => value === 'release-binding').length, 1);
+  await assert.rejects(f.group.persist(), error => error === f.signal.reason);
+});
+
+test('plural failed private write keeps original holding and primary through unknown and pending abort', async () => {
+  const primary = new Error('OriginalPrivateWriteFailed'), unknown = new Error('OriginalStoreObservationUnknown');
+  const calls = {prepare: 0, commit: 0, release: 0};
+  let mode = 'absent', cleanupReady = false, pending = true;
+  const prepared = {status: () => ({pending}), async release() {
+    calls.release++;
+    if (cleanupReady) pending = false;
+    return cleanupReady;
+  }};
+  const store = {
+    async confirmPrivateEvidence() {if (mode === 'unknown') throw unknown;},
+    async preparePrivateEvidence() {calls.prepare++; return {physicalCid: 'original-object', bytes: 2, prepared};},
+    async commitPhysicalHolding() {calls.commit++; throw primary;},
+  };
+  const f = publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding});
+  await assert.rejects(f.group.persist(), error => error === primary);
+  mode = 'unknown';
+  await assert.rejects(f.group.retirePublication(), error => error === unknown);
+  assert.equal(f.events.includes('release-binding'), false);
+  assert.deepEqual(calls, {prepare: 1, commit: 1, release: 0});
+  mode = 'absent';
+  await assert.rejects(f.group.retirePublication(), {code: 'PrivatePublicationHoldingCleanupPending'});
+  assert.equal(f.events.includes('release-binding'), false);
+  assert.equal(pending, true);
+  await assert.rejects(f.group.persist(), error => error === primary);
+  cleanupReady = true;
+  assert.equal(await f.group.retirePublication(), true);
+  assert.equal(await f.group.retirePublication(), true);
+  assert.equal(pending, false);
+  assert.deepEqual(calls, {prepare: 1, commit: 1, release: 2});
+  assert.equal(f.events.filter(value => value === 'release-binding').length, 1);
+  await assert.rejects(f.group.persist(), error => error === primary);
+});
+
+test('plural cancellation waits for the same actual private holding commit without reissuing it', async () => {
+  const gate = deferred(), calls = {prepare: 0, commit: 0};
+  let stored, pending = true;
+  const prepared = {status: () => ({pending}), async release() {pending = false; return true;}};
+  const store = {
+    async confirmPrivateEvidence() {return stored;},
+    async preparePrivateEvidence() {calls.prepare++; return {physicalCid: 'original-object', bytes: 2, prepared};},
+    async commitPhysicalHolding(record) {calls.commit++; await gate.promise; stored = record;},
+  };
+  const f = publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding});
+  const outcome = f.group.persist().then(value => ({value}), error => ({error}));
+  await turn();
+  assert.deepEqual(calls, {prepare: 1, commit: 1});
+  f.cancel();
+  let retired = false;
+  const retiring = f.group.retirePublication().then(value => {retired = true; return value;});
+  await turn(); assert.equal(retired, false);
+  assert.equal(f.events.includes('release-binding'), false);
+  gate.resolve();
+  assert.strictEqual((await outcome).error, f.signal.reason);
+  assert.equal(await retiring, true);
+  assert.deepEqual(calls, {prepare: 1, commit: 1});
+  assert.equal(pending, false);
+  assert.equal(f.events.includes('holding-run_invocation'), false);
+  assert.equal(f.events.filter(value => value === 'release-binding').length, 1);
 });
 
 test('plural publication retains the first preparation failure including thrown undefined', async () => {
@@ -412,7 +504,8 @@ test('plural private holding failure preserves its primary and retires the same 
   assert.equal(f.events.filter(value=>value==='prepare').length,1);
   assert.equal(f.events.some(value=>value.startsWith('commit-')),false);
   assert.equal(await f.group.retirePublication(),true);
-  assert.equal(f.events.filter(value=>value==='commit-observation').length,1);
+  assert.equal(f.events.filter(value=>value==='commit-observation').length,0);
+  assert.equal(f.events.filter(value=>value==='abort-observation').length,1);
   assert.equal(f.events.includes('commit-invocation'),false);
   assert.equal(f.events.filter(value=>value==='release-binding').length,1);
 });
