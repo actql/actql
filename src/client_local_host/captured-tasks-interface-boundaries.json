@@ -249,7 +249,7 @@
     {
       "module": "src/client_local_host/captured_tasks_control_inventory.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4e94ec644fcbcb552b68d9170acad6f2cd3cfbdbb08899d0356ace0b73400ce8",
+      "sha256": "5a6c2d1512d23faf4af17d33a506c9d7134681c5e4d9dee552dd9703de901786",
       "role": "common-semantics",
       "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
       "exports": [],
@@ -257,13 +257,28 @@
         {
           "name": "captured_local_tasks_control_capacity",
           "declaration": "captured_local_tasks_control_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "local_tasks_control_capacity",
+          "declaration": "local_tasks_control_capacity ( graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "retained_effect_local_tasks_control_capacity",
+          "declaration": "retained_effect_local_tasks_control_capacity ( graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_input_local_tasks_control_capacity",
+          "declaration": "source_input_local_tasks_control_capacity ( graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "captured_local_tasks_control_capacity"
+            "captured_local_tasks_control_capacity",
+            "local_tasks_control_capacity",
+            "retained_effect_local_tasks_control_capacity",
+            "source_input_local_tasks_control_capacity"
           ],
           "exports": [],
           "attributes": {

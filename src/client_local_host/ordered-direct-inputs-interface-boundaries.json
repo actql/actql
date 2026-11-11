@@ -325,7 +325,7 @@
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b33cebf5ee2c68aca5d0904d1e9ea4d92e64896b8603be08914742846a7e47f9",
+      "sha256": "adb026517de7fdb12f35b4252125f18a1f53232847e9b462afc7d0646e1d7e81",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -345,6 +345,10 @@
         {
           "name": "installed_managed_capture_plan",
           "declaration": "installed_managed_capture_plan ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_capture_publication_geometry_original",
+          "declaration": "installed_managed_capture_publication_geometry_original ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > ( @ strategy . CheckedDAG , @ execution . RetainedRowDecodeLimits , Int , Int ) ?"
         },
         {
           "name": "open_installed_managed_capture_host",
@@ -399,7 +403,8 @@
             "prepare_installed_managed_capture_plan_owned",
             "prepare_retained_installed_capture_ledger",
             "prepared_installed_managed_capture_acquisition",
-            "prepared_installed_managed_capture_requirements"
+            "prepared_installed_managed_capture_requirements",
+            "installed_managed_capture_publication_geometry_original"
           ],
           "exports": [],
           "attributes": {
@@ -1216,7 +1221,7 @@
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "99ac90bf3596cbee74e6bdd0a0bd343987d75620dde08250187c04e99632b0d0",
+      "sha256": "d9b74ab8fc5e7e973c3c5472e6a176d6e07e7850669c8a07088e709dfcbb1b16",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1232,6 +1237,10 @@
         {
           "name": "begin_installed_managed_whole_source_read_at",
           "declaration": "begin_installed_managed_whole_source_read_at ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_managed_whole_source_read_on_ledger",
+          "declaration": "begin_installed_managed_whole_source_read_on_ledger ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , expected : ClientInstalledWholeSourceCapacity , ledger : @ resources . Ledger , transfer : Int64 , scratch : Int64 , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "begin_installed_managed_whole_source_read_original",
@@ -1365,7 +1374,8 @@
             "select_installed_effect_source_input",
             "select_installed_source_input",
             "select_installed_source_input_graph",
-            "start_installed_whole_source_read_rows"
+            "start_installed_whole_source_read_rows",
+            "begin_installed_managed_whole_source_read_on_ledger"
           ],
           "exports": [],
           "attributes": {

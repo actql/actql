@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "aeaeeb606bf48e019a5b4dd33bf49aa5ad4ea147cd3391378ccdf1106c9754f4",
+      "sha256": "655b38d2c64035e947184ea449661509165e9fdf97087af49bcb2cb666f3a984",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -627,6 +627,13 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/retainPreflightCleanup/retainPreflightCleanup",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
           "name": "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
           "parameters": [],
           "async": true
@@ -818,7 +825,8 @@
             "acquiredEffectModelGroup/retirePublication",
             "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
             "openAcquiredEffectComputation/wholeInputs/wholeInputs",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#13"
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
+            "openAcquiredEffectComputation/retainPreflightCleanup/retainPreflightCleanup"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -3137,6 +3145,14 @@
             "hasCustody"
           ],
           "async": false
+        },
+        {
+          "name": "retainDispatchPrimaryFailure",
+          "parameters": [
+            "entry",
+            "result"
+          ],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -3535,7 +3551,8 @@
             "dispatchFailureSnapshot",
             "dispatchFailureSnapshot/text/text",
             "releaseDispatchPreparationHost",
-            "retainDispatchPreparationHost"
+            "retainDispatchPreparationHost",
+            "retainDispatchPrimaryFailure"
           ],
           "exports": [],
           "attributes": {
@@ -4466,7 +4483,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d7fcf1d90056c91d8a9ecb61b3934df9eb7e62110d0108bf06b09631d7f97ca8",
+      "sha256": "50f96d923264ac8b990b7439119927e171eec69afc44fda76fc8e79508248a66",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -24423,7 +24440,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "d72babe6e852a8eb7cdb00e0275f3c0384cadcbce665b7b7831089a2587fc942",
+      "sha256": "baa576849ef36bc30d525b1f04920cff6db8ead55b947a1202c4339a625e8c84",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24493,7 +24510,8 @@
             "captureStartedAt",
             "captureCompletedAt",
             "keyedSource",
-            "signal"
+            "signal",
+            "sourcePlan"
           ],
           "async": true
         },
@@ -24536,7 +24554,8 @@
             "issuedModel",
             "modelOriginal",
             "modelEvidence",
-            "keyedSource"
+            "keyedSource",
+            "sourcePlan"
           ],
           "async": false
         },

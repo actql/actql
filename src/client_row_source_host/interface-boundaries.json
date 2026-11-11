@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "a5bc2af4ef94245257fab3a8f19269be2da7cdd7568c62d72f26657b90fe5022",
+      "sha256": "9d151861b9ccd050b1c470d6db93b7664ae4523264fed5c4577eab802dc054b7",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -441,6 +441,7 @@
         "pub fn keyed_row_capacity_bytes(RowKeyedCapacity) -> (Int64, Int64)",
         "pub fn keyed_row_capacity_matches(RowKeyedCapacity, @lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts) -> Bool",
         "pub fn keyed_row_capacity_target(RowKeyedCapacity, RowDeclaration) -> Result[(String, Array[String]), RowHostIssue]",
+        "pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?",
         "pub fn keyed_row_capture_identity(RowKeyedSourceCapture) -> Result[@execution_relation.RowWireIdentity, RowHostIssue]",
         "pub fn keyed_row_capture_matches_request(RowKeyedSourceCapture, @sourceview_resolution.KeyedRowRequest) -> Bool",
         "pub fn keyed_row_capture_read(RowKeyedSourceCapture) -> Result[@execution_relation.SuppliedRelationRead, RowHostIssue]",
@@ -538,6 +539,7 @@
         "pub fn row_captures_original_prefix_available(RowCapturedInputs, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> Bool",
         "pub fn row_declaration_catalog_cid(RowDeclaration) -> String",
         "pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure",
+        "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?",
         "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?",
         "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?",
@@ -551,6 +553,7 @@
         "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]",
         "pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Schema",
         "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])",
+        "pub fn row_input_acquisition_target_resource(RowInputAcquisition) -> String",
         "pub fn row_input_capture_identity(RowInputAcquisition) -> Array[String]?",
         "pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?",
         "pub fn row_keyed_acquisition_resource(RowKeyedAcquisition) -> String",
@@ -914,6 +917,10 @@
         {
           "name": "keyed_row_capacity_target",
           "declaration": "pub fn keyed_row_capacity_target(RowKeyedCapacity, RowDeclaration) -> Result[(String, Array[String]), RowHostIssue]"
+        },
+        {
+          "name": "keyed_row_capture_export_construction_capacity",
+          "declaration": "pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "keyed_row_capture_identity",
@@ -1304,6 +1311,10 @@
           "declaration": "pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure"
         },
         {
+          "name": "row_declaration_keyed_read_schema_identities",
+          "declaration": "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?"
+        },
+        {
           "name": "row_declaration_view",
           "declaration": "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?"
         },
@@ -1354,6 +1365,10 @@
         {
           "name": "row_input_acquisition_target",
           "declaration": "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])"
+        },
+        {
+          "name": "row_input_acquisition_target_resource",
+          "declaration": "pub fn row_input_acquisition_target_resource(RowInputAcquisition) -> String"
         },
         {
           "name": "row_input_capture_identity",
@@ -1591,7 +1606,9 @@
             "start_keyed_row_acquisition",
             "start_original_accounted_keyed_row_acquisition",
             "start_row_acquisition",
-            "row_acquisition_listing_capacity"
+            "row_acquisition_listing_capacity",
+            "keyed_row_capture_export_construction_capacity",
+            "row_declaration_keyed_read_schema_identities"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -1698,7 +1715,9 @@
             "pub struct RowRunResponseBorrow {",
             "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
             "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
-            "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
+            "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
+            "pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?",
+            "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?"
           ],
           "attributes": {
             "responsibility": [
@@ -2420,7 +2439,8 @@
             "row_input_acquisition_request_wire",
             "row_input_acquisition_target",
             "start_accounted_row_input_acquisition",
-            "start_row_input_acquisition"
+            "start_row_input_acquisition",
+            "row_input_acquisition_target_resource"
           ],
           "exports": [
             "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]",
@@ -2438,7 +2458,8 @@
             "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]",
             "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])",
             "pub fn start_accounted_row_input_acquisition(RowInputAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
-            "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
+            "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
+            "pub fn row_input_acquisition_target_resource(RowInputAcquisition) -> String"
           ],
           "attributes": {
             "responsibility": [

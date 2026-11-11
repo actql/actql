@@ -44869,7 +44869,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "30a9b3cbb5b562353695a31befb42b32d2f230cf741d79e25c90957bd074cc04",
+      "sha256": "fab9cf7e62aa8210352ae7c124072dbbb948b55f33041dc6f127dd572539e238",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -44944,7 +44944,8 @@
             "owner",
             "options",
             "signal",
-            "observer"
+            "observer",
+            "cleanup"
           ],
           "async": false
         },
@@ -45003,7 +45004,8 @@
             "owner",
             "options",
             "control",
-            "composition"
+            "composition",
+            "cleanup"
           ],
           "async": true
         },
@@ -65478,7 +65480,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a3cbda43803f26f4790f8ebd0a3f090837b23da413e338742d3211f480592fe2",
+      "sha256": "f9fea1b49a6ff4f807b5057c0a71b1d38cdbe49414b590cd0f2fbf9213484350",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [

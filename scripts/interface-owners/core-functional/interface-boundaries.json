@@ -2379,7 +2379,8 @@
             "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys"
+            "usageKeys/usageKeys/usageKeys",
+            "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit"
           ],
           "exports": [
             "contentCaptureControl",
@@ -10542,6 +10543,24 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
+          "parameters": [
+            "plan",
+            "prepared",
+            "request",
+            "slot",
+            "captured",
+            "identity",
+            "capacity",
+            "input",
+            "observation",
+            "authorityScopeCid",
+            "retention",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
           "parameters": [
             "index",
@@ -15289,7 +15308,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "7a4e712f1e995213203322b824ad3daf0f38f383daaddf516e5e17d9178f7a3f"
+      "sha256": "440cd1e151832ec0066210865c7685aba77f21ab9e11a5f872b06e0c46457519"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -33601,7 +33620,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "b33cebf5ee2c68aca5d0904d1e9ea4d92e64896b8603be08914742846a7e47f9",
+      "sha256": "adb026517de7fdb12f35b4252125f18a1f53232847e9b462afc7d0646e1d7e81",
       "exports": [],
       "operations": [
         {
@@ -33619,6 +33638,10 @@
         {
           "name": "installed_managed_capture_plan",
           "declaration": "installed_managed_capture_plan ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_capture_publication_geometry_original",
+          "declaration": "installed_managed_capture_publication_geometry_original ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > ( @ strategy . CheckedDAG , @ execution . RetainedRowDecodeLimits , Int , Int ) ?"
         },
         {
           "name": "open_installed_managed_capture_host",
@@ -33674,7 +33697,8 @@
             "prepare_installed_managed_capture_plan_owned",
             "prepare_retained_installed_capture_ledger",
             "prepared_installed_managed_capture_acquisition",
-            "prepared_installed_managed_capture_requirements"
+            "prepared_installed_managed_capture_requirements",
+            "installed_managed_capture_publication_geometry_original"
           ],
           "exports": [],
           "attributes": {
@@ -38624,7 +38648,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "99ac90bf3596cbee74e6bdd0a0bd343987d75620dde08250187c04e99632b0d0",
+      "sha256": "d9b74ab8fc5e7e973c3c5472e6a176d6e07e7850669c8a07088e709dfcbb1b16",
       "exports": [],
       "operations": [
         {
@@ -38638,6 +38662,10 @@
         {
           "name": "begin_installed_managed_whole_source_read_at",
           "declaration": "begin_installed_managed_whole_source_read_at ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_managed_whole_source_read_on_ledger",
+          "declaration": "begin_installed_managed_whole_source_read_on_ledger ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , expected : ClientInstalledWholeSourceCapacity , ledger : @ resources . Ledger , transfer : Int64 , scratch : Int64 , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "begin_installed_managed_whole_source_read_original",
@@ -38771,7 +38799,8 @@
             "render_installed_catalog_source_sql",
             "select_installed_effect_source_input",
             "select_installed_source_input_graph",
-            "start_installed_whole_source_read_rows"
+            "start_installed_whole_source_read_rows",
+            "begin_installed_managed_whole_source_read_on_ledger"
           ],
           "exports": [],
           "attributes": {
@@ -49343,7 +49372,7 @@
     },
     {
       "module": "src/client_row_source_host/input_acquisition.mbt",
-      "sha256": "beb34eefe826f1a457cccd86721abc7159e3c30ba9c979d58cfdef90f2c26064",
+      "sha256": "6b25b99724f0a2d111b3641bf9e80e613276c44408442981dd3ed18a33edb62d",
       "exports": [],
       "operations": [
         {
@@ -49375,8 +49404,16 @@
           "declaration": "input_row_capture_live ( run : RowRun ) - > Bool"
         },
         {
+          "name": "prepare_catalog_row_input_acquisition",
+          "declaration": "prepare_catalog_row_input_acquisition ( original : @ sourcequery . SourceAcquisition , program : @ context . ProgramSourceIdentity , sequence : @ lower . PreparedSequence , contracts : @ execution . RegisteredRelationContracts , limits : RowInputLimits , listing_policy ? : @ capacity . Policy ?"
+        },
+        {
           "name": "prepare_row_input_acquisition",
           "declaration": "prepare_row_input_acquisition ( original : @ sourcequery . SourceAcquisition , program : @ context . ProgramSourceIdentity , sequence : @ lower . PreparedSequence , contracts : @ execution . RegisteredRelationContracts , declaration : RowDeclaration , limits : RowInputLimits , listing_policy ? : @ capacity . Policy ?"
+        },
+        {
+          "name": "prepare_row_input_acquisition_original",
+          "declaration": "prepare_row_input_acquisition_original ( original : @ sourcequery . SourceAcquisition , program : @ context . ProgramSourceIdentity , sequence : @ lower . PreparedSequence , contracts : @ execution . RegisteredRelationContracts , declared_view : RowDeclaredView ? , registration_name : String , limits : RowInputLimits , listing_policy ? : @ capacity . Policy ?"
         },
         {
           "name": "row_input_acquisition_capacity",
@@ -49407,8 +49444,20 @@
           "declaration": "row_input_acquisition_request_wire ( value : RowInputAcquisition , ) - > Result [ String , RowHostIssue ]"
         },
         {
+          "name": "row_input_acquisition_schema",
+          "declaration": "row_input_acquisition_schema ( value : RowInputAcquisition , ) - > @ schema . Schema"
+        },
+        {
           "name": "row_input_acquisition_target",
           "declaration": "row_input_acquisition_target ( value : RowInputAcquisition , ) - > ( String , Array [ String ] )"
+        },
+        {
+          "name": "row_input_acquisition_target_resource",
+          "declaration": "row_input_acquisition_target_resource ( value : RowInputAcquisition , ) - > String"
+        },
+        {
+          "name": "row_input_limits_valid",
+          "declaration": "row_input_limits_valid ( limits : RowInputLimits ) - > Bool"
         },
         {
           "name": "start_accounted_row_input_acquisition",
@@ -49442,7 +49491,12 @@
             "row_input_acquisition_request_wire",
             "row_input_acquisition_target",
             "start_accounted_row_input_acquisition",
-            "start_row_input_acquisition"
+            "start_row_input_acquisition",
+            "prepare_catalog_row_input_acquisition",
+            "prepare_row_input_acquisition_original",
+            "row_input_acquisition_schema",
+            "row_input_acquisition_target_resource",
+            "row_input_limits_valid"
           ],
           "exports": [],
           "attributes": {
@@ -62586,7 +62640,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "c48ceba0dcc9bb6ce5d06deb098032910066f96b0e0cbb9a0eef1648e11e1970",
+      "sha256": "0c2f139e29788d50458a4b8039c96a11b3932db5f2ecc77ed5542f13b886be14",
       "exports": [],
       "operations": [
         {
@@ -62704,6 +62758,10 @@
         {
           "name": "client_program_issue_effect_whole_source_input_logical",
           "declaration": "client_program_issue_effect_whole_source_input_logical ( prepared : @ publication_host . PreparedClientEffectComputation , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
+        },
+        {
+          "name": "client_program_issue_installed_whole_effect_source_unit",
+          "declaration": "client_program_issue_installed_whole_effect_source_unit ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , slot : Int , captured : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , input : @ publication . RunEvidenceValue , observation : @ publication . RunEvidenceValue , authority_scope_cid : String , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectAcquiredEvidence , @ publication_host . ClientEffectAcquiredEvidenceIssue , ]"
         },
         {
           "name": "client_program_issue_whole_source_input_logical",
@@ -62893,7 +62951,8 @@
             "client_program_whole_source_issue_source_evidence",
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
-            "client_program_whole_source_target"
+            "client_program_whole_source_target",
+            "client_program_issue_installed_whole_effect_source_unit"
           ],
           "exports": [],
           "attributes": {
@@ -63766,7 +63825,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "a3e6868d2a16d3e301b951ad223960b97151fa743f9c846619c9107a0350841e",
+      "sha256": "fe9bd43d3e1055771423818228c3d1b95ff287dfb6afa624ff8205e24a8dbb94",
       "exports": [],
       "operations": [
         {
@@ -63884,6 +63943,10 @@
         {
           "name": "client_program_issue_effect_whole_source_input_logical",
           "declaration": "client_program_issue_effect_whole_source_input_logical ( prepared : @ publication_host . PreparedClientEffectComputation , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
+        },
+        {
+          "name": "client_program_issue_installed_whole_effect_source_unit",
+          "declaration": "client_program_issue_installed_whole_effect_source_unit ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , slot : Int , captured : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , input : @ publication . RunEvidenceValue , observation : @ publication . RunEvidenceValue , authority_scope_cid : String , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectAcquiredEvidence , @ publication_host . ClientEffectAcquiredEvidenceIssue , ]"
         },
         {
           "name": "client_program_issue_whole_source_input_logical",
@@ -64073,7 +64136,8 @@
             "client_program_whole_source_issue_source_evidence",
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
-            "client_program_whole_source_target"
+            "client_program_whole_source_target",
+            "client_program_issue_installed_whole_effect_source_unit"
           ],
           "exports": [],
           "attributes": {
@@ -71933,7 +71997,7 @@
           }
         }
       ],
-      "sha256": "710b0c11d18cf9019c5dc0d0102900a4505a872c038fd3f7b8f30388bf969c4d",
+      "sha256": "792906edd2c720bc7db7581ca233d0297195958d32c4ebac905154292c13e04f",
       "exports": [],
       "operations": [
         {
@@ -78031,7 +78095,7 @@
     },
     {
       "module": "src/physical_resources/prepared_run_admission.mbt",
-      "sha256": "9b63ffc8b0f7210cd492a35c9d282e0b9336cb323b1a2fb984e6ede1ad2cc616",
+      "sha256": "fb365657623a8354d071fd851009386f422166d2bf5f059329dc76847b64ff59",
       "exports": [],
       "operations": [
         {
@@ -78055,8 +78119,20 @@
           "declaration": "[ P ] cleanup_prepared_run_admission ( value : PreparedRunAdmission [ P ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
+          "name": "[P]grow_prepared_run_native_work_capacity",
+          "declaration": "[ P ] grow_prepared_run_native_work_capacity ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , retained_peak : Int64 , execution_peak : Int64 , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
           "name": "[P]node_prepared_run_admission",
           "declaration": "[ P ] node_prepared_run_admission ( value : NodeManagedRunAdmission [ P ] , ) - > PreparedRunAdmission [ P ]"
+        },
+        {
+          "name": "[P]prepared_run_native_body",
+          "declaration": "[ P ] prepared_run_native_body ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , ) - > Result [ PreparationBodyBorrow [ P ] , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]prepared_run_native_capacity",
+          "declaration": "[ P ] prepared_run_native_capacity ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , ) - > Result [ ( Int64 , Int64 ) , ImportedChildLedgerIssue ]"
         },
         {
           "name": "[P]prepared_run_usage_isolated",
@@ -78069,6 +78145,10 @@
         {
           "name": "[P]reserve_prepared_run_attempt",
           "declaration": "[ P ] reserve_prepared_run_attempt ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , quantities ? : QuantityAmounts ?"
+        },
+        {
+          "name": "[P]reserve_prepared_run_native_work_capacity",
+          "declaration": "[ P ] reserve_prepared_run_native_work_capacity ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , retained_peak : Int64 , execution_peak : Int64 , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -78086,7 +78166,11 @@
             "[P]node_prepared_run_admission",
             "[P]prepared_run_usage_isolated",
             "[P]release_prepared_run_holder",
-            "[P]reserve_prepared_run_attempt"
+            "[P]reserve_prepared_run_attempt",
+            "[P]grow_prepared_run_native_work_capacity",
+            "[P]prepared_run_native_body",
+            "[P]prepared_run_native_capacity",
+            "[P]reserve_prepared_run_native_work_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -84628,12 +84712,20 @@
     },
     {
       "module": "src/client_local_host/original_composed_keyed_prefix.mbt",
-      "sha256": "b7d0645c82d9f5ff204b3bb902ceceaef92af80e03334a7f0f5aa1ba55f067b8",
+      "sha256": "4a300a2f2b8f77f2a4717f05b142c9ae7ed95baf6b30c4fd7c3852b76d113247",
       "exports": [],
       "operations": [
         {
           "name": "advance_client_original_composed_keyed_prefix",
           "declaration": "advance_client_original_composed_keyed_prefix ( value : ClientOriginalComposedKeyedPrefix , quantum : Int , ) - > Result [ @ local . ManagedProviderPoll , @ connector . FixedComputeIssue ]"
+        },
+        {
+          "name": "advance_client_original_composed_keyed_prefix_owned",
+          "declaration": "advance_client_original_composed_keyed_prefix_owned ( value : ClientOriginalComposedKeyedPrefix , quantum : Int , ) - > Result [ @ local . ManagedProviderPoll , @ connector . FixedComputeIssue ]"
+        },
+        {
+          "name": "client_composed_source_root_control_bytes",
+          "declaration": "client_composed_source_root_control_bytes ( sequence : @ execution . GeneratedSequence , ) - > Int64 ?"
         },
         {
           "name": "client_original_composed_keyed_prefix_execution",
@@ -84642,6 +84734,14 @@
         {
           "name": "complete_client_original_composed_keyed_prefix",
           "declaration": "complete_client_original_composed_keyed_prefix ( value : ClientOriginalComposedKeyedPrefix , max_entries : Int , max_name_bytes : Int , ) - > Result [ @ publication_host . ClientKeyedLeftRead , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
+          "name": "composed_keyed_root_control_bytes",
+          "declaration": "composed_keyed_root_control_bytes ( sequences : Array [ @ execution . GeneratedSequence ] , producer_sources ? : Int"
+        },
+        {
+          "name": "retire_composed_keyed_prefix_input_aliases",
+          "declaration": "retire_composed_keyed_prefix_input_aliases ( value : ClientOriginalComposedKeyedPrefix , ) - > Unit"
         },
         {
           "name": "start_client_original_composed_keyed_prefix",
@@ -84674,7 +84774,11 @@
             "start_client_original_composed_keyed_prefix",
             "start_client_original_composed_keyed_prefix_owned",
             "start_installed_original_composed_keyed_prefix",
-            "start_installed_original_composed_keyed_input_prefix"
+            "start_installed_original_composed_keyed_input_prefix",
+            "advance_client_original_composed_keyed_prefix_owned",
+            "client_composed_source_root_control_bytes",
+            "composed_keyed_root_control_bytes",
+            "retire_composed_keyed_prefix_input_aliases"
           ],
           "exports": [],
           "attributes": {
