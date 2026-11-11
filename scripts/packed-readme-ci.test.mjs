@@ -767,6 +767,44 @@ test('required mixed Model Whole is distinct from README three and cannot pass f
   }
 });
 
+test('required normal install enables lifecycle explicitly and preserves original install failure', async t => {
+  const {root} = await scratch(t);
+  const source = await readFile(new URL('./health-monitor-adapters.mjs', import.meta.url), 'utf8');
+  const node = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(value => value.type === 'ExportNamedDeclaration' && value.declaration?.id?.name === 'prepareHealthPackages').declaration;
+  const names = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
+  const manifest = {sourceSha: 'a'.repeat(40), packages: names.map(name =>
+    ({name: '@actql/' + name, file: name + '.tgz'}))};
+  const retained = join(root, 'original-manifest.json');
+  await writeFile(retained, JSON.stringify(manifest));
+  let verified = 0;
+  // Exercise actual argument/routing code with an explicit verifier port.
+  // No package bytes, npm execution or installation acceptance is fabricated.
+  const prepare = Function('assert', 'mkdir', 'join', 'lstat', 'readFile', 'writeFile', 'CLIENT_PACKAGES',
+    'resolve', 'dirname', 'verifyNodeBenchmarkPackages', `return (${source.slice(node.start, node.end)});`)(
+    assert, mkdir, join, async () => ({isDirectory: () => false}), readFile, writeFile, names,
+    value => value, dirname, async () => {verified++;});
+  for (const mode of [undefined, false, true, 'install-failed']) {
+    const directory = join(root, 'install-' + String(mode)); await mkdir(directory);
+    const primary = new Error('Original lifecycle failure'), calls = [], before = verified;
+    const execute = () => prepare({repository, root: directory, source: {sha: manifest.sourceSha, dirty: false},
+      retained, ...(mode === undefined ? {} : {normalLifecycle: mode === 'install-failed' ? true : mode}),
+      async command(command, args, options) {
+        calls.push({command, args, options});
+        if (mode === 'install-failed') throw primary;
+      }});
+    if (mode === 'install-failed') {
+      await assert.rejects(execute, error => error === primary);
+      assert.equal(verified, before, 'Never qualify a failed lifecycle install');
+    } else {await execute(); assert.equal(verified, before + 1);}
+    assert.equal(calls.length, 1); assert.equal(calls[0].command, 'npm');
+    assert.deepEqual(calls[0].args.slice(0, 3), ['install', '--offline',
+      mode === true || mode === 'install-failed' ? '--ignore-scripts=false' : '--ignore-scripts']);
+    assert.equal(calls[0].args.filter(arg => arg.startsWith('--ignore-scripts')).length, 1);
+    assert.equal(calls[0].options.name, 'install-node');
+  }
+});
+
 test('failed shared package preparation records every dependent as unexecuted and runs no consumer', async t => {
   const {root} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions();
   const failure = new Error('Original normal package mismatch'), before = {clean: true, revision: 'a'.repeat(40)};
@@ -775,7 +813,7 @@ test('failed shared package preparation records every dependent as unexecuted an
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository, URL,
     checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
-    prepareHealthPackages: async () => {throw failure;},
+    prepareHealthPackages: async options => {assert.equal(options.normalLifecycle, true); throw failure;},
     runCollectionConsumer: async () => assert.fail('No collection with failed shared input'),
     runReadmeCases: async () => assert.fail('No README with failed shared input'),
     verifyNodeBenchmarkPackages: async () => assert.fail('No successful prepared input')});

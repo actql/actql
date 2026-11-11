@@ -63,7 +63,8 @@ export async function execute(command, args, {cwd, raw, name, timeout = 600_000,
   return result;
 }
 
-export async function prepareHealthPackages({repository, root, source, retained, command}) {
+export async function prepareHealthPackages({repository, root, source, retained, command, normalLifecycle = false}) {
+  assert.equal(typeof normalLifecycle, 'boolean');
   const destination = join(root, 'packages'); await mkdir(destination);
   let manifest;
   if (retained) {
@@ -109,7 +110,8 @@ export async function prepareHealthPackages({repository, root, source, retained,
   assert.deepEqual(manifest.packages.map(row => row.name).sort(), CLIENT_PACKAGES.map(name => '@actql/' + name).sort());
   const consumer = join(root, 'consumer'); await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
-  await command('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-save', '--omit=optional',
+  await command('npm', ['install', '--offline', normalLifecycle ? '--ignore-scripts=false' : '--ignore-scripts',
+    '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...manifest.packages.map(row => {
       assert.equal(row.file, row.file.split('/').at(-1)); return resolve(dirname(retained), row.file);
     })], {cwd: consumer, name: 'install-node'});

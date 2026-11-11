@@ -184,7 +184,7 @@ export async function runPackedReadmeWorkflows(root) {
   let prepared;
   const failures = [], cleanup = [];
   try {
-    prepared = await prepareHealthPackages({repository, root, source, retained, command});
+    prepared = await prepareHealthPackages({repository, root, source, retained, command, normalLifecycle: true});
     report.manifest = prepared.manifest;
     try {
       await runCollectionConsumer({prepared, root, repository, command, report, cleanup});
