@@ -58120,6 +58120,7 @@
             "client_program_request_parameters_original",
             "client_program_request_preparation_accounting",
             "client_program_request_preparation_control",
+            "client_program_request_snapshot_capacity_refusal",
             "client_program_request_submitted_intent_original",
             "client_program_reserve_installed_effect_capture_decoded",
             "client_program_reserve_installed_effect_capture_recovery",
@@ -59174,6 +59175,10 @@
         {
           "name": "client_program_request_program_module_issue_code",
           "declaration": "client_program_request_program_module_issue_code ( result : Result [ Unit , ClientRequestProgramModuleBridgeIssue ] , ) - > String ?"
+        },
+        {
+          "name": "client_program_request_snapshot_capacity_refusal",
+          "declaration": "client_program_request_snapshot_capacity_refusal ( result : Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ] , ) - > ( String , String , Int64 , Int64 , Int64 , Int64 ) ?"
         },
         {
           "name": "client_program_request_submitted_intent_original",
