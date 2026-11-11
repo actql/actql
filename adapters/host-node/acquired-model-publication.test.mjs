@@ -28,7 +28,7 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 
 // Actual group custody with explicit nominal publication/Store ports. The
 // deferred preparation is not an installed Model, Core ABI or physical ACK.
-function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding} = {}) {
+function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding, retireCapture} = {}) {
   const events = [], contexts = [], preparedOptions = [], controller = new AbortController();
   const sourcePlan = {}, plan = {compiled: {}, runDefinition: {}}, issuance = {};
   const publication = {binding: {}, observation: {name: 'observation', wire: '{}', identity: 'observation'},
@@ -60,7 +60,8 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
     }, openNodeInferCaptureCustody({operation}) {
       return {retainCompleted: () => true, completedCallCount: () => 1, modelEvidence: () => [],
         async persist() {events.push('capture-' + operation.index);}, custody: {
-          retirePublication: async () => true, close: async () => true, cleanupPending: () => false}};
+          retirePublication: async () => retireCapture === undefined ? true : retireCapture(operation.index),
+          close: async () => true, cleanupPending: () => false}};
     }, preparePrivatePublicationHolding(store, original) {
       events.push('holding-' + original.name);
       return {async commit() {events.push('commit-' + original.name); await commit?.(original);}};
@@ -467,4 +468,29 @@ test('plural binding retirement retains false and throwing releases for the same
     assert.equal(await f.group.retirePublication(),true);
     assert.equal(f.events.filter(value=>value==='release-attempt').length,2);
   }
+});
+
+
+test('plural retirement installs retry phase before reentrant original child cleanup',async()=>{
+  const gate=deferred();
+  let initial=true,reentered=false,nested,entries=0;
+  const f=publicationGroupFixture({async retireCapture(index){
+    if(index!==0)return true;
+    entries++;
+    if(initial){initial=false;return false;}
+    if(!reentered){reentered=true;nested=f.group.retirePublication();nested.catch(()=>{});}
+    await gate.promise;
+    return true;
+  }});
+  await f.group.persist();
+  assert.equal(await f.group.retirePublication(),false);
+  const outer=f.group.retirePublication();outer.catch(()=>{});
+  await turn();
+  const observedEntries=entries;
+  gate.resolve();
+  const outcomes=await Promise.allSettled([outer,nested]);
+  assert.equal(observedEntries,2,'one original child call in each phase, including reentry');
+  assert.deepEqual(outcomes,[{status:'fulfilled',value:true},{status:'fulfilled',value:true}]);
+  assert.equal(f.events.filter(value=>value==='release-binding').length,1);
+  assert.equal(f.events.filter(value=>value==='release-capacity').length,1);
 });

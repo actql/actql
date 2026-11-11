@@ -935,7 +935,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     // Retirement shares the original pending preparation. It cannot treat a
     // Promise as a binding, detach it, or publish after that preparation settles.
     retirementRequested = true;
-    publicationRetirement ??= (async () => {
+    publicationRetirement ??= Promise.resolve().then(async () => {
       if (publicationPreparation !== undefined) {
         try {await publicationPreparation;} catch { /* The persist caller retains its primary failure. */ }
         publicationPreparation = undefined;
@@ -959,8 +959,11 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         publicationOwner = undefined;
       }
       return true;
-    })();
-    try {return await publicationRetirement;} finally {publicationRetirement = undefined;}
+    });
+    const originalRetirement = publicationRetirement;
+    try {return await originalRetirement;} finally {
+      if (publicationRetirement === originalRetirement) publicationRetirement = undefined;
+    }
   }
   async function persistPublication() {
     if (publicationFailed) throw publicationFailure;
