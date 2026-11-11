@@ -728,6 +728,11 @@ fn infer_scope_expected_whole_sources(
     is Ok(direct) else {
     return Ok(None)
   }
+  let source_origin = client_infer_composed_source_origin(occurrence)
+  let source_names = match source_origin {
+    Some(origin) => client_infer_composed_whole_source_names(origin, direct)
+    None => None
+  }
   let expected : Array[(String, @planning.QuerySourceEvidenceFacts)] = []
   let mut whole = 0
   for slot in 0..<client_direct_acquisition_occurrence_count(direct) {
@@ -748,11 +753,11 @@ fn infer_scope_expected_whole_sources(
           is Some(facts) else {
           return Err(ForeignInput)
         }
-        let name = @acquisition.declaration(
-            @acquisition.mode_input(
-              @acquisition.source_acquisition_mode(original),
-            ),
-          ).input_name
+        // Use the same checked local/imported port names as live admission.
+        // Downstream Models retain the original closure rather than renaming
+        // it to their later Result input or reacquiring an earlier Source.
+        guard source_names is Some(names) else { return Err(ForeignInput) }
+        let name = names[slot]
         if expected.any(entry => entry.0 == name) {
           return Err(ForeignInput)
         }
@@ -768,9 +773,7 @@ fn infer_scope_expected_whole_sources(
   if whole != client_direct_acquisition_occurrence_count(direct) {
     return Err(UnsupportedBindings)
   }
-  guard client_infer_composed_source_origin(occurrence) is Some(original) else {
-    return Err(ForeignInput)
-  }
+  guard source_origin is Some(original) else { return Err(ForeignInput) }
   if client_infer_occurrence_coordinates(original) !=
     client_infer_occurrence_coordinates(occurrence) {
     return infer_scope_expected_whole_sources(original)
