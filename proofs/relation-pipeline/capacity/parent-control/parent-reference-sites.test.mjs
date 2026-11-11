@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import {auditParentReferenceCode} from './parent-reference-code.mjs';
 import {inspectParentReferenceCode,referenceHelpers} from './parent-reference-sites.mjs';
 const parent='_M0FP45actql5actql10connectors5local42bounded__relation__chain__execution__state';
+const resultMap='_M0MPC16result6Result3mapGRP45actql5actql10connectors5local24ManagedProviderExecutionRP35actql5actql14connector__sdk17FixedComputeIssueURP45actql5actql10connectors5local24ManagedProviderExecutionRP45actql5actql10connectors5local27RelationChainExecutionStateEE';
 const addresses=new Map([[referenceHelpers[0],0x4000],[referenceHelpers[1],0x5000],[referenceHelpers[2],0x6000],
-  ['moonbit_malloc',0x7000],['actql_proof_current_chain_start',0x8000]]);
+  ['moonbit_malloc',0x7000],['actql_proof_current_chain_start',0x8000],
+  [resultMap,0x9000],['moonbit_incref',0xa000],['moonbit_decref',0xb000]]);
 const slots=['0x60','0x68','0x70','0x78','0x80'];
 const types=[referenceHelpers[0],referenceHelpers[1],referenceHelpers[1],referenceHelpers[1],referenceHelpers[2]];
 const values=['movabs rdi,0x0','mov edi,0x0','mov edi,0x0','mov edi,0x0','mov edi,0xffffffff'];
@@ -14,14 +16,17 @@ ops.push('mov rax,QWORD PTR [rbp-0x80]','mov QWORD PTR [rsp],rax',
   ...['rdx','rcx','r8','r9'].map((r,i)=>`mov ${r},QWORD PTR [rbp-${slots[i]}]`),
   {call:'actql_proof_current_chain_start'},'ret');
 function assembly(name,start,ops,object=false) {
+  const labels=new Map();let cursor=start;
+  for(const op of ops){if(op.label)labels.set(op.label,cursor);else cursor+=op.call?5:10;}
   let address=start;let text=`${address.toString(16)} <${name}>:\n`;
   for(const op of ops) {
+    if(op.label)continue;
     const at=address.toString(16);
     if(op.call) {
       text+=`${at}: call ${object?at:addresses.get(op.call).toString(16)}\n`;
       if(object) text+=`${(address+1).toString(16)}: R_X86_64_PLT32 ${op.call}-0x4\n`;
       address+=5;
-    } else {text+=`${at}: ${op}\n`;address+=10;}
+    } else {const resolved=op.replace(/@(\w+)/g,(_,name)=>{assert(labels.has(name));return labels.get(name).toString(16);});text+=`${at}: ${resolved}\n`;address+=10;}
   }
   return text;
 }
@@ -112,5 +117,54 @@ test('frame subregister writes and indirect frame escapes reject before observat
     const changed=[op,...ops];
     assert.throws(()=>check(assembly(parent,0x100,changed,true),
       assembly(parent,0x1000,changed)+referenceHelpers.map(helper).join('')),/frame/);
+  }
+});
+
+
+// Exact generated Result tag/pair branch from the pinned compiler, not a
+// generic allowance for bit operations or arbitrary control flow.
+function resultBranchOps(){
+  return [...ops.slice(0,25),{call:resultMap},'mov r13,rax',
+    'mov rdi,rbx',{call:'moonbit_decref'},'mov rdi,r12',{call:'moonbit_decref'},
+    'mov edi,DWORD PTR [r13-0x4]','and edi,0xff','cmp edi,0x1','je @ok','jmp @error',
+    {label:'ok'},'mov rdi,QWORD PTR [r13+0x0]','mov rbx,QWORD PTR [rdi]',
+    'mov r12,QWORD PTR [rdi+0x8]','mov rdi,r12',{call:'moonbit_incref'},
+    'mov rdi,rbx',{call:'moonbit_incref'},'jmp @observe',
+    {label:'error'},...slots.toReversed().flatMap(slot=>[`mov rdi,QWORD PTR [rbp-${slot}]`,{call:'moonbit_decref'}]),
+    'jmp @returned',{label:'observe'},...ops.slice(25,-1).map(op=>
+      op==='mov rdi,QWORD PTR [rbp-0x90]'?'mov rdi,rbx':op==='mov rsi,QWORD PTR [rbp-0x50]'?'mov rsi,r12':op),
+    {label:'returned'},'nop','mov rax,r13','ret'];
+}
+const checkBranch=code=>check(assembly(parent,0x100,code,true),
+  assembly(parent,0x1000,code)+referenceHelpers.map(helper).join(''));
+test('checked original Result Ok pair reaches the direct observer and preserves the original Result',()=>{
+  const result=checkBranch(resultBranchOps());assert.equal(result.structuralReferenceCount,5);
+  assert.equal(result.pointRequestedBytes,64);assert.equal(result.completePhysicalLifetimeUpper,false);
+});
+test('Result discriminator, original pair and return substitutions remain refused',()=>{
+  for(const [from,to] of [['and edi,0xff','and edi,0x1'],['cmp edi,0x1','cmp edi,0x0'],
+    ['mov edi,DWORD PTR [r13-0x4]','mov edi,DWORD PTR [r12-0x4]'],
+    ['mov r13,rax','mov r13,rbx'],['mov rbx,QWORD PTR [rdi]','mov rbx,QWORD PTR [rdi+0x8]'],
+    ['mov rax,r13','mov rax,rbx'],['and edi,0xff','and esp,0xff']]){
+    assert.throws(()=>checkBranch(resultBranchOps().map(op=>op===from?to:op)));
+  }
+});
+test('Result branches cannot enter the observer from failure or substitute retained Ref arguments',()=>{
+  for(const [from,to] of [['je @ok','je @error'],['jmp @error','jmp @observe'],
+    ['jmp @returned','jmp @observe'],['jmp @observe','jmp @returned'],
+    ['mov rdx,QWORD PTR [rbp-0x60]','mov rdx,QWORD PTR [rbp-0x68]']]){
+    assert.throws(()=>checkBranch(resultBranchOps().map(op=>op===from?to:op)));
+  }
+  assert.throws(()=>checkBranch(['jmp @observe',...resultBranchOps()]),/External branch/);
+  const extra=resultBranchOps();extra.splice(25,0,'and edi,0xff');
+  assert.throws(()=>checkBranch(extra),/Unsupported|Result/);
+});
+
+
+test('Result branch requires independently selected linked map and decref symbols',()=>{
+  const code=resultBranchOps(),o=assembly(parent,0x100,code,true),l=assembly(parent,0x1000,code)+referenceHelpers.map(helper).join('');
+  for(const name of [resultMap,'moonbit_decref']){
+    const missing=symbols.split('\n').filter(line=>!line.endsWith(' '+name)).join('\n');
+    assert.throws(()=>check(o,l,startup(),missing),/Unreviewed Result observer call/);
   }
 });

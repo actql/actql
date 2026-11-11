@@ -3,7 +3,7 @@ import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {runCodeInspection as run,readNativeSymbols} from './native-code-inspection.mjs';
 import {hash} from '../../inventory.mjs';
-import {inspectParentReferenceCode,referenceHelpers} from './parent-reference-sites.mjs';
+import {inspectParentReferenceCode,referenceHelpers,referenceResultMap} from './parent-reference-sites.mjs';
 import {inspectParentCaptureCode} from './parent-capture-sites.mjs';
 import {inspectParentCaptureArm64} from './parent-capture-arm64.mjs';
 import {inspectParentReferenceArm64,arm64ReferenceHelpers} from './parent-reference-arm64.mjs';
@@ -16,7 +16,7 @@ const unresolvedReason='primitive Ref code decoder currently covers linux-x64 an
 const toolsFor=platform=>platform==='darwin-arm64'
   ? {objdump:'/Library/Developer/CommandLineTools/usr/bin/llvm-objdump',helpers:arm64ReferenceHelpers,
     calls:['_moonbit_malloc','_moonbit_incref','_moonbit_decref','_actql_proof_current_chain_start']}
-  : {objdump:'/usr/bin/objdump',helpers:referenceHelpers,calls:['moonbit_malloc','moonbit_incref','actql_proof_current_chain_start']};
+  : {objdump:'/usr/bin/objdump',helpers:referenceHelpers,calls:['moonbit_malloc','moonbit_incref','moonbit_decref',referenceResultMap,'actql_proof_current_chain_start']};
 const parentName=name=>/connectors5local[0-9]+bounded__relation__chain__execution__state$/.test(name);
 const dir='.artifacts/relation-pipeline/current-chain-native/code';
 function generated(object,exe,platform) {

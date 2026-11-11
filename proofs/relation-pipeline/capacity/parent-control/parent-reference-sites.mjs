@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {codeSymbols} from './provider-callback-code.mjs';
 
 export const referenceHelpers=['_M0MPC13ref3Ref3RefGlE','_M0MPC13ref3Ref3RefGbE','_M0MPC13ref3Ref3RefGiE'];
+export const referenceResultMap='_M0MPC16result6Result3mapGRP45actql5actql10connectors5local24ManagedProviderExecutionRP35actql5actql14connector__sdk17FixedComputeIssueURP45actql5actql10connectors5local24ManagedProviderExecutionRP45actql5actql10connectors5local27RelationChainExecutionStateEE';
 const observer='actql_proof_current_chain_start';
 const roles=['used','cancelled','terminal','reclaimed','cleanupIndex'];
 const helperRoles=[referenceHelpers[0],referenceHelpers[1],referenceHelpers[1],referenceHelpers[1],referenceHelpers[2]];
@@ -62,6 +63,35 @@ function helperExtent(name,fn,symbols) {
   assert.deepEqual(actual,expected,'Unreviewed primitive Ref allocation/return sequence');
   return {helper:name,payloadBytes:payload,headerBytes:8,requestedBytes:payload+8};
 }
+// The direct observer's existing Result match introduces this one typed
+// Ok/pair branch. Recognize it as a whole; no generic bit-op/jump allowance.
+function resultObserverBranch(ins,begin,end,sites,symbols) {
+  const masks=ins.flatMap((i,k)=>k>=begin&&k<end&&i.op==='and edi,0xff'?[k]:[]);
+  if(!masks.length)return new Set();
+  assert.equal(masks.length,1,'Repeated Result observer discriminator');
+  const k=masks[0]-1;
+  const equal=(at,op)=>assert.equal(ins[at]?.op,op,'Unreviewed Result observer branch');
+  const call=(at,name)=>assert.equal(target(ins[at],symbols),name,'Unreviewed Result observer call');
+  const jump=(at,name,destination)=>equal(at,`${name} ${ins[destination].address.toString(16)}`);
+  assert(k>=begin+6&&k+24<end,'Detached Result observer branch');
+  call(k-6,referenceResultMap);equal(k-5,'mov r13,rax');equal(k-4,'mov rdi,rbx');call(k-3,'moonbit_decref');
+  equal(k-2,'mov rdi,r12');call(k-1,'moonbit_decref');
+  equal(k,'mov edi,DWORD PTR [r13-0x4]');equal(k+1,'and edi,0xff');equal(k+2,'cmp edi,0x1');
+  jump(k+3,'je',k+5);jump(k+4,'jmp',k+13);
+  equal(k+5,'mov rdi,QWORD PTR [r13+0x0]');equal(k+6,'mov rbx,QWORD PTR [rdi]');
+  equal(k+7,'mov r12,QWORD PTR [rdi+0x8]');equal(k+8,'mov rdi,r12');call(k+9,'moonbit_incref');
+  equal(k+10,'mov rdi,rbx');call(k+11,'moonbit_incref');jump(k+12,'jmp',k+24);
+  for(let n=0;n<5;n++) {
+    equal(k+13+2*n,`mov rdi,QWORD PTR ${sites[4-n].slot}`);call(k+14+2*n,'moonbit_decref');
+  }
+  const exit=ins[k+23].op.match(/^jmp ([0-9a-f]+)$/);assert(exit,'Missing Result error exit');
+  const returned=ins.findIndex(i=>i.address===BigInt('0x'+exit[1]));
+  assert(returned>end,'Result error path enters observer');equal(returned,'nop');equal(returned+1,'mov rax,r13');
+  for(const i of ins.slice(k-4,returned))assert(!/^[a-z]+ r13(?:d|w|b)?,/.test(i.op),
+    'Original observed Result replaced before return');
+  equal(end-6,'mov rdi,rbx');equal(end-5,'mov rsi,r12');
+  return new Set([k+1,k+3,k+4,k+12,k+23]);
+}
 function callerSites(fn,symbols) {
   const ins=fn.instructions;
   const indices=ins.flatMap((i,k)=>referenceHelpers.includes(target(i,symbols))?[k]:[]);
@@ -84,12 +114,13 @@ function callerSites(fn,symbols) {
       i.op!=='mov rbp,rsp'),'Ref caller frame escaped before construction');
   const slotWrites=sites.map(s=>({...s,start:-BigInt(s.slot.slice(5,-1))}));
   const widths={BYTE:1n,WORD:2n,DWORD:4n,QWORD:8n};
+  const resultBranch=resultObserverBranch(ins,begin,end,sites,symbols);
   for(let k=begin;k<end;k++) {
     const op=ins[k].op;
     // This restricted debug region preserves rbp/rsp, never escapes a frame
     // address, and never reassigns the five custody slots. ABI-conforming
     // calls cannot replace private caller-frame slots without such an escape.
-    assert(/^(mov |movabs |lea |call |cmp |je |nop$)/.test(op),'Unsupported Ref custody instruction');
+    assert(/^(mov |movabs |lea |call |cmp |je |nop$)/.test(op)||resultBranch.has(k),'Unsupported Ref custody instruction');
     assert(!frameDestination.test(op) && !frameLea.test(op) &&
       !frameSource.test(op),'Ref caller frame escapes or changes');
     const write=op.match(/^mov (BYTE|WORD|DWORD|QWORD) PTR \[rbp-(0x[0-9a-f]+)\],/);
@@ -99,7 +130,7 @@ function callerSites(fn,symbols) {
       for(const slot of slotWrites) if(address<slot.start+8n && limit>slot.start)
         assert(k===slot.storeIndex && address===slot.start && write[1]==='QWORD','Primitive Ref custody overwritten');
     }
-    if(op.startsWith('je ')) {
+    if(op.startsWith('je ')&&!resultBranch.has(k)) {
       const jump=op.match(/^je ([0-9a-f]+)$/);assert(jump,'Unknown Ref custody branch');
       assert(ins[k+3] && BigInt('0x'+jump[1])===ins[k+3].address &&
         /^mov rdi,QWORD PTR \[rbp-0x[0-9a-f]+\]$/.test(ins[k+1].op) &&
