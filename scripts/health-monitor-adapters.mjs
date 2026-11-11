@@ -420,6 +420,15 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           // A nonzero child can still have reported its original primary and
           // first-close outcome. Preserve those DATA without replacing it.
           try {record.summary = JSON.parse(observation.stdout.trim().split('\n').at(-1));} catch {}
+          try {
+            const partial = JSON.parse(await readFile(join(project, `${phase}.pending.json`), 'utf8'));
+            assert.equal(partial.phase, phase);
+            assert(Number.isSafeInteger(observation?.pid) && observation.pid > 0);
+            assert.equal(partial.pid, observation.pid);
+            record.partialObservation = partial;
+          } catch (diagnosticError) {
+            record.partialObservationUnavailable = nodeBenchmarkFailure(diagnosticError);
+          }
           Object.assign(record, {pid: observation?.pid ?? null, wallNs: observation?.wallNs ?? null,
             exitCode: observation?.code ?? null, signal: observation?.signal ?? null,
             error: nodeBenchmarkFailure(error)});

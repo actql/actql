@@ -327,15 +327,37 @@ try {
   } catch { /* Diagnostic getters cannot replace the original failure. */ }
 }
 let closeFailure, closeFailed = false, closeReturned = false;
+const diagnosticFailures = [];
+const pending = {phase, pid: process.pid, firstFailedStep: firstFailedStep ?? null,
+  status: failed ? 'failed' : 'closing', code: primary?.code,
+  firstClose: {attempted: client !== undefined, returned: false,
+    state: client === undefined ? 'not-attempted' : 'pending'},
+  ...(runObservation === undefined ? {} : {runObservation}),
+  ...(checkDiagnostic === undefined ? {} : {checkObservation: checkDiagnostic})};
+const persistCloseObservation = async () => {
+  try {await writeFile(`${phase}.pending.json`, JSON.stringify(pending) + '\n', {mode: 0o600});}
+  catch (cause) {diagnosticFailures.push({name: cause?.name, code: cause?.code});}
+};
+// This receipt precedes the FIRST close await. A pending receipt never proves
+// cleanup or physical stop, even if its owning process later exits.
+await persistCloseObservation();
 if (client !== undefined) {
   try {await client.close(); closeReturned = true;}
   catch (cause) {closeFailure = cause; closeFailed = true; firstFailedStep ??= 'close';}
 }
+pending.firstClose = {attempted: client !== undefined, returned: closeReturned,
+  state: closeReturned ? 'returned' : closeFailed ? 'threw' : 'not-attempted'};
+pending.firstFailedStep = firstFailedStep ?? null;
+pending.status = failed || closeFailed ? 'failed' : 'closed';
+pending.cleanupCode = closeFailure?.code;
+await persistCloseObservation();
 console.log(JSON.stringify({phase, firstFailedStep: firstFailedStep ?? null,
-  status: failed || closeFailed ? 'failed' : 'passed',
+  status: failed || closeFailed || diagnosticFailures.length ? 'failed' : 'passed',
   code: primary?.code, cleanupCode: closeFailure?.code,
+  ...(diagnosticFailures.length ? {diagnosticFailures} : {}),
   firstClose: {attempted: client !== undefined, returned: closeReturned},
   ...(runObservation === undefined ? {} : {runObservation}),
   ...(checkDiagnostic === undefined ? {} : {checkObservation: checkDiagnostic})}));
 if (failed) throw primary;
 if (closeFailed) throw closeFailure;
+if (diagnosticFailures.length) throw new Error('WorkflowDiagnosticsFailed');

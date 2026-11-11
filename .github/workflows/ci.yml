@@ -1061,7 +1061,9 @@ jobs:
             ${{ runner.temp }}/client-readme-packed/*-mock-*.json
             ${{ runner.temp }}/client-readme-packed/raw/*
             ${{ runner.temp }}/client-readme-packed/mock-project-*/*.observation.json
+            ${{ runner.temp }}/client-readme-packed/mock-project-*/*.pending.json
             ${{ runner.temp }}/client-readme-packed/collection/*.observation.json
+            ${{ runner.temp }}/client-readme-packed/collection/*.pending.json
           if-no-files-found: error
           retention-days: 7
   # Require the existing push-only monitor result; its timing warnings remain nonblocking.

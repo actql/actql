@@ -86,6 +86,7 @@ test('actual first close reports its return separately and never replaces the or
   assert.ok(start > 0 && end > start);
   const make = new Function('ports', `
     let {client,primary}=ports;const phase='capture',failed=true;
+    const process={pid:123},writeFile=async()=>{};
     let firstFailedStep='wait for original Checkpoint',checkDiagnostic,runObservation;
     const console={log:line=>ports.summary(JSON.parse(line))};
     return async()=>{${text.slice(start,end)}};
@@ -102,6 +103,39 @@ test('actual first close reports its return separately and never replaces the or
     assert.deepEqual(result.firstClose, {attempted: true, returned: !cleanupFails});
     assert.equal(result.cleanupCode, cleanupFails ? cleanup.code : undefined);
     assert.equal(result.physicalStop, undefined, 'a close return does not invent whole-Run stop');
+  }
+});
+
+test('workflow persists the original primary before pending close even when diagnostic writes fail', async () => {
+  const start = text.indexOf('let closeFailure, closeFailed');
+  const make = new Function('ports', `
+    const {client,primary,writeFile,process,console}=ports;const phase='capture',failed=true;
+    let firstFailedStep='wait for original Checkpoint',checkDiagnostic,runObservation;
+    return async()=>{${text.slice(start)}};
+  `);
+  for (const writeFails of [false, true]) {
+    const primary = Object.assign(new Error('OriginalWaitRefusal'), {code: 'OriginalWaitRefusal'});
+    const events = [], observations = [];
+    let release, entered, summary;
+    const closing = new Promise(resolve => {release = resolve;});
+    const started = new Promise(resolve => {entered = resolve;});
+    const result = make({primary, process: {pid: 123}, console: {log(value) {summary = JSON.parse(value);}},
+      client: {async close() {events.push('close'); entered(); await closing;}},
+      async writeFile(path, value) {
+        events.push('save'); observations.push({path, value: JSON.parse(value)});
+        if (writeFails) throw Object.assign(new Error('DiagnosticWriteRefused'), {code: 'EACCES'});
+      }})();
+    const rejected = assert.rejects(result, error => error === primary);
+    await started;
+    assert.deepEqual(events, ['save', 'close']);
+    assert.equal(observations[0].path, 'capture.pending.json');
+    assert.equal(observations[0].value.code, primary.code);
+    assert.equal(observations[0].value.firstFailedStep, 'wait for original Checkpoint');
+    assert.deepEqual(observations[0].value.firstClose, {attempted: true, returned: false, state: 'pending'});
+    release(); await rejected;
+    assert.deepEqual(observations[1].value.firstClose, {attempted: true, returned: true, state: 'returned'});
+    assert.equal(summary.status, 'failed'); assert.equal(summary.code, primary.code);
+    assert.equal(summary.diagnosticFailures?.length ?? 0, writeFails ? 2 : 0);
   }
 });
 

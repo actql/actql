@@ -17,7 +17,9 @@ const report = {phase, pid: process.pid, cases: [], submits: 0,
 const save = (name, value) => writeFile(name, JSON.stringify(value, null, 2) + '\n', {mode: 0o600});
 const span = async (name, action) => {
   const value = {name, startedAt: new Date().toISOString()}; report.phases.push(value);
-  try {return await action();} finally {value.endedAt = new Date().toISOString();}
+  try {return await action();}
+  catch (error) {report.firstFailedStep ??= name; throw error;}
+  finally {value.endedAt = new Date().toISOString();}
 };
 function collectionProgram(count) {
   // Small Program, 100k small rows: no enormous VALUES text.
@@ -121,6 +123,17 @@ try {
   }
 } catch (error) {failed = true; primary = error; report.primary = {name: error?.name, code: error?.code};}
 finally {
+  // Persist the original failure before close can wait indefinitely. This is
+  // diagnostic DATA, never a physical stop/cleanup acknowledgement.
+  report.diagnosticErrors = [];
+  report.firstClose = client ? 'pending' : 'not-attempted';
+  const persist = async (path, value) => {
+    try {await save(path, value);}
+    catch (error) {report.diagnosticErrors.push({name: error?.name, code: error?.code});}
+  };
+  await persist(`${phase}.pending.json`, {phase, pid: report.pid,
+    firstFailedStep: report.firstFailedStep ?? null, primary: report.primary,
+    submits: report.submits, firstClose: report.firstClose, complete: false});
   if (client) try {
     await span('FIRST-close', () => client.close()); report.firstClose = 'returned';
   } catch (error) {report.firstClose = 'threw'; cleanup.push(error);}
@@ -141,9 +154,15 @@ finally {
     } catch (error) {cleanup.push(error);}
   }
   report.cleanup = cleanup.map(error => ({name: error?.name, code: error?.code}));
-  report.complete = !failed && cleanup.length === 0;
-  await save(`${phase}.observation.json`, report);
+  report.complete = !failed && cleanup.length === 0 && report.diagnosticErrors.length === 0;
+  await persist(`${phase}.pending.json`, {phase, pid: report.pid,
+    firstFailedStep: report.firstFailedStep ?? null, primary: report.primary,
+    submits: report.submits, firstClose: report.firstClose, complete: false});
+  report.complete &&= report.diagnosticErrors.length === 0;
+  await persist(`${phase}.observation.json`, report);
+  report.complete &&= report.diagnosticErrors.length === 0;
 }
+console.log(JSON.stringify(report));
 if (failed) throw primary;
 if (cleanup.length) throw new AggregateError(cleanup, 'CollectionCleanupUnconfirmed');
-console.log(JSON.stringify(report));
+if (report.diagnosticErrors.length) throw new Error('CollectionDiagnosticsFailed');

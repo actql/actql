@@ -52,6 +52,17 @@ export async function runCollectionPhase({collection, command, record, capturePi
   } catch (error) {
     observed ??= error?.commandResult;
     record.status = 'failed'; record.error = nodeBenchmarkFailure(error);
+    // A timed-out close may never produce stdout or a final observation. Only
+    // consume this actual child/phase's pre-close receipt; do not infer ACK.
+    try {
+      const partial = JSON.parse(await readFile(join(collection, `${phase}.pending.json`), 'utf8'));
+      assert.equal(partial.phase, phase);
+      assert(Number.isSafeInteger(observed?.pid) && observed.pid > 0);
+      assert.equal(partial.pid, observed.pid);
+      record.partialObservation = partial;
+    } catch (diagnosticError) {
+      record.partialObservationUnavailable = nodeBenchmarkFailure(diagnosticError);
+    }
     throw error;
   } finally {
     Object.assign(record, {pid: observed?.pid ?? null, wallNs: observed?.wallNs ?? null,

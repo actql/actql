@@ -25,6 +25,8 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   const output = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(output.if, 'always()'); assert.equal(output.with['if-no-files-found'], 'error');
   assert(output.with.path.includes('raw/*')); assert(output.with.path.includes('*.observation.json'));
+  assert(output.with.path.includes('mock-project-*/*.pending.json'));
+  assert(output.with.path.includes('collection/*.pending.json'));
   assert.deepEqual(workflow.jobs.check.needs, gateJobs);
   const basic = workflow.jobs.lint.steps.map(step => step.run ?? '').join('\n');
   assert(basic.includes('adapters/host-node/client-result-collection-policy.test.mjs'));
@@ -209,18 +211,59 @@ test('packed collection persists Program-removal failure after FIRST close and n
       async path => {events.push(path); if (path === 'second.sql') throw failure;},
       async (path, value) => observations.push({path, value: structuredClone(value)}),
       async () => ({openPaths: []}), async () => {}, '/authored-test-state', assert);
-    assert.equal(observations.length, 1); assert.equal(observations[0].path, `${phase}.observation.json`);
-    assert.equal(observations[0].value.firstClose, 'returned');
-    assert.deepEqual(observations[0].value.aliveScopedFD, {before: 0, after: 0});
+    assert.equal(observations.length, 3);
+    assert.equal(observations[0].path, `${phase}.pending.json`);
+    assert.equal(observations[0].value.firstClose, 'pending');
+    const final = observations.at(-1);
+    assert.equal(final.path, `${phase}.observation.json`);
+    assert.equal(final.value.firstClose, 'returned');
+    assert.deepEqual(final.value.aliveScopedFD, {before: 0, after: 0});
     if (phase === 'capture') {
       assert.deepEqual(events, ['FIRST-close', 'first.sql', 'second.sql']);
       assert.equal(cleanup[0], failure); assert.equal(report.originalProgramsRemovedAfterFirstClose, 1);
-      assert.equal(observations[0].value.complete, false);
-      assert.deepEqual(observations[0].value.cleanup, [{name: 'Error', code: 'EACCES'}]);
+      assert.equal(final.value.complete, false);
+      assert.deepEqual(final.value.cleanup, [{name: 'Error', code: 'EACCES'}]);
     } else {
       assert.deepEqual(events, ['FIRST-close']); assert.deepEqual(cleanup, []);
-      assert.equal(observations[0].value.complete, true);
+      assert.equal(final.value.complete, true);
     }
+  }
+});
+
+test('collection saves its original primary before pending close and diagnostic failure never masks it', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const finalizer = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'})
+    .body.find(value => value.type === 'TryStatement').finalizer;
+  const invoke = Function('client', 'span', 'report', 'cleanup', 'failed', 'phase', 'programs',
+    'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert', 'primary', 'console',
+    `return (async () => {${source.slice(finalizer.start + 1, finalizer.end - 1)}
+      ${source.slice(finalizer.end)}})();`);
+  for (const writeFails of [false, true]) {
+    const primary = Object.assign(new Error('OriginalWaitRefusal'), {code: 'OriginalWaitRefusal'});
+    const report = {phase: 'capture', pid: 123, firstFailedStep: 'wait-100000',
+      primary: {name: primary.name, code: primary.code}, submits: 4};
+    const events = [], stored = [];
+    let release, entered;
+    const closing = new Promise(resolve => {release = resolve;});
+    const started = new Promise(resolve => {entered = resolve;});
+    const result = invoke({async close() {events.push('close'); entered(); await closing;}},
+      async (_name, action) => action(), report, [], true, 'capture', [],
+      async () => assert.fail('Failed capture cannot remove input'),
+      async (path, value) => {
+        events.push('save'); stored.push({path, value: structuredClone(value)});
+        if (writeFails) throw Object.assign(new Error('DiagnosticWriteRefused'), {code: 'EACCES'});
+      }, async () => ({openPaths: []}), async () => {}, '/authored-state', assert, primary, {log() {}});
+    // Install rejection handling before releasing the controlled close.
+    const rejected = assert.rejects(result, error => error === primary);
+    await started;
+    assert.deepEqual(events, ['save', 'close']);
+    assert.equal(stored[0].value.firstClose, 'pending');
+    assert.deepEqual(stored[0].value.primary, {name: primary.name, code: primary.code});
+    assert.equal(stored[0].value.complete, false);
+    release(); await rejected;
+    assert.equal(report.firstClose, 'returned');
+    assert.equal(report.diagnosticErrors.length, writeFails ? 3 : 0);
+    assert.equal(report.complete, false);
   }
 });
 
@@ -239,6 +282,55 @@ async function runnerFunctions() {
     return Function(...Object.keys(ports), `return (${body});`)(...Object.values(ports));
   };
 }
+
+test('collection timeout retains only its actual child pending primary and never infers close return', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  const failure = Object.assign(new Error('Whole child timeout'), {commandResult:
+    {pid: 123, code: null, signal: 'SIGTERM', wallNs: 10, stdout: ''}});
+  const original = {phase: 'capture', pid: 123, primary: {code: 'OriginalWaitRefusal'},
+    firstClose: 'pending', complete: false};
+  for (const partial of [original, {...original, pid: 456}, {...original, phase: 'saved'}]) {
+    await writeFile(join(root, 'capture.pending.json'), JSON.stringify(partial));
+    const record = {phase: 'capture'};
+    await assert.rejects(run({collection: root, record, command: async () => {throw failure;}}),
+      error => error === failure);
+    assert.equal(record.status, 'failed'); assert.equal(record.completed, undefined);
+    if (partial === original) {
+      assert.deepEqual(record.partialObservation, original);
+      assert.equal(record.partialObservation.firstClose, 'pending');
+    } else {
+      assert.equal(record.partialObservation, undefined); assert(record.partialObservationUnavailable);
+    }
+  }
+});
+
+test('README timeout retains the same child primary while close is still unconfirmed', async t => {
+  for (const pid of [123, 456]) {
+    const {root, consumer} = await scratch(t);
+    const failure = Object.assign(new Error('Whole child timeout'), {commandResult:
+      {pid: 123, code: null, signal: 'SIGTERM', wallNs: 10, stdout: ''}});
+    let metric;
+    await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+      counts: {coldSamples: 1}, onMetric: value => {metric = value;},
+      async command(_command, _args, options) {
+        assert.equal(options.timeout, 30000);
+        await writeFile(join(options.cwd, 'capture.pending.json'), JSON.stringify({phase: 'capture', pid,
+          code: 'OriginalWaitRefusal', firstFailedStep: 'wait for original Checkpoint',
+          firstClose: {attempted: true, returned: false, state: 'pending'}}));
+        throw failure;
+      }}), error => error === failure);
+    const record = metric.samples[0].phases[0];
+    assert.equal(record.completed, false);
+    if (pid === 123) {
+      assert.equal(record.partialObservation.code, 'OriginalWaitRefusal');
+      assert.equal(record.partialObservation.firstClose.returned, false);
+      assert.equal(record.partialObservation.firstClose.state, 'pending');
+    } else {
+      assert.equal(record.partialObservation, undefined); assert(record.partialObservationUnavailable);
+    }
+  }
+});
 
 test('independent normal consumers continue after collection and variant failure and retain all original errors', async t => {
   // Exercise the actual orchestration with explicit package and command ports;
@@ -304,7 +396,7 @@ test('failed collection capture never runs its dependent Saved and returns its e
     {pid: 123, code: 1, signal: null, wallNs: 10, stdout: ''}});
   const report = {collection: ['capture', 'saved'].map(phase =>
     ({phase, completed: false, status: 'unexecuted'}))}, cleanup = [];
-  const runCollectionPhase = load('runCollectionPhase', {join, assert, process, nodeBenchmarkFailure});
+  const runCollectionPhase = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   const completedCollectionCapture = load('completedCollectionCapture', {readFile, join, assert});
   const run = load('runCollectionConsumer', {join, dirname, mkdir, copyFile, writeFile,
     symlink, unlink, readlink, assert, process, nodeBenchmarkFailure, runCollectionPhase, completedCollectionCapture});
@@ -364,7 +456,7 @@ test('completed original collection Saved is independent of a later capture case
     {pid: 123, code: 1, signal: null, wallNs: 10, stdout: ''}});
   const report = {collection: ['capture', 'saved'].map(phase =>
     ({phase, completed: false, status: 'unexecuted'}))}, cleanup = [];
-  const runCollectionPhase = load('runCollectionPhase', {join, assert, process, nodeBenchmarkFailure});
+  const runCollectionPhase = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   const completedCollectionCapture = load('completedCollectionCapture', {readFile, join, assert});
   const run = load('runCollectionConsumer', {join, dirname, mkdir, copyFile, writeFile,
     symlink, unlink, readlink, assert, process, nodeBenchmarkFailure, runCollectionPhase, completedCollectionCapture});
