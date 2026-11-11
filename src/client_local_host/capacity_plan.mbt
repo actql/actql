@@ -224,6 +224,22 @@ fn client_local_capacity_plan(
   let fields = dispatch_inventory.map(value => value.fields)
   let imports = {
     ..original_imports,
+    // The SAME complete checked record inventory already bounds every input
+    // occurrence and output. Carry its per-row node width into the default
+    // decoder as well as the aggregate wire budget; it is not rows * width.
+    // Unknown inventories keep the original profile, and callers selecting
+    // explicit import limits remain on their separate existing entry.
+    row: {
+      ..original_imports.row,
+      max_nodes: match value_node_demand {
+        Some(demand) if demand.original.max_node_width <= 2147483644L =>
+          Int::max(
+            original_imports.row.max_nodes,
+            (demand.original.max_node_width + 3L).to_int(),
+          )
+        _ => original_imports.row.max_nodes
+      },
+    },
     wire: {
       ..original_imports.wire,
       max_columns: fields.unwrap_or(original_imports.wire.max_columns),

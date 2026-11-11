@@ -15,9 +15,12 @@ priv struct ExpressionRootLease {
 }
 
 ///|
+// Simultaneous value-root entries are distinct from continuation depth.
+// Production callers supply their SAME funded RowWorkspace entry bound;
+// roots grow on demand and original per-element slot/live checks still apply.
 fn expression_roots(
   budget : LogicalBudget,
-  frames : Int,
+  entries : Int,
   query_time? : @publication.QueryEvaluationTime? = None,
 ) -> ExpressionRoots {
   {
@@ -25,7 +28,7 @@ fn expression_roots(
     budget,
     slots: [],
     free: [],
-    limit: Int::min(frames, 2147483645) + 2,
+    limit: Int::min(entries, 2147483645) + 2,
   }
 }
 

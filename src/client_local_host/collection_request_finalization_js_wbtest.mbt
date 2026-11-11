@@ -99,12 +99,18 @@ fn collection_request_publication_case(
   simple? : Bool = false,
   observed? : Array[@resources.LedgerUsage]? = None,
   actual_request_profile? : Bool = false,
+  giant_elements? : Int? = None,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
     digits.push("SELECT " + n.to_string() + " AS n")
   }
-  let sql = if simple {
+  let giant_row = giant_elements.map(elements => {
+    "{\"cells\":[" + Array::make(elements, "0").join(",") + "]}"
+  })
+  let sql = if giant_elements is Some(elements) {
+    "SELECT [" + Array::make(elements, "0").join(",") + "] AS cells"
+  } else if simple {
     "SELECT 0 AS n"
   } else {
     "WITH d AS (" +
@@ -414,6 +420,44 @@ fn collection_request_publication_case(
             @connector.Execution(@execution.Rows(step, @execution.RowLimit))
           )
         ) => "Configuration/Execution/RowLimit/" + step.to_string()
+        Driver(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(
+                step,
+                @execution.Evaluation(row, binding, original)
+              )
+            )
+          )
+        ) =>
+          "Configuration/Execution/Evaluation/" +
+          @debug.to_string((step, row, binding, original.kind))
+        Driver(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Rows(step, @execution.InvalidRows))
+          )
+        ) => "Configuration/Execution/InvalidRows/" + step.to_string()
+        Driver(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(step, @execution.InvalidRowLimits)
+            )
+          )
+        ) => "Configuration/Execution/InvalidRowLimits/" + step.to_string()
+        Driver(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(step, @execution.OwnerMismatch)
+            )
+          )
+        ) => "Configuration/Execution/OwnerMismatch/" + step.to_string()
+        Driver(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(step, @execution.InputMismatch)
+            )
+          )
+        ) => "Configuration/Execution/InputMismatch/" + step.to_string()
         Driver(@local_driver.Configuration(_)) => "Configuration/other"
         Driver(@local_driver.Execution(_)) => "Execution/other"
         Driver(@local_driver.ManagedValues(_)) => "ManagedValues/other"
@@ -482,7 +526,7 @@ fn collection_request_publication_case(
   let rows = output.rows().unwrap()
   assert_eq(rows.length(), count)
   for row in rows {
-    assert_eq(row, "{\"n\":0}")
+    assert_eq(row, giant_row.unwrap_or("{\"n\":0}"))
   }
   // Use the same retained Plan's actual export limits and the original
   // physical output bridge. No replacement Result/schema/row owner is issued.
@@ -529,7 +573,9 @@ fn collection_request_publication_case(
   }
   assert_true(eof)
   exported.write_string(stream.finish().unwrap())
-  let expected = "[" + Array::make(count, "{\"n\":0}").join(",") + "]"
+  let expected = "[" +
+    Array::make(count, giant_row.unwrap_or("{\"n\":0}")).join(",") +
+    "]"
   assert_eq(exported.to_string(), expected)
   stream
   .issue_result_evidence(
@@ -1208,5 +1254,23 @@ test "collection actual default Request codec reloads 100000 from the same recei
     source_free_max_work=Some(30000000),
     initial_limits=Some(limits),
     actual_request_profile=true,
+  )
+}
+
+///|
+test "actual default Request giant scalar array executes before SDK row-retention refusal" {
+  let limits = client_local_preparation_initial_limits(
+    client_local_resource_policy(),
+    retained_bytes=Some(1073741824L),
+    execution_bytes=Some(1073741824L),
+  ).unwrap()
+  collection_request_publication_case(
+    1,
+    false,
+    source_free_max_work=Some(30000000),
+    initial_limits=Some(limits),
+    simple=true,
+    actual_request_profile=true,
+    giant_elements=Some(20000),
   )
 }

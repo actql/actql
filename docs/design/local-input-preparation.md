@@ -6397,3 +6397,22 @@ full physical envelope. A larger unused codec bound changes no immediate-leaf
 demand; it does not enlarge permission or credit finished/source storage before
 its original owner acknowledges release. Snapshot import still uses the exact
 finished receipt and grows the same Task reservation before construction.
+
+### Value-root entries and internal row decoding
+
+A constructed Array may retain many child values while using only one
+continuation frame. Existing expression scopes therefore receive the SAME
+RowWorkspace entry bound, separately from the unchanged continuation depth
+counter. The scope starts with empty arrays and grows on demand. Original
+per-element slot admission and logical live-byte checks still precede mutation;
+no declared maximum is allocated when the scope opens. Generic, ordered,
+predicate, aggregate and inference mapping callers use that same distinction.
+
+The default generated Local import profile also carries its existing complete
+checked record inventory into the per-row decoder. The node ceiling uses the
+original per-row node width plus the existing wrapper allowance, keeping the
+legacy floor. It never substitutes collection rows times width. Unknown
+inventories and separately selected explicit import profiles retain their
+original route. Cumulative value/work/identity checks, byte/depth bounds and
+SDK per-row retention controls remain independent. Quote and decoder consume
+the same selected profile under the original Task reservation.

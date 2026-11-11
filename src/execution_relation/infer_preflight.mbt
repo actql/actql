@@ -790,7 +790,7 @@ fn infer_preparation_step(
               [],
               state.control,
               state.workspace,
-              Some(expression_roots(state.logical, state.limits.max_frames)),
+              Some(expression_roots(state.logical, state.workspace.limit)),
             ) {
             Ok(frame) => frame
             Err(issue) => return Err(Evaluation(state.row, state.field, issue))

@@ -32668,6 +32668,18 @@
             ],
             "resources": [
               {
+                "path": "src/execution_relation/expression_roots.mbt",
+                "anchor": "// Simultaneous value-root entries are distinct from continuation depth."
+              },
+              {
+                "path": "src/client_local_host/capacity_plan.mbt",
+                "anchor": "// decoder as well as the aggregate wire budget; it is not rows * width."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Value-root entries and internal row decoding"
+              },
+              {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Checked row demand and required metadata quotes"
               },
@@ -32835,7 +32847,7 @@
           }
         }
       ],
-      "sha256": "a351fa55fbcf67a896268871687610bafb0bd02fd2efabcdd093bec35b9edcf0",
+      "sha256": "cb165790c9594738eeb296eb01cfa7c28a31992e8fded66f8f258a1885e86ca3",
       "exports": [],
       "operations": [
         {

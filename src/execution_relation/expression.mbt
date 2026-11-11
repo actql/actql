@@ -247,7 +247,7 @@ fn evaluate_expression_retained(
   logical_work? : LogicalBudget? = None,
   query_time? : @publication.QueryEvaluationTime? = None,
 ) -> Result[EvaluatedValue, EvalIssue] {
-  let scope = logical_work.map(b => expression_roots(b, budget.max_frames))
+  let scope = logical_work.map(b => expression_roots(b, workspace.limit))
   let result = evaluate_expression_impl(
     root,
     input,

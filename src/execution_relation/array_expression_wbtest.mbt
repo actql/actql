@@ -312,3 +312,69 @@ test "nested machine arrays retain one scope and quantum-independent work" {
     assert_eq(short.live, 0L)
   }
 }
+
+///|
+test "wide array roots use original workspace while continuation depth stays independent" {
+  let source = "{\"array\":[" +
+    Array::make(256, "{\"literal\":0}").join(",") +
+    "]}"
+  let expression = lowered(source)
+  let expected = "[" + Array::make(256, "0").join(",") + "]"
+  let execute = fn(workspace, frames) {
+    let logical = logical_budget(
+      {
+        max_input_rows: 1L,
+        max_value_bytes: 100000L,
+        max_live_value_bytes: 100000L,
+        max_work: 100000L,
+      },
+      100000,
+      1000,
+      100,
+    ).unwrap()
+    let result = evaluate_expression_retained(
+      expression,
+      Map([]),
+      [],
+      { remaining: 100000, max_frames: frames, },
+      workspace,
+      logical_work=Some(logical),
+    )
+    (result, logical)
+  }
+  let observed = row_workspace(10000)
+  let (first, logical) = execute(observed, 1)
+  let first = first.unwrap()
+  assert_eq(object_result_wire(first.value), expected)
+  release_logical_root(logical, first.root.unwrap()).unwrap()
+  assert_eq((logical.live, observed.live), (0L, 0))
+  assert_true(observed.peak > 256)
+  let exact = row_workspace(observed.peak)
+  let (ok, exact_logical) = execute(exact, 1)
+  let ok = ok.unwrap()
+  assert_eq(object_result_wire(ok.value), expected)
+  assert_eq(exact.peak, observed.peak)
+  release_logical_root(exact_logical, ok.root.unwrap()).unwrap()
+  assert_eq((exact.live, exact_logical.live), (0, 0L))
+  let short = row_workspace(observed.peak - 1)
+  let (refused, short_logical) = execute(short, 1)
+  assert_true(refused is Err({ kind: WorkspaceLimit, .. }))
+  assert_eq((short.live, short_logical.live), (0, 0L))
+  let (no_frame, no_frame_logical) = execute(row_workspace(10000), 0)
+  assert_true(no_frame is Err({ kind: ControlLimit, .. }))
+  assert_eq(no_frame_logical.live, 0L)
+  let deep = lowered("{\"array\":[{\"array\":[{\"literal\":0}]}]}")
+  let depth_logical = test_logical_budget(100000L, 100000L)
+  assert_true(
+    evaluate_expression_retained(
+      deep,
+      Map([]),
+      [],
+      { remaining: 100000, max_frames: 1, },
+      row_workspace(10000),
+      logical_work=Some(depth_logical),
+    )
+    is Err({ kind: ControlLimit, .. }),
+  )
+  assert_eq(depth_logical.live, 0L)
+}

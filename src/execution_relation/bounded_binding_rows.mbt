@@ -2397,7 +2397,7 @@ fn bounded_binding_rows_step(
                   Some(
                     expression_roots(
                       logical,
-                      state.control.max_frames,
+                      state.workspace.limit,
                       query_time=state.scope.bind(s => s.query_time),
                     ),
                   ),
