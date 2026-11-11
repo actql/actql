@@ -59,6 +59,22 @@ test('heavy jobs require deliberate override; light lint remains usable', t => {
   assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'from workflow\nfrom workflow\n');
 });
 
+test('required packed README job is classified and its exact command remains inspectable without execution', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  const command = 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"';
+  workflow.jobs['client-readme-packed'] = {steps: [{name: 'original packed README consumer', run: command}],
+    'timeout-minutes': 15};
+  writeFileSync(path, JSON.stringify(workflow));
+  const denied = f.run(['run', 'client-readme-packed']);
+  assert.equal(denied.status, 2); assert.match(denied.stderr, /--allow-heavy/u);
+  assert.doesNotMatch(denied.stderr, /unclassified|No local cost classification/u);
+  const dry = f.run(['run', 'client-readme-packed', '--allow-heavy', '--dry-run']);
+  assert.equal(dry.status, 0, dry.stderr); assert(dry.stdout.includes(command));
+  assert.equal(existsSync(join(f.root, 'calls')), false);
+  assert.equal(existsSync(join(f.root, '_build')), false);
+});
+
 function coreBudget(fixture, value) {
   const path = join(fixture.root, '.github/workflows/ci.yml');
   const workflow = JSON.parse(readFileSync(path, 'utf8'));
