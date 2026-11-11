@@ -979,6 +979,8 @@ pub fn prepared_installed_effect_managed_capture_children(ClientInstalledEffectM
 
 pub fn prepared_installed_effect_managed_operation(ClientInstalledEffectManagedPlan, Int, Bool, Int, String) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
 
+pub fn prepared_installed_effect_managed_query_requirement(ClientInstalledEffectManagedPlan, Int) -> Result[@query_planning.QueryRequirement, ClientInstalledManagedRunIssue]
+
 pub fn prepared_installed_effect_managed_requirements(ClientInstalledEffectManagedPlan) -> Array[Int64]
 
 pub fn prepared_installed_effect_managed_shape(ClientInstalledEffectManagedPlan) -> (Int, Int, Int)

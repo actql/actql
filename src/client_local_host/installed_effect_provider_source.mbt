@@ -31,6 +31,20 @@ pub fn prepared_installed_effect_source_occurrences(
 }
 
 ///|
+/// Borrow the Query original for either a Row or native capture slot. Whole
+/// inputs retain their distinct acquisition; this observation grants no read.
+pub fn prepared_installed_effect_managed_query_requirement(
+  plan : ClientInstalledEffectManagedPlan,
+  occurrence : Int,
+) -> Result[@planning.QueryRequirement, ClientInstalledManagedRunIssue] {
+  guard installed_effect_source_capture_index(plan, occurrence) is Some(index) &&
+    plan.captures.get(index) is Some(capacity) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(capacity.requirement)
+}
+
+///|
 /// The same parent/Plan's exact Source slot, without a new whole-inventory
 /// walk. Existing current/read gates remain mandatory at the actual entry.
 pub fn installed_effect_managed_source_occurrence(

@@ -4411,6 +4411,25 @@ function publicationControl(moon) {
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
         invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
     },
+    issueCheckedInstalledEffectDirectSourcesInvocation(plan, checkedEffect, request,
+      compilation, admission, definition, sources, sourceEvidence, context, limits) {
+      issuanceLimits(limits, 'Client original Effect Sources Invocation');
+      if (!Array.isArray(sources) || sources.length < 1 ||
+          !Array.isArray(sourceEvidence) || sourceEvidence.length !== sources.length) {
+        throw new TypeError('Incomplete Effect Source coverage');
+      }
+      const issued = checked(moon.clientProgramIssueInstalledEffectDirectSourcesInvocation(
+        plan, checkedEffect, request, compilation, admissionToken(admission), definition,
+        sources.map(({captured}) => captured.capture.source()),
+        sources.map(({captured}) => captured.identity),
+        sourceEvidence.map(evidenceToken),
+        sources.map(({captured}) => captured.logicalInput),
+        context.authorityScopeCid, context.dataPolicyCid,
+        context.captureStartedAt, context.captureCompletedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+    },
     issueCheckedClientEffectMultiCapturedInvocation(checkedEffect, compilation,
       admission, definition, sources, context, limits) {
       issuanceLimits(limits, 'Client plural Effect Invocation');

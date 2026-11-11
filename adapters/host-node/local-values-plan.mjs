@@ -388,7 +388,11 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
 }
 
 export function acquiredEffectPublicationPlan({acquired, captured,
-  sourceEvidenceWire, captureStartedAt, captureCompletedAt, content}) {
+  sourceEvidenceWire, captureStartedAt, captureCompletedAt, content, sourcePlan}) {
+  if (content === undefined && captured?.inputKind === 'whole-input') {
+    return acquiredMultiEffectPublicationPlan({acquired,
+      sources: [{captured, sourceEvidenceWire}], captureStartedAt, captureCompletedAt, sourcePlan});
+  }
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
@@ -494,15 +498,23 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
   if (typeof dataPolicyCid !== 'string') {
     throw new TypeError('UnavailableAcquiredEffectPolicy');
   }
-  const {observation, invocation, owner: invocationOwner} =
-    issuedModel === undefined ? control.issueCheckedClientEffectMultiCapturedInvocation(
-      prepared, compilation, admission, definition, sources,
-      {authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt},
-      limits) : control.checkedClientEffectInferInvocation(prepared,
-        compilation, runDefinition, issuedModel);
   const sourceEvidence = sources.map(source => source.sourceEvidence === undefined
     ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits)
     : source.sourceEvidence);
+  const whole = issuedModel === undefined &&
+    sources.some(({captured}) => captured.inputKind === 'whole-input');
+  if (whole && (sourcePlan === undefined || acquired.requestIdentity === undefined)) {
+    throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+  }
+  const context = {authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt};
+  const {observation, invocation, owner: invocationOwner} = whole
+    ? control.issueCheckedInstalledEffectDirectSourcesInvocation(sourcePlan, prepared,
+      acquired.requestIdentity, compilation, admission, definition, sources, sourceEvidence, context, limits)
+    : issuedModel === undefined ? control.issueCheckedClientEffectMultiCapturedInvocation(
+      prepared, compilation, admission, definition, sources,
+      context,
+      limits) : control.checkedClientEffectInferInvocation(prepared,
+        compilation, runDefinition, issuedModel);
   if (keyedSource !== undefined) {
     if (issuedModel === undefined || keyedSource.source === undefined ||
         typeof keyedSource.logicalRelationCid !== 'string') throw new TypeError('IncompleteAcquiredEffectSources');

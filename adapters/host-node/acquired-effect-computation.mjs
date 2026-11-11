@@ -569,7 +569,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
         captureStartedAt, captureCompletedAt, sourcePlan: operationPlan})
       : acquiredEffectPublicationPlan({acquired, ...evidence[0],
-        captureStartedAt, captureCompletedAt}) : undefined;
+        captureStartedAt, captureCompletedAt, sourcePlan: operationPlan}) : undefined;
     if (multiple && (pluralModels ? modelGroup !== undefined && !modelGroup.restored() :
         originalModelComponent !== undefined && modelToken === undefined && infer !== undefined)) {
       const member = pluralModels ? modelGroup.keyedMember() : undefined;
