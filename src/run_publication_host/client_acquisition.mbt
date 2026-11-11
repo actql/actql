@@ -399,12 +399,11 @@ fn client_publication_policy_contains_result(
     count > covering_count ||
     sources > covering_sources ||
     (original.unknown_provenance && !candidate.unknown_provenance) ||
-    (
-      @checked.publication_policy_classification(original) !=
-      @checked.publication_policy_classification(candidate) &&
-      !(@checked.publication_policy_classification(candidate)
-      is @environment.Unknown)
-    ) {
+    @checked.combine_classification(
+      @checked.publication_policy_classification(original),
+      @checked.publication_policy_classification(candidate),
+    ) !=
+    @checked.publication_policy_classification(candidate) {
     return false
   }
   if count == covering_count &&

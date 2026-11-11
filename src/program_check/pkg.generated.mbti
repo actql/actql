@@ -157,6 +157,8 @@ pub fn close_effect_computation_static(EffectComputationCandidate, @check_enviro
 
 pub fn closed_values_local_owner_layout(Int) -> ClosedValuesLocalOwnerLayout?
 
+pub fn combine_classification(@check_environment.DataClassification, @check_environment.DataClassification) -> @check_environment.DataClassification
+
 pub fn complete_template_check(TemplateDeclarationPreparation) -> Result[TemplateCheckedProgram, TemplateConstructionIssue]
 
 pub fn completion_free_inventory_matches(CompletionFreeInventory, EffectProgramStaticCandidate) -> Bool

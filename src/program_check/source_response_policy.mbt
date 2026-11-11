@@ -47,7 +47,9 @@ pub fn emit_source_response_policy(
 }
 
 ///|
-fn combine_classification(
+/// Existing classification join shared by checked Source policies and their
+/// read-only publication selectors. It grants no authority or policy identity.
+pub fn combine_classification(
   left : @environment.DataClassification,
   right : @environment.DataClassification,
 ) -> @environment.DataClassification {
