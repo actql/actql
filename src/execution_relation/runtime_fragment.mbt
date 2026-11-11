@@ -19,9 +19,16 @@ pub fn prepare_runtime_fragment(
   physical : RegistryLimits,
   logical : @lower.FragmentRowLimits,
   ordered? : RegisteredOrderedContract? = None,
+  runtime_body_floor? : RegistryLimits? = None,
 ) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue] {
   prepare_runtime_fragment_owned(
-    request, contract, demands, physical, logical, ordered,
+    request,
+    contract,
+    demands,
+    physical,
+    logical,
+    ordered,
+    runtime_body_floor~,
   )
 }
 
@@ -35,6 +42,7 @@ fn prepare_runtime_fragment_owned(
   physical : RegistryLimits,
   logical : @lower.FragmentRowLimits,
   ordered : RegisteredOrderedContract?,
+  runtime_body_floor? : RegistryLimits? = None,
   material_builder? : (
     @lower.FragmentRequest,
     @lower.DemandLimits,
@@ -53,6 +61,14 @@ fn prepare_runtime_fragment_owned(
     RootArtifactIssue,
   ] = prepare_fragment_candidate,
 ) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue] {
+  if runtime_body_floor is Some(floor) &&
+    (
+      floor.max_body_bytes < 0 ||
+      floor.max_body_nodes < 0 ||
+      floor.max_body_depth < 0
+    ) {
+    return Err(Runtime(InvalidLimits))
+  }
   let material = match material_builder(request, demands, physical, ordered) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -78,7 +94,22 @@ fn prepare_runtime_fragment_owned(
   // Keep the full separate-candidate checker for independently supplied or
   // altered material; a remembered CID alone never selects this constructor.
   let checked : CheckedFragment = { candidate, }
-  match prepare_fragment_runtime_context(checked, logical, physical) {
+  // The Request compiler's codec bounds admit this complete construction;
+  // they are not an allocation demand for every later input/evaluator body.
+  // Reuse the same constructor's measured envelope without emitting, hashing
+  // or parsing it again. Retain the established runtime floor, the complete
+  // actual Fragment and the selected depth; no caller-supplied candidate or
+  // remembered CID can take this path. All logical/current/growth guards stay.
+  let runtime = match runtime_body_floor {
+    None => physical
+    Some(floor) =>
+      {
+        max_body_bytes: Int::max(floor.max_body_bytes, candidate.artifact.bytes),
+        max_body_nodes: Int::max(floor.max_body_nodes, candidate.artifact.nodes),
+        max_body_depth: Int::max(floor.max_body_depth, physical.max_body_depth),
+      }
+  }
+  match prepare_fragment_runtime_context(checked, logical, runtime) {
     Ok(context) => Ok(context)
     Err(issue) => Err(Runtime(issue))
   }

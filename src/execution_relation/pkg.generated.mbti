@@ -1212,7 +1212,7 @@ pub fn[T] prepare_reused_managed_producer_measurement(Array[ManagedProducerRead[
 
 pub fn prepare_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrder, RowWireIssue]
 
-pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
+pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?, runtime_body_floor? : RegistryLimits?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
 
 pub fn prepare_sequence_runtime_fragments(@lowering_relation.PreparedSequence, FragmentContract?, RegisteredOrderedContract?, SequenceFragmentLimits) -> Result[Array[FragmentRuntimeContext], SequenceFragmentIssue]
 

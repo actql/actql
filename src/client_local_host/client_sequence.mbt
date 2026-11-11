@@ -1010,6 +1010,18 @@ fn prepare_client_local_sequences_owned(
               physical,
               logical,
               ordered=if ordered { ordered_contract } else { None },
+              // Preserve the existing runtime body profile independently of
+              // the wider same-Request artifact codec. The fixed constructor
+              // raises this floor to its actual checked Fragment extent.
+              runtime_body_floor=if compilation_limits is Some(_) {
+                Some({
+                  max_body_bytes: 100000,
+                  max_body_nodes: 10000,
+                  max_body_depth: 100,
+                })
+              } else {
+                None
+              },
             ) {
             Ok(value) => value
             Err(_) => return Err(Unsupported)
