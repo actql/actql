@@ -3,6 +3,17 @@ name: Registered performance matrix
 on:
   workflow_dispatch:
     inputs:
+      native-approval-only:
+        description: Run only the fixed Native approval campaign using the Native artifact inputs
+        type: boolean
+        default: false
+        required: false
+      native-approval-runner:
+        description: Exact independent runner for the offered Native platform
+        type: choice
+        options: [macos-15, ubuntu-24.04]
+        default: macos-15
+        required: false
       priority-node-mode:
         description: Node priority collector sample selection; final is for a plausible fixed candidate
         type: choice
@@ -18,11 +29,13 @@ on:
       package-run-id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
-        required: true
+        required: false
+        default: ''
       package-artifact-id:
         description: Exact existing Client package artifact
         type: string
-        required: true
+        required: false
+        default: ''
       native-package-run-id:
         description: Completed same-source normal CI package run
         type: string
@@ -38,17 +51,28 @@ on:
       python-package-run-id:
         description: Completed same-source normal CI package run
         type: string
-        required: true
+        required: false
+        default: ''
       python-package-artifact-id:
         description: Exact formal packages and complete offline wheelhouse when applicable
         type: string
-        required: true
+        required: false
+        default: ''
       python-package-producer-job:
         description: Exact successful normal package job name
         type: string
-        required: true
+        required: false
+        default: ''
   workflow_call:
     inputs:
+      native-approval-only:
+        type: boolean
+        default: false
+        required: false
+      native-approval-runner:
+        type: string
+        default: macos-15
+        required: false
       priority-node-mode:
         type: string
         default: diagnostic
@@ -59,10 +83,12 @@ on:
         required: false
       package-run-id:
         type: string
-        required: true
+        required: false
+        default: ''
       package-artifact-id:
         type: string
-        required: true
+        required: false
+        default: ''
 
       native-package-run-id:
         type: string
@@ -75,21 +101,87 @@ on:
         required: true
       python-package-run-id:
         type: string
-        required: true
+        required: false
+        default: ''
       python-package-artifact-id:
         type: string
-        required: true
+        required: false
+        default: ''
       python-package-producer-job:
         type: string
-        required: true
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
+  native-approval:
+    name: Native approval ${{ inputs.native-approval-runner }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && inputs['native-approval-only'] }}
+    runs-on: ${{ inputs['native-approval-runner'] == 'ubuntu-24.04' && 'ubuntu-24.04' || 'macos-15' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Validate the selected independent Native runner
+        env:
+          NATIVE_APPROVAL_RUNNER: ${{ inputs.native-approval-runner }}
+        run: |
+          case "$NATIVE_APPROVAL_RUNNER" in
+            macos-15|ubuntu-24.04) ;;
+            *) echo '::error::Unsupported Native approval runner'; exit 1 ;;
+          esac
+      - name: Install verification tooling without runtime preparation
+        run: npm ci --ignore-scripts
+      - name: Validate the original normal Native artifact and producer job
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: native
+          PACKAGE_RUN_ID: ${{ inputs.native-package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
+          PACKAGE_PRODUCER_JOB: ${{ inputs.native-package-producer-job }}
+        run: |
+          mkdir "$RUNNER_TEMP/native-approval"
+          node scripts/ordinary-operation-packages.mjs inspect-process-producer > "$RUNNER_TEMP/native-approval/producer.json"
+      - name: Reuse only the exact formal Native artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.native-package-run-id }}
+          artifact-ids: ${{ inputs.native-package-artifact-id }}
+          path: ${{ runner.temp }}/native-approval/packages
+          merge-multiple: true
+      - name: Measure thirty complete approvals for each original Native template
+        env:
+          NATIVE_APPROVAL_RUNNER: ${{ inputs.native-approval-runner }}
+        run: |
+          node scripts/test-native-approval-performance.mjs \
+            --normal "$RUNNER_TEMP/native-approval/packages" \
+            --output "$RUNNER_TEMP/native-approval/assessment.json" \
+            --runner "$NATIVE_APPROVAL_RUNNER"
+      - name: Retain Native approval failures partial samples and actual receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/native-approval/producer.json
+            ${{ runner.temp }}/native-approval/assessment.json
+            ${{ runner.temp }}/native-approval/packages/release.json
+            ${{ runner.temp }}/native-approval/packages/mock-install-*.json
+          if-no-files-found: error
+          retention-days: 30
   ordinary-operations:
     name: Required ordinary operation performance
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -182,7 +274,7 @@ jobs:
           retention-days: 30
   ordinary-native:
     name: Ordinary native ${{ matrix.operation }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -260,7 +352,7 @@ jobs:
           retention-days: 30
   ordinary-python:
     name: Ordinary python ${{ matrix.operation }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -352,7 +444,7 @@ jobs:
           retention-days: 30
   ordinary-python-priority:
     name: Ordinary Python priority collector
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -439,7 +531,7 @@ jobs:
           retention-days: 30
   ordinary-node-priority:
     name: Ordinary Node priority collector
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -497,7 +589,7 @@ jobs:
   ordinary-priority-assessment:
     name: Ordinary Node and Python priority checkpoint
     needs: [ordinary-node-priority, ordinary-python-priority]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -562,7 +654,7 @@ jobs:
           retention-days: 30
   ordinary-platform-assessment:
     needs: [ordinary-operations, ordinary-native, ordinary-python]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -580,7 +672,7 @@ jobs:
             }
           '
   registered-cases:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: ubuntu-24.04
     outputs:
       cases: ${{ steps.list.outputs.cases }}
@@ -592,7 +684,7 @@ jobs:
         run: echo "cases=$(node benchmarks/retained-results/equivalent-matrix-cases.mjs)" >> "$GITHUB_OUTPUT"
 
   equivalent-obligations:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     needs: registered-cases
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -647,7 +739,7 @@ jobs:
 
   equivalent-assessment:
     needs: [registered-cases, equivalent-obligations]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && needs.registered-cases.result == 'success' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && always() && needs.registered-cases.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

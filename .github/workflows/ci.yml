@@ -29,6 +29,15 @@ on:
         type: choice
         options: [diagnostic, final]
         default: diagnostic
+      performance_native_approval_only:
+        description: Run only fixed Native approval samples from the exact Native package inputs
+        type: boolean
+        default: false
+      performance_native_approval_runner:
+        description: Independent runner matching the offered Native platform
+        type: choice
+        options: [macos-15, ubuntu-24.04]
+        default: macos-15
       performance_package_run_id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
@@ -123,6 +132,8 @@ jobs:
     with:
       priority-node-mode: ${{ inputs.performance_priority_node_mode }}
       priority-python-mode: ${{ inputs.performance_priority_python_mode }}
+      native-approval-only: ${{ inputs.performance_native_approval_only }}
+      native-approval-runner: ${{ inputs.performance_native_approval_runner }}
       package-run-id: ${{ inputs.performance_package_run_id }}
       package-artifact-id: ${{ inputs.performance_package_artifact_id }}
       native-package-run-id: ${{ inputs.performance_native_package_run_id }}

@@ -150,6 +150,7 @@ test('ordinary priority assessment reuses both platform reports without replacin
     assert.equal(runInNewContext(expression, {
 
       github: {event: {repository: {visibility, private: privateFlag}}},
+      inputs: {'native-approval-only': false},
       toJSON: JSON.stringify, always: () => true,
     }, {timeout: 100}), expected);
   }
@@ -194,6 +195,82 @@ test('ordinary priority assessment reuses both platform reports without replacin
   assert(!job.steps.some(step => /\b(?:moon build|npm pack|pip wheel)\b/u.test(step.run ?? '')));
   assert.equal(job.steps.at(-1).if, 'always()');
   assert(job.steps.at(-1).uses.startsWith('actions/upload-artifact@'));
+});
+
+test('Native approval only selects its original Native artifact without unrelated package inputs or PR campaigns', () => {
+  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const job = workflow.jobs['native-approval']; assert(job);
+  for (const event of ['workflow_dispatch', 'workflow_call']) {
+    const inputs = workflow.on[event].inputs;
+    assert.equal(inputs['native-approval-only'].default, false);
+    for (const field of ['native-package-run-id', 'native-package-artifact-id', 'native-package-producer-job']) {
+      assert.equal(inputs[field].required, true);
+    }
+    for (const field of ['package-run-id', 'package-artifact-id', 'python-package-run-id',
+      'python-package-artifact-id', 'python-package-producer-job']) {
+      assert.equal(inputs[field].required, false); assert.equal(inputs[field].default, '');
+    }
+  }
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs['native-approval-runner'].options, ['macos-15', 'ubuntu-24.04']);
+  assert.equal(ci.on.workflow_dispatch.inputs.performance_native_approval_only.default, false);
+  assert.equal(ci.jobs['performance-matrix'].with['native-approval-only'], '${{ inputs.performance_native_approval_only }}');
+  assert.equal(ci.jobs['performance-matrix'].with['native-approval-runner'], '${{ inputs.performance_native_approval_runner }}');
+  assert(Object.keys(ci.on.workflow_dispatch.inputs).length <= 25);
+  for (const enabled of [false, true]) {
+    const context = {github: {event: {repository: {visibility: 'public', private: false}}},
+      inputs: {'native-approval-only': enabled}, toJSON: JSON.stringify};
+    assert.equal(runInNewContext(job.if.slice(3, -2), context), enabled);
+    if (enabled) for (const [name, other] of Object.entries(workflow.jobs)) {
+      if (name !== 'native-approval') assert.equal(runInNewContext(other.if.slice(3, -2), context), false, name);
+    }
+  }
+  const inspect = job.steps.findIndex(step => step.env?.PACKAGE_ADAPTER === 'native');
+  const download = job.steps.findIndex(step => step.uses?.startsWith('actions/download-artifact@'));
+  const collect = job.steps.findIndex(step => step.run?.includes('scripts/test-native-approval-performance.mjs'));
+  assert(inspect >= 0 && inspect < download && download < collect);
+  assert.equal(job.steps[inspect].env.PACKAGE_PRODUCER_JOB, '${{ inputs.native-package-producer-job }}');
+  assert.equal(job.steps[download].with['run-id'], '${{ inputs.native-package-run-id }}');
+  assert.equal(job.steps[download].with['artifact-ids'], '${{ inputs.native-package-artifact-id }}');
+  assert(!job.steps.some(step => /moon build|npm pack|pip wheel|benchmark-ordinary-processes/u.test(step.run ?? '')));
+  const runner = job['runs-on'].slice(3, -2);
+  for (const value of ['macos-15', 'ubuntu-24.04']) {
+    assert.equal(runInNewContext(runner, {inputs: {'native-approval-runner': value}}), value);
+  }
+});
+
+test('Native approval formal shell keeps the existing thirty-each protocol and actual collector failure', t => {
+  const root = temporary(t), bin = join(root, 'bin'), argv = join(root, 'native-argv.jsonl');
+  mkdirSync(bin);
+  writeFileSync(join(bin, 'node'), `#!${process.execPath}\nrequire('node:fs').appendFileSync(process.env.ARGV,JSON.stringify(process.argv.slice(2))+'\\n');process.exit(Number(process.env.EXIT));\n`);
+  chmodSync(join(bin, 'node'), 0o755);
+  const job = workflow.jobs['native-approval'];
+  const validate = job.steps.find(step => step.name === 'Validate the selected independent Native runner');
+  const collect = job.steps.find(step => step.run?.includes('scripts/test-native-approval-performance.mjs'));
+  assert.equal(collect['continue-on-error'], undefined); assert(!collect.run.includes('--diagnostic'));
+  for (const runner of ['macos-15', 'ubuntu-24.04']) for (const status of [0, 1, 124]) {
+    const env = {PATH: `${bin}:${process.env.PATH}`, ARGV: argv, NATIVE_APPROVAL_RUNNER: runner, EXIT: String(status)};
+    assert.equal(run(validate, root, env).status, 0);
+    assert.equal(run(collect, root, env).status, status);
+  }
+  assert.equal(run(validate, root, {NATIVE_APPROVAL_RUNNER: 'foreign-runner'}).status, 1);
+  const calls = readFileSync(argv, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(calls.length, 6);
+  for (let index = 0; index < calls.length; index++) assert.deepEqual(calls[index], [
+    'scripts/test-native-approval-performance.mjs', '--normal', join(root, 'native-approval/packages'),
+    '--output', join(root, 'native-approval/assessment.json'), '--runner', index < 3 ? 'macos-15' : 'ubuntu-24.04',
+  ]);
+});
+
+test('Native approval upload always keeps partial assessment and actual receipts without runtime state', () => {
+  const job = workflow.jobs['native-approval'], upload = job.steps.at(-1);
+  assert.equal(upload.if, 'always()'); assert.equal(upload['continue-on-error'], undefined);
+  assert(upload.uses.startsWith('actions/upload-artifact@'));
+  assert.equal(upload.with['if-no-files-found'], 'error');
+  assert.equal(upload.with.name, 'native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}');
+  assert.deepEqual(upload.with.path.trim().split('\n'), [
+    '${{ runner.temp }}/native-approval/producer.json', '${{ runner.temp }}/native-approval/assessment.json',
+    '${{ runner.temp }}/native-approval/packages/release.json', '${{ runner.temp }}/native-approval/packages/mock-install-*.json',
+  ]);
 });
 
 test('priority report join preserves original collector failures and raw metadata', t => {
