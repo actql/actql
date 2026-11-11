@@ -6,8 +6,69 @@ import {finishSourceFreeObservations} from './test-native-cli-source-free-instal
 import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiagnostic,
   observeNativeNumericScale, verifyNativeNumericRows, prepareNativeNumericOperator,
   observeNativeNumericOperatorScale, nativeResourceShapeFixtures, verifyNativeResourceRows,
-  observeNativeResourceOperatorShapes}
+  observeNativeResourceOperatorShapes, requireNativeSourceFreeWorkCounts, observeNativeSourceFreeCommand}
   from './test-native-cli-source-free-install.mjs';
+
+// Independent counter DATA checks, not Native execution or a second protocol
+// fixture. The shared diagnostic parser owns stream/schema validation.
+const sourceFreeCounterRows = (environment = 1) => [
+  {tag: 21, count: environment}, {tag: 31, count: 1}, {tag: 58, count: 1},
+  {tag: 59, count: 1}, {tag: 17, count: 7},
+];
+
+test('source-free existing work counters distinguish fresh admission from Saved and retain unmeasured SQL work', () => {
+  for (const operation of ['check', 'run', 'sql', 'result']) {
+    const observed = requireNativeSourceFreeWorkCounts(operation, sourceFreeCounterRows(operation === 'result' ? 0 : 1));
+    assert.equal(observed.measured.checkingEnvironmentAdmissions, operation === 'result' ? 0 : 1);
+    assert.equal(observed.measured.legacyJsonOrSubmittedIntentHelperCalls, 7);
+    assert.deepEqual(observed.unmeasured, {sqlInputParseCalls: null, sqlTypeCheckCalls: null,
+      sqlCompileCalls: null, immutableBodyReadmissionCalls: null});
+  }
+});
+
+test('source-free existing work counters refuse doubled missing and duplicate actual admission work', () => {
+  for (const tag of [21, 31, 58, 59]) {
+    for (const count of [0, 2]) {
+      const rows = sourceFreeCounterRows().map(row => row.tag === tag ? {...row, count} : row);
+      assert.throws(() => requireNativeSourceFreeWorkCounts('run', rows), /Repeated or missing/u);
+    }
+    assert.throws(() => requireNativeSourceFreeWorkCounts('run', sourceFreeCounterRows().filter(row => row.tag !== tag)), /Missing or duplicate/u);
+    assert.throws(() => requireNativeSourceFreeWorkCounts('run', [...sourceFreeCounterRows(), {tag, count: 1}]), /Missing or duplicate/u);
+  }
+  assert.throws(() => requireNativeSourceFreeWorkCounts('result', sourceFreeCounterRows()), /checking Environment/u);
+});
+
+test('source-free existing work counters restore diagnostic flags and never retry a failed command', async () => {
+  for (const environment of [{}, {ACTQL_NATIVE_TIMINGS: '0', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: 'prior'}]) {
+    const before = {...environment}, failure = new Error('original command failure');
+    let calls = 0;
+    await assert.rejects(observeNativeSourceFreeCommand({args: ['run', 'query.sql'], cwd: '/selected', environment,
+      cli: async (args, cwd) => {
+        calls++; assert.deepEqual(args, ['run', 'query.sql']); assert.equal(cwd, '/selected');
+        assert.equal(environment.ACTQL_NATIVE_TIMINGS, '1');
+        assert.equal(environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS, '1');
+        throw failure;
+      }}), error => error === failure);
+    assert.equal(calls, 1); assert.deepEqual(environment, before);
+  }
+});
+
+test('source-free existing work counters refuse stdout success without complete Native observations', async () => {
+  const environment = {}, calls = [];
+  await assert.rejects(observeNativeSourceFreeCommand({args: ['sql', 'SELECT 1 AS id'], environment,
+    cli: async args => {calls.push(args); return {code: 0, signal: null, stdout: '{"id":1}\n', stderr: ''};}}),
+  /launcher timing trailer missing/u);
+  assert.equal(calls.length, 1); assert.deepEqual(environment, {});
+});
+
+test('source-free existing work counters refuse failed exits and inapplicable operations without inventing counts', async () => {
+  const environment = {};
+  await assert.rejects(observeNativeSourceFreeCommand({args: ['result', 'original-run'], environment,
+    cli: async () => ({code: 1, signal: null, stdout: '{"id":1}\n', stderr: ''})}), {code: 'ERR_ASSERTION'});
+  await assert.rejects(observeNativeSourceFreeCommand({args: ['approve', 'original-run'], environment,
+    cli: async () => assert.fail('Approval is not this source-free measurement')}), {code: 'ERR_ASSERTION'});
+  assert.deepEqual(environment, {});
+});
 
 test('fresh submission diagnostic uses one independent project and restores its environment', async t => {
   const parent = await mkdtemp(join(tmpdir(), 'actql-submission-diagnostic-test-'));

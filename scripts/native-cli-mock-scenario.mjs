@@ -134,7 +134,7 @@ function requireNativeMockWork(args, groups, rows) {
 
 // The Node launcher's PID-less timing envelope is outside the Native stream.
 // Remove only its one canonical final line; never filter Native diagnostics.
-function nativeLauncherEnvelope(stderr, mode) {
+export function nativeLauncherEnvelope(stderr, mode) {
   assert.equal(typeof stderr, 'string', 'Launcher diagnostic stream unavailable');
   const prefix = 'ACTQL_NATIVE_LAUNCHER_TIMINGS ';
   const start = stderr.indexOf(prefix);

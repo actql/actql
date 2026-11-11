@@ -18,8 +18,72 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+
+// Existing process counters measure these actual call sites, not SQL compiler
+// internals. In particular tag 17 counts a legacy JSON/submitted-intent helper;
+// zero there does not establish zero SQL parse, check or compilation work.
+export function requireNativeSourceFreeWorkCounts(operation, counters) {
+  assert(['check', 'run', 'sql', 'result'].includes(operation));
+  const selected = tag => {
+    const rows = counters.filter(row => row.tag === tag);
+    assert.equal(rows.length, 1, `Missing or duplicate Native work counter ${tag}`);
+    assert(Number.isSafeInteger(rows[0].count) && rows[0].count >= 0);
+    return rows[0].count;
+  };
+  const measured = {
+    checkingEnvironmentAdmissions: selected(21),
+    runInstallationAdmissions: selected(31),
+    productConfigurationStagePasses: selected(58),
+    packagedRuntimeOriginalChecks: selected(59),
+    legacyJsonOrSubmittedIntentHelperCalls: selected(17),
+  };
+  assert.equal(measured.checkingEnvironmentAdmissions, operation === 'result' ? 0 : 1,
+    'Repeated or missing checking Environment admission');
+  for (const name of ['runInstallationAdmissions', 'productConfigurationStagePasses',
+    'packagedRuntimeOriginalChecks']) assert.equal(measured[name], 1, `Repeated or missing ${name}`);
+  return {operation, measured, unmeasured: {
+    sqlInputParseCalls: null, sqlTypeCheckCalls: null, sqlCompileCalls: null,
+    immutableBodyReadmissionCalls: null,
+  }};
+}
+
+export async function observeNativeSourceFreeCommand({args, cwd, cli, environment}) {
+  assert(['check', 'run', 'sql', 'result'].includes(args[0]));
+  const flags = ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS'];
+  const previous = flags.map(key => [key, environment[key]]);
+  let record;
+  try {
+    for (const key of flags) environment[key] = '1';
+    record = await cli(args, cwd);
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete environment[key];
+      else environment[key] = value;
+    }
+  }
+  assert.equal(record.code, 0); assert.equal(record.signal, null);
+  const envelope = nativeLauncherEnvelope(record.stderr, 'required');
+  const groups = nativeMockAcceptanceObservations(envelope.native);
+  assert.equal(groups.length, 1, 'One original Native process required');
+  assert.equal(groups[0].events.length, 0, 'Source-free command repeated Model or Effect work');
+  // The existing parser owns the complete schema and tag inventory. Inspect
+  // only recording integrity and the selected existing counters afterward.
+  const rows = envelope.native.trimEnd().split('\n').map(line => {
+    const space = line.indexOf(' ');
+    return {marker: line.slice(0, space), value: JSON.parse(line.slice(space + 1))};
+  });
+  const meta = rows.find(row => row.marker === 'ACTQL_NATIVE_TIMINGS').value;
+  for (const key of ['initializing_drops', 'invalid_tags', 'invalid_amounts', 'clock_failures',
+    'stack_overflows']) assert.equal(meta[key], 0, `Incomplete Native counter recording: ${key}`);
+  assert.equal(meta.overflow, false, 'Overflowed Native work counters');
+  record.sourceFreeWork = {pid: groups[0].pid,
+    ...requireNativeSourceFreeWorkCounts(args[0], rows.filter(row => row.marker === 'ACTQL_NATIVE_COUNTER').map(row => row.value))};
+  return record;
+}
 
 // Independent expectations for the ordinary, unmodified init profile. These
 // are aggregate semantics, unlike the separate large VALUES row-delivery case.
@@ -635,6 +699,10 @@ async function observeInstalledSourceFree(input, observationPath) {
     // can discover a compiler, a repository executable, a provider or a Node Host.
     env.PATH = join(root, 'empty-path');
     const cli = (args, cwd = project, code = 0) => run(process.execPath, [launcher, ...args], cwd, code);
+    // Observe the SAME required commands; never add another submission merely
+    // to count work. Invalid-input controls retain their original failure path.
+    const sourceFreeCli = (args, cwd = project, code = 0) => code === 0 && ['check', 'run', 'sql', 'result'].includes(args[0])
+      ? observeNativeSourceFreeCommand({args, cwd, cli, environment: env}) : cli(args, cwd, code);
     diagnoseFailure = () => observeFreshSubmissionFailureDiagnostic({
       root: join(root, 'submission-failure-diagnostic'), cli, environment: env});
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
@@ -643,7 +711,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
-    const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli});
+    const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli: sourceFreeCli});
     const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const help = (await cli(['--help'])).stdout;
@@ -653,7 +721,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     const checkText = (await cli(['check', 'query.sql', '--format', 'sql'])).stdout;
     assert.match(checkText, /Validation: Valid\nRunnable: yes/u);
     assert.doesNotMatch(checkText, /sha256:|"outcome"/u);
-    const checked = JSON.parse((await cli(['check', 'query.sql', '--format', 'sql', '--json'])).stdout);
+    const checked = JSON.parse((await sourceFreeCli(['check', 'query.sql', '--format', 'sql', '--json'])).stdout);
     assert.equal(checked.version, 'actql-check-outcome/0.1');
     assert.equal(checked.outcome, 'completed');
     assert.equal(checked.report.verdict, 'verified');
@@ -669,8 +737,8 @@ async function observeInstalledSourceFree(input, observationPath) {
     const explainJsonVerbose = JSON.parse((await cli(['explain', 'query.sql', '--format', 'sql', '--json', '--verbose'])).stdout);
     assert.deepEqual(explainJsonVerbose, explained);
 
-    assert.deepEqual(rows((await cli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'])).stdout), [{id: 2}]);
-    const state = JSON.parse((await cli(['run', 'query.sql', '--format', 'sql', '--json'])).stdout);
+    assert.deepEqual(rows((await sourceFreeCli(['sql', 'SELECT 2 AS id', '--format', 'jsonl'])).stdout), [{id: 2}]);
+    const state = JSON.parse((await sourceFreeCli(['run', 'query.sql', '--format', 'sql', '--json'])).stdout);
     assert.equal(state.version, 'actql-run-state/0.1');
     assert.equal(state.status, 'succeeded');
     assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
@@ -696,7 +764,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     for (let count = 0; count < 2; count++) {
       const saved = JSON.parse((await cli(['status', state.run_id, '--json'])).stdout);
       assert.equal(saved.run_id, state.run_id); assert.equal(saved.status, 'succeeded');
-      assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'])).stdout), [{id: 1}]);
+      assert.deepEqual(rows((await sourceFreeCli(['result', state.run_id, '--format', 'jsonl'])).stdout), [{id: 1}]);
     }
     await cli(['result', state.run_id, '--format', 'jsonl', '--output', 'saved.jsonl']);
     assert.deepEqual(rows(await readFile(join(project, 'saved.jsonl'), 'utf8')), [{id: 1}]);
@@ -718,6 +786,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
       mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, fileSourceNumeric, numericScale, resourceShapes,
+      sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
   } catch (error) {
