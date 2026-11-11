@@ -32,7 +32,7 @@ test "bounded leaf prior slot guard refuses malformed and snapshot references" {
 }
 
 ///|
-test "bounded leaf callsite preserves physical envelopes and generic fallback" {
+test "bounded immediate leaf keeps guards without unused physical forests and generic fallback" {
   let sequence = prepared_sequence(row_owner(",{\"derive\":{\"c\":\"a\"}}"))
   let context = sequence_fragment_context(sequence, 1, 2L)
   let generated = prepare_generated_sequence(
@@ -68,7 +68,7 @@ test "bounded leaf callsite preserves physical envelopes and generic fallback" {
       },
     }) -
     baseline,
-    256L,
+    0L,
   )
   assert_eq(
     quote({
@@ -79,7 +79,7 @@ test "bounded leaf callsite preserves physical envelopes and generic fallback" {
       },
     }) -
     baseline,
-    8L,
+    0L,
   )
   assert_eq(
     quote({
@@ -487,6 +487,83 @@ test "bounded property geometry borrows only original receivers and retains comp
       } else {
         264L
       },
+    )
+  }
+}
+
+///|
+test "bounded immediate leaf unused codec ceilings preserve real workspace and one short refusal" {
+  let owner = row_owner(",{\"derive\":{\"c\":\"a\"}}")
+  let sequence = prepared_sequence(owner)
+  let context = sequence_fragment_context(sequence, 1, 2L)
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [context],
+    ["derive_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let selected = select_generated_sequence_step(generated, 1).unwrap()
+  let limits = leaf_geometry_limits(2)
+  let measurement : FixedInputGuardMeasureLimits = {
+    max_work: 100000,
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let wider = {
+    ..context,
+    physical: {
+      ..context.physical,
+      max_body_bytes: 10000000,
+      max_body_nodes: 1000000,
+    },
+  }
+  let baseline = generated_bounded_sequence_capacity(
+    selected, limits, measurement,
+  ).unwrap()
+  let enlarged = generated_bounded_sequence_capacity(
+    { ..selected, contexts: [wider], },
+    limits,
+    measurement,
+  ).unwrap()
+  assert_eq(baseline.retained_bytes, enlarged.retained_bytes)
+  assert_eq(baseline.execution_bytes, enlarged.execution_bytes)
+  let input = row_capture(owner)
+  let execute = fn(original, workspace) {
+    let budget = fragment_runtime_for_kernel(original, original.kernel).unwrap()
+    evaluate_rows_with_workspace(
+      original.kernel,
+      input,
+      2,
+      { remaining: 100000, max_frames: 100, },
+      row_output(),
+      workspace,
+      ordered_budget=Some(budget),
+    )
+  }
+  let observed = row_workspace(100000)
+  let output = execute(context, observed).unwrap()
+  assert_eq(output.names, ["a", "b", "c"])
+  assert_eq(output.rows.length(), 2)
+  assert_true(output.rows[0][2] is Number(1.0))
+  assert_true(output.rows[1][2] is Number(0.0))
+  assert_true(observed.peak > 0)
+  for original in [context, wider] {
+    let exact = row_workspace(observed.peak)
+    assert_eq(execute(original, exact).unwrap().rows.length(), 2)
+    assert_eq(exact.peak, observed.peak)
+    assert_true(
+      execute(original, row_workspace(observed.peak - 1)) is Err(RowLimit),
+    )
+    let short = {
+      ..original,
+      limits: { ..original.limits, max_input_rows: 1L, },
+    }
+    assert_true(
+      execute(short, row_workspace(observed.peak))
+      is Err(LogicalRows(InputRowLimit)),
     )
   }
 }

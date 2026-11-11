@@ -98,6 +98,7 @@ fn collection_request_publication_case(
   initial_limits? : @resources.LedgerLimits? = None,
   simple? : Bool = false,
   observed? : Array[@resources.LedgerUsage]? = None,
+  actual_request_profile? : Bool = false,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
@@ -111,9 +112,17 @@ fn collection_request_publication_case(
     ") SELECT 0 AS n FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e CROSS JOIN d f WHERE a.n + 10*b.n + 100*c.n + 1000*e.n + 10000*f.n < " +
     count.to_string()
   }
-  let environment = collection_capacity_selected_environment(
-    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
-  )
+  let selected_rows = if actual_request_profile {
+    let initial = initial_limits.unwrap()
+    client_local_materialized_row_ceiling(
+      client_local_resource_policy(),
+      retained_bytes=Some(initial.retained_bytes),
+      execution_bytes=Some(initial.execution_bytes),
+    ).unwrap()
+  } else {
+    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap()
+  }
+  let environment = collection_capacity_selected_environment(selected_rows)
   let cid = @checked.checking_environment_cid(environment)
   let publication = @source_publication.prepare_published_query_environment(
     environment,
@@ -124,51 +133,80 @@ fn collection_request_publication_case(
   if initial_limits is Some(selected) {
     assert_eq(@resources.ledger_limits(original_ledger), selected)
   }
-  parse_request_query_syntax(parent, input, sql, @frontend.Sql).unwrap()
-  |> ignore
-  lower_request_published_query(
-    parent,
-    input,
-    publication,
-    environment,
-    None,
-    public_primary=true,
-  ).unwrap()
-  |> ignore
-  let limits = @publication_host.client_standard_program_preparation_limits()
-  let check = prepare_request_program_check_preparation(
-    parent,
-    input,
-    environment,
-    None,
-    [],
-    limits.checking,
-  ).unwrap()
-  prepare_program_check_input(check).unwrap()
-  prepare_program_check_prelude(check).unwrap() |> ignore
-  prepare_program_check_registry(check).unwrap() |> ignore
-  prepare_program_check_contents(check).unwrap() |> ignore
-  prepare_program_check_references(check).unwrap() |> ignore
-  prepare_program_check_policies(check).unwrap() |> ignore
-  prepare_program_check_values(check).unwrap() |> ignore
-  prepare_program_check_views(check).unwrap() |> ignore
-  prepare_program_check_carriers(check).unwrap() |> ignore
-  prepare_program_check_requests(check).unwrap() |> ignore
-  reconcile_program_check_requests(check).unwrap()
-  assert_true(
-    finish_program_check_preparation(check).unwrap() is @checked.Checked(_),
-  )
-  let prepared = compile_program_check_preparation(check, limits).unwrap()
+  let prepared = if actual_request_profile {
+    prepare_request_default_source_computation_check(
+      parent,
+      input,
+      request_document_test_source(sql, "sql"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      None,
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    finish_request_checked_computation(parent, input, environment, publication).unwrap()
+    |> ignore
+    parent.compiled_program.unwrap()
+  } else {
+    parse_request_query_syntax(parent, input, sql, @frontend.Sql).unwrap()
+    |> ignore
+    lower_request_published_query(
+      parent,
+      input,
+      publication,
+      environment,
+      None,
+      public_primary=true,
+    ).unwrap()
+    |> ignore
+    let limits = @publication_host.client_standard_program_preparation_limits()
+    let check = prepare_request_program_check_preparation(
+      parent,
+      input,
+      environment,
+      None,
+      [],
+      limits.checking,
+    ).unwrap()
+    prepare_program_check_input(check).unwrap()
+    prepare_program_check_prelude(check).unwrap() |> ignore
+    prepare_program_check_registry(check).unwrap() |> ignore
+    prepare_program_check_contents(check).unwrap() |> ignore
+    prepare_program_check_references(check).unwrap() |> ignore
+    prepare_program_check_policies(check).unwrap() |> ignore
+    prepare_program_check_values(check).unwrap() |> ignore
+    prepare_program_check_views(check).unwrap() |> ignore
+    prepare_program_check_carriers(check).unwrap() |> ignore
+    prepare_program_check_requests(check).unwrap() |> ignore
+    reconcile_program_check_requests(check).unwrap()
+    assert_true(
+      finish_program_check_preparation(check).unwrap() is @checked.Checked(_),
+    )
+    compile_program_check_preparation(check, limits).unwrap()
+  }
   if observed is Some(samples) {
     samples.push(@resources.ledger_usage(parent.ledger))
   }
-  continue_request_program_preparation(parent, input).unwrap() |> ignore
+  if !actual_request_profile {
+    continue_request_program_preparation(parent, input).unwrap() |> ignore
+  }
+  let selected_codec = if actual_request_profile {
+    request_program_compilation_limits(parent, input).unwrap()
+  } else {
+    @publication_host.client_standard_pure_compilation_limits()
+  }
   prepare_request_program_module_body(
     parent,
     input,
     request_program_module_contracts(),
     manifests=request_program_module_manifests(),
-    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    compilation_limits=selected_codec,
+    runtime_compilation_limits=if actual_request_profile {
+      Some(selected_codec)
+    } else {
+      None
+    },
     retained_output=false,
     provider_factory=_ => [],
     source_free_max_work~,
@@ -1155,4 +1193,20 @@ fn collection_node_callback_order(
     available,
     tasks: Some((lookup, cleanup)),
   })
+}
+
+///|
+test "collection actual default Request codec reloads 100000 from the same receipt and finite parent" {
+  let limits = client_local_preparation_initial_limits(
+    client_local_resource_policy(),
+    retained_bytes=Some(1073741824L),
+    execution_bytes=Some(1073741824L),
+  ).unwrap()
+  collection_request_publication_case(
+    100000,
+    false,
+    source_free_max_work=Some(30000000),
+    initial_limits=Some(limits),
+    actual_request_profile=true,
+  )
 }

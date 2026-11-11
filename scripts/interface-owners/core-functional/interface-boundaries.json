@@ -53473,6 +53473,14 @@
                 "anchor": "let mut properties = 0L"
               },
               {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "let immediate_leaf = leaf is Some(_)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Immediate leaf runtime traversal demand"
+              },
+              {
                 "path": "src/execution_relation/expression.mbt",
                 "anchor": "capture(selected_value)"
               },

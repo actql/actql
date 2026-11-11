@@ -6378,3 +6378,22 @@ Generated-sequence and QueryTime binding constructors separately consume wiring
 work and entry counts. Those original recipe bounds remain 100,000 work and
 10,000 entries; compiler byte/node ceilings must never occupy those argument
 positions. Neither domain is an actual Resource reservation.
+
+### Immediate leaf runtime traversal demand
+
+The existing bounded single binding-row constructor may borrow required
+Number/Boolean input cells and return those same immutable scalar values.
+Its checked leaf proof covers input/prior-slot aliases, admitted literals and
+Null; both complete input and output schemas must remain required immediate
+scalar shapes. Its measuring writer and charged RowWorkspace cursors allocate
+no canonical body or decoded value forest. Their rejection ceilings therefore
+do not reserve a maximum-sized body or node forest. Depth, every logical root
+and row occurrence, operation workspace and actual retained output/copy overlap
+remain independently funded. The original byte/node/depth, work and current
+checks still execute.
+
+Text, recursive or constructed values and all generic/nonleaf paths retain the
+full physical envelope. A larger unused codec bound changes no immediate-leaf
+demand; it does not enlarge permission or credit finished/source storage before
+its original owner acknowledges release. Snapshot import still uses the exact
+finished receipt and grows the same Task reservation before construction.
