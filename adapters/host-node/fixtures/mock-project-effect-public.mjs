@@ -28,10 +28,14 @@ const originalDeal = Object.freeze({
   '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
 });
 let client, firstFailedStep, activeStep, primary, checkDiagnostic, runObservation, failed = false;
-function checkWorkflowWork(observed, selectedPhase, writes) {
+function checkWorkflowWork(observed, selectedPhase, writes, modelTasks = 1) {
   assert.equal(observed.complete, true, 'Lost, pending or unavailable observation cannot prove zero work');
   if (selectedPhase === 'capture') {
-    assert(observed.sourceAcquisitionStarts > 0); assert(observed.modelCallStarts > 0);
+    // Both authored Projects select two external Source occurrences. Their
+    // two retained rows each enter one INFER, or both declared dependent Tasks.
+    // A Whole Stage Result is reused, not a third external Source acquisition.
+    assert.equal(observed.sourceAcquisitionStarts, 2);
+    assert.equal(observed.modelCallStarts, writes * modelTasks);
     assert.equal(observed.effectReplacementReturns, 0);
   } else {
     assert.equal(observed.sourceAcquisitionStarts, 0, 'Completed Source must not be reacquired');
@@ -395,7 +399,7 @@ pending.cleanupCode = closeFailure?.code;
 pending.workObservation = workObservation.snapshot();
 let workFailure;
 if (!failed && closeReturned) try {
-  checkWorkflowWork(pending.workObservation, phase, Object.keys(expected).length);
+  checkWorkflowWork(pending.workObservation, phase, Object.keys(expected).length, twoModels ? 2 : 1);
 } catch (cause) {workFailure = cause; firstFailedStep ??= 'observe actual Source Model and Effect work';}
 await persistCloseObservation();
 console.log(JSON.stringify({phase, firstFailedStep: firstFailedStep ?? null,

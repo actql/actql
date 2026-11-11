@@ -22,6 +22,22 @@ const main = ast.body.find(node => node.type === 'TryStatement');
 const branch = main.block.body.find(node => node.type === 'IfStatement');
 const captureBody = text.slice(branch.consequent.start, branch.consequent.end);
 
+test('authored README Source and Model call bounds reject duplicated and missing starts', () => {
+  const check = new Function('assert', `${declaration('checkWorkflowWork')};return checkWorkflowWork;`)(assert);
+  for (const models of [1, 2]) {
+    const work = {complete: true, sourceAcquisitionStarts: 2, modelCallStarts: 2 * models,
+      effectReplacementReturns: 0};
+    check(work, 'capture', 2, models);
+    for (const sourceAcquisitionStarts of [1, 3]) {
+      assert.throws(() => check({...work, sourceAcquisitionStarts}, 'capture', 2, models));
+    }
+    for (const modelCallStarts of [2 * models - 1, 2 * models + 1]) {
+      assert.throws(() => check({...work, modelCallStarts}, 'capture', 2, models));
+    }
+    assert.throws(() => check({...work, effectReplacementReturns: 1}, 'capture', 2, models));
+  }
+});
+
 test('workflow primary failure stays with its actual original Run instead of another verification Run', async () => {
   const make = new Function('createHostObservationConnection',
     `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
@@ -94,26 +110,26 @@ test('workflow actual observation counts Source Model and physical writes with l
   const make = new Function('createHostObservationConnection',
     `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
   const check = new Function('assert', `${declaration('checkWorkflowWork')};return checkWorkflowWork;`)(assert);
-  for (const phase of ['capture', 'approve', 'recover']) {
+  for (const phase of ['capture', 'approve', 'recover']) for (const models of [1, 2]) {
     const work = make(), observer = installHostObservation(work.connection, {});
     assert.equal(work.snapshot().complete, false, 'Pending delivery is not zero work');
     if (phase === 'capture') {
-      observer.diagnostic('acquisition_started', {});
-      observer.diagnostic('model_call_entered', {}); observer.diagnostic('model_call_entered', {});
+      observer.diagnostic('acquisition_started', {}); observer.diagnostic('acquisition_started', {});
+      for (let i = 0; i < 2 * models; i++) observer.diagnostic('model_call_entered', {});
     } else if (phase === 'approve') {
       observer.diagnostic('effect_write_observed', {}); observer.diagnostic('effect_write_observed', {});
     }
     observer.diagnostic('effect_application_observed', {outcome: 'succeeded'});
     await observer.close();
-    const actual = work.snapshot(); check(actual, phase, 2);
-    assert.equal(actual.sourceAcquisitionStarts, phase === 'capture' ? 1 : 0);
-    assert.equal(actual.modelCallStarts, phase === 'capture' ? 2 : 0);
+    const actual = work.snapshot(); check(actual, phase, 2, models);
+    assert.equal(actual.sourceAcquisitionStarts, phase === 'capture' ? 2 : 0);
+    assert.equal(actual.modelCallStarts, phase === 'capture' ? 2 * models : 0);
     assert.equal(actual.effectReplacementReturns, phase === 'approve' ? 2 : 0);
-    assert.throws(() => check({...actual, complete: false}, phase, 2));
-    assert.throws(() => check({...actual, effectReplacementReturns: 3}, phase, 2));
+    assert.throws(() => check({...actual, complete: false}, phase, 2, models));
+    assert.throws(() => check({...actual, effectReplacementReturns: 3}, phase, 2, models));
     if (phase !== 'capture') {
-      assert.throws(() => check({...actual, sourceAcquisitionStarts: 1}, phase, 2));
-      assert.throws(() => check({...actual, modelCallStarts: 1}, phase, 2));
+      assert.throws(() => check({...actual, sourceAcquisitionStarts: 1}, phase, 2, models));
+      assert.throws(() => check({...actual, modelCallStarts: 1}, phase, 2, models));
     }
   }
   const limited = new Function('createHostObservationConnection',

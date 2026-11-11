@@ -10,7 +10,8 @@ import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases, packedCompositionCases} from './test-packed-readme-workflows.mjs';
 import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
-import {twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
+import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -18,13 +19,40 @@ const name = 'client-readme-packed', job = workflow.jobs[name];
 const repository = new URL('../', import.meta.url).pathname;
 // Explicit command-port outcomes only; actual installed counters are produced
 // by the fixture's configured Host observation, never by this test oracle.
-const explicitWork = phase => ({complete: true,
-  sourceAcquisitionStarts: phase === 'capture' ? 1 : 0,
-  modelCallStarts: phase === 'capture' ? 2 : 0,
+const explicitWork = (phase, variant = 'readme') => ({complete: true,
+  sourceAcquisitionStarts: phase === 'capture' ? 2 : 0,
+  modelCallStarts: phase === 'capture' ? variant === 'readme' ? 2 : 4 : 0,
   effectReplacementReturns: phase === 'approve' ? 2 : 0});
 const explicitStep = (phase, step) => ({phase, step, status: 'passed', timing: {
   startedAt: '2026-01-01T00:00:00.000Z', endedAt: '2026-01-01T00:00:00.001Z',
   wallNs: 1000000, cpuUserUs: 0, cpuSystemUs: 0, scope: 'Explicit test port, not a runtime measurement'}});
+
+test('README call bounds come from authored joined rows and declared per-row Tasks rather than prior observations', () => {
+  for (const template of ['churn-risk-mock', 'deal-review-mock']) {
+    const files = projectTemplateFiles(template), data = JSON.parse(files['mock/data.json']);
+    const config = JSON.parse(files['actql.config.json']), catalog = JSON.parse(files['mock/catalog.json']);
+    assert.equal(Object.values(catalog.connections).reduce((sum, connection) => sum + connection.data.length, 0), 2);
+    const left = template === 'churn-risk-mock' ? data.salesforce.Account.rows : data.salesforce.Opportunity.rows;
+    const right = template === 'churn-risk-mock' ? data.snowflake.usage_30d.rows : data.drive.files.rows;
+    assert.equal(left.length, 2); assert.equal(right.length, 2);
+    const joined = left.flatMap(row => right.filter(other => template === 'churn-risk-mock'
+      ? row.id === other.account_id : row.name === other.name));
+    assert.equal(joined.length, 2);
+    const tasks = JSON.parse(files['model-tasks.json']).tasks;
+    assert.equal(Object.keys(tasks).length, 1);
+    const answers = parse(files[Object.values(config.mock.answers)[0].replace(/^\.\//u, '')]).answers.by_key;
+    assert.deepEqual(Object.keys(answers).sort(), left.map(row => row.id).sort());
+    for (const value of Object.values(answers)) assert(template === 'churn-risk-mock' ? value.level === 'high' : value.changed === true);
+  }
+  for (const make of [twoModelDealReviewFiles, twoModelWholeDealReviewFiles]) {
+    const files = make(), program = JSON.parse(files['deal-review.program.json']);
+    assert.equal(Object.keys(JSON.parse(files['model-tasks.json']).tasks).length, 2);
+    assert.equal(program.stages.flatMap(stage => stage.steps).filter(step => step.infer).length, 2);
+    const answers = parse(files['mock/deal-review-confirm.v1.answers.yaml']).answers.by_key;
+    assert.equal(Object.keys(answers).length, 2);
+    assert(Object.values(answers).every(value => value.confirmed === true));
+  }
+});
 
 test('distinct Whole producer fixture retains both Model Units and all public Result readers', async () => {
   const files = twoModelWholeDealReviewFiles(), program = JSON.parse(files['deal-review.program.json']);
@@ -70,7 +98,7 @@ test('existing collector keeps the distinct Whole fixture and original cold inpu
       return {pid: 20000 + phases.length, code: 0, signal: null, wallNs: 100,
         stdout: [...Array.from({length: count}, (_, index) => explicitStep(phase, `explicit-${index}`)),
           {phase, status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
-            workObservation: explicitWork(phase)}]
+            workObservation: explicitWork(phase, 'two-models-whole')}]
           .map(value => JSON.stringify(value)).join('\n')};
     }});
   assert.deepEqual(phases, ['capture', 'approve', 'recover']);
@@ -295,7 +323,7 @@ test('required README cases use three distinct project paths and original indepe
         return {pid: 10000 + commands.length, code: 0, signal: null, wallNs: 100,
           stdout: [...Array.from({length: expected}, (_, n) => explicitStep(phase, `explicit-${n}`)),
             {phase, status: 'passed', firstFailedStep: null,
-              workObservation: explicitWork(phase),
+              workObservation: explicitWork(phase, selected.variant),
               firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
       }});
     assert.equal(metric.samples.length, 1); assert.equal(metric.samples[0].verified, true);

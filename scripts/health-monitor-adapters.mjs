@@ -406,7 +406,8 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           const work = record.summary.workObservation;
           assert.equal(work?.complete, true, 'Require actual lossless Source/Model/write observation');
           if (phase === 'capture') {
-            assert(work.sourceAcquisitionStarts > 0); assert(work.modelCallStarts > 0);
+            assert.equal(work.sourceAcquisitionStarts, 2);
+            assert.equal(work.modelCallStarts, variant === 'readme' ? 2 : 4);
             assert.equal(work.effectReplacementReturns, 0);
           } else {
             assert.equal(work.sourceAcquisitionStarts, 0); assert.equal(work.modelCallStarts, 0);
