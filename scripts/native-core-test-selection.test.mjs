@@ -6,7 +6,8 @@ import {tmpdir} from 'node:os';
 import {basename, dirname, join, resolve} from 'node:path';
 import test from 'node:test';
 import {nativeCoreTestSelection, portableMoonTestCount, nativeCoreHttpArguments, nativeCoreHttpTestFiles,
-  nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
+  nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile,
+  nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
 function fixture(t) {
@@ -719,4 +720,54 @@ test('Native Project Mock real Read keeps its selected provider out of ordinary 
   assert.equal(nativeScopedTestFiles.filter(source => source === physical).length, 1);
   assert.equal(nativeCoreScopedAllocationProfile(physical), 'runtime-values');
   assert.equal(nativeScopedTestFiles.includes('src/cmd/native_client/local_project_configuration_wbtest.mbt'), false);
+});
+
+test('Native initial CID and signing counters select every original case in runtime-values only', t => {
+  const directory = 'src/platform_native/client_host';
+  const cid = directory + '/local_initial_configuration_cid_wbtest.mbt';
+  const signing = directory + '/local_initial_host_signing_original_wbtest.mbt';
+  const ordinary = directory + '/ordinary_wbtest.mbt';
+  // Compiler-owned discovery must retain later authored cases without a pinned
+  // signing-case count in either the environment selector or the driver.
+  for (const signingCases of [4, 6]) {
+    const root = fixture(t);
+    mkdirSync(join(root, directory), {recursive: true});
+    for (const source of [cid, signing, ordinary]) writeFileSync(join(root, source), 'test {}\n');
+    const command = ['moon', 'generate-test-driver', '--output-driver', '_build/driver.mbt',
+      '--output-metadata', '_build/info.json', cid, signing, ordinary, '--target', 'native',
+      '--pkg-name', 'fixture/client_host', '--driver-kind', 'whitebox'].join(' ');
+    const entries = (count, name) => Array.from({length: count}, (_, index) =>
+      ({index, name: name + index, attrs: [], line_number: index + 1}));
+    const execute = (tool, args) => {
+      assert.equal(tool, 'moon');
+      if (args[0] === 'test') return command;
+      assert.equal(args[0], 'generate-test-driver');
+      const output = resolve(root, args[args.indexOf('--output-metadata') + 1]);
+      mkdirSync(dirname(output), {recursive: true});
+      writeFileSync(output, JSON.stringify({tests: {
+        [basename(cid)]: entries(2, 'CID original '),
+        [basename(signing)]: entries(signingCases, 'signing original '),
+        [basename(ordinary)]: entries(1, 'ordinary original '),
+      }}));
+      return '';
+    };
+    const selected = nativeCoreTestSelection(root, ['--release'], {execute, partitionProfiles: true});
+    const expected = [cid, signing].flatMap(source =>
+      Array.from({length: source === cid ? 2 : signingCases}, (_, index) => ({source, index})));
+    assert.deepEqual(selected.profiles.scoped.tests, expected);
+    assert.equal(new Set(expected.map(item => JSON.stringify(item))).size, 2 + signingCases);
+    assert.equal(selected.profiles.scoped.cases, 2 + signingCases);
+    assert.equal(selected.profiles.uniqueCases, 3 + signingCases);
+    assert.deepEqual(selected.profiles.ordinary, {args: ['--release', ordinary], cases: 1});
+    for (const original of selected.profiles.scoped.tests) {
+      assert.equal(nativeScopedTestFiles.filter(source => source === original.source).length, 1);
+      assert.equal(nativeCoreScopedAllocationProfile(original.source), 'runtime-values');
+      assert.deepEqual(nativeCoreScopedTestEnvironment(original), {ACTQL_NATIVE_TIMINGS: '1'});
+    }
+    assert.deepEqual(nativeCoreScopedTestEnvironment({source: ordinary, index: 0}), {});
+    assert.deepEqual(nativeCoreScopedTestEnvironment({source: cid + '.foreign', index: 0}), {});
+  }
+  const mock = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  assert.deepEqual(nativeCoreScopedTestEnvironment({source: mock, index: 13}), {ACTQL_NATIVE_TIMINGS: '1'});
+  for (const index of [0, 12, 14]) assert.deepEqual(nativeCoreScopedTestEnvironment({source: mock, index}), {});
 });

@@ -56,6 +56,15 @@ export function nativeCoreScopedAllocationProfile(source) {
     ? 'scoped-review-values' : 'runtime-values';
 }
 
+// Observe counters only in these existing case-owned processes. Ordinary Core
+// still exercises disabled observation and keeps its original allocation profile.
+export function nativeCoreScopedTestEnvironment({source, index}) {
+  return source === 'src/platform_native/client_host/local_initial_configuration_cid_wbtest.mbt' ||
+    source === 'src/platform_native/client_host/local_initial_host_signing_original_wbtest.mbt' ||
+    source === 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt' && index === 13
+    ? {ACTQL_NATIVE_TIMINGS: '1'} : {};
+}
+
 // These existing physical cases require the selected read provider. Ordinary
 // Core deliberately also tests the absence of that provider, so its allocator
 // must not be replaced globally. Both profiles remain required.
@@ -70,6 +79,8 @@ export const nativeScopedTestFiles = Object.freeze([
   'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt',
   'src/platform_native/client_host/submitted_request_preparation_native_wbtest.mbt',
   'src/platform_native/client_host/submitted_request_source_native_wbtest.mbt',
+  'src/platform_native/client_host/local_initial_configuration_cid_wbtest.mbt',
+  'src/platform_native/client_host/local_initial_host_signing_original_wbtest.mbt',
   'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt',
   'src/platform_native/host_bootstrap/root_control_physical_scoped_wbtest.mbt',
   'src/platform_native/installed_arena_control/initial_preparation_physical_scoped_wbtest.mbt',

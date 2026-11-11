@@ -14,6 +14,7 @@ import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
+  nativeCoreScopedTestEnvironment,
   nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles,
   nativeProjectMockContentTestFile, nativeRelationTargetIOTestFile, nativeRelationTargetIOLineageTestFile,
   nativeClientFileResponseTestFile} from './native-core-test-selection.mjs';
@@ -303,8 +304,7 @@ if (full) {
         {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment,
           ACTQL_TEST_NATIVE_TARGET_IO_ROOT: undefined, ...physical, ...content,
           ...(test.source === nativeClientFileResponseTestFile ? fileReceiptCheckpoint : {}),
-          ...(test.source === 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt' &&
-            test.index === 13 ? {ACTQL_NATIVE_TIMINGS: '1'} : {}),
+          ...nativeCoreScopedTestEnvironment(test),
           ACTQL_TEST_NATIVE_IMPORT_QUOTE:
             test.source === 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt' &&
             test.index === 10 ? '1' : undefined}}));

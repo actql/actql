@@ -32,7 +32,34 @@ test "Native default Number SUM and AVG reach actual checked lowering" {
       [],
       @run_host.client_standard_effect_computation_limits(),
     ).unwrap()
-    assert_true(prepared is Computation(_))
-    assert_true(local_static_plan_view(prepared).contains("total"))
+    guard prepared is Computation(original) else {
+      fail("Number aggregate must retain the original pure computation")
+    }
+    let graph = @run_host.prepared_client_graph(original)
+    let checked = @strategy.graph_program(graph)
+    let mut slots = 0
+    for unit in 0..<@checked.unit_count(checked) {
+      for
+        index in 0..<@checked.unit_group_numeric_slot_count(checked, unit).unwrap() {
+        let slot = @checked.unit_group_numeric_slot_at(checked, unit, index).unwrap()
+        assert_eq(
+          @checked.group_numeric_slot_reduction(slot),
+          Some(if aggregate == "SUM" { @numeric.Sum } else { @numeric.Average }),
+        )
+        slots += 1
+      }
+    }
+    assert_eq(slots, 1)
+    // PlanView reports logical occurrences, not SQL projection spelling.
+    let view = @decode.open_object(
+      local_input_cursor(local_static_plan_view(prepared)),
+    ).unwrap()
+    let map = @decode.open_object(
+      @decode.required(view, "logical_map").unwrap(),
+    ).unwrap()
+    assert_eq(
+      @decode.text(@decode.required(map, "program_definition_cid").unwrap()).unwrap(),
+      @run_host.prepared_client_identity(original).program_definition_cid,
+    )
   }
 }

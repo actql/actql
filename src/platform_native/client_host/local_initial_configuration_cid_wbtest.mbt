@@ -10,7 +10,8 @@ test "initial issue metadata reuses the selected raw-file CID without digesting 
   // pure projection is not an entered Read, role decision or signing permit.
   let expected = "sha256:ebebff5626d0b882617e62527d5e013f24868a08772f6653b48e86d5f5e35fb6"
   let before = native_timing_counter_value(26)
-  assert_true(before >= 0L)
+  assert_true(before >= 0L || before == -1L)
+  assert_eq(before >= 0L, @env.get_env_var("ACTQL_NATIVE_TIMINGS") == Some("1"))
   for _ in 0..<2 {
     assert_eq(
       host
@@ -22,7 +23,8 @@ test "initial issue metadata reuses the selected raw-file CID without digesting 
       expected,
     )
   }
-  assert_eq(native_timing_counter_value(26) - before, 0L)
+  // Disabled observation is unavailable, not evidence of zero digest work.
+  assert_eq(native_timing_counter_value(26), before)
   assert_true(
     host.selected_configuration_cid_after_current(
       name + ".settings.json",
@@ -44,7 +46,8 @@ test "initial issue CID keeps cold hashing and refuses a selected unentered Read
   let host = initial_signing_original_fixture("metadata-cid-no-read")
   let original = host.restore_initial_signing_original().unwrap()
   let before = native_timing_counter_value(26)
-  assert_true(before >= 0L)
+  assert_true(before >= 0L || before == -1L)
+  assert_eq(before >= 0L, @env.get_env_var("ACTQL_NATIVE_TIMINGS") == Some("1"))
   for _ in 0..<2 {
     // Legacy DATA computation remains exactly the old raw digest; it neither
     // selects this name nor supplies the enclosing issuer's current checks.
@@ -55,7 +58,12 @@ test "initial issue CID keeps cold hashing and refuses a selected unentered Read
       "sha256:a9d7a02cd1cc975b62fa8b8784e3f65616291ff8a8fcbd6d6067e6ce567f6ae3",
     )
   }
-  assert_eq(native_timing_counter_value(26) - before, 2L)
+  if before >= 0L {
+    assert_eq(native_timing_counter_value(26) - before, 2L)
+  } else {
+    // The same two exact cold CIDs remain checked without inventing a count.
+    assert_eq(native_timing_counter_value(26), -1L)
+  }
   let material = host.adopted_current_material().unwrap()
   let capture = prepare_native_local_journal_capture(
     host.session,
