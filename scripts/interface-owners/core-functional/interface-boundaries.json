@@ -52854,11 +52854,15 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "3132c6d4a5ab6b24060f47b8993f17c494c4671961875669086a80bb9b96e14c",
+      "sha256": "6125beb54ebc2abd1109cd0dc528cccff41a113dfb42472db1498bf38356c876",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
       "operations": [
+        {
+          "name": "[A]with_local_managed_import_mutation",
+          "declaration": "[ A ] with_local_managed_import_mutation ( active : Ref [ Bool ] , action : ( ) - > Result [ A , LocalDispatchIssue ] , ) - > Result [ A , LocalDispatchIssue ]"
+        },
         {
           "name": "[A]with_managed_scratch_use",
           "declaration": "[ A ] with_managed_scratch_use ( uses : Ref [ Int ] , release : ( ) - > Unit , action : ( ) - > A , ) - > A"
@@ -52920,16 +52924,16 @@
           "declaration": "local_managed_import_start_bytes ( limits : @ local . LocalImportLimits , ) - > Int64 ?"
         },
         {
+          "name": "local_relation_snapshot_reload_capacity",
+          "declaration": "local_relation_snapshot_reload_capacity ( limits : @ local . LocalImportLimits , content : @ execution . AdmittedOutputStreamReceipt , ) - > Int64 ?"
+        },
+        {
           "name": "managed_row_transfer_bytes",
           "declaration": "managed_row_transfer_bytes ( row : String , max_bytes : Int , ) - > Result [ Int64 , LocalDispatchIssue ]"
         },
         {
           "name": "start_local_managed_dispatch_node",
           "declaration": "start_local_managed_dispatch_node ( setup : LocalManagedDispatchConfiguration [ Int ] , ) - > Result [ LocalManagedDispatchOperations [ Int ] , LocalDispatchIssue ]"
-        },
-        {
-          "name": "with_local_managed_import_mutation",
-          "declaration": "with_local_managed_import_mutation ( active : Ref [ Bool ] , action : ( ) - > Result [ Unit , LocalDispatchIssue ] , ) - > Result [ Unit , LocalDispatchIssue ]"
         }
       ],
       "exports": [],
@@ -52954,7 +52958,8 @@
             "local_managed_import_start_bytes",
             "managed_row_transfer_bytes",
             "start_local_managed_dispatch_node",
-            "with_local_managed_import_mutation"
+            "[A]with_local_managed_import_mutation",
+            "local_relation_snapshot_reload_capacity"
           ],
           "exports": [],
           "attributes": {
