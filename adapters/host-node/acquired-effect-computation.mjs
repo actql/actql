@@ -244,6 +244,16 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     },
     cleanupPending: () => pending,
   });
+  const retainPreflightCleanup = owner => {
+    if (settled || execution !== undefined || recovery !== undefined) {
+      throw new Error('EffectComputationCleanupAlreadyRetained');
+    }
+    // Only the installed preflight owner can make this handoff, before any
+    // Compute task enters. Its actual stop/output/Site duties remain pending;
+    // receiving it is not a physical cleanup acknowledgement.
+    recovery = owner;
+    unresolved = false;
+  };
   // Even preparation can fail. The dispatch owner receives custody before
   // the first asynchronous boundary or provider operation.
   retainComputationOwner(custody);
@@ -700,7 +710,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     current();
     execution = await runCapturedEffectComputation(checkedHost,
       {...configurations,
-        authorization: multiple ? undefined : singleSourceAccess?.authorization}, signal);
+        authorization: multiple ? undefined : singleSourceAccess?.authorization}, signal,
+      undefined, {retainPreflightCleanup});
     unresolved = false;
     if (execution.status === 'host-tasks-waiting') {
       originalCurrent();

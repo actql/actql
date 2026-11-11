@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import './acquired-effect-unknown-primary.test.mjs';
+import './effect-preflight-custody.test.mjs';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {graphResultDataPolicy} from '../../scripts/fixtures/graph-infer-effect-input.mjs';
