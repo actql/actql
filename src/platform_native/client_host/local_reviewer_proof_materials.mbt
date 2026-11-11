@@ -225,10 +225,24 @@ pub fn NativeLocalReviewerProofMaterials::require_current(
   if actual != self.original {
     return Err(ProofOriginal(Checkpoint(StaleRevision)))
   }
-  match self.key.read_current_reviewer(reviewer) {
-    Ok(value) if value == before => ()
-    Ok(_) => return Err(ProofUnavailable)
-    Err(issue) => return Err(ProofKey(issue))
+  match (self.key, reviewer.approval_scope) {
+    (InitialReviewerKey(key), SavedApproval(_)) if key.original.original_read
+      is Some(_) =>
+      // Only the trusted journal snapshot separated this SAME registration
+      // read from here. Keep its original projection instead of running the
+      // complete clock/Account/Checkpoint traversal twice. The final metadata
+      // read below still samples time, checks RunRead/revision/cancellation,
+      // and finishes this same physical key after its last callback.
+      match self.key.finish_original_projection() {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    _ =>
+      match self.key.read_current_reviewer(reviewer) {
+        Ok(value) if value == before => ()
+        Ok(_) => return Err(ProofUnavailable)
+        Err(issue) => return Err(ProofKey(issue))
+      }
   }
   // The existing metadata Owner performs its own current RunRead before/after
   // the final original read. A same-Checkpoint callback observation cannot

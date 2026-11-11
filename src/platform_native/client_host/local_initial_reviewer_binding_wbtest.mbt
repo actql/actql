@@ -50,6 +50,34 @@ fn initial_reviewer_fixture(
 }
 
 ///|
+test "initial Reviewer configuration projection never supplies the independent resolve outcome" {
+  let (host, file) = initial_reviewer_fixture("initial-reviewer-data-not-allow")
+  let original = host.restore_initial_signing_original().unwrap()
+  let installed = host
+    .install_initial_effect_reviewer(original, "machine-user", "cli", file)
+    .unwrap()
+  // These copied actor labels are metadata, not a new registration or Allow.
+  // The same authenticated configuration remains physically current for both.
+  let foreign = {
+    ..installed,
+    reviewer: {
+      ..installed.reviewer,
+      principal: "other-user",
+      reviewer_id: "other-user",
+    },
+  }
+  let configuration_only = installed.configuration_current() &&
+    foreign.configuration_current()
+  let role_is_fresh = installed.current() &&
+    !foreign.current() &&
+    installed.current()
+  host.close().unwrap()
+  assert_true(configuration_only && role_is_fresh)
+  assert_false(installed.configuration_current())
+  assert_false(foreign.current())
+}
+
+///|
 test "initial Reviewer joins actual machine actor and initialized public key without granting Client read or issue" {
   let (host, file) = initial_reviewer_fixture("initial-reviewer-actor")
   let original = host.restore_initial_signing_original().unwrap()

@@ -49,7 +49,8 @@ for (let iteration = 0; iteration < count; iteration++) {
       killSignal: 'SIGKILL', maxBuffer: 8 * 1024 ** 2});
   if (result.error || result.signal || result.status !== 0) {
     report.failures.push({iteration, stage: 'original installed consumer',
-      code: result.status, signal: result.signal ?? null, error: result.error?.message ?? null});
+      code: result.status, signal: result.signal ?? null, error: result.error?.message ?? null,
+      stdout: result.stdout ?? '', stderr: result.stderr ?? ''});
     persist(); break;
   }
   const match = /^Installed Native mock approval\/recovery passed: (.+)$/mu.exec(result.stdout);

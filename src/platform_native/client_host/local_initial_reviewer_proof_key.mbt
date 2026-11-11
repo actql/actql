@@ -35,7 +35,16 @@ fn NativeLocalInitialReviewerSigningKey::finish_original_projection(
 ) -> Result[Unit, NativeLocalSigningOriginalIssue] {
   let original = self.original
   // No caller clock/current callback follows this original-generation check.
-  guard self.installed.current() &&
+  // The same scoped caller has already checked the registration and fresh
+  // resolve outcome. This terminal metadata projection runs no callback and
+  // must not start that whole role/Checkpoint read again. Legacy callers keep
+  // their original complete entry; no missing context becomes scoped success.
+  let installed_current = if original.original_read is Some(_) {
+    self.installed.configuration_current()
+  } else {
+    self.installed.current()
+  }
+  guard installed_current &&
     original.host.session.selected_configuration(self.installed.file)
     is Ok(configuration) &&
     configuration == self.installed.original_bytes &&

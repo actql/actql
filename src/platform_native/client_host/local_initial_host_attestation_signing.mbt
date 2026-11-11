@@ -84,12 +84,25 @@ fn NativeLocalInitialHostAttestationPreparation::require_current(
     Err(issue) => return Err(HostAttestationProof(OriginalSigningProof(issue)))
     Ok(_) => ()
   }
-  if binding.read_current(
-      authenticated.registration.selection,
-      authenticated.registration.key_id,
-    ) !=
-    Some(authenticated.registration) {
-    return Err(HostAttestationUnavailable)
+  if self.reviewer_current.key.original.original_read is Some(_) &&
+    self.reviewer_current.materials.reviewer.approval_scope is SavedApproval(_) {
+    // require_current just completed this SAME material's registration read
+    // and terminal key/current checks. Only these identity/data comparisons
+    // intervene; do not add another whole caller/clock traversal. Independent
+    // Host Sign and the actual transaction/physical gates remain below.
+    if !physical_equal(self.reviewer_current.materials.reviewer, binding) ||
+      self.reviewer_current.materials.registration !=
+      authenticated.registration {
+      return Err(HostAttestationUnavailable)
+    }
+  } else {
+    if binding.read_current(
+        authenticated.registration.selection,
+        authenticated.registration.key_id,
+      ) !=
+      Some(authenticated.registration) {
+      return Err(HostAttestationUnavailable)
+    }
   }
   binding.host.journal
   .transaction(() => self.require_current_locked())

@@ -74,7 +74,10 @@ pub fn NativeLocalHostConnection::install_effect_reviewer(
 }
 
 ///|
-fn NativeLocalInstalledEffectReviewer::current(
+// Same selected configuration/key projection only. This does not authorize a
+// Reviewer. Closed terminal projections use it after their enclosing current
+// read; each actual resolve entry still evaluates its own Account below.
+fn NativeLocalInstalledEffectReviewer::configuration_current(
   self : NativeLocalInstalledEffectReviewer,
 ) -> Bool {
   if !self.reviewer.enabled {
@@ -93,6 +96,16 @@ fn NativeLocalInstalledEffectReviewer::current(
       if !self.initial_reviewer_original_current(original) {
         return false
       }
+  }
+  true
+}
+
+///|
+fn NativeLocalInstalledEffectReviewer::current(
+  self : NativeLocalInstalledEffectReviewer,
+) -> Bool {
+  if !self.configuration_current() {
+    return false
   }
   let tuple : @authorization.AccessTuple = {
     principal: self.reviewer.principal,
