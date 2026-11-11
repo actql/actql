@@ -690,6 +690,10 @@ fn prepare_client_local_sequences_owned(
     Some(_) => client_local_source_free_max_work(source_free_max_work).unwrap()
     None => 100000
   }
+  // Generated-sequence and QueryTime APIs take wiring work and entry counts,
+  // not artifact bytes/nodes. Keep their original independent recipe bounds.
+  let sequence_construction_work = 100000
+  let sequence_construction_entries = 10000
   let graph = match prepared {
     Pure(value) => @publication_host.prepared_client_graph(value)
     Effect(value) =>
@@ -1027,8 +1031,8 @@ fn prepare_client_local_sequences_owned(
         sequence,
         contexts,
         [@lower.node_id(node)],
-        physical.max_body_bytes,
-        physical.max_body_nodes,
+        sequence_construction_work,
+        sequence_construction_entries,
       ).map_err(issue => {
         @publication_host.ClientTaskSequenceIssue::Generated(issue)
       })
@@ -1043,8 +1047,8 @@ fn prepare_client_local_sequences_owned(
         sequence,
         contexts,
         [@lower.node_id(node)],
-        physical.max_body_bytes,
-        physical.max_body_nodes,
+        sequence_construction_work,
+        sequence_construction_entries,
       ).map_err(issue => {
         @publication_host.ClientTaskSequenceIssue::Generated(issue)
       })
@@ -1057,8 +1061,8 @@ fn prepare_client_local_sequences_owned(
             contracts,
             contexts,
             client_local_owner_sequence_limits(prepared),
-            physical.max_body_bytes,
-            physical.max_body_nodes,
+            sequence_construction_work,
+            sequence_construction_entries,
             prepared_sequence=Some(sequence),
           )
         Effect(value) =>
@@ -1068,8 +1072,8 @@ fn prepare_client_local_sequences_owned(
             contracts,
             contexts,
             client_local_owner_sequence_limits(prepared),
-            physical.max_body_bytes,
-            physical.max_body_nodes,
+            sequence_construction_work,
+            sequence_construction_entries,
             prepared_sequence=Some(sequence),
           )
       }
@@ -1114,23 +1118,13 @@ fn prepare_client_local_sequences_owned(
         let bound = match prepared {
           Pure(value) =>
             @publication_host.bind_client_query_time_sequence(
-              value,
-              task,
-              sequence,
-              original,
-              request,
-              physical.max_body_bytes,
-              physical.max_body_nodes,
+              value, task, sequence, original, request, sequence_construction_work,
+              sequence_construction_entries,
             )
           Effect(value) =>
             @publication_host.bind_client_effect_query_time_sequence(
-              value,
-              task,
-              sequence,
-              original,
-              request,
-              physical.max_body_bytes,
-              physical.max_body_nodes,
+              value, task, sequence, original, request, sequence_construction_work,
+              sequence_construction_entries,
             )
         }
         match bound {
