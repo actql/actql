@@ -91,7 +91,9 @@ fn combined_unit_whole_capture(
 }
 
 ///|
-test "combined Source Unit keeps both original inputs and requires its actual completed producer" {
+fn combined_source_unit_completed_fixture(
+  foreign_controls? : Bool = false,
+) -> Unit raise {
   let document =
     #|{"version":"actql/0.1","id":"combined-source-unit","stages":[{"id":"joined","inputs":{"left_rows":{"connector":"crm/main","resource":"r"},"right_rows":{"connector":"crm/right","resource":"r"}},"from":"left_rows","steps":[{"join":{"with":"right_rows","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":4,"select":{"value":"left.id"}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"joined":{"from":{"stage":"joined","result":"out"}}}}
   let environment = admit_client_check_environment(
@@ -351,28 +353,87 @@ test "combined Source Unit keeps both original inputs and requires its actual co
   let local_definition = issue_client_effect_local_result_definition(
     prepared, 0, "out", 100000, 10000, 100,
   ).unwrap()
-  let artifact = issue_combined_source_client_effect_local_result_artifact(
-    prepared,
-    inputs,
-    exported,
-    combined,
-    local_definition,
-    receipt,
-    admission,
-    definition,
-    publication.source.invocation,
-    publication.source.observation,
-    100000,
-    10000,
-    100,
-  ).unwrap()
-  assert_eq(
-    client_effect_local_artifact_invocation_cid(artifact),
-    combined.invocation.cid,
-  )
-  right_live.val = false
-  assert_true(
-    issue_combined_source_client_effect_local_result_artifact(
+  if foreign_controls {
+    let foreign_definition = issue_client_effect_run_definition(
+      allowed, "combined-unit", "foreign-combined-run", "2026-11-11T00:00:00.000Z",
+      "2027-01-01T00:00:00.000Z",
+    ).unwrap()
+    assert_true(
+      issue_combined_source_client_effect_local_result_artifact(
+        prepared,
+        inputs,
+        exported,
+        combined,
+        local_definition,
+        receipt,
+        admission,
+        foreign_definition,
+        publication.source.invocation,
+        publication.source.observation,
+        100000,
+        10000,
+        100,
+      )
+      is Err(ForeignRun),
+    )
+    let other_export = @strategy.start_captured_effect_local_result_export(
+      inputs,
+      0,
+      {
+        max_fields: 2,
+        max_mapping_work: 1000,
+        max_order_work: 10000,
+        max_workspace_entries: 20,
+      },
+      10,
+      execution.rows.input_values,
+      wire,
+      wire,
+      { max_fields: 2, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+      1000,
+    ).unwrap()
+    let other_preparation = @strategy.captured_effect_local_result_export_preparation(
+      other_export,
+    )
+    for _ in 0..<100 {
+      if @execution.advance_completed_result_relation_export(
+          other_preparation, 64,
+        ).unwrap().0 {
+        break
+      }
+    }
+    let other_stream = @execution.finish_completed_result_relation_export_preparation(
+      other_preparation,
+    ).unwrap()
+    while @execution.next_completed_output_export_canonical_row(
+            other_stream, 1000, 20, 1000,
+          ).unwrap()
+          is Some(_) {
+
+    }
+    let (other_receipt, _) = @execution.finish_completed_relation_export(
+      other_stream,
+    ).unwrap()
+    assert_true(
+      issue_combined_source_client_effect_local_result_artifact(
+        prepared,
+        inputs,
+        exported,
+        combined,
+        local_definition,
+        other_receipt,
+        admission,
+        definition,
+        publication.source.invocation,
+        publication.source.observation,
+        100000,
+        10000,
+        100,
+      )
+      is Err(ForeignExport),
+    )
+  } else {
+    let artifact = issue_combined_source_client_effect_local_result_artifact(
       prepared,
       inputs,
       exported,
@@ -386,10 +447,42 @@ test "combined Source Unit keeps both original inputs and requires its actual co
       100000,
       10000,
       100,
+    ).unwrap()
+    assert_eq(
+      client_effect_local_artifact_invocation_cid(artifact),
+      combined.invocation.cid,
     )
-    is Err(ForeignOwner),
-  )
+    right_live.val = false
+    assert_true(
+      issue_combined_source_client_effect_local_result_artifact(
+        prepared,
+        inputs,
+        exported,
+        combined,
+        local_definition,
+        receipt,
+        admission,
+        definition,
+        publication.source.invocation,
+        publication.source.observation,
+        100000,
+        10000,
+        100,
+      )
+      is Err(ForeignOwner),
+    )
+  }
   @strategy.release_captured_effect_inputs(inputs) |> ignore
   @local.cancel_managed_provider(child) |> ignore
   assert_true(@local.cleanup_managed_provider(child) is Ok(true))
+}
+
+///|
+test "combined Source Unit keeps both original inputs and requires its actual completed producer" {
+  combined_source_unit_completed_fixture()
+}
+
+///|
+test "combined Source Unit refuses a foreign Run and another actual export receipt" {
+  combined_source_unit_completed_fixture(foreign_controls=true)
 }
