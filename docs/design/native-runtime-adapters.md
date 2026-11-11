@@ -182,6 +182,13 @@ Publication then uses the original captured Result pin and the existing
 Journal/Store/Saved continuation, preserving partial generations and ambiguous
 commits.
 
+The File caller binds its already-admitted retention envelope to the Work's
+retained resolved publication policy through the existing retention projection.
+All original custody contracts and time bounds remain unchanged; the projection
+issues no policy, extension or read grant. Its envelope coexists with the four
+Source/invocation metadata bodies in the preceding same-reservation grow.
+Artifact issuance still refuses mismatched effective policies.
+
 The accounted listing constructor retains the acquisition's original
 configuration in its existing report holder before a response borrow can match
 the derived listing configuration. Row owns the additional H1/R2/W1 tariff in

@@ -177,7 +177,8 @@ fn NativeClientRelationFileWork::publication_invocation_original(
     Ok(value) => value
   }
   // Reuse the existing closed-protocol quote for four simultaneously retained
-  // logical/Source/observation/invocation artifacts. Inputs use their original
+  // logical/Source/observation/invocation artifacts plus the caller's Result
+  // retention envelope under the resolved policy. Inputs use their original
   // acquisition's limits, not the possibly smaller aggregate Result bounds.
   // The same original tuple/Some/Ok and final map closure: H4/R9/S2.
   // These borrow the actual input CID/policy strings; no wire is parsed again.
@@ -192,7 +193,7 @@ fn NativeClientRelationFileWork::publication_invocation_original(
     @host.client_protocol_metadata_construction_bytes(
       max_wire_bytes,
       max_nodes.to_int64(),
-      copies=4,
+      copies=5,
       extra_controls=controls,
     )
     is Some((metadata, _)) else {

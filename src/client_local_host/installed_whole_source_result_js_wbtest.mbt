@@ -11,6 +11,7 @@ fn whole_source_result_publication_fixture(
   numeric_case? : Bool = false,
   source_free_refusal? : Bool = false,
   native_identity? : Bool = false,
+  native_retention? : Bool = false,
 ) -> Unit raise {
   let declaration = if numeric_case {
     let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
@@ -524,7 +525,11 @@ fn whole_source_result_publication_fixture(
       identity,
       original,
     ).unwrap()
-    let authority = "sha256:" + "2".repeat(64)
+    let authority = if native_retention {
+      @publication_host.client_request_authority_scope_cid(request)
+    } else {
+      "sha256:" + "2".repeat(64)
+    }
     let policy = @publication_host.prepared_client_publication_data_policy_cid(
       prepared,
     ).unwrap()
@@ -572,7 +577,13 @@ fn whole_source_result_publication_fixture(
       )
       is Err(WrongPhase),
     )
-    (authority, policy, evidence, invocation)
+    (
+      authority,
+      policy,
+      evidence,
+      invocation,
+      @query.captured_source_relation_logical_cid(identity),
+    )
   }
   // Native retains the same completed Compute output before issuing Source
   // identity/evidence; the legacy fixture keeps its original earlier order.
@@ -731,7 +742,8 @@ fn whole_source_result_publication_fixture(
     )
   }
   assert_true(@strategy.captured_task_completed(dag, 0))
-  let (authority, policy, evidence, invocation) = match early_evidence {
+  let (authority, policy, evidence, invocation, input_cid) = match
+    early_evidence {
     Some(value) => value
     None => prepare_source_evidence()
   }
@@ -842,33 +854,80 @@ fn whole_source_result_publication_fixture(
   assert_true(physical_equal(publication.run.unwrap(), dag))
   stream
   .issue_result_evidence(
-    authority,
-    [@publication.run_evidence_value_identity(evidence)],
+    if native_retention {
+      @publication.publication_contract_identity(
+        @publication_host.client_compiled_run_plan(compiled),
+      )
+    } else {
+      authority
+    },
+    if native_retention {
+      [input_cid]
+    } else {
+      [@publication.run_evidence_value_identity(evidence)]
+    },
     @publication.publication_contract_identity(definition),
     policy,
-    "sha256:" + "5".repeat(64),
+    if native_retention {
+      authority
+    } else {
+      "sha256:" + "5".repeat(64)
+    },
     65536,
     8192,
     64,
   )
   .unwrap()
-  let retention = @publication.seal_publication_contract(
-    "result_retention_policy",
-    "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
-    "8".repeat(64) +
-    "\",\"effective_data_policy_cid\":\"" +
-    policy +
-    "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-03T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
-    "9".repeat(64) +
-    "\",\"metadata_delete_by\":\"2099-01-04T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
-    "a".repeat(64) +
-    "\"}",
-    65536,
-    8192,
-    64,
-  ).unwrap()
-  stream.issue_artifact(invocation, retention, 65536, 8192, 64).unwrap()
-  |> ignore
+  let retention = if native_retention {
+    let originals = @publication_host.client_local_product_common_originals(
+      "/Users/operator/.actql-local",
+      "2026-11-11T00:00:00.000Z",
+      @publication_host.client_local_product_assets(),
+    ).unwrap()
+    let wire = @utf8.decode(originals.retention_policy) catch {
+      _ => fail("original Native retention must be UTF-8")
+    }
+    let original = @publication.admit_publication_contract(
+      "result_retention_policy", wire, 65536, 8192, 64,
+    ).unwrap()
+
+    // The unchanged issuer must reject the original baseline policy before
+    // the same existing projection binds the actual resolved Source policy.
+    assert_true(
+      stream.issue_artifact(invocation, original, 65536, 8192, 64)
+      is Err(
+        @publication_host.Artifact(@publication.ArtifactIssuancePolicyMismatch)
+      ),
+    )
+    let selected = @publication.issue_result_retention_for_data_policy(
+      original, policy, 8192, 64, 8,
+    ).unwrap()
+    assert_true(@publication.result_retention_bounds_equal(original, selected))
+    selected
+  } else {
+    @publication.seal_publication_contract(
+      "result_retention_policy",
+      "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
+      "8".repeat(64) +
+      "\",\"effective_data_policy_cid\":\"" +
+      policy +
+      "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-03T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
+      "9".repeat(64) +
+      "\",\"metadata_delete_by\":\"2099-01-04T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
+      "a".repeat(64) +
+      "\"}",
+      65536,
+      8192,
+      64,
+    ).unwrap()
+  }
+  match stream.issue_artifact(invocation, retention, 65536, 8192, 64) {
+    Ok(_) => ()
+    Err(@publication_host.Artifact(@publication.ArtifactIssuancePolicyMismatch)) =>
+      fail("original Native Source retention: ArtifactIssuancePolicyMismatch")
+    Err(_) => fail("original Native Source retention: another refusal")
+  }
+
   let snapshot = begin_program_snapshot(publication, stream).unwrap()
   let mut snapshot_done = false
   for _ in 0..<10000 {
@@ -986,6 +1045,19 @@ test "Native original CASE16 AVG8 incremental Source identity reaches publicatio
     native_execution=true,
     numeric_case=true,
     native_identity=true,
+  )
+}
+
+///|
+test "Native original CASE16 AVG8 retains original finite bounds under resolved Source policy" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    native_geometry=true,
+    native_execution=true,
+    numeric_case=true,
+    native_identity=true,
+    native_retention=true,
   )
 }
 

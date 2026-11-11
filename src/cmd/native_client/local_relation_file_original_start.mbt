@@ -104,9 +104,20 @@ fn local_execute_original_publish_file_source(
   let (_, _, _, _, input, policy) = work
     .publication_invocation(65536, 8192, 64)
     .unwrap_or_else(() => stop("LocalSourcePublicationEvidenceUnavailable"))
+  // The retained Work supplied this resolved policy. Preserve the original
+  // finite custody/timestamps while binding its Result envelope to that SAME
+  // policy; neither this projection nor its CID grants an extension or read.
+  // Work's preceding metadata grow covers this fifth coexisting envelope.
+  let retention = @publication.issue_result_retention_for_data_policy(
+    run.retention,
+    policy,
+    8192,
+    64,
+    8,
+  ).unwrap_or_else(() => stop("LocalSourceResultRetentionUnavailable"))
   let results : Array[@local_publication.NativeCapturedResultPublicationContext] = [
     {
-      retention: run.retention,
+      retention,
       computation_contract_cid: @publication.publication_contract_identity(
         @run_host.client_compiled_run_plan(compiled),
       ),
