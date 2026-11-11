@@ -142,6 +142,10 @@ Diagnostic selection may expose the code, phase and kind; task correlation
 also enables the three ordinals. No body, Account, path or credential is part
 of this projection. Missing or lost delivery remains unavailable, and neither
 projection nor delivery failure replaces the original outcome or cleanup.
+The same typed Model failure is also selectable under the existing `infer`
+signal, so a finite work collector need not subscribe to Run lifecycle or
+selected-row measurements. The original Run failure event remains available;
+observation loss and repeated facts are not erased by this projection.
 
 The optional Node package can explicitly select standard environment
 configuration. It never overlays an application-owned provider. Generic

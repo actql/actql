@@ -38,6 +38,30 @@ test('authored README Source and Model call bounds reject duplicated and missing
   }
 });
 
+test('work collector selects needed facts without requesting Run rows or repeated Owner facts', async () => {
+  const make = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const work = make(), seen = new Set(), ref = {namespaceId: 'fixture',
+    authorityScopeCid: `sha256:${'a'.repeat(64)}`, runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+  const observer = installHostObservation(work.connection, {journal: {observationStorage: () => ({consume(value) {
+    if (value.ownerFactKey === undefined) return {accepted: true};
+    if (seen.has(value.ownerFactKey)) return {accepted: false, repeated: true};
+    seen.add(value.ownerFactKey); return {accepted: true};
+  }})}});
+  observer.diagnostic('selected_rows_observed', Object.defineProperty({}, 'rowOwner', {
+    get() {assert.fail('Unselected row DATA must not be read');},
+  }));
+  for (let i = 0; i < 2; i++) {
+    observer.diagnostic('acquisition_started', {}); observer.diagnostic('model_call_entered', {});
+    observer.emit('run', 'owner_observed', {ref, outcome: 'succeeded'}, {ownerFactKey: 'same-original'});
+  }
+  await observer.close();
+  const actual = work.snapshot();
+  assert.equal(actual.sourceAcquisitionStarts, 2); assert.equal(actual.modelCallStarts, 2);
+  assert.equal(actual.status.repeated, 0); assert.equal(actual.status.dropped, 0);
+  assert.deepEqual(actual.status.loss, {}); assert.equal(actual.complete, true);
+});
+
 test('workflow primary failure stays with its actual original Run instead of another verification Run', async () => {
   const make = new Function('createHostObservationConnection',
     `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);

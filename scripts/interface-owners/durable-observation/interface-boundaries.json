@@ -373,7 +373,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "26829648a6f93446fc1a246f818b3aa83b0b2f687101acd558ce3b09ab96ae25",
+      "sha256": "46f880a889b86defdd8026903883206008446e8bd44e0f1aa692136ec710df60",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",

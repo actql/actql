@@ -28,11 +28,14 @@ export function workflowWorkObservation({trackOriginal = false} = {}) {
   let limited = false, primaryFailure;
   const cid = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
   const connection = createHostObservationConnection({
-    include: ['source', 'infer', 'effect', 'run'],
+    include: ['source', 'infer', 'effect'],
     correlation: {include: trackOriginal ? ['run', 'task'] : ['task']},
+    // This collector consumes starts, returned writes and typed failure DATA.
+    // It does not request selected-row measurements from asynchronous dispatch.
+    measurements: {include: []},
     events: {level: 'diagnostic'},
     deliver(record) {
-      if (record.operation === 'run' && record.event === 'dispatch_failed') {
+      if (record.operation === 'infer' && record.event === 'dispatch_failed') {
         const a = record.attributes;
         if (typeof a?.['error.type'] !== 'string' ||
             typeof a?.['actql.failure.kind'] !== 'string' ||

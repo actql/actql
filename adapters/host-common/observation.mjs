@@ -677,6 +677,12 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         return;
       }
       const mapping = events[name];
+      // The same typed Model failure is also selectable through the existing
+      // infer signal, without subscribing a work collector to Run lifecycle.
+      if (name === 'dispatch_failed' && config.eventLevel === 'diagnostic' && config.allowed.has('infer') &&
+          detail?.primaryDiagnostic?.phase === 'original_model_acquired_effect_evidence') {
+        emit('infer', 'dispatch_failed', {ref: detail.ref, primaryDiagnostic: detail.primaryDiagnostic});
+      }
       if (mapping) emit(mapping[0], mapping[1], {ref: detail?.ref,
         task: detail?.task, attempt: detail?.attempt, slot: detail?.slot,
         attemptCid: detail?.attemptCid, outcome: detail?.outcome,
