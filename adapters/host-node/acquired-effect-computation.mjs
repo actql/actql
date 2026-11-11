@@ -942,7 +942,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       }
       if (holding !== undefined) {await holding.commit(); holding = undefined;}
       while (publicationBindings.length > 0) {
-        moon.clientProgramReleaseInferInvocationBinding(publicationBindings[0]);
+        if (moon.clientProgramReleaseInferInvocationBinding(publicationBindings[0]) !== true) return false;
         publicationBindings.shift();
       }
       publication = undefined;

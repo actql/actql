@@ -28,7 +28,7 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 
 // Actual group custody with explicit nominal publication/Store ports. The
 // deferred preparation is not an installed Model, Core ABI or physical ACK.
-function publicationGroupFixture({prepare, commit, faultInjection} = {}) {
+function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding} = {}) {
   const events = [], contexts = [], preparedOptions = [], controller = new AbortController();
   const sourcePlan = {}, plan = {compiled: {}, runDefinition: {}}, issuance = {};
   const publication = {binding: {}, observation: {name: 'observation', wire: '{}', identity: 'observation'},
@@ -46,7 +46,11 @@ function publicationGroupFixture({prepare, commit, faultInjection} = {}) {
   const moon = {clientProgramAdvanceInferObservationIssuance: actual => {
     assert.strictEqual(actual, issuance); return {$tag: 1, _0: {_0: true}};
   }, clientProgramReleaseInferInvocationBinding(actual) {
-    assert.strictEqual(actual, publication.binding); events.push('release-binding');
+    assert.strictEqual(actual, publication.binding);
+    events.push('release-attempt');
+    const released = releaseBinding === undefined ? true : releaseBinding(actual);
+    if (released) events.push('release-binding');
+    return released;
   }, clientProgramCancelInferObservationIssuance: () => false,
   clientProgramEffectComposedModelKeyedAcquisition: () => ({$tag: 1, _0: undefined})};
   moon.clientProgramCleanupInferObservationIssuance = () => ({$tag: 1, _0: true});
@@ -437,4 +441,30 @@ test('plural cancellation during private commit waits for that original write wi
   assert.equal(f.events.filter(value=>value==='commit-observation').length,1);
   assert.equal(f.events.includes('holding-invocation'),false);
   assert.equal(f.events.filter(value=>value==='release-binding').length,1);
+});
+
+
+test('plural binding retirement retains false and throwing releases for the same owner retry',async()=>{
+  for(const mode of ['false','throw']) {
+    let ready=false;
+    const primary=new Error('OriginalPublicationFailed'),cleanupFailure=new Error('OriginalBindingReleaseFailed');
+    const f=publicationGroupFixture({prepare(){throw primary;},releaseBinding(){
+      if(ready)return true;
+      if(mode==='throw')throw cleanupFailure;
+      return false;
+    }});
+    await assert.rejects(f.group.persist(),error=>error===primary);
+    if(mode==='throw')await assert.rejects(f.group.retirePublication(),error=>error===cleanupFailure);
+    else assert.equal(await f.group.retirePublication(),false);
+    assert.equal(f.group.hasOutputPins(),true);
+    assert.equal(f.events.filter(value=>value==='release-binding').length,0);
+    await assert.rejects(f.group.persist(),error=>error===primary);
+    ready=true;
+    assert.equal(await f.group.retirePublication(),true);
+    assert.equal(f.group.hasOutputPins(),false);
+    assert.equal(f.events.filter(value=>value==='release-attempt').length,2);
+    assert.equal(f.events.filter(value=>value==='release-binding').length,1);
+    assert.equal(await f.group.retirePublication(),true);
+    assert.equal(f.events.filter(value=>value==='release-attempt').length,2);
+  }
 });
