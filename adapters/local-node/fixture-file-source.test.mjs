@@ -288,3 +288,166 @@ test('fixture physical failure keeps the same parent cleanup carrier without ret
   assert.equal(retries, 0); assert.equal(supplier.close, undefined);
   assert.equal(f.state.admissions, 0); assert.equal(f.state.issued.size, 0);
 });
+
+
+test('fixture raw retention awaits the same charged bytes before listing or content decode', async () => {
+  for (const kind of ['listing', 'content']) {
+    const f = fixture();
+    if (kind === 'content') await f.supplier.readListing(f.listingOptions);
+    f.state.events.length = 0;
+    const before = f.state.admissions, reads = f.state.reads;
+    const gate = Promise.withResolvers();
+    const options = kind === 'listing' ? f.listingOptions : f.content();
+    options.retainRawResponse = async bytes => {
+      assert.strictEqual(bytes, f.raw);
+      assert.strictEqual(f.state.pending.bytes, bytes);
+      f.state.events.push('retain');
+      await gate.promise;
+      f.state.events.push('retained');
+    };
+    const pending = kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options);
+    try {
+      await new Promise(setImmediate);
+      assert.equal(f.state.events.at(-1), 'retain');
+      assert.equal(f.state.admissions, before);
+      assert.equal(f.state.reads, reads + 1);
+      assert.equal(f.state.captures.length, 0);
+    } finally {gate.resolve();}
+    await pending;
+    assert.deepEqual(f.state.events.slice(f.state.events.indexOf('read'),
+      f.state.events.indexOf('project') + 1),
+    ['read', 'charge', 'verify', 'retain', 'retained', 'verify', 'project']);
+    assert.equal(f.state.admissions, before + 1);
+    assert.equal(f.state.reads, reads + 1);
+  }
+});
+
+test('fixture raw retention snapshots the own callback before the first await', async () => {
+  for (const kind of ['listing', 'content']) {
+    const f = fixture();
+    if (kind === 'content') await f.supplier.readListing(f.listingOptions);
+    const options = kind === 'listing' ? f.listingOptions : f.content();
+    let retained = 0;
+    options.retainRawResponse = bytes => {assert.strictEqual(bytes, f.raw); retained++;};
+    const verify = options.verifyRead;
+    options.verifyRead = async () => {
+      options.retainRawResponse = () => assert.fail('replacement callback must not be selected');
+      await verify();
+    };
+    await (kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options));
+    assert.equal(retained, 1);
+  }
+});
+
+test('fixture raw retention rechecks cancellation and original current after the pending await', async () => {
+  for (const kind of ['listing', 'content']) for (const stop of ['signal', 'current', 'verify']) {
+    const f = fixture();
+    if (kind === 'content') await f.supplier.readListing(f.listingOptions);
+    const before = f.state.admissions, reads = f.state.reads;
+    const options = kind === 'listing' ? f.listingOptions : f.content();
+    const gate = Promise.withResolvers(), controller = new AbortController();
+    const stopped = new Error('OriginalReadStopped');
+    let retained = false, settled = false, finished = false;
+    options.signal = controller.signal;
+    const verify = options.verifyRead;
+    options.verifyRead = async () => {if (finished && stop === 'verify') throw stopped; await verify();};
+    options.retainRawResponse = async bytes => {
+      assert.strictEqual(bytes, f.raw); retained = true;
+      await gate.promise; finished = true;
+    };
+    const result = (kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options))
+      .then(() => ({ok: true}), reason => ({ok: false, reason})).finally(() => {settled = true;});
+    try {
+      await new Promise(setImmediate);
+      assert.equal(retained, true);
+      if (stop === 'signal') controller.abort(stopped);
+      if (stop === 'current') f.state.current = false;
+      await new Promise(setImmediate);
+      assert.equal(settled, false, 'the original retention must finish before cancellation settles');
+      assert.equal(f.state.admissions, before);
+    } finally {gate.resolve();}
+    const outcome = await result;
+    assert.equal(outcome.ok, false);
+    if (stop === 'current') assert.equal(outcome.reason.message, 'OriginalSourceNotCurrent');
+    else assert.strictEqual(outcome.reason, stopped);
+    assert.equal(f.state.admissions, before);
+    assert.equal(f.state.reads, reads + 1);
+    assert.strictEqual(f.state.pending.bytes, f.raw);
+    assert.equal(f.state.captures.length, 0);
+  }
+});
+
+test('fixture raw retention preserves synchronous and rejected reasons including undefined without decode or retry', async () => {
+  for (const kind of ['listing', 'content']) for (const asyncFailure of [false, true]) {
+    for (const reason of [new Error('OriginalRetentionFailure'), undefined]) {
+      const f = fixture();
+      if (kind === 'content') await f.supplier.readListing(f.listingOptions);
+      const before = f.state.admissions, reads = f.state.reads, issued = f.state.issued.size;
+      const options = kind === 'listing' ? f.listingOptions : f.content();
+      let calls = 0;
+      options.retainRawResponse = bytes => {
+        assert.strictEqual(bytes, f.raw); calls++;
+        if (asyncFailure) return Promise.reject(reason);
+        throw reason;
+      };
+      const outcome = await (kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options))
+        .then(() => ({ok: true}), error => ({ok: false, error}));
+      assert.equal(outcome.ok, false);
+      assert.strictEqual(outcome.error, reason);
+      assert.equal(calls, 1); assert.equal(f.state.reads, reads + 1);
+      assert.equal(f.state.admissions, before); assert.equal(f.state.issued.size, issued);
+      assert.strictEqual(f.state.pending.bytes, f.raw);
+      assert.equal(f.state.bytesCalls, 0); assert.equal(f.state.captures.length, 0);
+    }
+  }
+});
+
+test('fixture raw retention never runs before synchronous charge, current or byte-limit refusal', async () => {
+  for (const refusal of ['charge', 'current', 'limit']) {
+    const f = fixture(); let retained = 0;
+    const originalRead = f.setup.readOriginalBytes;
+    const stopped = new Error('OriginalChargeFailure');
+    const supplier = createFixtureFileSupplier({...f.setup,
+      limits: refusal === 'limit' ? {...f.setup.limits, maxBytes: 1, maxContentBytes: 0} : f.setup.limits,
+      async readOriginalBytes(options) {
+        const bytes = await originalRead(options);
+        if (refusal === 'current') f.state.current = false;
+        return bytes;
+      }});
+    const options = {...f.listingOptions, retainRawResponse() {retained++;}};
+    if (refusal === 'charge') options.chargePage = () => {throw stopped;};
+    await assert.rejects(supplier.readListing(options), error => refusal === 'charge' ? error === stopped
+      : refusal === 'current' ? error.message === 'OriginalSourceNotCurrent'
+      : error.code === 'FixtureFileOriginalBytesLimit');
+    assert.equal(retained, 0); assert.equal(f.state.reads, 1); assert.equal(f.state.admissions, 0);
+    assert.equal(f.state.issued.size, 0);
+  }
+});
+
+test('fixture raw retention accepts only an optional own DATA method and leaves absent legacy events exact', async () => {
+  for (const kind of ['listing', 'content']) {
+    const run = async configure => {
+      const f = fixture();
+      if (kind === 'content') await f.supplier.readListing(f.listingOptions);
+      f.state.events.length = 0;
+      const options = kind === 'listing' ? f.listingOptions : f.content();
+      configure(options);
+      await (kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options));
+      return f.state.events;
+    };
+    const baseline = await run(() => {});
+    assert.equal(baseline.filter(event => event === 'verify').length, kind === 'listing' ? 7 : 6);
+    assert.deepEqual(await run(options => {options.retainRawResponse = undefined;}), baseline);
+    assert.deepEqual(await run(options => Object.setPrototypeOf(options, {
+      get retainRawResponse() {assert.fail('inherited callback must not be read');},
+    })), baseline);
+    for (const descriptor of [{get() {assert.fail('own accessor must not run');}}, {value: null}, {value: 1}]) {
+      const f = fixture();
+      const options = kind === 'listing' ? f.listingOptions : f.content();
+      Object.defineProperty(options, 'retainRawResponse', descriptor);
+      await assert.rejects(kind === 'listing' ? f.supplier.readListing(options) : f.supplier.readContent(options),
+        {code: 'FixtureFileCallbacksUnavailable'});
+      assert.equal(f.state.reads, 0); assert.equal(f.state.events.length, 0);
+    }
+  }
+});

@@ -15,6 +15,15 @@ const callbacks = (value, names) => {
   }
   return Object.freeze(captured);
 };
+const rawResponseRetainer = options => {
+  const descriptor = Object.getOwnPropertyDescriptor(options, 'retainRawResponse');
+  if (descriptor === undefined) return undefined;
+  if (!Object.hasOwn(descriptor, 'value') ||
+      descriptor.value !== undefined && typeof descriptor.value !== 'function') {
+    fail('FixtureFileCallbacksUnavailable');
+  }
+  return descriptor.value;
+};
 
 export function createFixtureFileSupplier({moon, physical, fields, limits,
   readOriginalBytes, projectOriginalDocument, issueResource, resolveResource, assertCurrent}) {
@@ -74,7 +83,7 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
   };
   // Charge the actual original response before any document parser or getter.
   // The physical reader remains the parent's same retained child on failure.
-  const read = async (options, selected) => {
+  const read = async (options, selected, retainRawResponse) => {
     await current(selected.verifyRead, options.signal);
     const bytes = await readOriginalBytes(options);
     if (!(bytes instanceof Uint8Array)) fail('FixtureFileOriginalBytesUnavailable');
@@ -82,6 +91,10 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
     if (charge === undefined || charge === null) fail('FixtureFileChargeUnavailable');
     await current(selected.verifyRead, options.signal);
     if (bytes.byteLength > limits.maxBytes) fail('FixtureFileOriginalBytesLimit');
+    if (retainRawResponse !== undefined) {
+      await retainRawResponse(bytes);
+      await current(selected.verifyRead, options.signal);
+    }
     // The same parent admits one original body and projects every declared
     // relation under its cumulative budget. Never parse/copy another body here.
     const document = projectOriginalDocument(bytes, options);
@@ -94,9 +107,10 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
     async readListing(options) {
       const selected = callbacks(options, ['verifyRead', 'chargePage']);
       const listing = callbacks(options.listing, ['beginRequest', 'consumePage']);
+      const retainRawResponse = rawResponseRetainer(options);
       await current(selected.verifyRead, options.signal);
       await listing.beginRequest(undefined);
-      const {document, charge} = await read(options, selected);
+      const {document, charge} = await read(options, selected, retainRawResponse);
       const count = call('clientProgramRelationTargetRowCount', document);
       if (!integer(count) || count > limits.maxRows) fail('FixtureFileRowsUnavailable');
       const items = [];
@@ -126,6 +140,7 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
     async readContent(options) {
       const selected = callbacks(options, ['verifyRead', 'beginRequest', 'chargePage',
         'consumeObservation', 'captureContent', 'consumePage']);
+      const retainRawResponse = rawResponseRetainer(options);
       const allowed = ['resource', 'version', 'content', 'name', 'path', 'media_type'];
       const columns = options.columns === undefined ? ['resource', 'version', 'content'] : options.columns;
       if (!Array.isArray(columns) || columns.length > allowed.length ||
@@ -152,7 +167,7 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
       assertCurrent();
       if (!text(identity)) fail('FixtureFileResourceUnavailable');
       await selected.beginRequest(requestBytes);
-      const {document, charge} = await read(options, selected);
+      const {document, charge} = await read(options, selected, retainRawResponse);
       // Inline UTF8 is derived DATA, not a second received response. Its buffer
       // and Store writer overlap belong to the original execution allowance.
       selected.consumeObservation(charge);
