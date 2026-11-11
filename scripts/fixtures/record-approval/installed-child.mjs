@@ -14,6 +14,7 @@ const runPhase = ({programs, selection, ...phase}) => runRecordUpdateApprovalPha
   createDefinition: () => createDefinition(programs, selection)});
 let outcome;
 await runRecordApprovalCommand({argv: [phase, configuration, prefix],
+  retainProgramInputs: process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1',
   programDirectory: new URL(`../${connectorId}-approval/`, import.meta.url), connect,
   runPhase, createDefinition,
   log(value) {assert.equal(outcome, undefined); outcome = value;}});

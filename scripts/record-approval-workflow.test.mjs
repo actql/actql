@@ -2,11 +2,12 @@
 // failure preservation, not provider authentication or ordinary Run acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile, unlink} from 'node:fs/promises';
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
+import {pathToFileURL} from 'node:url';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
@@ -333,6 +334,72 @@ async function commandFixture(t, connector, configuration = {selection, connect:
       connect: async () => {events.push('connect'); throw new Error('Unexpected connection');},
       runPhase: async () => {throw new Error('Unexpected workflow');}, log: value => log.push(value)}};
 }
+
+async function retainedCommandFixture(t) {
+  const command = await commandFixture(t, 'hubspot'), value = await definition('hubspot');
+  const sdk = publicDouble(value), directory = join(command.root, 'programs');
+  await mkdir(directory);
+  await writeFile(join(directory, 'update.aql'), value.effect.document);
+  await writeFile(join(directory, 'read.aql'), value.read.document);
+  command.options.programDirectory = pathToFileURL(directory + '/');
+  command.options.retainProgramInputs = true;
+  command.options.argv[0] = 'capture';
+  command.options.connect = async () => {command.events.push('connect'); return sdk.client;};
+  command.options.runPhase = ({programs, selection: selected, ...rest}) =>
+    runRecordUpdateApprovalPhase({...rest, createDefinition: () => hubspotUpdateCase(programs, selected),
+      approve: sdk.approve});
+  return {command, sdk, directory};
+}
+
+test('retained fixture Programs allow approval and Saved first after original files are removed', async t => {
+  // Actual fixture file IO and workflow, with the existing explicit public SDK
+  // double. This does not qualify installed Source, approval or physical close.
+  const {command: f, sdk, directory} = await retainedCommandFixture(t);
+  await runRecordApprovalCommand(f.options);
+  const path = f.options.argv[2] + '.programs.json';
+  const original = await readFile(path, 'utf8'), before = await stat(path);
+  assert.equal(before.mode & 0o777, 0o600);
+  assert.equal(sdk.events.at(-1), 'close');
+  await unlink(join(directory, 'update.aql')); await unlink(join(directory, 'read.aql'));
+  f.options.argv[0] = 'approve'; await runRecordApprovalCommand(f.options);
+  const split = sdk.events.length;
+  f.options.argv[0] = 'recover'; await runRecordApprovalCommand(f.options);
+  const recovered = sdk.events.slice(split);
+  assert(recovered.indexOf('effect:rows') < recovered.indexOf('effect:status'));
+  assert(!recovered.some(value => value.startsWith('submit:') || value === 'approve'));
+  assert.equal(sdk.events.filter(value => value === 'approve').length, 1);
+  assert.equal(sdk.events.filter(value => value === 'close').length, 3);
+  assert.equal(await readFile(path, 'utf8'), original);
+  const after = await stat(path); assert.equal(after.ino, before.ino); assert.equal(after.dev, before.dev);
+  await assert.rejects(readFile(join(directory, 'update.aql')), {code: 'ENOENT'});
+  await assert.rejects(readFile(join(directory, 'read.aql')), {code: 'ENOENT'});
+});
+
+test('retained fixture Programs keep original binding and reject changed inputs before attach or approval', async t => {
+  for (const change of ['program', 'selection']) {
+    const {command: f, sdk, directory} = await retainedCommandFixture(t);
+    await runRecordApprovalCommand(f.options);
+    await unlink(join(directory, 'update.aql')); await unlink(join(directory, 'read.aql'));
+    if (change === 'program') {
+      const path = f.options.argv[2] + '.programs.json', programs = JSON.parse(await readFile(path, 'utf8'));
+      programs.update += '\n-- changed'; await writeFile(path, JSON.stringify(programs));
+    } else await writeFile(f.path, JSON.stringify({selection: {...selection, nextName: 'foreign'}, connect: {mode: 'local'}}));
+    const split = sdk.events.length; f.options.argv[0] = 'approve';
+    await assert.rejects(runRecordApprovalCommand(f.options), {code: 'ERR_ASSERTION'});
+    assert.deepEqual(sdk.events.slice(split), ['close']);
+  }
+});
+
+test('retained fixture Programs refuse missing malformed or incompatible receipt before connection', async t => {
+  for (const retained of [undefined, '{private malformed', JSON.stringify({update: {}, read: 'original'})]) {
+    const {command: f} = await retainedCommandFixture(t);
+    f.options.argv[0] = 'approve';
+    if (retained !== undefined) await writeFile(f.options.argv[2] + '.programs.json', retained);
+    await assert.rejects(runRecordApprovalCommand(f.options), retained === undefined
+      ? {code: 'ENOENT'} : /InvalidRecordApprovalRetainedPrograms/u);
+    assert.deepEqual(f.events, []); assert.deepEqual(f.log, []);
+  }
+});
 
 for (const connector of ['salesforce', 'hubspot', 'kintone']) {
   test(`shared ${connector} check validates its original case without connection or key IO`, async t => {

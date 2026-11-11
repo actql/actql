@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdir, mkdtemp, readFile, writeFile, lstat} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, writeFile, lstat, unlink} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -41,6 +41,12 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
   for (const name of ['ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE']) delete env[name];
   let failed = false, primary;
   const phases = [];
+  const removePrograms = process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1';
+  const programs = removePrograms ? await Promise.all(['update', 'read'].map(async name => {
+    const path = fileURLToPath(new URL(`./${connector}-approval/${name}.aql`, import.meta.url));
+    const info = await lstat(path); assert(info.isFile() && info.nlink === 1);
+    return {path, dev: info.dev, ino: info.ino, body: await readFile(path, 'utf8')};
+  })) : [];
   try {
     const check = await execute(process.execPath,
       [fileURLToPath(new URL(`./${connector}-approval/run.mjs`, import.meta.url)), 'check', configuration, prefix],
@@ -49,6 +55,9 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
     await assert.rejects(lstat(state), {code: 'ENOENT'});
     await writeFile(join(root, 'check.stdout'), check.stdout, privateFile);
     for (const phase of ['capture', 'approve', 'recover']) {
+      if (removePrograms && phase !== 'capture') {
+        for (const original of programs) await assert.rejects(lstat(original.path), {code: 'ENOENT'});
+      }
       const startedAt = new Date().toISOString();
       let result;
       try {
@@ -70,6 +79,14 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
       assert.deepEqual(outcome.descriptors.after.openPaths, []);
       assert.deepEqual(JSON.parse(await readFile(join(project, 'mock/data.json'), 'utf8')),
         phase === 'capture' ? initial : changed, 'Only the selected original field changes after approval');
+      if (removePrograms && phase === 'capture') {
+        for (const original of programs) {
+          const info = await lstat(original.path);
+          assert(info.isFile() && info.nlink === 1 && info.dev === original.dev && info.ino === original.ino);
+          assert.equal(await readFile(original.path, 'utf8'), original.body);
+        }
+        for (const original of programs) await unlink(original.path);
+      }
       phases.push({startedAt, endedAt: new Date().toISOString(), ...outcome});
     }
   } catch (error) {failed = true; primary = error;}
