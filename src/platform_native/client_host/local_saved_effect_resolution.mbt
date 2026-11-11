@@ -339,11 +339,7 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
     Ok(value) => value
     Err(issue) => return Err(SavedResolutionHost(issue))
   }
-  match signing.sign_once() {
-    Ok(_) => ()
-    Err(issue) => return Err(SavedResolutionHost(issue))
-  }
-  let record = match signing.admit_original_resolution() {
+  let record = match signing.sign_and_admit_original_resolution() {
     Ok(value) => value
     Err(issue) => return Err(SavedResolutionHost(issue))
   }

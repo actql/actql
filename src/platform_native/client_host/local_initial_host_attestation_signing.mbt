@@ -464,6 +464,38 @@ pub fn NativeLocalInitialHostAttestationSigning::admit_original_resolution(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  self.admit_verified_resolution_in_same_call(wire)
+}
+
+///|
+// Only the existing saved-approval caller within its original Read uses this
+// closed handoff. sign_once returns the fully checked original wrapper; no
+// callback, clock sample or physical action intervenes before admission. Keep
+// independent public/history admission on the complete reader above.
+fn NativeLocalInitialHostAttestationSigning::sign_and_admit_original_resolution(
+  self : NativeLocalInitialHostAttestationSigning,
+) -> Result[NativeClientRunRecord, NativeLocalInitialHostAttestationIssue] {
+  guard self.preparation.account.original.reviewer.original_read is Some(_) &&
+    self.preparation.authenticated.binding.approval_scope is SavedApproval(_) else {
+    return Err(HostAttestationUnavailable)
+  }
+  let wire = match self.sign_once() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  native_timing_begin(35)
+  defer native_timing_end(35)
+  self.admit_verified_resolution_in_same_call(wire)
+}
+
+///|
+// Private continuation of the same successful original-wire read. This has no
+// retained proof/cache slot: all current, signature and commit gates below
+// still execute against the actual receiver and original mutable Journal.
+fn NativeLocalInitialHostAttestationSigning::admit_verified_resolution_in_same_call(
+  self : NativeLocalInitialHostAttestationSigning,
+  wire : String,
+) -> Result[NativeClientRunRecord, NativeLocalInitialHostAttestationIssue] {
   let preparation = self.preparation
   let authenticated = preparation.authenticated
   let binding = authenticated.binding

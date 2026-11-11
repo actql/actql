@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalResources, approvalPhases} from './native-approval-performance.mjs';
 
 const sourceSha = 'a'.repeat(40), fixtureSha256 = 'b'.repeat(64), runnerSha256 = 'c'.repeat(64);
@@ -103,4 +105,56 @@ test('approval phases require complete actual boundaries and retain inclusive du
   assert.throws(() => approvalPhases(record()), /unfinished/u);
   rows.shift();
   assert.throws(() => approvalPhases(record()), /incomplete/u);
+});
+
+function signingMethod(source, owner, name) {
+  const signature = new RegExp('(?:pub )?fn ' + owner + '::' + name + '\\(');
+  const start = source.search(signature);
+  assert(start >= 0, `Missing actual ${owner}::${name}`);
+  const end = source.indexOf('\n///|', start);
+  return source.slice(start, end < 0 ? source.length : end);
+}
+
+// Count the actual successful Source call path, not runtime Journal work or
+// an authority fixture. Every independent entry keeps its own full traversal.
+function verifiedWireTraversals(caller, signing) {
+  const walk = body => [...body.matchAll(/\b(?:self|signing)\.(sign_once|sign_and_admit_original_resolution|admit_original_resolution|admit_verified_resolution_in_same_call|original_verified_resolution)\(/gu)]
+    .reduce((count, [, name]) => count + (name === 'original_verified_resolution' ? 1
+      : walk(signingMethod(signing, 'NativeLocalInitialHostAttestationSigning', name))), 0);
+  return walk(signingMethod(caller, 'NativeLocalSavedEffectReview', 'resolve_initial_original'));
+}
+
+test('same original-read signing handoff traverses verified wire once while independent admission stays full', () => {
+  const caller = readFileSync(new URL('../src/platform_native/client_host/local_saved_effect_resolution.mbt', import.meta.url), 'utf8');
+  const signing = readFileSync(new URL('../src/platform_native/client_host/local_initial_host_attestation_signing.mbt', import.meta.url), 'utf8');
+  assert.equal(verifiedWireTraversals(caller, signing), 1,
+    'The successful actual caller must not discard and reread the same verified wire');
+  const repeated = caller.replace('signing.sign_and_admit_original_resolution()',
+    'signing.sign_once(); signing.admit_original_resolution()');
+  assert.notEqual(repeated, caller);
+  assert.equal(verifiedWireTraversals(repeated, signing), 2,
+    'Restoring the former actual call chain must expose both full traversals');
+  const independent = signingMethod(signing, 'NativeLocalInitialHostAttestationSigning', 'admit_original_resolution');
+  assert.equal([...independent.matchAll(/self\.original_verified_resolution\(/gu)].length, 1);
+});
+
+test('same-read wire handoff preserves full signer history current verifier and Resolution CAS bodies', () => {
+  const source = readFileSync(new URL('../src/platform_native/client_host/local_initial_host_attestation_signing.mbt', import.meta.url), 'utf8');
+  const method = name => signingMethod(source, 'NativeLocalInitialHostAttestationSigning', name);
+  const digest = value => createHash('sha256').update(value).digest('hex');
+  assert.equal(digest(method('sign_once')), '2186fa4cf279c1846342345a6e067d1a261ec2c9f2f628dff1ebb81e28c5e664',
+    'Claim, physical signer, signature store and before/after current gates remain exact');
+  assert.equal(digest(method('original_verified_resolution')), 'a7e55b62ba61ef4bb1a29691ef37d404850697f982cbdf5cfaba89a5378ce062',
+    'Independent history reads retain both current observations and complete wire equality');
+  const admission = method('admit_verified_resolution_in_same_call');
+  assert.equal(digest(admission.slice(admission.indexOf('  let preparation = self.preparation'))),
+    'ce1853531cd3dc9e878ea99e54a2bf13ad3e18b3f74a34a3cb5f2f35e1b322a2',
+    'Full mutable/current callbacks, real signature verifier and original Resolution CAS remain exact');
+  const closed = method('sign_and_admit_original_resolution');
+  assert.match(closed, /original_read is Some\(_\)/u);
+  assert.match(closed, /approval_scope is SavedApproval\(_\)/u);
+  assert.match(closed, /let wire = match self\.sign_once\(\)/u);
+  assert.match(closed, /Err\(issue\) => return Err\(issue\)/u);
+  assert.match(closed, /self\.admit_verified_resolution_in_same_call\(wire\)/u);
+  assert.doesNotMatch(closed, /pub fn|@env\.now|journal\.transaction|self\.signature\s*=|self\.admitted_record\s*=/u);
 });
