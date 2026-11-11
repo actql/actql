@@ -60,12 +60,20 @@ test('advance captures the audited Int prefix, not its callback-local Boolean',(
 test('the observer remains outside original callbacks and uses real state return',()=>{
   const overlay=currentOverlay(read);
   const actual=overlay['src/connectors/local/selected_relation_provider.mbt'];
-  assert(actual.includes('let (observed_parent, original_state) = pair'));
-  assert(actual.includes('    pair\n  })'));
+  assert(actual.includes('  if observed_result is Ok((observed_parent, original_state)) {'),
+    'The original Ok pair must be observed directly in the parent');
+  assert(actual.includes('reclaimed_prefix))\n  }\n  observed_result\n}'),
+    'Observation must return the same Result, including its original Err');
+  assert(!actual.includes('observed_result.map('),
+    'The observer must not move the direct parent call into a generated closure');
   assert.equal(actual.split('println(current_chain_start_probe(').length,2);
   const constructor=reviewedFunction(source,'bounded_relation_chain_execution_state');
   const before=constructor.slice(constructor.indexOf('      quantum => {'),constructor.indexOf('    ),\n  ).map(active => {'));
   assert(actual.includes(before),'Observer must not add captures inside callbacks');
+  const observedConstructor=reviewedFunction(actual,'bounded_relation_chain_execution_state');
+  assert.equal(observedConstructor.match(/\.map\(/g)?.length,
+    constructor.match(/\.map\(/g)?.length,
+    'Only the original cleanup-continuation map may remain');
   const continuation = constructor.slice(constructor.indexOf('  ).map(active => {'));
   assert(actual.includes(continuation.slice(0, continuation.lastIndexOf('\n}'))),
     'Observation must retain the complete original cleanup-continuation installation');

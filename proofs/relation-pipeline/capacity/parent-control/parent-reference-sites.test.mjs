@@ -43,6 +43,14 @@ test('allocation requests are tied through private custody slots to actual obser
   assert.deepEqual(r.references.map(s=>s.identity),['10','20','30','40','50']);
   assert.equal(r.payloadBytesMeasured,false);assert.equal(r.completePhysicalLifetimeUpper,false);
 });
+test('missing or repeated direct parent observer calls stay refused',()=>{
+  const missing=ops.filter(op=>op.call!=='actql_proof_current_chain_start');
+  assert.throws(()=>check(assembly(parent,0x100,missing,true)),
+    /Missing or repeated actual Ref observer call/);
+  const repeated=[...ops.slice(0,-1),{call:'actql_proof_current_chain_start'},'ret'];
+  assert.throws(()=>check(assembly(parent,0x100,repeated,true)),
+    /Missing or repeated actual Ref observer call/);
+});
 test('wrong typed helper, initializer, call count or lost return alias rejects',()=>{
   for(const [a,b] of [[referenceHelpers[0],referenceHelpers[2]],['movabs rdi,0x0','movabs rdi,0x1'],
     ['mov rdi,rax','mov rdi,rbx'],['mov rax,rdi','mov rax,rsi']]) assert.throws(()=>check(object.replace(a,b)));
