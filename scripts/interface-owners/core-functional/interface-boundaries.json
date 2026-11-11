@@ -87823,6 +87823,204 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/lowering_relation/sequence_preparation_demand.mbt",
+      "sha256": "bbf0926ae80d82b2cf6888b206b00042b45391396a4762697ecfd556d032598b",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepared_sequence_preparation_demand",
+          "declaration": "prepared_sequence_preparation_demand ( prepared : Prepared , max_work : Int , ) - > Result [ SequencePreparationDemand , SequencePreparationDemandIssue ]"
+        },
+        {
+          "name": "sequence_projection_reference_name_bound",
+          "declaration": "sequence_projection_reference_name_bound ( name : @ schema . FieldName ) - > Int64"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked sequence and original Request resource owners",
+      "referenceQualification": "Checked metadata/default-sequence projection and explicit-limit component evidence only, not complete module, provider or normal Run admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepared_sequence_preparation_demand",
+            "sequence_projection_reference_name_bound"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"selected large Source default sequence uses its same checked expression demand"
+              },
+              {
+                "path": "src/run_publication_host/client_values_row_limit_wbtest.mbt",
+                "anchor": "test \"selected Values row limit preserves checker identity"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_sequence_preparation_demand.mbt",
+      "sha256": "c5d057bdaf332b2e20e05a6b19bd97ae6117339b72e0c2d0e4f177539248e34a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_sequence_limits_with_projection_demand",
+          "declaration": "client_sequence_limits_with_projection_demand ( demand : @ lower . SequencePreparationDemand , ) - > @ lower . SequenceLimits"
+        },
+        {
+          "name": "client_sequence_preparation_demand",
+          "declaration": "client_sequence_preparation_demand ( owners : Array [ @ lower . BoundPrepared ] , max_work : Int , ) - > Result [ @ lower . SequencePreparationDemand , @ strategy . GraphIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked sequence and original Request resource owners",
+      "referenceQualification": "Checked metadata/default-sequence projection and explicit-limit component evidence only, not complete module, provider or normal Run admission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_sequence_limits_with_projection_demand",
+            "client_sequence_preparation_demand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Checked expression demand in the default sequence"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"selected large Source default sequence uses its same checked expression demand"
+              },
+              {
+                "path": "src/run_publication_host/client_values_row_limit_wbtest.mbt",
+                "anchor": "test \"selected Values row limit preserves checker identity"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

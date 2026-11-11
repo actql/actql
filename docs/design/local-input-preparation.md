@@ -6006,6 +6006,29 @@ unknown syntax is not assumed narrow. The focused geometry and original Request
 tests distinguish nested storage, multiple named fields, conservative unknown
 operands, finite refusal and final reservation cleanup.
 
+### Checked expression demand in the default sequence
+
+The existing sequence-preparation inventory composes the cached annotation
+counts of the same checked operation bindings. Each binding access spends its
+original bounded inventory work; it does not traverse the expression or literal
+again. The immutable `authored_expression_nodes` scalar stays with that original
+preparation, with checked overflow and the same cleanup owner.
+
+The prepared default sequence projects its expression-node and scalar-literal
+node envelopes from the larger of the unchanged installed default and this
+actual checked count. These are compiler rejection bounds, not reservations or
+execution grants. Work, depth, literal text, row, binding and other independent
+limits retain their original selection. An explicit sequence limit is passed
+unchanged and can still reject the same expression after a broader cached
+sequence succeeded. The Request continues to reserve its actual coexisting
+data on its original finite Ledger; no ceiling is allocated by this projection.
+This synchronous metadata adds no callback, currentness or cancellation
+boundary. New operation forms must retain their checked binding ownership;
+the projection cannot infer an expression or authorize a provider. The focused
+consumer checks the same original sequence, explicit refusal, compiler-call
+counts and final reservation cleanup. Complete module and Run admission remain
+separate existing boundaries.
+
 ### Codec geometry stays with its original construction role
 
 The existing JSON writer can retain construction geometry during the same

@@ -1992,6 +1992,7 @@ pub(all) struct SequencePreparationDemand {
   authored_literal_rows : Int
   authored_literal_cells : Int
   projection_name_bytes_bound : Int
+  authored_expression_nodes : Int
   work_used : Int
 } derive(Eq, @debug.Debug)
 

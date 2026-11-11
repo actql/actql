@@ -13,6 +13,7 @@ fn client_sequence_preparation_demand(
   let mut rows = 0L
   let mut cells = 0L
   let mut projection_names = 0L
+  let mut expression_nodes = 0L
   for owner in owners {
     let demand = match
       @lower.prepared_sequence_preparation_demand(
@@ -29,17 +30,21 @@ fn client_sequence_preparation_demand(
       demand.projection_name_bytes_bound.to_int64() >
       2147483647L -
       client_standard_values_sequence_limits().max_name_bytes.to_int64() -
-      projection_names {
+      projection_names ||
+      demand.authored_expression_nodes.to_int64() >
+      2147483647L - expression_nodes {
       return Err(@strategy.GraphIssue::InvalidLimits)
     }
     rows += demand.authored_literal_rows.to_int64()
     cells += demand.authored_literal_cells.to_int64()
     projection_names += demand.projection_name_bytes_bound.to_int64()
+    expression_nodes += demand.authored_expression_nodes.to_int64()
   }
   Ok({
     authored_literal_rows: rows.to_int(),
     authored_literal_cells: cells.to_int(),
     projection_name_bytes_bound: projection_names.to_int(),
+    authored_expression_nodes: expression_nodes.to_int(),
     work_used: max_work - remaining,
   })
 }
@@ -55,5 +60,16 @@ fn client_sequence_limits_with_projection_demand(
   {
     ..original,
     max_name_bytes: original.max_name_bytes + demand.projection_name_bytes_bound,
+    expressions: {
+      ..original.expressions,
+      max_nodes: Int::max(
+        original.expressions.max_nodes,
+        demand.authored_expression_nodes,
+      ),
+      max_literal_nodes: Int::max(
+        original.expressions.max_literal_nodes,
+        demand.authored_expression_nodes,
+      ),
+    },
   }
 }

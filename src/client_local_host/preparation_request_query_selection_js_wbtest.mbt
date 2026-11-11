@@ -279,3 +279,98 @@ test "selected large Source retains its original through funded Plan input borro
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "selected large Source default sequence uses its same checked expression demand" {
+  let document = "SELECT [" + "0,".repeat(19999) + "0] AS cells"
+  let limits = client_local_preparation_initial_limits(
+    client_local_resource_policy(),
+    retained_bytes=Some(1073741824L),
+    execution_bytes=Some(1073741824L),
+  ).unwrap()
+  let (parent, input) = native_driver_parent(
+    document,
+    initial_limits=Some(limits),
+  )
+  let (environment, publication) = request_query_publication_fixture()
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(document, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  finish_request_checked_computation(parent, input, environment, publication).unwrap()
+  |> ignore
+  let holder = borrow_request_program_plan_input(parent, input).unwrap()
+  let prepared = parent.compiled_program.unwrap()
+  let original = @publication_host.client_standard_values_sequence_limits()
+  let selected = @publication_host.prepared_client_values_sequence_limits(
+    prepared,
+  )
+  assert_eq(selected.expressions.max_nodes, 20001)
+  assert_eq(selected.expressions.max_literal_nodes, 20001)
+  assert_eq(selected.expressions.max_work, original.expressions.max_work)
+  assert_eq(selected.expressions.max_depth, original.expressions.max_depth)
+  assert_eq(
+    selected.expressions.max_literal_text_bytes,
+    original.expressions.max_literal_text_bytes,
+  )
+  assert_eq(selected.max_steps, original.max_steps)
+  assert_eq(selected.max_bindings, original.max_bindings)
+  let before = @resources.ledger_usage(parent.ledger)
+  let sequence = match
+    @publication_host.prepare_prepared_client_full_sequence(
+      prepared, 0, selected,
+    ) {
+    Ok(value) => value
+    Err(Sequence(KernelFailure(step, ExpressionFailure(issue)))) => {
+      let details = "step=" +
+        step.to_string() +
+        " " +
+        @debug.to_string(issue.kind)
+      @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      fail("original selected expression sequence refusal: " + details)
+    }
+    Err(_) => fail("unexpected original sequence refusal")
+  }
+  assert_true(
+    physical_equal(
+      @lower.sequence_owner(sequence),
+      @strategy.graph_task_owner(
+        @publication_host.prepared_client_graph(prepared),
+        0,
+      ).unwrap(),
+    ),
+  )
+  let tight = {
+    ..selected,
+    expressions: { ..selected.expressions, max_nodes: 10000, },
+  }
+  assert_true(
+    @publication_host.prepare_prepared_client_full_sequence(prepared, 0, tight)
+    is Err(
+      Sequence(
+        KernelFailure(
+          1,
+          ExpressionFailure({ kind: ExpressionBudgetExceeded, .. })
+        )
+      )
+    ),
+  )
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes,
+  )
+  assert_eq(parent._observed_query_parse_calls, 1L)
+  assert_eq(parent._observed_query_lower_calls, 1L)
+  assert_eq(parent._observed_program_compile_calls, 1L)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
