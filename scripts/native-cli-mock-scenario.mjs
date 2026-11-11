@@ -5,6 +5,7 @@ import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/proje
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {fstatSync} from 'node:fs';
 import {open, readFile, stat, unlink} from 'node:fs/promises';
 import {join} from 'node:path';
 
@@ -48,13 +49,33 @@ export async function captureNativeMockCommand(command, args, {
     const stdout = [];
     let stdoutBytes = 0, failure, killed = false;
     const outcome = await new Promise(resolve => {
-      const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', sink.fd]});
+      // Same owned-group pattern as the existing Resident watchdog: only this
+      // fresh command and its inherited Native descendants receive a signal.
+      const child = spawn(command, args, {cwd, env, detached:true, stdio: ['ignore', 'pipe', sink.fd]});
+      let stopping = false;
       const stop = error => {
         failure ??= error;
-        killed = child.kill(killSignal) || killed;
+        if (stopping) return;
+        stopping = true;
+        if (Number.isInteger(child.pid) && child.pid > 0) {
+          try {process.kill(-child.pid, killSignal); killed = true;}
+          catch (issue) {if (issue.code !== 'ESRCH') failure.groupStopError = issue.code ?? issue.message;}
+        }
       };
       const timer = setTimeout(() => stop(Object.assign(new Error('Native command timed out'),
         {code: 'ETIMEDOUT'})), timeout);
+      // Keep the original live output ceiling, not just the final read bound.
+      // This is the existing owned-process inspection cadence, not a new
+      // product timeout, allocation tariff or Native diagnostic wait.
+      const monitor = setInterval(() => {
+        try {
+          if (fstatSync(sink.fd).size > maxBuffer)
+            stop(Object.assign(new Error('stderr maxBuffer exceeded'),
+              {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}));
+        } catch (error) {stop(error);}
+      }, 25);
+      const onTerm = () => stop(Object.assign(new Error('Native command observer interrupted'), {code:'ECANCELED'}));
+      process.once('SIGTERM', onTerm); process.once('SIGINT', onTerm);
       child.stdout.on('data', chunk => {
         const remaining = maxBuffer - stdoutBytes;
         if (remaining > 0) stdout.push(chunk.subarray(0, remaining));
@@ -64,7 +85,11 @@ export async function captureNativeMockCommand(command, args, {
       });
       child.stdout.once('error', stop);
       child.once('error', error => {failure ??= error;});
-      child.once('close', (code, signal) => {clearTimeout(timer); resolve({code, signal});});
+      child.once('close', (code, signal) => {
+        clearTimeout(timer); clearInterval(monitor);
+        process.removeListener('SIGTERM', onTerm); process.removeListener('SIGINT', onTerm);
+        resolve({code, signal});
+      });
     });
     const size = (await sink.stat()).size;
     const body = Buffer.alloc(Math.min(size, maxBuffer));

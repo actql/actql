@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
+import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeMockAcceptanceObservations, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
@@ -577,7 +578,7 @@ test('Native mock command capture retains original failures and bounded reads', 
     ['signal', "process.kill(process.pid,'SIGTERM')", {}, {code:null,exitCode:null,signal:'SIGTERM'}],
     ['timeout', 'setInterval(()=>{},1000)', {timeout:100}, {code:'ETIMEDOUT',signal:'SIGKILL',killed:true}],
     ['stdout', "require('node:fs').writeSync(1,Buffer.alloc(4096,120))", {maxBuffer:32}, {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}],
-    ['stderr', "require('node:fs').writeSync(2,Buffer.alloc(4096,120))", {maxBuffer:32}, {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER',exitCode:0,signal:null,killed:false}],
+    ['stderr', "require('node:fs').writeSync(2,Buffer.alloc(4096,120));setInterval(()=>{},1000)", {maxBuffer:32}, {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER',exitCode:null,signal:'SIGKILL',killed:true}],
   ]) {
     await assert.rejects(captureNativeMockCommand(process.execPath, ['-e',source],
       {cwd:root,env:process.env,stderrPath:join(root,name+'.stderr'),timeout:5000,...options}), error => {
@@ -621,4 +622,33 @@ test('Native mock command capture stops continuous stderr growth before timeout'
     assert(Buffer.byteLength(error.stderr)<=4096);
     return true;
   });
+});
+
+test('Native mock command capture stops its actual descendant writer with the original command group', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-descendant-limit-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  const writer = "setInterval(()=>require('node:fs').writeSync(2,Buffer.alloc(1024,120)),2)";
+  const parent = `const child=require('node:child_process').spawn(process.execPath,
+    ['-e',process.argv[1]],{stdio:'inherit'});
+    console.log(JSON.stringify({parent:process.pid,child:child.pid}));
+    child.once('exit',()=>process.exitCode=0);`;
+  let originals;
+  await assert.rejects(captureNativeMockCommand(process.execPath, ['-e',parent,writer],
+    {cwd:root,env:process.env,stderrPath:join(root,'group.stderr'),timeout:5000,maxBuffer:4096}), error => {
+    assert.equal(error.code,'ERR_CHILD_PROCESS_STDIO_MAXBUFFER');
+    assert.equal(error.signal,'SIGKILL');
+    assert.equal(error.killed,true);
+    originals=JSON.parse(error.stdout.trim());
+    assert(Number.isSafeInteger(originals.parent) && Number.isSafeInteger(originals.child));
+    assert.notEqual(originals.parent,originals.child);
+    return true;
+  });
+  for (const pid of Object.values(originals)) {
+    // As in the existing local supervisor, a zombie has exited and cannot
+    // retain the inherited descriptors. This is no external resource ACK.
+    const observed=spawnSync('/bin/ps',['-p',String(pid),'-o','stat='],{encoding:'utf8',timeout:5000});
+    assert(!observed.error && (observed.status===1 && observed.stdout.trim()==='' ||
+      observed.status===0 && observed.stdout.trim().startsWith('Z')),
+    'Exact original command/descendant must no longer be live: '+pid);
+  }
 });
