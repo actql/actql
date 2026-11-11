@@ -42,6 +42,7 @@ fn read_initial_host_signing_subject(
   host : NativeLocalHostConnection,
   control : Bytes,
   fields : NativeLocalInitialSigningFields,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[(String, String, String)?, NativeLocalAdoptionIssue] {
   let header = match local_initial_signing_control_header(control) {
     Ok(value) => value
@@ -55,7 +56,11 @@ fn read_initial_host_signing_subject(
     return Err(CustodyLost)
   }
   let payload = match
-    read_local_installation_authenticated_payload(host, packet) {
+    read_local_installation_authenticated_payload(
+      host,
+      packet,
+      signing_original~,
+    ) {
     Ok(value) if value.length() <= 2048 => value
     _ => return Err(CustodyLost)
   }

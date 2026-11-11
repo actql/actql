@@ -146,15 +146,18 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
         // its SAME canonical PEM has113. Back all484 retained UTF16 units
         // and their string/object controls, even where the reader aliases
         // existing storage. No EVP/private key or wire buffer is retained.
+        // Two control/Result frames plus four borrowed references/scalars
+        // cover same-operation HMAC and boundary custody refresh. The key is
+        // already retained by the existing Epoch operation's custody slot.
         record_headers: saved_effect_decision_emission_controls.record_headers +
         measurement.record_headers +
-        26L,
+        28L,
         reference_slots: saved_effect_decision_emission_controls.reference_slots +
         measurement.reference_slots +
-        42L,
+        46L,
         scalar_words: saved_effect_decision_emission_controls.scalar_words +
         measurement.scalar_words +
-        12L,
+        16L,
         owned_utf16_units: saved_effect_decision_emission_controls.owned_utf16_units +
         measurement.owned_utf16_units +
         484L,

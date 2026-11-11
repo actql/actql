@@ -97,7 +97,12 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
     public_key: fields.public_key,
     public_key_pem: fields.public_key_pem,
     signing_subject: match
-      read_initial_host_signing_subject(self, reviewer.control_body, fields) {
+      read_initial_host_signing_subject(
+        self,
+        reviewer.control_body,
+        fields,
+        signing_original~,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     },
@@ -131,7 +136,12 @@ pub fn NativeLocalInitialHostSigningOriginal::require_current(
     Err(issue) => return Err(issue)
   }
   let subject = match
-    read_initial_host_signing_subject(host, self.reviewer.control_body, fields) {
+    read_initial_host_signing_subject(
+      host,
+      self.reviewer.control_body,
+      fields,
+      signing_original~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

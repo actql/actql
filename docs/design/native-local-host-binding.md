@@ -551,6 +551,18 @@ fresh Account roles, trusted clock, claims and pre/post-signing fences remain
 independent. The existing pre-restore construction allowance includes the
 bounded pair, optional wrappers and overlapping result/matcher references.
 
+Initial signing control authentication consumes the existing Epoch authority's
+operation-local custody observation only while that same original Read and
+material remain active. Each packet still performs actual HMAC; neither the
+MAC result nor any Account decision enters the Epoch receipt-authentication
+map. Relevant row writes invalidate the existing custody slot. Every existing
+callback/physical-signing boundary drops its earlier observation, retains the
+full boundary fence and freshly reads custody afterwards, before returning to
+the original signing/current path. Operation return, failure and cleanup clear
+the same slot. Legacy and cold control readers keep their complete raw SQL
+custody read. Clock sampling, revision CAS/COMMIT, key projection, revocation,
+independent roles and the one-shot signing/Unknown rules remain separate.
+
 This physical metadata seam is not default-signer selection, Account/Reviewer/
 Run authorization, first issue, use claim, signature or public approval. Those
 existing operational gates must independently bind the exact original purpose,

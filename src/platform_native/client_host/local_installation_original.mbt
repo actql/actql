@@ -208,6 +208,7 @@ fn local_installation_packet_in_transaction(
 fn read_local_installation_authenticated_payload(
   host : NativeLocalHostConnection,
   packet : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   try {
     let envelope = local_adoption_fields(packet, ["payload", "tag"])
@@ -221,13 +222,33 @@ fn read_local_installation_authenticated_payload(
       epoch_hex_bytes(envelope[1]) is Some(tag) else {
       return Err(CustodyLost)
     }
-    let (key, _, _) = read_epoch_custody(host.database)
-      .map_err(issue => NativeLocalAdoptionIssue::Epoch(issue))
-      .map_err(issue => LocalInstallationAdoptionStop(issue))
-      .unwrap_or_error()
-    guard host.epoch.crypto
-      .verify_hmac_sha256(key, payload, tag)
-      .map_err(issue => NativeLocalAdoptionIssue::Crypto(issue))
+    let valid = match signing_original {
+      None => {
+        let (key, _, _) = read_epoch_custody(host.database)
+          .map_err(issue => NativeLocalAdoptionIssue::Epoch(issue))
+          .map_err(issue => LocalInstallationAdoptionStop(issue))
+          .unwrap_or_error()
+        host.epoch.crypto
+        .verify_hmac_sha256(key, payload, tag)
+        .map_err(issue => NativeLocalAdoptionIssue::Crypto(issue))
+      }
+      Some(original) => {
+        original
+        .check_initial_control_read_scope(host)
+        .map_err(issue => LocalInstallationAdoptionStop(issue))
+        .unwrap_or_error()
+        host.epoch
+        .verify_control_payload_in_operation(payload, tag)
+        .map_err(issue => {
+          match issue {
+            NativeClientEpochIssue::Crypto(original) =>
+              NativeLocalAdoptionIssue::Crypto(original)
+            _ => NativeLocalAdoptionIssue::Epoch(issue)
+          }
+        })
+      }
+    }
+    guard valid
       .map_err(issue => LocalInstallationAdoptionStop(issue))
       .unwrap_or_error() else {
       return Err(CustodyLost)

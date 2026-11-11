@@ -396,6 +396,33 @@ fn NativeClientEpochAuthority::custody(
 }
 
 ///|
+// The existing operation owns this custody observation, not a MAC result or
+// an Account decision. Every control packet still performs actual HMAC work.
+// The trusted caller separately supplies its same active signing Read.
+fn NativeClientEpochAuthority::verify_control_payload_in_operation(
+  self : NativeClientEpochAuthority,
+  payload : Bytes,
+  tag : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[Bool, NativeClientEpochIssue] {
+  if !self.operation_active || payload.length() > 2048 || tag.length() != 32 {
+    return Err(ScopeMismatch)
+  }
+  match self.require_operation_current(reads) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let (key, _, _) = match self.custody(reads) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  match self.crypto.verify_hmac_sha256(key, payload, tag) {
+    Ok(valid) => Ok(valid)
+    Err(issue) => Err(self.fail_operation(Crypto(issue)))
+  }
+}
+
+///|
 /// The watermark commits even when subsequent admission is refused. Within
 /// this command an already acknowledged watermark needs no new transaction;
 /// advancing it still performs the original revision CAS and real COMMIT.

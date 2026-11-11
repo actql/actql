@@ -80,6 +80,39 @@ fn NativeLocalInitialSigningOriginal::check_host_current(
 }
 
 ///|
+// Consume the existing closed after-current frame. This is a physical
+// Read/material/Library identity check, not a new source audit or grant.
+fn NativeLocalInitialSigningOriginal::check_initial_control_read_scope(
+  self : NativeLocalInitialSigningOriginal,
+  host : NativeLocalHostConnection,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if !physical_equal(self.host, host) ||
+    !physical_equal(host.epoch.database, host.database) {
+    return Err(CustodyLost)
+  }
+  guard self.original_read is Some((capture, material)) else {
+    return Err(OriginalResourceScopePending)
+  }
+  if capture.read_operation_issue is Some(issue) {
+    return Err(issue)
+  }
+  guard capture.opening is JournalAcquired(actual_host) &&
+    physical_equal(actual_host, host) &&
+    capture.read_callback_active &&
+    capture.read_facts_valid &&
+    capture.read_material is Some(actual_material) &&
+    physical_equal(actual_material, material) &&
+    host.epoch.operation_active else {
+    return Err(OriginalResourceScopePending)
+  }
+  match capture.check_original_read_lifetime() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  host.epoch.crypto.require_current().map_err(issue => Crypto(issue))
+}
+
+///|
 // A real external callback or physical signing boundary requires the full
 // original observation again. Failure spends the scoped facts, never the
 // signing claim or the original physical cleanup obligation.
@@ -96,7 +129,23 @@ fn NativeLocalInitialSigningOriginal::check_callback_current(
   // Existing diagnostic table, dedicated slot: count this actual external /
   // physical boundary, not immutable helper calls or Account outcomes.
   native_timing_count(64)
-  match self.host.check_binding() {
+  // An observation made before an external callback/physical sign cannot
+  // authenticate a control after it. Drop the same Owner's observation and
+  // freshly sample only AFTER the complete boundary fence succeeds.
+  self.host.epoch.invalidate_custody()
+  let current = match self.host.check_binding() {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      match self.host.epoch.require_operation_current(None) {
+        Err(issue) => Err(Epoch(issue))
+        Ok(_) =>
+          self.host.epoch
+          .custody(None)
+          .map(_ => ())
+          .map_err(issue => Epoch(issue))
+      }
+  }
+  match current {
     Err(issue) => {
       if self.original_read is Some((capture, _)) {
         if capture.read_operation_issue is None {

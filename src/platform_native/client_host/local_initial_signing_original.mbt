@@ -357,7 +357,12 @@ fn read_local_initial_signing_control_with_host_key(
       }
       if header.length() == 4 {
         guard local_initial_signing_value(
-            read_initial_host_signing_subject(host, body, host_key),
+            read_initial_host_signing_subject(
+              host,
+              body,
+              host_key,
+              signing_original~,
+            ),
           )
           is Some(_) else {
           return Err(CustodyLost)
@@ -383,7 +388,11 @@ fn read_local_initial_signing_packet(
 ) -> Result[NativeLocalInitialSigningFields, NativeLocalAdoptionIssue] {
   try {
     let payload = local_initial_signing_value(
-      read_local_installation_authenticated_payload(host, packet),
+      read_local_installation_authenticated_payload(
+        host,
+        packet,
+        signing_original~,
+      ),
     )
     let fields = local_initial_signing_value(
       @host.read_client_local_initial_signing_payload(payload).map_err(issue => {
@@ -436,24 +445,8 @@ fn read_local_initial_signing_packet(
           .map_err(issue => Crypto(issue)),
         )
       Some(original) => {
-        if !physical_equal(original.host, host) {
-          return Err(CustodyLost)
-        }
-        guard original.original_read is Some((capture, material)) &&
-          capture.opening is JournalAcquired(actual_host) &&
-          physical_equal(actual_host, host) &&
-          capture.read_callback_active &&
-          capture.read_facts_valid &&
-          capture.read_material is Some(actual_material) &&
-          physical_equal(actual_material, material) else {
-          return Err(OriginalResourceScopePending)
-        }
-        // The enclosing closed current frame already checks the physical DB
-        // and control row. Observe its SAME entered Read lifetime here, rather
-        // than issuing another heavyweight global-current/SQL pass per key.
-        local_initial_signing_value(capture.check_original_read_lifetime())
         local_initial_signing_value(
-          host.epoch.crypto.require_current().map_err(issue => Crypto(issue)),
+          original.check_initial_control_read_scope(host),
         )
         // HMAC, payload/policy admission and every closed-field check above
         // still execute. Reuse only the SAME previously decoded public key;
