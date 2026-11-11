@@ -69189,7 +69189,7 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e0e5ba5bf9f1e5c6ee20641319255c8066a017775beed9340ce2fd15e9549e04",
+      "sha256": "50fec49354801d48719131d1a1d8adddd254f4ac6b5d8e4887594d8e1f95cee4",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -69199,7 +69199,8 @@
         "selectInstalledHostEnvironment",
         "selectInstalledLocalMaterializationEnvironment",
         "snapshotHostCapacityPolicy",
-        "snapshotHostLookupExecutionPolicy"
+        "snapshotHostLookupExecutionPolicy",
+        "snapshotRequestMemory"
       ],
       "operations": [
         {
@@ -69235,7 +69236,8 @@
         {
           "name": "localResourceResultReadLimits",
           "parameters": [
-            "moon"
+            "moon",
+            "requestMemory"
           ],
           "async": false
         },
@@ -69312,6 +69314,39 @@
             "key"
           ],
           "async": false
+        },
+        {
+          "name": "snapshotRequestMemory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotRequestMemory/invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "snapshotRequestMemory/snapshotRequestMemory",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotRequestMemory/snapshotRequestMemory#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotRequestMemory/snapshotRequestMemory#3",
+          "parameters": [
+            "amount"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -69325,12 +69360,18 @@
             "snapshotHostLookupExecutionPolicy",
             "snapshotHostLookupExecutionPolicy/invalid/invalid",
             "snapshotHostLookupExecutionPolicy/keys/keys",
-            "snapshotHostLookupExecutionPolicy/snapshotHostLookupExecutionPolicy"
+            "snapshotHostLookupExecutionPolicy/snapshotHostLookupExecutionPolicy",
+            "snapshotRequestMemory",
+            "snapshotRequestMemory/invalid/invalid",
+            "snapshotRequestMemory/snapshotRequestMemory",
+            "snapshotRequestMemory/snapshotRequestMemory#2",
+            "snapshotRequestMemory/snapshotRequestMemory#3"
           ],
           "exports": [
             "selectInstalledHostEnvironment",
             "snapshotHostCapacityPolicy",
-            "snapshotHostLookupExecutionPolicy"
+            "snapshotHostLookupExecutionPolicy",
+            "snapshotRequestMemory"
           ],
           "attributes": {
             "responsibility": [
@@ -69345,6 +69386,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/client_local_host/resource_policy.mbt",
+                "anchor": "pub fn client_local_preparation_initial_limits("
               }
             ],
             "inputsOutputs": [
@@ -69908,7 +69953,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-host-policy.mjs",
-                "anchor": "export function localResourceResultReadLimits(moon)"
+                "anchor": "export function localResourceResultReadLimits(moon, requestMemory)"
               }
             ],
             "identity": [
@@ -69952,7 +69997,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const resultReadLimits = localResourceResultReadLimits(moon);"
+                "anchor": "const resultReadLimits = localResourceResultReadLimits(moon, requestMemory);"
               }
             ],
             "verification": [
@@ -110976,7 +111021,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-control.mjs",
-      "sha256": "31aab7b88af609592badd36d50c85d3dd9a731c52e361fcad4b748b82eef09c8",
+      "sha256": "cf299c8a5f04952b2de823dbc131c219d2c86c640e33ae786bb95ee802428093",
       "exports": [
         "assertOrdinaryHostControlCurrent",
         "beginOrdinaryHostControl",
@@ -122505,7 +122550,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "3ff4e716f931753eda96ecc47d218132c64f0c028b4dde44926248cab2998db7",
+      "sha256": "8128e0cdbe190b23dbb23be954a2539746c3ce117cae3d11c4ccdeaa32d59a48",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -122607,7 +122652,8 @@
             "moon",
             "input",
             "assertCurrent",
-            "childrenPending"
+            "childrenPending",
+            "memory"
           ],
           "async": false
         },
@@ -122632,6 +122678,13 @@
             "input",
             "assertCurrent",
             "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestMemorySelection",
+          "parameters": [
+            "context"
           ],
           "async": false
         },
@@ -122678,6 +122731,7 @@
             "openPreparationAdmission/openPreparationAdmission",
             "openPreparationAdmission/openPreparationAdmission#2",
             "openRequestPreparation",
+            "requestMemorySelection",
             "requestPreparationAvailable"
           ],
           "exports": [
@@ -122714,6 +122768,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "src/client_local_host/resource_policy.mbt",
+                "anchor": "pub fn client_local_preparation_initial_limits("
               }
             ],
             "inputsOutputs": [

@@ -196,7 +196,7 @@ pub fn client_local_checkpoint_proof_seal(@run_publication_host.ClientLocalCheck
 
 pub fn client_local_checkpoint_run_lifetime(@run_publication.PublicationContract, String) -> Result[(String, String), @run_publication_host.ClientLocalCheckpointProofIssue]
 
-pub fn client_local_preparation_resource_limits(@client_local_host.ClientLocalResourcePolicy) -> Array[Int64]
+pub fn client_local_preparation_resource_limits(@client_local_host.ClientLocalResourcePolicy, Int64?, Int64?) -> Array[Int64]
 
 pub fn client_local_resource_policy_model_request_byte_ceiling(@client_local_host.ClientLocalResourcePolicy) -> Int64
 

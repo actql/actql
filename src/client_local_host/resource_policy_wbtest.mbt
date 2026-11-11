@@ -31,3 +31,45 @@ test "source-free work selection preserves the default and finite typed bounds" 
   assert_true(client_local_source_free_max_work(Some(0)) is None)
   assert_true(client_local_source_free_max_work(Some(-1)) is None)
 }
+
+///|
+test "Request memory selection keeps nominal policy defaults counters and finite complete envelopes" {
+  let policy = client_local_resource_policy()
+  let original = client_local_preparation_initial_limits(policy).unwrap()
+  let selected = client_local_preparation_initial_limits(
+    policy,
+    retained_bytes=Some(1073741824L),
+    execution_bytes=Some(1073741824L),
+  ).unwrap()
+  assert_eq(selected, {
+    ..original,
+    retained_bytes: 1073741824L,
+    execution_bytes: 1073741824L,
+  })
+  assert_true(physical_equal(policy, client_local_resource_policy()))
+  assert_eq(client_local_preparation_initial_limits(policy), Some(original))
+  for
+    (retained, execution) in [
+      (Some(1073741824L), None),
+      (None, Some(1073741824L)),
+      (Some(0L), Some(1073741824L)),
+      (Some(1073741824L), Some(-1L)),
+      (Some(-1L), Some(original.execution_bytes)),
+    ] {
+    assert_true(
+      client_local_preparation_initial_limits(
+        policy,
+        retained_bytes=retained,
+        execution_bytes=execution,
+      )
+      is None,
+    )
+  }
+  let smaller = client_local_preparation_initial_limits(
+    policy,
+    retained_bytes=Some(67108864L),
+    execution_bytes=Some(67108864L),
+  ).unwrap()
+  assert_eq(smaller.retained_bytes, 67108864L)
+  assert_eq(smaller.execution_bytes, 67108864L)
+}

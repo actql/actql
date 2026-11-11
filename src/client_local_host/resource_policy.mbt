@@ -73,11 +73,27 @@ pub fn client_local_materialized_row_ceiling(
 /// This does not cover Native acquisition, Model, Effect or Content recipes.
 pub fn client_local_preparation_initial_limits(
   policy : ClientLocalResourcePolicy,
+  retained_bytes? : Int64? = None,
+  execution_bytes? : Int64? = None,
 ) -> @resources.LedgerLimits? {
   if !physical_equal(policy, local_materialization_policy) ||
     policy.graph_work < 0 ||
     policy.relation_wire_bytes < 0 {
     return None
+  }
+  // This DATA selects the SAME initial supplier before Request construction.
+  // It is never a late resize or an allowance beside the original Ledger.
+  // An explicit smaller ceiling is valid DATA too. The same initial owner
+  // must admit its actual controls and each later constructor before use.
+  let (retained, execution) = match (retained_bytes, execution_bytes) {
+    (None, None) => (policy.retained_bytes, policy.execution_bytes)
+    (Some(retained), Some(execution)) => {
+      if retained <= 0L || execution <= 0L {
+        return None
+      }
+      (retained, execution)
+    }
+    _ => return None
   }
   Some({
     planning_work: policy.dispatch_planning_work,
@@ -85,8 +101,8 @@ pub fn client_local_preparation_initial_limits(
     holdings: policy.graph_work,
     transfer_bytes: policy.graph_work.to_int64() *
     policy.relation_wire_bytes.to_int64(),
-    retained_bytes: policy.retained_bytes,
-    execution_bytes: policy.execution_bytes,
+    retained_bytes: retained,
+    execution_bytes: execution,
   })
 }
 

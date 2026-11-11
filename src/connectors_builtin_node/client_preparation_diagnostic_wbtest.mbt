@@ -133,7 +133,7 @@ fn request_diagnostic_test_parent() -> (
   let original = request_diagnostic_test_original(
     request_diagnostic_test_loader(request_diagnostic_test_url()),
     receipt,
-    client_local_preparation_resource_limits(policy),
+    client_local_preparation_resource_limits(policy, None, None),
   )
   let initial = client_program_prepare_local_preparation_admission(
     original, receipt,

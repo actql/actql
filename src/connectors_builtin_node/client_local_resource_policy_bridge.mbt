@@ -22,8 +22,14 @@ pub fn client_local_resource_policy_row_ceiling(
 #export_name("clientLocalPreparationResourceLimits")
 pub fn client_local_preparation_resource_limits(
   policy : @client_local_host.ClientLocalResourcePolicy,
+  retained_bytes : Int64?,
+  execution_bytes : Int64?,
 ) -> Array[Int64] {
-  guard @client_local_host.client_local_preparation_initial_limits(policy)
+  guard @client_local_host.client_local_preparation_initial_limits(
+      policy,
+      retained_bytes~,
+      execution_bytes~,
+    )
     is Some(limits) else {
     return []
   }

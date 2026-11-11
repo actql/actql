@@ -337,8 +337,14 @@ fn[I] begin_request_preparation_original(
   }
   let available = @resources.ledger_limits(ledger)
   let fits = match initial {
-    // Preserve the existing Node supplier's full sealed installation envelope.
-    NodeRequestInitial(_) => installed_effect_limits_fit(expected, available)
+    // Keep the original nominal supplier and non-byte controls. Byte ceilings
+    // are not constructor demand: the actual fixed quote below, then every
+    // phase/grow, must fit this SAME initial Ledger even below the default.
+    NodeRequestInitial(_) =>
+      installed_effect_limits_fit(
+        { ..expected, retained_bytes: 0L, execution_bytes: 0L, },
+        available,
+      )
     // This nominal scoped child supplies actual backing, not the policy's
     // unused maxima. Keep its original grant within that policy ceiling;
     // every fixed/variable constructor still reserves its full actual quote.

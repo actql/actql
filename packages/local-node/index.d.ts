@@ -74,6 +74,11 @@ export type HostInstallation = Readonly<{
    * Compute fragment/sequence counter. Core supplies the default when omitted.
    * This is not a global Run/Host quota, memory grant or compiler/check limit. */
   sourceFreeMaxWork?: number;
+  /** Finite initial Request/Run Ledger memory limits, selected before admission.
+   * Both safe-integer byte quantities are required; Core checks the installed
+   * envelope. Omission preserves the Core default. Not reserved RAM or RSS.
+   * Reopen with the same installation selection for original Saved reads. */
+  requestMemory?: Readonly<{retainedBytes: number; executionBytes: number}>;
   hostLookupExecutionPolicy?: HostLookupExecutionPolicy;
   resolveSourceSecret?: (...args: any[]) => any;
   resolveEffectSecret?: (...args: any[]) => any;

@@ -23,20 +23,94 @@ test "collection original Request default work refusal retains bounded cleanup" 
 }
 
 ///|
+test "collection original Request 100000 uses selected finite initial parent through Result and close" {
+  let limits = client_local_preparation_initial_limits(
+    client_local_resource_policy(),
+    retained_bytes=Some(1073741824L),
+    execution_bytes=Some(1073741824L),
+  ).unwrap()
+  collection_request_publication_case(
+    100000,
+    false,
+    source_free_max_work=Some(30000000),
+    initial_limits=Some(limits),
+  )
+}
+
+///|
+test "small original Request actual demand is unchanged by larger finite memory ceilings" {
+  let baseline : Array[@resources.LedgerUsage] = []
+  for
+    memory in [
+      None,
+      Some(1073741824L),
+      Some(2147483648L),
+      Some(268435456L),
+      Some(67108864L),
+    ] {
+    let samples : Array[@resources.LedgerUsage] = []
+    let limits = client_local_preparation_initial_limits(
+      client_local_resource_policy(),
+      retained_bytes=memory,
+      execution_bytes=memory,
+    ).unwrap()
+    collection_request_publication_case(
+      1,
+      false,
+      source_free_max_work=Some(30000000),
+      initial_limits=Some(limits),
+      simple=true,
+      observed=Some(samples),
+    )
+    assert_eq(samples.length(), 8)
+    if baseline.is_empty() {
+      for sample in samples {
+        baseline.push(sample)
+      }
+    } else {
+      assert_eq(samples, baseline)
+    }
+    for phase, sample in samples {
+      println(
+        "small-request-demand cap=" +
+        limits.retained_bytes.to_string() +
+        " phase=" +
+        phase.to_string() +
+        " R=" +
+        sample.reserved_retention_bytes.to_string() +
+        " E=" +
+        sample.reserved_execution_bytes.to_string() +
+        " held=" +
+        sample.held_bytes.to_string() +
+        " peakR=" +
+        sample.peak_retention_bytes.to_string(),
+      )
+    }
+  }
+}
+
+///|
 fn collection_request_publication_case(
   count : Int,
   occupied : Bool,
   source_free_max_work? : Int? = None,
   expect_work_refusal? : Bool = false,
+  initial_limits? : @resources.LedgerLimits? = None,
+  simple? : Bool = false,
+  observed? : Array[@resources.LedgerUsage]? = None,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
     digits.push("SELECT " + n.to_string() + " AS n")
   }
-  let sql = "WITH d AS (" +
+  let sql = if simple {
+    "SELECT 0 AS n"
+  } else {
+    "WITH d AS (" +
     digits.join(" UNION ALL ") +
     ") SELECT 0 AS n FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e CROSS JOIN d f WHERE a.n + 10*b.n + 100*c.n + 1000*e.n + 10000*f.n < " +
     count.to_string()
+  }
   let environment = collection_capacity_selected_environment(
     client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
   )
@@ -45,7 +119,11 @@ fn collection_request_publication_case(
     environment,
     "{\"environmentCid\":\"" + cid + "\",\"aliases\":[]}",
   ).unwrap()
-  let (parent, input) = native_driver_parent(sql)
+  let (parent, input) = native_driver_parent(sql, initial_limits~, observed~)
+  let original_ledger = parent.ledger
+  if initial_limits is Some(selected) {
+    assert_eq(@resources.ledger_limits(original_ledger), selected)
+  }
   parse_request_query_syntax(parent, input, sql, @frontend.Sql).unwrap()
   |> ignore
   lower_request_published_query(
@@ -81,6 +159,9 @@ fn collection_request_publication_case(
     finish_program_check_preparation(check).unwrap() is @checked.Checked(_),
   )
   let prepared = compile_program_check_preparation(check, limits).unwrap()
+  if observed is Some(samples) {
+    samples.push(@resources.ledger_usage(parent.ledger))
+  }
   continue_request_program_preparation(parent, input).unwrap() |> ignore
   prepare_request_program_module_body(
     parent,
@@ -108,6 +189,9 @@ fn collection_request_publication_case(
     is Err(Preparation(WrongPhase)),
   )
   let plan = parent.program_source_free.unwrap()
+  if observed is Some(samples) {
+    samples.push(@resources.ledger_usage(parent.ledger))
+  }
   assert_eq(
     plan.capacity_plan.values.max_work,
     source_free_max_work.unwrap_or(20000000),
@@ -124,17 +208,19 @@ fn collection_request_publication_case(
     parent.program_source_free_max_work,
     Some(plan.capacity_plan.values.max_work),
   )
-  let actual_requirements = @execution.generated_sequence_requirements(
-    plan.sequences[43],
-    10000,
-  ).unwrap()
-  let actual_fragment = @lower.sequence_requirements_fragment_for_step(
-    actual_requirements, 43,
-  ).unwrap()
-  assert_eq(
-    actual_fragment.logical.max_work,
-    plan.capacity_plan.values.max_work.to_int64(),
-  )
+  if !simple {
+    let actual_requirements = @execution.generated_sequence_requirements(
+      plan.sequences[43],
+      10000,
+    ).unwrap()
+    let actual_fragment = @lower.sequence_requirements_fragment_for_step(
+      actual_requirements, 43,
+    ).unwrap()
+    assert_eq(
+      actual_fragment.logical.max_work,
+      plan.capacity_plan.values.max_work.to_int64(),
+    )
+  }
   println(
     "request-finalization-policy " +
     @debug.to_string(
@@ -152,6 +238,13 @@ fn collection_request_publication_case(
     "same-request-finalization-" + count.to_string(),
   ).unwrap()
   let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(physical_equal(run.ledger.unwrap(), original_ledger))
+  if initial_limits is Some(selected) {
+    assert_eq(@resources.ledger_limits(run.ledger.unwrap()), selected)
+  }
+  if observed is Some(samples) {
+    samples.push(@resources.ledger_usage(parent.ledger))
+  }
   // Consume the SAME compilation retained by this Request's existing Plan.
   // This does not compile another Program or substitute a serialized body.
   let compiled = match plan.compilation.unwrap() {
@@ -303,6 +396,9 @@ fn collection_request_publication_case(
   // The ordinary caller reserves publication BEFORE closing its still-needed
   // completed output. The earlier isolated component closed that output first.
   let before = @resources.ledger_usage(parent.ledger)
+  if observed is Some(samples) {
+    samples.push(before)
+  }
   let caps = @resources.ledger_admission_limits(parent.ledger)
   println(
     "publication-live held=" +
@@ -342,7 +438,9 @@ fn collection_request_publication_case(
     }
   }
   assert_true(physical_equal(run.publication.unwrap(), publication))
-  assert_false(publication.snapshot_prequoted)
+  if !simple {
+    assert_false(publication.snapshot_prequoted)
+  }
   let rows = output.rows().unwrap()
   assert_eq(rows.length(), count)
   for row in rows {
@@ -380,7 +478,9 @@ fn collection_request_publication_case(
   let stream = transformation.finish().unwrap()
   let exported = StringBuilder()
   let mut eof = false
-  for _ in 0..<100000 {
+  let mut export_polls = limits.payload_wire.max_bytes.to_int64() + 2L
+  while export_polls > 0L {
+    export_polls -= 1L
     match stream.next().unwrap() {
       Some(chunk) => exported.write_string(chunk)
       None => {
@@ -471,12 +571,18 @@ fn collection_request_publication_case(
     cancel_program_snapshot(snapshot)
     assert_eq(publication.completed_snapshots.length(), 1)
   }
+  if observed is Some(samples) {
+    samples.push(@resources.ledger_usage(parent.ledger))
+  }
   stream.cancel()
   @execution.close_managed_publication_bridge(bridge)
   assert_true(output.close())
   @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  if observed is Some(samples) {
+    samples.push(@resources.ledger_usage(parent.ledger))
+  }
 }
 
 ///|
@@ -500,7 +606,12 @@ fn collection_node_snapshot(
   let parts : Array[String] = []
   let mut bytes = 0
   let mut saved = false
-  for _ in 0..<100000 {
+  // Consume the selected finite byte stream, including its tail/EOF calls.
+  // The former 100000-poll fixture stopped a valid 100000-row stream early;
+  // this changes no product wire/work/resource limit or outer guard duration.
+  let mut save_polls = snapshot.frames.maxBytes.to_int64() + 2L
+  while save_polls > 0L {
+    save_polls -= 1L
     match (snapshot.next)() {
       Ok(Some(part)) => {
         bytes += @utf8.encode(part).length()

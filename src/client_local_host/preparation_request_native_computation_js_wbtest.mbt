@@ -5,13 +5,18 @@ let native_driver_program : String =
 ///|
 fn native_driver_parent(
   text : String,
+  initial_limits? : @resources.LedgerLimits? = None,
+  observed? : Array[@resources.LedgerUsage]? = None,
 ) -> (ClientRequestPreparation[Array[Int]], Array[Int]) {
   let input = [1]
   let parent = begin_request_preparation(
-    request_parent_fixture(input),
+    request_parent_fixture(input, initial_limits~),
     input,
     client_local_resource_policy(),
   ).unwrap()
+  if observed is Some(samples) {
+    samples.push(@resources.ledger_usage(parent.ledger))
+  }
   // Conservative actual-capture envelope for this component. The distinct
   // Node manager case observes the SDK's own supplied snapshot quantities.
   reserve_request_snapshot(
@@ -20,6 +25,9 @@ fn native_driver_parent(
     text.length().to_int64() + 32L,
     text.length().to_int64() + 32L,
   ).unwrap()
+  if observed is Some(samples) {
+    samples.push(@resources.ledger_usage(parent.ledger))
+  }
   (parent, input)
 }
 

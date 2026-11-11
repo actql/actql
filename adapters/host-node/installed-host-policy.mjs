@@ -35,6 +35,25 @@ export function snapshotHostCapacityPolicy(value) {
   } catch { fail('PolicySnapshot'); }
 }
 
+// Only a detached representation of the finite pair. Common validates the
+// installed envelope and the SAME original supplier admits actual capacity.
+const requestMemorySnapshots = new WeakSet();
+export function snapshotRequestMemory(value) {
+  if (value === undefined) return undefined;
+  if (value !== null && typeof value === 'object' && requestMemorySnapshots.has(value)) return value;
+  const invalid = () => {throw Object.assign(new TypeError('InvalidInstalledRequestMemory'),
+    {code: 'InvalidInstalledRequestMemory'});};
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      Object.getPrototypeOf(value) !== Object.prototype) invalid();
+  const entries = Object.entries(value);
+  if (entries.length !== 2 || !entries.some(([name]) => name === 'retainedBytes') ||
+      !entries.some(([name]) => name === 'executionBytes') ||
+      entries.some(([, amount]) => !Number.isSafeInteger(amount) || Object.is(amount, -0))) invalid();
+  const snapshot = Object.freeze(Object.fromEntries(entries));
+  requestMemorySnapshots.add(snapshot);
+  return snapshot;
+}
+
 const lookupSnapshots = new WeakSet();
 
 // Validate finite lookup ceilings at the Host boundary, never from caller
@@ -129,9 +148,12 @@ export function localResourceLookupExecutionPolicy(moon, original, selected) {
 // policy. Common derives its necessary row ceiling; this projection grants
 // no allocation or permission. Streaming keeps per-row/wire/batch backpressure,
 // not collection's cumulative retained-row/byte ceiling.
-export function localResourceResultReadLimits(moon) {
+export function localResourceResultReadLimits(moon, requestMemory) {
+  const memory = snapshotRequestMemory(requestMemory);
   const original = moon.clientLocalResourcePolicyOriginal();
-  const limits = moon.clientLocalPreparationResourceLimits(original);
+  const limits = moon.clientLocalPreparationResourceLimits(original,
+    memory === undefined ? undefined : BigInt(memory.retainedBytes),
+    memory === undefined ? undefined : BigInt(memory.executionBytes));
   const maxRows = moon.clientLocalResourcePolicyRowCeiling(original);
   if (!Array.isArray(limits) || limits.length !== 6 ||
       [limits[3], limits[4]].some(value => typeof value !== 'bigint' ||

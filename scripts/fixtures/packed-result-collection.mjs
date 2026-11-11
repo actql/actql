@@ -20,7 +20,7 @@ const span = async (name, action) => {
   try {return await action();} finally {value.endedAt = new Date().toISOString();}
 };
 function collectionProgram(count) {
-  // Small Program, 100k small rows: no enormous VALUES text or special budget.
+  // Small Program, 100k small rows: no enormous VALUES text.
   const digits = Array.from({length: 10}, (_, n) => `SELECT ${n} AS n`).join(' UNION ALL ');
   return `WITH d AS (${digits}) SELECT 0 AS n FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e CROSS JOIN d f WHERE a.n + 10*b.n + 100*c.n + 1000*e.n + 10000*f.n < ${count}`;
 }
@@ -34,8 +34,10 @@ try {
   // Explicit finite policy for this authored SQL's measured semantic work.
   // Both capture and the same-original Saved process select the same Host input.
   report.sourceFreeMaxWork = 30000000;
+  report.requestMemory = {retainedBytes: 1073741824, executionBytes: 1073741824};
   client = await span('open', () => open({stateDir, installation: {
     sourceFreeMaxWork: report.sourceFreeMaxWork,
+    requestMemory: report.requestMemory,
   }}));
   if (phase === 'capture') {
     for (const count of counts) {

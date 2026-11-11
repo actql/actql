@@ -1870,7 +1870,7 @@
     {
       "module": "packages/local-node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "3bdf66485e2a97b2e306c0b6c879dc860bd788e8f6431e03091e7a0c4e2b1c48",
+      "sha256": "d9ef3c8f197272094497cd90e079ba0aca7fdd21118e3152be480193d3830cbc",
       "exports": [
         "CalendarArtifactInstallation",
         "EffectProfilePaths",
@@ -2883,7 +2883,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a077853af39e433bfd857bb5c029d966b7da7441d5376619ce7c6b01f489798a",
+      "sha256": "e855e0f23feee6d19b3531f7f7732a5be8190f33f1870435341c9ea7e99cd52e",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",

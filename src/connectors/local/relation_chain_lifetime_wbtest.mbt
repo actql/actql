@@ -278,6 +278,51 @@ fn chain_lifetime_select_body() -> String {
 }
 
 ///|
+test "reclaimed bounded chain does not fund an unused generic measurement forest" {
+  let (sequence, _, _) = chain_lifetime_fixture(chain_lifetime_select_body())
+  assert_true(relation_chain_reclaims_completed_scratch(sequence))
+  let limits = chain_lifetime_limits()
+  let measurement = chain_lifetime_measurement()
+  let larger = {
+    ..measurement,
+    max_nodes: measurement.max_nodes + 1000000,
+    max_bytes: measurement.max_bytes + 1000000,
+  }
+  let original = bounded_relation_chain_capacity(
+    sequence,
+    limits,
+    measurement,
+    [],
+  ).unwrap()
+  let selected = bounded_relation_chain_capacity(sequence, limits, larger, []).unwrap()
+  // These constructors scan original borrowed cells through their funded row
+  // workspace; changing the unused generic forest limit allocates no forest.
+  assert_eq(selected.execution_bytes, original.execution_bytes)
+  assert_eq(selected.retained_bytes, original.retained_bytes)
+  let generic = @execution.generated_sequence_capacity(
+    sequence, limits, measurement,
+  ).unwrap()
+  let inflated = @execution.generated_sequence_capacity(
+    sequence, limits, larger,
+  ).unwrap()
+  assert_true(inflated.execution_bytes > generic.execution_bytes)
+  // Its real child operation slots remain independently included.
+  let more_slots = bounded_relation_chain_capacity(
+    sequence,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        operation_entries: limits.rows.operation_entries + 1,
+      },
+    },
+    measurement,
+    [],
+  ).unwrap()
+  assert_true(more_slots.execution_bytes > original.execution_bytes)
+}
+
+///|
 fn chain_lifetime_append_body() -> String {
   "[{\"from\":\"source\",\"append\":{\"with\":\"source\"},\"as\":\"doubled\"},{\"from\":\"doubled\",\"select\":[\"id\"],\"as\":\"selected\"},{\"from\":\"selected\",\"append\":{\"with\":\"doubled\"}}]"
 }
@@ -306,7 +351,7 @@ test "bounded chains execute and charge an unconsumed checked branch" {
   assert_eq(
     capacity.execution_bytes,
     Int64::max(
-      base.execution_bytes,
+      base.retained_bytes,
       retained + peak + count.to_int64() * 256L + 512L,
     ),
   )
@@ -426,7 +471,7 @@ test "built-in chains reclaim each intermediate execution and preserve exact out
       let handles = count.to_int64() * 256L + 512L
       assert_eq(
         capacity.execution_bytes,
-        Int64::max(base.execution_bytes, retained + peak + handles),
+        Int64::max(base.retained_bytes, retained + peak + handles),
       )
       assert_true(capacity.execution_bytes < retained + conservative + handles)
     }
@@ -780,7 +825,7 @@ test "Values and UNNEST chains reclaim scratch and preserve accepted output gene
   let required = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   assert_eq(
     required.execution_bytes,
-    Int64::max(base.execution_bytes, retained + peak + handles),
+    Int64::max(base.retained_bytes, retained + peak + handles),
   )
   assert_true(required.execution_bytes < retained + conservative + handles)
   let (active, state) = expansion_lifetime_start(sequence)

@@ -19,7 +19,7 @@ import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
-import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
+import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, snapshotRequestMemory,
   selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy, localResourceResultReadLimits} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
@@ -517,6 +517,11 @@ export function readLocalPreparationContext(originals) {
   const work = Object.getOwnPropertyDescriptor(context, 'sourceFreeMaxWork');
   if ((work !== undefined && !Object.hasOwn(work, 'value')) ||
       work?.value !== installation.sourceFreeMaxWork) {
+    throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
+  }
+  const memory = Object.getOwnPropertyDescriptor(context, 'requestMemory');
+  if ((memory !== undefined && !Object.hasOwn(memory, 'value')) ||
+      memory?.value !== installation.requestMemory) {
     throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
   }
   const mode = Object.getOwnPropertyDescriptor(context, 'retainedRelationOutput');
@@ -1336,6 +1341,7 @@ async function embeddedInstallationIdentity(root, installation, project, moon, p
       valuesMaxRows: installation.valuesMaxRows}),
     ...(installation?.sourceFreeMaxWork === undefined ? {} : {
       sourceFreeMaxWork: installation.sourceFreeMaxWork}),
+    ...(installation?.requestMemory === undefined ? {} : {requestMemory: installation.requestMemory}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -1477,7 +1483,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   modelInstallation, registerModelProviders, project, projectProfile, projectRuntime,
   calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
-  retainedRelationOutput = false, valuesMaxRows, sourceFreeMaxWork, observation: observationConnection} = originalInstallation;
+  retainedRelationOutput = false, valuesMaxRows, sourceFreeMaxWork, requestMemory, observation: observationConnection} = originalInstallation;
   // This is the actual returned Host generation, not a CID/configuration
   // stand-in or another resource Owner. The installer covers native/process
   // domains as trusted implementation responsibility, NOT zero bytes or RSS.
@@ -1612,6 +1618,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   validateValuesMaxRows(valuesMaxRows);
   validateSourceFreeMaxWork(sourceFreeMaxWork);
+  requestMemory = snapshotRequestMemory(requestMemory);
   validateSourceNamespace(sourceNamespace);
   validateSourceNamespace(sourceSelectorNamespace);
   if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
@@ -2233,7 +2240,8 @@ async function openInstalledHost(originalInstallation, preparation) {
             control: originalInstallation.initialControl, environment,
             preparedEnvironment: sourceEnvironmentOriginal.preparedEnvironment, retainedRelationOutput,
             valuesMaxRows: originalInstallation.valuesMaxRows,
-            sourceFreeMaxWork: originalInstallation.sourceFreeMaxWork});
+            sourceFreeMaxWork: originalInstallation.sourceFreeMaxWork,
+            requestMemory: originalInstallation.requestMemory});
         }
       }
     }
@@ -2435,7 +2443,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
     // One installed read policy supplies negotiation and the authorized
     // delivery grant. Publication output bounds are a separate purpose.
-    const resultReadLimits = localResourceResultReadLimits(moon);
+    const resultReadLimits = localResourceResultReadLimits(moon, requestMemory);
     const negotiate = async value => ({version: 'actql-client-host/0.1',
       mode, owner: mode, durability: 'durable',
       ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
@@ -8307,7 +8315,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       resolveEffectSecret, effectInstallation, modelInstallation, registerModelProviders,
       calendarArtifact, resultDataPolicy, inferEvidence, retainedRelationOutput,
       hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy,
-      valuesMaxRows, sourceFreeMaxWork, observation} = options;
+      valuesMaxRows, sourceFreeMaxWork, requestMemory, observation} = options;
     calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
     hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
     hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
@@ -8323,7 +8331,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       effectInstallation, modelInstallation, registerModelProviders, calendarArtifact,
       resultDataPolicy, inferEvidence,
       retainedRelationOutput: retainedRelationOutput === undefined ? false : retainedRelationOutput,
-      hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, sourceFreeMaxWork, observation});
+      hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, sourceFreeMaxWork,
+      requestMemory: snapshotRequestMemory(requestMemory), observation});
     record.installation = originalInstallation;
     moon = await import(runtimeUrl.href);
     record.runtime = moon;
@@ -8421,13 +8430,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
   }
   if (installation !== undefined) {
     const {hostCapacityPolicy: selected, hostLookupExecutionPolicy: lookupSelected,
-      calendarArtifact: suppliedCalendar, valuesMaxRows, sourceFreeMaxWork, ...rest} = installation;
+      calendarArtifact: suppliedCalendar, valuesMaxRows, sourceFreeMaxWork, requestMemory: suppliedMemory, ...rest} = installation;
     validateValuesMaxRows(valuesMaxRows);
     validateSourceFreeMaxWork(sourceFreeMaxWork);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
     const hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(lookupSelected);
     const calendarArtifact = snapshotInstalledCalendar(suppliedCalendar);
-    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows, sourceFreeMaxWork};
+    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows, sourceFreeMaxWork,
+      requestMemory: snapshotRequestMemory(suppliedMemory)};
     if (installation.effectProfilePaths !== undefined) {
       installation.effectProfilePaths = installedEffectPaths(installation);
     }
@@ -8472,7 +8482,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       ? false : installation.retainedRelationOutput,
     observation: installation?.observation,
     valuesMaxRows: installation?.valuesMaxRows,
-    sourceFreeMaxWork: installation?.sourceFreeMaxWork});
+    sourceFreeMaxWork: installation?.sourceFreeMaxWork, requestMemory: installation?.requestMemory});
   record.installation = originalInstallation;
   if (selectedProfile.selected === 'mock') {
     const services = preparation.sourceInitializationServices(moon, root, userInfo().username);

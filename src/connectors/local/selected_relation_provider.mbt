@@ -478,7 +478,18 @@ fn bounded_relation_chain_capacity(
   }
   @execution.execution_capacity(
     base.retained_bytes,
-    Int64::max(base.execution_bytes, live_children + handles + preparation),
+    // This audited chain constructs bounded children and exact-count handles,
+    // not the generic sequence table/measurement workspace. Keep every child
+    // output, the live scratch peak and the original output-copy retention.
+    // Unreclaimed/family suffixes retain their complete generic floor.
+    Int64::max(
+      if reclaimed_prefix == count {
+        base.retained_bytes
+      } else {
+        base.execution_bytes
+      },
+      live_children + handles + preparation,
+    ),
   )
 }
 

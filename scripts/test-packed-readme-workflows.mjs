@@ -41,6 +41,7 @@ async function runCollectionConsumer({prepared, root, repository, command, repor
         assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
         if (phase === 'saved') assert.notEqual(actual.pid, report.collection[0].pid);
         assert.equal(actual.sourceFreeMaxWork, 30000000);
+        assert.deepEqual(actual.requestMemory, {retainedBytes: 1073741824, executionBytes: 1073741824});
         assert(actual.complete); assert.equal(actual.firstClose, 'returned');
         assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
         assert.equal(actual.submits, phase === 'capture' ? 5 : 0);

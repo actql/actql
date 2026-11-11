@@ -313,7 +313,7 @@ pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @executio
 
 pub fn client_local_materialized_row_ceiling(ClientLocalResourcePolicy) -> Int?
 
-pub fn client_local_preparation_initial_limits(ClientLocalResourcePolicy) -> @physical_resources.LedgerLimits?
+pub fn client_local_preparation_initial_limits(ClientLocalResourcePolicy, retained_bytes? : Int64?, execution_bytes? : Int64?) -> @physical_resources.LedgerLimits?
 
 pub fn client_local_resource_policy() -> ClientLocalResourcePolicy
 
