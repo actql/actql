@@ -49418,7 +49418,7 @@
     },
     {
       "module": "src/client_row_source_host/input_acquisition.mbt",
-      "sha256": "6b25b99724f0a2d111b3641bf9e80e613276c44408442981dd3ed18a33edb62d",
+      "sha256": "cc5b989b5c4ef6cc1809c85863e17c2251589ff2ed9c1b190f7b8ac7daca6421",
       "exports": [],
       "operations": [
         {
@@ -68230,7 +68230,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "27d141e81d1c583083bc6831e9e3e707b7b52272024813d85d19219cb6871e1c",
+      "sha256": "01e8fb9e5721ebfef4a9cf4d070e53c08bebfdabd9278d43e12e89af0ec02957",
       "exports": [],
       "operations": [
         {
@@ -68526,6 +68526,10 @@
           "declaration": "source_input_dag_matches_read_at ( run : CapturedDAG , read : @ execution . SuppliedRelationRead , task : Int , ) - > Bool"
         },
         {
+          "name": "source_input_dag_retains_completed_read_at",
+          "declaration": "source_input_dag_retains_completed_read_at ( run : CapturedDAG , read : @ execution . SuppliedRelationRead , task : Int , ) - > Bool"
+        },
+        {
           "name": "source_inputs_original_reads",
           "declaration": "source_inputs_original_reads ( graph : CheckedDAG , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ ( Array [ ( Int , Int , @ execution . SuppliedRelationRead ) ] , Array [ ( Int , Int ) ] ) , RunIssue , ]"
         },
@@ -68625,7 +68629,8 @@
             "source_inputs_original_reads",
             "stop_captured_dag",
             "task_done",
-            "valid_source_free_root"
+            "valid_source_free_root",
+            "source_input_dag_retains_completed_read_at"
           ],
           "exports": [],
           "attributes": {
