@@ -1,12 +1,26 @@
 ///|
-test "collection original Request follows Node256 snapshot then finalization" {
+test "collection original Request publishes 9999 with its same live output" {
+  collection_request_publication_case(9999, false)
+}
+
+///|
+test "collection original Request snapshot refuses occupied retention" {
+  collection_request_publication_case(9999, true)
+}
+
+///|
+fn collection_request_publication_case(
+  count : Int,
+  occupied : Bool,
+) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
     digits.push("SELECT " + n.to_string() + " AS n")
   }
   let sql = "WITH d AS (" +
     digits.join(" UNION ALL ") +
-    ") SELECT 0 AS n FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e CROSS JOIN d f WHERE a.n + 10*b.n + 100*c.n + 1000*e.n + 10000*f.n < 9999"
+    ") SELECT 0 AS n FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e CROSS JOIN d f WHERE a.n + 10*b.n + 100*c.n + 1000*e.n + 10000*f.n < " +
+    count.to_string()
   let environment = collection_capacity_selected_environment(
     client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
   )
@@ -76,9 +90,42 @@ test "collection original Request follows Node256 snapshot then finalization" {
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
-    "same9999-request-finalization",
+    "same-request-finalization-" + count.to_string(),
   ).unwrap()
   let run = begin_request_program_managed_run(parent, request).unwrap()
+  // Consume the SAME compilation retained by this Request's existing Plan.
+  // This does not compile another Program or substitute a serialized body.
+  let compiled = match plan.compilation.unwrap() {
+    Values(original) =>
+      @publication_host.issue_client_values_compiled_run(
+        prepared,
+        original,
+        "sha256:" + "a".repeat(64),
+        "sha256:" + "b".repeat(64),
+        "2099-01-01T00:00:00.000Z",
+      ).unwrap()
+    Tasks(original) =>
+      @publication_host.issue_client_task_compiled_run(
+        prepared,
+        original,
+        "sha256:" + "a".repeat(64),
+        "sha256:" + "b".repeat(64),
+        "2099-01-01T00:00:00.000Z",
+      ).unwrap()
+    _ => fail("original source-free Values or Tasks compilation required")
+  }
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled,
+    "collection-publication",
+    "same-original-" + count.to_string(),
+    "2026-10-29T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  issue_program_publication_invocation(
+    run, prepared, compiled, definition, "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+    65536, 8192, 64,
+  ).unwrap()
+  |> ignore
   let setup = open_installed_managed_source_free_host(
       run,
       prepared,
@@ -115,17 +162,219 @@ test "collection original Request follows Node256 snapshot then finalization" {
         ) => "ManagedValues/Admission/CaptureLimit"
         Driver(@local_driver.Configuration(@connector.InputUnavailable)) =>
           "Configuration/InputUnavailable"
+        Driver(@local_driver.Execution(@strategy.Physical(original))) =>
+          "Execution/Physical/" + @debug.to_string(original)
+        Driver(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Capture(step, original))
+          )
+        ) =>
+          "Configuration/Execution/Capture/" +
+          @debug.to_string((step, original))
+        Driver(
+          @local_driver.Configuration(
+            @connector.Execution(
+              @execution.Rows(step, @execution.LogicalRows(original))
+            )
+          )
+        ) =>
+          "Configuration/Execution/LogicalRows/" +
+          @debug.to_string((step, original))
+        Driver(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Rows(step, @execution.RowLimit))
+          )
+        ) => "Configuration/Execution/RowLimit/" + step.to_string()
+        Driver(@local_driver.Configuration(_)) => "Configuration/other"
+        Driver(@local_driver.Execution(_)) => "Execution/other"
+        Driver(@local_driver.ManagedValues(_)) => "ManagedValues/other"
+        Driver(@local_driver.ManagedCopy(original)) =>
+          "ManagedCopy/" + @debug.to_string(original)
+        Driver(@local_driver.ManagedRetention(original)) =>
+          "ManagedRetention/" + @debug.to_string(original)
         _ => "different checked failure"
       }
       let cleaned = retry_local_values_execution_failure_cleanup(failure)
+      println(
+        "request-finalization-budget " +
+        @debug.to_string(@resources.ledger_usage(parent.ledger)),
+      )
       fail("request-finalization " + family + " cleanup=" + cleaned.to_string())
     }
   }
+  // The ordinary caller reserves publication BEFORE closing its still-needed
+  // completed output. The earlier isolated component closed that output first.
+  let before = @resources.ledger_usage(parent.ledger)
+  let caps = @resources.ledger_admission_limits(parent.ledger)
+  println(
+    "publication-live held=" +
+    before.held_bytes.to_string() +
+    " reservedR=" +
+    before.reserved_retention_bytes.to_string() +
+    " reservedE=" +
+    before.reserved_execution_bytes.to_string() +
+    " limitR=" +
+    caps.retained_bytes.to_string() +
+    " limitE=" +
+    caps.execution_bytes.to_string(),
+  )
+  let publication = match reserve_program_publication(run, prepared) {
+    Ok(value) => value
+    Err(issue) => {
+      let family = match issue {
+        Capacity(Resource(original)) =>
+          "Capacity/Resource/" + @debug.to_string(original)
+        Capacity(original) => "Capacity/" + @debug.to_string(original)
+        WrongPhase => "WrongPhase"
+        ForeignOriginal => "ForeignOriginal"
+        Policy => "Policy"
+        _ => "different checked publication failure"
+      }
+      let closed = output.close()
+      @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+      let retired = retire_installed_managed_run(run) is Ok(_)
+      fail(
+        "same-live-publication " +
+        family +
+        " close=" +
+        closed.to_string() +
+        " retired=" +
+        retired.to_string(),
+      )
+    }
+  }
+  assert_true(physical_equal(run.publication.unwrap(), publication))
+  assert_false(publication.snapshot_prequoted)
   let rows = output.rows().unwrap()
-  assert_eq(rows.length(), 9999)
+  assert_eq(rows.length(), count)
   for row in rows {
     assert_eq(row, "{\"n\":0}")
   }
+  // Use the same retained Plan's actual export limits and the original
+  // physical output bridge. No replacement Result/schema/row owner is issued.
+  let limits = installed_managed_publication_limits(run, prepared, 10000000).unwrap()
+  let (bridge, export_output) = output
+    .prepare_publication_bridge(
+      plan.capacity_plan.imports.row,
+      plan.capacity_plan.metadata.bridge_entries,
+      plan.capacity_plan.metadata.name_bytes,
+      limits,
+    )
+    .unwrap()
+  let transformation = @publication_host.start_captured_managed_result_publication_export(
+    publication.run.unwrap(),
+    0,
+    output.completed,
+    bridge,
+    export_output,
+    limits,
+  ).unwrap()
+  let mut transformed = false
+  for _ in 0..<100000 {
+    let (done, work) = transformation.advance(64).unwrap()
+    assert_true(work <= 64)
+    if done {
+      transformed = true
+      break
+    }
+  }
+  assert_true(transformed)
+  let stream = transformation.finish().unwrap()
+  let exported = StringBuilder()
+  let mut eof = false
+  for _ in 0..<100000 {
+    match stream.next().unwrap() {
+      Some(chunk) => exported.write_string(chunk)
+      None => {
+        eof = true
+        break
+      }
+    }
+  }
+  assert_true(eof)
+  exported.write_string(stream.finish().unwrap())
+  let expected = "[" + Array::make(count, "{\"n\":0}").join(",") + "]"
+  assert_eq(exported.to_string(), expected)
+  stream
+  .issue_result_evidence(
+    "sha256:" + "1".repeat(64),
+    ["sha256:" + "2".repeat(64)],
+    @publication.publication_contract_identity(definition),
+    "sha256:" + "4".repeat(64),
+    "sha256:" + "5".repeat(64),
+    65536,
+    8192,
+    64,
+  )
+  .unwrap()
+  // Explicit component retention contract. It is no Account/Host/Store
+  // admission; all actual output/occurrence evidence above is retained.
+  let retention = @publication.seal_publication_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
+    "8".repeat(64) +
+    "\",\"effective_data_policy_cid\":\"sha256:" +
+    "4".repeat(64) +
+    "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-03T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
+    "9".repeat(64) +
+    "\",\"metadata_delete_by\":\"2099-01-04T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
+    "a".repeat(64) +
+    "\"}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  stream
+  .issue_artifact(
+    run.publication_invocation.unwrap(),
+    retention,
+    65536,
+    8192,
+    64,
+  )
+  .unwrap()
+  |> ignore
+  if occupied {
+    let usage = @resources.ledger_usage(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      caps.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes,
+      0L,
+    ).unwrap()
+    assert_true(
+      begin_program_snapshot(publication, stream)
+      is Err(Capacity(Resource(RetentionLimit))),
+    )
+    assert_true(publication.snapshot is None)
+    assert_eq(publication.completed_snapshots.length(), 0)
+    assert_false(publication.snapshot_starting)
+    assert_eq(publication.next_snapshot_index, 1)
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    // Failed constructor admission consumed the occurrence; releasing a
+    // different reservation cannot authorize a retry or issue a snapshot.
+    assert_true(begin_program_snapshot(publication, stream) is Err(WrongPhase))
+  } else {
+    let snapshot = begin_program_snapshot(publication, stream).unwrap()
+    let mut done = false
+    for _ in 0..<100000 {
+      let (complete, work) = advance_program_snapshot(snapshot, 64).unwrap()
+      assert_true(work <= 64)
+      if complete {
+        done = true
+        break
+      }
+    }
+    assert_true(done)
+    let captured = finish_program_snapshot(snapshot).unwrap()
+    // Successful nominal completion rechecks the original artifact hash and
+    // row/field binding; its private rows are deliberately not projected here.
+    assert_true(physical_equal(publication.completed_snapshots[0], captured))
+    assert_true(finish_program_snapshot(snapshot) is Err(ForeignOriginal))
+    cancel_program_snapshot(snapshot)
+    assert_eq(publication.completed_snapshots.length(), 1)
+  }
+  stream.cancel()
+  @execution.close_managed_publication_bridge(bridge)
   assert_true(output.close())
   @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
   retire_installed_managed_run(run).unwrap()
