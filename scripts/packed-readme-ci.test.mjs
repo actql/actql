@@ -67,14 +67,28 @@ test('required README cases use three distinct project paths and original indepe
   ]);
   const {root, consumer} = await scratch(t), commands = [];
   for (const selected of packedReadmeCases) {
+    let originalInputs;
     const metric = await mockWorkflowMetrics({prepared: {consumer}, root, repository,
       counts: {coldSamples: 1}, ...selected, onMetric() {},
       async command(executable, args, options) {
         commands.push({executable, args, options});
         const phase = args[1], expected = {capture: 10, approve: 11, recover: 7}[phase];
+        if (phase === 'capture') {
+          originalInputs = [selected.variant === 'two-models' ? 'deal-review.program.json'
+            : selected.template === 'deal-review-mock' ? 'deal-review.aql' : 'churn-risk.aql',
+          ...(await readdir(join(options.cwd, 'mock'))).filter(name => name.endsWith('.answers.yaml')).map(name => `mock/${name}`)];
+        }
+        for (const input of originalInputs) {
+          if (phase === 'recover') await assert.rejects(readFile(join(options.cwd, input)), {code: 'ENOENT'});
+          else assert((await readFile(join(options.cwd, input))).length > 0);
+        }
+        // Recovery keeps the original configuration and physical target input.
+        assert((await readFile(join(options.cwd, 'actql.config.json'))).length > 0);
+        assert((await readFile(join(options.cwd, 'mock/data.json'))).length > 0);
         return {pid: 10000 + commands.length, code: 0, signal: null, wallNs: 100,
           stdout: [...Array.from({length: expected}, (_, n) => ({phase, step: `explicit-${n}`, status: 'passed'})),
-            {phase, status: 'passed', firstFailedStep: null}].map(value => JSON.stringify(value)).join('\n')};
+            {phase, status: 'passed', firstFailedStep: null,
+              firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
       }});
     assert.equal(metric.samples.length, 1); assert.equal(metric.samples[0].verified, true);
     assert.equal(metric.samples[0].phases.length, 3);
@@ -83,10 +97,59 @@ test('required README cases use three distinct project paths and original indepe
     for (const phase of ['capture', 'approve', 'recover']) {
       const actual = JSON.parse(await readFile(join(project, `${phase}.observation.json`), 'utf8'));
       assert.equal(actual.completed, true); assert.equal(actual.exitCode, 0);
+      if (phase === 'approve') {
+        assert.equal(actual.inputRemoval.completed, true);
+        assert.deepEqual([...actual.inputRemoval.paths].sort(), [...originalInputs].sort());
+      }
+      if (phase === 'recover') {
+        assert.equal(actual.originalInputsAbsentBeforeSaved, true);
+        assert.equal(actual.originalInputsAbsentAfterSaved, true);
+      }
     }
   }
   assert.equal(commands.length, 9); assert.equal(new Set(commands.map(value => value.options.cwd)).size, 3);
   assert.equal(new Set(commands.map(value => value.options.name)).size, 9);
+});
+
+test('required README preserves inputs and never starts Saved after an unreturned FIRST close', async t => {
+  const {root, consumer} = await scratch(t), phases = [];
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+    counts: {coldSamples: 1}, onMetric() {},
+    async command(_executable, args) {
+      const phase = args[1]; phases.push(phase);
+      return {pid: 10000 + phases.length, code: 0, signal: null, wallNs: 100,
+        stdout: [...Array.from({length: phase === 'capture' ? 10 : 11}, (_, n) =>
+          ({phase, step: `explicit-${n}`, status: 'passed'})),
+        {phase, status: 'passed', firstFailedStep: null,
+          firstClose: {attempted: true, returned: phase !== 'approve'}}].map(value => JSON.stringify(value)).join('\n')};
+    }}), {code: 'ERR_ASSERTION'});
+  assert.deepEqual(phases, ['capture', 'approve']);
+  const project = join(root, 'mock-project-churn-risk-mock-readme-0');
+  for (const input of ['churn-risk.aql', 'mock/churn-risk.v1.answers.yaml']) assert((await readFile(join(project, input))).length > 0);
+  const record = JSON.parse(await readFile(join(project, 'approve.observation.json'), 'utf8'));
+  assert.equal(record.completed, false); assert.equal(record.exitCode, 0);
+  assert.equal(record.inputRemoval, undefined);
+});
+
+test('required README never deletes replaced authored inputs or enters dependent Saved', async t => {
+  const {root, consumer} = await scratch(t), phases = [];
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+    counts: {coldSamples: 1}, onMetric() {},
+    async command(_executable, args, options) {
+      const phase = args[1]; phases.push(phase);
+      if (phase === 'approve') await writeFile(join(options.cwd, 'mock/churn-risk.v1.answers.yaml'), 'changed input');
+      return {pid: 10000 + phases.length, code: 0, signal: null, wallNs: 100,
+        stdout: [...Array.from({length: phase === 'capture' ? 10 : 11}, (_, n) =>
+          ({phase, step: `explicit-${n}`, status: 'passed'})),
+        {phase, status: 'passed', firstFailedStep: null,
+          firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
+    }}), {code: 'ERR_ASSERTION'});
+  assert.deepEqual(phases, ['capture', 'approve']);
+  const project = join(root, 'mock-project-churn-risk-mock-readme-0');
+  assert.equal(await readFile(join(project, 'mock/churn-risk.v1.answers.yaml'), 'utf8'), 'changed input');
+  assert((await readFile(join(project, 'churn-risk.aql'))).length > 0);
+  const record = JSON.parse(await readFile(join(project, 'approve.observation.json'), 'utf8'));
+  assert.equal(record.completed, false); assert.deepEqual(record.inputRemoval, {completed: false, paths: []});
 });
 
 test('required README aggregate refuses the old capture count before dependent phases', async t => {

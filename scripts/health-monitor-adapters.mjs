@@ -337,6 +337,13 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
   assert.ok(variant === 'readme' || variant === 'two-models' && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
   const files = variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
+  const program = variant === 'two-models' ? 'deal-review.program.json'
+    : template === 'deal-review-mock' ? 'deal-review.aql' : 'churn-risk.aql';
+  const answers = Object.values(JSON.parse(files['actql.config.json']).mock.answers)
+    .map(path => path.replace(/^\.\//u, ''));
+  const recoveryInputs = [program, ...answers];
+  assert.equal(new Set(recoveryInputs).size, recoveryInputs.length);
+  assert(recoveryInputs.every(path => Object.hasOwn(files, path)));
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
     unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), files}),
@@ -346,6 +353,11 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     for (const [name, bytes] of Object.entries(files)) {
       await mkdir(dirname(join(project, name)), {recursive: true}); await writeFile(join(project, name), bytes, {flag: 'wx'});
     }
+    const originals = new Map(await Promise.all(recoveryInputs.map(async path => {
+      const info = await lstat(join(project, path));
+      assert(info.isFile() && info.nlink === 1);
+      return [path, {dev: info.dev, ino: info.ino}];
+    })));
     await writeFile(join(project, 'workflow.mjs'), fixture, {flag: 'wx'});
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
     const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
@@ -361,6 +373,12 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
         await writeFile(path, JSON.stringify(record, null, 2) + '\n', {mode: 0o600, flag: 'wx'});
         let observation, phaseFailed = false, primary;
         try {
+          if (phase === 'recover') {
+            for (const input of recoveryInputs) {
+              await assert.rejects(lstat(join(project, input)), {code: 'ENOENT'});
+            }
+            record.originalInputsAbsentBeforeSaved = true;
+          }
           observation = await command(process.execPath, args,
             {cwd: project, name: `workflow-${template}-${variant}-${iteration}-${phase}`, timeout: 30_000});
           Object.assign(record, {pid: observation.pid, wallNs: observation.wallNs,
@@ -371,6 +389,30 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           await writeFile(path, JSON.stringify(record, null, 2) + '\n');
           assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
           assert.equal(record.summary.status, 'passed'); assert.equal(record.summary.firstFailedStep, null);
+          assert.deepEqual(record.summary.firstClose, {attempted: true, returned: true});
+          if (phase === 'approve') {
+            // Only the authored inputs in this fresh private fixture may go.
+            // The child has exited and its FIRST public close returned. Keep
+            // config, captured state, target data and every original reference.
+            record.inputRemoval = {completed: false, paths: []};
+            for (const input of recoveryInputs) {
+              const selected = join(project, input), info = await lstat(selected);
+              const original = originals.get(input);
+              assert(info.isFile() && info.nlink === 1);
+              assert.equal(info.dev, original.dev); assert.equal(info.ino, original.ino);
+              assert.equal(await readFile(selected, 'utf8'), files[input]);
+            }
+            for (const input of recoveryInputs) {
+              await unlink(join(project, input)); record.inputRemoval.paths.push(input);
+            }
+            record.inputRemoval.completed = true;
+          }
+          if (phase === 'recover') {
+            for (const input of recoveryInputs) {
+              await assert.rejects(lstat(join(project, input)), {code: 'ENOENT'});
+            }
+            record.originalInputsAbsentAfterSaved = true;
+          }
           record.assertions = expected; record.completed = true;
         } catch (error) {
           phaseFailed = true; primary = error;
