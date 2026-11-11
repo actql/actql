@@ -1405,6 +1405,7 @@ fn native_pure_file_request_payload(
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   prepare_plan~ : Bool,
+  prepared_control~ : Bool,
 ) -> String? raise {
   facility.arena
   .enter_domain_retained_execution(facility.physical)
@@ -1512,6 +1513,39 @@ fn native_pure_file_request_payload(
         println(
           "Native Whole Plan physical Ledger before Source: reservations=\{usage.live_reservations},R=\{usage.reserved_retention_bytes},E=\{usage.reserved_execution_bytes}",
         )
+        if prepared_control {
+          let admission = @local_values.installed_managed_preparation_admission_original(
+            owner, prepared, request,
+          ).unwrap()
+          // Finite component constructor DATA, not a normal Native Work quote
+          // or physical entry grant. Grow the SAME body, never a second token.
+          let (r, e) = @initial_resources.prepared_run_native_capacity(
+            admission, prepared, physical,
+          ).native_file_route_value("observe original Native body extent")
+          let before = @initial_resources.ledger_usage(physical)
+          assert_eq(r, before.reserved_retention_bytes)
+          assert_eq(e, before.reserved_execution_bytes)
+          assert_eq(@initial_resources.ledger_usage(physical), before)
+          @initial_resources.reserve_prepared_run_native_work_capacity(
+            admission,
+            prepared,
+            physical,
+            r + 2048L,
+            e + 2048L,
+          ).native_file_route_value(
+            "back component constructor on SAME original body",
+          )
+          assert_true(
+            @initial_resources.prepared_run_usage_isolated(admission, physical),
+          )
+          let after = @initial_resources.ledger_usage(physical)
+          assert_eq(after.live_reservations, usage.live_reservations)
+          assert_eq(after.reserved_retention_bytes, r + 2048L)
+          assert_eq(after.reserved_execution_bytes, e + 2048L)
+          assert_eq(after.attempts, usage.attempts)
+          assert_eq(after.planning_work, usage.planning_work)
+          assert_true(after.peak_retention_bytes >= usage.peak_retention_bytes)
+        }
         let (read, source, acquisition, actual) = @local_values.begin_installed_managed_whole_source_read(
           owner, prepared, request, declaration,
         ).native_file_route_value("retain SAME Whole read without starting it")
@@ -1552,6 +1586,7 @@ fn native_pure_file_request_in_metadata_read(
   read : @initial_arena.InstalledArenaOriginalRead,
   facility : NativeMockReadmeRequestFacility,
   prepare_plan? : Bool = false,
+  prepared_control? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture("churn-risk")
   original
@@ -1584,6 +1619,7 @@ fn native_pure_file_request_in_metadata_read(
     environment,
     publication,
     prepare_plan~,
+    prepared_control~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -1715,4 +1751,9 @@ fn native_pure_file_capture_plan(
 ///|
 test "Native File Source adopts its actual Whole Plan on the same backed Request" {
   native_project_mock_model_backed_read(false, pure_file_plan=true)
+}
+
+///|
+test "Native Whole Plan retains constructor capacity on its SAME preparation reservation" {
+  native_project_mock_model_backed_read(false, pure_file_control=true)
 }

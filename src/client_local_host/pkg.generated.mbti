@@ -549,6 +549,8 @@ pub fn installed_managed_duckdb_capture(ClientInstalledManagedRun, @run_publicat
 
 pub fn installed_managed_keyed_content_requirements(ClientInstalledManagedKeyedPreparation) -> Array[Int64]
 
+pub fn installed_managed_preparation_admission_original(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> @physical_resources.PreparedRunAdmission[@run_publication_host.PreparedClientProgram]?
+
 pub fn installed_managed_preparation_usage_isolated(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedDAG) -> Bool
 
 pub fn installed_managed_publication_dag(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[@physical_strategy_host.CapturedDAG, ClientInstalledManagedRunIssue]

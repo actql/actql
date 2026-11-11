@@ -185,6 +185,60 @@ fn backed_prepared_operation_fixture() -> (
 }
 
 ///|
+test "Native Work constructor grows the same preparation reservation without a second token or refund" {
+  let (access, input, admission, body, ledger, frame, retirement, holder) = backed_prepared_operation_fixture()
+  let current = frame.origin.current
+  let calls = Ref(0)
+  frame.origin.current = nonce => {
+    calls.val += 1
+    current(nonce)
+  }
+  assert_eq(prepared_run_native_capacity(admission, body, ledger), Ok((4L, 0L)))
+  assert_eq(calls.val, 0)
+  let before = ledger_usage(ledger)
+  reserve_prepared_run_native_work_capacity(admission, body, ledger, 6L, 2L).unwrap()
+  assert_eq(calls.val, 1)
+  assert_eq(prepared_run_native_capacity(admission, body, ledger), Ok((6L, 2L)))
+  assert_eq(calls.val, 1)
+  assert_eq(ledger_usage(ledger).live_reservations, before.live_reservations)
+  assert_eq(ledger_usage(ledger).attempts, before.attempts)
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 6L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 2L)
+  let grown = ledger_usage(ledger)
+  reserve_prepared_run_native_work_capacity(admission, body, ledger, 6L, 2L).unwrap()
+  assert_eq(ledger_usage(ledger), grown)
+  assert_true(
+    reserve_prepared_run_native_work_capacity(admission, Ref(4), ledger, 8L, 4L)
+    is Err(_),
+  )
+  let foreign = create_ledger(ledger_limits(ledger)).unwrap()
+  assert_true(
+    reserve_prepared_run_native_work_capacity(admission, body, foreign, 8L, 4L)
+    is Err(_),
+  )
+  let extra = reserve_capacity(ledger, 0L, 0L).unwrap()
+  let coheld = ledger_usage(ledger)
+  assert_true(
+    reserve_prepared_run_native_work_capacity(admission, body, ledger, 8L, 4L)
+    is Err(Unavailable),
+  )
+  assert_eq(ledger_usage(ledger), coheld)
+  settle_capacity(ledger, extra).unwrap()
+  frame.origin.current = current
+  assert_false(retire_transferred_preparation(retirement).unwrap())
+  assert_true(
+    reserve_prepared_run_native_work_capacity(admission, body, ledger, 8L, 4L)
+    is Err(_),
+  )
+  assert_false(return_preparation_body_borrow(holder).unwrap())
+  release_prepared_run_holder(admission).unwrap() |> ignore
+  assert_true(retire_transferred_preparation(retirement).unwrap())
+  report_imported_child_ledger(frame).unwrap()
+  retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
+  cleanup_prepared_run_admission(admission).unwrap()
+}
+
+///|
 test "backed prepared operation retains same control and constructor until actual retirement" {
   let (access, input, admission, body, ledger, frame, retirement, holder) = backed_prepared_operation_fixture()
   let (control, backing) = reserve_prepared_run_operation(
