@@ -1578,9 +1578,16 @@ jobs:
         run: node scripts/test-packed-workspace-connection.mjs
       - name: Test distribution test-packed-graph
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        id: packed-graph
         env:
           TMPDIR: ${{ github.workspace }}/_build
         run: node scripts/test-packed-graph.mjs
+      - name: Retain packed Graph child failure diagnostics
+        if: always() && steps.packed-graph.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-graph.outputs.evidence-directory }}
+          name: packed-graph-${{ github.sha }}
       - name: Test distribution test-packed-client-checkpoint
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
