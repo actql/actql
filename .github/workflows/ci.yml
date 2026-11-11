@@ -244,14 +244,15 @@ jobs:
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
       - name: Test collection budget and required packed README selection
-        if: ${{ needs.select-targets.outputs.profile == 'full' }}
-        run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs scripts/packed-readme-ci.test.mjs
+        run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs scripts/packed-readme-ci.test.mjs
       - name: Test compiler-owned package selection and non-Moon input boundaries
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-moon-test-plan.test.mjs
+      - name: Test ordinary operation performance policy oracles
+        run: node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs
       - name: Test ordinary operation performance assessment
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs scripts/native-approval-performance.test.mjs
+        run: node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs
       - name: Test ordinary process collector protocols
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
@@ -262,7 +263,6 @@ jobs:
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/native-cli-linux-local-ci.test.mjs scripts/produce-native-cli-linux-local.test.mjs scripts/native-cli-source-free-install.test.mjs scripts/release-test-registry.test.mjs scripts/native-cli-linux-local-recipe.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs
       - name: Test plain-init Native numeric result and refusal oracles
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/native-cli-default-numeric.test.mjs
       - name: Test explicit release policy and publication refusal
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}

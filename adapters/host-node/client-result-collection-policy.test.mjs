@@ -19,19 +19,21 @@ function visit(value) {
 }
 visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
 assert.equal(declarations.length, 1);
-function negotiated({retained = 536870912n, rows = 2097152, transfer = 100000000000n} = {}) {
+function negotiated({retained = 536870912n, rows = 2097152, transfer = 100000000000n, requestMemory} = {}) {
   const original = Object.freeze({});
   const moon = {
     clientLocalResourcePolicyOriginal: () => original,
-    clientLocalPreparationResourceLimits(value) {
+    clientLocalPreparationResourceLimits(value, selectedRetained, selectedExecution) {
       assert.equal(value, original);
-      return [100000n, 100000n, 100000n, transfer, retained, retained];
+      assert.equal(selectedRetained, requestMemory === undefined ? undefined : BigInt(requestMemory.retainedBytes));
+      assert.equal(selectedExecution, requestMemory === undefined ? undefined : BigInt(requestMemory.executionBytes));
+      return [100000n, 100000n, 100000n, transfer, selectedRetained ?? retained, selectedExecution ?? retained];
     },
     clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, original); return rows;},
   };
   const node = declarations[0];
-  return Function('moon', 'localResourceResultReadLimits', `return (${source.slice(node.start, node.end)});`)(
-    moon, hostPolicy.localResourceResultReadLimits);
+  return Function('moon', 'localResourceResultReadLimits', 'requestMemory', `return (${source.slice(node.start, node.end)});`)(
+    moon, hostPolicy.localResourceResultReadLimits, requestMemory);
 }
 const ref = Object.freeze({namespaceId: 'collection-fixture',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`, runDefinitionCid: `sha256:${'b'.repeat(64)}`});
@@ -74,6 +76,15 @@ test('collection negotiation borrows the same Task policy and narrows byte ceili
   assert.equal(small.maxRowWireBytes, 4096);
   assert.equal(small.maxRowRetainedValueBytes, 8192);
   assert.equal(small.maxBatchRetainedValueBytes, 8192);
+});
+
+test('collection initializer forwards omitted small and large memory pairs to the same Core port', () => {
+  for (const requestMemory of [undefined,
+    {retainedBytes: 8192, executionBytes: 16384},
+    {retainedBytes: 1073741824, executionBytes: 2147483648}]) {
+    const actual = negotiated({requestMemory});
+    assert.equal(actual.maxRetainedValueBytes, requestMemory?.retainedBytes ?? 536870912);
+  }
 });
 
 for (const count of [9999, 10000, 10001, 100000]) {

@@ -399,3 +399,28 @@ test('completed original collection Saved is independent of a later capture case
   await writeFile(join(collection, 'original.json'), JSON.stringify({...original, ref: {nonce: 'foreign'}}));
   assert.equal(await completedCollectionCapture(collection, 123), false);
 });
+
+
+test('small policy and oracle units run during Draft while normal required gates remain intact', () => {
+  const steps = workflow.jobs.lint.steps;
+  for (const name of ['Test collection budget and required packed README selection',
+    'Test ordinary operation performance policy oracles', 'Test plain-init Native numeric result and refusal oracles']) {
+    const step = steps.find(value => value.name === name); assert(step); assert.equal(step.if, undefined);
+  }
+  const collection = steps.find(value => value.name === 'Test collection budget and required packed README selection');
+  for (const file of ['local-result-read-policy', 'client-result-collection-policy', 'request-memory-policy'])
+    assert(collection.run.includes(`adapters/host-node/${file}.test.mjs`));
+  const policy = steps.find(value => value.name === 'Test ordinary operation performance policy oracles');
+  const rest = steps.find(value => value.name === 'Test ordinary operation performance assessment');
+  assert(rest.if.includes('draft'));
+  for (const file of ['scripts/operation-performance.test.mjs', 'scripts/benchmark-node-operations.test.mjs',
+    'scripts/operation-performance-policy.test.mjs', 'scripts/operation-performance-native-control.test.mjs',
+    'scripts/benchmark-node-process-operations.test.mjs', 'scripts/benchmark-node-sqlite.test.mjs',
+    'scripts/benchmark-node-boundaries.test.mjs', 'scripts/node-operation-fs-trace.test.mjs',
+    'scripts/operation-performance-priority-transition.test.mjs', 'scripts/operation-performance-transition-ci.test.mjs',
+    'scripts/native-approval-performance.test.mjs']) {
+    const occurrences = [...policy.run.split(/\s+/u), ...rest.run.split(/\s+/u)].filter(value => value === file);
+    assert.equal(occurrences.length, 1, file);
+  }
+  assert(gateJobs.includes('client-readme-packed')); assert.deepEqual(workflow.jobs.check.needs, gateJobs);
+});
