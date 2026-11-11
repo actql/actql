@@ -219,3 +219,19 @@ candidate set and pending request, with authorized bounded disclosure and its
 own deadline/volume cap. Unknown estimates remain unknown. It cannot relax
 admission, reorder approved calls or authorize dispatch/retry. This unit does
 not implement that sidecar or any CBO sampling/training pipeline.
+
+## Retained Effect preflight failure
+
+The Effect apply boundary can project the original returned Core preflight
+issue through the existing optional diagnostic channel. Core alone distinguishes
+`Guard(Current(StalePreview))` from missing observations, unavailable inputs or
+other failed obligations. This projection matches that already-returned value;
+it does not rerun validation, read current targets, serialize inputs or issue a
+new permission. The same original error and its cleanup responsibility remain
+unchanged when classification or delivery is absent or fails.
+
+Only this typed target-version mismatch emits `EffectTargetVersionMismatch`,
+with phase `effect_apply_preflight` and kind `target_version_mismatch`, under the
+original Run reference. Missing task coordinates stay absent. An opaque
+`MoonBitHostFailure` or generic failed Run cannot supply that classification.
+The event is not a new Run-state field, mutation outcome or cleanup receipt.

@@ -6,7 +6,7 @@ import {join, dirname} from 'node:path';
 import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
-export const packedEffectControlCases = Object.freeze(['approve-deny', 'paused-cancel']);
+export const packedEffectControlCases = Object.freeze(['approve-deny', 'paused-cancel', 'changed-current']);
 
 export function assertMockEffectControlOutcome(actual, mode, pid) {
   assert(packedEffectControlCases.includes(mode));
@@ -24,11 +24,16 @@ export function assertMockEffectControlOutcome(actual, mode, pid) {
   if (mode === 'approve-deny') {
     assert.deepEqual(actual.refusal, {code: 'ExecutionAuthorizationDenied', action: 'deny', operation: 'sign'});
     assert.equal(actual.runStatus, 'waiting_checkpoint');
-  } else {
+  } else if (mode === 'paused-cancel') {
     assert.equal(actual.cancellationKind, 'accepted');
     assert.equal(actual.runStatus, 'cancelled');
     assert.equal(actual.physicalStop, 'confirmed'); assert.equal(actual.resultAvailable, false);
-
+  } else {
+    assert.equal(actual.currentChanged, true);
+    assert.equal(actual.runStatus, 'failed');
+    assert.deepEqual(actual.refusal, {available: true, code: 'EffectTargetVersionMismatch',
+      kind: 'target_version_mismatch', phase: 'effect_apply_preflight'});
+    assert.equal(actual.staleApprovalRefused, true);
   }
 }
 

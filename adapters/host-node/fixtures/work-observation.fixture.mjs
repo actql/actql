@@ -25,7 +25,7 @@ export function assertRecordWorkflowWork(work, {phase, variant} = {}) {
 export function workflowWorkObservation({trackOriginal = false} = {}) {
   const empty = () => ({sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0});
   const counts = empty(), unbound = empty(), runs = new Map();
-  let limited = false, primaryFailure;
+  let limited = false, primaryFailure, effectPreflightFailure;
   const cid = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
   const connection = createHostObservationConnection({
     include: ['source', 'infer', 'effect'],
@@ -35,6 +35,25 @@ export function workflowWorkObservation({trackOriginal = false} = {}) {
     measurements: {include: []},
     events: {level: 'diagnostic'},
     deliver(record) {
+      if (record.operation === 'effect' && record.event === 'dispatch_failed') {
+        const a = record.attributes;
+        if (a?.['error.type'] !== 'EffectTargetVersionMismatch' ||
+            a['actql.failure.kind'] !== 'target_version_mismatch' ||
+            a['actql.failure.phase'] !== 'effect_apply_preflight') return;
+        const failure = Object.freeze({available: true, code: a['error.type'],
+          kind: a['actql.failure.kind'], phase: a['actql.failure.phase']});
+        effectPreflightFailure ??= failure;
+        if (trackOriginal) {
+          const key = a['actql.run.definition_cid'];
+          if (!cid(key)) return;
+          if (!runs.has(key)) {
+            if (runs.size === 8) {limited = true;return;}
+            runs.set(key, empty());
+          }
+          runs.get(key).effectPreflightFailure ??= failure;
+        }
+        return;
+      }
       if (record.operation === 'infer' && record.event === 'dispatch_failed') {
         const a = record.attributes;
         if (typeof a?.['error.type'] !== 'string' ||
@@ -77,6 +96,7 @@ export function workflowWorkObservation({trackOriginal = false} = {}) {
     let status;
     try {status = connection.status();} catch {return {...counts, complete: false, unavailable: true};}
     return {...counts, primaryFailure: primaryFailure ?? {available: false},
+      ...(effectPreflightFailure === undefined ? {} : {effectPreflightFailure}),
       scope: 'Actual starts and returned Mock replacements; not durability ACK', status,
       complete: status !== undefined && status.closed === true && status.cleanupPending === false &&
         ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed', 'limited', 'repeated',
@@ -89,6 +109,7 @@ export function workflowWorkObservation({trackOriginal = false} = {}) {
       return {...total, totals: {...counts}, ...(bound ? runs.get(ref.runDefinitionCid) ?? empty() : empty()),
         primaryFailure: bound ? runs.get(ref.runDefinitionCid)?.primaryFailure ?? {available: false}
           : {available: false},
+        effectPreflightFailure: bound ? runs.get(ref.runDefinitionCid)?.effectPreflightFailure : undefined,
         scope: 'Same installed Host and original Run definition; other fresh verification Runs reported in totals',
         unbound: {...unbound}, complete: total.complete && bound && !limited && Object.values(unbound).every(value => value === 0)};
     }};

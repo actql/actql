@@ -12,8 +12,8 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {projectEffectApplication} from '../host-common/observation.mjs';
-import {isEffectApplyPreflightRejection} from './effect-run-apply.mjs';
+import {projectEffectApplication, projectEffectPreflightFailure} from '../host-common/observation.mjs';
+import {isEffectApplyPreflightRejection, effectApplyPreflightFailureObservation} from './effect-run-apply.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
 import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from
@@ -522,6 +522,7 @@ export function createInstalledEffectSite({environmentWire,
           try { result = await completeInterruptedEffectRun(options, false); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoAttemptedSend') {
+              projectEffectPreflightFailure(facts.observation, facts.ref, effectApplyPreflightFailureObservation(error));
               if (terminalPreSendRefusal(error, options)) {
                 releaseMode = 'retire';
                 return Object.freeze({status: 'failed_without_effect_dispatch'});
@@ -731,6 +732,7 @@ export function createInstalledEffectSite({environmentWire,
           try { result = await completeInterruptedEffectRun(options, true); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoAttemptedSend') {
+              projectEffectPreflightFailure(facts.observation, facts.ref, effectApplyPreflightFailureObservation(error));
               if (terminalPreSendRefusal(error, options)) {
                 checkpointJournal.completeResume(claimed.claim,
                   {status: 'failed'});

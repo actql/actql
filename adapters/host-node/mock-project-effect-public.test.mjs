@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
+import {createHostObservationConnection, installHostObservation, projectEffectPreflightFailure} from '../host-common/observation.mjs';
 
 // Execute the fixture's actual capture branch with explicit SDK/filesystem
 // ports. This is no installed SDK, Model, business Run or close acceptance.
@@ -410,4 +410,26 @@ test('actual cold recovery consumes the same Saved Result before status and pres
       await invoke();assert.deepEqual(events, ['saved', 'status', 'target']);
     }
   }
+});
+
+test('work collector binds typed preflight failure only to the same original Run and never invents its cause', async () => {
+  const make = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const work = make({trackOriginal: true});
+  const projection = installHostObservation(work.connection, {
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}, runId: () => 'unit-original'});
+  const ref = {namespaceId: 'local', authorityScopeCid: 'sha256:' + 'a'.repeat(64), runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
+  const foreign = {...ref, runDefinitionCid: 'sha256:' + 'c'.repeat(64)};
+  const failure = {code: 'EffectTargetVersionMismatch', kind: 'target_version_mismatch', phase: 'effect_apply_preflight'};
+  projectEffectPreflightFailure(projection, foreign, failure);
+  projectEffectPreflightFailure(projection, ref, {...failure, kind: 'unknown'});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(work.forOriginal(ref).effectPreflightFailure, undefined);
+  projectEffectPreflightFailure(projection, ref, failure);
+  await projection.close();
+  const observed = work.forOriginal(ref);
+  assert.equal(observed.complete, true);
+  assert.deepEqual(observed.effectPreflightFailure, {available: true, ...failure});
+  assert.deepEqual(observed.totals, {sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0});
+  assert.equal(work.forOriginal({...ref, runDefinitionCid: 'sha256:' + 'd'.repeat(64)}).effectPreflightFailure, undefined);
 });

@@ -912,6 +912,8 @@ pub fn client_program_effect_apply_capability_reconciliation_mode(@effect_applic
 
 pub fn client_program_effect_apply_member_count(@physical_strategy_host.CapturedEffectPreviewInputs) -> Int?
 
+pub fn client_program_effect_apply_preflight_target_version_changed(@physical_strategy_host.CapturedEffectApplyPreflightIssue) -> Bool
+
 pub fn client_program_effect_apply_subject_cid(@physical_strategy_host.CapturedEffectPreviewInputs) -> String?
 
 pub fn client_program_effect_bind_host_verified_request_value_policy(@run_publication_host.PreparedClientEffectComputation, Int, String) -> @program_check.HostRequestValuePolicyEvidence?

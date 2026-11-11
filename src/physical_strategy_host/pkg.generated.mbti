@@ -133,6 +133,8 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn captured_effect_apply_preflight_target_version_changed(CapturedEffectApplyPreflightIssue) -> Bool
+
 pub fn captured_effect_checked_proposal_row_available(CapturedEffectCheckedProposalRow) -> Bool
 
 pub fn captured_effect_checked_proposal_row_field_at(CapturedEffectCheckedProposalRow, Int) -> (String, @value_admission.CheckedValue)?

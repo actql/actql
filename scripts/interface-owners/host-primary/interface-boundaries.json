@@ -6818,10 +6818,11 @@
     },
     {
       "module": "adapters/host-node/effect-run-apply.mjs",
-      "sha256": "d04b7cb2df313ab2693def3ca799e54807bc180c3f9c83f8d126a8eefd898e6e",
+      "sha256": "4c5a10c5e8357bb4991c655ac0666b1e0483568ef499490da97603d4e32c82ca",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
+        "effectApplyPreflightFailureObservation",
         "isEffectApplyPreflightRejection"
       ],
       "operations": [
@@ -7013,7 +7014,8 @@
         {
           "name": "checkedPreflight",
           "parameters": [
-            "result"
+            "result",
+            "moon"
           ],
           "async": false
         },
@@ -7036,6 +7038,13 @@
           "parameters": [
             "sum",
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectApplyPreflightFailureObservation",
+          "parameters": [
+            "error"
           ],
           "async": false
         },
@@ -7148,12 +7157,14 @@
             "ownPreflight/ownPreflight/ownPreflight",
             "sealedSubject",
             "text/text",
-            "validDispatch/validDispatch"
+            "validDispatch/validDispatch",
+            "effectApplyPreflightFailureObservation"
           ],
           "exports": [
             "applyCapturedEffectSet",
             "applyRecoveredEffectSet",
-            "isEffectApplyPreflightRejection"
+            "isEffectApplyPreflightRejection",
+            "effectApplyPreflightFailureObservation"
           ],
           "attributes": {
             "responsibility": [
@@ -7168,6 +7179,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "inputsOutputs": [
@@ -7182,6 +7197,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "identity": [
@@ -7192,6 +7211,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "ownership": [
@@ -7202,6 +7225,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "synchronization": [
@@ -7216,6 +7243,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "failure": [
@@ -7226,6 +7257,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "cancellation": [
@@ -7236,6 +7271,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "resources": [
@@ -7250,6 +7289,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "extension": [
@@ -7260,6 +7303,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "verification": [
@@ -7278,6 +7325,10 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ]
           }

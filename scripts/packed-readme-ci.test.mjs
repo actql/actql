@@ -1147,10 +1147,13 @@ const explicitEffectControl = (mode, pid = 7000) => ({mode, pid, status: 'passed
   workObservation: {complete: true, sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0},
   ...(mode === 'approve-deny' ? {runStatus: 'waiting_checkpoint',
     refusal: {code: 'ExecutionAuthorizationDenied', action: 'deny', operation: 'sign'}}
-    : {cancellationKind: 'accepted', runStatus: 'cancelled', physicalStop: 'confirmed', resultAvailable: false})});
+    : mode === 'paused-cancel' ? {cancellationKind: 'accepted', runStatus: 'cancelled', physicalStop: 'confirmed', resultAvailable: false}
+      : {currentChanged: true, staleApprovalRefused: true, runStatus: 'failed',
+        refusal: {available: true, code: 'EffectTargetVersionMismatch',
+          kind: 'target_version_mismatch', phase: 'effect_apply_preflight'}})});
 
 test('normal Effect controls require original current refusals, zero actual writes and FIRST close', () => {
-  assert.deepEqual(packedEffectControlCases, ['approve-deny', 'paused-cancel']);
+  assert.deepEqual(packedEffectControlCases, ['approve-deny', 'paused-cancel', 'changed-current']);
   for (const mode of packedEffectControlCases) {
     assertMockEffectControlOutcome(explicitEffectControl(mode), mode, 7000);
     for (const mutate of [value => value.workObservation.complete = false,
@@ -1162,6 +1165,8 @@ test('normal Effect controls require original current refusals, zero actual writ
       assert.throws(() => assertMockEffectControlOutcome(value, mode, 7000));
     }
   }
+  const changed = explicitEffectControl('changed-current'); changed.refusal.code = 'ACTQL_E_UNPUBLISHED_RUN';
+  assert.throws(() => assertMockEffectControlOutcome(changed, changed.mode, changed.pid));
   const deny = explicitEffectControl('approve-deny'); deny.refusal.operation = 'write';
   assert.throws(() => assertMockEffectControlOutcome(deny, deny.mode, deny.pid));
 });
@@ -1218,7 +1223,7 @@ test('required normal controls preserve original errors and cannot pass an unexe
   const run = load('runMockEffectControls', {assert, packedEffectControlCases, nodeBenchmarkFailure,
     runControl: async ({record}) => {if (record.mode === 'approve-deny') throw failure;}});
   await run({records, failures});
-  assert.deepEqual(failures, [failure]); assert.deepEqual(records.map(value => value.status), ['failed', 'passed']);
+  assert.deepEqual(failures, [failure]); assert.deepEqual(records.map(value => value.status), ['failed', 'passed', 'passed']);
   assert.equal(records[0].completed, false);
   const {root, consumer} = await scratch(t), output = join(root, 'out'), runner = await runnerFunctions();
   const before = {clean: true, revision: 'a'.repeat(40)};

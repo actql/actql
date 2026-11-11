@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHostObservationConnection, installHostObservation,
   observationTraceParent, snapshotObservationContext,
-  projectEffectApplication, captureManagedRunObservation} from './observation.mjs';
+  projectEffectApplication, projectEffectPreflightFailure, captureManagedRunObservation} from './observation.mjs';
 
 const trace = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
 const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -936,4 +936,34 @@ test('managed accounting refuses holes accessors and extra own metadata without 
     assert.equal(records.length,0);assert.equal(loss.resourceUnavailable,1);
   }
   assert.equal(reads,0);
+});
+
+test('effect preflight diagnostics carry only the retained typed failure without invented task coordinates', async () => {
+  const records = [], observer = installHostObservation(createHostObservationConnection({
+    include: ['effect'], correlation: {include: ['task']}, events: {level: 'diagnostic'}, deliver: record => records.push(record)}), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  const failure = Object.freeze({code: 'EffectTargetVersionMismatch', kind: 'target_version_mismatch', phase: 'effect_apply_preflight'});
+  projectEffectPreflightFailure(observer, ref, failure);
+  await observer.close();
+  assert.equal(records.length, 1); assert.equal(records[0].operation, 'effect');
+  assert.equal(records[0].event, 'dispatch_failed');
+  const attributes = records[0].attributes;
+  assert.equal(attributes['error.type'], failure.code); assert.equal(attributes['actql.failure.kind'], failure.kind);
+  assert.equal(attributes['actql.failure.phase'], failure.phase);
+  for (const name of ['actql.task.ordinal', 'actql.unit.ordinal', 'actql.step.ordinal', 'actql.outcome']) {
+    assert.equal(Object.hasOwn(attributes, name), false);
+  }
+  assert.deepEqual(observer.status().loss, {});
+});
+
+test('effect preflight diagnostic absence, disabled selection and failed delivery cannot manufacture an outcome', async () => {
+  const failure = {code: 'EffectTargetVersionMismatch', kind: 'target_version_mismatch', phase: 'effect_apply_preflight'};
+  projectEffectPreflightFailure({diagnostic() {assert.fail('Foreign projection is not callable');}}, ref, failure);
+  for (const selected of ['absent', 'disabled', 'delivery-failed']) {
+    const records = [], observer = installHostObservation(createHostObservationConnection({
+      include: selected === 'disabled' ? ['source'] : ['effect'], events: {level: 'diagnostic'},
+      deliver(record) {if (selected === 'delivery-failed') throw new Error('Optional delivery failed'); records.push(record);}}), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+    assert.doesNotThrow(() => projectEffectPreflightFailure(observer, ref, selected === 'absent' ? undefined : failure));
+    await observer.close(); assert.deepEqual(records, []);
+    if (selected === 'delivery-failed') assert.equal(observer.status().deliveryFailed, 1);
+  }
 });

@@ -1061,7 +1061,7 @@ jobs:
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/client-readme-input
-      - name: Test collection, original README workflows and Effect denial/cancel controls
+      - name: Test collection, original README workflows and Effect denial/cancel/current controls
         run: node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"
       - name: Preserve actual functional outcomes and failures
         if: always()

@@ -182,6 +182,7 @@ const events = Object.freeze({
   model_call_replayed: ['recovery', 'attempt_replayed'],
   checkpoint_resolved: ['approval', 'checkpoint_resolved'],
   effect_application_observed: ['effect', 'application_observed'],
+  effect_preflight_failed: ['effect', 'dispatch_failed'],
   effect_write_observed: ['effect', 'write_observed'],
 });
 const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
@@ -295,6 +296,14 @@ export function projectEffectApplication(projection, ref, result) {
       needs_reconciliation: 'needs_reconciliation', failed: 'failed'}[result.status];
     if (outcome !== undefined) projection.diagnostic('effect_application_observed', {ref, outcome});
   } catch { /* Optional metadata cannot change receipt or cleanup custody. */ }
+}
+
+// Same failed Core preflight metadata only. No observation can create a
+// semantic outcome, repeat validation or settle the original cleanup owner.
+export function projectEffectPreflightFailure(projection, ref, primaryDiagnostic) {
+  if (!projections.has(projection) || primaryDiagnostic === undefined) return;
+  try {projection.diagnostic('effect_preflight_failed', {ref, primaryDiagnostic});}
+  catch { /* Optional delivery cannot replace the original failure. */ }
 }
 
 // The installed Host supplies a captured original Core reader. Public callers
@@ -415,9 +424,9 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         attributes['actql.failure.phase'] = failure.phase;
         attributes['actql.failure.kind'] = failure.kind;
         if (config.correlations.has('task')) {
-          attributes['actql.task.ordinal'] = failure.task;
-          attributes['actql.unit.ordinal'] = failure.unit;
-          attributes['actql.step.ordinal'] = failure.step;
+          if (Number.isSafeInteger(failure.task) && failure.task >= 0) attributes['actql.task.ordinal'] = failure.task;
+          if (Number.isSafeInteger(failure.unit) && failure.unit >= 0) attributes['actql.unit.ordinal'] = failure.unit;
+          if (Number.isSafeInteger(failure.step) && failure.step >= 0) attributes['actql.step.ordinal'] = failure.step;
         }
       }
       if (config.correlations.has('attempt')) {
@@ -686,7 +695,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (mapping) emit(mapping[0], mapping[1], {ref: detail?.ref,
         task: detail?.task, attempt: detail?.attempt, slot: detail?.slot,
         attemptCid: detail?.attemptCid, outcome: detail?.outcome,
-        ...(name === 'dispatch_failed' ? {primaryDiagnostic: detail?.primaryDiagnostic} : {})});
+        ...(['dispatch_failed', 'effect_preflight_failed'].includes(name) ? {primaryDiagnostic: detail?.primaryDiagnostic} : {})});
     },
     status: () => Object.freeze({...counts, queued: queue.length,
       queuedBytes, active: pending.size, activeSegments, closed,

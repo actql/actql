@@ -43293,12 +43293,13 @@
     {
       "module": "adapters/host-node/effect-run-apply.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d04b7cb2df313ab2693def3ca799e54807bc180c3f9c83f8d126a8eefd898e6e",
+      "sha256": "4c5a10c5e8357bb4991c655ac0666b1e0483568ef499490da97603d4e32c82ca",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
+        "effectApplyPreflightFailureObservation",
         "isEffectApplyPreflightRejection"
       ],
       "operations": [
@@ -43490,7 +43491,8 @@
         {
           "name": "checkedPreflight",
           "parameters": [
-            "result"
+            "result",
+            "moon"
           ],
           "async": false
         },
@@ -43513,6 +43515,13 @@
           "parameters": [
             "sum",
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectApplyPreflightFailureObservation",
+          "parameters": [
+            "error"
           ],
           "async": false
         },
@@ -44890,10 +44899,12 @@
         },
         {
           "operations": [
-            "isEffectApplyPreflightRejection"
+            "isEffectApplyPreflightRejection",
+            "effectApplyPreflightFailureObservation"
           ],
           "exports": [
-            "isEffectApplyPreflightRejection"
+            "isEffectApplyPreflightRejection",
+            "effectApplyPreflightFailureObservation"
           ],
           "attributes": {
             "responsibility": [
@@ -44904,6 +44915,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "inputsOutputs": [
@@ -44914,6 +44929,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "identity": [
@@ -44924,6 +44943,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "ownership": [
@@ -44934,6 +44957,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "synchronization": [
@@ -44944,6 +44971,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "failure": [
@@ -44954,6 +44985,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "cancellation": [
@@ -44964,6 +44999,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "resources": [
@@ -44974,6 +45013,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "extension": [
@@ -44984,6 +45027,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ],
             "verification": [
@@ -44998,6 +45045,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "## Retained Effect preflight failure"
               }
             ]
           }
