@@ -316,7 +316,7 @@ fn client_publication_unknown_policy_join(
 
 ///|
 /// Resolve effective policy from every exact checked final Result occurrence.
-/// Missing, incompatible, or incomplete two-source provenance is rejected;
+/// Missing, incompatible, or incomplete checked Source provenance is rejected;
 /// the first acquisition policy is never promoted to a Run-wide policy.
 pub fn prepared_client_publication_data_policy_cid(
   value : PreparedClientProgram,
@@ -360,8 +360,7 @@ pub fn prepared_client_publication_data_policy_cid(
       }
     }
     guard found is Some(policy) else { return None }
-    if prepared_client_acquisition_count(value) == 2 &&
-      !client_publication_policy_covers_source_responses(program, policy) {
+    if !client_publication_policy_covers_source_responses(program, policy) {
       return None
     }
     match selected {
@@ -379,7 +378,7 @@ pub fn prepared_client_publication_data_policy_cid(
 }
 
 ///|
-// Whole-Run two-Direct publication retains every actual response original,
+// Whole-Run publication retains every actual response original,
 // including a downstream keyed response. Source coordinates and equal CIDs
 // are not substitutes for the same checked occurrence. The policy owns the
 // existing inventory; this read-only comparison constructs no second policy.

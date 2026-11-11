@@ -923,10 +923,6 @@ pub fn issue_client_compiled_captured_invocation(
     return Err(@publication.RunEvidenceReferenceMismatch("content_generation"))
   }
   let count = prepared_client_acquisition_count(run.owner)
-  if (count != 1 && count != 2) ||
-    (count == 1 && !client_single_direct_observation_covers_sources(run.owner)) {
-    return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
-  }
   issue_client_multi_capture_observation(
     run.owner,
     client_task_compilation_template(compilation),

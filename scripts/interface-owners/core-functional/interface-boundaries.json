@@ -69892,7 +69892,7 @@
     {
       "module": "src/run_publication_host/client_acquisition.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "173edc31aca19c1e0896ef469950e2ad6e75133cf3df919f5534f1313f5f4184",
+      "sha256": "c9936ebc8fa3c708c99717c36b08f16de9d8d92631de01f6a817644d4cec36de",
       "exports": [],
       "operations": [
         {
@@ -69963,7 +69963,6 @@
           "operations": [
             "<module>",
             "client_captured_task_tuple_matches",
-            "client_publication_policy_covers_source_responses",
             "client_publication_unknown_policy_join",
             "client_query_requirement_matches_effect_program",
             "client_query_requirement_matches_program",
@@ -69975,7 +69974,6 @@
             "prepare_client_query_requirement_from_acquisition",
             "prepared_client_acquisition_count",
             "prepared_client_captured_task_source_matches",
-            "prepared_client_publication_data_policy_cid",
             "prepared_client_source_evidence_facts"
           ],
           "exports": [],
@@ -70058,6 +70056,79 @@
               {
                 "path": "src/client_local_host/result_before_limit_task_chain_wbtest.mbt",
                 "anchor": "test \"Result before LIMIT retains both original outputs through the actual task selection\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_publication_policy_covers_source_responses",
+            "prepared_client_publication_data_policy_cid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Complete Pure Source invocation inventory"
+              },
+              {
+                "path": "src/run_publication_host/client_pure_source_inventory_wbtest.mbt",
+                "anchor": "test \"Pure three Source policy refuses an uncovered checked response and equal foreign owners\""
               }
             ]
           }

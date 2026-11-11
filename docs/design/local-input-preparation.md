@@ -6227,3 +6227,27 @@ Saved Result. Original runnable, exact rows and input-removal/Saved assertions
 remain required. Legacy JSON helper tag 17 is a distinct observation; neither
 it nor the four selected counts proves the absence of other checker phases or
 complete immutable-body readmission. Those remain explicitly unmeasured.
+
+### Complete Pure Source invocation inventory
+
+A captured Pure invocation uses the exact checked graph's nonempty captured
+prefix. Its ordered captures, identities, Query requirements, Source evidence
+and input logical values must all cover that inventory. Repeated use of one
+Catalog Source remains a distinct nominal checked occurrence; equal row or
+contract CIDs cannot replace its owner or another capture. The original direct
+coverage check still refuses an unobserved keyed request, while keyed custody
+continues through its separate original observation path.
+
+Both original typed observations and wire admission use this same inventory
+and the existing bounded evidence grammar. Source-free invocation remains a
+separate path, and Model or serialization evidence cannot be discharged by
+ordinary Source observations. No cardinality constant replaces checked
+coverage, wire limits, authority or original capture liveness.
+
+Each final Result's policy must cover every original Source response in the
+checked Program, including downstream keyed responses. That check applies to
+all cardinalities, rather than only two acquisitions. Missing, duplicate and
+equal-CID foreign response originals remain invalid; the existing conservative
+policy join and its complete dependency closure are unchanged. These reads do
+not grant a provider operation, create a Ledger, retain a new physical child,
+or weaken the original cleanup and retirement duties.

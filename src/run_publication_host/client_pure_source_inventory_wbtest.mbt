@@ -318,3 +318,87 @@ test "Pure three Source policy refuses an uncovered checked response and equal f
     client_publication_policy_covers_source_responses(program, foreign_policy),
   )
 }
+
+///|
+test "Pure invocation inventory keeps original one and two Source coverage and rejects zero" {
+  for document in [retained_input_program, multi_source_program] {
+    let prepared = multi_source_prepared(document)
+    let count = prepared_client_acquisition_count(prepared)
+    assert_true(count == 1 || count == 2)
+    let compilation = issue_prepared_client_task_compilation(
+      prepared,
+      run_materials_manifests(),
+      client_standard_values_sequence_limits(),
+      1000,
+      1000,
+      1000000,
+      100000,
+      100,
+    ).unwrap()
+    let run = issue_client_task_compiled_run(
+      prepared,
+      compilation,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2099-01-01T00:00:00.000Z",
+    ).unwrap()
+    let definition = issue_client_compiled_run_definition(
+      run, "pure-original", "original-run", "2026-11-11T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+    ).unwrap()
+    let live = Ref(true)
+    let tuples = Array::makei(count, stage => {
+      pure_three_source_capture(prepared, stage, live)
+    })
+    let captures = tuples.map(value => value.0)
+    let identities = tuples.map(value => value.1)
+    let requirements = tuples.map(value => value.2)
+    let sources = tuples.map(value => {
+      @publication.run_evidence_value_json(value.3)
+    })
+    let inputs = tuples.map(value => {
+      @publication.run_evidence_value_json(value.4)
+    })
+    let policy = prepared_client_publication_data_policy_cid(prepared).unwrap()
+    assert_true(
+      issue_client_compiled_multi_task_invocation(
+        run,
+        definition,
+        captures,
+        identities,
+        requirements,
+        sources,
+        inputs,
+        "sha256:" + "a".repeat(64),
+        policy,
+        "2026-11-11T00:00:00.000Z",
+        "2026-11-11T00:00:01.000Z",
+        1000000,
+        100000,
+        100,
+      )
+      is Ok(_),
+    )
+  }
+  let (prepared, run, definition) = local_values_invocation_fixture(true)
+  assert_eq(prepared_client_acquisition_count(prepared), 0)
+  assert_true(
+    issue_client_compiled_captured_invocation(
+      run,
+      definition,
+      [],
+      [],
+      [],
+      [],
+      [],
+      None,
+      "sha256:" + "a".repeat(64),
+      local_values_original_policy_cid,
+      "2026-11-11T00:00:00.000Z",
+      "2026-11-11T00:00:01.000Z",
+      1000000,
+      100000,
+      100,
+    )
+    is Err(@publication.RunEvidenceReferenceMismatch("source_coverage")),
+  )
+}
