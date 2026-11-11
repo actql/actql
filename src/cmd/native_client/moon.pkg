@@ -46,6 +46,7 @@ import {
   "actql/actql/source_frontend" @frontend,
   "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/program_check" @checked,
+  "actql/actql/numeric_reduction" @numeric,
   "actql/actql/stage_syntax" @syntax,
   "actql/actql/check_environment" @compiler_environment,
   "actql/actql/model_execution" @model,

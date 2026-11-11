@@ -159,11 +159,9 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     text_file(root, required(matches, "config-file"), 65536L),
   )
   let environment = match
-    @run_host.admit_client_check_environment(
+    local_admitted_check_environment(
       text_file(root, environment_file, 65536L),
       evidence_cid,
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     ) {
     Some(value) => value
     None => stop("InvalidLocalCheckEnvironment")

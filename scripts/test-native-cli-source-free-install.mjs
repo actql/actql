@@ -21,6 +21,79 @@ import {canonicalText} from './check-canonical-json.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 
+// Independent expectations for the ordinary, unmodified init profile. These
+// are aggregate semantics, unlike the separate large VALUES row-delivery case.
+export const nativeDefaultNumericQueries = Object.freeze([
+  {name: 'sum', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT SUM(n) AS total FROM x', rows: [{total: 3}]},
+  {name: 'average', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT AVG(n) AS total FROM x', rows: [{total: 1.5}]},
+  {name: 'decimal', sql: "WITH x AS (SELECT CAST('1.25' AS DECIMAL(8,2)) AS n UNION ALL SELECT CAST('2.75' AS DECIMAL(8,2)) AS n) SELECT SUM(n) AS total FROM x", rows: [{total: '4.00'}]},
+  {name: 'controls', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT COUNT(*) AS count, MIN(n) AS minimum FROM x', rows: [{count: 2, minimum: 1}]},
+  {name: 'where', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT n FROM x WHERE n > 1', rows: [{n: 2}]},
+  {name: 'grouped', sql: "WITH x AS (SELECT 'a' AS bucket, 1 AS n UNION ALL SELECT 'a' AS bucket, 2 AS n UNION ALL SELECT 'b' AS bucket, 4 AS n) SELECT bucket, SUM(n) AS total, AVG(n) AS average FROM x GROUP BY bucket ORDER BY bucket", rows: [{bucket: 'a', total: 3, average: 1.5}, {bucket: 'b', total: 4, average: 4}]},
+  {name: 'empty', sql: 'WITH x AS (SELECT 1 AS n WHERE FALSE) SELECT SUM(n) AS total, AVG(n) AS average, COUNT(n) AS count FROM x', rows: [{total: null, average: null, count: 0}]},
+  {name: 'nulls', sql: 'WITH x AS (SELECT CAST(NULL AS NUMBER) AS n UNION ALL SELECT CAST(NULL AS NUMBER) AS n) SELECT SUM(n) AS total, AVG(n) AS average, COUNT(n) AS count FROM x', rows: [{total: null, average: null, count: 0}]},
+  {name: 'mixed-null', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT CAST(NULL AS NUMBER) AS n UNION ALL SELECT 2 AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x', rows: [{total: 3, average: 1.5}]},
+  {name: 'parameters', sql: 'WITH x AS (SELECT @first AS n UNION ALL SELECT @second AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x', rows: [{total: 3, average: 1.5}], parameters: true},
+]);
+
+export async function observeNativeDefaultNumericQueries({project, cli}) {
+  const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const observations = [];
+  for (const entry of nativeDefaultNumericQueries) {
+    const file = `numeric-${entry.name}.sql`;
+    await writeFile(join(project, file), entry.sql, {flag: 'wx', mode: 0o600});
+    const parameters = entry.parameters ? ['--parameter-declarations-file', 'numeric-declarations.json',
+      '--parameters-file', 'numeric-parameters.json'] : [];
+    if (entry.parameters) {
+      await writeFile(join(project, 'numeric-declarations.json'), JSON.stringify({first: {type: 'number'}, second: {type: 'number'}}), {flag: 'wx'});
+      await writeFile(join(project, 'numeric-parameters.json'), '{"first":1,"second":2}', {flag: 'wx'});
+    }
+    const checked = JSON.parse((await cli(['check', file, '--format', 'sql', '--json', ...parameters], project)).stdout);
+    assert.equal(checked.outcome, 'completed', `${entry.name}: completed check required`);
+    assert.equal(checked.report.verdict, 'verified', `${entry.name}: verified check required`);
+    assert.equal(checked.report.runnable.verdict, 'yes', `${entry.name}: runnable check required`);
+    const state = JSON.parse((await cli(['run', file, '--format', 'sql', '--json', ...parameters], project)).stdout);
+    assert.equal(state.version, 'actql-run-state/0.1'); assert.equal(state.status, 'succeeded');
+    assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout), entry.rows);
+    // Every cli invocation is a separate process. Removing original inputs
+    // makes a new prepare or reexecution unable to replace the saved Result.
+    await unlink(join(project, file));
+    if (entry.parameters) {
+      await unlink(join(project, 'numeric-declarations.json'));
+      await unlink(join(project, 'numeric-parameters.json'));
+    }
+    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout), entry.rows);
+    observations.push({name: entry.name, checkRunnable: 'yes', rows: entry.rows, coldSavedWithoutProgram: true});
+  }
+  const invalid = 'numeric-invalid.sql';
+  await writeFile(join(project, invalid), "SELECT SUM('not a number') AS total", {flag: 'wx'});
+  const refusal = JSON.parse((await cli(['check', invalid, '--format', 'sql', '--json'], project, 1)).stdout);
+  assert.equal(refusal.report.verdict, 'invalid'); assert.equal(refusal.report.runnable.verdict, 'no');
+  await unlink(join(project, invalid));
+  assert.deepEqual(rows((await cli(['sql', nativeDefaultNumericQueries[0].sql, '--format', 'jsonl'], project)).stdout), [{total: 3}]);
+  return observations;
+}
+
+export async function observeNativeFileSourceNumeric({root, cli}) {
+  const project = join(root, 'numeric-file-source');
+  await cli(['init', '--template', 'churn-risk-mock', project], root);
+  const program = join(project, 'numeric-source.sql');
+  const source = join(project, 'mock/data.json');
+  const original = await readFile(source);
+  await writeFile(program, 'SELECT SUM(CAST(active_users AS NUMBER)) AS total, AVG(CAST(active_users AS NUMBER)) AS average FROM snowflake.usage_30d', {flag: 'wx'});
+  const checked = JSON.parse((await cli(['check', 'numeric-source.sql', '--format', 'sql', '--json'], project)).stdout);
+  assert.equal(checked.outcome, 'completed'); assert.equal(checked.report.verdict, 'verified');
+  assert.equal(checked.report.runnable.verdict, 'yes');
+  const state = JSON.parse((await cli(['run', 'numeric-source.sql', '--format', 'sql', '--json'], project)).stdout);
+  assert.equal(state.status, 'succeeded'); assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+  assert.deepEqual(await readFile(source), original, 'The read-only aggregate must not change its file Source');
+  await unlink(program); await unlink(source);
+  const rows = (await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout.trim().split('\n').map(line => JSON.parse(line));
+  assert.deepEqual(rows, [{total: 16, average: 8}]);
+  return {checkRunnable: 'yes', rows, coldSavedWithoutProgramOrSource: true};
+}
+
 // Read the actual delivered file, including its last row. A count, preview or
 // aggregate alone cannot establish the contents of the original stored Result.
 export async function verifyNativeNumericRows(path, count = 100000) {
@@ -562,6 +635,8 @@ async function observeInstalledSourceFree(input, observationPath) {
     const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
+    const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli});
+    const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const help = (await cli(['--help'])).stdout;
     assert.match(help, /Usage: actql/u);
@@ -634,7 +709,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, numericScale, resourceShapes,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, fileSourceNumeric, numericScale, resourceShapes,
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
   } catch (error) {
