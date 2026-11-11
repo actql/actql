@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {mkdir, writeFile} from 'node:fs/promises';
+import {mkdir, writeFile, unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test from 'node:test';
@@ -34,7 +34,7 @@ const requireDispatchPreparation=new Function('checked','fail',
 // Real Common and the unchanged public Project/Task/answer files. This is
 // installation/original correspondence, not a Host startup, Model invocation,
 // Account grant, physical resource supplier or installed README success.
-async function fixture(t) {
+async function fixture(t,{deferAnswers=false}={}) {
   const scratch = await createOwnedScratch({parent:tmpdir(),prefix:'actql-mock-model-original-',
     label:'public Mock Task original binding'});
   const files = projectTemplateFiles('churn-risk-mock');
@@ -50,7 +50,7 @@ async function fixture(t) {
     if (!current) throw Object.assign(new Error('OriginalMockHostCurrentRefused'),
       {code:'OriginalMockHostCurrentRefused'});
   };
-  const answers = await loadInstalledProjectMockAnswers(moon,project,selected,{limits,assertCurrent});
+  const answers = await loadInstalledProjectMockAnswers(moon,project,selected,{limits,assertCurrent,deferAnswers});
   const profile = checked(moon.clientProgramInstallMockProfile(...core));
   const now = () => '2026-10-19T00:00:00.000Z';
   t.after(() => {
@@ -162,4 +162,29 @@ test('external Provider preparation keeps the original egress refusal',()=>{
   assert.throws(()=>requireDispatchPreparation(moon,{egressFailure:original}),error=>error===original);
   assert.throws(()=>requireDispatchPreparation(moon,{}),{message:'InstalledModelEgressUnavailable'});
   requireDispatchPreparation(moon,{egressAdmission:{}});
+});
+
+// New changed-boundary cases require the actual input-matching Common module;
+// no identity double below can supply its declaration or typed answer owner.
+test('actual Mock declaration projects original metadata before live answer materialization',async t=>{
+  const f=await fixture(t,{deferAnswers:true}),input=f.answers.originalsForRuntime(moon)[0];
+  assert.equal(input.answers,undefined);assert.equal(input.answerWire,undefined);
+  const bound=f.bind(),entry=bound.originalsForRuntime(moon)[0];
+  assert.strictEqual(checked(moon.clientProgramOriginalMockDeclaration(entry.installation)),entry.normalized);
+  assert.ok(bound.providerBindingOriginalsForRuntime(moon).configuration);
+  await bound.prepareAnswersForRuntime(moon,entry.installation);
+  const retained=f.answers.originalsForRuntime(moon)[0];
+  assert.ok(retained.answers);assert.equal(typeof retained.answerWire,'string');
+  assert.strictEqual(checked(moon.clientProgramOriginalMockProvider(entry.installation)),entry.provider);
+  assert.ok(checked(moon.clientProgramMockAnswerCount(retained.answers,retained.task))>=1);
+});
+
+test('actual Mock metadata survives absent answer file but new live preparation still refuses it',async t=>{
+  const f=await fixture(t,{deferAnswers:true}),input=f.answers.originalsForRuntime(moon)[0];
+  await unlink(input.answerPath);
+  const bound=f.bind(),entry=bound.originalsForRuntime(moon)[0];
+  assert.strictEqual(checked(moon.clientProgramOriginalMockDeclaration(entry.installation)),entry.normalized);
+  assert.ok(bound.providerBindingOriginalsForRuntime(moon).installationRevision);
+  await assert.rejects(bound.prepareAnswersForRuntime(moon,entry.installation),{code:'ENOENT'});
+  assert.equal(input.answers,undefined);
 });

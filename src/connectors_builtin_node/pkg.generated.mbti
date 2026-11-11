@@ -542,6 +542,8 @@ pub fn client_program_bind_issued_infer_invocation(@client_infer_host.Execution,
 
 pub fn client_program_bind_model_raw_capture_policy(@run_publication.RunEvidenceValue, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Result[@run_publication.BoundModelRawCapturePolicy, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_bind_original_mock_answers(@model_execution.ModelMockInstallation, @model_execution.ModelMockAnswers) -> Result[Unit, @model_execution.ModelMockInstallationIssue]
+
 pub fn client_program_bind_query_time(@run_publication_host.ClientQueryTimePreparation, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity) -> Result[@run_publication.QueryEvaluationTime, @run_publication_host.ClientQueryTimeIssue]
 
 pub fn client_program_bind_recovered_table_preview(@run_publication.EffectPreviewIdentity, Int, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @run_publication.PublicationContract, @logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientTablePreview, @run_publication_host.ClientTableInputIssue]
@@ -2964,6 +2966,8 @@ pub fn client_program_original_composed_keyed_prefix_advance(@client_local_host.
 
 pub fn client_program_original_composed_keyed_prefix_execution(@client_local_host.ClientOriginalComposedKeyedPrefix) -> @client_local_host.ClientSerializationPrefix
 
+pub fn client_program_original_mock_declaration(@model_execution.ModelMockInstallation) -> Result[@check_environment.NormalizedPublicModelTask, @model_execution.ModelMockInstallationIssue]
+
 pub fn client_program_original_mock_provider(@model_execution.ModelMockInstallation) -> Result[@model_execution.ModelProvider, @model_execution.ModelMockInstallationIssue]
 
 pub fn client_program_original_model_acquired_effect_evidence(@client_infer_host.LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int, @run_publication_host.ClientEffectImportedEvidence?, Array[@run_publication_host.ClientEffectAcquiredEvidence]) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
@@ -3117,6 +3121,8 @@ pub fn client_program_prepare_multi_captured_local_capacity_ledger(@run_publicat
 pub fn client_program_prepare_multi_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn client_program_prepare_original_mock(@check_environment.ModelMockProfile, @check_environment.PublicModelTaskDeclaration, @check_environment.NormalizedPublicModelTask, () -> String) -> Result[@model_execution.ModelMockInstallation, @model_execution.ModelMockInstallationIssue]
 
 pub fn client_program_prepare_program_check_carriers(@client_local_host.ClientProgramCheckPreparation[ClientLocalPreparationInputOriginal, Unit]) -> Result[@program_check.ParsedCheckRegistry, @client_local_host.ClientProgramCheckPreparationIssue]
 

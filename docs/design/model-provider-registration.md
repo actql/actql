@@ -971,3 +971,29 @@ and preserves its original extracted-method receiver. Runtime control cannot
 recreate the removed Effect Model admission through a second wrapper. Existing
 immutable compiled software stays qualified at its original source; this
 source/API retirement requires genuine later matching input selection.
+
+## Local Mock declaration and answer input
+
+The existing original Mock installation separates its immutable Task/profile,
+normalization and execution-contract declaration from typed answer DATA.
+Connection and stored-outcome restoration can project those same Common-owned
+materials without opening an answer file. A declaration is neither a Model
+invocation nor proof that an answer is available. Bound answers retain their
+original Task/currentness checks; equal content cannot replace their owner.
+
+The existing asynchronous LIVE Model preparation under the retained Run loads
+only its selected original Mock's answers and binds them through the Common
+owner before new Model execution. The Node adapter retains only the physical
+file/read/close and pending preparation duty, using its existing bounded reader;
+it does not normalize Tasks, validate answers, issue authority or install a
+fallback Provider. The original Mock owner retains successful immutable answer
+material and retires it through its existing protocol. Pending physical close
+cannot be converted into successful retirement or a usable binding.
+
+The bounded Model owner independently requires ready original answers before
+an actual NEW Slot can claim an IO duty, attempt or entered-call responsibility.
+Its existing replay, restored-slot and captured-response branches keep their
+full original/current checks and can consume completed outcomes without new
+answer input or invocation. Task/Scope metadata admission alone grants neither
+that live dispatch nor an Account decision. Existing policy ceilings, parser
+bounds, physical IO purposes and Model stepping remain unchanged.

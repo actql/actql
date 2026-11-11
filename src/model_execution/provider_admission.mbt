@@ -64,7 +64,9 @@ pub fn admit_original_model_mock_provider(
     Err(_) => return Err(ForeignProvider)
   }
   admit_model_provider(provider, execution, dependencies, (task, prompt) => {
-    original.require_original() is Ok(_) &&
+    // Task/prompt capability can precede answer DATA. Actual Model startup
+    // separately requires ready answers from this same original installation.
+    original.require_provider_original() is Ok(_) &&
     !original.closing &&
     @environment.normalized_public_mock_model_task_matches_prompt(
       original.normalized.unwrap(),

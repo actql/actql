@@ -12580,18 +12580,19 @@
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:currentProvider/init:currentProvider",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareMockModelInputs/prepareMockModelInputs",
+            "prepareRequestMockModelPlan/kinds/kinds",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#17",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#18",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#19",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#20",
             "readLocalMockModelRunRequirements",
             "readLocalMockModelRunRequirements/asset/asset",
             "readLocalMockModelRunRequirements/declarations/declarations",
             "readLocalMockModelRunRequirements/documentBytes/documentBytes",
             "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2",
-            "prepareRequestMockModelPlan/kinds/kinds",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#20"
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
           ],
           "exports": [
             "readLocalMockModelRunRequirements"
@@ -12617,6 +12618,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "inputsOutputs": [
@@ -12643,6 +12648,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "identity": [
@@ -12665,6 +12674,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "ownership": [
@@ -12691,6 +12704,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "synchronization": [
@@ -12713,6 +12730,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "failure": [
@@ -12739,6 +12760,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "cancellation": [
@@ -12761,6 +12786,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "resources": [
@@ -12787,6 +12816,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "extension": [
@@ -12809,6 +12842,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "verification": [
@@ -12859,6 +12896,10 @@
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
                 "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ]
           }
@@ -20680,6 +20721,13 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareMockModelInputs/prepareMockModelInputs",
+          "parameters": [
+            "selection"
+          ],
+          "async": true
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
           "parameters": [
             "preparedProgram",
@@ -23601,7 +23649,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "06068ef12290590ed3a6e639de2dce2a6110f2c5dea84a979cf99fb044a061d6"
+      "sha256": "bc4d9d5ac4d5022ebb4be872b073b1d01f14808e0716fc1439bfbc354dea9213"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

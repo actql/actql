@@ -3427,6 +3427,15 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
     }
   };
+  // LIVE Model preparation only, after its original managed Run is retained.
+  // Stored outcome/review/approval paths never call this physical input hook.
+  const prepareMockModelInputs = async selection => {
+    for(const member of selection?.components??(selection===undefined?[]:[selection])){
+      if(member.localMock!==true)continue;
+      await mockModels.prepareAnswersForRuntime(moon,member.originalMockInstallation);
+      member.currentProvider();
+    }
+  };
   // Preadmission and submission revisit the same Prepared through different
   // packet wrappers. Retain its original Request identity, not an equivalent
   // reconstruction that the live Run's exact-original fence must refuse.
@@ -4526,6 +4535,11 @@ async function openInstalledHost(originalInstallation, preparation) {
                       retainedModel.token.snapshot.sourceContinuation === undefined) {
                     throw new Error('ModelSourceClosureCustodyUnavailable');
                   }
+                  if(retainedModel===undefined){
+                    assertContinuationCurrent();
+                    await prepareMockModelInputs(managedEffect.modelSelection);
+                    assertContinuationCurrent();
+                  }
                   return await openAcquiredEffectComputation({moon,
                     owner: facts.owner, acquired: facts.preparedExecution, managedRun,
                     sourceSelection: selectedSources, sourceSelectionPlan,
@@ -4818,6 +4832,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       managedSourceRun = prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
         requestIdentity: requested, acquisitionCount, model: selectedModel, serializationCount});
     }
+    await prepareMockModelInputs(selectedModel);
     const managedRun = managedSourceRun;
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
@@ -8244,7 +8259,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         record.mockModelProfile = mockModelProfile;
         assertCurrent();
         mockAnswers = await loadInstalledProjectMockAnswers(moon, project, projectProfile,
-          {limits,assertCurrent});
+          {limits,assertCurrent,deferAnswers:true});
         record.mockAnswers = mockAnswers;
         const models = mockAnswers.bindModelsForRuntime(moon, mockModelProfile, now);
         record.mockModels = models;

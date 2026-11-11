@@ -15,6 +15,7 @@ assert.ok(start >= 0);
 const tail = load.body.body.slice(start).map(node => source.slice(node.start, node.end)).join('\n');
 const install = compileFunction(`let retained=entries;
   let original,selection,project,profile,profilePorts,assertCurrent,openFile;
+  const deferAnswers=false;
   const taskBounds=[10,20,3,4,5,6,7,80];
   let ports={retire:retireAnswers};
   const call=(name,...args)=>ports[name](...args);

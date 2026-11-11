@@ -50111,7 +50111,8 @@
         },
         {
           "operations": [
-            "now/now"
+            "now/now",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareMockModelInputs/prepareMockModelInputs"
           ],
           "exports": [],
           "attributes": {
@@ -50127,6 +50128,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "inputsOutputs": [
@@ -50141,6 +50146,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "identity": [
@@ -50155,6 +50164,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "ownership": [
@@ -50169,6 +50182,10 @@
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
                 "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "synchronization": [
@@ -50183,6 +50200,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "failure": [
@@ -50197,6 +50218,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "cancellation": [
@@ -50211,6 +50236,10 @@
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "resources": [
@@ -50225,6 +50254,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "extension": [
@@ -50239,6 +50272,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "verification": [
@@ -50261,6 +50298,10 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ]
           }
@@ -61443,6 +61484,13 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareMockModelInputs/prepareMockModelInputs",
+          "parameters": [
+            "selection"
+          ],
+          "async": true
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
           "parameters": [
             "preparedProgram",
@@ -64364,7 +64412,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "06068ef12290590ed3a6e639de2dce2a6110f2c5dea84a979cf99fb044a061d6"
+      "sha256": "bc4d9d5ac4d5022ebb4be872b073b1d01f14808e0716fc1439bfbc354dea9213"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

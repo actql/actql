@@ -71907,7 +71907,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock-answers.mjs",
-      "sha256": "a382e0f0ded475627906de267ab82e46f814d1a3b58cc2b0adf023c49f3e40f7",
+      "sha256": "2d3c3d4a1e714a8a373b645158a848db99556e4e30df45e1e499ebbb9076325f",
       "exports": [
         "loadInstalledProjectMockAnswers"
       ],
@@ -71934,7 +71934,8 @@
             "profile",
             "limits",
             "assertCurrent",
-            "openFile"
+            "openFile",
+            "deferAnswers"
           ],
           "async": true
         },
@@ -72039,6 +72040,33 @@
           "name": "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:originalsForRuntime/init:originalsForRuntime",
           "parameters": [
             "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:prepareAnswersForRuntime/init:prepareAnswersForRuntime",
+          "parameters": [
+            "runtime",
+            "installation"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:prepareAnswersForRuntime/init:prepareAnswersForRuntime/bound/bound",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:prepareAnswersForRuntime/init:prepareAnswersForRuntime/flight/flight",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:prepareAnswersForRuntime/init:prepareAnswersForRuntime/input/input",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -72225,7 +72253,7 @@
               },
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "const answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});"
+                "anchor": "answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});"
               }
             ],
             "failure": [
@@ -72298,6 +72326,10 @@
             "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:modelInstallationForRuntime/init:modelInstallationForRuntime/executionContracts/executionContracts",
             "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:modelInstallationForRuntime/init:modelInstallationForRuntime/previous/previous",
             "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:originalsForRuntime/init:originalsForRuntime",
+            "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:prepareAnswersForRuntime/init:prepareAnswersForRuntime",
+            "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:prepareAnswersForRuntime/init:prepareAnswersForRuntime/bound/bound",
+            "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:prepareAnswersForRuntime/init:prepareAnswersForRuntime/flight/flight",
+            "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:prepareAnswersForRuntime/init:prepareAnswersForRuntime/input/input",
             "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime",
             "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/init:projectEnvironmentForRuntime/init:projectEnvironmentForRuntime/projection/projection",
             "loadInstalledProjectMockAnswers/init:bindModelsForRuntime/init:bindModelsForRuntime/modelCall/modelCall"
@@ -72312,6 +72344,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "definitions, not Model execution capacity."
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "inputsOutputs": [
@@ -72322,6 +72358,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "modelInstallationForRuntime(runtime,wire,evidenceCid)"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "identity": [
@@ -72332,6 +72372,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "modelBinding.profile!==originalProfile||modelBinding.now!==now"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "ownership": [
@@ -72342,6 +72386,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "modelBinding=state;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "synchronization": [
@@ -72352,12 +72400,20 @@
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "currentModels(runtime,this);"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "failure": [
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "catch(error){state.failed=true;state.failure=error;throw error;}"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "cancellation": [
@@ -72368,6 +72424,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "[entry.installation]))!==true)fail('InstalledMockModelsCleanupPending');"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "resources": [
@@ -72378,6 +72438,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "mock Provider does not fund its requests, Entry, quantity, output, invocation or"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "extension": [
@@ -72388,6 +72452,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
                 "anchor": "if(previous.bodyWire!==bodyWire)fail('InstalledMockModelBodyMismatch');"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ],
             "verification": [
@@ -72406,6 +72474,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock-models.actual.test.mjs",
                 "anchor": "actual Mock Model refuses equal-wire foreign Task instead of replacing the original answers"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "## Local Mock declaration and answer input"
               }
             ]
           }
@@ -72561,7 +72633,7 @@
               },
               {
                 "path": "adapters/local-node/installed-project-mock-answers.mjs",
-                "anchor": "const answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});"
+                "anchor": "answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});"
               }
             ],
             "failure": [
