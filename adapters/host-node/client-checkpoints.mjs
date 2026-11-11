@@ -49,6 +49,13 @@ const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
 const KEYED_SOURCE_SUBMISSION = 'actql-remote-keyed-source-submission/0.1';
 const pluralCapture = captured => [MULTI_SOURCE_SUBMISSION, KEYED_SOURCE_SUBMISSION, BOUND_SOURCE_SUBMISSION]
   .includes(captured.version);
+// The existing read-scope CID binds the full checked occurrence. Include the
+// original Run separately and keep the identifier bounded even for a maximal
+// Run ID; neither a Source slot nor a Unit index is a global Checkpoint ID.
+function computationSourceCheckpointId(runId, scopeCid) {
+  return `source-${contentCid({run_id: runId, read_scope_cid: scopeCid}).slice(7)}`;
+}
+
 const MODEL_CHECKPOINT_STORAGE = 'actql-installed-model-checkpoint-storage/0.1';
 export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
 
@@ -2243,7 +2250,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
             ]);
             const created = now();
             return {priorStatus: 'running', declaredResults, body: {
-              checkpoint_id: `${runId}-source-${occurrence.stage}`,
+              checkpoint_id: computationSourceCheckpointId(runId, scopeCid),
               run_id: runId, run_definition_cid: runDefinitionCid,
               continuation_state_cid: refs[1],
               subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
@@ -2366,7 +2373,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
       const view = journal.activeRunCheckpoint(runId);
       return view?.kind === 'read_access' && view.runId === runId &&
         view.runDefinitionCid === runDefinitionCid &&
-        view.checkpointId.startsWith(`${runId}-source-`) &&
+        view.requiredArtifact.type === 'read_scope' &&
+        (view.checkpointId === computationSourceCheckpointId(runId,
+          view.requiredArtifact.cid) ||
+          // Already sealed legacy Checkpoints retain their original identity.
+          view.checkpointId.startsWith(`${runId}-source-`)) &&
         journal.hasStartedResume(view.checkpointCid);
     },
     hasUnresolvedEffectTargetStart(runId, runDefinitionCid) {

@@ -20612,7 +20612,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f2ec2455462adb5c7f5b8bca427f4f49cfbb625e085bc6c6059303fbe2bfe73",
+      "sha256": "8875c750a185823764074d02e9fa89fc1b2e1266a91f0b68b34ca11a0df50536",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -20681,6 +20681,14 @@
           "parameters": [
             "code",
             "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "computationSourceCheckpointId",
+          "parameters": [
+            "runId",
+            "scopeCid"
           ],
           "async": false
         },
@@ -22195,6 +22203,7 @@
             "capturedValueCid/capturedValueCid",
             "capturedValueWire/capturedValueWire",
             "coded",
+            "computationSourceCheckpointId",
             "fail/fail",
             "freezeSavedData/freezeSavedData",
             "hex/hex",
@@ -22498,6 +22507,10 @@
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
                 "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "function computationSourceCheckpointId(runId, scopeCid) {"
               }
             ],
             "ownership": [
@@ -22748,6 +22761,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
                 "anchor": "same-stage original Source input one reaches its exact continuation without a diagonal coordinate restriction"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "test('same-stage Source waits have distinct bounded identities and cold original answer matching', async t => {"
               }
             ]
           }
