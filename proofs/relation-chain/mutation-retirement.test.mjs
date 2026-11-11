@@ -44,12 +44,26 @@ for(const [label,result,text] of [
 const normalFixture = read(retirementCases[0][4]);
 // Synthetic validator inputs only. The actual normal runner still executes
 // Moon and binds the unchanged Source snapshot before and after the child.
-const normalOutput = 'Total tests: 11, passed: 11, failed: 0.\n';
-test('current lifetime fixture changes only same-sequence binding fragment preparation', () => {
+const normalOutput = 'Total tests: 12, passed: 12, failed: 0.\n';
+test('current lifetime fixture retains reviewed fragment preparation and finite-memory changes', () => {
+  const start = normalFixture.indexOf('///|\ntest "reclaimed bounded chain does not fund an unused generic measurement forest" {');
+  const end = normalFixture.indexOf('///|\nfn chain_lifetime_append_body()', start);
+  assert(start >= 0 && end > start, 'Reach the one added finite-memory case');
+  const added = normalFixture.slice(start, end);
+  assert.equal(createHash('sha256').update(added).digest('hex'),
+    '97c9fc5915096ab971a411bf74cbfe777dd9c9f0641b63a827b91852c10b5c25');
+  const retainedCases = normalFixture.slice(0, start) + normalFixture.slice(end);
+  assert.equal(retainedCases.split('base.retained_bytes').length, 4,
+    'Only the three reviewed capacity baselines change');
+  const fragmentFixture = retainedCases.replaceAll('base.retained_bytes', 'base.execution_bytes');
+  // Reversing the exact added case and three baselines restores the complete
+  // prior eleven-case fixture, including every current/cleanup/row assertion.
+  assert.equal(createHash('sha256').update(fragmentFixture).digest('hex'),
+    'ac2e12bc9f2c26d25a1b06ac762c5a818eb69d330661ccd217f6d516e993e931');
   const before = '      @lower.kernel_body(kernel) is @lower.Filter(_) {';
   const after = '      (\n        @lower.kernel_body(kernel) is @lower.Filter(_) ||\n        @lower.kernel_bindings(kernel) is Some(_)\n      ) {';
   assert.equal(normalFixture.split(after).length, 2, 'Reach the one reviewed fragment selection');
-  const previous = normalFixture.replace(after, before);
+  const previous = fragmentFixture.replace(after, before);
   // Independently retained complete preimage: this single reversal includes
   // every original case, limit, current check and cleanup assertion unchanged.
   assert.equal(createHash('sha256').update(previous).digest('hex'),
@@ -62,9 +76,9 @@ test('current lifetime fixture changes only same-sequence binding fragment prepa
   assert.throws(() => requireNormalLifetime({status: 0}, normalOutput, foreign),
     /requires a new independent review/);
 });
-test('normal lifetime census admits exactly the independently reviewed eleven cases', () => {
-  assert.equal(normalLifetimeCases.length, 11);
-  assert.equal(requireNormalLifetime({status: 0}, normalOutput, normalFixture), 11);
+test('normal lifetime census admits exactly the independently reviewed twelve cases', () => {
+  assert.equal(normalLifetimeCases.length, 12);
+  assert.equal(requireNormalLifetime({status: 0}, normalOutput, normalFixture), 12);
 });
 for (const [label, fixture] of [
   ['missing', normalFixture.replace(`test "${normalLifetimeCases[0]}" {`, 'fn missing_case() {')],
@@ -78,8 +92,8 @@ for (const [label, result, output] of [
   ['zero', {status: 0}, 'Total tests: 0, passed: 0, failed: 0.'],
   ['missing summary', {status: 0}, ''],
   ['duplicate summary', {status: 0}, normalOutput.repeat(2)],
-  ['missing case', {status: 0}, 'Total tests: 10, passed: 10, failed: 0.'],
-  ['failed case', {status: 1}, 'Total tests: 11, passed: 10, failed: 1.'],
+  ['missing case', {status: 0}, 'Total tests: 11, passed: 11, failed: 0.'],
+  ['failed case', {status: 1}, 'Total tests: 12, passed: 11, failed: 1.'],
   ['process error', {status: 0, error: new Error('failed')}, normalOutput],
   ['signal', {status: 0, signal: 'SIGTERM'}, normalOutput],
 ]) test(`normal census refuses ${label}`, () => {
