@@ -79,6 +79,23 @@ test('Native Journal fresh refusal rejects missing malformed or extra reconcilia
     {code: 'ERR_ASSERTION'});
 });
 
+test('Native Journal shared Read counter cannot become a failed acceptance count', () => {
+  const original = journalCapacityRefusal();
+  const stderr = original.stderr.split('\n').map(line => {
+    const prefix = 'ACTQL_NATIVE_COUNTER ';
+    if (!line.startsWith(prefix)) return line;
+    const value = JSON.parse(line.slice(prefix.length));
+    if (value.tag === 8) value.count = 2424833;
+    return prefix + JSON.stringify(value);
+  }).join('\n');
+  const record = {...original, stderr};
+  const observed = requireNativeJournalCapacityRefusal(record);
+  assert.deepEqual(observed.nativeFailedAcceptanceCount,
+    {status: 'unavailable', counterTag: 8, reason: 'shared-with-original-read-inventory'});
+  assert.equal(observed.originalCause, 'Journal.CapacityExceeded');
+  assert.equal(record.stderr, stderr, 'Keep the original Read observation without subtraction');
+});
+
 async function journalFixture(t, fault) {
   const project = await mkdtemp(join(tmpdir(), 'native-journal-exhaustion-oracle-'));
   t.after(() => rm(project, {recursive: true, force: true}));
