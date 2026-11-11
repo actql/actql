@@ -2058,10 +2058,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (selectedEffectPaths.length !== 0 || effectInstallation !== undefined) {
         throw clientOperationError('InstalledMockEffectProfileConflict');
       }
+      const observeMockEffectWrite = () => diagnostic?.('effect_write_observed');
       installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId}),
         principalId, mockEffectResources, sourceProfile.mockWritableSource?.connectorBindings[0],
-        () => diagnostic?.('effect_write_observed'));
+        observeMockEffectWrite);
       // Retain the actual factory result before a fallible observation/current
       // read, so the existing initialization carrier still owns its file child.
       mockEffectObservation = observeInstalledMockEffectResources(installedEffect);

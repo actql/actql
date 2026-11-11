@@ -16356,6 +16356,7 @@
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
             "openInstalledHost/mockEffectResources/init:limits/init:limits",
+            "openInstalledHost/observeMockEffectWrite/observeMockEffectWrite",
             "openInstalledHost/openInstalledHost#8",
             "openInstalledHost/openInstalledHost#9",
             "openInstalledHost/retainMockEffectRunOriginal",
@@ -21536,6 +21537,11 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/observeMockEffectWrite/observeMockEffectWrite",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/openHostRequestJournal",
           "parameters": [
             "journalOptions"
@@ -21952,7 +21958,8 @@
             "authorizationFor",
             "principalId",
             "effectResources",
-            "sourceBinding"
+            "sourceBinding",
+            "observeWrite"
           ],
           "async": true
         },
@@ -23576,7 +23583,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "ff819a1af705015ca88c4e382c65c30eefe79c13d17c3d91a2dd9d164180ec5f"
+      "sha256": "bfb5d3684fb35e6cb001e2d0b025cfe322e5fb9e3466c3cc12758a1cfe72075e"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -25266,7 +25273,6 @@
             "sourceFreeTaskPlan",
             "sourceFreeValuesAdmissionEvidence",
             "sourceFreeValuesPlan",
-            "acquiredMultiEffectPublicationPlan/whole/whole",
             "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan",
             "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan#2",
             "acquiredInferEffectPublicationPlan/generations/generations",

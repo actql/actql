@@ -66,7 +66,7 @@ test('existing collector keeps the distinct Whole fixture and original cold inpu
       else assert.equal(JSON.parse(await readFile(input, 'utf8')).stages[0].id, 'source_opportunities');
       const count = {capture: 10, approve: 11, recover: 7}[phase];
       return {pid: 20000 + phases.length, code: 0, signal: null, wallNs: 100,
-        stdout: [...Array.from({length: count}, (_, index) => ({phase, step: `explicit-${index}`, status: 'passed'})),
+        stdout: [...Array.from({length: count}, (_, index) => explicitStep(phase, `explicit-${index}`)),
           {phase, status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
             workObservation: explicitWork(phase)}]
           .map(value => JSON.stringify(value)).join('\n')};

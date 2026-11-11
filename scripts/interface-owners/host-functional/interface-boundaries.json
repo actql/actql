@@ -119361,7 +119361,7 @@
     {
       "module": "adapters/host-node/mock-file-target.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7ffef6e4109ab623a46db51997d839707cfa8904f3ed5e816c0555b259df8acb",
+      "sha256": "7ca4c29bc22481ceb59fec79b8432304d2f163550f01650cc2a7361aeeba4efa",
       "exports": [
         "createMockFileTarget"
       ],
@@ -119372,6 +119372,7 @@
             "dataPath",
             "maxBytes",
             "assertCurrent",
+            "observeWrite",
             "io"
           ],
           "async": false
@@ -119623,6 +119624,11 @@
           "async": true
         },
         {
+          "name": "createMockFileTarget/updateChild/updateChild/updateChild",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code",
@@ -119717,6 +119723,7 @@
             "createMockFileTarget/statusFor/statusFor/count/count",
             "createMockFileTarget/updateChild",
             "createMockFileTarget/updateChild/updateChild",
+            "createMockFileTarget/updateChild/updateChild/updateChild",
             "fail/fail",
             "identity/identity",
             "sameFile/sameFile",
@@ -119935,7 +119942,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1934d1e05bf02f7d3ae7e395853032c73454efc1103af7d2606aba89d66823f1",
+      "sha256": "55b06c58a6d265316348d8896624dac952518dda767036a077d4b422d21afad8",
       "exports": [
         "installPreparedProjectMockEffects",
         "observeInstalledMockEffectResources"
@@ -119984,7 +119991,8 @@
             "ledgerRoot",
             "assertCurrent",
             "effectResources",
-            "io"
+            "io",
+            "observeWrite"
           ],
           "async": true
         },
@@ -120103,7 +120111,8 @@
             "current",
             "call",
             "resources",
-            "io"
+            "io",
+            "observeWrite"
           ],
           "async": false
         },
