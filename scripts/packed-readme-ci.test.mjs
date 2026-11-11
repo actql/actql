@@ -13,6 +13,7 @@ import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
+import {nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
@@ -1006,8 +1007,8 @@ test('required Native counter stays case-scoped and nonzero through the original
     if (node.type === 'CallExpression' && node.callee.name === 'spawnSync') {
       const environment = node.arguments[2]?.properties?.find(value => value.key?.name === 'env')?.value;
       const selected = environment?.properties?.find(value => value.type === 'SpreadElement' &&
-        value.argument.type === 'ConditionalExpression' &&
-        source.slice(value.argument.start, value.argument.end).includes('ACTQL_NATIVE_TIMINGS'));
+        value.argument.type === 'CallExpression' &&
+        value.argument.callee.name === 'nativeCoreScopedTestEnvironment');
       if (selected) matches.push({node, parent, selected});
     }
     for (const value of Object.values(node)) {
@@ -1018,8 +1019,14 @@ test('required Native counter stays case-scoped and nonzero through the original
   visit(tree, null); assert.equal(matches.length, 1);
   const {node, parent, selected} = matches[0];
   assert.equal(parent.callee.name, 'checkChild');
-  const expression = selected.argument;
-  const environment = Function('test', `return (${source.slice(expression.start, expression.end)});`);
+  assert(tree.body.some(value => value.type === 'ImportDeclaration' &&
+    value.source.value === './native-core-test-selection.mjs' && value.specifiers.some(specifier =>
+      specifier.imported?.name === 'nativeCoreScopedTestEnvironment' &&
+      specifier.local.name === 'nativeCoreScopedTestEnvironment')));
+  assert.equal(selected.argument.arguments.length, 1);
+  assert.equal(selected.argument.arguments[0].type, 'Identifier');
+  assert.equal(selected.argument.arguments[0].name, 'test');
+  const environment = nativeCoreScopedTestEnvironment;
   assert.deepEqual(environment({source: file, index: 13}), {ACTQL_NATIVE_TIMINGS: '1'});
   for (const test of [{source: file, index: 12}, {source: file, index: 14},
     {source: 'src/platform_native/client_host/another.mbt', index: 13}]) {

@@ -443,9 +443,15 @@ test('cleanup category never serializes payloads and keeps public error code', {
   assert.ok(nested.length >= 20);
   for (const [block, variant, body] of nested) {
     const type = `Probe${variant}`;
-    const cases = [...body.matchAll(/([A-Z]\w*)(\((?:_|,|\s)*\))?\s*=>\s*"([A-Za-z0-9]+)"/g)];
+    // Enumerate every closed alternative, including typed multi-payload
+    // refusals sharing a literal tag. No payload expression is admitted.
+    const rows = [...body.matchAll(/((?:[A-Z]\w*(?:\([_,\s]*\))?)(?:\s*\|\s*[A-Z]\w*(?:\([_,\s]*\))?)*)\s*=>\s*"([A-Za-z0-9]+)"/gu)];
+    const cases = rows.flatMap(([, patterns, tag]) => patterns.split('|').map(pattern => {
+      const [, name, fields] = /^([A-Z]\w*)(\([_,\s]*\))?$/u.exec(pattern.trim());
+      return [pattern, name, fields, tag];
+    }));
     assert.ok(cases.length > 0);
-    const residual = cases.reduce((value, [row]) => value.replace(row, ''), body);
+    const residual = rows.reduce((value, [row]) => value.replace(row, ''), body);
     assert.equal(residual.trim(), '', 'Only closed enum patterns and literal tags are permitted');
     declarations.push(`pub(all) enum ${type} {\n` + cases.map(([, name, fields]) =>
       '  ' + name + (fields ? '(' + Array((fields.match(/_/g) ?? []).length).fill('String').join(', ') + ')' : '')).join('\n') + '\n}');
