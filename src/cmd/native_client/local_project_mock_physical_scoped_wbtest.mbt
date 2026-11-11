@@ -1225,42 +1225,40 @@ fn native_mock_original_journal_body(
   arena
   .leave_local_host_phase(pair)
   .native_mock_journal_required("leave initial Read")
-  let retained_signing = Ref(None)
-  let signing_counts = Ref(None)
+  let read_counts = Ref(None)
   let observed = native_mock_journal_adoption_result(
-    capture.with_original_read(actual => {
+    capture.with_original_read(_ => {
       let account = match capture.configuration_in_original_read() {
         Ok(value) => value
         Err(_) => return None
       }
-      let signing = match
-        actual.restore_initial_signing_original(capture=Some(capture)) {
+      let scope = match
+        capture.authority_scope_cid_in_original_read("local-cli", "mock") {
         Ok(value) => value
         Err(_) => return None
       }
-      retained_signing.val = Some(signing)
-      // These are real original-control/key projections in the same entered
-      // Read, not flags pretending to acquire that Read. Helper chaining must
-      // not re-admit immutable Source/config/Account or amplify its SQL work.
       let source_before = native_approval_counter(37)
       let admission_before = native_approval_counter(33)
-      let digest_before = native_approval_counter(26)
+      let package_before = native_approval_counter(16)
       let sql_before = native_approval_counter(1)
-      let repeats = 3
-      for _ in 0..<repeats {
-        if signing.require_current() is Err(_) || signing.public_key() is Err(_) {
+      for _ in 0..<3 {
+        guard capture.configuration_in_original_read() is Ok(same) &&
+          same.configuration_cid() == account.configuration_cid() &&
+          capture.authority_scope_cid_in_original_read("local-cli", "mock")
+          is Ok(same_scope) &&
+          same_scope == scope else {
           return None
         }
       }
-      signing_counts.val = Some(
+      read_counts.val = Some(
         (
           source_before,
           admission_before,
-          digest_before,
+          package_before,
           sql_before,
           native_approval_counter(37),
           native_approval_counter(33),
-          native_approval_counter(26),
+          native_approval_counter(16),
           native_approval_counter(1),
         ),
       )
@@ -1290,46 +1288,75 @@ fn native_mock_original_journal_body(
   let (
     source_before,
     admission_before,
-    digest_before,
+    package_before,
     sql_before,
     source_after,
     admission_after,
-    digest_after,
+    package_after,
     sql_after,
-  ) = signing_counts.val.unwrap()
-  for
-    value in [
-      source_before, admission_before, digest_before, sql_before, source_after, admission_after,
-      digest_after, sql_after,
-    ] {
-    assert_true(value >= 0L, msg="Native approval diagnostics unavailable")
-  }
+  ) = read_counts.val.unwrap()
+  assert_true(source_before > 0L && admission_before > 0L && sql_before > 0L)
   assert_eq(source_after - source_before, 0L)
   assert_eq(admission_after - admission_before, 0L)
-  assert_eq(digest_after - digest_before, 0L)
-  // Keep actual mutable custody/key reads; bound them by the three caller
-  // iterations, independently of speed. Zero SQL would omit those checks.
-  assert_true(sql_after - sql_before >= 3L && sql_after - sql_before <= 36L)
-  let signing = retained_signing.val.unwrap()
-  // The exact borrowed material expires on Read exit, even while its Host is
-  // alive. A new public operation must validate originals afresh and cannot
-  // bless that old signing view by entering the same capture again.
-  assert_true(signing.require_current() is Err(_))
+  assert_eq(package_after - package_before, 0L)
+  // These are DATA projections from an already admitted immutable material.
+  // The real signing/current SQL bounds belong to the normal approval case,
+  // whose original Store operation this Read-only fixture does not acquire.
+  assert_eq(sql_after - sql_before, 0L)
+  assert_true(capture.configuration_in_original_read() is Err(_))
   let source_before = native_approval_counter(37)
   let admission_before = native_approval_counter(33)
   native_mock_journal_adoption_result(
-    capture.with_original_read(actual => {
-      if signing.require_current() is Ok(_) {
-        return Err(@local_host.CustodyLost)
-      }
-      actual.restore_initial_signing_original(capture=Some(capture))
+    capture.with_original_read(_ => {
+      capture.authority_scope_cid_in_original_read("local-cli", "mock")
     }),
-    "new public Read revalidates original signing material",
+    "new public Read revalidates original material",
   )
-  |> native_mock_journal_adoption_result("fresh signing original")
+  |> native_mock_journal_adoption_result("fresh scope original")
   |> ignore
   assert_true(native_approval_counter(37) > source_before)
   assert_eq(native_approval_counter(33) - admission_before, 1L)
+  // A real independently held Writer changes the original Source between
+  // public operations. The next entry must refuse before its callback, and
+  // cleanup must still retire that SAME original pair without a new grant.
+  arena
+  .enter_local_host_phase(pair, @initial_arena.HostRead)
+  .native_mock_journal_required("enter Source mutation Read")
+  let changed_root = @local_filesystem.open_private_root_in_current_read_context_with_custody(
+    path + "/product",
+    profile.diagnostic_ceiling,
+  ).native_mock_journal_required("open actual Source mutation Root")
+  let observed_account = changed_root
+    .observe_file("account.json")
+    .native_mock_journal_required("observe original Account Source")
+  let write_lock = changed_root
+    .acquire_lock("account.json.actql-write.lock")
+    .native_mock_journal_required("hold original Source write lock")
+  let writer = changed_root
+    .create_writer("changed-account.stage", 4096L)
+    .native_mock_journal_required("prepare Source mutation Writer")
+  writer.append(b"{}").native_mock_journal_required("write changed Source")
+  writer
+  .replace_observed_file(observed_account, write_lock)
+  .native_mock_journal_required("replace actual Source original")
+  |> ignore
+  writer
+  .close_retaining_files()
+  .native_mock_journal_required("close Source Writer")
+  write_lock
+  .close_checked()
+  .native_mock_journal_required("close Source write lock")
+  changed_root
+  .close()
+  .native_mock_journal_required("close Source mutation Root")
+  arena
+  .leave_local_host_phase(pair)
+  .native_mock_journal_required("leave Source mutation Read")
+  let callback_calls = Ref(0)
+  assert_true(
+    capture.with_original_read(_ => callback_calls.val += 1) is Err(_),
+  )
+  assert_eq(callback_calls.val, 0)
   assert_true(capture.close().issue() is None)
   // Journal close selects cleanup-only custody. Match the ordinary caller:
   // retire the remaining Read aliases in that SAME cleanup frame.
