@@ -33,7 +33,7 @@ export function hubspotUpdateCase(programs, selected) {
       parameters: {record_id: recordId, next_name: nextName},
       expectedRows: [{id: recordId, previous_name: previousName, next_name: nextName}],
       ...(selected.variant === 'binary-source' ? {additionalResults: {
-        joined: [{id: recordId, left_name: previousName, right_id: recordId,
+        answer: [{id: recordId, left_name: previousName, right_id: recordId,
           right_name: previousName, next_name: nextName}],
       }} : {})},
     read: {document: programs.read, format: 'aql', resultName: 'main',

@@ -724,7 +724,7 @@ test('kintone approval provider requires credential-bearing Form and exact selec
 });
 
 
-test('binary Whole JOIN fixture reads full joined rows and updates before cold same-Run status', async () => {
+test('binary Whole JOIN fixture reads full permitted answer rows and updates before cold same-Run status', async () => {
   const update = await readFile(new URL('./fixtures/hubspot-approval/binary-source-update.aql', import.meta.url), 'utf8');
   const read = await readFile(new URL('./fixtures/hubspot-approval/read.aql', import.meta.url), 'utf8');
   assert.equal(update.split('\nJOIN ').length - 1, 1, 'One existing binary JOIN, no N-ary extension');
@@ -734,29 +734,31 @@ test('binary Whole JOIN fixture reads full joined rows and updates before cold s
     {name: 'hubspot.companies', resource: 'companies'},
     {name: 'hubspot.companies_peer', resource: 'companies'},
   ]);
+  assert(update.includes('|> RESULT answer\n'));
+  assert(!update.includes('|> RESULT joined'));
   const value = hubspotUpdateCase({update, read}, {...selection, variant: 'binary-source'});
-  assert.deepEqual(value.effect.additionalResults, {joined: [{id: 'record-1', left_name: 'before',
+  assert.deepEqual(value.effect.additionalResults, {answer: [{id: 'record-1', left_name: 'before',
     right_id: 'record-1', right_name: 'before', next_name: 'after'}]});
   const f = publicDouble(value);
   await phase('capture', value, f); await phase('approve', value, f);
   const split = f.events.length;
   await phase('recover', value, f);
   const cold = f.events.slice(split);
-  assert(cold.indexOf('effect:rows:joined') < cold.indexOf('effect:status'));
+  assert(cold.indexOf('effect:rows:answer') < cold.indexOf('effect:status'));
   assert(!cold.some(value => value.startsWith('submit:') || value === 'approve'));
   assert.deepEqual(f.saved.get('approved').additionalResults, value.effect.additionalResults);
   assert.deepEqual(f.saved.get('recovered').additionalResults, value.effect.additionalResults);
   assert.deepEqual(f.saved.get('submitted').ref, f.saved.get('recovered').ref);
-  assert.equal(f.events.filter(value => value === 'effect:result:joined').length, 2);
+  assert.equal(f.events.filter(value => value === 'effect:result:answer').length, 2);
   assert.equal(f.events.filter(value => value === 'close').length, 3);
 });
 
-test('binary Whole JOIN fixture refuses incomplete joined Result without losing first close', async () => {
+test('binary Whole JOIN fixture refuses incomplete answer Result without losing first close', async () => {
   const value = hubspotUpdateCase({update: 'authored binary JOIN', read: 'authored source read'},
     {...selection, variant: 'binary-source'}), f = publicDouble(value);
   await phase('capture', value, f);
   const original = f.effect.result;
-  f.effect.result = name => name === 'joined' ? {all: async () => []} : original.call(f.effect, name);
+  f.effect.result = name => name === 'answer' ? {all: async () => []} : original.call(f.effect, name);
   await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
   assert.equal(f.events.at(-1), 'close');
   assert.equal(f.saved.has('approved'), false);
