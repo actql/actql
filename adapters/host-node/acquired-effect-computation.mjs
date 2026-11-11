@@ -716,8 +716,19 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     }
     if (execution.status !== 'host-tasks-completed' && (component !== undefined || modelGroup !== undefined) &&
         modelController.unresolved(acquired.control.runDefinitionRunId(acquired.runDefinition))) {
+      let primaryFailure, primaryRecorded = false;
+      try {
+        if (modelGroup?.hasFailure()) {
+          primaryFailure = modelGroup.failure();primaryRecorded = true;
+        } else if (component?.hasFailure?.()) {
+          primaryFailure = component.failure();primaryRecorded = true;
+        } else if (Object.hasOwn(execution, 'failure')) {
+          primaryFailure = execution.failure;primaryRecorded = true;
+        }
+      } catch { /* Failure inspection cannot replace the actual Unknown outcome. */ }
       return Object.freeze({status: 'needs_reconciliation', modelUnknown: true,
-        execution, checkedHost, cleanupOwner: custody});
+        execution, checkedHost, cleanupOwner: custody,
+        ...(primaryRecorded ? {primaryFailure} : {})});
     }
     if (execution.status !== 'host-tasks-completed') {
       if (modelGroup?.hasFailure()) throw modelGroup.failure();

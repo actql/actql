@@ -33,6 +33,18 @@ function dispatchFailureSnapshot(error) {
     message: typeof error === 'string' ? error : text('message')});
 }
 
+// Only diagnostic custody moves here. An Unknown result keeps its outcome,
+// physical owner and current gates; a later cleanup refusal is not its cause.
+function retainDispatchPrimaryFailure(entry, result) {
+  try {
+    const primary = Object.getOwnPropertyDescriptor(result, 'primaryFailure');
+    if (!Object.hasOwn(entry, 'primaryFailure') &&
+        primary !== undefined && Object.hasOwn(primary, 'value')) {
+      entry.primaryFailure = primary.value;
+    }
+  } catch { /* Optional failure DATA cannot interrupt the original cleanup. */ }
+}
+
 // One original Core holder covers the ordinary configured Host and its
 // transitive outputs through confirmed cleanup. This is not a numeric grant.
 function releaseDispatchPreparationHost(entry) {
@@ -1206,6 +1218,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               checkpoints?.journal.hasUnresolvedModelCalls(runId) !== true) {
             throw new Error('InstalledInferUnknownNotRecorded');
           }
+          retainDispatchPrimaryFailure(entry, result);
           // The owner made all permitted progress and retained an entered
           // call without a saved response. Physical stop is not an ordinary
           // failure and cannot turn that call into a completed barrier.
@@ -1263,10 +1276,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await settleCleanup(entry);
       await finishRun(entry);
     }).catch(async cause => {
-      entry.primaryFailure = cause;
+      if (!Object.hasOwn(entry, 'primaryFailure')) entry.primaryFailure = cause;
       try {
-        const primaryFailure = cause instanceof CapturedRunPublicationError
-          ? cause.primaryFailure : cause;
+        const original = entry.primaryFailure;
+        const primaryFailure = original instanceof CapturedRunPublicationError
+          ? original.primaryFailure : original;
         diagnostic('dispatch_failed', {ref: accepted.ref,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
@@ -1365,6 +1379,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       },
       }));
     }).then(async result => {
+      if (result?.status === 'needs_reconciliation') {
+        retainDispatchPrimaryFailure(entry, result);
+      }
       // A trusted installed Site may confirm that a pre-Preview refusal
       // performed no external Effect dispatch. Record that observation only
       // after its physical owner has stopped and cleanup has completed.
@@ -1375,7 +1392,17 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await settleCleanup(entry);
       return result;
     }).catch(async cause => {
-      entry.primaryFailure = cause;
+      if (!Object.hasOwn(entry, 'primaryFailure')) entry.primaryFailure = cause;
+      try {
+        const original = entry.primaryFailure;
+        const primaryFailure = original instanceof CapturedRunPublicationError
+          ? original.primaryFailure : original;
+        diagnostic('dispatch_failed', {ref: entry.ref,
+          code: cause?.code ?? 'ClientDispatchFailed',
+          primaryCode: primaryFailure?.code,
+          issueTag: runtimeTag(primaryFailure?.cause),
+          nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
+      } catch { /* Optional diagnostics cannot interrupt original cleanup. */ }
       if (!entry.runInvoked) {
         // A refused execution barrier ran no Site callback. This is a
         // positive no-start observation, not an inferred physical stop.

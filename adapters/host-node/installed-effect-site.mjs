@@ -420,7 +420,15 @@ export function createInstalledEffectSite({environmentWire,
         // An entered Model attempt is neither an Effect failure nor a
         // fabricated Effect ledger. Keep its original physical custody and
         // stop before Preview/Effect authorization or any Effect write.
-        return Object.freeze({status: 'needs_reconciliation', modelUnknown: true});
+        let originalFailure;
+        try {
+          const primary = Object.getOwnPropertyDescriptor(opened, 'primaryFailure');
+          if (primary !== undefined && Object.hasOwn(primary, 'value')) {
+            originalFailure = {primaryFailure: primary.value};
+          }
+        } catch { /* Failure inspection cannot change the existing Unknown. */ }
+        return Object.freeze({status: 'needs_reconciliation', modelUnknown: true,
+          ...originalFailure});
       }
       const {execution, checkedHost} = opened ?? {};
       if (execution === undefined || checkedHost === undefined) {
