@@ -104,3 +104,39 @@ test('actual first close reports its return separately and never replaces the or
     assert.equal(result.physicalStop, undefined, 'a close return does not invent whole-Run stop');
   }
 });
+
+test('actual cold recovery consumes the same Saved Result before status and preserves its first refusal', async () => {
+  const approve = branch.alternate.body.find(node => node.type === 'IfStatement');
+  assert.equal(approve.test.left.name, 'phase');assert.equal(approve.test.right.value, 'approve');
+  const recoverBody = text.slice(approve.alternate.start, approve.alternate.end);
+  const make = new Function('ports', 'assert', `
+    const {execution,readFile,targetState,checkRows,console}=ports;
+    const phase='recover',template='churn-risk-mock',variant='readme',handoffPath='fixture-handoff';
+    let activeStep,firstFailedStep;
+    ${declaration('step')}
+    return async()=>${recoverBody};
+  `);
+  for (const fails of [false, true]) {
+    const events = [], rows = [['original-result']], ref = {run: 'fixture-original'};
+    const failure = new Error('OriginalSavedResultRefused');
+    const approved = {ref, runId: 'same-original-run', rows, after: {bytes: 'original-target'}};
+    const invoke = make({console: {log() {}},
+      readFile: async () => JSON.stringify(approved), checkRows: actual => assert.deepEqual(actual, rows),
+      targetState: async () => {events.push('target');return approved.after;},
+      execution: {ref, result(name) {
+        assert.equal(name, 'updates');return {async all() {
+          events.push('saved');if (fails) throw failure;return rows;
+        }};
+      }, async status() {
+        assert.deepEqual(events, ['saved'], 'status cannot precede the Saved read');
+        events.push('status');return {status: 'succeeded', run_id: approved.runId};
+      }},
+    }, assert);
+    if (fails) {
+      await assert.rejects(invoke, error => error === failure);
+      assert.deepEqual(events, ['saved']);
+    } else {
+      await invoke();assert.deepEqual(events, ['saved', 'status', 'target']);
+    }
+  }
+});

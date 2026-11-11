@@ -301,14 +301,15 @@ try {
         assert.deepEqual(execution.ref, approved.ref);
         return approved;
       });
+      // Saved Result must work before status can reopen a computation path.
+      await step('recover original Named Result', async () => {
+        const rows = await execution.result('updates').all();
+        checkRows(rows); assert.deepEqual(rows, approved.rows);
+      });
       await step('recover completed same Run', async () => {
         const state = await execution.status();
         assert.equal(state.status, 'succeeded');
         assert.equal(state.run_id, approved.runId);
-      });
-      await step('recover original Named Result', async () => {
-        const rows = await execution.result('updates').all();
-        checkRows(rows); assert.deepEqual(rows, approved.rows);
       });
       // Same bytes and physical inode/mtime show that completed recovery did
       // not replace this target again. This does not count Source acquisitions.
