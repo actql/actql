@@ -16,11 +16,11 @@ const body = name => {
 };
 const limits = {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20};
 
-function fixture({mixed = false, refusal} = {}) {
+function fixture({mixed = false, refusal, typed = true} = {}) {
   const calls = [], sourcePlan = {}, sourceObjects = [{}, {}];
   const originals = sourceObjects.map(() => ({}));
   const sources = sourceObjects.slice(0, mixed ? 2 : 1).map((source, index) => ({
-    sourceEvidence: originals[index], sourceEvidenceWire: `original-source-${index}`,
+    ...(typed ? {sourceEvidence: originals[index]} : {}), sourceEvidenceWire: `original-source-${index}`,
     captured: {identity: {index}, logicalInput: {},
       ...(index === 0 ? {inputKind: 'whole-input', wholeCapacity: {}} : {requirement: {}}),
       capture: {source: () => source}, checkedSource: {sourceDataPolicyCid: `policy-${index}`}},
@@ -95,8 +95,14 @@ function fixture({mixed = false, refusal} = {}) {
 test('single Whole Effect uses its original invocation and Whole Unit ports', () => {
   const f = fixture(), plan = f.invoke();
   assert.strictEqual(plan.invocationOwner, f.owner);
-  assert.deepEqual(f.calls, ['admit', 'original-invocation', 'plan', 'whole-unit']);
+  assert.deepEqual(f.calls, ['original-invocation', 'plan', 'whole-unit']);
   assert.equal(Object.hasOwn(f.sources[0].captured, 'requirement'), false);
+});
+
+test('wire-only single Whole Effect admits its Source evidence exactly once', () => {
+  const f = fixture({typed: false}), plan = f.invoke();
+  assert.strictEqual(plan.invocationOwner, f.owner);
+  assert.deepEqual(f.calls, ['admit', 'original-invocation', 'plan', 'whole-unit']);
 });
 
 test('mixed Effect preserves Query and Whole originals at their respective Unit ports', () => {

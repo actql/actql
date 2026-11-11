@@ -69,6 +69,9 @@ pub fn issue_client_compiled_whole_sources_invocation(
     is Ok(_) else {
     return Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
+  if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(@publication.RunEvidenceInvalidLimits)
+  }
   let occurrences = match
     select_client_direct_acquisition_occurrences(run.owner, max_nodes) {
     Ok(value) => value

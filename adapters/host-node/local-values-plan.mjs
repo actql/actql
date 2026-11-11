@@ -388,10 +388,12 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
 }
 
 export function acquiredEffectPublicationPlan({acquired, captured,
-  sourceEvidenceWire, captureStartedAt, captureCompletedAt, content, sourcePlan}) {
+  sourceEvidence: originalSourceEvidence, sourceEvidenceWire,
+  captureStartedAt, captureCompletedAt, content, sourcePlan}) {
   if (content === undefined && captured?.inputKind === 'whole-input') {
     return acquiredMultiEffectPublicationPlan({acquired,
-      sources: [{captured, sourceEvidenceWire}], captureStartedAt, captureCompletedAt, sourcePlan});
+      sources: [{captured, sourceEvidence: originalSourceEvidence, sourceEvidenceWire}],
+      captureStartedAt, captureCompletedAt, sourcePlan});
   }
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
