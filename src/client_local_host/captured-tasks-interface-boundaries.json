@@ -144,7 +144,7 @@
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d0f4ff57cd3b2b3d8c129259c81b2a33bf33142be0cf3e09d336c48e37451750",
+      "sha256": "b69d9ab4176f865159149e4e3c70a288f61e2713f98ada0b200ad36e6d131af9",
       "role": "common-semantics",
       "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
       "exports": [],
@@ -162,8 +162,16 @@
           "declaration": "execute_captured_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , capture : @ row_source_host . RowSourceCapture , requirements : ClientLocalRequirements , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
         },
         {
+          "name": "execute_installed_whole_source_values_guarded",
+          "declaration": "execute_installed_whole_source_values_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+        },
+        {
           "name": "execute_local_tasks_guarded",
-          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , retained_effect ? : @ strategy . CapturedEffectRunDAG ?"
+        },
+        {
+          "name": "execute_retained_effect_local_tasks_guarded",
+          "declaration": "execute_retained_effect_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , captured : @ strategy . CapturedEffectRunDAG , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
         },
         {
           "name": "execute_source_free_local_tasks_guarded",
@@ -178,7 +186,9 @@
             "close_local_values_tasks",
             "execute_captured_local_tasks_guarded",
             "execute_local_tasks_guarded",
-            "execute_source_free_local_tasks_guarded"
+            "execute_source_free_local_tasks_guarded",
+            "execute_installed_whole_source_values_guarded",
+            "execute_retained_effect_local_tasks_guarded"
           ],
           "exports": [],
           "attributes": {

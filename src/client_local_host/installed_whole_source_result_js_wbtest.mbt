@@ -7,6 +7,7 @@ fn whole_source_result_publication_fixture(
   filtered_root? : Bool = false,
   filtered_rows? : Bool = false,
   native_geometry? : Bool = false,
+  native_execution? : Bool = false,
 ) -> Unit raise {
   let declaration = pure_provider_declaration()
   let document = if filtered_rows {
@@ -386,8 +387,47 @@ fn whole_source_result_publication_fixture(
     [captured],
   ).unwrap()
   let publication = reserve_program_publication(owner, prepared).unwrap()
+  if native_execution {
+    let foreign = { ..owner, }
+    let callbacks = Ref(0)
+    let check = () => {
+      callbacks.val = callbacks.val + 1
+      true
+    }
+    let copied = execute_installed_whole_source_values_guarded(
+      foreign, prepared, request, host, 64, 10000, check,
+    )
+    assert_true(
+      copied is Err(original) &&
+      local_values_execution_failure_issue(original) is UnsupportedGraph,
+    )
+    let bound = owner.source_free_captured
+    owner.source_free_captured = None
+    let unbound = execute_installed_whole_source_values_guarded(
+      owner, prepared, request, host, 64, 10000, check,
+    )
+    owner.source_free_captured = bound
+    assert_true(
+      unbound is Err(original) &&
+      local_values_execution_failure_issue(original) is UnsupportedGraph,
+    )
+    assert_eq(callbacks.val, 0)
+    assert_eq(@strategy.next_captured_task(dag), Some(0))
+  }
   let execution = match
-    execute_source_free_values_guarded(host, 64, 10000, () => true) {
+    (if native_execution {
+      execute_installed_whole_source_values_guarded(
+        owner,
+        prepared,
+        request,
+        host,
+        64,
+        10000,
+        () => true,
+      )
+    } else {
+      execute_source_free_values_guarded(host, 64, 10000, () => true)
+    }) {
     Ok(value) => value
     Err(original) => {
       let label = match local_values_execution_failure_issue(original) {
@@ -646,4 +686,13 @@ test "root Source preserves its actual filter and Result while acquiring the com
 ///|
 test "Native Whole bridge borrows its SAME physical Plan geometry and task-loop inventory" {
   whole_source_result_publication_fixture(false, native_geometry=true)
+}
+
+///|
+test "Native Whole execution retains its bound Plan and refuses copied or unbound Runs" {
+  whole_source_result_publication_fixture(
+    false,
+    native_geometry=true,
+    native_execution=true,
+  )
 }

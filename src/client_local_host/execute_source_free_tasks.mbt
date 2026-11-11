@@ -57,6 +57,45 @@ pub fn execute_source_free_local_tasks_guarded(
 }
 
 ///|
+/// Execute the single original root supplied by this retained Whole Source
+/// Plan. Equal Graphs or a Host from another Run cannot replace its binding.
+/// Source custody remains with the caller through execution and cleanup.
+pub fn execute_installed_whole_source_values_guarded(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+  require_current : () -> Bool,
+) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  guard installed_managed_preparation_admission_original(
+      owner, prepared, request,
+    )
+    is Some(_) &&
+    owner.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    !plan.whole_sources.is_empty() &&
+    owner.source_free_captured is Some(original) &&
+    physical_equal(original, run) &&
+    physical_equal(plan.graph, @strategy.captured_dag_graph(run)) &&
+    @strategy.graph_task_count(plan.graph) == 1 &&
+    @strategy.source_inputs_dag_matches_original(
+      plan.graph,
+      @publication_host.prepared_client_graph(prepared),
+    ) else {
+    return Err(failed_local_values_execution(UnsupportedGraph))
+  }
+  execute_source_free_values_guarded(
+    setup, finalization_quantum, max_finalization_rounds, require_current,
+  )
+}
+
+///|
 /// Continue only the original checked Effect computation. Completed Source
 /// and Model tasks stay on this same captured DAG; they are not dispatched
 /// again. The caller keeps their original output uses until this execution's

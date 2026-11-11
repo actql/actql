@@ -3,6 +3,8 @@
 - Responsibility: the existing Local adapter advances the checked DAG and its
   installed managed operations. The source-free entrance retains its zero-Source
   guard; the captured entrance accepts exactly one original Row Query capture.
+  The single-task Whole entrance instead requires the same retained managed
+  Plan, Prepared, Request and configured DAG with its original complete input.
 - Inputs and outputs: the captured entrance consumes the configured retained
   Host, its exact checked requirements, the original RowSourceCapture and finite
   finalization limits. It returns the existing LocalValuesExecution or the same
@@ -30,7 +32,7 @@
   Source is constructed. The Row custody observer allocates no inventory and
   issues no capacity, token, ownership or cleanup acknowledgement.
 - Extension: extra Sources, Model and Effect work are outside this entrance.
-  Captured inputs without existing cell access, supplied roots and Carrier
+  Captured inputs without existing cell access and Carrier
   snapshots are not reconstructed here. Native Account/Journal orchestration,
   actual file capture, publication and CLI admission stay with their owners;
   this Common bridge does not wire or enable a product command.
@@ -38,6 +40,17 @@
   downstream managed edge, exact-identity refusals, verifier reentry, sticky
   failure and Source-preserving cleanup. Source-free task/requirements and
   whole-input Result tests remain consuming regression checks.
+
+The Whole entrance executes its original root through the existing single-task
+executor. It does not assert that a supplied Source is source-free or relax the
+ordinary task-loop predicate. A copied managed Run, a missing bound DAG or an
+equal Graph cannot supply this entry. The same original execution retains its
+Source borrow, typed failure and cleanup; no compilation, admission, resource
+reservation, currentness closure or Run is created by this projection. The
+caller keeps the Source owner alive until execution and dependent Result
+cleanup finish. Multi-task Whole execution remains outside this single-task
+entry. The existing retained Effect continuation separately requires its
+original captured Effect Run; it cannot enter the ordinary Whole projection.
 
 ## Captured suffix capacity
 

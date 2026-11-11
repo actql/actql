@@ -158,6 +158,14 @@ the Program into a Query/source-free purpose. Logical Work cleanup drops the
 borrowed prepared binding before the original execution returns its physical
 context. Only that original parent can acknowledge/report physical retirement.
 
+A single-task Whole input executes through the retained Plan's same configured
+DAG and existing single-task Local executor. Its original root still performs
+every authored operation. The Source-free task loop retains its zero-Source
+predicate; a supplied input is not relabeled to satisfy that predicate. The
+Whole projection checks the original Plan/Prepared/Request/DAG binding before
+entering execution and refuses copied or unbound Runs without observing a
+replacement current callback.
+
 Source publication identifies the complete captured input using its retained
 acquisition bounds, independently of a narrower aggregate Result. The original
 input CID and effective publication policy travel with the same sealed
