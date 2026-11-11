@@ -12,6 +12,7 @@ import {installLocalPreparationRegistry} from './local-preparation-registry.mjs'
 import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {checkedLocalOutputLimits, localOutputLimits} from './local-values-plan.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
+import {snapshotRequestMemory} from './installed-host-policy.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')};
@@ -380,7 +381,7 @@ function remoteOpeningFixture(failure) {
     retainInstalledHostRuntimeFailure,
     clientOperationError: code => Object.assign(new Error(code), {code}),
     snapshotInstalledCalendar: x => x, snapshotHostCapacityPolicy: x => x,
-    snapshotHostLookupExecutionPolicy: x => x,
+    snapshotHostLookupExecutionPolicy: x => x, snapshotRequestMemory,
     runtimeUrl: new URL('data:text/javascript,export const componentRuntime = true'),
     async openInstalledHost(installation, preparation) {
       events.push('open');
