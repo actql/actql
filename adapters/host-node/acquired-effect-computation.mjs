@@ -176,10 +176,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       // failed close. Retain the captured source until consumers are gone.
       let failure, failed = false;
       try {
-        // A rejected publication can still borrow these original Model outputs.
-        // Retire its exact bindings/issuer/capacity before their parent cleanup;
-        // restored output pins and unfinished/successful publication stay separate.
-        if (modelGroup !== undefined) await modelGroup.retireFailedPublication();
+        // Final dependency consumption keeps these original Model bindings live
+        // until this enclosing close, even when preparation itself succeeded.
+        // Retire the same publication borrow before parent Model cleanup; actual
+        // restored output pins still require their separate parent retirement.
+        if (modelGroup !== undefined) await modelGroup.retirePublication();
         await (execution ?? recovery)?.close();
       }
       catch (error) { failure = error; failed = true; }
@@ -196,7 +197,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       if (!pending) return true;
       if (!closed || !settled) return false;
       if (!retireUnenteredCompute()) return false;
-      if (modelGroup !== undefined && !await modelGroup.retireFailedPublication()) return false;
+      if (modelGroup !== undefined && !await modelGroup.retirePublication()) return false;
       if (unresolved && restoredModelOutput === undefined && !modelGroup?.hasOutputPins()) return false;
       const physical = execution ?? recovery;
       let physicalRetired = false;
@@ -1187,9 +1188,6 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       return failed?.component.failure();
     },
     persist: persistPublication,
-    // Only the actual rejected preparation opens this cleanup ordering seam.
-    // No caller flag admits it; this does not release restored output pins.
-    retireFailedPublication: () => publicationFailed ? retirePublication() : true,
     retirePublication, cleanup, cleanupPending: pending,
   });
 }

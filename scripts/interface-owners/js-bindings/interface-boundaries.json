@@ -32433,7 +32433,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "99b283dcb4cb33c1d580679251c4f8c36ea9faad3e97aa98a2a06848ca835e84",
+      "sha256": "f48bd080e46208e4046e54a7d7d368cbe422248dd340a9f7c176ab84fae0d86a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32508,11 +32508,6 @@
         },
         {
           "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#5",
           "parameters": [],
           "async": false
         },
@@ -33304,8 +33299,7 @@
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
-            "acquiredEffectModelGroup/retirePublication/retirePublication",
-            "acquiredEffectModelGroup/acquiredEffectModelGroup#5"
+            "acquiredEffectModelGroup/retirePublication/retirePublication"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -33399,6 +33393,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "adapters/host-node/acquired-model-failed-publication-close.test.mjs",
+                "anchor": "enclosing close awaits the same unfinished publication"
               }
             ],
             "failure": [
@@ -33425,6 +33423,10 @@
               {
                 "path": "adapters/host-node/acquired-model-failed-publication-close.test.mjs",
                 "anchor": "failed publication stop throw preserves its exact failure"
+              },
+              {
+                "path": "adapters/host-node/acquired-model-failed-publication-close.test.mjs",
+                "anchor": "successful plural preparation keeps original evidence until enclosing close"
               }
             ],
             "cancellation": [
@@ -157914,7 +157916,7 @@
   ],
   "counts": {
     "modules": 59,
-    "operations": 4544,
+    "operations": 4543,
     "exports": 621,
     "explicitContractGroups": 914
   }

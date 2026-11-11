@@ -15,8 +15,9 @@ const declaration=name=>{
   const node=outer.body.body.find(node=>node.type==='VariableDeclaration'&&node.declarations.some(d=>d.id.name===name));
   assert(node,`original ${name}`);return source.slice(node.start,node.end);
 };
-function fixture(){
+function fixture({publicationSuccess=false,deferPublication=false}={}){
   const events=[],contexts=[],binding={},issuance={},primary=new Error('OriginalModelEffectEvidenceRejected');
+  let entered,release;const preparationEntered=new Promise(resolve=>{entered=resolve;}),preparationPending=new Promise(resolve=>{release=resolve;});
   const flags={binding:true,issuer:true,stop:true,capture:true,capacity:true};
   const stopped=[false,false],retired=[false,false];let borrowed=true,closeStarted=false,physicalClosed=false,persistCalls=0;
   const selections=Object.freeze([0,1].map(index=>Object.freeze({graph:{index},occurrence:{},observeAccount:()=>({})})));
@@ -42,11 +43,11 @@ function fixture(){
         async cleanup(){assert(!borrowed);return true;},cleanupPending:()=>borrowed},
     };},
     startCompleteInferObservation(){return issuance;},
-    async acquiredInferEffectPublicationPlan(options){options.retainBinding(binding);throw primary;},
-    preparePrivatePublicationHolding(){assert.fail('Rejected semantic publication must not create a holding');},
+    async acquiredInferEffectPublicationPlan(options){options.retainBinding(binding);entered();if(deferPublication)await preparationPending;if(!publicationSuccess)throw primary;return {plan:{original:true},observation:{name:'run_observation',wire:'{}',identity:'observation'},invocation:{name:'run_invocation',wire:'{}',identity:'invocation'}};},
+    preparePrivatePublicationHolding(){assert(publicationSuccess);return {async commit(){events.push('commit');}};},
   };
   const group=Function(...Object.keys(ports),'return ('+source.slice(groupFunction.start,groupFunction.end)+');')(...Object.values(ports))({
-    moon,acquired:{control:{runDefinitionRunId:()=> 'fixture'}},infer:{components:selections},
+    moon,acquired:{control:{runDefinitionRunId:()=> 'fixture',modelPrivateHoldingCid:(_definition,_authority,name)=>name}},infer:{components:selections},
     originalModelComponents:components,originalModelSelection:{components:selections},
     originalPreparation:{components:preparations},plan,modelController:{},current(){},
   });
@@ -66,7 +67,8 @@ function fixture(){
     ${declaration('custody')}
     return custody;
   `)(...Object.values(outerPorts));
-  return {group,custody,flags,events,primary,persistCalls:()=>persistCalls,
+  return {group,custody,flags,events,primary,preparationEntered,releasePreparation:()=>release(),persistCalls:()=>persistCalls,
+    async succeed(){for(const context of contexts)context.retainCompleted();return group.persist();},
     async fail(){for(const context of contexts)context.retainCompleted();await assert.rejects(group.persist(),e=>e===primary);assert.equal(group.hasOutputPins(),true);}};
 }
 
@@ -102,7 +104,30 @@ test('failed publication stop throw preserves its exact failure and all downstre
   assert.equal(f.persistCalls(),2);
 });
 
-test('unfinished publication cannot retire originals through the failed-only entrance',async()=>{
-  const f=fixture();assert.equal(await f.group.retireFailedPublication(),true);
-  assert.deepEqual(f.events,[]);assert.equal(f.persistCalls(),0);
+test('successful plural preparation keeps original evidence until enclosing close after downstream consumer failure',async()=>{
+  const f=fixture({publicationSuccess:true});
+  const plan=await f.succeed();assert.equal(plan.original,true);
+  assert.equal(f.group.hasOutputPins(),true);
+  assert(!f.events.includes('binding'),'final dependency consumption still owns the original before close');
+  // The outer caller failed after accepting this prepared plan. It invokes
+  // its original cleanup owner; no repeated preparation or public call follows.
+  await f.custody.close();assert.equal(await f.custody.cleanup(),true);
+  assert.equal(f.custody.cleanupPending(),false);
+  assert(f.events.indexOf('capacity')<f.events.indexOf('parent-close'));
+  assert.equal(f.persistCalls(),2);
+});
+
+
+test('enclosing close awaits the same unfinished publication before retiring its original borrow',async()=>{
+  const f=fixture({publicationSuccess:true,deferPublication:true});
+  const preparing=f.succeed().then(value=>({value}),error=>({error}));
+  await f.preparationEntered;
+  const closing=f.custody.close();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert(!f.events.includes('binding'));assert(!f.events.includes('parent-close'));assert(!f.events.includes('source'));
+  f.releasePreparation();
+  const result=await preparing;assert.equal(result.error?.message,'InstalledEffectModelPublicationRetired');
+  await closing;assert.equal(await f.custody.cleanup(),true);
+  assert.equal(f.persistCalls(),2);assert(!f.events.includes('commit'),'close cannot start another private write');
+  assert.equal(f.events.filter(event=>event==='parent-close').length,1);
 });
