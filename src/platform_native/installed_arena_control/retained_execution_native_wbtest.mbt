@@ -32,6 +32,7 @@ test "retained execution preserves pending original identity and parent fence" {
     ledger: None,
     initialization_cleanup: None,
     owns_read: false,
+    nonmodel_prepared_work_selected: false,
     child_started: false,
     active: false,
     scope_failed: false,

@@ -8,7 +8,7 @@
 //   must be recensused if its constructor chain changes.
 // * Canonical reserve/current frontier: H26/R20/S60. The token and new usage
 //   remain Read-owned; this is not another reservation in the business Ledger.
-// * Arena entry, self-marker Ref/Some and borrowed Ledger Some: H4/R11/S8.
+// * Arena entry, self-marker Ref/Some and borrowed Ledger Some: H5/R12/S8.
 // * Arena Ready/Pending, Result and Some: H3/R3/S3.
 // * Client entry/access/source projections and inert refusals: H9/R27/S10.
 //   Includes two preowned current/export scalar Errs and their entry fields.
@@ -49,7 +49,7 @@ pub fn native_relation_file_entry_read_capacity(
   guard @execution.preparation_representation_cost({
       record_headers: 12L +
       26L +
-      4L +
+      5L +
       3L +
       9L +
       4L +
@@ -63,7 +63,7 @@ pub fn native_relation_file_entry_read_capacity(
       9L,
       reference_slots: 2L +
       20L +
-      11L +
+      12L +
       3L +
       27L +
       7L +

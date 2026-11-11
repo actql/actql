@@ -1,7 +1,18 @@
 ///|
-/// A pre-owned byte reservation on this exact existing execution, not a Run,
+// Closed installed assembly: the prepared branch borrows the exact existing
+// body debit. Its private predicate captures original admission/Prepared/Ledger,
+// never a caller-supplied callback, amount-only proof or second byte token.
+priv enum NonModelWorkEntryCapacity {
+  DedicatedNonModelWorkCapacity(@resources.CapacityReservation)
+  PreparedNonModelWorkCapacity((Int64, Int64) -> Bool)
+  RetiredPreparedNonModelWorkCapacity
+}
+
+///|
+/// A pre-owned byte reservation or prepared-body view on this exact execution,
+/// not a Run,
 /// Model census, scope owner or physical retirement acknowledgement. All fields
-/// and the token are allocated in the same original Host Read preparation.
+/// and the view are allocated in the same original Host Read preparation.
 struct InstalledArenaNonModelWorkEntry {
   original : Ref[InstalledArenaNonModelWorkEntry?]
   host : InstalledArenaHost
@@ -9,7 +20,7 @@ struct InstalledArenaNonModelWorkEntry {
   read : InstalledArenaOriginalRead
   execution : InstalledArenaRetainedExecution
   ledger : @resources.Ledger
-  control : @resources.CapacityReservation
+  mut control : NonModelWorkEntryCapacity
   ledger_view : @resources.Ledger?
   mut retained_bytes : Int64
   mut execution_bytes : Int64
@@ -171,7 +182,7 @@ pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(
     read,
     execution,
     ledger,
-    control,
+    control: DedicatedNonModelWorkCapacity(control),
     ledger_view: Some(ledger),
     retained_bytes,
     execution_bytes,
@@ -192,6 +203,113 @@ pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(
     // Failed normal entry remains cleanup-only on this exact token.
     entry.finished = true
     Some(Ok(PendingNonModelWorkEntry(entry)))
+  }
+}
+
+///|
+/// Borrow the SAME prepared body's reservation for one fixed Native Work.
+/// The complete additional Work envelope is supplied before its constructor.
+/// No second reservation, admission, attempt or physical cleanup owner exists.
+/// A failed resize retains this entry as cleanup-only, never silently retries.
+pub fn[P] InstalledArenaHost::prepare_domain_nonmodel_prepared_work_entry(
+  self : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+  admission : @resources.PreparedRunAdmission[P],
+  prepared : P,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  InstalledArenaNonModelWorkEntryAcquisition,
+  InstalledArenaNonModelWorkEntryIssue,
+]? {
+  if !self.nonmodel_entry_scopes_match(pair, read, execution, false, false) {
+    return None
+  }
+  guard !execution.nonmodel_prepared_work_selected &&
+    retained_bytes > 0L &&
+    execution_bytes > 0L &&
+    execution.ledger is Some(ledger) else {
+    return Some(Err(Unavailable))
+  }
+  let (base_r, base_e) = match
+    @resources.prepared_run_native_capacity(admission, prepared, ledger) {
+    Err(_) => return Some(Err(Unavailable))
+    Ok(value) => value
+  }
+  // The original grow below owns isolation and current exactly once. Do not
+  // precede it with the callbackful admission/usage observer.
+  if retained_bytes > 9223372036854775807L - base_r ||
+    execution_bytes > 9223372036854775807L - base_e {
+    return Some(Err(Unavailable))
+  }
+  let target_r = base_r + retained_bytes
+  let target_e = base_e + execution_bytes
+  // Retain the original binding before the only callbackful grow. This view
+  // can be dropped only after its own logical children close; it cannot ACK C.
+  let entry : InstalledArenaNonModelWorkEntry = {
+    original: Ref(None),
+    host: self,
+    pair,
+    read,
+    execution,
+    ledger,
+    control: PreparedNonModelWorkCapacity((r, e) => {
+      if r != retained_bytes || e != execution_bytes {
+        return false
+      }
+      match
+        @resources.prepared_run_native_capacity(admission, prepared, ledger) {
+        Err(_) => false
+        Ok((actual_r, actual_e)) => actual_r >= target_r && actual_e >= target_e
+      }
+    }),
+    ledger_view: Some(ledger),
+    retained_bytes,
+    execution_bytes,
+    growing: true,
+    constructor_entered: false,
+    claimed: false,
+    finished: false,
+    settled: false,
+    closed: false,
+  }
+  entry.original.val = Some(entry)
+  execution.nonmodel_prepared_work_selected = true
+  let grown = @resources.reserve_prepared_run_native_work_capacity(
+    admission, prepared, ledger, target_r, target_e,
+  )
+  entry.growing = false
+  if grown is Ok(_) &&
+    self.nonmodel_entry_scopes_match(pair, read, execution, false, false) &&
+    entry.capacity_original_matches() {
+    Some(Ok(ReadyNonModelWorkEntry(entry)))
+  } else {
+    entry.finished = true
+    entry.control = RetiredPreparedNonModelWorkCapacity
+    Some(Ok(PendingNonModelWorkEntry(entry)))
+  }
+}
+
+///|
+// Dedicated tokens use their original nominal check. Prepared views execute
+// only the private pure original-extent getter inside their funded boundary;
+// no external current callback or mutable Ledger borrower is introduced.
+fn InstalledArenaNonModelWorkEntry::capacity_original_matches(
+  self : Self,
+) -> Bool {
+  match self.control {
+    DedicatedNonModelWorkCapacity(control) =>
+      @resources.capacity_reservation_matches(
+        self.ledger,
+        control,
+        self.retained_bytes,
+        self.execution_bytes,
+      )
+    PreparedNonModelWorkCapacity(matches) =>
+      matches(self.retained_bytes, self.execution_bytes)
+    RetiredPreparedNonModelWorkCapacity => false
   }
 }
 
@@ -224,6 +342,9 @@ pub fn InstalledArenaNonModelWorkEntry::grow_in_original_read(
     self.owns_only_control() else {
     return Err(Unavailable)
   }
+  guard self.control is DedicatedNonModelWorkCapacity(control) else {
+    return Err(Unavailable)
+  }
   self.growing = true
   defer {
     self.growing = false
@@ -231,7 +352,7 @@ pub fn InstalledArenaNonModelWorkEntry::grow_in_original_read(
   match
     @resources.grow_capacity_reservation(
       self.ledger,
-      self.control,
+      control,
       retained_bytes,
       execution_bytes,
     ) {
@@ -276,12 +397,7 @@ fn InstalledArenaNonModelWorkEntry::constructor_capacity_original(
       self.ledger_view is Some(view) &&
       physical_equal(original, view) &&
       physical_equal(original, self.ledger) &&
-      @resources.capacity_reservation_matches(
-        self.ledger,
-        self.control,
-        self.retained_bytes,
-        self.execution_bytes,
-      )
+      self.capacity_original_matches()
   }
 }
 
@@ -317,6 +433,9 @@ pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(
     ) else {
     return Err(Unavailable)
   }
+  guard self.control is DedicatedNonModelWorkCapacity(control) else {
+    return Err(Unavailable)
+  }
   self.growing = true
   defer {
     self.growing = false
@@ -339,7 +458,7 @@ pub fn InstalledArenaNonModelWorkEntry::prepare_constructor_in_entered_scope(
   match
     @resources.grow_capacity_reservation(
       self.ledger,
-      self.control,
+      control,
       retained_bytes,
       execution_bytes,
     ) {
@@ -396,8 +515,9 @@ pub fn InstalledArenaNonModelWorkEntry::constructor_scope_for(
 }
 
 ///|
-/// Return a preallocated view only in the exact funded business scope. Invalid
-/// and reused calls return inline None before any allocating current observer.
+/// Return the preallocated Ledger view only in the exact funded business scope.
+/// Invalid/copy/reused calls refuse before the private prepared-extent getter.
+/// That getter allocates bounded DATA but never observes external current.
 /// This never weakens the ordinary entered-only Ledger-borrow API.
 pub fn InstalledArenaNonModelWorkEntry::take_entered_ledger(
   self : InstalledArenaNonModelWorkEntry,
@@ -413,19 +533,14 @@ pub fn InstalledArenaNonModelWorkEntry::take_entered_ledger(
     !physical_equal(self.execution, execution) ||
     self.retained_bytes != retained_bytes ||
     self.execution_bytes != execution_bytes ||
-    !@resources.capacity_reservation_matches(
-      self.ledger,
-      self.control,
-      retained_bytes,
-      execution_bytes,
-    ) ||
     !self.host.nonmodel_entry_scopes_match(
       self.pair,
       self.read,
       execution,
       true,
       false,
-    ) {
+    ) ||
+    !self.capacity_original_matches() {
     return None
   }
   self.claimed = true
@@ -439,12 +554,8 @@ pub fn InstalledArenaNonModelWorkEntry::owns_only_control(
 ) -> Bool {
   if !self.is_original() ||
     self.closed ||
-    !@resources.capacity_reservation_matches(
-      self.ledger,
-      self.control,
-      self.retained_bytes,
-      self.execution_bytes,
-    ) {
+    !(self.control is DedicatedNonModelWorkCapacity(_)) ||
+    !self.capacity_original_matches() {
     return false
   }
   let usage = @resources.ledger_usage(self.ledger)
@@ -464,7 +575,7 @@ pub fn InstalledArenaNonModelWorkEntry::owns_only_control(
 
 ///|
 /// Observe only this original token's already-entered business scope. No
-/// callback, allocation, admission, scope transition or cleanup ACK occurs.
+/// external current callback, admission, scope transition or cleanup ACK occurs.
 pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(
   self : InstalledArenaNonModelWorkEntry,
   cleanup : Bool,
@@ -474,24 +585,27 @@ pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(
   !self.settled &&
   self.claimed &&
   (cleanup || !self.finished) &&
-  @resources.capacity_reservation_matches(
-    self.ledger,
-    self.control,
-    self.retained_bytes,
-    self.execution_bytes,
-  ) &&
   self.host.nonmodel_entry_scopes_match(
     self.pair,
     self.read,
     self.execution,
     true,
     cleanup,
+  ) &&
+  (
+    (
+      cleanup &&
+      self.finished &&
+      self.control is RetiredPreparedNonModelWorkCapacity
+    ) ||
+    self.capacity_original_matches()
   )
 }
 
 ///|
 /// Record only completion of this borrower's logical children. It does not
-/// settle capacity, leave a scope, retire aliases or acknowledge a C context.
+/// settle capacity, leave a scope or acknowledge a C context. A prepared-body
+/// view drops its heavy original binding here before parent retirement.
 pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(
   self : InstalledArenaNonModelWorkEntry,
 ) -> Bool {
@@ -509,6 +623,9 @@ pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(
     return false
   }
   self.finished = true
+  if self.control is PreparedNonModelWorkCapacity(_) {
+    self.control = RetiredPreparedNonModelWorkCapacity
+  }
   true
 }
 
@@ -534,7 +651,13 @@ pub fn InstalledArenaNonModelWorkEntry::cancel_unclaimed_in_original_read(
     ) {
     return false
   }
-  match @resources.settle_capacity(self.ledger, self.control) {
+  guard self.control is DedicatedNonModelWorkCapacity(control) else {
+    self.control = RetiredPreparedNonModelWorkCapacity
+    self.closed = true
+    self.original.val = None
+    return true
+  }
+  match @resources.settle_capacity(self.ledger, control) {
     Err(_) => false
     Ok(_) => {
       self.closed = true
@@ -556,6 +679,25 @@ pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
   if self.closed {
     return true
   }
+  if self.control is PreparedNonModelWorkCapacity(_) {
+    return false
+  }
+  if self.control is RetiredPreparedNonModelWorkCapacity {
+    if !self.is_original() ||
+      self.growing ||
+      (self.claimed && !self.finished) ||
+      !self.execution.physical_retired ||
+      !self.execution.reported ||
+      !self.execution.closed {
+      return false
+    }
+    self.closed = true
+    self.original.val = None
+    return true
+  }
+  guard self.control is DedicatedNonModelWorkCapacity(control) else {
+    return false
+  }
   if !self.is_original() ||
     self.growing ||
     retained_execution_control_scope_clear_ffi() != 1 ||
@@ -572,7 +714,7 @@ pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
     return false
   }
   if !self.settled {
-    match @resources.settle_capacity(self.ledger, self.control) {
+    match @resources.settle_capacity(self.ledger, control) {
       Err(_) => return false
       Ok(_) => self.settled = true
     }

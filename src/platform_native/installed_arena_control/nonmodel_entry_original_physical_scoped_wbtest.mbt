@@ -60,12 +60,7 @@ fn nonmodel_eligible_original_work(
       pair, read, execution, true, false,
     ) &&
     entry.owns_only_control() &&
-    @resources.capacity_reservation_matches(
-      entry.ledger,
-      entry.control,
-      control_bytes,
-      control_bytes,
-    ) &&
+    entry.capacity_original_matches() &&
     !entry.claimed &&
     !entry.finished &&
     !entry.settled &&
@@ -133,15 +128,22 @@ fn nonmodel_physical_entry_case(
   constructing? : Bool = false,
   whole_read_frame? : Bool = false,
   windowed? : Bool = false,
+  prepared_body? : Bool = false,
+  prepared_refusal? : Bool = false,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
   let page = domain_page_bytes()
   // Direct arena preparation adds the two constructor/grow state words;
   // its actual shallow copy retains those same two words as DATA.
-  // H34/R42/S81 includes both original and copy before consumer admission.
-  let read_entry_bytes = 34L * 16L + 42L * 8L + 81L * 8L
-  assert_eq(read_entry_bytes, 1528L)
+  // H36/R44/S81 includes both original and shallow copy's new private
+  // dedicated-capacity variants. The distinct prepared case adds a finite
+  // test-owned 4096-byte call frame; it is not an ordinary caller quote.
+  let read_entry_bytes = 36L * 16L +
+    44L * 8L +
+    81L * 8L +
+    (if prepared_body { 4096L } else { 0L })
+  assert_eq(read_entry_bytes, 1576L + (if prepared_body { 4096L } else { 0L }))
   // Successful direct enter-after-C plus leave-before-C: H8/R4/S10.
   // This reservation remains open until actual business C retirement.
   let control_bytes = 8L * 16L + 4L * 8L + 10L * 8L
@@ -187,7 +189,7 @@ fn nonmodel_physical_entry_case(
     transfer_bytes: 4096L,
     // This distinct constructor case admits its real current/backing/resize
     // frame plus the retained String; original take-only cases stay unchanged.
-    retained_bytes: if constructing {
+    retained_bytes: if constructing || prepared_body {
       16L * page
     } else {
       page
@@ -301,11 +303,28 @@ fn nonmodel_physical_entry_case(
   host.prepare_domain_read(read_domain).unwrap()
   host.prepare_domain_read(sqlite_domain).unwrap()
   host.prepare_domain_read(business_domain).unwrap()
-  let execution = match
-    host.prepare_domain_retained_execution(business_domain).unwrap() {
-    ReadyRetainedExecution(value) => value
-    PendingRetainedExecution(_, _) =>
-      fail("eligible entry: original execution pending")
+  let input = Ref(71)
+  let mut initial : @resources.BackedPreparationAdmission[Ref[Int]]? = None
+  let execution = if prepared_body {
+    match
+      host
+      .prepare_domain_retained_request_execution(business_domain, input, {
+        bootstrap_retained: 4096L,
+        bootstrap_execution: 4096L,
+      })
+      .unwrap() {
+      ReadyRequestExecution(value, original) => {
+        initial = Some(original)
+        value
+      }
+      PendingRequestExecution(_, _) => fail("prepared entry: Request pending")
+    }
+  } else {
+    match host.prepare_domain_retained_execution(business_domain).unwrap() {
+      ReadyRetainedExecution(value) => value
+      PendingRetainedExecution(_, _) =>
+        fail("eligible entry: original execution pending")
+    }
   }
   let read = match
     host
@@ -335,7 +354,17 @@ fn nonmodel_physical_entry_case(
       1024L * page + read_entry_bytes,
     )
     .unwrap()
-  let proved = if windowed {
+  let proved = if initial is Some(original) {
+    nonmodel_prepared_original_work(
+      host,
+      pair,
+      read,
+      execution,
+      original,
+      input,
+      refuse=prepared_refusal,
+    )
+  } else if windowed {
     nonmodel_windowed_original_work(host, pair, read, execution)
   } else if constructing {
     nonmodel_constructor_original_work(host, pair, read, execution)
@@ -650,4 +679,132 @@ fn nonmodel_windowed_original_work(
 ///|
 test "windowed application backs its original constructor before byte growth" {
   nonmodel_physical_entry_case(true, constructing=true, windowed=true)
+}
+
+///|
+// Real Native backing/Request/body/entry handoff. This Ref body and fixed
+// 240-byte Work DATA are component-only; no Source IO, Account, Journal,
+// business Run, publication or ordinary execution is asserted by this case.
+fn nonmodel_prepared_original_work(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+  initial : @resources.BackedPreparationAdmission[Ref[Int]],
+  input : Ref[Int],
+  refuse? : Bool = false,
+) -> Bool raise {
+  let ledger = @resources.start_backed_preparation_admission(initial, input).unwrap()
+  let capacity : @resources.PreparationCapacity[Ref[Int], Ref[Int]] = @resources.reserve_preparation_capacity_inventory(
+    ledger,
+    input,
+    16384L,
+    16384L,
+    max_borrowers=4,
+  ).unwrap()
+  let body = Ref(73)
+  @resources.complete_preparation_capacity(capacity, input, body, 4096L, 4096L).unwrap()
+  let (original, same, retirement, holder) = @resources.adopt_backed_preparation_admission(
+    initial, input, capacity, body,
+  ).unwrap()
+  assert_true(physical_equal(ledger, same))
+  let admission = @resources.backed_prepared_run_admission(original)
+  let before = @resources.ledger_usage(ledger)
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  let work_bytes = if refuse { 1048576L } else { 240L }
+  let entry = match
+    host.prepare_domain_nonmodel_prepared_work_entry(
+      pair, read, execution, admission, body, work_bytes, work_bytes,
+    ) {
+    Some(Ok(ReadyNonModelWorkEntry(value))) if !refuse => value
+    Some(Ok(PendingNonModelWorkEntry(value))) if refuse => value
+    _ => fail("prepared entry: unexpected original acquisition")
+  }
+  let copy = { ..entry, }
+  assert_false(copy.is_original())
+  assert_false(entry.owns_only_control())
+  assert_false(entry.settled)
+  assert_true(
+    host.prepare_domain_nonmodel_prepared_work_entry(
+      pair, read, execution, admission, body, 240L, 240L,
+    )
+    is Some(Err(Unavailable)),
+  )
+  if refuse {
+    assert_true(entry.control is RetiredPreparedNonModelWorkCapacity)
+    assert_true(entry.finished && !entry.claimed && !entry.settled)
+    let failed = @resources.ledger_usage(ledger)
+    assert_eq(failed.live_reservations, before.live_reservations)
+    assert_eq(failed.reserved_retention_bytes, before.reserved_retention_bytes)
+    assert_eq(failed.reserved_execution_bytes, before.reserved_execution_bytes)
+    assert_false(copy.cancel_unclaimed_in_original_read())
+    assert_true(entry.cancel_unclaimed_in_original_read())
+    assert_eq(@resources.ledger_usage(ledger), failed)
+    assert_true(
+      host.prepare_domain_nonmodel_prepared_work_entry(
+        pair, read, execution, admission, body, 240L, 240L,
+      )
+      is Some(Err(Unavailable)),
+    )
+    host.leave_local_host_phase(pair).unwrap()
+    assert_false(@resources.retire_transferred_preparation(retirement).unwrap())
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    assert_true(@resources.release_backed_preparation_holder(original).unwrap())
+    assert_true(@resources.retire_transferred_preparation(retirement).unwrap())
+    host.close_domain_retained_execution(execution).unwrap()
+    @resources.cleanup_backed_prepared_run_admission(original).unwrap()
+    return true
+  }
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_eq(
+    after.reserved_retention_bytes,
+    before.reserved_retention_bytes + 240L,
+  )
+  assert_eq(
+    after.reserved_execution_bytes,
+    before.reserved_execution_bytes + 240L,
+  )
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.planning_work, before.planning_work)
+  host.leave_local_host_phase(pair).unwrap()
+  host.enter_domain_retained_execution(execution).unwrap()
+  assert_true(copy.take_entered_ledger(execution, 240L, 240L) is None)
+  assert_true(
+    entry.take_entered_ledger(execution, 240L, 240L) is Some(actual) &&
+    physical_equal(actual, ledger),
+  )
+  assert_true(entry.take_entered_ledger(execution, 240L, 240L) is None)
+  assert_true(entry.matches_business_scope(false))
+  assert_true(entry.finish_business_cleanup())
+  // Logical completion cuts its heavy original binding, never settles the
+  // parent's debit or claims that a live Native context has physically closed.
+  assert_true(entry.control is RetiredPreparedNonModelWorkCapacity)
+  assert_false(entry.close_after_original_return())
+  assert_eq(
+    @resources.ledger_usage(ledger).live_reservations,
+    before.live_reservations,
+  )
+  host.leave_domain_retained_execution(execution).unwrap()
+  assert_false(@resources.retire_transferred_preparation(retirement).unwrap())
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  assert_true(@resources.release_backed_preparation_holder(original).unwrap())
+  assert_true(@resources.retire_transferred_preparation(retirement).unwrap())
+  host.close_domain_retained_execution(execution).unwrap()
+  @resources.cleanup_backed_prepared_run_admission(original).unwrap()
+  assert_true(entry.close_after_original_return())
+  assert_true(entry.close_after_original_return())
+  assert_false(entry.settled)
+  assert_false(copy.close_after_original_return())
+  true
+}
+
+///|
+test "prepared Native Work borrows SAME body and leaves physical retirement to original Request" {
+  nonmodel_physical_entry_case(true, prepared_body=true)
+}
+
+///|
+test "refused prepared Native Work keeps original debit and cannot reissue its entry" {
+  nonmodel_physical_entry_case(true, prepared_body=true, prepared_refusal=true)
 }

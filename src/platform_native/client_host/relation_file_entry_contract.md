@@ -148,3 +148,33 @@ frontier. The same live Work can return to its original Read, refuse export or
 cleanup there without mutation, and resume only in its original business scope.
 The original coordinator separately owns the Read and outer transition products;
 this does not permit a new execution, token, claim or Source acquisition.
+
+
+## Prepared-body arena view
+
+`prepare_domain_nonmodel_prepared_work_entry` is the typed arena counterpart
+for an already adopted backed Request. It binds the original prepared admission,
+Prepared value and retained execution Ledger. It borrows that body's existing
+reservation rather than adding the dedicated Query entry's second reservation.
+The fixed installed caller must fund its Read-side view constructors separately
+and supply the complete additional Work envelope before business construction.
+
+The entrance snapshots the original reserved extents and grows to the absolute
+sum of those extents and the additional Work bytes. The original Resource grow
+checks isolation and current; the entrance does not precede it with another
+callbackful usage check. Its private later extent projection is pure and stays
+bound to that original admission, Prepared and Ledger. A retained execution may
+select this view only once. Failed growth returns the same cleanup-only view;
+neither cancellation nor a smaller second request can refund or reissue it.
+
+Claiming the original view exposes only the existing Ledger in the same entered
+business scope. It does not grant a Source read, Journal claim, publication or
+another preparation. Logical child completion cuts the view's heavy original
+binding before the parent begins payload retirement. Repeated cleanup of that
+same completed view observes only its original Host/scope and completion state.
+
+Only the original Request owner retires its body, physical frame and accounting.
+The borrowed view never settles the reservation, closes the C context, reports
+the child or returns parent capacity. Its final close waits for that exact
+retained execution's physical retirement, report and close. The dedicated Query
+entry retains its existing exact-token settlement and physical-close sequence.

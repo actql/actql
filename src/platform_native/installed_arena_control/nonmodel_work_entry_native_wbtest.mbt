@@ -14,6 +14,7 @@ fn nonmodel_entry_negative_carrier(
     ledger: None,
     initialization_cleanup: None,
     owns_read: false,
+    nonmodel_prepared_work_selected: false,
     child_started: false,
     active: false,
     scope_failed: false,
@@ -49,7 +50,7 @@ fn nonmodel_entry_negative_carrier(
     read,
     execution,
     ledger,
-    control,
+    control: DedicatedNonModelWorkCapacity(control),
     ledger_view: Some(ledger),
     retained_bytes: 16L,
     execution_bytes: 16L,
@@ -67,9 +68,12 @@ fn nonmodel_entry_negative_carrier(
 ///|
 fn close_nonmodel_entry_negative_carrier(
   entry : InstalledArenaNonModelWorkEntry,
-) -> Unit {
+) -> Unit raise {
   entry.original.val = None
-  @resources.settle_capacity(entry.ledger, entry.control).unwrap()
+  guard entry.control is DedicatedNonModelWorkCapacity(control) else {
+    fail("original dedicated fixture")
+  }
+  @resources.settle_capacity(entry.ledger, control).unwrap()
   entry.host.close_domain_retained_execution(entry.execution).unwrap()
   entry.host.close_domain_after_owner_ack(entry.execution.domain).unwrap()
   local_host_resources_finish_pending(entry.host, entry.read, entry.pair.sqlite)
