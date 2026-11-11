@@ -84,3 +84,48 @@ test "Request snapshot short expansion retains its same high water until origina
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
 }
+
+///|
+test "authored document lower bound refuses a small Request before snapshot capture without spending its original" {
+  // The existing collection fixture authors this exact finite SQL array.
+  // Even its document alone exceeds the selected 32KiB; the complete SDK
+  // envelope has additional values/keys. This is a lower bound, not a second
+  // serializer, a future Plan maximum, or public submission evidence.
+  let document = "SELECT [" + "0,".repeat(19999) + "0] AS cells"
+  let units = document.length().to_int64()
+  let memory = 32768L
+  let policy = client_local_resource_policy()
+  let (controls, _) = client_request_preparation_control_capacity(policy).unwrap()
+  assert_true(controls < memory && memory < units)
+  let lower_bound = request_snapshot_data_bytes(units, 1L).unwrap()
+  for small in [true, false] {
+    let selected = if small { memory } else { controls + lower_bound }
+    let limits = client_local_preparation_initial_limits(
+      policy,
+      retained_bytes=Some(selected),
+      execution_bytes=Some(selected),
+    ).unwrap()
+    let input = [1]
+    let initial = request_parent_fixture(input, initial_limits=Some(limits))
+    let parent = begin_request_preparation(initial, input, policy).unwrap()
+    let before = @resources.ledger_usage(parent.ledger)
+    let result = reserve_request_snapshot(parent, input, units, 1L)
+    if small {
+      assert_true(result is Err(Capacity(Resource(RetentionLimit))))
+      assert_eq(@resources.ledger_usage(parent.ledger), before)
+      assert_eq(parent.snapshot_units, 0L)
+      assert_eq(parent.snapshot_values, 0L)
+    } else {
+      result.unwrap()
+      assert_eq(parent.snapshot_units, units)
+      assert_eq(parent.snapshot_values, 1L)
+      assert_eq(
+        @resources.preparation_capacity_working_extents(parent.capacity, input).unwrap(),
+        (controls + lower_bound, lower_bound),
+      )
+    }
+    assert_true(parent.phase == Open && parent.query_syntax is None)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
