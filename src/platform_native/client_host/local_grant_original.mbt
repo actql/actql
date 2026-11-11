@@ -272,6 +272,7 @@ fn read_local_grant_original(
 fn NativeLocalHostConnection::local_grant_custody(
   self : NativeLocalHostConnection,
   crypto : @crypto.Library,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[(Int, Int64, Map[String, (Int, Int)]), NativeClientRunJournalIssue] {
   guard self.database.scan_after("client_local_grant_custody", "") is Ok(host) &&
     host.key == "host" &&
@@ -326,7 +327,11 @@ fn NativeLocalHostConnection::local_grant_custody(
     }
     if original.grant is SigningGrant(grant) {
       let checked = if original.initial_issue is Some(_) {
-        self.check_initial_signing_grant_original_locked(original, retained_run)
+        self.check_initial_signing_grant_original_locked(
+          original,
+          retained_run,
+          capture~,
+        )
       } else {
         self.check_signing_grant_original_locked(
           grant,

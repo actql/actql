@@ -5,6 +5,7 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
   self : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
   expected_run : String,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) &&
     original.initial_issue is Some(_) else {
@@ -56,6 +57,7 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
       scope.principal,
       metadata.connection,
       self.epoch.crypto,
+      capture~,
     )
     is Ok(authority) &&
     authority == scope.authority_scope_cid else {

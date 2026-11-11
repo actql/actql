@@ -114,7 +114,11 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    match host.local_grant_custody(host.epoch.crypto) {
+    match
+      host.local_grant_custody(
+        host.epoch.crypto,
+        capture=account.original.reviewer.original_read.map(value => value.0),
+      ) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -272,6 +276,7 @@ pub fn NativeLocalAuthenticatedEffectReviewer::prepare_initial_host_attestation(
               )
             },
             host_prepared=Some(wire),
+            capture=account.original.reviewer.original_read.map(value => value.0),
           ) {
           Err(issue) => return Err(issue)
           Ok(_) => value

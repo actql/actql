@@ -571,6 +571,16 @@ It adds no clock callback or constructor and caches no authorization outcome.
 Configured/cold and Resident routes retain the full Host fence; a selected
 foreign or expired scoped Read refuses without a legacy fallback.
 
+Initial grant-history validators forward the same signing original's captured
+Read into Host scope projection. The existing operation scope retains its exact
+account/adoption and principal/connection CID; repeated history checks consume
+that DATA instead of encoding and hashing it again. Host, Library and entered
+Read must match. Selected foreign or expired captures refuse; omitted captures
+keep the complete legacy path. No new retained cache, signing credential or
+Account outcome is introduced. Row scans, authenticated original packets,
+generation/revision checks, independent role authorization and every existing
+callback, clock, claim, physical-signing and Unknown boundary remain unchanged.
+
 This physical metadata seam is not default-signer selection, Account/Reviewer/
 Run authorization, first issue, use claim, signature or public approval. Those
 existing operational gates must independently bind the exact original purpose,

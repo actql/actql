@@ -396,6 +396,7 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
               original,
               signing_use,
               signature,
+              capture=self.key.original.original_read.map(value => value.0),
               prepared=match self.materials.proof {
                 ResolutionOriginal(proof) => Some(proof)
                 ApprovalOriginal(_) => None

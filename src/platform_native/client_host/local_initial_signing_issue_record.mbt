@@ -143,6 +143,7 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
   self : NativeLocalHostConnection,
   original : NativeLocalGrantOriginal,
   expected_run : String,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard original.grant is SigningGrant(grant) else { return Err(CustodyLost) }
   match
@@ -157,7 +158,9 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
   let scope = @credential.local_signing_credential_grant_scope(grant)
   if scope.purpose == @credential.HostAttestation {
     return self.check_initial_host_attestation_grant_original_locked(
-      original, expected_run,
+      original,
+      expected_run,
+      capture~,
     )
   }
   let control = match
@@ -191,6 +194,7 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
       scope.principal,
       metadata.connection,
       self.epoch.crypto,
+      capture~,
     )
     is Ok(authority) &&
     authority == scope.authority_scope_cid else {
@@ -293,6 +297,7 @@ fn local_initial_signing_grant_original_locked(
     host.check_initial_signing_grant_original_locked(
       authenticated,
       scope.run_definition_cid,
+      capture=key.original.original_read.map(value => value.0),
     ) {
     Ok(_) => Ok(authenticated)
     Err(issue) => Err(issue)

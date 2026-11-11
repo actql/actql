@@ -1241,6 +1241,7 @@ fn native_mock_original_journal_body(
   .leave_local_host_phase(pair)
   .native_mock_journal_required("leave initial Read")
   let read_counts = Ref(None)
+  let scope_digest_counts = Ref(None)
   let observed = native_mock_journal_adoption_result(
     capture.with_original_read(_ => {
       let account = match capture.configuration_in_original_read() {
@@ -1256,6 +1257,7 @@ fn native_mock_original_journal_body(
       let admission_before = native_approval_counter(33)
       let package_before = native_approval_counter(16)
       let sql_before = native_approval_counter(1)
+      let digest_before = native_approval_counter(26)
       for _ in 0..<3 {
         guard capture.configuration_in_original_read() is Ok(same) &&
           same.configuration_cid() == account.configuration_cid() &&
@@ -1264,7 +1266,23 @@ fn native_mock_original_journal_body(
           same_scope == scope else {
           return None
         }
+        guard capture
+          .original_host()
+          .unwrap()
+          .authority_scope_cid(
+            "local-cli",
+            "mock",
+            crypto,
+            capture=Some(capture),
+          )
+          is Ok(host_scope) &&
+          host_scope == scope else {
+          return None
+        }
       }
+      scope_digest_counts.val = Some(
+        (digest_before, native_approval_counter(26)),
+      )
       read_counts.val = Some(
         (
           source_before,
@@ -1299,6 +1317,15 @@ fn native_mock_original_journal_body(
     fail("same adopted Account unavailable inside captured Read")
   }
   assert_true(allow && delegated)
+  let (digest_before, digest_after) = scope_digest_counts.val.unwrap()
+  assert_eq(digest_after - digest_before, 0L)
+  assert_true(
+    capture
+    .original_host()
+    .unwrap()
+    .authority_scope_cid("local-cli", "mock", crypto, capture=Some(capture))
+    is Err(@local_host.OriginalResourceScopePending),
+  )
   assert_true(configuration.has_prefix("sha256:"))
   let (
     source_before,

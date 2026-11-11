@@ -251,7 +251,19 @@ pub fn NativeLocalHostConnection::authority_scope_cid(
   principal : String,
   connection : String,
   crypto : @crypto.Library,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[String, NativeLocalAdoptionIssue] {
+  if capture is Some(owner) {
+    guard owner.opening is JournalAcquired(host) &&
+      physical_equal(host, self) &&
+      physical_equal(owner.crypto, crypto) else {
+      return Err(CustodyLost)
+    }
+    // The same entered Read already retains the immutable account/adoption
+    // scope. It is DATA only: every role decision and physical/current fence
+    // remains with its original caller, and a selected stale Read refuses.
+    return owner.authority_scope_cid_in_original_read(principal, connection)
+  }
   let material = match self.adopted_current_material() {
     Ok(value) => value
     Err(issue) => return Err(issue)

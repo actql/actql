@@ -56,6 +56,7 @@ fn NativeLocalInitialHostAttestationPreparation::require_current_locked(
     host.check_initial_host_attestation_grant_original_locked(
       self.original,
       self.scope.run_definition_cid,
+      capture=self.account.original.reviewer.original_read.map(value => value.0),
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -352,6 +353,9 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
               preparation.original,
               signing_use,
               signature,
+              capture=preparation.account.original.reviewer.original_read.map(value => {
+                value.0
+              }),
               attested=Some(preparation.admitted),
               attested_limits=preparation.authenticated.limits,
             ) {

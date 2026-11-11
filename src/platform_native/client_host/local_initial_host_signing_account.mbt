@@ -215,6 +215,7 @@ fn local_initial_host_signing_grant_original_locked(
   .check_initial_host_attestation_grant_original_locked(
     retained,
     scope.run_definition_cid,
+    capture=key.reviewer.original_read.map(value => value.0),
   )
   .map(_ => retained)
 }
