@@ -1388,13 +1388,26 @@ test "Native README held keyed Model Effect restores its exact prepared-original
 // Exact authored numeric caller, on the existing Request and original Mock
 // declaration. This diagnoses route/graph selection only: no Source payload,
 // Journal, Account, Run admission or physical Start is supplied here.
+fn[T, E] Result::native_file_route_value(
+  self : Result[T, E],
+  stage : String,
+) -> T raise {
+  match self {
+    Ok(value) => value
+    Err(_) => fail("Native File Source diagnostic: " + stage)
+  }
+}
+
+///|
 fn native_pure_file_request_payload(
   facility : NativeMockReadmeRequestFacility,
   original : LocalProjectMockDeclarations,
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
 ) -> String? raise {
-  facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  facility.arena
+  .enter_domain_retained_execution(facility.physical)
+  .native_file_route_value("enter original Request")
   let document = "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d"
   let intent = @run_host.prepare_client_submitted_intent(
     local_project_mock_relation_wire({
@@ -1405,7 +1418,7 @@ fn native_pure_file_request_payload(
     65536,
     8192,
     64,
-  ).unwrap()
+  ).native_file_route_value("authored intent")
   let issue = match
     @local_host.prepare_native_client_submitted_request_input(
       facility.parent,
@@ -1432,10 +1445,10 @@ fn native_pure_file_request_payload(
             prepared,
             "sha256:" + "8".repeat(64),
             "native-numeric-file-component",
-          ).unwrap()
+          ).native_file_route_value("original Request identity")
           let selected = @local_values.select_installed_source_input(
             prepared, request, 0, 0,
-          ).unwrap()
+          ).native_file_route_value("select actual acquisition route")
           let graph = @run_host.prepared_client_graph(prepared)
           let route = match selected {
             @sourceviews.QueryRoute(_) => "query"
@@ -1453,13 +1466,17 @@ fn native_pure_file_request_payload(
         }
         EffectComputation(_) => Some("numeric File Source must remain Pure")
       }
-      @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+      @local_host.return_native_client_submitted_request_body(borrow).native_file_route_value(
+        "return original body",
+      )
       |> ignore
       issue
     }
   }
   ignore(@local_values.abort_request_preparation_after_cleanup(facility.parent))
-  facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+  facility.arena
+  .leave_domain_retained_execution(facility.physical)
+  .native_file_route_value("leave original Request")
   issue
 }
 
@@ -1470,23 +1487,52 @@ fn native_pure_file_request_in_metadata_read(
   facility : NativeMockReadmeRequestFacility,
 ) -> String? raise {
   let original = native_project_mock_model_fixture("churn-risk")
-  original.prepare_source_declarations().unwrap()
-  let environment = original
+  original
+  .prepare_source_declarations()
+  .native_file_route_value("prepare original declarations")
+  // The ordinary Project publishes the same combined Source/Model environment
+  // even for a Pure non-INFER query. Preserve that existing metadata path.
+  original
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .native_file_route_value("prepare original Model metadata")
+  let source_environment = original
     .prepare_source_environment(explain_fixture_environment())
-    .unwrap()
+    .native_file_route_value("prepare original Environment")
+  let environment = original
+    .prepare_model_environment(source_environment)
+    .native_file_route_value("prepare original combined Environment")
   let (publication, _) = original
     .prepare_source_publication(environment)
-    .unwrap()
-  metadata.leave_domain_original_read(read).unwrap()
+    .native_file_route_value("prepare original publication")
+  metadata
+  .leave_domain_original_read(read)
+  .native_file_route_value("leave metadata Read")
   let issue = native_pure_file_request_payload(
     facility, original, environment, publication,
   )
-  facility.arena.close_domain_retained_execution(facility.physical).unwrap()
-  @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
-  facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
-  facility.arena.try_close().unwrap()
-  metadata.enter_domain_original_read(read).unwrap()
-  original.retire_originals().unwrap() |> ignore
+  facility.arena
+  .close_domain_retained_execution(facility.physical)
+  .native_file_route_value("close original Request execution")
+  @local_values.abort_request_preparation_after_cleanup(facility.parent).native_file_route_value(
+    "retire original Request payload",
+  )
+  facility.arena
+  .close_domain_after_owner_ack(facility.domain)
+  .native_file_route_value("close original Request domain")
+  facility.arena
+  .try_close()
+  .native_file_route_value("close original Request arena")
+  metadata
+  .enter_domain_original_read(read)
+  .native_file_route_value("reenter metadata Read")
+  original
+  .retire_originals()
+  .native_file_route_value("retire original declarations")
+  |> ignore
   issue
 }
 
