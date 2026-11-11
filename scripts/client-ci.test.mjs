@@ -809,8 +809,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'normal tar acceptance does not rebuild the checkout runtime');
   assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);
   assert.deepEqual(runs('client-packed'), [
-    `sudo apt-get update
-sudo apt-get install --yes clang-19
+    `bash scripts/ci-install-linux-clang.sh
 compiler_bin="$RUNNER_TEMP/packed-query-compiler"
 mkdir -m 700 "$compiler_bin"
 ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
@@ -824,6 +823,7 @@ echo "$compiler_bin" >> "$GITHUB_PATH"`,
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-binary-source-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval',
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
@@ -837,8 +837,8 @@ node scripts/test-packed-public-query.mjs`,
   ]);
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
     step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
-  assert.equal(approvalSteps.length, 7, 'Each connector/acquisition consumer is independently scheduled');
-  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 7);
+  assert.equal(approvalSteps.length, 8, 'Each connector/acquisition consumer is independently scheduled');
+  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 8);
   for (const step of approvalSteps) {
     assert(step.name.startsWith('Test packed '));
     assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});

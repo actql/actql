@@ -1622,9 +1622,9 @@ jobs:
         with:
           python: 'true'
       - name: Select the packed Native Graph compiler
+        timeout-minutes: 5
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes clang-19
+          bash scripts/ci-install-linux-clang.sh
           compiler_bin="$RUNNER_TEMP/packed-query-compiler"
           mkdir -m 700 "$compiler_bin"
           ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
@@ -1894,16 +1894,7 @@ jobs:
           python: 'true'
       - name: Install selected Linux compiler
         timeout-minutes: 5
-        run: |
-          set -euo pipefail
-          # Preserve the signed Ubuntu suites while selecting their canonical mirror.
-          if [ -f /etc/apt/apt-mirrors.txt ]; then
-            printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
-          fi
-          apt_options=(-o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
-          sudo apt-get "${apt_options[@]}" update --error-on=any
-          sudo apt-get "${apt_options[@]}" install --yes clang-19
-          test -x /usr/bin/clang-19
+        run: bash scripts/ci-install-linux-clang.sh
       - name: Install existing component producer Python dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Retain exact official component archives

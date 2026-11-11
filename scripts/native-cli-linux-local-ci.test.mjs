@@ -115,18 +115,19 @@ test('mandatory Local installation retains ingress controls on its actual instal
 
 
 const compilerStep = job.steps.find(step => step.name === 'Install selected Linux compiler');
+const compilerCommands = readFileSync(new URL('./ci-install-linux-clang.sh', import.meta.url), 'utf8');
 
 test('selected Linux compiler acquisition keeps official signed sources and finite transport bounds', () => {
   assert.equal(compilerStep['timeout-minutes'], 5);
   assert.equal(compilerStep['continue-on-error'], undefined);
-  assert(compilerStep.run.includes('https://archive.ubuntu.com/ubuntu/'));
+  assert(compilerCommands.includes('https://archive.ubuntu.com/ubuntu/'));
   for (const option of ['Acquire::Retries=2', 'Acquire::http::Timeout=30', 'Acquire::https::Timeout=30']) {
-    assert(compilerStep.run.includes(option));
+    assert(compilerCommands.includes(option));
   }
-  assert(compilerStep.run.includes('update --error-on=any'));
-  assert(compilerStep.run.includes('install --yes clang-19'));
-  assert(compilerStep.run.includes('test -x /usr/bin/clang-19'));
-  assert(!/allow-unauthenticated|AllowInsecure|trusted=yes|apt-key|add-apt-repository|sources\.list|\|\|\s*true/u.test(compilerStep.run));
+  assert(compilerCommands.includes('update --error-on=any'));
+  assert(compilerCommands.includes('install --yes clang-19'));
+  assert(compilerCommands.includes('test -x /usr/bin/clang-19'));
+  assert(!/allow-unauthenticated|AllowInsecure|trusted=yes|apt-key|add-apt-repository|sources\.list|\|\|\s*true/u.test(compilerCommands));
 });
 
 // Exercise only the selected shell control flow. No APT, network, compiler or
@@ -154,7 +155,7 @@ if [[ "$*" == *' install '* ]]; then
 fi
 `);
     chmodSync(sudo, 0o755);
-    const shell = compilerStep.run.replaceAll('/etc/apt/apt-mirrors.txt', mirror)
+    const shell = compilerCommands.replaceAll('/etc/apt/apt-mirrors.txt', mirror)
       .replaceAll('/usr/bin/clang-19', compiler);
     const result = spawnSync('bash', ['-c', shell], {encoding: 'utf8', timeout: 3000,
       env: {...process.env, PATH: bin + ':/usr/bin:/bin', ACQUISITION_CALLS: calls,
@@ -181,4 +182,21 @@ test('compiler acquisition fails closed on update, fetch and missing selected ex
     assert.equal(result.status, code, failure);
     assert.equal(result.calls.length, calls, failure);
   }
+});
+
+
+test('packed Native Graph shares bounded compiler acquisition before exact compiler aliases', () => {
+  const step = workflow.jobs['client-packed'].steps.find(step =>
+    step.name === 'Select the packed Native Graph compiler');
+  assert.equal(step['timeout-minutes'], 5);
+  assert.equal(step['continue-on-error'], undefined);
+  assert.equal(compilerStep.run.trim(), 'bash scripts/ci-install-linux-clang.sh');
+  assert.equal(step.run.split('\n')[0], compilerStep.run.trim());
+  assert.deepEqual(step.run.trim().split('\n').slice(1), [
+    'compiler_bin="$RUNNER_TEMP/packed-query-compiler"',
+    'mkdir -m 700 "$compiler_bin"',
+    'ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"',
+    'ln -s "$(realpath /usr/bin/ar)" "$compiler_bin/ar"',
+    'echo "$compiler_bin" >> "$GITHUB_PATH"',
+  ]);
 });
