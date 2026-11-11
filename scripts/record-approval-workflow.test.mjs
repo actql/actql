@@ -102,6 +102,42 @@ async function phase(which, value, f, changes = {}) {
   return runRecordUpdateApprovalPhase({phase: which, definition: value, ...f, ...changes});
 }
 
+test('record wrapper persists original primary before pending first close and never replaces it with diagnostic failure', async () => {
+  for (const diagnosticFails of [false, true]) for (const closeFails of [false, true]) {
+    const primary = Object.assign(new Error('OriginalCaseRefusal'), {code: 'OriginalCaseRefusal'});
+    const cleanup = Object.assign(new Error('OriginalClosePending'), {code: 'ClientCleanupPending'});
+    const observations = [];
+    let release, entered, closes = 0;
+    const waiting = new Promise(resolve => {release = resolve;});
+    const started = new Promise(resolve => {entered = resolve;});
+    const result = runRecordUpdateApprovalPhase({phase: 'capture', createDefinition() {throw primary;},
+      client: {async close() {closes++;entered();await waiting;if (closeFails) throw cleanup;}},
+      async observeClose(value) {
+        observations.push(structuredClone(value));
+        if (diagnosticFails) throw new Error('OriginalDiagnosticWriteFailed');
+      }});
+    const rejected = assert.rejects(result, error => {
+      if (!closeFails) return error === primary;
+      assert.strictEqual(error.cause, primary); assert.deepEqual(error.errors, [primary, cleanup]);return true;
+    });
+    await started;
+    assert.equal(observations.length, 1); assert.equal(observations[0].stage, 'started');
+    assert.equal(observations[0].primary.code, primary.code); assert.equal(observations[0].primaryPresent, true);
+    assert.deepEqual(observations[0].firstClose, {attempted: true, returned: false, state: 'pending'});
+    release(); await rejected;
+    assert.equal(closes, 1); assert.equal(observations[1].stage, closeFails ? 'threw' : 'returned');
+    assert.equal(observations[1].firstClose.returned, !closeFails);
+  }
+});
+
+test('record wrapper cannot pass lost diagnostics after successful workflow and first close', async () => {
+  const value = await definition('hubspot'), sdk = publicDouble(value), primary = new Error('OriginalDiagnosticWriteFailed');
+  await assert.rejects(phase('capture', value, sdk, {observeClose() {throw primary;}}), error => {
+    assert(error instanceof AggregateError); assert.deepEqual(error.errors, [primary, primary]);return true;
+  });
+  assert.equal(sdk.events.filter(value => value === 'close').length, 1);
+});
+
 for (const connector of ['salesforce', 'hubspot', 'kintone']) {
   test(`shared ${connector} fixture preserves original reference, explicit approval and Saved-first order`, async () => {
     const value = await definition(connector), f = publicDouble(value);

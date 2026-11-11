@@ -230,7 +230,7 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent, observe
       temporary.pathPending = false;
       // The original replacement returned. This says nothing about the later
       // directory sync/current/cleanup, and diagnostics cannot alter its fate.
-      if (observeWrite !== undefined) try {void Promise.resolve(observeWrite()).catch(() => {});} catch {}
+      if (observeWrite !== undefined) try {void Promise.resolve(observeWrite(runOriginal)).catch(() => {});} catch {}
       current();
       const directory = await acquire(dirname(dataPath), constants.O_RDONLY);
       await call(directory, 'sync');

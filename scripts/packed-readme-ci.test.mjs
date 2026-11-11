@@ -212,6 +212,8 @@ test('required README cases use three distinct project paths and original indepe
       counts: {coldSamples: 1}, ...selected, onMetric() {},
       async command(executable, args, options) {
         commands.push({executable, args, options});
+        assert.deepEqual(await readFile(join(options.cwd, 'work-observation.fixture.mjs')),
+          await readFile(new URL('../adapters/host-node/fixtures/work-observation.fixture.mjs', import.meta.url)));
         const phase = args[1], expected = {capture: 10, approve: 11, recover: 7}[phase];
         if (phase === 'capture') {
           originalInputs = [selected.variant === 'two-models' ? 'deal-review.program.json'

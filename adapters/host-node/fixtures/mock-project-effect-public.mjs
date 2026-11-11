@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {readFile, writeFile, stat} from 'node:fs/promises';
 import {connect} from '@actql/node';
 import {getSubmissionCheckObservation} from '@actql/sdk';
-import {createHostObservationConnection} from '@actql/local-node/observation';
+import {workflowWorkObservation} from './work-observation.fixture.mjs';
 
 const [phase, handoffPath, template = 'churn-risk-mock', variant = 'readme'] = process.argv.slice(2);
 assert.ok(['capture', 'approve', 'recover'].includes(phase));
@@ -28,26 +28,6 @@ const originalDeal = Object.freeze({
   '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
 });
 let client, firstFailedStep, activeStep, primary, checkDiagnostic, runObservation, failed = false;
-function workflowWorkObservation() {
-  const counts = {sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0};
-  const connection = createHostObservationConnection({
-    include: ['source', 'infer', 'effect'], correlation: false, events: {level: 'diagnostic'},
-    deliver(record) {
-      if (record.operation === 'source' && record.event === 'attempt_started') counts.sourceAcquisitionStarts++;
-      if (record.operation === 'infer' && record.event === 'attempt_started') counts.modelCallStarts++;
-      if (record.operation === 'effect' && record.event === 'write_observed') counts.effectReplacementReturns++;
-    },
-  });
-  return {connection, snapshot() {
-    let status;
-    try {status = connection.status();} catch {return {...counts, complete: false, unavailable: true};}
-    return {...counts, scope: 'Actual starts and returned Mock replacements; not durability ACK', status,
-      complete: status !== undefined && status.closed === true && status.cleanupPending === false &&
-        ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed', 'limited', 'repeated',
-          'queued', 'active', 'activeSegments'].every(name => status[name] === 0) &&
-        status.loss !== undefined && Object.values(status.loss).every(value => value === 0)};
-  }};
-}
 function checkWorkflowWork(observed, selectedPhase, writes) {
   assert.equal(observed.complete, true, 'Lost, pending or unavailable observation cannot prove zero work');
   if (selectedPhase === 'capture') {

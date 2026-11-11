@@ -8,9 +8,14 @@ import {createHostObservationConnection, installHostObservation} from '../host-c
 // ports. This is no installed SDK, Model, business Run or close acceptance.
 const text = readFileSync(new URL('./fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
 const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+const workText = readFileSync(new URL('./fixtures/work-observation.fixture.mjs', import.meta.url), 'utf8');
+const workAst = parse(workText, {ecmaVersion: 'latest', sourceType: 'module'});
 const declaration = name => {
-  const node = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
-  assert.ok(node);return text.slice(node.start, node.end);
+  const source = name === 'workflowWorkObservation' ? workText : text;
+  const body = name === 'workflowWorkObservation' ? workAst.body : ast.body;
+  const node = body.map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
+    .find(node => node?.type === 'FunctionDeclaration' && node.id.name === name);
+  assert.ok(node);return source.slice(node.start, node.end);
 };
 const observe = new Function(`${declaration('publicRunObservation')};return publicRunObservation;`)();
 const main = ast.body.find(node => node.type === 'TryStatement');
@@ -79,6 +84,81 @@ test('workflow actual observation counts Source Model and physical writes with l
   await observer.close();
   assert.equal(limited.snapshot().complete, false);
   assert(limited.snapshot().status.dropped > 0);
+});
+
+test('original Run work separates fresh verification reads and refuses unbound or over-limit scope', async () => {
+  const make = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const ref = value => ({namespaceId: 'fixture', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+    runDefinitionCid: `sha256:${value.repeat(64)}`});
+  const original = ref('1'), verification = ref('2');
+  const install = work => installHostObservation(work.connection, {runId: () => 'same-host-fixture',
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  for (const phase of ['approve', 'saved']) {
+    const work = make({trackOriginal: true}), observer = install(work);
+    if (phase === 'approve') {
+      observer.diagnostic('effect_write_observed', {ref: original});
+      observer.diagnostic('acquisition_started', {ref: verification});
+    }
+    await observer.close();
+    const actual = work.forOriginal(original);
+    assert.equal(actual.complete, true); assert.equal(actual.sourceAcquisitionStarts, 0);
+    assert.equal(actual.modelCallStarts, 0);
+    assert.equal(actual.effectReplacementReturns, phase === 'approve' ? 1 : 0);
+    assert.equal(actual.totals.sourceAcquisitionStarts, phase === 'approve' ? 1 : 0);
+    assert.equal(JSON.stringify(actual).includes('sha256:'), false);
+    assert.equal(work.forOriginal(undefined).complete, false);
+  }
+  for (const event of ['acquisition_started', 'model_call_entered', 'effect_write_observed']) {
+    const work = make({trackOriginal: true}), observer = install(work);
+    observer.diagnostic(event, {}); await observer.close();
+    assert.equal(work.forOriginal(original).complete, false, 'Unbound work cannot become original zero');
+  }
+  const ambient = make({trackOriginal: true}), selected = install(ambient);
+  await selected.run('resolve', undefined, () => {
+    selected.accepted({ref: original, inserted: false}, 'fixture-request');
+    selected.diagnostic('effect_write_observed', {ref: {}});
+  });
+  await selected.close();
+  assert.equal(ambient.forOriginal(original).complete, false, 'Unknown physical original cannot borrow caller correlation');
+  assert.equal(ambient.forOriginal(original).totals.effectReplacementReturns, 1);
+  const work = make({trackOriginal: true}), observer = install(work);
+  for (let n = 1; n <= 9; n++) observer.diagnostic('acquisition_started', {ref: ref(String(n))});
+  await observer.close(); assert.equal(work.forOriginal(original).complete, false);
+});
+
+test('write attribution borrows the existing exact Mock original and keeps unreadable identity unbound', () => {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let callback;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
+        node.callee.object.name === 'preparation' && node.callee.property.name === 'installMockEffects') {
+      assert.equal(callback, undefined); callback = node.arguments.at(-1);
+    }
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) child.forEach(visit);
+      else if (child && typeof child === 'object') visit(child);
+    }
+  }
+  visit(ast); assert.equal(callback?.type, 'ArrowFunctionExpression');
+  const original = Object.freeze({}), definition = Object.freeze({}), entries = new WeakMap();
+  entries.set(original, {original, definition});
+  const events = []; let calls = 0, unreadable = false;
+  const observe = Function('mockEffectOriginals', 'diagnostic', 'namespaceId', 'authorityScopeCid', 'moon',
+    `return (${source.slice(callback.start, callback.end)});`)(entries,
+    (event, detail) => events.push({event, ...detail}), 'same-host', `sha256:${'a'.repeat(64)}`,
+    {strategyPublicationContractIdentity(value) {
+      assert.strictEqual(value, definition);calls++;
+      if (unreadable) throw new Error('OriginalIdentityUnavailable');
+      return `sha256:${'b'.repeat(64)}`;
+    }});
+  observe(original); observe(Object.freeze({})); unreadable = true; observe(original);
+  assert.equal(calls, 2); assert.equal(events.length, 3);
+  assert.deepEqual(events[0], {event: 'effect_write_observed', ref: {namespaceId: 'same-host',
+    authorityScopeCid: `sha256:${'a'.repeat(64)}`, runDefinitionCid: `sha256:${'b'.repeat(64)}`}});
+  assert.deepEqual(events[1].ref, {}); assert.deepEqual(events[2].ref, {});
 });
 
 function capture({saveFailure, state = {status: 'failed', terminal_error: {code: 'OriginalSourceFailure'}}} = {}) {

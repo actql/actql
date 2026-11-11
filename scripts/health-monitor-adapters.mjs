@@ -22,6 +22,7 @@ export const healthFixtures = Object.freeze({
   aggregate: nodeWarmSmallQueryFixtures.find(row => row.operation === 'warm-decimal-sum'),
   status: {status: 'succeeded', revision: 'same original observed revision'},
   workflow: 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
+  workObservation: 'adapters/host-node/fixtures/work-observation.fixture.mjs',
 });
 
 export async function execute(command, args, {cwd, raw, name, timeout = 600_000, env = process.env, observeFirstResult = false} = {}) {
@@ -336,6 +337,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
   template = 'churn-risk-mock', variant = 'readme'}) {
   assert.ok(variant === 'readme' || ['two-models', 'two-models-whole'].includes(variant) && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
+  const workFixture = await readFile(join(repository, healthFixtures.workObservation));
   const files = variant === 'two-models-whole' ? twoModelWholeDealReviewFiles()
     : variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
   const program = variant !== 'readme' ? 'deal-review.program.json'
@@ -347,7 +349,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
   assert(recoveryInputs.every(path => Object.hasOwn(files, path)));
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
-    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), files}),
+    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture), files}),
     template, variant, samples: [], evidence: root};
   for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
     const project = join(root, `mock-project-${template}-${variant}-${iteration}`); await mkdir(project);
@@ -360,6 +362,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
       return [path, {dev: info.dev, ino: info.ino}];
     })));
     await writeFile(join(project, 'workflow.mjs'), fixture, {flag: 'wx'});
+    await writeFile(join(project, 'work-observation.fixture.mjs'), workFixture, {flag: 'wx'});
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
     const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
     try {

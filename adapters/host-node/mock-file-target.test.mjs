@@ -35,6 +35,7 @@ const update = (target, from, to, options = {}) => target.updateChild({
 test('Mock write observation counts only returned replacement before later fences and cannot alter the operation', async () => {
   for (const mode of ['success', 'rename-refused', 'current-after-write', 'observer-throws', 'observer-rejects']) {
     let observed = 0, renamed = 0, changed = false;
+    const runOriginal = Object.freeze({original: mode});
     const failure = new Error(mode);
     const f = await fixture({
       assertCurrent() {if (changed && mode === 'current-after-write') throw failure;},
@@ -42,13 +43,14 @@ test('Mock write observation counts only returned replacement before later fence
         if (mode === 'rename-refused') throw failure;
         await rename(...args); renamed++;
       }},
-      observeWrite() {
+      observeWrite(original) {
+        assert.strictEqual(original, runOriginal);
         observed++; changed = true;
         if (mode === 'observer-throws') throw failure;
         if (mode === 'observer-rejects') return Promise.reject(failure);
       },
     });
-    const child = update(f.target, '"a":"old"', '"a":"new"');
+    const child = update(f.target, '"a":"old"', '"a":"new"', {runOriginal});
     if (mode === 'rename-refused' || mode === 'current-after-write') {
       await assert.rejects(child.prepare(), error => error === failure);
       await assert.rejects(child.prepare(), error => error === failure);

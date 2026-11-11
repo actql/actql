@@ -2058,7 +2058,17 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (selectedEffectPaths.length !== 0 || effectInstallation !== undefined) {
         throw clientOperationError('InstalledMockEffectProfileConflict');
       }
-      const observeMockEffectWrite = () => diagnostic?.('effect_write_observed');
+      const observeMockEffectWrite = original => {
+          const retained = mockEffectOriginals.get(original);
+          let ref;
+          if (retained?.original === original) try {
+            ref = {namespaceId, authorityScopeCid,
+              runDefinitionCid: moon.strategyPublicationContractIdentity(retained.definition)};
+          } catch { /* The returned write stays observable but unbound. */ }
+          // An unreadable physical original must not borrow an ambient
+          // caller's Run correlation as a substitute identity.
+          diagnostic?.('effect_write_observed', {ref: ref ?? {}});
+      };
       installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId}),
         principalId, mockEffectResources, sourceProfile.mockWritableSource?.connectorBindings[0],

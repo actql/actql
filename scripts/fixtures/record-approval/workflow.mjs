@@ -72,7 +72,7 @@ async function readOriginal(client, value, phase, save) {
 // the separate processes, fresh installation/state, provider snapshot and alive
 // FD observations. This helper does not infer cleanup ACK from process exit.
 export async function runRecordUpdateApprovalPhase({phase, client,
-  definition, createDefinition, load, save, approve}) {
+  definition, createDefinition, load, save, approve, observeClose}) {
   let failed = false, primary;
   try {
     assert(['capture', 'approve', 'recover'].includes(phase));
@@ -150,10 +150,31 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       }
     }
   } catch (error) {failed = true;primary = error;}
+  const diagnosticFailures = [];
+  const failureData = cause => {
+    try {
+      const token = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.-]{0,127}$/u.test(value);
+      return {name: token(cause?.name) ? cause.name : undefined, code: token(cause?.code) ? cause.code : undefined};
+    } catch {return {available: false};}
+  };
+  const recordClose = async (stage, cleanup) => {
+    if (observeClose === undefined) return;
+    try {await observeClose({phase, pid: process.pid, stage, primaryPresent: failed,
+      ...(failed ? {primary: failureData(primary)} : {}),
+      firstClose: {attempted: true, returned: stage === 'returned', state: stage === 'started' ? 'pending' : stage},
+      ...(stage === 'threw' ? {cleanup: failureData(cleanup)} : {})});}
+    catch (cause) {diagnosticFailures.push(cause);}
+  };
+  await recordClose('started');
+  let cleanupFailure, closeFailed = false;
   try {await client.close();}
-  catch (cleanup) {
+  catch (cleanup) {cleanupFailure = cleanup;closeFailed = true;}
+  await recordClose(closeFailed ? 'threw' : 'returned', cleanupFailure);
+  if (closeFailed) {
+    const cleanup = cleanupFailure;
     if (failed) throw new AggregateError([primary, cleanup], 'Workflow and client close both failed', {cause: primary});
     throw cleanup;
   }
   if (failed) throw primary;
+  if (diagnosticFailures.length) throw new AggregateError(diagnosticFailures, 'RecordApprovalDiagnosticsFailed');
 }

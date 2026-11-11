@@ -59,22 +59,35 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
         for (const original of programs) await assert.rejects(lstat(original.path), {code: 'ENOENT'});
       }
       const startedAt = new Date().toISOString();
-      let result;
+      let result, childPid;
       try {
-        result = await execute(process.execPath,
+        const flight = execute(process.execPath,
           [fileURLToPath(new URL('./record-approval/installed-child.mjs', import.meta.url)),
             connector, phase, configuration, prefix, state],
           {cwd: project, env, encoding: 'utf8', timeout: 30000, maxBuffer: 8 * 1024 ** 2});
+        childPid = flight.child.pid;
+        result = await flight;
       } catch (error) {
         await writeFile(join(root, phase + '.stdout'), error.stdout ?? '', privateFile);
         await writeFile(join(root, phase + '.stderr'), error.stderr ?? '', privateFile);
+        try {
+          const close = JSON.parse(await readFile(`${prefix}.${phase}.close-started.json`, 'utf8'));
+          assert.equal(close.phase, phase); assert.equal(close.pid, childPid);
+          phases.push({startedAt, endedAt: new Date().toISOString(), childPid, partialClose: close});
+          t.diagnostic('ORIGINAL_CLOSE_OBSERVATION ' + JSON.stringify(close));
+        } catch { /* Missing/foreign diagnostics never replace the original command failure. */ }
         throw error;
       }
       await writeFile(join(root, phase + '.stdout'), result.stdout, privateFile);
       await writeFile(join(root, phase + '.stderr'), result.stderr, privateFile);
       const outcome = JSON.parse(result.stdout);
       assert.equal(outcome.phase, phase); assert.equal(outcome.status, 'passed');
+      assert.equal(outcome.pid, childPid);
       assert.equal(outcome.publicClientClose, 'returned');
+      assert.equal(outcome.workObservation.complete, true);
+      assert.equal(outcome.workObservation.modelCallStarts, 0);
+      if (phase !== 'capture') assert.equal(outcome.workObservation.sourceAcquisitionStarts, 0);
+      assert.equal(outcome.workObservation.effectReplacementReturns, phase === 'approve' ? 1 : 0);
       assert.deepEqual(outcome.descriptors.before.openPaths, []);
       assert.deepEqual(outcome.descriptors.after.openPaths, []);
       assert.deepEqual(JSON.parse(await readFile(join(project, 'mock/data.json'), 'utf8')),
