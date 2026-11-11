@@ -13,7 +13,7 @@ const input = () => ({version:'actql/0.1',id:'parent',stages:[{id:'main',inputs:
   schema:{n:{type:'number',nullable:false}},rows:[{n:1}],
 }}],results:{rows:{from:'v',fields:['n']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}});
 const connection = Object.freeze({mode:'local',owner:'local',consentRefs:Object.freeze([]),runners:Object.freeze([])});
-async function fixture({beginFailure, environment, observe, validate = () => {}, validateRetained = validate, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
+async function fixture({beginFailure, environment, observe, sourceFreeMaxWork, validate = () => {}, validateRetained = validate, control=[1024n,0n], policyLimits=[10000n,10000n,10000n,100000n,100000n,100000n]}={}) {
   const calls=[],shapes=[],policy={},parent={};let admission;
   const stop = () => {
     assert.equal(admission.ports.report(0,0,0,0n,0n,0n,0n,0n,0n,0n,0,0,0),0);
@@ -61,7 +61,8 @@ async function fixture({beginFailure, environment, observe, validate = () => {},
     clientProgramAcquisitionCount(){return 0;},
     clientProgramAdoptRequestProgramPreparation(){assert.fail('No Run adoption selected');},
   };
-  const context=Object.freeze({runtime:moon,environment,preparedEnvironment:{},retainedRelationOutput:false});
+  const context=Object.freeze({runtime:moon,environment,preparedEnvironment:{},retainedRelationOutput:false,
+    ...(sourceFreeMaxWork===undefined?{}:{sourceFreeMaxWork})});
   const originals=observe===undefined?{}:{installation:{authorization:{observe}}};const view=await prepareOrdinarySourceManagedInstallation(originals,{
     validator(actual){assert.equal(actual,originals);validate();},
     retainedValidator(actual){assert.equal(actual,originals);validateRetained();},
@@ -1209,8 +1210,8 @@ test('captured Pure Request keeps its original compiler input before Source Plan
 });
 
 
-async function originalCapturedRequest({moduleFailure, adoptFailure} = {}) {
-  const f = await fixture(), moon = f.context.runtime, request = {}, prepared = {}, holder = {}, identity = {}, plan = {}, value = {};
+async function originalCapturedRequest({moduleFailure, adoptFailure, sourceFreeMaxWork} = {}) {
+  const f = await fixture({sourceFreeMaxWork}), moon = f.context.runtime, request = {}, prepared = {}, holder = {}, identity = {}, plan = {}, value = {};
   const events = []; let retiring = false, returned = false;
   f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
   const originalInput = {version: 'actql/0.1', id: 'source-compute',
@@ -1579,8 +1580,8 @@ test('Request Model refuses foreign input Run Plan and accessor carrier before S
 
 // Actual manager/Request/Resource parent with explicit Core phase ports.
 // The Option is deliberately opaque: JavaScript must only forward it.
-async function originalTimedRequest({captured=false, compilationFailure, invocationFailure, moduleFailure, invocationBackingFailure}={}) {
-  const f=await originalCapturedRequest(), artifact={}, option=new Proxy({}, {get(){assert.fail('opaque original Option inspected by JS');}});
+async function originalTimedRequest({captured=false, sourceFreeMaxWork, compilationFailure, invocationFailure, moduleFailure, invocationBackingFailure}={}) {
+  const f=await originalCapturedRequest({sourceFreeMaxWork}), artifact={}, option=new Proxy({}, {get(){assert.fail('opaque original Option inspected by JS');}});
   f.moon.clientProgramAcquisitionCount=actual=>{assert.equal(actual,f.prepared);return captured?1:0;};
   f.moon.clientProgramRequiresQueryTime=function(actual,nodes,work){assert.equal(this,f.moon);assert.equal(actual,f.prepared);assert.equal(nodes,100000);assert.equal(work,100000);f.events.push('requires-time');return ok(true);};
   f.moon.clientProgramPrepareRequestProgramCompilation=function(parent,input,contracts,retained){
@@ -1595,7 +1596,7 @@ async function originalTimedRequest({captured=false, compilationFailure, invocat
   const module=function(...args){
     assert.equal(this,f.moon);assert.equal(args[0],f.parent);assert.equal(args[1],f.receipt);
     if(captured){assert.equal(args[2],f.plan);assert.equal(args[3],option);assert.equal(args.length,4);}
-    else {assert.equal(args[2],f.originals.installation.sequenceContractOriginal.admission);assert.equal(args[3],false);assert.equal(args[4],option);assert.equal(args.length,5);}
+    else {assert.equal(args[2],f.originals.installation.sequenceContractOriginal.admission);assert.equal(args[3],false);assert.equal(args[4],option);assert.equal(args[5],f.context.sourceFreeMaxWork);assert.equal(args.length,6);}
     f.events.push('timed-module');if(moduleFailure)throw moduleFailure;return ok(undefined);
   };
   f.moon[captured?'clientProgramPrepareRequestCaptureModuleBody':'clientProgramPrepareRequestProgramModuleBody']=module;
@@ -1607,7 +1608,7 @@ async function originalTimedRequest({captured=false, compilationFailure, invocat
 
 test('timed Request original defers module through one borrower and forwards opaque invocation before adoption',async()=>{
   for(const captured of [false,true]){
-    const f=await originalTimedRequest({captured});let run;
+    const f=await originalTimedRequest({captured,sourceFreeMaxWork:captured?undefined:30000000});let run;
     try{
       for(let n=0;n<2;n++)assert.equal((await f.view.fundedPreparation(f.request,undefined)).prepared,f.prepared);
       assert.deepEqual(f.events,['check','borrow','requires-time']);
@@ -1626,7 +1627,7 @@ test('timed Request original defers module through one borrower and forwards opa
 
 test('timed Request original retains compiler invocation and module failures without repeating construction',async()=>{
   for(const captured of [false,true])for(const phase of ['compilationFailure','invocationFailure','moduleFailure']){
-    const failure=Object.assign(new Error(phase),{cleanupPending:true,cleanupHandle:{original:phase}}),f=await originalTimedRequest({captured,[phase]:failure});
+    const failure=Object.assign(new Error(phase),{cleanupPending:true,cleanupHandle:{original:phase}}),f=await originalTimedRequest({captured,sourceFreeMaxWork:captured?undefined:30000000,[phase]:failure});
     try{
       await f.view.fundedPreparation(f.request,undefined);
       for(let n=0;n<2;n++)assert.throws(()=>f.adopt(f.construct),error=>error===failure);
