@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspectParentCaptureCode} from './parent-capture-sites.mjs';
+import {referenceResultMap} from './parent-reference-sites.mjs';
 const parent='_M0FP45actql5actql10connectors5local42bounded__relation__chain__execution__state';
 const owner='_M0FP45actql5actql10connectors5local54managed__provider__execution__with__child__work__issue';
 const roles=['startNext','advance','cancel','stopped','cleanup','childWorkIssue'];
@@ -11,7 +12,7 @@ const fields=[[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'maxValueBytes',
  [[8,'cleanupIndex',8],[16,'reclaimed',8],[24,'terminal',8],[32,'state',8]],[[8,'state',8]]];
 const sizes=[72,88,32,16,40,16],registers=['rbx','r12','rbx','r13','r14','r15'];
 const slots={parent:'0x90',state:'0x50',used:'0x60',cancelled:'0x68',terminal:'0x70',reclaimed:'0x78',cleanupIndex:'0x80',sequence:'0x8',inputs:'0x10',execution:'0x18',measurement:'0x20',numeric:'0x30',family:'0x38',count:'0x3c',maxValueBytes:'0x24',reclaimedPrefix:'0x84'};
-const symbols=new Map([['moonbit_malloc',0x7000],['moonbit_incref',0x7100],['moonbit_decref',0x7200],[owner,0x8000],['actql_proof_current_chain_start',0x8100],...roles.slice(1).map((r,k)=>[parent+'C'+(k+1),0x9000+k*0x100])]);
+const symbols=new Map([['moonbit_malloc',0x7000],['moonbit_incref',0x7100],['moonbit_decref',0x7200],[owner,0x8000],['actql_proof_current_chain_start',0x8100],[referenceResultMap,0x8200],[parent+'C99',0xa000],...roles.slice(1).map((r,k)=>[parent+'C'+(k+1),0x9000+k*0x100])]);
 const nm=[...symbols].map(([n,a])=>a.toString(16)+' T '+n).join('\n');
 const ops=[];
 for(const [k,role] of roles.entries()) {
@@ -31,7 +32,11 @@ for(const [k,role] of ['parent','state','used','cancelled','terminal','reclaimed
 ops.push({call:'actql_proof_current_chain_start'},'ret');
 function assembly(instructions,object) {
  let at=object?0x100:0x1000,text=at.toString(16)+' <'+parent+'>:\n';
- for(const op of instructions) {
+ const labels=new Map();let next=at;
+ for(const op of instructions) {if(op.label)labels.set(op.label,next);else next+=op.call?5:op.code?7:10;}
+ for(let op of instructions) {
+  if(op.label)continue;
+  if(typeof op==='string')op=op.replace(/@(\w+)/g,(_,label)=>labels.get(label).toString(16));
   if(op.call){text+=at.toString(16)+': call '+(object?at:symbols.get(op.call)).toString(16)+'\n';if(object)text+=(at+1).toString(16)+': R_X86_64_PLT32 '+op.call+'-0x4\n';at+=5;}
   else if(op.code){text+=at.toString(16)+': lea r10,[rip'+(object?'+0x0':'+0x'+(symbols.get(op.code)-at-7).toString(16))+']\n';if(object)text+=(at+3).toString(16)+': R_X86_64_PC32 '+op.code+'-0x4\n';at+=7;}
   else {text+=at.toString(16)+': '+op+'\n';at+=10;}
@@ -102,4 +107,56 @@ test('parent return and caller retirement cannot be replaced before observation'
  const changed=[...ops];changed[changed.indexOf('mov QWORD PTR [rbp-0x90],rax')]='mov QWORD PTR [rbp-0x90],rbx';
  assert.throws(()=>check(changed),/handoff return/);
  const bad=ops.map(op=>op.call==='moonbit_decref'?{call:'moonbit_incref'}:op);assert.throws(()=>check(bad),/Unknown call after/);
+});
+
+// The same existing cleanup mapper precedes the new direct Ok observer. Its
+// parent box and four retained captures remain independently bound below.
+function resultOps() {
+ const boundary=ops.findLastIndex(op=>op==='mov rax,QWORD PTR [rbp-0x80]');
+ const prefix=[...ops.slice(0,boundary),
+  'movabs rdi,0x8',{call:'moonbit_malloc'},'mov rbx,rax','mov r10d,0x40000101','mov DWORD PTR [rbx-0x4],r10d',
+  'mov rax,QWORD PTR [rbp-0x90]','mov QWORD PTR [rbx],rax',
+  ...['0x80','0x78','0x70'].flatMap(slot=>['mov rdi,QWORD PTR [rbp-'+slot+']',{call:'moonbit_incref'}]),
+  'movabs rdi,0x28',{call:'moonbit_malloc'},'mov r12,rax','mov r10d,0x40000200','mov DWORD PTR [r12-0x4],r10d',
+  {code:parent+'C99'},'mov QWORD PTR [r12],r10',
+  ...['0x80','0x78','0x70','0x50'].flatMap((slot,k)=>['mov rax,QWORD PTR [rbp-'+slot+']','mov QWORD PTR [r12+0x'+((k+1)*8).toString(16)+'],rax']),
+  'mov rdi,rbx','mov rsi,r12',{call:referenceResultMap},'mov r13,rax',
+  'mov rdi,rbx',{call:'moonbit_decref'},'mov rdi,r12',{call:'moonbit_decref'},
+  'mov edi,DWORD PTR [r13-0x4]','and edi,0xff','cmp edi,0x1','je @ok','jmp @error',
+  {label:'ok'},'mov rdi,QWORD PTR [r13+0x0]','mov rbx,QWORD PTR [rdi]','mov r12,QWORD PTR [rdi+0x8]',
+  'mov rdi,r12',{call:'moonbit_incref'},'mov rdi,rbx',{call:'moonbit_incref'},'jmp @observe',
+  {label:'error'},...['0x80','0x78','0x70','0x68','0x60'].flatMap(slot=>['mov rdi,QWORD PTR [rbp-'+slot+']',{call:'moonbit_decref'}]),
+  'jmp @returned',{label:'observe'}];
+ const tail=ops.slice(boundary,-1).map(op=>op==='mov rdi,QWORD PTR [rbp-0x90]'?'mov rdi,rbx':op==='mov rsi,QWORD PTR [rbp-0x50]'?'mov rsi,r12':op);
+ return [...prefix,...tail,{label:'returned'},'nop','mov rax,r13','ret'];
+}
+test('direct Result observer preserves original capture roles through the cleanup mapper',()=>{
+ const result=check(resultOps());assert.equal(result.captureRolesEstablished,true);
+ assert.deepEqual(result.points.map(p=>p.requestedBytes),[80,96,40,24,48,24]);
+ assert.equal(result.completePhysicalLifetimeUpper,false);
+});
+test('Result capture mapper rejects substituted originals and hidden operations',()=>{
+ for(const [from,to] of [['mov QWORD PTR [rbx],rax','mov QWORD PTR [rbx],r12'],
+  ['mov rax,QWORD PTR [rbp-0x50]','mov rax,QWORD PTR [rbp-0x60]'],
+  ['mov rdi,rbx','mov rdi,r12'],['movabs rdi,0x8','movabs rdi,0x10']]) {
+  const code=resultOps(),at=code.findLastIndex(op=>op===from);assert(at>=0);code[at]=to;
+  assert.throws(()=>check(code));
+ }
+ const code=resultOps();code.splice(code.findIndex(op=>op.call===referenceResultMap),0,'mov QWORD PTR [rbp-0x60],rax');
+ assert.throws(()=>check(code));
+});
+test('Result capture observer rejects wrong tags, failure entry, partial aliases and changed return',()=>{
+ for(const [from,to] of [['and edi,0xff','and edi,0x1'],['je @ok','je @error'],
+  ['jmp @returned','jmp @observe'],['mov rdi,rbx','mov edi,ebx'],['mov rax,r13','mov rax,rbx']]) {
+  const code=resultOps(),at=code.findLastIndex(op=>op===from);assert(at>=0);code[at]=to;
+  assert.throws(()=>check(code));
+ }
+ const code=resultOps();code.splice(code.findIndex(op=>op.label==='returned'),0,'xchg rax,r13');assert.throws(()=>check(code));
+});
+
+test('Result cleanup mapper requires matching object and linked callback identity',()=>{
+ const code=resultOps(),changed=code.map(op=>op.code===parent+'C99'?{code:parent+'C1'}:op);
+ assert.throws(()=>check(code,changed),/correspondence differs/);
+ const missing=nm.split('\n').filter(line=>!line.endsWith(' '+parent+'C99')).join('\n');
+ assert.throws(()=>check(code,code,observation(),missing),/cleanup Result callback/);
 });

@@ -180,4 +180,4 @@ export function inspectParentReferenceCode(start,symbolText,objectText,linkedTex
 
 // Shared decoder only; these exports do not authorize a different inspection
 // scope. Each consuming check must validate its own instruction/ABI premises.
-export {functions as nativeFunctions,target as nativeCallTarget};
+export {functions as nativeFunctions,target as nativeCallTarget,resultObserverBranch};

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {codeSymbols} from './provider-callback-code.mjs';
-import {nativeFunctions,nativeCallTarget} from './parent-reference-sites.mjs';
+import {nativeFunctions,nativeCallTarget,resultObserverBranch,referenceResultMap} from './parent-reference-sites.mjs';
 
 const observer='actql_proof_current_chain_start';
 const parentName=n=>/connectors5local[0-9]+bounded__relation__chain__execution__state$/.test(n);
@@ -24,12 +24,20 @@ const registerWidth=r=>{const width=/^(?:r(?:ax|bx|cx|dx|di|si|[89]|1[0-5]))$/.t
   assert(width,'Unreviewed capture register width');return width;};
 const valueWidth=v=>v.kind==='allocation' || v.kind==='code'?8:v.width;
 const volatile=['rax','rdi','rsi','rdx','rcx','r8','r9','r10','r11'];
-function roleSlots(ins,end,call) {
+function roleSlots(ins,end,call,pair) {
   let begin=end-1;while(begin>=0 && !ins[begin].op.startsWith('call '))begin--;
   const registers=new Map(),stack=new Map();
+  if(pair) {
+    begin=pair.start-1;
+    registers.set('rbx',{slot:pair.parent,width:8});
+    registers.set('r12',{slot:pair.state,width:8});
+  }
   for(const i of ins.slice(begin+1,end)) {
     let m=i.op.match(/^mov (\w+),(QWORD|DWORD) PTR (\[rbp-(0x[0-9a-f]+)\])$/);
     if(m){assert.equal(registerWidth(m[1]),widths[m[2]],'Capture observer load width differs');registers.set(family(m[1]),{slot:m[3],width:widths[m[2]]});continue;}
+    if(pair && (i.op==='mov rdi,rbx' || i.op==='mov rsi,r12')) {
+      const [destination,source]=i.op.slice(4).split(',');registers.set(destination,registers.get(source));continue;
+    }
     m=i.op.match(/^mov (QWORD|DWORD) PTR \[rsp(?:\+(0x[0-9a-f]+))?\],(\w+)$/);
     assert(m,'Unreviewed capture observer argument preparation');
     const offset=Number(BigInt(m[2]??'0')),value=registers.get(family(m[3]));
@@ -46,19 +54,66 @@ function roleSlots(ins,end,call) {
   assert.equal(call(ins[end]),observer);
   return slots;
 }
+// Recognize only the existing cleanup mapper around the original parent.
+// The direct observer takes its parent/state from the checked Ok pair, while
+// all six construction captures still bind to these SAME private frame slots.
+function inspectCleanupResultPrelude(ins,begin,map,call,slots,fn,symbols) {
+  let at=begin;
+  const equal=op=>assert.equal(ins[at++]?.op,op,'Changed cleanup Result transport');
+  const called=name=>assert.equal(call(ins[at++]),name,'Changed cleanup Result call');
+  const slot=role=>[...slots].find(([,v])=>v.role===role)?.[0];
+  const header=(base,tag)=>{
+    const value=ins[at++]?.op.match(/^mov r10d,(0x[0-9a-f]+)$/);
+    assert(value && BigInt(value[1])>>30n===1n && (BigInt(value[1])&255n)===BigInt(tag),'Changed cleanup Result header');
+    equal(`mov DWORD PTR [${base}-0x4],r10d`);
+  };
+  equal('movabs rdi,0x8');called('moonbit_malloc');equal('mov rbx,rax');header('rbx',1);
+  equal(`mov rax,QWORD PTR ${slot('parent')}`);equal('mov QWORD PTR [rbx],rax');
+  for(const role of ['cleanupIndex','reclaimed','terminal']) {
+    equal(`mov rdi,QWORD PTR ${slot(role)}`);called('moonbit_incref');
+  }
+  equal('movabs rdi,0x28');called('moonbit_malloc');equal('mov r12,rax');header('r12',0);
+  const code=ins[at],lea=code?.op.match(/^lea r10,\[rip([+-])0x([0-9a-f]+)\]$/);
+  assert(lea,'Missing cleanup Result callback');let name=code.relocation?.symbol;
+  if(code.relocation)assert.equal(code.relocation.kind,'PC32','Wrong cleanup callback relocation');
+  else {
+    const address=ins[at+1].address+BigInt('0x'+lea[2])*(lea[1]==='-'?-1n:1n);
+    const names=[...symbols].filter(([,v])=>v===address).map(([n])=>n);
+    assert.equal(names.length,1,'Unknown/aliased cleanup Result callback');name=names[0];
+  }
+  assert(name?.startsWith(fn.name+'C'),'Foreign cleanup Result callback');at++;
+  equal('mov QWORD PTR [r12],r10');
+  for(const [k,role] of ['cleanupIndex','reclaimed','terminal','state'].entries()) {
+    equal(`mov rax,QWORD PTR ${slot(role)}`);equal(`mov QWORD PTR [r12+0x${((k+1)*8).toString(16)}],rax`);
+  }
+  equal('mov rdi,rbx');equal('mov rsi,r12');
+  assert.equal(at,map,'Unexpected instruction before cleanup Result map');called(referenceResultMap);
+  return {code:name,parent:slot('parent'),state:slot('state')};
+}
 function stores(fn,symbols) {
   const ins=fn.instructions,call=i=>nativeCallTarget(i,symbols);
   const probes=ins.flatMap((i,k)=>call(i)===observer?[k]:[]);assert.equal(probes.length,1,'Missing capture observer');
-  const end=probes[0],slots=roleSlots(ins,end,call);
+  const end=probes[0];
   const owners=ins.slice(0,end).flatMap((i,k)=>ownerName(call(i)??'')?[k]:[]);
   assert.equal(owners.length,1,'Missing unique parent callback handoff');const owner=owners[0];
+  const masks=ins.flatMap((i,k)=>k>owner&&k<end&&i.op==='and edi,0xff'?[k]:[]);
+  assert(masks.length<=1,'Repeated capture Result discriminator');
+  const tag=masks.length?masks[0]-1:undefined;
+  const pair=tag===undefined?undefined:{start:tag+24,
+    parent:ins[owner+1]?.op.match(/^mov QWORD PTR (\[rbp-0x[0-9a-f]+\]),rax$/)?.[1],
+    state:ins[tag-10]?.op.match(/^mov rax,QWORD PTR (\[rbp-0x[0-9a-f]+\])$/)?.[1]};
+  if(pair)assert(pair.parent&&pair.state,'Missing original capture Result slots');
+  const slots=roleSlots(ins,end,call,pair);
+  const slot=role=>{const matches=[...slots].filter(([,v])=>v.role===role);assert.equal(matches.length,1);return matches[0][0];};
+  const branches=pair?resultObserverBranch(ins,owner+2,end,
+    ['used','cancelled','terminal','reclaimed','cleanupIndex'].map(role=>({slot:slot(role)})),symbols):new Set();
   const allocations=ins.slice(0,owner).flatMap((i,k)=>call(i)==='moonbit_malloc'?[k]:[]).slice(-6);
   assert.equal(allocations.length,6,'Missing six actual capture allocations');
   const begin=allocations[0]-1;
-  for(const i of ins) {
+  for(const [k,i] of ins.entries()) {
     const jump=i.op.match(/^j[a-z]+ ([0-9a-f]+)$/);if(!jump)continue;
     const address=BigInt('0x'+jump[1]);
-    assert(address<=ins[begin].address || address>ins[end].address,'Branch enters capture construction/observer region');
+    assert(address<=ins[begin].address || address>ins[end].address || branches.has(k),'Branch enters capture construction/observer region');
   }
   const registers=new Map(),writes=new Map(),headers=new Map(),code=new Map(),points=[];
   const lookup=operand=>{
@@ -123,21 +178,23 @@ function stores(fn,symbols) {
       registers.get(family(move[1])).role===role,'Changed caller callback retirement after handoff');
     assert.equal(call(ins[cursor++]),'moonbit_decref','Unknown call after callback handoff');
   }
-  for(const i of ins.slice(cursor,end))assert(/^(?:mov (?:\w+,(?:QWORD|DWORD) PTR \[rbp-0x[0-9a-f]+\]|(?:QWORD|DWORD) PTR \[rsp(?:\+0x[0-9a-f]+)?\],\w+)|nop)$/.test(i.op),
+  const cleanupMapper=pair?inspectCleanupResultPrelude(ins,cursor,tag-6,call,slots,fn,symbols):undefined;
+  if(!pair)for(const i of ins.slice(cursor,end))assert(/^(?:mov (?:\w+,(?:QWORD|DWORD) PTR \[rbp-0x[0-9a-f]+\]|(?:QWORD|DWORD) PTR \[rsp(?:\+0x[0-9a-f]+)?\],\w+)|nop)$/.test(i.op),
     'Unexpected instruction between callback retirement and observer');
   for(const point of points) {
     assert(headers.has(point.role),'Missing capture header');assert.equal(writes.get(point.role).size,layouts[point.role].length,'Missing capture field');
     point.header=headers.get(point.role);point.fields=layouts[point.role];if(point.role!=='startNext')point.code=code.get(point.role);
     assert(point.role==='startNext' || point.code,'Missing actual callback code');
   }
-  return points;
+  return {points,cleanupMapper};
 }
 export function inspectParentCaptureCode(start,symbolText,objectText,linkedText) {
   const symbols=codeSymbols(symbolText),objects=nativeFunctions(objectText),linked=nativeFunctions(linkedText);
   const names=[...objects.keys()].filter(parentName);assert.equal(names.length,1,'Missing capture constructor');
   const name=names[0];assert(linked.has(name),'Missing linked capture constructor');
   const object={...objects.get(name),name},exe={...linked.get(name),name};
-  const points=stores(object),executed=stores(exe,symbols);assert.deepEqual(executed,points,'Object/linked capture correspondence differs');
+  const construction=stores(object),executed=stores(exe,symbols);assert.deepEqual(executed,construction,'Object/linked capture correspondence differs');
+  const {points}=construction;
   const roots={...start.roots,startNext:start.environments[0].id};
   const observations=[start.environments[0],...start.callbacks];assert.equal(observations.length,points.length);
   for(const [k,p] of points.entries()) {
