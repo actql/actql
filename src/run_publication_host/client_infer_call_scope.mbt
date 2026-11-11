@@ -638,7 +638,7 @@ fn infer_scope_expected_sources(
   if count == 0 {
     return Ok([])
   }
-  if count < 1 || count > 2 || occurrence.task < count {
+  if count < 1 || occurrence.task < count {
     return Err(UnsupportedBindings)
   }
   guard client_infer_composed_source_origin(occurrence) is Some(original) else {

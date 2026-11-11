@@ -12,7 +12,9 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
   const acquisition = checked(moon.clientProgramEffectComposedModelKeyedAcquisition(
     acquired.prepared, infer.graph));
   if (acquisition === undefined) return undefined;
-  if (captures.length !== 2 || selected === undefined || originalPreparation?.scope === undefined ||
+  const sourceCount = moon.clientProgramEffectAcquisitionCount?.(acquired.prepared);
+  if (!Number.isSafeInteger(sourceCount) || sourceCount < 1 || captures.length !== sourceCount ||
+      selected === undefined || originalPreparation?.scope === undefined ||
       plan?.compiled === undefined || typeof retain !== 'function') {
     throw new TypeError('InstalledComposedKeyedOriginalUnavailable');
   }

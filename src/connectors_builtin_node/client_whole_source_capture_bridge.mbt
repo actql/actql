@@ -764,10 +764,7 @@ pub fn client_program_admit_composed_infer_whole_sources(
   @publication_host.ClientInferCallScopeIssue,
 ] {
   let count = logicals.length()
-  if count < 1 ||
-    count > 2 ||
-    evidence.length() != count ||
-    capacities.length() != count {
+  if count < 1 || evidence.length() != count || capacities.length() != count {
     return Err(@publication_host.ForeignInput)
   }
   for index in 0..<count {

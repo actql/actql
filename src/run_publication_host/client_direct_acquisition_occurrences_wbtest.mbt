@@ -140,7 +140,7 @@ test "Direct occurrence mapping rejects foreign checked owner and wrong checked 
       selected.checks[1],
       Ref(1000000),
     ).unwrap(),
-    (1, 0, 1),
+    (1, 0, 1, false),
   )
   assert_eq(
     client_direct_acquisition_occurrence_coordinate(
@@ -148,7 +148,7 @@ test "Direct occurrence mapping rejects foreign checked owner and wrong checked 
       selected.checks[0],
       Ref(1000000),
     ).unwrap(),
-    (0, 0, 0),
+    (0, 0, 0, false),
   )
 }
 

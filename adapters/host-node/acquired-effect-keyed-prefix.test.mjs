@@ -37,7 +37,8 @@ function fixture() {
     assert.deepEqual(args, [managedRun, compiled, definition, graph, scope, acquisition, captures]);
     events.push('prefix-start'); return prefix;
   }, keyedLookupPublicationEvidence(value) {assert.equal(value, observation); return evidence;}};
-  const moon = {clientProgramEffectComposedModelKeyedAcquisition(p, g) {
+  const moon = {clientProgramEffectAcquisitionCount: () => captures.length,
+    clientProgramEffectComposedModelKeyedAcquisition(p, g) {
     assert.equal(p, prepared); assert.equal(g, graph); return ok(acquisition);
   }, clientProgramKeyedAcquisitionSourceEvidenceFacts: value => {assert.equal(value, acquisition); return ok([sourceRef]);},
   clientProgramOriginalComposedKeyedPrefixExecution: value => {assert.equal(value, prefix); return execution;},

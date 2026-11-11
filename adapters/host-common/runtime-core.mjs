@@ -3329,7 +3329,7 @@ function publicationControl(moon) {
       if (source !== undefined) {
         const sources = source.sources ?? [{captured: source.captured, sourceEvidence: source.sourceEvidence}];
         if (publicationPreparation === undefined || preparedProgram === undefined || compiled.kind !== 'tasks' ||
-            !Array.isArray(sources) || sources.length < 1 || sources.length > 2 ||
+            !Array.isArray(sources) || sources.length < 1 ||
             sources.some(({captured}) => captured?.capture === undefined || captured?.identity === undefined ||
               captured?.logicalInput === undefined)) {
           throw new TypeError('Invalid original publication invocation profile');
@@ -4414,7 +4414,7 @@ function publicationControl(moon) {
     issueCheckedClientEffectMultiCapturedInvocation(checkedEffect, compilation,
       admission, definition, sources, context, limits) {
       issuanceLimits(limits, 'Client plural Effect Invocation');
-      if (!Array.isArray(sources) || sources.length !== 2) {
+      if (!Array.isArray(sources) || sources.length < 1) {
         throw new TypeError('Incomplete Effect Source coverage');
       }
       const issued = checked(moon.clientProgramIssueEffectMultiCapturedInvocation(
@@ -4443,7 +4443,7 @@ function publicationControl(moon) {
       identity, requirement, input, observation, authorityScopeCid,
       dataPolicyCid, retention, limits, unit = 0, publicationRetention = retention) {
       issuanceLimits(limits, 'Acquired Effect evidence');
-      if (!Number.isSafeInteger(unit) || unit < 0 || unit > 1) {
+      if (!Number.isSafeInteger(unit) || unit < 0) {
         throw new TypeError('Invalid acquired Effect Unit');
       }
       const issued = checked(unit === 0 && publicationRetention === retention

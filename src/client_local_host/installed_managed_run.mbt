@@ -330,7 +330,7 @@ fn installed_managed_owner_shape_supported(
       captured > 0 &&
       (
         !mock_model ||
-        captured == 2 ||
+        captured > 1 ||
         (selected_occurrence is Some(_) && captured == 1)
       )
     ) ||

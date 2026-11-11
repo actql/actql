@@ -482,8 +482,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
-  if (!Array.isArray(sources) || (issuedModel === undefined ? sources.length !== 2
-    : ![1, 2].includes(sources.length))) {
+  if (!Array.isArray(sources) || sources.length < 1) {
     throw new TypeError('IncompleteAcquiredEffectSources');
   }
   if (issuedModel !== undefined && (modelOriginal === undefined ||
@@ -942,7 +941,7 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
   captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
   const whole = Array.isArray(sources) && sources.some(({captured}) => captured?.inputKind === 'whole-input');
-  if (!Array.isArray(sources) || sources.length !== 2 ||
+  if (!Array.isArray(sources) || sources.length < 1 ||
       moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
       sources.some(({captured, sourceEvidence}, task) =>
         sourceEvidence === undefined || captured?.logicalInput === undefined ||

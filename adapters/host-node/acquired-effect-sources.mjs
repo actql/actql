@@ -7,15 +7,23 @@ import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 
 function effectSourceInputs(moon, preparedEffect) {
   const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
-  if (![0, 1, 2].includes(count)) throw new TypeError('UnsupportedEffectSourceCount');
+  if (!Number.isSafeInteger(count) || count < 0) throw new TypeError('UnsupportedEffectSourceCount');
   if (count === 0) return [];
   const select = moon.clientProgramEffectDirectSourceCoordinates;
   if (typeof select !== 'function') throw new TypeError('InstalledEffectSourceCoordinatesUnavailable');
   const coordinates = checked(Reflect.apply(select, moon, [preparedEffect]));
-  if (!Array.isArray(coordinates) || coordinates.length !== count || coordinates.some((value, index) =>
-    !Array.isArray(value) || value.length !== 4 || value.some(number => !Number.isSafeInteger(number) || number < 0) ||
-    value[2] !== index || coordinates.slice(0, index).some(previous => previous[0] === value[0] && previous[1] === value[1]))) {
+  if (!Array.isArray(coordinates) || coordinates.length !== count) {
     throw new TypeError('InvalidInstalledEffectSourceCoordinates');
+  }
+  const ports = new Set();
+  for (const [slot, value] of coordinates.entries()) {
+    if (!Array.isArray(value) || value.length !== 4 ||
+        value.some(number => !Number.isSafeInteger(number) || number < 0) || value[2] !== slot) {
+      throw new TypeError('InvalidInstalledEffectSourceCoordinates');
+    }
+    const port = `${value[0]}:${value[1]}`;
+    if (ports.has(port)) throw new TypeError('InvalidInstalledEffectSourceCoordinates');
+    ports.add(port);
   }
   return coordinates;
 }
@@ -95,7 +103,6 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
   const coordinates = effectSourceInputs(moon, preparedEffect);
   const count = coordinates.length;
   const selected = [];
-  const owners = new Set();
   let firstRef;
   for (let task = 0; task < count; task++) {
     const [stage, input, sourceSlot, computeTask] = coordinates[task];
@@ -146,21 +153,17 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
     if (typeof adapter.prepare !== 'function' || typeof adapter.open !== 'function') {
       throw new TypeError('InvalidAcquiredEffectComputationPort');
     }
-    const realization = count === 2 ? adapter.realizationKey : undefined;
-    if (count === 2 && !['duckdb-acquired', 'row-source-acquired'].includes(realization)) {
+    const realization = count > 1 ? adapter.realizationKey : undefined;
+    if (count > 1 && !['duckdb-acquired', 'row-source-acquired'].includes(realization)) {
       const error = new TypeError('UnsupportedEffectSourceRealization');
       onUnsupportedSelection?.(error, Object.freeze({reason: 'unsupported-realization', count,
         sourceRef, adapter, realization, previousRef: firstRef, previousAdapter: selected[0]?.adapter}));
       throw error;
     }
-    if (owners.has(adapter)) {
-      const error = new TypeError('DuplicateEffectSourceOwner');
-      onUnsupportedSelection?.(error, Object.freeze({reason: 'duplicate-owner', count,
-        sourceRef, adapter, realization, previousRef: firstRef, previousAdapter: selected[0]?.adapter}));
-      throw error;
-    }
     if (selected.length === 0) firstRef = sourceRef;
-    owners.add(adapter);
+    // An installation is a factory, not an acquisition occurrence. The same
+    // immutable backing may serve several checked ports; each preparation,
+    // capture, capacity and cleanup obligation retains its original slot.
     selected.push(Object.freeze({adapter, sourceKind: kind,
       occurrence: Object.freeze({stage, input, task: sourceSlot,
         ...(computeTask === sourceSlot ? {} : {computeTask})})}));
@@ -172,14 +175,17 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
 // No row-backed capacity can be passed to a nominal DuckDB configuration API.
 export function prepareInstalledAcquiredEffectLedger({moon, preparedEffect, sources,
   registry, values, fragment, ordered, requestIdentity}) {
-  if (!Array.isArray(sources) || sources.length !== 2) {
+  if (!Array.isArray(sources) || sources.length < 1) {
     throw new TypeError('InstalledMultiSourceCapacityUnavailable');
   }
+  const coordinates = effectSourceInputs(moon, preparedEffect);
+  if (coordinates.length !== sources.length) throw new TypeError('InstalledMultiSourceCapacityUnavailable');
   const capacities = sources.map(({adapter, preparedSource, occurrence}, index) => {
     if (!['duckdb-acquired', 'row-source-acquired'].includes(adapter?.realizationKey) ||
         adapter.supportsRetainedRelationOutput !== true ||
         typeof adapter.ledgerCapacity !== 'function' ||
-        occurrence?.stage !== index || occurrence.input !== 0 || occurrence.task !== index) {
+        occurrence?.stage !== coordinates[index][0] || occurrence.input !== coordinates[index][1] ||
+        occurrence.task !== index || (occurrence.computeTask ?? occurrence.task) !== coordinates[index][3]) {
       throw new TypeError('InstalledMultiSourceCapacityUnavailable');
     }
     const capacity = adapter.ledgerCapacity(preparedSource);

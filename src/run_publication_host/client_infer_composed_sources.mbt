@@ -134,7 +134,6 @@ fn admit_client_infer_composed_sources_owned(
   let same_unit = keyed_unit || direct_unit || whole_unit
   if !client_infer_occurrence_matches(occurrence, owner) ||
     count < 1 ||
-    count > 2 ||
     (!same_unit && occurrence.task < count) ||
     captures.length() != count ||
     identities.length() != count ||
@@ -418,7 +417,7 @@ fn client_infer_composed_source_boundary(
     }
   }
   let count = @strategy.graph_captured_prefix(graph)
-  if count < 1 || count > 2 || occurrence.task < count {
+  if count < 1 || occurrence.task < count {
     return false
   }
   let incoming : Array[Int] = []
@@ -496,8 +495,7 @@ pub fn client_infer_composed_sources_matches(
     } else {
       @strategy.graph_captured_prefix(occurrence.owner.graph)
     }) ||
-    value.inputs.is_empty() ||
-    value.inputs.length() > 2 {
+    value.inputs.is_empty() {
     return false
   }
   for task in 0..<value.inputs.length() {

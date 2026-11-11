@@ -426,7 +426,7 @@ test('one-of-three Effect opens only its checked Source and preserves its access
   assert.deepEqual(operations, ['prepare', 'enter', 'read', 'release', 'continuation-release']);
 });
 
-for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-owner', 'missing-owner']) {
+for (const fault of ['unsupported-realization', 'ambiguous-owner', 'missing-owner']) {
   test(`selected Effect ${fault} rejects before any preparation or provider I/O`, async () => {
     let custody;
     const calls = [];
@@ -434,8 +434,8 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
       admitsSource: ref => refs.includes(ref),
       prepare() { calls.push(`${name}:prepare`); }, open() { calls.push(`${name}:open`); },
       resolveSecret() { calls.push(`${name}:secret`); }});
-    const first = adapter('first', fault === 'duplicate-owner' ? ['first', 'second'] : ['first']);
-    const second = adapter('second', fault === 'duplicate-owner' || fault === 'missing-owner'
+    const first = adapter('first', ['first']);
+    const second = adapter('second', fault === 'missing-owner'
       ? ['other'] : ['second'], fault === 'unsupported-realization' ? 'installed-row-source' : undefined);
     const unused = adapter('unused', fault === 'ambiguous-owner' ? ['second'] : ['unused']);
     await assert.rejects(openAcquiredEffectComputation({
@@ -446,8 +446,7 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
       rowSourceTasks: fault === 'unsupported-realization' ? [1] : [],
       acquired: {prepared: {}}, sourceProfile: {sources: [first, unused, second]},
       retainComputationOwner(value) { custody = value; },
-    }), {message: fault === 'duplicate-owner' ? 'DuplicateEffectSourceOwner'
-      : fault === 'unsupported-realization' ? 'UnsupportedEffectSourceRealization'
+    }), {message: fault === 'unsupported-realization' ? 'UnsupportedEffectSourceRealization'
         : 'InstalledSourceProgramMismatch'});
     assert.deepEqual(calls, []);
     await custody.close();
@@ -455,12 +454,29 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
   });
 }
 
-test('three Effect acquisitions remain unsupported with three installed Sources', async () => {
-  await assert.rejects(openEffectComputation({
+test('three Effect acquisitions retain custody and all exact preparations before any provider read', async () => {
+  const failure = new Error('ThirdOriginalSourceRefused'), events = [];
+  let custody;
+  const adapter = Object.freeze({realizationKey: 'row-source-acquired',
+    admitsSource: ref => ref === 'same-source',
+    ledgerCapacity() {assert.fail('The third preparation refuses before resource construction');},
+    prepare({occurrence}) {
+      assert.equal(custody.cleanupPending(), true);
+      events.push(occurrence);
+      if (occurrence.task === 2) throw failure;
+      return {};
+    },
+    open() {assert.fail('All original preparations precede provider entry');},
+  });
+  await assert.rejects(openAcquiredEffectComputation({
     moon: {clientProgramEffectAcquisitionCount: () => 3}, acquired: {prepared: {}},
-    sourceProfile: {sources: [{}, {}, {}]},
-    retainComputationOwner() { assert.fail('UnsupportedAcquisitionCount'); },
-  }), {message: 'InvalidAcquiredEffectComputationPort'});
+    rowSourceTasks: [0, 1, 2], sourceRefs: ['same-source', 'same-source', 'same-source'],
+    sourceProfile: {sources: [adapter]}, retainComputationOwner(value) {custody = value;},
+  }), error => error === failure);
+  assert.deepEqual(events, [0, 1, 2].map(task => ({stage: task, input: 0, task})));
+  assert.equal(await custody.cleanup(), false);
+  await custody.close();
+  assert.equal(await custody.cleanup(), true);
 });
 
 

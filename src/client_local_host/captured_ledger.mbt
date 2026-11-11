@@ -626,7 +626,7 @@ fn prepare_multi_captured_local_ledger_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  if acquisitions.length() != 2 {
+  if acquisitions.is_empty() {
     return None
   }
   let capacities = []
@@ -1292,10 +1292,10 @@ pub fn prepare_multi_captured_effect_capacity_ledger(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  if capacities.length() != 2 {
+  if capacities.is_empty() {
     return None
   }
-  for index in 0..<2 {
+  for index in 0..<capacities.length() {
     guard prepare_effect_local_query_requirement(
         prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )
@@ -1330,10 +1330,10 @@ pub fn prepare_multi_captured_local_capacity_ledger(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  if capacities.length() != 2 {
+  if capacities.is_empty() {
     return None
   }
-  for index in 0..<2 {
+  for index in 0..<capacities.length() {
     guard prepare_local_query_requirement(
         prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )

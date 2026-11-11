@@ -15,10 +15,10 @@ const body=name=>{
   assert.ok(node);return text.slice(node.start,node.end);
 };
 const limits={maxWireBytes:16384,maxNodes:1024,maxDepth:20};
-function fixture({inline=true,projectionFailure}={}) {
-  const events=[],issued={binding:{}},modelOriginal={unit:inline?0:2},scan={},receipt={};
+function fixture({inline=true,projectionFailure,sourceCount=2}={}) {
+  const events=[],issued={binding:{}},modelOriginal={unit:inline?0:sourceCount},scan={},receipt={};
   const retention={wire:'{"effective_retention_policy_cid":"retention","effective_data_policy_cid":"combined"}'};
-  const sourceObjects=[{},{}];
+  const sourceObjects=Array.from({length:sourceCount},()=>({}));
   const sources=sourceObjects.map((original,index)=>({sourceEvidence:{original},captured:{
     ...(inline?{inputKind:'whole-input',wholeCapacity:{}}:{requirement:{}}),
     occurrence:{stage:inline?0:index,input:index,task:index},
@@ -113,6 +113,26 @@ test('upstream Query Units remain distinct while original Model Unit waits for i
   assert.equal(context.acquiredEvidenceByUnit.length,2);
   assert.deepEqual(f.events.filter(value=>value.startsWith('source-unit-')),['source-unit-0','source-unit-1']);
   assert.equal(f.events.filter(value=>value==='source-retention').length,2);
+});
+
+test('three inline Whole occurrences retain the same original Model context without Query conversion',async()=>{
+  const f=fixture({sourceCount:3}),publication=await f.invoke();
+  const context=publication.plan.localEvidenceContext;
+  assert.strictEqual(context.modelOriginalByUnit[0],f.modelOriginal);
+  assert.deepEqual(context.acquiredEvidenceByUnit,[]);
+  assert.equal(context.acquisitionDependencies.length,6);
+  assert.equal(f.events.filter(value=>value==='original-model').length,1);
+  assert.equal(f.events.filter(value=>value==='same-invocation').length,1);
+});
+
+test('three Query producer Units preserve their exact coordinates before Model Unit three',async()=>{
+  const f=fixture({inline:false,sourceCount:3}),publication=await f.invoke();
+  const context=publication.plan.localEvidenceContext;
+  assert.strictEqual(context.modelOriginalByUnit[3],f.modelOriginal);
+  assert.equal(context.acquiredEvidenceByUnit.length,3);
+  assert.deepEqual(f.events.filter(value=>value.startsWith('source-unit-')),
+    ['source-unit-0','source-unit-1','source-unit-2']);
+  assert.equal(f.events.filter(value=>value==='source-retention').length,3);
 });
 
 test('Model projection refusal keeps original cause and releases same binding after original scan cleanup',async()=>{

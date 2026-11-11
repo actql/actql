@@ -183,7 +183,7 @@ pub fn open_multi_captured_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedDAG, RunIssue] {
-  if graph.captured_prefix_value() != 2 || graph_program_has_effects(graph) {
+  if graph.captured_prefix_value() < 1 || graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
   open_checked_dag(graph, sources, ledger, supplied)

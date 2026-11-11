@@ -27,10 +27,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
-  const multiple = count === 2;
+  const multiple = count > 1;
   const serializations = moon?.clientProgramEffectSerializationOccurrences?.(acquired.prepared) ?? [];
   if (typeof retainComputationOwner !== 'function' ||
-      ![0, 1, 2].includes(count) ||
+      !Number.isSafeInteger(count) || count < 0 ||
       sourceFree && infer === undefined && serializations.length === 0 ||
       !sourceFree && sourceProfile === undefined) {
     throw new TypeError('InvalidAcquiredEffectComputationPort');
@@ -981,7 +981,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       const sourceClosures = [];
       for (const child of children) {
         same();
-        if (child.restoredInput !== undefined && captures.length === 2 && checked(
+        if (child.restoredInput !== undefined && captures.length > 0 && checked(
             moon.clientProgramEffectComposedModelKeyedAcquisition(acquired.prepared, child.selection.graph)) !== undefined) {
           const originals = acquired.control.restoredInferSourceOriginals(plan.compiled, plan.runDefinition,
             child.restoredInput.savedScope, child.selection.occurrence, child.selection.graph);
