@@ -6,7 +6,7 @@ import {runRecordApprovalCommand} from './command.mjs';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './cases.mjs';
 import {observeRecordApprovalDescriptors} from './scoped-fds.fixture.mjs';
 import {runRecordUpdateApprovalPhase} from './workflow.mjs';
-import {workflowWorkObservation} from '../../../adapters/host-node/fixtures/work-observation.fixture.mjs';
+import {workflowWorkObservation, assertRecordWorkflowWork} from '../../../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
 const [connectorId, phase, configuration, prefix, state, credential] = process.argv.slice(2);
 const createDefinition = {salesforce: salesforceUpdateCase,
@@ -40,13 +40,8 @@ await runRecordApprovalCommand({argv: [phase, configuration, prefix],
 assert.equal(outcome.publicClientClose, 'returned');
 const work = observation?.forOriginal(originalRef);
 if (work !== undefined) {
-assert.equal(work.complete, true, 'Unbound or lost starts cannot establish original-Run reuse');
-assert.equal(work.modelCallStarts, 0, 'These authored record fixtures declare no Models');
-assert.equal(work.totals.modelCallStarts, 0);
-if (phase === 'capture') assert(work.sourceAcquisitionStarts > 0);
-else assert.equal(work.sourceAcquisitionStarts, 0, 'The completed original Source must not reacquire');
-assert.equal(work.effectReplacementReturns, phase === 'approve' ? 1 : 0);
-assert.equal(work.totals.effectReplacementReturns, work.effectReplacementReturns);
+  assertRecordWorkflowWork(work, {phase,
+    variant: process.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT || undefined});
 }
 const roots = credential === undefined ? [state] : [state, credential];
 const before = await observeRecordApprovalDescriptors(roots);

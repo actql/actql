@@ -10,7 +10,8 @@ import {fileURLToPath} from 'node:url';
 
 const connector = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR;
 const variant = process.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT || undefined;
-assert(variant === undefined || variant === 'binary-source' && connector === 'hubspot', 'Select one declared mock variant');
+assert(variant === undefined || ['whole-input', 'binary-source', 'three-source'].includes(variant) &&
+  connector === 'hubspot', 'Select one declared mock variant');
 assert(['salesforce', 'hubspot', 'kintone'].includes(connector), 'Select one original mock consumer');
 const execute = promisify(execFile), privateFile = {mode: 0o600, flag: 'wx'};
 const safe = error => ({name: error?.name, code: error?.code, message: error?.message});

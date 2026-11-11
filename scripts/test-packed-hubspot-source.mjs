@@ -172,7 +172,8 @@ try {
     {cwd: application, expectedTests, timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM',
       env: mockConnector ? {...process.env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: mockConnector,
         ...((wholeMock || threeSourceMock || binarySourceMock) ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
-        ACTQL_RECORD_APPROVAL_MOCK_VARIANT: binarySourceMock ? 'binary-source' : ''} : process.env});
+        ACTQL_RECORD_APPROVAL_MOCK_VARIANT: binarySourceMock ? 'binary-source'
+          : wholeMock ? 'whole-input' : threeSourceMock ? 'three-source' : ''} : process.env});
 } finally {
   // Return only this fresh link, never its original installed software target.
   assert.equal(await readlink(softwareAlias), software);

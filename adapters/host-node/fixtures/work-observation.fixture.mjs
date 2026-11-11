@@ -1,6 +1,26 @@
 // Consumer diagnostics only. No event or retained count grants execution,
 // currentness, access or cleanup authority; missing delivery stays incomplete.
 import {createHostObservationConnection} from '@actql/local-node/observation';
+import assert from 'node:assert/strict';
+
+// Authored no-Model fixture expectations, established by their checked Source
+// occurrences and the one-start-per-selected-Source dispatch boundary. Counts
+// from a previous execution never supply these expectations.
+export function assertRecordWorkflowWork(work, {phase, variant} = {}) {
+  assert(['capture', 'approve', 'recover'].includes(phase));
+  const sourceStarts = {'whole-input': 1, 'binary-source': 2, 'three-source': 3};
+  if (variant !== undefined) assert(Object.hasOwn(sourceStarts, variant));
+  assert.equal(work.complete, true, 'Unbound or lost starts cannot establish original-Run reuse');
+  assert.equal(work.modelCallStarts, 0, 'These authored record fixtures declare no Models');
+  assert.equal(work.totals.modelCallStarts, 0);
+  if (phase === 'capture') {
+    if (variant === undefined) assert(work.sourceAcquisitionStarts > 0);
+    else assert.equal(work.sourceAcquisitionStarts, sourceStarts[variant],
+      'One original acquisition start per authored checked Source occurrence');
+  } else assert.equal(work.sourceAcquisitionStarts, 0, 'The completed original Source must not reacquire');
+  assert.equal(work.effectReplacementReturns, phase === 'approve' ? 1 : 0);
+  assert.equal(work.totals.effectReplacementReturns, work.effectReplacementReturns);
+}
 
 export function workflowWorkObservation({trackOriginal = false} = {}) {
   const empty = () => ({sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0});

@@ -78,6 +78,59 @@ test('existing collector keeps the distinct Whole fixture and original cold inpu
   assert.equal(metric.samples[0].verified, true);
 });
 
+test('record fixture bounds use authored Whole binary and three-Source occurrences on the original Run only', async () => {
+  const source = await readFile(new URL('../adapters/host-node/fixtures/work-observation.fixture.mjs', import.meta.url), 'utf8');
+  const node = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(value => value.type === 'ExportNamedDeclaration' && value.declaration?.id?.name === 'assertRecordWorkflowWork').declaration;
+  const check = Function('assert', `return (${source.slice(node.start, node.end)});`)(assert);
+  for (const [variant, starts] of [['whole-input', 1], ['binary-source', 2], ['three-source', 3]]) {
+    for (const phase of ['capture', 'approve', 'recover']) {
+      const writes = phase === 'approve' ? 1 : 0;
+      const work = {complete: true, sourceAcquisitionStarts: phase === 'capture' ? starts : 0,
+        modelCallStarts: 0, effectReplacementReturns: writes,
+        totals: {sourceAcquisitionStarts: starts + 1, modelCallStarts: 0, effectReplacementReturns: writes}};
+      check(work, {phase, variant});
+      for (const changed of [
+        {...work, complete: false}, {...work, modelCallStarts: 1},
+        {...work, totals: {...work.totals, modelCallStarts: 1}},
+        {...work, sourceAcquisitionStarts: work.sourceAcquisitionStarts + 1},
+        {...work, effectReplacementReturns: writes + 1},
+      ]) assert.throws(() => check(changed, {phase, variant}));
+      if (phase === 'capture') assert.throws(() => check({...work, sourceAcquisitionStarts: starts - 1}, {phase, variant}));
+      assert.throws(() => check(work, {phase, variant: 'inferred-from-observation'}));
+    }
+  }
+});
+
+test('record ordinary runner binds the exact selected fixture variant before the existing installed child', async () => {
+  const source = await readFile(new URL('./test-packed-hubspot-source.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const pending = [tree], calls = [];
+  while (pending.length) {
+    const node = pending.pop();
+    if (node.type === 'CallExpression' && node.callee?.name === 'runFocusedTests') calls.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) pending.push(...value.filter(item => item?.type));
+      else if (value?.type) pending.push(value);
+    }
+  }
+  assert.equal(calls.length, 1); const [call] = calls;
+  const invoke = Function('runFocusedTests', 'approval', 'mockConnector', 'application', 'expectedTests',
+    'wholeMock', 'threeSourceMock', 'binarySourceMock', 'process', `return (${source.slice(call.start, call.end)});`);
+  for (const [whole, three, binary, expected] of [
+    [true, false, false, 'whole-input'], [false, true, false, 'three-source'],
+    [false, false, true, 'binary-source'], [false, false, false, ''],
+  ]) {
+    let selected;
+    invoke((_kind, files, options) => {selected = {files, options}; return 0;}, true, 'hubspot',
+      '/own-fresh-consumer', 1, whole, three, binary, {env: {HARNESS_ONLY: 'true'}});
+    assert.deepEqual(selected.files, ['scripts/fixtures/packed-record-approval-mock.mjs']);
+    assert.equal(selected.options.expectedTests, 1);
+    assert.equal(selected.options.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT, expected);
+    assert.equal(selected.options.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS, expected ? '1' : undefined);
+  }
+});
+
 test('Whole three-Source and binary JOIN evidence preserves failed commands and requires original nonzero qualification', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-approval-evidence-'));
   t.after(() => rm(root, {recursive: true}));
