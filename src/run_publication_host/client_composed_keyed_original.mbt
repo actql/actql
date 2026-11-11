@@ -394,8 +394,7 @@ pub fn borrow_client_original_composed_keyed_ledger(
       plan.source_ordinal,
     ) &&
     select_client_direct_acquisition_occurrences(owner, 1000000) is Ok(direct) &&
-    sources.length() == client_direct_acquisition_occurrence_count(direct) &&
-    sources.length() == 2 else {
+    sources.length() == client_direct_acquisition_occurrence_count(direct) else {
     return Err(ForeignRun)
   }
   let identity = @checked.source_identity(@strategy.graph_program(owner.graph))
@@ -457,7 +456,6 @@ pub fn retain_client_original_composed_keyed_captures(
   ClientModelReadPreparationIssue,
 ] {
   guard client_model_origin_matches(scope.origin, compiled, definition, plan) &&
-    rows.length() == 2 &&
     @row_host.retain_row_captured_inputs(rows, scope.ledger, 100000)
     is Some(captures) else {
     return Err(ForeignRun)
@@ -494,7 +492,6 @@ pub fn borrow_client_original_composed_keyed_captures(
   ClientModelReadPreparationIssue,
 ] {
   guard client_model_origin_matches(scope.origin, compiled, definition, plan) &&
-    rows.length() == 2 &&
     @row_host.borrow_row_captured_inputs(rows, scope.ledger, 100000)
     is Some(captures) else {
     return Err(ForeignRun)
@@ -528,8 +525,7 @@ pub fn borrow_client_original_composed_keyed_input_captures(
   ),
   ClientModelReadPreparationIssue,
 ] {
-  guard client_model_origin_matches(scope.origin, compiled, definition, plan) &&
-    rows.length() == 2 else {
+  guard client_model_origin_matches(scope.origin, compiled, definition, plan) else {
     return Err(ForeignRun)
   }
   let captures = if installed {

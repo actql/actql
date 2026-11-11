@@ -75,7 +75,7 @@ pub fn graph_ordered_inputs_complete(graph : CheckedDAG) -> Bool {
 }
 
 ///|
-/// Plan completeness only. The existing two-Direct constructor may retain a
+/// Plan completeness only. The existing Direct-prefix constructor may retain a
 /// downstream keyed request before Model input. Its exact checked request and
 /// upstream key port describe a future producer, not startup CapturedRows.
 /// Never insert these requirements into the graph's live supplied inventory.
@@ -85,7 +85,7 @@ fn graph_keyed_model_plan_input(
   model_step : Int,
 ) -> LocalInputSlot? {
   if (
-      graph.captured_prefix != 2 &&
+      graph.captured_prefix < 1 &&
       !(graph.captured_prefix == 0 && !graph.supplied_slots.is_empty())
     ) ||
     model_step < 0 ||
