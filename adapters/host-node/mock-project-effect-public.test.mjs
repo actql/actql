@@ -184,7 +184,7 @@ test('actual cold recovery consumes the same Saved Result before status and pres
   const recoverBody = text.slice(approve.alternate.start, approve.alternate.end);
   const make = new Function('ports', 'assert', `
     const {execution,readFile,targetState,checkRows,console}=ports;
-    const phase='recover',template='churn-risk-mock',variant='readme',handoffPath='fixture-handoff';
+    const phase='recover',template='churn-risk-mock',variant='readme',wholeProducer=false,handoffPath='fixture-handoff';
     let activeStep,firstFailedStep;
     ${declaration('step')}
     return async()=>${recoverBody};
