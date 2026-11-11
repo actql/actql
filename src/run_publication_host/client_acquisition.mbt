@@ -327,7 +327,7 @@ pub fn prepared_client_publication_data_policy_cid(
   if count == 0 {
     return None
   }
-  let mut selected : @checked.PublicationSourcePolicy? = None
+  let policies : Array[@checked.PublicationSourcePolicy] = []
   for result in 0..<count {
     guard @strategy.graph_result_task(graph, result) is Some(task) &&
       @strategy.graph_task_unit_index(graph, task) is Some(unit) &&
@@ -360,21 +360,111 @@ pub fn prepared_client_publication_data_policy_cid(
       }
     }
     guard found is Some(policy) else { return None }
-    if !client_publication_policy_covers_source_responses(program, policy) {
-      return None
+    policies.push(policy)
+  }
+  let mut selected : @checked.PublicationSourcePolicy? = None
+  for candidate in policies {
+    if !client_publication_policy_covers_source_responses(program, candidate) ||
+      !policies.all(original => {
+        client_publication_policy_contains_result(candidate, original)
+      }) {
+      continue
     }
     match selected {
-      None => selected = Some(policy)
-      Some(prior) =>
-        if prior.cid != policy.cid {
-          selected = client_publication_unknown_policy_join(prior, policy)
-          if selected is None {
-            return None
-          }
-        }
+      None => selected = Some(candidate)
+      Some(prior) => if prior.cid != candidate.cid { return None }
     }
   }
   selected.map(policy => policy.cid)
+}
+
+///|
+// Select only an already checked conservative representative. A Result may
+// retain fewer original contributors than another exported Result; it cannot
+// manufacture a policy union, replace an occurrence with an equal CID, or
+// erase unknown provenance/classification from that original Result.
+fn client_publication_policy_contains_result(
+  candidate : @checked.PublicationSourcePolicy,
+  original : @checked.PublicationSourcePolicy,
+) -> Bool {
+  let count = @checked.effective_policy_occurrence_count(original.effective)
+  let covering_count = @checked.effective_policy_occurrence_count(
+    candidate.effective,
+  )
+  let sources = @checked.effective_policy_source_count(original.effective)
+  let covering_sources = @checked.effective_policy_source_count(
+    candidate.effective,
+  )
+  if count < 1 ||
+    count > covering_count ||
+    sources > covering_sources ||
+    (original.unknown_provenance && !candidate.unknown_provenance) ||
+    (
+      @checked.publication_policy_classification(original) !=
+      @checked.publication_policy_classification(candidate) &&
+      !(@checked.publication_policy_classification(candidate)
+      is @environment.Unknown)
+    ) {
+    return false
+  }
+  if count == covering_count &&
+    sources == covering_sources &&
+    original.cid != candidate.cid {
+    return client_publication_unknown_policy_join(original, candidate).map(selected => {
+        physical_equal(selected, candidate)
+      }) ==
+      Some(true)
+  }
+  let mut previous = -1
+  for index in 0..<count {
+    let mut found = -1
+    for covering in 0..<covering_count {
+      let same = match
+        (
+          @checked.effective_policy_occurrence_at(original.effective, index),
+          @checked.effective_policy_occurrence_at(candidate.effective, covering),
+        ) {
+        (Some(@checked.DirectPolicy(a)), Some(@checked.DirectPolicy(b))) =>
+          physical_equal(a, b)
+        (
+          Some(@checked.KeyedResponsePolicy(a)),
+          Some(@checked.KeyedResponsePolicy(b)),
+        ) => physical_equal(a, b)
+        (
+          Some(@checked.KeyedStaticRequestPolicy(a)),
+          Some(@checked.KeyedStaticRequestPolicy(b)),
+        ) => physical_equal(a, b)
+        _ => false
+      }
+      if same {
+        if found >= 0 {
+          return false
+        }
+        found = covering
+      }
+    }
+    if found <= previous {
+      return false
+    }
+    previous = found
+  }
+  for index in 0..<sources {
+    let source = @checked.effective_policy_source_at(original.effective, index)
+    if source is None {
+      return false
+    }
+    let mut found = 0
+    for covering in 0..<covering_sources {
+      if @checked.effective_policy_source_at(candidate.effective, covering) ==
+        source {
+        found += 1
+      }
+    }
+    if found != 1 {
+      return false
+    }
+  }
+  true
 }
 
 ///|

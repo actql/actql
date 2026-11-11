@@ -1,9 +1,19 @@
 ///|
 // Actual checked mixed imported/local Source inputs. Observation metadata is
 // synthetic; these component cases establish no provider or Host acceptance.
-fn mixed_whole_infer_test_program() -> PreparedClientProgram raise {
+fn mixed_whole_infer_test_program(
+  roots? : String? = None,
+) -> PreparedClientProgram raise {
   let document =
     #|{"version":"actql/0.1","id":"mixed-whole-model","stages":[{"id":"source","inputs":{"original":{"connector":"crm/main","resource":"r"}},"steps":[{"derive":{"adjusted":{"add":[{"field":"amount"},{"literal":1}]}}},{"select":["id",{"amount":"adjusted"}],"as":"rows"}],"results":{"rows":{"from":"rows","fields":["id","amount"]}}},{"id":"review","inputs":{"imported":{"result":{"stage":"source","result":"rows"}},"local":{"connector":"crm/right","resource":"r"}},"from":"imported","steps":[{"join":{"with":"local","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":2,"select":{"id":"left.id","amount":"left.amount"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessed"}],"results":{"rows":{"from":"assessed","fields":["id","outcome","value"]}}},{"id":"confirm","inputs":{"reviewed":{"result":{"stage":"review","result":"rows"}}},"steps":[{"derive":{"text":{"literal":"confirm"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"confirmed"}],"results":{"rows":{"from":"confirmed","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"confirm","result":"rows"}}}}
+  let document = match roots {
+    None => document
+    Some(value) =>
+      document.replace(
+        old="\"results\":{\"answer\":{\"from\":{\"stage\":\"confirm\",\"result\":\"rows\"}}}}",
+        new="\"results\":" + value + "}",
+      )
+  }
   prepare_effect_free_client_program(
     document,
     Json,
