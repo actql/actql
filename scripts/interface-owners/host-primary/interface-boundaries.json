@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "2a5415028e6408aad2226cf090ad9c87049d46426b2cfd95c9f72343c3807826",
+      "sha256": "99b283dcb4cb33c1d580679251c4f8c36ea9faad3e97aa98a2a06848ca835e84",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -81,6 +81,11 @@
         },
         {
           "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#5",
           "parameters": [],
           "async": false
         },
@@ -875,7 +880,8 @@
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
-            "acquiredEffectModelGroup/retirePublication/retirePublication"
+            "acquiredEffectModelGroup/retirePublication/retirePublication",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#5"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -955,6 +961,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Captured Compute retirement before entry"
+              },
+              {
+                "path": "adapters/host-node/acquired-model-failed-publication-close.test.mjs",
+                "anchor": "failed plural publication returns original bindings and capacity"
               }
             ],
             "synchronization": [
@@ -995,6 +1005,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "## Captured Compute retirement before entry"
+              },
+              {
+                "path": "adapters/host-node/acquired-model-failed-publication-close.test.mjs",
+                "anchor": "failed publication stop throw preserves its exact failure"
               }
             ],
             "cancellation": [
@@ -8542,7 +8556,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -11978,7 +11992,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -15299,7 +15313,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -18263,7 +18277,7 @@
                 "path": "adapters/host-node/infer-run-original-host.test.mjs"
               },
               {
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1",
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921",
                 "path": "adapters/host-node/model-resume-public.test.mjs"
               },
               {
@@ -23590,7 +23604,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -25538,7 +25552,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -25857,7 +25871,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
@@ -26394,7 +26408,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27565,7 +27579,7 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1099,
+    "operations": 1100,
     "exports": 106,
     "explicitContractGroups": 104
   }
