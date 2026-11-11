@@ -2199,9 +2199,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           typeof continuation !== 'function' || typeof beforeDefer !== 'function' ||
           !Array.isArray(declaredResults) ||
           ![occurrence?.stage, occurrence?.input, occurrence?.task]
-            .every(Number.isSafeInteger) ||
-          occurrence.input !== 0 || occurrence.task !== occurrence.stage ||
-          occurrence.stage < 0) {
+            .every(value => Number.isSafeInteger(value) && value >= 0)) {
         fail('InvalidComputationSourceContinuation');
       }
       occurrence = JSON.parse(JSON.stringify(occurrence));

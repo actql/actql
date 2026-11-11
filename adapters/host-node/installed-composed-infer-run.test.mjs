@@ -311,3 +311,81 @@ test('composed private preflight preserves the same failed owner until its actua
   const events = await composedPublicationHandoff({preflight: true});
   assert.deepEqual(events.slice(-3), ['retry-original-partial', 'retry-original-partial', 'retire-parent']);
 });
+
+function publishedModelReadCaller({acquired = false, grouped = false} = {}) {
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import {registerHooks} from 'node:module';
+    const acquired = ${acquired}, grouped = ${grouped};
+    const prepared = {}, compiled = {}, definition = {}, scope = {}, read = {}, holder = {}, ledger = {};
+    const control = {prepareCheckedClientInferOriginalRead(c, d, g, s, budget) {
+      assert.strictEqual(c, compiled); assert.strictEqual(d, definition);
+      assert(models.some(model => model.graph === g && model.scope === s && model.budget === budget));
+      reads++; return read;
+    }};
+    let reads = 0, entered = 0;
+    globalThis.originalModelCaller = facts => {
+      assert.strictEqual(facts.preparedProgram, prepared);
+      assert.strictEqual(facts.plan, plan);
+      assert.strictEqual(facts.control, control);
+      assert.strictEqual(facts.acquiredInfer, source);
+      const original = facts.originalPreparation;
+      original.retain();
+      for (const [index, view] of (original.components ?? [original]).entries()) {
+        const body = view.prepareRead();
+        assert.strictEqual(body.read, models[index].read);
+        assert.strictEqual(body.inputBodyRead, body.read, 'published Model must retain its SAME original input body');
+        assert.strictEqual(body.control, control); assert.strictEqual(body.compiled, compiled);
+        assert.strictEqual(body.runDefinition, definition); assert.strictEqual(body.scope, models[index].scope);
+        assert.throws(() => view.prepareRead(), /InvalidInstalledRequestModelPreparation/u);
+      }
+      assert.equal(reads, models.length);
+      entered++;
+    };
+    const module = new URL('./adapters/host-node/installed-composed-infer-run.mjs', 'file://' + process.cwd() + '/').href;
+    const hook = registerHooks({load(url, context, next) {
+      if (url === module) return {format: 'module', shortCircuit: true,
+        source: 'export async function runInstalledComposedInfers(facts) { return globalThis.originalModelCaller(facts); }'};
+      return next(url, context);
+    }});
+    const {installNodeInferRun} = await import('./adapters/host-node/installed-infer-run.mjs');
+    hook.deregister();
+    const graphs = grouped ? [{}, {}] : [{}];
+    const selections = graphs.map(graph => ({graph, occurrence: {}}));
+    const selected = grouped ? {graph: graphs, components: selections} : selections[0];
+    const plan = {compiled, runDefinition: definition, inferGraph: selected.graph};
+    const moon = {clientProgramAcquisitionCount: () => acquired ? 1 : 0, clientProgramTaskCount: () => 2};
+    const managed = {runtime: moon, prepared, value: {}, request: {}};
+    const models = selections.map(selection => ({prepared, selection, graph: selection.graph,
+      control, compiled, runDefinition: definition, managed, scope: {},
+      component: {bindOriginal() {}}, publicationCapacity: () => ({}),
+      budget: {readRetainedBytes: 7n, readExecutionBytes: 5n, modelRetainedBytes: 11n, modelExecutionBytes: 3n}}));
+    const model = grouped ? {components: Object.freeze(models), scopes: models.map(model => model.scope),
+      selection: selected, graph: selected.graph, control, compiled, runDefinition: definition, managed} : models[0];
+    managed.model = model;
+    if (grouped) for (const member of models) member.group = model;
+    const source = acquired ? {managedRun: managed.value, ledger, captured: {}} : undefined;
+    if (acquired) model.sourceLedger = ledger;
+    const run = installNodeInferRun({moon, core: {publicationControl: control},
+      selections: new Map([[prepared, selected]]), prepareOriginalModelRun(p, admitted, selection) {
+        assert.strictEqual(p, prepared); assert.strictEqual(admitted, plan); assert.strictEqual(selection, selected);
+        return model;
+      }});
+    await run({preparedProgram: prepared, plan, acquiredInfer: source,
+      preparationHolder: acquired ? holder : undefined});
+    assert.equal(entered, 1);
+  `], {cwd: fileURLToPath(new URL('../../', import.meta.url)), encoding: 'utf8', timeout: 30000});
+  assert.equal(child.status, 0, child.stdout + child.stderr);
+}
+
+test('ordinary published Model source-free caller forwards its same required input body read', () => {
+  publishedModelReadCaller();
+});
+
+test('ordinary published Model captured caller forwards its same required input body read', () => {
+  publishedModelReadCaller({acquired: true});
+});
+
+test('ordinary published Model group caller forwards each same required input body read', () => {
+  publishedModelReadCaller({acquired: true, grouped: true});
+});

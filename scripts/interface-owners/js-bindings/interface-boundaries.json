@@ -72165,7 +72165,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cc4e4370d5c8e5ea65f8f53a07967fa40ce3545b1c13cc4357b34410ed3560a3",
+      "sha256": "b1195b677fecf549e0b27b807057e25afed6c981d41409f789d71a6e3a7e007a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

@@ -20612,7 +20612,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fb3468beee4c27aa493b655060c1ba4eae890ce9ac3c257247ac6d2f1e06c953",
+      "sha256": "8f2ec2455462adb5c7f5b8bca427f4f49cfbb625e085bc6c6059303fbe2bfe73",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -21148,14 +21148,14 @@
         },
         {
           "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#2",
-          "parameters": [
-            "options"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -21167,6 +21167,13 @@
         },
         {
           "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#5",
           "parameters": [],
           "async": false
         },
@@ -22225,7 +22232,13 @@
             "installRemoteCheckpoints/init:acceptRun/init:acceptRun/answering/answering",
             "installRemoteCheckpoints/init:acceptRun/init:acceptRun/init:acceptRun",
             "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvalCurrent",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvedNow/approvedNow",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/assertApprovedReadCurrent/assertApprovedReadCurrent",
             "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:authorize",
+            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/init:originalCheckpointApproval/init:originalCheckpointApproval",
             "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/same/same",
             "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/same/same/same",
             "installRemoteCheckpoints/init:attestResolution/init:attestResolution",
@@ -22240,6 +22253,7 @@
             "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#2",
             "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#3",
             "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
+            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#5",
             "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/read/init:describe/init:describe",
             "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/read/read",
             "installRemoteCheckpoints/init:computationSourceReferences/init:computationSourceReferences",
@@ -22373,13 +22387,7 @@
             "principals/principals",
             "trustedReviewers",
             "without/without",
-            "without/without/without",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvalCurrent",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvedNow/approvedNow",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/assertApprovedReadCurrent/assertApprovedReadCurrent",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:authorize",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/init:originalCheckpointApproval/init:originalCheckpointApproval"
+            "without/without/without"
           ],
           "exports": [
             "MAX_MODEL_INPUT_BYTES",
@@ -22736,6 +22744,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
                 "anchor": "three original Source ports reach the same continuation authorization caller without a two-Source cap"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
+                "anchor": "same-stage original Source input one reaches its exact continuation without a diagonal coordinate restriction"
               }
             ]
           }
@@ -22856,6 +22868,10 @@
               {
                 "path": "packages/sdk/effect-review-checkpoints.test.mjs",
                 "anchor": "test('Effect semantic review verification rejects"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
+                "anchor": "same-stage original Source input one reaches its exact continuation without a diagonal coordinate restriction"
               }
             ]
           }
@@ -22929,6 +22945,10 @@
               {
                 "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
                 "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
+                "anchor": "same-stage original Source input one reaches its exact continuation without a diagonal coordinate restriction"
               }
             ]
           }
@@ -23039,6 +23059,10 @@
               {
                 "path": "adapters/host-node/ordinary-project-files-host.actual.test.mjs",
                 "anchor": "test('ordinary Project Local files use one actual managed Run"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
+                "anchor": "same-stage original Source input one reaches its exact continuation without a diagonal coordinate restriction"
               }
             ]
           }
@@ -23395,6 +23419,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
+                "anchor": "same-stage original Source input one reaches its exact continuation without a diagonal coordinate restriction"
               }
             ]
           }

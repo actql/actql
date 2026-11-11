@@ -37,7 +37,7 @@ const makeAuthorization = compileFunction(`
 `, ['ports', 'contentCid', 'fail']);
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
-function fixture() {
+function fixture(coordinates = [0, 1, 2].map(task => ({stage: task, input: 0, task}))) {
   const prepared = {}, definition = {identity: 'original-definition'}, held = new WeakSet();
   const binding = Object.freeze({connectorId: 'original', connectorRegistration: 'original',
     connectorRevision: 'original/0.1', bindingCid: 'sha256:' + 'a'.repeat(64)});
@@ -73,8 +73,8 @@ function fixture() {
     if (!held.has(value)) fail('InstalledSourcePreparationMismatch');
     return binding;
   }};
-  const sources = [0, 1, 2].map(task => {
-    const occurrence = Object.freeze({stage: task, input: 0, task});
+  const sources = coordinates.map(coordinate => {
+    const occurrence = Object.freeze({...coordinate});
     const preparedSource = Object.freeze({occurrence,
       checkedSource: {sourceRef: 'original-source'},
       readTuple: {connection: 'original', resource: 'records', operation: 'read'},
@@ -119,4 +119,29 @@ test('continuation caller retains actual current refusal before the third Source
     await assert.rejects(f.continuation.beforeRead(f.sources[2]), {code: 'ClientRunCancellationRequested'});
     assert.equal(f.gates.length, 0);
   } finally {await f.continuation.close();}
+});
+
+// Actual two-Model normal416 handoff coordinates: two acquisitions in one
+// stage have independent input/task ordinals, not a legacy pipeline diagonal.
+test('same-stage original Source input one reaches its exact continuation without a diagonal coordinate restriction', async () => {
+  const f = fixture([{stage: 0, input: 0, task: 0}, {stage: 0, input: 1, task: 1}]);
+  try {
+    await f.continuation.prepared(f.sources);
+    for (const source of f.sources) (await f.continuation.beforeRead(source)).enter();
+    const decisions = f.events.filter(value => value.boundary === 'acquisition');
+    assert.equal(decisions.length, 2);
+    assert.equal(new Set(decisions.map(value => value.subjectCid)).size, 2);
+    assert.equal(f.events.filter(value => value === 'enter').length, 2);
+  } finally {await f.continuation.close();}
+});
+
+test('original Source coordinates retain nonnegative integer refusal before any gate', async () => {
+  for (const key of ['stage', 'input', 'task']) {
+    const f = fixture([{stage: 0, input: 1, task: 1, [key]: -1}]);
+    try {
+      await f.continuation.prepared(f.sources);
+      await assert.rejects(f.continuation.beforeRead(f.sources[0]), {code: 'InvalidComputationSourceContinuation'});
+      assert.equal(f.gates.length, 0);
+    } finally {await f.continuation.close();}
+  }
 });

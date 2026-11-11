@@ -91,7 +91,10 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
         model.read = control.prepareCheckedClientInferOriginalRead(plan.compiled,
           plan.runDefinition, selected.graph, scope, model.budget);
         return Object.freeze({control, compiled: plan.compiled, runDefinition: plan.runDefinition,
-          scope, read: model.read, publicationCapacity,
+          // This installed caller always hands the completed observation to
+          // inferTaskPublicationPlan; its existing body owner needs this SAME
+          // read. This does not enable retention in raw/private Model consumers.
+          scope, read: model.read, inputBodyRead: model.read, publicationCapacity,
           readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
           modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
       } catch (cause) {model.readFailure = cause; throw cause;}
