@@ -1652,15 +1652,29 @@ jobs:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval
       - name: Test packed HubSpot Whole-input mock approval and original Saved
+        id: packed-hubspot-whole
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval
+      - name: Retain packed HubSpot Whole-input qualification and failure evidence
+        if: always() && steps.packed-hubspot-whole.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-hubspot-whole.outputs.evidence-directory }}
+          name: packed-hubspot-whole-${{ github.sha }}
       - name: Test packed three-Source HubSpot mock approval and original Saved
+        id: packed-hubspot-three-source
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval
+      - name: Retain packed three-Source HubSpot qualification and failure evidence
+        if: always() && steps.packed-hubspot-three-source.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-hubspot-three-source.outputs.evidence-directory }}
+          name: packed-hubspot-three-source-${{ github.sha }}
       - name: Test packed kintone mock approval and original Saved
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
+import {execFileSync} from 'node:child_process';
 import {join, dirname} from 'node:path';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
@@ -10,6 +11,7 @@ import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases} from './test-packed-readme-workflows.mjs';
 import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
+import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
@@ -69,6 +71,82 @@ test('existing collector keeps the distinct Whole fixture and original cold inpu
   assert.deepEqual(phases, ['capture', 'approve', 'recover']);
   assert.equal(metric.variant, 'two-models-whole');
   assert.equal(metric.samples[0].verified, true);
+});
+
+test('Whole and three-Source evidence preserves failed commands and requires original nonzero qualification', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-approval-evidence-'));
+  t.after(() => rm(root, {recursive: true}));
+  await mkdir(join(root, 'scripts'));
+  const child = `
+    const assert=require('node:assert/strict');
+    assert.equal(process.argv[2],'--ci-evidence-child');
+    assert.equal(process.argv[3],process.env.EVIDENCE_SELECTION);
+    console.log('Bearer fixture-only-secret');
+    const mode=process.env.EVIDENCE_MODE;
+    if(mode==='exit'){console.error('OriginalFixtureFailure');process.exit(7);}
+    if(mode==='signal'){process.kill(process.pid,'SIGTERM');}
+    if(mode==='missing')process.exit(0);
+    const receipt={fixtureVariant:mode==='variant'?'foreign':process.env.EVIDENCE_VARIANT,
+      productSource:process.env.EVIDENCE_SOURCE,freshNormalInstall:true,expectedTests:1,observedExitCode:0,
+      manifestSha256:'b'.repeat(64),actualCounts:{tests:1,passed:1,failed:0,cancelled:0,skipped:0,todo:0}};
+    if(mode==='zero')receipt.actualCounts={tests:0,passed:0,failed:0,cancelled:0,skipped:0,todo:0};
+    console.log('PACKED_HUBSPOT_PUBLIC '+JSON.stringify(receipt));
+  `;
+  await writeFile(join(root, 'scripts/test-packed-hubspot-source.mjs'), child.replace(
+    "const assert=require('node:assert/strict');", "import assert from 'node:assert/strict';"));
+  const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', timeout: 5000});
+  git(['init', '--quiet']); git(['add', 'scripts']);
+  git(['-c', 'core.hooksPath=/dev/null', '-c', 'user.name=Evidence fixture',
+    '-c', 'user.email=evidence@example.invalid', '-c', 'commit.gpgsign=false',
+    'commit', '--quiet', '-m', 'test: retain explicit evidence command']);
+  const sourceSha = git(['rev-parse', 'HEAD']).trim();
+  const source = await readFile(new URL('./test-packed-hubspot-source.mjs', import.meta.url), 'utf8');
+  const declaration = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .map(value => value.type === 'ExportNamedDeclaration' ? value.declaration : value)
+    .find(value => value?.type === 'FunctionDeclaration' && value.id.name === 'collectPackedApprovalEvidence');
+  assert(declaration);
+  const collect = Function('assert', 'createCommandEvidence', 'join', 'process',
+    `return (${source.slice(declaration.start, declaration.end)});`)(assert, createCommandEvidence, join, process);
+  for (const [selection, variant] of [['--mock-hubspot-whole-approval', 'whole-input'],
+    ['--mock-hubspot-three-source-approval', 'three-source']]) {
+    for (const mode of ['pass', 'exit', 'signal', 'missing', 'variant', 'zero']) {
+      const output = join(root, `${variant}-${mode}.output`);
+      const invoke = () => collect({repository: root, selection, env: {...process.env,
+        GITHUB_OUTPUT: output, EVIDENCE_SELECTION: selection, EVIDENCE_VARIANT: variant,
+        EVIDENCE_MODE: mode, EVIDENCE_SOURCE: sourceSha, EVIDENCE_TEST_SECRET: 'fixture-only-secret'}});
+      if (mode === 'pass') assert(invoke().startsWith('/'));
+      else assert.throws(invoke);
+      const record = await readFile(output, 'utf8');
+      const directory = /^evidence-directory=(.+)$/mu.exec(record)?.[1]; assert(directory);
+      const selected = checkCommandEvidenceUpload(directory);
+      const summary = JSON.parse(await readFile(join(directory, 'summary.json'), 'utf8'));
+      assert.equal(summary.status, mode === 'pass' ? 'passed' : 'failed');
+      assert.equal(summary.complete, mode === 'pass');
+      assert.equal(summary.qualification.qualified, mode === 'pass');
+      assert.equal(summary.qualification.fixtureVariant, variant);
+      assert.equal(summary.commands.length, 1);
+      if (mode === 'exit') assert.equal(summary.commands[0].status, 7);
+      if (mode === 'signal') assert.equal(summary.commands[0].signal, 'SIGTERM');
+      const raw = await readFile(join(directory, '001.stdout.log'), 'utf8');
+      assert(!raw.includes('fixture-only-secret')); assert(raw.includes('[REDACTED]'));
+      assert(selected.includes('001.result.json')); assert(selected.includes('001.stderr.log'));
+      assert(!selected.some(path => /qualification\.json|state|\.sqlite|keys|node_modules/u.test(path)));
+    }
+  }
+});
+
+test('Whole and three-Source CI always collects only the invocation bounded diagnostic directory', () => {
+  const steps = workflow.jobs['client-packed'].steps;
+  for (const id of ['packed-hubspot-whole', 'packed-hubspot-three-source']) {
+    const consumer = steps.find(step => step.id === id); assert(consumer);
+    const upload = steps.find(step => step.with?.directory === `\${{ steps.${id}.outputs.evidence-directory }}`);
+    assert(upload); assert(steps.indexOf(upload) > steps.indexOf(consumer));
+    assert.equal(upload.if, `always() && steps.${id}.outputs.evidence-directory != ''`);
+    assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
+    assert.equal(upload['continue-on-error'], undefined);
+    assert.equal(consumer['continue-on-error'], undefined);
+    assert(!Object.hasOwn(upload.with, 'path'), 'Never upload the private application/state scratch');
+  }
 });
 test('required README job reuses the exact single producer on Node 22 and 24 with failure retention', () => {
   assert(job); assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);

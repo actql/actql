@@ -11,11 +11,63 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {runFocusedTests} from './test-execution.mjs';
 import {admitRecordApprovalCIInput} from './record-approval-ci-input.mjs';
 import {packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
+import {createCommandEvidence} from './packed-query-evidence.mjs';
+
+// Reuse the original consumer and its normal admission unchanged. The outer
+// command receipt exists before installation, including failed preparation.
+export function collectPackedApprovalEvidence({repository, selection, env = process.env}) {
+  assert(['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval'].includes(selection));
+  const fixtureVariant = selection === '--mock-hubspot-whole-approval' ? 'whole-input' : 'three-source';
+  const evidence = createCommandEvidence({cwd: repository, env,
+    scratch: join(repository, '_build', 'packed-approval-evidence'),
+    githubOutput: env.GITHUB_OUTPUT, prefix: fixtureVariant + '-'});
+  evidence.summary.qualification = {fixtureVariant, qualified: false, status: 'unexecuted', expectedTests: 1};
+  evidence.persist();
+  let primary;
+  try {
+    const args = [join(repository, 'scripts/test-packed-hubspot-source.mjs'), '--ci-evidence-child', selection];
+    const {result, outcome, writeFailure} = evidence.capture(process.execPath, args,
+      {cwd: repository, env, timeout: 300000, killSignal: 'SIGTERM'});
+    Object.assign(evidence.summary.qualification, {status: 'failed',
+      observedExitCode: outcome.status, signal: outcome.signal,
+      processComplete: outcome.complete, outputComplete: outcome.outputComplete});
+    assert(!result.error && !result.signal && result.status === 0,
+      'Original packed approval command failed; its bounded raw result remains authoritative');
+    const rows = (result.stdout ?? '').split(/\r?\n/u).filter(line => line.startsWith('PACKED_HUBSPOT_PUBLIC '));
+    assert.equal(rows.length, 1, 'Require the original consumer qualification, not merely exit zero');
+    const receipt = JSON.parse(rows[0].slice('PACKED_HUBSPOT_PUBLIC '.length));
+    assert.equal(receipt.fixtureVariant, fixtureVariant);
+    assert.equal(receipt.productSource, evidence.summary.source.revision);
+    assert.equal(receipt.freshNormalInstall, true);
+    assert.equal(receipt.expectedTests, 1); assert.equal(receipt.observedExitCode, 0);
+    assert.deepEqual(receipt.actualCounts, {tests: 1, passed: 1, failed: 0, cancelled: 0, skipped: 0, todo: 0});
+    assert.match(receipt.manifestSha256, /^[a-f0-9]{64}$/u);
+    Object.assign(evidence.summary.qualification, {productSource: receipt.productSource,
+      manifestSha256: receipt.manifestSha256, actualCounts: receipt.actualCounts,
+      qualified: true, status: 'passed'});
+    if (writeFailure) throw writeFailure;
+  } catch (error) {primary = error;}
+  finally {
+    try {evidence.finish(primary ? 'failed' : 'passed');}
+    catch (error) {primary ??= error;}
+  }
+  if (primary) throw Object.assign(primary, {evidenceDirectory: evidence.directory});
+  assert(evidence.summary.complete, 'Packed approval evidence incomplete');
+  return evidence.directory;
+}
+
+const evidenceSelection = process.argv[2] === '--ci' &&
+  ['--mock-hubspot-whole-approval', '--mock-hubspot-three-source-approval'].includes(process.argv[3]);
+if (evidenceSelection) {
+  assert.equal(process.argv.length, 4, 'Require the unchanged --ci SELECTION contract');
+  console.log('PACKED_APPROVAL_EVIDENCE', collectPackedApprovalEvidence({
+    repository: fileURLToPath(new URL('../', import.meta.url)), selection: process.argv[3]}));
+} else {
 
 assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1',
   'Preserve original Run/DB/keys/raw on success and failure');
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const argv = process.argv.slice(2), ci = argv[0] === '--ci';
+const argv = process.argv.slice(2), ci = ['--ci', '--ci-evidence-child'].includes(argv[0]);
 let [source, release, consumer, selection] = ci ? [repository, undefined, undefined, argv[1]] : argv;
 const selections = ['--approval', '--kintone-approval', '--mock-salesforce-approval',
   '--mock-hubspot-approval', '--mock-hubspot-whole-approval',
@@ -142,3 +194,4 @@ const receipt = {fixtureVariant: threeSourceMock ? 'three-source' : wholeMock ? 
 await writeFile(join(scratch.path, 'qualification.json'), JSON.stringify(receipt, null, 2) + '\n');
 scratch.passed();
 console.log('PACKED_HUBSPOT_PUBLIC', JSON.stringify(receipt));
+}
