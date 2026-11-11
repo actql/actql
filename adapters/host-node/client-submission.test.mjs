@@ -1022,7 +1022,7 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       assert.equal(requestNode, undefined); requestNode = node.init;
     }
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
-        ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].includes(node.declarations[0].id.name)) {
+        ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission', 'prepareEffectInferSelection'].includes(node.declarations[0].id.name)) {
       const name = node.declarations[0].id.name; assert.equal(declarations.has(name), false); declarations.set(name, node);
     }
     for (const child of Object.values(node)) {
@@ -1030,9 +1030,15 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       else if (child && typeof child === 'object') visit(child);
     }
   }
-  visit(ast); assert(holder); assert(route); assert(requestNode); assert(unadmitted); assert(directCoordinates); assert.equal(declarations.size, 3);
+  visit(ast); assert(holder); assert(route); assert(requestNode); assert(unadmitted); assert(directCoordinates); assert.equal(declarations.size, 4);
   const text = node => source.slice(node.start, node.end), record = {computeRuns: new Map()};
-  const runtime = {clientProgramSerializationOccurrences: () => []}, prepared = {}, requested = {};
+  const runtime = {clientProgramSerializationOccurrences: () => [],
+    clientProgramEffectInferOccurrences: () => ({$tag: 1, _0: []})}, prepared = {}, requested = {};
+  const prepareEffectInferSelection = new Function('moon', 'checked',
+    'prepareComposedInferSelection', 'prepareInferSelection',
+    `${text(declarations.get('prepareEffectInferSelection'))}\nreturn prepareEffectInferSelection;`)(runtime, checked,
+    () => assert.fail('No Model composition in this Source-ownership fixture'),
+    () => assert.fail('No Model execution in this Source-ownership fixture'));
   const originalInstallation = {initialControl: {}}, originals = {installation: originalInstallation};
   const error = Object.assign(new Error('original pure preparation Unsupported'), {code: 'ClientProgramUnsupported'});
   let current = true, requestReads = 0, projections = 0;
@@ -1083,12 +1089,13 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
   if (missingModel) runtime.clientProgramAcquisitionCount = () => 0;
   if (effectSelection !== undefined) {
     const secondRef = 'source:second';
+    const sameOwner = ['duplicate-owner', 'same-owner-supported'].includes(effectSelection);
     Object.assign(adapter, {realizationKey: 'duckdb-acquired',
-      admitsSource: ref => ref === sourceRef || effectSelection === 'duplicate-owner' && ref === secondRef,
+      admitsSource: ref => ref === sourceRef || sameOwner && ref === secondRef,
       prepare() {assert.fail('No Source preparation');}, open() {assert.fail('No Source I/O');}});
     const second = {realizationKey: 'unsupported-table', admitsSource: ref => ref === secondRef,
       prepare() {assert.fail('No Source preparation');}, open() {assert.fail('No Source I/O');}};
-    sourceProfile.sources = effectSelection === 'duplicate-owner' ? [adapter] : [adapter, second];
+    sourceProfile.sources = sameOwner ? [adapter] : [adapter, second];
     Object.assign(runtime, {clientProgramEffectAcquisitionCount: () => 2,
       clientProgramEffectDirectSourceCoordinates(value) {
         assert.strictEqual(value, prepared);
@@ -1116,7 +1123,7 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
       registry: undefined, values: undefined, fragment: undefined, ordered: undefined,
       originalSourceFreeRequest(value, requestId) {
         assert.equal(value, prepared); sourceFreeRequestIdentities.set(value, {requested, requestId}); return requested;
-      }, preparation, installedSourceFor, inferSelections, checked,
+      }, preparation, installedSourceFor, inferSelections, checked, prepareEffectInferSelection,
       runtimeOptionalField: () => undefined, diagnostic() {}, runtimeTag: () => undefined,
       clientOperationError(code, cause) {
         sourceError = Object.assign(new Error(code, {cause}), {code}); return sourceError;
@@ -1130,11 +1137,12 @@ function pairedAdmissionFixture({wholeSource = false, missingModel = false, effe
     prepareInvocation() {assert.fail('The original refusal precedes invocation preparation');}});
   const callback = new Function('preparation', 'moon', 'requestOf', 'inferSelections', 'prepareOrdinaryManagedRun',
     'sourceProfile', 'sourceFreeRequestIdentities', 'prepareSubmit', 'installedSourceFor', 'journal', 'namespaceId', 'control',
-    'missingModelExecutionRefusals',
+    'missingModelExecutionRefusals', 'prepareEffectInferSelection',
     ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].map(name => text(declarations.get(name))).join('\n') +
       '\nreturn admitPreparedSubmission;')(preparation, runtime, requestOf, inferSelections, prepareOrdinaryManagedRun,
     sourceProfile, sourceFreeRequestIdentities, prepareSubmit, installedSourceFor,
-    {resolveDefinition(value) {assert.equal(value, requested); return existingDefinition;}}, 'fixture', {}, missingModelExecutionRefusals);
+    {resolveDefinition(value) {assert.equal(value, requested); return existingDefinition;}}, 'fixture', {}, missingModelExecutionRefusals,
+    prepareEffectInferSelection);
   return {callback, error, prepared, requested, record, originalInstallation,
     adapter, sourceProfile, prepareSubmit, inferSelections, runtime, setDefinition(value) {existingDefinition = value;},
     replaceAdapter(value) {selectedAdapter = value;},
@@ -1701,7 +1709,32 @@ test('original Source classification retains the post-write authority fence and 
 });
 
 
-for (const reason of ['duplicate-owner', 'unsupported-realization']) {
+test('same-owner acquired Effect inputs reach the inert metadata boundary without execution', () => {
+  const p = pairedAdmissionFixture({effectSelection: 'same-owner-supported'});
+  const sentinel = new Error('deliberate inert Effect result metadata boundary');
+  const selectedRefs = [];
+  let inferReads = 0, metadataReads = 0;
+  p.runtime.clientProgramSelectedSourceInputRef = value => {selectedRefs.push(value); return value;};
+  p.runtime.clientProgramEffectInferOccurrences = value => {
+    assert.strictEqual(value, p.prepared); inferReads++;
+    return {$tag: 1, _0: []};
+  };
+  p.runtime.clientProgramEffectResultCount = value => {
+    assert.strictEqual(value, p.prepared); metadataReads++;
+    throw sentinel;
+  };
+  const candidate = {preparedProgram: p.prepared, requestId: 'original'};
+  assert.throws(() => p.callback(candidate), error => error === sentinel);
+  assert.deepEqual(selectedRefs, ['source:fixture', 'source:second']);
+  assert.equal(inferReads, 1);
+  assert.equal(metadataReads, 1);
+  assert.equal(p.record.computeRuns.size, 0);
+  assert.equal(p.requestReads, 1);
+  assert.equal(p.sourceError, undefined);
+  assert.equal(Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [sentinel, candidate]), false);
+});
+
+for (const reason of ['unsupported-realization']) {
   test(`original acquired Effect ${reason} refusal precedes any Run admission`, async t => {
     const p = pairedAdmissionFixture({effectSelection: reason});
     const f = await fixture(t, {prepare: () => p.prepared, admit: p.callback});
