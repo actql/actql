@@ -69226,7 +69226,7 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "50fec49354801d48719131d1a1d8adddd254f4ac6b5d8e4887594d8e1f95cee4",
+      "sha256": "45f654fc9511ad3c574b3f75bb963ed4cf4f333229ca27abeb94e524f4cf87ad",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -69301,7 +69301,8 @@
             "moon",
             "baseWire",
             "selection",
-            "lookupSelection"
+            "lookupSelection",
+            "requestMemory"
           ],
           "async": false
         },

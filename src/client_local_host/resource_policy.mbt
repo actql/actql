@@ -49,15 +49,24 @@ fn client_local_joint_byte_ceiling() -> Int64 {
 /// This fact does not apply to streaming or independently installed backends.
 pub fn client_local_materialized_row_ceiling(
   policy : ClientLocalResourcePolicy,
+  retained_bytes? : Int64? = None,
+  execution_bytes? : Int64? = None,
 ) -> Int? {
-  if !physical_equal(policy, local_materialization_policy) {
+  guard client_local_preparation_initial_limits(
+      policy,
+      retained_bytes~,
+      execution_bytes~,
+    )
+    is Some(limits) else {
     return None
   }
   let unit = @execution.execution_capacity_node_bytes()
-  if unit <= 0L || policy.retained_bytes < 0L {
+  if unit <= 0L {
     return None
   }
-  let rows = policy.retained_bytes / unit
+  // Each retained output node also occupies the same Run's execution memory.
+  // This necessary bound selects no capacity and allocates no row storage.
+  let rows = Int64::min(limits.retained_bytes, limits.execution_bytes) / unit
   if rows > 2147483647L {
     None
   } else {

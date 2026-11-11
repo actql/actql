@@ -76,7 +76,9 @@ export type HostInstallation = Readonly<{
   sourceFreeMaxWork?: number;
   /** Finite initial Request/Run Ledger memory limits, selected before admission.
    * Both safe-integer byte quantities are required; Core checks the installed
-   * envelope. Omission preserves the Core default. Not reserved RAM or RSS.
+   * envelope and derives checking/collection row ceilings from the same pair.
+   * Omission preserves 512 MiB per counter. Not reserved RAM or RSS; the same
+   * owner funds actual demand. Explicit row limits may narrow this selection.
    * Reopen with the same installation selection for original Saved reads. */
   requestMemory?: Readonly<{retainedBytes: number; executionBytes: number}>;
   hostLookupExecutionPolicy?: HostLookupExecutionPolicy;

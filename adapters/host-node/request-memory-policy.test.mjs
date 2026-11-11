@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './effective-memory-projection.test.mjs';
 import {snapshotRequestMemory, localResourceResultReadLimits} from './installed-host-policy.mjs';
 import {beginOrdinaryHostControl, ordinaryHostControlInput} from './ordinary-host-control.mjs';
 import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';

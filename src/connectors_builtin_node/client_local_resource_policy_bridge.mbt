@@ -12,8 +12,14 @@ pub fn client_local_resource_policy_original() -> @client_local_host.ClientLocal
 #export_name("clientLocalResourcePolicyRowCeiling")
 pub fn client_local_resource_policy_row_ceiling(
   policy : @client_local_host.ClientLocalResourcePolicy,
+  retained_bytes : Int64?,
+  execution_bytes : Int64?,
 ) -> Int {
-  @client_local_host.client_local_materialized_row_ceiling(policy).unwrap_or(-1)
+  @client_local_host.client_local_materialized_row_ceiling(
+    policy,
+    retained_bytes~,
+    execution_bytes~,
+  ).unwrap_or(-1)
 }
 
 ///|

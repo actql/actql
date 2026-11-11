@@ -154,7 +154,9 @@ export function localResourceResultReadLimits(moon, requestMemory) {
   const limits = moon.clientLocalPreparationResourceLimits(original,
     memory === undefined ? undefined : BigInt(memory.retainedBytes),
     memory === undefined ? undefined : BigInt(memory.executionBytes));
-  const maxRows = moon.clientLocalResourcePolicyRowCeiling(original);
+  const maxRows = moon.clientLocalResourcePolicyRowCeiling(original,
+    memory === undefined ? undefined : BigInt(memory.retainedBytes),
+    memory === undefined ? undefined : BigInt(memory.executionBytes));
   if (!Array.isArray(limits) || limits.length !== 6 ||
       [limits[3], limits[4]].some(value => typeof value !== 'bigint' ||
         value < 1n || value > BigInt(Number.MAX_SAFE_INTEGER)) ||
@@ -194,11 +196,14 @@ export function selectInstalledHostEnvironment(moon, baseWire, selection, lookup
 // Generic Hosts and independently installed Effect/streaming profiles retain
 // their original selector and policy identity.
 export function selectInstalledLocalMaterializationEnvironment(
-  moon, baseWire, selection, lookupSelection,
+  moon, baseWire, selection, lookupSelection, requestMemory,
 ) {
   const explicit = snapshotHostCapacityPolicy(selection);
+  const memory = snapshotRequestMemory(requestMemory);
   const original = moon.clientLocalResourcePolicyOriginal();
-  const rows = moon.clientLocalResourcePolicyRowCeiling(original);
+  const rows = moon.clientLocalResourcePolicyRowCeiling(original,
+    memory === undefined ? undefined : BigInt(memory.retainedBytes),
+    memory === undefined ? undefined : BigInt(memory.executionBytes));
   if (!Number.isSafeInteger(rows) || rows < 1 || rows > 2147483647) {
     fail('LocalResourcePolicyProjection');
   }

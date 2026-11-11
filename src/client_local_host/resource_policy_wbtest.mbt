@@ -73,3 +73,50 @@ test "Request memory selection keeps nominal policy defaults counters and finite
   assert_eq(smaller.retained_bytes, 67108864L)
   assert_eq(smaller.execution_bytes, 67108864L)
 }
+
+///|
+test "effective memory row ceiling follows both selected counters and refuses invalid or foreign policy" {
+  let policy = client_local_resource_policy()
+  for
+    (retained, execution, rows) in [
+      (67108864L, 134217728L, 262144),
+      (1073741824L, 67108864L, 262144),
+      (1073741824L, 2147483648L, 4194304),
+      (2147483648L, 2147483648L, 8388608),
+    ] {
+    assert_eq(
+      client_local_materialized_row_ceiling(
+        policy,
+        retained_bytes=Some(retained),
+        execution_bytes=Some(execution),
+      ),
+      Some(rows),
+    )
+  }
+  for
+    (retained, execution) in [
+      (Some(67108864L), None),
+      (None, Some(67108864L)),
+      (Some(0L), Some(67108864L)),
+      (Some(67108864L), Some(-1L)),
+      (Some(9223372036854775807L), Some(9223372036854775807L)),
+    ] {
+    assert_true(
+      client_local_materialized_row_ceiling(
+        policy,
+        retained_bytes=retained,
+        execution_bytes=execution,
+      )
+      is None,
+    )
+  }
+  let foreign : ClientLocalResourcePolicy = { ..policy, }
+  assert_true(
+    client_local_materialized_row_ceiling(
+      foreign,
+      retained_bytes=Some(1073741824L),
+      execution_bytes=Some(1073741824L),
+    )
+    is None,
+  )
+}

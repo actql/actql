@@ -202,7 +202,7 @@ pub fn client_local_resource_policy_model_request_byte_ceiling(@client_local_hos
 
 pub fn client_local_resource_policy_original() -> @client_local_host.ClientLocalResourcePolicy
 
-pub fn client_local_resource_policy_row_ceiling(@client_local_host.ClientLocalResourcePolicy) -> Int
+pub fn client_local_resource_policy_row_ceiling(@client_local_host.ClientLocalResourcePolicy, Int64?, Int64?) -> Int
 
 pub fn client_local_signing_bootstrap_issue(String, String, String, Int64, Int64) -> Result[(String, Int64, Int64, Int), @run_publication_host.ClientLocalSigningBootstrapIssueError]
 

@@ -311,7 +311,7 @@ pub fn client_local_content_step_generation(ClientLocalContentStep) -> @run_publ
 
 pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @execution_relation.ValueLimits) -> @local.LocalImportLimits
 
-pub fn client_local_materialized_row_ceiling(ClientLocalResourcePolicy) -> Int?
+pub fn client_local_materialized_row_ceiling(ClientLocalResourcePolicy, retained_bytes? : Int64?, execution_bytes? : Int64?) -> Int?
 
 pub fn client_local_preparation_initial_limits(ClientLocalResourcePolicy, retained_bytes? : Int64?, execution_bytes? : Int64?) -> @physical_resources.LedgerLimits?
 

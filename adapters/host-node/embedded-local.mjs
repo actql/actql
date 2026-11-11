@@ -1749,7 +1749,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     ((mode === 'remote' && effectInstallation !== undefined) ||
       selectedEffectPaths.length !== 0
     ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment)(
-    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy);
+    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy, requestMemory);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
@@ -8489,7 +8489,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
     const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon,
       preparation.readEnvironmentSource().trimEnd(), originalInstallation.hostCapacityPolicy,
       originalInstallation.hostLookupExecutionPolicy ?? localResourceLookupExecutionPolicy(moon,
-        moon.clientLocalResourcePolicyOriginal(), localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS])));
+        moon.clientLocalResourcePolicyOriginal(), localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS])),
+      originalInstallation.requestMemory);
     originalInstallation.declaredFileBaseEnvironmentWire = baseEnvironmentWire;
     // Retain before module/runtime selection and before the first dynamic
     // declaration. Later Host installation borrows this same service/parent.
