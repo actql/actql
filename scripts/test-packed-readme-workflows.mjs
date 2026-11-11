@@ -24,7 +24,7 @@ export const packedCompositionCases = Object.freeze([
 // SAME completed original Result. This helper installs nothing and submits no
 // replacement Run. Its caller owns software/fixture correspondence and alias cleanup.
 export async function runCollectionPhase({collection, command, record, capturePid}) {
-  assert(['capture', 'saved'].includes(record.phase));
+  assert(['budget', 'capture', 'saved'].includes(record.phase));
   if (record.phase === 'saved') assert(Number.isSafeInteger(capturePid) && capturePid > 0);
   const members = ['scripts/fixtures/packed-result-collection.mjs'];
   const {phase} = record;
@@ -40,11 +40,18 @@ export async function runCollectionPhase({collection, command, record, capturePi
     assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
     if (phase === 'saved') assert.notEqual(actual.pid, capturePid);
     assert.equal(actual.sourceFreeMaxWork, 30000000);
-    assert.deepEqual(actual.requestMemory, {retainedBytes: 1073741824, executionBytes: 1073741824});
+    const memory = phase === 'budget' ? 536870912 : 1073741824;
+    assert.deepEqual(actual.requestMemory, {retainedBytes: memory, executionBytes: memory});
     assert(actual.complete); assert.equal(actual.firstClose, 'returned');
     assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
-    assert.equal(actual.submits, phase === 'capture' ? 5 : 0);
-    if (phase === 'capture') {
+    assert.equal(actual.submits, phase === 'capture' ? 5 : phase === 'budget' ? 1 : 0);
+    if (phase === 'budget') {
+      assert.equal(actual.budgetRefusal?.verified, true);
+      assert.equal(actual.budgetRefusal.phase, 'source_free_plan');
+      assert.equal(actual.budgetRefusal.outcome, 'not_accepted');
+      assert.equal(actual.budgetRefusal.classification, 'operation_failed');
+      assert.deepEqual(actual.cases, [{count: 100000, expectedRefusal: 'source_free_plan', complete: true}]);
+    } else if (phase === 'capture') {
       assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
       assert.deepEqual(actual.fullStream, {rows: 100000, complete: true});
       assert.deepEqual(actual.controls, {tighterRows: true, collectionBytes: true,
@@ -165,7 +172,7 @@ export async function runPackedReadmeWorkflows(root) {
   const raw = join(root, 'raw'); await mkdir(raw);
   const report = {source, node: process.version, platform: process.platform,
     architecture: process.arch, requiredCases: packedReadmeCases, requiredCompositions: packedCompositionCases,
-    collection: ['capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
+    collection: ['budget', 'capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires verified unchanged normal packages'})),

@@ -5,12 +5,13 @@ import {readFile, writeFile, unlink} from 'node:fs/promises';
 import {join} from 'node:path';
 import {setTimeout} from 'node:timers/promises';
 import {open} from '@actql/node';
+import {getSubmissionOutcome} from '@actql/sdk';
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
 
 const [phase, handoffPath] = process.argv.slice(2);
-assert(['capture', 'saved'].includes(phase));
+assert(['budget', 'capture', 'saved'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
-const stateDir = join(process.cwd(), 'state');
+const stateDir = join(process.cwd(), phase === 'budget' ? 'budget-state' : 'state');
 const counts = [9999, 10000, 10001, 100000];
 const report = {phase, pid: process.pid, cases: [], submits: 0,
   firstClose: 'unobserved', complete: false, phases: []};
@@ -42,18 +43,74 @@ async function drainOriginalRows(result, expected) {
   assert.equal(rows, expected, 'The original stream must reach EOF with every expected row');
   return {rows, complete: true};
 }
+// The installed Host emits this existing typed Common projection. An error
+// code, an error.capacity property, or a failed quote without amounts is not
+// this witness. These comparisons check evidence, not resource admission.
+function originalBudgetRefusal(observations, outcome, memory) {
+  assert.equal(outcome?.kind, 'not_accepted');
+  assert.equal(outcome?.problem?.code, 'ClientProgramRejected');
+  assert.equal(outcome?.problem?.classification, 'operation_failed');
+  assert.equal(observations.length, 1, 'Require one actual Plan-capacity diagnostic');
+  const original = observations[0];
+  assert.equal(original?.phase, 'source_free_plan');
+  assert(['retention', 'execution'].includes(original.dimension));
+  const fields = ['requiredRetentionBytes', 'requiredExecutionBytes',
+    'availableRetentionBytes', 'availableExecutionBytes'];
+  assert.deepEqual(Object.keys(original).sort(), ['phase', 'dimension', ...fields].sort());
+  const amounts = fields.map(name => {
+    const value = original[name];
+    assert.equal(typeof value, 'string');
+    assert(value.length <= 19);
+    assert(/^(?:0|[1-9][0-9]*)$/u.test(value));
+    const amount = BigInt(value); assert(amount <= 9223372036854775807n);
+    return amount;
+  });
+  const [requiredRetention, requiredExecution, availableRetention, availableExecution] = amounts;
+  assert(availableRetention <= BigInt(memory.retainedBytes));
+  assert(availableExecution <= BigInt(memory.executionBytes));
+  assert(original.dimension === 'retention' ? requiredRetention > availableRetention
+    : requiredRetention <= availableRetention && requiredExecution > availableExecution);
+  return {...original, outcome: outcome.kind, classification: outcome.problem.classification, verified: true};
+}
 let client, failed = false, primary;
 const cleanup = [], programs = [];
+const capacityObservations = [];
 try {
   // Explicit finite policy for this authored SQL's measured semantic work.
   // Both capture and the same-original Saved process select the same Host input.
   report.sourceFreeMaxWork = 30000000;
-  report.requestMemory = {retainedBytes: 1073741824, executionBytes: 1073741824};
+  const memory = phase === 'budget' ? 536870912 : 1073741824;
+  report.requestMemory = {retainedBytes: memory, executionBytes: memory};
   client = await span('open', () => open({stateDir, installation: {
     sourceFreeMaxWork: report.sourceFreeMaxWork,
     requestMemory: report.requestMemory,
+    ...(phase === 'budget' ? {authorization: {observe(name, detail) {
+      // A second delivery already fails the exact-one requirement. Bound the
+      // retained diagnostic input even if an implementation repeats it.
+      if (name === 'preparation_capacity_refused' && capacityObservations.length < 2) {
+        capacityObservations.push(detail);
+      }
+    }}} : {}),
   }}));
-  if (phase === 'capture') {
+  if (phase === 'budget') {
+    await span('submit-budget-refusal', async () => {
+      let refused = false, original;
+      report.submits++;
+      try {
+        const run = await client.startSource(collectionProgram(100000), {format: 'sql'});
+        await save('budget-unexpected-ref-before-close.json', run.ref);
+      } catch (error) {refused = true; original = error;}
+      assert(refused, 'The bounded case requires actual pre-admission Plan refusal');
+      try {
+        report.budgetRefusal = originalBudgetRefusal(capacityObservations,
+          getSubmissionOutcome(original), report.requestMemory);
+      } catch (error) {
+        report.budgetControlFailure = {name: error?.name, code: error?.code};
+        throw original; // Keep the actual public failure if its cause is unproved.
+      }
+      report.cases.push({count: 100000, expectedRefusal: 'source_free_plan', complete: true});
+    });
+  } else if (phase === 'capture') {
     for (const count of counts) {
       const programPath = join(process.cwd(), `collection-${count}.sql`);
       await writeFile(programPath, collectionProgram(count), {flag: 'wx'}); programs.push(programPath);

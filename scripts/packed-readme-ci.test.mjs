@@ -374,6 +374,112 @@ test('failed README command retains original exit primary and first-close failur
   assert.equal(observed[0].samples[0].phases.length, 1);
 });
 
+async function collectionBudgetPorts() {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const load = name => {
+    const node = tree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === name);
+    assert(node);
+    return Function('assert', `return (${source.slice(node.start, node.end)});`)(assert);
+  };
+  const body = tree.body.find(value => value.type === 'TryStatement').block;
+  // Execute the actual fixture with explicit public/diagnostic ports, not a
+  // substitute Core, Ledger, installed acceptance, or successful budget run.
+  return {project: load('originalBudgetRefusal'), program: load('collectionProgram'),
+    run: Function('ports', `return (async () => {
+      const {assert,report,span,open,phase,stateDir,capacityObservations,
+        originalBudgetRefusal,getSubmissionOutcome,collectionProgram,save}=ports;
+      let client; ${source.slice(body.start, body.end)}; return client;
+    })();`)};
+}
+
+test('normal budget evidence requires original public refusal and exact exceeded Core quantities', async () => {
+  const {project} = await collectionBudgetPorts();
+  const memory = {retainedBytes: 536870912, executionBytes: 536870912};
+  const outcome = {kind: 'not_accepted', problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
+  const fact = {phase: 'source_free_plan', dimension: 'execution', requiredRetentionBytes: '203770432',
+    requiredExecutionBytes: '703186240', availableRetentionBytes: '536870912', availableExecutionBytes: '536870912'};
+  assert.equal(project([fact], outcome, memory).verified, true);
+  assert.equal(project([{...fact, dimension: 'retention', requiredRetentionBytes: '9223372036854775807'}],
+    outcome, memory).requiredRetentionBytes, '9223372036854775807');
+  for (const [observed, publicOutcome] of [
+    [[], outcome], [[fact, fact], outcome], [[fact], undefined],
+    [[fact], {...outcome, kind: 'preparation_failed'}],
+    [[fact], {...outcome, problem: {...outcome.problem, classification: 'invalid_input'}}],
+    [[fact], {...outcome, problem: {...outcome.problem, code: 'StartupFailure'}}],
+    [[{...fact, token: 'not-a-diagnostic-field'}], outcome],
+    [[{...fact, phase: 'initialization'}], outcome],
+    [[{...fact, requiredExecutionBytes: '536870912'}], outcome],
+    [[{...fact, requiredRetentionBytes: '536870913'}], outcome],
+    [[{...fact, availableExecutionBytes: '536870913'}], outcome],
+    ...['-1', '+1', '01', '9223372036854775808', 703186240].map(value =>
+      [[{...fact, requiredExecutionBytes: value}], outcome]),
+  ]) assert.throws(() => project(observed, publicOutcome, memory));
+});
+
+test('normal budget fixture submits once and keeps unrelated public failure as primary', async () => {
+  const {project, program, run} = await collectionBudgetPorts();
+  for (const mode of ['exact', 'no-diagnostic', 'unrelated', 'unexpected-run']) {
+    const report = {cases: [], submits: 0}, observations = [], saved = [];
+    const primary = Object.assign(new Error('Actual public refusal'), {code: 'SubmissionNotAccepted',
+      capacity: {phase: 'source_free_plan'}}); // A lookalike error field is insufficient.
+    let submissions = 0;
+    const execute = () => run({assert, report, phase: 'budget', stateDir: '/fresh-own-budget',
+      capacityObservations: observations, originalBudgetRefusal: project, collectionProgram: program,
+      span: async (_name, action) => action(), save: async (path, value) => saved.push({path, value}),
+      async open(options) {
+        assert.equal(options.stateDir, '/fresh-own-budget');
+        assert.deepEqual(options.installation.requestMemory, {retainedBytes: 536870912, executionBytes: 536870912});
+        assert.deepEqual(Object.keys(options.installation.authorization), ['observe']);
+        return {async startSource(text, selection) {
+          submissions++; assert.equal(text, program(100000)); assert.deepEqual(selection, {format: 'sql'});
+          if (mode === 'unexpected-run') return {ref: {original: true}};
+          if (mode !== 'no-diagnostic') options.installation.authorization.observe('preparation_capacity_refused',
+            {phase: 'source_free_plan', dimension: 'execution', requiredRetentionBytes: '203770432',
+              requiredExecutionBytes: '703186240', availableRetentionBytes: '536870912', availableExecutionBytes: '536870912'});
+          throw primary;
+        }};
+      },
+      getSubmissionOutcome(error) {
+        assert.equal(error, primary);
+        return mode === 'unrelated' ? undefined : {kind: 'not_accepted',
+          problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
+      }});
+    if (mode === 'exact') {await execute(); assert.equal(report.budgetRefusal.verified, true);}
+    else if (mode === 'unexpected-run') {
+      await assert.rejects(execute, {code: 'ERR_ASSERTION'});
+      assert.deepEqual(saved, [{path: 'budget-unexpected-ref-before-close.json', value: {original: true}}]);
+    } else {
+      await assert.rejects(execute, error => error === primary);
+      assert.equal(report.budgetRefusal, undefined); assert(report.budgetControlFailure);
+    }
+    assert.equal(submissions, 1); assert.equal(report.submits, 1);
+  }
+});
+
+test('normal budget parent refuses missing evidence pending close or wrong selected memory', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  for (const mode of ['exact', 'missing', 'outcome', 'memory', 'close', 'fd']) {
+    const actual = {phase: 'budget', pid: 12001, sourceFreeMaxWork: 30000000,
+      requestMemory: {retainedBytes: 536870912, executionBytes: 536870912}, submits: 1,
+      complete: true, firstClose: 'returned', aliveScopedFD: {before: 0, after: 0},
+      cases: [{count: 100000, expectedRefusal: 'source_free_plan', complete: true}],
+      budgetRefusal: {verified: true, phase: 'source_free_plan', outcome: 'not_accepted', classification: 'operation_failed'}};
+    if (mode === 'missing') delete actual.budgetRefusal;
+    if (mode === 'outcome') actual.budgetRefusal.outcome = 'unknown';
+    if (mode === 'memory') actual.requestMemory.executionBytes = 1073741824;
+    if (mode === 'close') actual.firstClose = 'pending';
+    if (mode === 'fd') actual.aliveScopedFD.after = 1;
+    const record = {phase: 'budget', completed: false};
+    const execute = () => run({collection: root, record, async command() {
+      return {pid: 12001, code: 0, stdout: JSON.stringify(actual)};
+    }});
+    if (mode === 'exact') {await execute(); assert.equal(record.completed, true);}
+    else {await assert.rejects(execute); assert.equal(record.completed, false);}
+  }
+});
+
 test('packed collection persists Program-removal failure after FIRST close and never removes in Saved', async () => {
   // Execute the actual fixture finalizer with explicit filesystem/close ports.
   // This verifies failure recording, not installed Host or Run behavior.
@@ -383,7 +489,7 @@ test('packed collection persists Program-removal failure after FIRST close and n
   const runFinalizer = Function('client', 'span', 'report', 'cleanup', 'failed', 'phase', 'programs',
     'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert',
     `return (async () => ${source.slice(finalizer.start, finalizer.end)})();`);
-  for (const phase of ['capture', 'saved']) {
+  for (const phase of ['budget', 'capture', 'saved']) {
     const events = [], cleanup = [], report = {firstClose: 'unobserved'}, observations = [];
     const failure = Object.assign(new Error('Original Program removal failed'), {code: 'EACCES'});
     await runFinalizer({async close() {events.push('FIRST-close');}},
@@ -675,6 +781,7 @@ test('failed shared package preparation records every dependent as unexecuted an
     verifyNodeBenchmarkPackages: async () => assert.fail('No successful prepared input')});
   await assert.rejects(run(output), error => error === failure);
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
+  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'capture', 'saved']);
   assert.equal(report.complete, false);
   assert([...report.collection, ...report.cases, ...report.compositions].every(value =>
     value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
