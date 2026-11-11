@@ -75,6 +75,7 @@ fn original_composed_keyed_consumer(
   pre_dispatch_plan? : Bool = false,
   request_metadata_policy? : Int = 16384,
   native_transport? : Bool = false,
+  captured_source_metadata? : Bool = false,
   native_activation? : Bool = false,
   activation_reentry? : Bool = false,
   left_identity_reentry? : Bool = false,
@@ -95,7 +96,7 @@ fn original_composed_keyed_consumer(
     fields["host_policy_profile"] is Object(policy) else {
     fail("the original finite keyed policy is required")
   }
-  let native_profile = if native_transport {
+  let native_profile = if native_transport || captured_source_metadata {
     let view = declaration.views.filter(view => view.resource == "contents")[0]
     let (request, response) = @row_source_host.row_declaration_keyed_read_schema_identities(
       declaration,
@@ -110,11 +111,27 @@ fn original_composed_keyed_consumer(
       "\",\"source_view_contract_cid\":\"" +
       view.view_cid +
       "\",\"version\":\"actql-native-file-content-read/0.1\"}"
+    let body = if captured_source_metadata {
+      body.replace(
+        old="actql-native-file-content-read/0.1",
+        new="actql-declared-file-content-read/0.1",
+      )
+    } else {
+      body
+    }
     Some(
       (
         view.source_ref,
         @publication.seal_publication_contract(
-          "native_file_content_read", body, 16384, 1024, 20,
+          if captured_source_metadata {
+            "declared_file_content_read"
+          } else {
+            "native_file_content_read"
+          },
+          body,
+          16384,
+          1024,
+          20,
         ).unwrap(),
       ),
     )
@@ -440,7 +457,7 @@ fn original_composed_keyed_consumer(
       }),
     )
   }
-  let graphs = if native_activation {
+  let graphs = if native_activation || captured_source_metadata {
     let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
       prepared,
     ).unwrap()
@@ -477,7 +494,8 @@ fn original_composed_keyed_consumer(
   } else {
     []
   }
-  let (_, request, contracts, model) = if native_activation {
+  let (_, request, contracts, model) = if native_activation ||
+    captured_source_metadata {
     effect_model_plan_for_graph(prepared, graphs[0], acquired=true)
   } else {
     effect_model_plan_for_prepared(prepared, acquired=true, infers=graphs)
@@ -808,7 +826,11 @@ fn original_composed_keyed_consumer(
         captured,
         identity,
         logical,
-        "sha256:" + "2".repeat(64),
+        if captured_source_metadata {
+          @publication_host.client_request_authority_scope_cid(original_request)
+        } else {
+          "sha256:" + "2".repeat(64)
+        },
         facts.source_data_policy_cid,
         "2026-11-05T00:00:01.000Z",
       ).unwrap()
@@ -1095,6 +1117,171 @@ fn original_composed_keyed_consumer(
       }
       fail("original Model Scope lookup: " + reason)
     }
+  }
+
+  if captured_source_metadata {
+    let limits = original_keyed_content_workspace().export_limits
+    let left_identity = @publication_host.prepare_client_keyed_native_left_identity(
+      lookup,
+      1,
+      limits.values,
+      limits.payload_wire,
+      limits.logical_wire,
+      limits.schema,
+      1000000,
+      100000,
+    )
+    match left_identity {
+      Ok(_) => ()
+      Err(@publication_host.Assembly(reason)) =>
+        fail("left metadata: " + reason)
+      Err(@publication_host.CompletedIdentity(issue)) => {
+        let reason = match issue {
+          @execution.Unavailable => "Unavailable"
+          @execution.NotCellRepresentation => "NotCellRepresentation"
+          @execution.InvalidTarget => "InvalidTarget"
+          @execution.NotFinished => "NotFinished"
+          @execution.Closed => "Closed"
+          @execution.ForeignMaterial => "ForeignMaterial"
+          @execution.CanonicalRow => "CanonicalRow"
+          @execution.Admission(_) => "Admission"
+          @execution.Wire(_) => "Wire"
+          @execution.Schema(_) => "Schema"
+          @execution.ResultView(_) => "ResultView"
+        }
+        fail("left metadata: " + reason)
+      }
+      Err(@publication_host.Physical(_)) => fail("left metadata: Physical")
+      Err(_) => fail("left metadata: other typed refusal")
+    }
+    let retention = original_composed_keyed_metadata_retention()
+    let before = @resources.ledger_usage(ledger)
+    // Both identities have the same schema and row contents, but only the
+    // original captured Source identity may occupy its selected slot.
+    assert_true(
+      @publication_host.bind_client_keyed_whole_source_metadata(
+        lookup,
+        0,
+        whole_identities[1],
+        whole_observations[0].0,
+        whole_observations[0].1,
+        original_request,
+        retention,
+        16777216,
+        1024,
+        20,
+      )
+      is Err(_),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    for index in 0..<2 {
+      let (logical, observation) = whole_observations[index]
+      let result = @publication_host.bind_client_keyed_whole_source_metadata(
+        lookup,
+        index,
+        whole_identities[index],
+        logical,
+        observation,
+        original_request,
+        retention,
+        16777216,
+        1024,
+        20,
+      )
+      let bound = match result {
+        Ok(value) => value
+        Err(@publication_host.Assembly(reason)) =>
+          fail("captured metadata: " + reason)
+        Err(@publication_host.Physical(issue)) =>
+          fail("captured metadata: " + @debug.to_string(issue))
+        Err(@publication_host.SourceLogical(@publication_host.Admission(issue))) =>
+          fail("captured metadata logical: " + @debug.to_string(issue))
+        Err(@publication_host.Identity(@publication.Contract(issue))) =>
+          fail("captured metadata contract: " + @debug.to_string(issue))
+        Err(@publication_host.Wire(issue)) =>
+          fail("captured metadata request: " + @debug.to_string(issue))
+        Err(_) => fail("captured metadata: other typed refusal")
+      }
+      assert_true(physical_equal(bound.identity, whole_identities[index]))
+      assert_true(physical_equal(bound.logical, logical))
+      assert_true(physical_equal(bound.observation, observation))
+      assert_eq(@encode.document_text(bound.request), "{}")
+      let previous = @resources.ledger_usage(ledger)
+      assert_true(
+        @publication_host.bind_client_keyed_whole_source_metadata(
+          lookup,
+          index,
+          whole_identities[index],
+          logical,
+          observation,
+          original_request,
+          retention,
+          16777216,
+          1024,
+          20,
+        )
+        is Err(_),
+      )
+      assert_eq(@resources.ledger_usage(ledger), previous)
+    }
+    let before_relation = @resources.ledger_usage(ledger)
+    let relation = match
+      @publication_host.prepare_client_keyed_native_left_relation(
+        lookup, original_request, retention, "declared-file-component-issuer", 16777216,
+        1024, 20,
+      ) {
+      Ok(value) => value
+      Err(@publication_host.Assembly(reason)) =>
+        fail("left Relation: " + reason)
+      Err(@publication_host.Physical(issue)) =>
+        fail("left Relation: " + @debug.to_string(issue))
+      Err(@publication_host.Identity(issue)) =>
+        fail("left Relation: " + @debug.to_string(issue))
+      Err(@publication_host.Derivation(issue)) =>
+        fail("left Relation: " + @debug.to_string(issue))
+      Err(_) => fail("left Relation: other typed refusal")
+    }
+    assert_true(
+      physical_equal(
+        @publication_host.client_keyed_native_left_relation(lookup).unwrap(),
+        relation,
+      ),
+    )
+    assert_true(
+      @resources.ledger_usage(ledger).reserved_retention_bytes -
+      before_relation.reserved_retention_bytes <
+      1048576L,
+    )
+    let derivation = @publication.publication_contract_json(
+      @publication.result_ordering_derivation_contract(relation.ordering),
+    )
+    guard @json.parse(derivation) is Object(fields) &&
+      fields["input_relation_cids"] is Array(inputs) else {
+      fail("left derivation input set")
+    }
+    // The two original captures remain distinct occurrences. Their identical
+    // admitted upstream Relation appears once in the derivation CID set.
+    assert_eq(inputs.length(), 1)
+    let upstream = @publication_host.client_keyed_native_source_evidence(
+      lookup, 0,
+    ).unwrap()
+    assert_eq(
+      inputs[0].stringify(),
+      "\"" +
+      @publication.publication_contract_identity(upstream.relation) +
+      "\"",
+    )
+    let after = @resources.ledger_usage(ledger)
+    assert_eq(after.attempts, before.attempts)
+    assert_eq(after.transferred_bytes, before.transferred_bytes)
+    assert_true(
+      after.reserved_retention_bytes - before.reserved_retention_bytes <
+      1048576L,
+    )
+    assert_true(
+      after.reserved_execution_bytes - before.reserved_execution_bytes <
+      1048576L,
+    )
   }
 
   if shared_source_producers {
@@ -1960,7 +2147,11 @@ fn original_composed_keyed_consumer(
     assert_true(@strategy.retire_captured_task_outputs(dag))
   }
 
-  let authority = "sha256:" + "2".repeat(64)
+  let authority = if captured_source_metadata {
+    @publication_host.client_request_authority_scope_cid(original_request)
+  } else {
+    "sha256:" + "2".repeat(64)
+  }
   let started = "2026-11-05T00:00:00.000Z"
   let completed = "2026-11-05T00:00:01.000Z"
   let limits = original_keyed_content_workspace().export_limits
@@ -3136,4 +3327,28 @@ test "original supplied Whole Source reads feed the same keyed Model without con
 ///|
 test "mixed completed Unit and inline Direct Source keep both Model compiler inputs" {
   original_composed_keyed_consumer(following=true, mixed_plan_only=true)
+}
+
+///|
+fn original_composed_keyed_metadata_retention() -> @publication.PublicationContract {
+  @publication.seal_publication_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
+    "1".repeat(64) +
+    "\",\"effective_data_policy_cid\":\"sha256:" +
+    "2".repeat(64) +
+    "\",\"available_until\":\"2026-11-06T01:00:00.000Z\",\"delete_by\":\"2026-11-06T02:00:00.000Z\",\"extension_ceiling_at\":\"2026-11-06T03:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
+    "3".repeat(64) +
+    "\",\"metadata_delete_by\":\"2026-11-06T04:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
+    "4".repeat(64) +
+    "\"}",
+    10000,
+    1000,
+    32,
+  ).unwrap()
+}
+
+///|
+test "captured Source protocol borrows the original Whole metadata once before keyed Model input" {
+  original_composed_keyed_consumer(whole=true, captured_source_metadata=true)
 }
