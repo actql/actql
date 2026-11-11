@@ -340,9 +340,9 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
     unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), files}),
-    samples: [], evidence: root};
+    template, variant, samples: [], evidence: root};
   for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
-    const project = join(root, `mock-project-${iteration}`); await mkdir(project);
+    const project = join(root, `mock-project-${template}-${variant}-${iteration}`); await mkdir(project);
     for (const [name, bytes] of Object.entries(files)) {
       await mkdir(dirname(join(project, name)), {recursive: true}); await writeFile(join(project, name), bytes, {flag: 'wx'});
     }
@@ -351,14 +351,42 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
     try {
       for (const [phase, expected] of [['capture', 9], ['approve', 11], ['recover', 7]]) {
-        const observation = await command(process.execPath, [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
+        const args = [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
           ...(template === 'churn-risk-mock' ? [] : [template]),
-          ...(variant === 'readme' ? [] : [variant])],
-          {cwd: project, name: `workflow-${iteration}-${phase}`, timeout: 30_000});
-        const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
-        assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
-        assert.equal(rows.at(-1).status, 'passed'); assert.equal(rows.at(-1).firstFailedStep, null);
-        phases.push({phase, pid: observation.pid, wallNs: observation.wallNs, assertions: expected});
+          ...(variant === 'readme' ? [] : [variant])];
+        const record = {phase, command: process.execPath, args, cwd: project,
+          expectedAssertions: expected, completed: false, startedAt: new Date().toISOString()};
+        phases.push(record);
+        const path = join(project, `${phase}.observation.json`);
+        await writeFile(path, JSON.stringify(record, null, 2) + '\n', {mode: 0o600, flag: 'wx'});
+        let observation, phaseFailed = false, primary;
+        try {
+          observation = await command(process.execPath, args,
+            {cwd: project, name: `workflow-${template}-${variant}-${iteration}-${phase}`, timeout: 30_000});
+          Object.assign(record, {pid: observation.pid, wallNs: observation.wallNs,
+            exitCode: observation.code, signal: observation.signal ?? null});
+          const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
+          record.summary = rows.at(-1);
+          // The command and its original outcome exist before fixture assertions.
+          await writeFile(path, JSON.stringify(record, null, 2) + '\n');
+          assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
+          assert.equal(record.summary.status, 'passed'); assert.equal(record.summary.firstFailedStep, null);
+          record.assertions = expected; record.completed = true;
+        } catch (error) {
+          phaseFailed = true; primary = error;
+          observation ??= error?.commandResult;
+          // A nonzero child can still have reported its original primary and
+          // first-close outcome. Preserve those DATA without replacing it.
+          try {record.summary = JSON.parse(observation.stdout.trim().split('\n').at(-1));} catch {}
+          Object.assign(record, {pid: observation?.pid ?? null, wallNs: observation?.wallNs ?? null,
+            exitCode: observation?.code ?? null, signal: observation?.signal ?? null,
+            error: nodeBenchmarkFailure(error)});
+          throw error;
+        } finally {
+          record.endedAt = new Date().toISOString();
+          try {await writeFile(path, JSON.stringify(record, null, 2) + '\n');}
+          catch (error) {if (phaseFailed) throw primary; throw error;}
+        }
       }
       const used = process.cpuUsage(cpu);
       metric.samples.push({iteration, pid: process.pid, stateId: project, wallNs: Number(process.hrtime.bigint() - started),
@@ -375,6 +403,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     } finally {await unlink(join(project, 'node_modules'));}
     await onMetric(metric);
   }
+  return metric;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === self) {

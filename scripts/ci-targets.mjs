@@ -46,7 +46,7 @@ export const maintenanceFiles = Object.freeze([
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
   'native-cli-installed', 'native-cli-linux-local', 'native', 'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
-  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick']);
+  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick', 'client-readme-packed']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
 // Canonical identity, runtime ownership, platform/FFI and build changes keep
@@ -80,6 +80,7 @@ export function deepProofRequired(selection) {
 }
 export function gateJobRequired(selection, name) {
   if (['select-targets', 'preflight', 'lint', 'spec'].includes(name)) return true;
+  if (name === 'client-readme-packed') return selection.profile === 'full';
   if (['main-performance', 'health-quick'].includes(name)) return selection.event === 'push';
   if (name === 'focused-tests') return ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (name === 'python-wheels') return pythonWheelAcceptanceRequired(selection);
