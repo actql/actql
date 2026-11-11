@@ -42,13 +42,15 @@ async function runCollectionConsumer({prepared, root, repository, command, repor
         if (phase === 'saved') assert.notEqual(actual.pid, report.collection[0].pid);
         assert(actual.complete); assert.equal(actual.firstClose, 'returned');
         assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
-        assert.equal(actual.submits, phase === 'capture' ? 4 : 0);
+        assert.equal(actual.submits, phase === 'capture' ? 5 : 0);
         if (phase === 'capture') {
           assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
           assert.deepEqual(actual.controls, {tighterRows: true, collectionBytes: true,
             wireBytes: true, rowWireBytes: true, rowBytes: true, originalChargeBeforeValidation: true,
             boundedBatches: true, batchBytes: true, earlyBreak: true, readerCancellation: true});
-          assert.equal(actual.originalProgramsRemovedAfterFirstClose, 4);
+          assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000,
+            expectedRefusal: 'ResultRowRetainedLimit', complete: true});
+          assert.equal(actual.originalProgramsRemovedAfterFirstClose, 5);
         } else assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
         record.completed = true; record.status = 'passed';
       } catch (error) {

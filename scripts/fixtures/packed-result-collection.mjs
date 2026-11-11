@@ -88,6 +88,20 @@ try {
       }
     }
     assert.deepEqual(report.cases.map(value => value.count), counts);
+    // Few rows can still exceed the decoded per-row budget. Keep wire small
+    // while exercising the same public SQL array constructor and SDK guard.
+    const oversizedProgram = join(process.cwd(), 'collection-oversized-row.sql');
+    await writeFile(oversizedProgram, `SELECT [${new Array(20000).fill('0').join(',')}] AS cells`, {flag: 'wx'});
+    programs.push(oversizedProgram); report.submits++;
+    const document = await readFile(oversizedProgram, 'utf8');
+    const run = await span('submit-oversized-row', () => client.startSource(document, {format: 'sql'}));
+    await save('ref-before-wait-oversized-row.json', run.ref);
+    const state = await span('wait-oversized-row', () => run.wait());
+    assert.equal(state.status, 'succeeded');
+    const names = state.next_action?.results;
+    assert(Array.isArray(names) && names.length === 1, 'Require the actual sole oversized-row Named Result');
+    await assert.rejects(run.result(names[0]).all(), {code: 'ResultRowRetainedLimit'});
+    report.oversizedRow = {rows: 1, arrayElements: 20000, expectedRefusal: 'ResultRowRetainedLimit', complete: true};
   } else {
     const original = JSON.parse(await readFile(handoffPath, 'utf8'));
     assert.equal(original.count, 100000);
