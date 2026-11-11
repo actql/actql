@@ -466,6 +466,7 @@ test('shared target reader retains both actual selected Core package target clau
       ['installed_effect_provider_plan_js_wbtest.mbt', ['js']],
       ['installed_capture_parent_js_wbtest.mbt', ['js']],
       ['managed_source_free_preparation_js_wbtest.mbt', ['js']],
+      ['completed_task_provenance_js_wbtest.mbt', ['js']],
     ]],
   ]) {
     const source = readFileSync(new URL(`../src/${name}/moon.pkg`, import.meta.url), 'utf8');
