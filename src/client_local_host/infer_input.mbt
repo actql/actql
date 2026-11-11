@@ -341,6 +341,12 @@ pub fn start_client_composed_infer_input(
                 ) {
                 matched = false
               }
+            @local.SuppliedRelationInput(read) if index < slot =>
+              if !@publication_host.client_composed_keyed_lookup_source_supplied_read_matches(
+                  lookup, occurrence, index, read,
+                ) {
+                matched = false
+              }
             @local.SuppliedRelationInput(read) if index == slot =>
               if !@execution.supplied_relation_read_same_binding(read, original) ||
                 !@execution.supplied_relation_read_available(read) {

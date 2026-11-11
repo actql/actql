@@ -913,6 +913,32 @@ pub fn client_composed_keyed_lookup_source_read_matches(
 }
 
 ///|
+/// Match a supplied Whole Source port to the SAME retained capture. A Source
+/// that already executed a checked producer must still supply that producer's
+/// Result through the existing RelationRead path, never its earlier raw input.
+pub fn client_composed_keyed_lookup_source_supplied_read_matches(
+  lookup : ClientKeyedLookupInput,
+  occurrence : ClientInferOccurrence,
+  slot : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Bool {
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.left.composed is Some(original) &&
+    client_infer_occurrence_matches_plan(occurrence, original.plan) &&
+    original.sources.get(slot) is Some(source) &&
+    client_composed_keyed_indexed_producer(original.producers, slot) is None &&
+    @query.captured_source_original_input_read(source) is Some(expected) &&
+    @execution.supplied_relation_read_same_binding(read, expected) &&
+    @execution.supplied_relation_read_available(read) else {
+    return false
+  }
+  // The original Source/read current callbacks can reenter cleanup. They
+  // cannot leave this returned port usable after retiring the lookup owner.
+  !lookup.closed && lookup.left.lookup_issue is None
+}
+
+///|
 /// Borrow the SAME completed root proofs for the existing checked DAG. The
 /// prefix remains their execution/reservation/cleanup owner; this does not
 /// issue a completion, replay a Source or grant a consumer port.

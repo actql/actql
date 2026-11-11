@@ -61,6 +61,7 @@ fn original_composed_keyed_consumer(
   keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
   retained_input_root? : Bool = false,
   shared_source_producers? : Bool = false,
+  supplied_source_inputs? : Bool = false,
   initial_identity_policy? : Bool = false,
   large_lookup_policy? : Bool = false,
   publication_identity? : Bool = false,
@@ -2047,9 +2048,20 @@ fn original_composed_keyed_consumer(
     )
   }
   let model_input_sequence = prefix
-  let inputs = original.inputs.map(value => {
-    @local.managed_provider_relation_input(value.2)
-  })
+  let supplied_sources_current = Ref(true)
+  let inputs = if supplied_source_inputs {
+    assert_true(whole && !shared_source_producers)
+    sources.map(source => {
+      @local.managed_provider_supplied_relation_input(
+        @execution.restrict_supplied_relation_read(
+          @query.captured_source_original_input_read(source).unwrap(),
+          () => supplied_sources_current.val,
+        ),
+      )
+    })
+  } else {
+    original.inputs.map(value => @local.managed_provider_relation_input(value.2))
+  }
   if shared_source_producers {
     for slot, (_, _, read) in original.inputs {
       assert_true(
@@ -2063,6 +2075,18 @@ fn original_composed_keyed_consumer(
       assert_false(
         @query.captured_source_matches_segment_input(sources[slot], read),
       )
+      // A completed filtered producer is not its raw original Source, even
+      // when the caller supplies a live native read with that Source binding.
+      if @query.captured_source_original_input_read(sources[slot]) is Some(raw) {
+        assert_false(
+          @publication_host.client_composed_keyed_lookup_source_supplied_read_matches(
+            lookup,
+            model._occurrence,
+            slot,
+            raw,
+          ),
+        )
+      }
     }
   }
   let keyed_current = Ref(true)
@@ -2097,6 +2121,57 @@ fn original_composed_keyed_consumer(
     is Err(UnsupportedProgram),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
+  if supplied_source_inputs {
+    supplied_sources_current.val = false
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        model_input_sequence,
+        inputs,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    supplied_sources_current.val = true
+    let swapped_sources = inputs.copy()
+    swapped_sources[0] = inputs[1]
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        model_input_sequence,
+        swapped_sources,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    // An equally supplied read from the keyed result is not either original
+    // Source. Preserve its nominal slot binding instead of accepting the kind.
+    let foreign_source_inputs = inputs.copy()
+    foreign_source_inputs[0] = @local.managed_provider_supplied_relation_input(
+      restricted_right,
+    )
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        model_input_sequence,
+        foreign_source_inputs,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+  }
   keyed_current.val = false
   assert_true(
     start_client_composed_infer_input(
@@ -2921,4 +2996,9 @@ test "actual Whole Source originals supply Model Direct acquisition evidence wit
 ///|
 test "Query Result-import Model retains its existing direct-only Invocation refusal" {
   original_composed_keyed_consumer(direct_effect_evidence=true)
+}
+
+///|
+test "original supplied Whole Source reads feed the same keyed Model without conversion" {
+  original_composed_keyed_consumer(whole=true, supplied_source_inputs=true)
 }
