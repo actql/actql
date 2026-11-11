@@ -75,6 +75,72 @@ pub fn graph_ordered_inputs_complete(graph : CheckedDAG) -> Bool {
 }
 
 ///|
+// Plan-only coordinates from the SAME checked Direct requests. Inline Sources
+// beside an imported Unit have no produced data edge yet. Recording that exact
+// original input obligation is not a live supplied read or a completed task.
+fn graph_keyed_model_direct_plan_slots(
+  graph : CheckedDAG,
+) -> Array[LocalInputSlot]? {
+  let slots = graph.supplied_slots.copy()
+  let identity = @checked.source_identity(graph.program)
+  for index in 0..<@checked.source_execution_count(graph.program) {
+    let check = @checked.source_execution_at(graph.program, index).unwrap()
+    guard @checked.source_execution_kind(check) is @checked.CarrierResponse else {
+      continue
+    }
+    let subject = @checked.source_execution_subject(check)
+    guard subject.request is @acquisition.Direct(mode, request) else {
+      continue
+    }
+    guard physical_equal(subject.owner, identity) &&
+      @context.program_identity_stage_requests(identity, subject.stage)
+      is Some(requests) &&
+      @acquisition.pipeline_request_at(requests, subject.input)
+      is Some(@acquisition.Direct(original_mode, original_request)) &&
+      physical_equal(mode, original_mode) &&
+      physical_equal(request, original_request) &&
+      graph_stage_operation_task(graph, subject.stage, 0) is Some(task) &&
+      graph.owners.get(task) is Some(owner) &&
+      @checked.unit_pipeline(graph.program, subject.stage) is Some(pipeline) &&
+      physical_equal(pipeline, @lower.pipeline(@lower.bound_preparation(owner))) &&
+      @pipeline.lookup(
+        pipeline,
+        @acquisition.declaration(@acquisition.mode_input(mode)).input_name,
+      )
+      is Some(@pipeline.Input(input)) else {
+      return None
+    }
+    if task < graph.captured_prefix {
+      continue
+    }
+    guard graph.selected_steps[task] is None &&
+      input >= 0 &&
+      input < graph.input_counts[task] &&
+      !graph.data.any(edge => edge.consumer == task && edge.input == input) else {
+      return None
+    }
+    let present = slots.filter(slot => {
+      slot.consumer == task && slot.input == input
+    })
+    if present.length() > 1 ||
+      present.any(slot => {
+        slot.source_input != input || slot.operation_input is Some(_)
+      }) {
+      return None
+    }
+    if present.is_empty() {
+      slots.push({
+        consumer: task,
+        input,
+        source_input: input,
+        operation_input: None,
+      })
+    }
+  }
+  Some(slots)
+}
+
+///|
 /// Plan completeness only. The existing Direct-prefix constructor may retain a
 /// downstream keyed request before Model input. Its exact checked request and
 /// upstream key port describe a future producer, not startup CapturedRows.
@@ -178,8 +244,11 @@ fn graph_keyed_model_plan_input(
   // This is the existing single-keyed producer/factory's construction scope.
   // More requests need their own original producer connection, never a count
   // inferred from aliases, sample rows or a caller-authored URI.
-  guard deferred is Some(slot) else { return None }
-  let existing = graph.supplied_slots.filter(actual => {
+  guard deferred is Some(slot) &&
+    graph_keyed_model_direct_plan_slots(graph) is Some(planned_sources) else {
+    return None
+  }
+  let existing = planned_sources.filter(actual => {
     actual.consumer == slot.consumer && actual.input == slot.input
   })
   if existing.length() > 1 ||
@@ -192,7 +261,7 @@ fn graph_keyed_model_plan_input(
   guard ordered_data_inputs_complete(
     graph.input_counts,
     graph.data,
-    supplied_slots=graph.supplied_slots,
+    supplied_slots=planned_sources,
     deferred_slot=if existing.is_empty() { deferred } else { None },
     captured_prefix=graph.captured_prefix,
   ) else {

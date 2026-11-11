@@ -62,6 +62,7 @@ fn original_composed_keyed_consumer(
   retained_input_root? : Bool = false,
   shared_source_producers? : Bool = false,
   supplied_source_inputs? : Bool = false,
+  mixed_plan_only? : Bool = false,
   initial_identity_policy? : Bool = false,
   large_lookup_policy? : Bool = false,
   publication_identity? : Bool = false,
@@ -200,6 +201,28 @@ fn original_composed_keyed_consumer(
     }
     document = Json::object(fields).stringify()
   }
+  if mixed_plan_only {
+    assert_true(following && !whole && !shared_source_producers)
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) &&
+      stages[2] is Object(model) &&
+      model["inputs"] is Object(inputs) else {
+      fail("mixed original Source and Model stages")
+    }
+    // Keep the first completed Unit import, but supply the second Direct
+    // Source inside this Model Unit, just like the authored Whole scenario.
+    inputs["b"] = @json.parse(
+      "{\"connector\":\"content-fixture\",\"resource\":\"files\"}",
+    )
+    guard stages[0] is Object(first_source) else {
+      fail("the distinct Whole Source Unit")
+    }
+    first_source["steps"] = @json.parse(
+      "[{\"from\":\"files\",\"select\":[\"name\",\"resource\",\"version\"],\"as\":\"captured\"}]",
+    )
+    fields["stages"] = Json::array([stages[0], stages[2], stages[3]])
+    document = Json::object(fields).stringify()
+  }
   if whole && !shared_source_producers {
     guard @json.parse(document) is Object(fields) &&
       fields["stages"] is Array(stages) &&
@@ -245,6 +268,80 @@ fn original_composed_keyed_consumer(
           fail("two-Direct keyed Model static")
         Err(_) => fail("two-Direct keyed Model fixture preparation")
       }
+  }
+  if mixed_plan_only {
+    let occurrences = @publication_host.prepared_client_effect_infer_occurrences(
+      prepared,
+    ).unwrap()
+    assert_eq(occurrences.length(), 2)
+    let graphs = occurrences.map(occurrence => {
+      @publication_host.issue_installed_client_composed_infer_plan_graph(
+        occurrence,
+        effect_model_plan_execution(occurrence),
+        @publication_host.client_standard_values_sequence_limits(),
+        1000000,
+        100000,
+        100,
+      ).unwrap()
+    })
+    let original_graph = @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    )
+    assert_false(@strategy.graph_ordered_inputs_complete(original_graph))
+    let manifests = @publication_host.admit_client_compilation_manifests(
+      @environment.compiler_grammar_manifest_wire(),
+      @environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    match
+      @publication_host.issue_prepared_client_effect_compilation(
+        prepared,
+        manifests,
+        @publication_host.client_standard_values_sequence_limits(),
+        1000,
+        10000,
+        1000000,
+        100000,
+        100,
+        infers=graphs,
+      ) {
+      Ok(compilation) =>
+        assert_eq(
+          @publication_host.client_effect_compilation_infer_originals(
+            compilation,
+          )
+          .unwrap()
+          .length(),
+          2,
+        )
+      Err(@publication_host.Graph(@publication_host.UnsupportedGraph)) =>
+        fail(
+          "same mixed Whole/inline Direct Model compiler: Graph UnsupportedGraph",
+        )
+      Err(_) => fail("same mixed Whole Model compiler: another original issue")
+    }
+    // The quote does not install a physical supplied read or mark an input
+    // completed. Runtime still needs every original Source and keyed port.
+    assert_false(@strategy.graph_ordered_inputs_complete(original_graph))
+    for invalid in [[graphs[0]], [graphs[0], graphs[0]], [graphs[1], graphs[0]]] {
+      assert_true(
+        @publication_host.issue_prepared_client_effect_compilation(
+          prepared,
+          manifests,
+          @publication_host.client_standard_values_sequence_limits(),
+          1000,
+          10000,
+          1000000,
+          100000,
+          100,
+          infers=invalid,
+        )
+        is Err(@publication_host.ForeignInferOwner),
+      )
+    }
+    return
   }
   if first_plan is Some(consume) {
     guard request_parent is Some((parent, input, _)) &&
@@ -3001,4 +3098,9 @@ test "Query Result-import Model retains its existing direct-only Invocation refu
 ///|
 test "original supplied Whole Source reads feed the same keyed Model without conversion" {
   original_composed_keyed_consumer(whole=true, supplied_source_inputs=true)
+}
+
+///|
+test "mixed completed Unit and inline Direct Source keep both Model compiler inputs" {
+  original_composed_keyed_consumer(following=true, mixed_plan_only=true)
 }
