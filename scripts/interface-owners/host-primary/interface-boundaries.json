@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "655b38d2c64035e947184ea449661509165e9fdf97087af49bcb2cb666f3a984",
+      "sha256": "e09861c76778a7d6c058cc938a70665d61134cda4af31b04bdb5356e7f152c84",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -24440,7 +24440,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "baa576849ef36bc30d525b1f04920cff6db8ead55b947a1202c4339a625e8c84",
+      "sha256": "0fefdbe8d0b73e1c9e2af96c34fd387d926eab0e0110eeca70e16e84708988fa",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24484,10 +24484,12 @@
           "parameters": [
             "acquired",
             "captured",
+            "originalSourceEvidence",
             "sourceEvidenceWire",
             "captureStartedAt",
             "captureCompletedAt",
-            "content"
+            "content",
+            "sourcePlan"
           ],
           "async": false
         },
@@ -24584,6 +24586,13 @@
           "name": "acquiredMultiEffectPublicationPlan/sourceEvidence/sourceEvidence",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/whole/whole",
+          "parameters": [
+            "captured"
           ],
           "async": false
         },
@@ -25105,7 +25114,8 @@
             "sourceFreePlanOriginal",
             "sourceFreeTaskPlan",
             "sourceFreeValuesAdmissionEvidence",
-            "sourceFreeValuesPlan"
+            "sourceFreeValuesPlan",
+            "acquiredMultiEffectPublicationPlan/whole/whole"
           ],
           "exports": [
             "acquiredEffectPublicationAdmission",

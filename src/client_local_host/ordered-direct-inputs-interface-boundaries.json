@@ -1446,7 +1446,7 @@
     {
       "module": "src/client_local_host/installed_effect_provider_source.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "628092d66fed2e6489aa1dc59d7ea58a0b62430e7a3eedf07ddbe7cf806a4d50",
+      "sha256": "4ad68ceb381796ecf51b1693086237fa9ba759dbd4e8bf63772068e90daeef17",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1454,13 +1454,43 @@
         {
           "name": "begin_installed_effect_managed_source_read",
           "declaration": "begin_installed_effect_managed_source_read ( owner : ClientInstalledManagedRun , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_effect_managed_whole_source_read",
+          "declaration": "begin_installed_effect_managed_whole_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_effect_managed_source_input_kind",
+          "declaration": "installed_effect_managed_source_input_kind ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ String , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_managed_source_occurrence",
+          "declaration": "installed_effect_managed_source_occurrence ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , slot : Int , ) - > Result [ ( Int , Int , Int ) , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_managed_sources_ledger",
+          "declaration": "installed_effect_managed_sources_ledger ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_installed_effect_managed_query_requirement",
+          "declaration": "prepared_installed_effect_managed_query_requirement ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ @ planning . QueryRequirement , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_installed_effect_source_occurrences",
+          "declaration": "prepared_installed_effect_source_occurrences ( plan : ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences ? , ClientInstalledManagedRunIssue , ]"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "begin_installed_effect_managed_source_read"
+            "begin_installed_effect_managed_source_read",
+            "begin_installed_effect_managed_whole_source_read",
+            "installed_effect_managed_source_input_kind",
+            "installed_effect_managed_source_occurrence",
+            "installed_effect_managed_sources_ledger",
+            "prepared_installed_effect_managed_query_requirement",
+            "prepared_installed_effect_source_occurrences"
           ],
           "exports": [],
           "attributes": {

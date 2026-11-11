@@ -18125,7 +18125,11 @@
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
             "publicationControl/token/token",
-            "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit"
+            "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3"
           ],
           "exports": [],
           "attributes": {
@@ -26948,6 +26952,43 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
+          "parameters": [
+            "plan",
+            "checkedEffect",
+            "request",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "sourceEvidence",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
           "parameters": [
             "plan",
@@ -31713,7 +31754,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "440cd1e151832ec0066210865c7685aba77f21ab9e11a5f872b06e0c46457519"
+      "sha256": "be8ff672a042daa07274f10ece14e823b87c86a42236e6cd1152c5423bdd888f"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -32339,7 +32380,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "655b38d2c64035e947184ea449661509165e9fdf97087af49bcb2cb666f3a984",
+      "sha256": "e09861c76778a7d6c058cc938a70665d61134cda4af31b04bdb5356e7f152c84",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -96879,7 +96920,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "baa576849ef36bc30d525b1f04920cff6db8ead55b947a1202c4339a625e8c84",
+      "sha256": "0fefdbe8d0b73e1c9e2af96c34fd387d926eab0e0110eeca70e16e84708988fa",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -96925,10 +96966,12 @@
           "parameters": [
             "acquired",
             "captured",
+            "originalSourceEvidence",
             "sourceEvidenceWire",
             "captureStartedAt",
             "captureCompletedAt",
-            "content"
+            "content",
+            "sourcePlan"
           ],
           "async": false
         },
@@ -97025,6 +97068,13 @@
           "name": "acquiredMultiEffectPublicationPlan/sourceEvidence/sourceEvidence",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/whole/whole",
+          "parameters": [
+            "captured"
           ],
           "async": false
         },
@@ -98171,7 +98221,8 @@
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#2",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#3",
-            "acquiredMultiEffectPublicationPlan/sourceEvidence/sourceEvidence"
+            "acquiredMultiEffectPublicationPlan/sourceEvidence/sourceEvidence",
+            "acquiredMultiEffectPublicationPlan/whole/whole"
           ],
           "exports": [
             "acquiredMultiEffectPublicationPlan"

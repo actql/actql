@@ -2380,7 +2380,11 @@
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
             "usageKeys/usageKeys/usageKeys",
-            "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit"
+            "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3"
           ],
           "exports": [
             "contentCaptureControl",
@@ -10543,6 +10547,43 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
+          "parameters": [
+            "plan",
+            "checkedEffect",
+            "request",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "sourceEvidence",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
           "parameters": [
             "plan",
@@ -15308,7 +15349,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "440cd1e151832ec0066210865c7685aba77f21ab9e11a5f872b06e0c46457519"
+      "sha256": "be8ff672a042daa07274f10ece14e823b87c86a42236e6cd1152c5423bdd888f"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -32737,7 +32778,7 @@
     },
     {
       "module": "src/client_local_host/capacity_text_proof.mbt",
-      "sha256": "23f1e5f086807e86eabd673f15ad794f4340ae20f093400083eb536e69e93e78",
+      "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -32747,6 +32788,10 @@
         {
           "name": "client_local_decimal_text_bound",
           "declaration": "client_local_decimal_text_bound ( sequences : Array [ @ execution . GeneratedSequence ] , demand : ClientLocalValueNodeDemand , original_text_limit : Int , max_work ? : Int"
+        },
+        {
+          "name": "client_local_original_values_text_bound",
+          "declaration": "client_local_original_values_text_bound ( sequences : Array [ @ execution . GeneratedSequence ] , demand : ClientLocalValueNodeDemand , max_work ? : Int"
         },
         {
           "name": "client_local_scalar_text_inventory",
@@ -32768,7 +32813,8 @@
             "client_local_decimal_text_bound",
             "client_local_scalar_text_inventory",
             "client_local_scalar_text_proof_slots",
-            "client_local_text_free_scalar_sequences"
+            "client_local_text_free_scalar_sequences",
+            "client_local_original_values_text_bound"
           ],
           "exports": [],
           "attributes": {
@@ -33117,7 +33163,7 @@
     },
     {
       "module": "src/client_local_host/client_sequence.mbt",
-      "sha256": "192e3bfc362a9b2aab57d1cac981ff955eecc42f40b056fd23384c5e6b9ccc18",
+      "sha256": "dda564079654e5060b13e5b4ac2af94604d6107689c980a3063295c1f2ddbe58",
       "exports": [],
       "operations": [
         {
@@ -52808,7 +52854,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "a7eed529b6eca6d9bbf7103ca97c2140693d773ed7be77dd4b64cf79d364e3da",
+      "sha256": "3132c6d4a5ab6b24060f47b8993f17c494c4671961875669086a80bb9b96e14c",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -62640,7 +62686,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "0c2f139e29788d50458a4b8039c96a11b3932db5f2ecc77ed5542f13b886be14",
+      "sha256": "51c29659be56356f1bb4026ba36f0af9d2035b1a322b3bad5a4d1a8f97feb734",
       "exports": [],
       "operations": [
         {
@@ -62758,6 +62804,10 @@
         {
           "name": "client_program_issue_effect_whole_source_input_logical",
           "declaration": "client_program_issue_effect_whole_source_input_logical ( prepared : @ publication_host . PreparedClientEffectComputation , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
+        },
+        {
+          "name": "client_program_issue_installed_effect_direct_sources_invocation",
+          "declaration": "client_program_issue_installed_effect_direct_sources_invocation ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , sources : Array [ @ publication . RunEvidenceValue ] , inputs : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ publication . RunEvidenceValueIssue , ]"
         },
         {
           "name": "client_program_issue_installed_whole_effect_source_unit",
@@ -62952,7 +63002,8 @@
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
             "client_program_whole_source_target",
-            "client_program_issue_installed_whole_effect_source_unit"
+            "client_program_issue_installed_whole_effect_source_unit",
+            "client_program_issue_installed_effect_direct_sources_invocation"
           ],
           "exports": [],
           "attributes": {
@@ -63825,7 +63876,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "fe9bd43d3e1055771423818228c3d1b95ff287dfb6afa624ff8205e24a8dbb94",
+      "sha256": "3a6e5d2304343533b540b0e6460dbc009122899e238010bc20f8ee21fe6ee47a",
       "exports": [],
       "operations": [
         {
@@ -63943,6 +63994,10 @@
         {
           "name": "client_program_issue_effect_whole_source_input_logical",
           "declaration": "client_program_issue_effect_whole_source_input_logical ( prepared : @ publication_host . PreparedClientEffectComputation , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientCapturedSourceLogicalIssue , ]"
+        },
+        {
+          "name": "client_program_issue_installed_effect_direct_sources_invocation",
+          "declaration": "client_program_issue_installed_effect_direct_sources_invocation ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , sources : Array [ @ publication . RunEvidenceValue ] , inputs : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ publication . RunEvidenceValueIssue , ]"
         },
         {
           "name": "client_program_issue_installed_whole_effect_source_unit",
@@ -64137,7 +64192,8 @@
             "client_program_whole_source_issue_source_evidence_wire",
             "client_program_whole_source_request_wire",
             "client_program_whole_source_target",
-            "client_program_issue_installed_whole_effect_source_unit"
+            "client_program_issue_installed_whole_effect_source_unit",
+            "client_program_issue_installed_effect_direct_sources_invocation"
           ],
           "exports": [],
           "attributes": {
@@ -75271,7 +75327,7 @@
     },
     {
       "module": "src/run_publication_host/client_whole_source_invocation.mbt",
-      "sha256": "1194191073d98dd800f190ab1af65f519cc89147808eab3b26a525880b99b95e",
+      "sha256": "44eae4712aea58784e4ec1671d00797134791784b8d939a28f475d8c30a8173d",
       "role": "common-semantics",
       "owner": "Existing adopted publication/Source capture owners; no separate current, resource or cleanup owner",
       "responsibilityFacet": "primary",
