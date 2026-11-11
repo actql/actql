@@ -18,11 +18,13 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const argv = process.argv.slice(2), ci = argv[0] === '--ci';
 let [source, release, consumer, selection] = ci ? [repository, undefined, undefined, argv[1]] : argv;
 const selections = ['--approval', '--kintone-approval', '--mock-salesforce-approval',
-  '--mock-hubspot-approval', '--mock-kintone-approval'];
+  '--mock-hubspot-approval', '--mock-hubspot-whole-approval', '--mock-kintone-approval'];
 assert(ci ? argv.length === 2 && selections.includes(selection)
   : argv.length === 3 || argv.length === 4 && selections.includes(selection),
   'usage: test-packed-hubspot-source.mjs SOURCE RELEASE CLOSED_APPLICATION [SELECTION] or --ci SELECTION');
-const mockConnector = /^--mock-(salesforce|hubspot|kintone)-approval$/u.exec(selection ?? '')?.[1];
+const wholeMock = selection === '--mock-hubspot-whole-approval';
+const mockConnector = wholeMock ? 'hubspot'
+  : /^--mock-(salesforce|hubspot|kintone)-approval$/u.exec(selection ?? '')?.[1];
 const approvalConnector = mockConnector ?? (selection === '--approval' ? 'hubspot'
   : selection === '--kintone-approval' ? 'kintone' : undefined);
 const approval = approvalConnector !== undefined;
@@ -34,7 +36,7 @@ assert(!process.env.ACTQL_LOCAL_SOURCE_PROFILE && !process.env.ACTQL_LOCAL_EFFEC
 const {admitCompositionRelease} = await import(pathToFileURL(join(source, 'scripts/composition-release-input.mjs')));
 const {inventory} = await import(pathToFileURL(join(source, 'scripts/package-release.mjs')));
 const label = approval
-  ? `ordinary installed ${approvalConnector}${mockConnector ? ' mock' : ''} approval and original Saved restoration`
+  ? `ordinary installed ${approvalConnector}${mockConnector ? ' mock' : ''}${wholeMock ? ' Whole-input' : ''} approval and original Saved restoration`
   : 'ordinary installed HubSpot Source and original Run restoration';
 let scratch, original;
 if (ci) {
@@ -86,11 +88,15 @@ const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-m
   'adapters/site-node/https-exchange-fixture.mjs'];
 const inputs = [];
 for (const path of fixtureFiles) {
-  const from = join(repository, path), to = join(application, path);
+  // This is an independently authored consumer input, not a product overlay.
+  // Every approval/Result/Saved/close helper remains the same original file.
+  const sourcePath = wholeMock && path === 'scripts/fixtures/hubspot-approval/update.aql'
+    ? 'scripts/fixtures/hubspot-approval/whole-update.aql' : path;
+  const from = join(repository, sourcePath), to = join(application, path);
   await mkdir(dirname(to), {recursive: true}); await copyFile(from, to);
   const bytes = await readFile(from);
   assert.deepEqual(await readFile(to), bytes, `Changed fixture: ${path}`);
-  inputs.push({path, bytes: bytes.byteLength,
+  inputs.push({path, ...(sourcePath === path ? {} : {sourcePath}), bytes: bytes.byteLength,
     sha256: createHash('sha256').update(bytes).digest('hex')});
 }
 const expectedTests = approval ? 1 : 2;
@@ -117,7 +123,8 @@ const execution = JSON.parse(await readFile(join(focusedRoot, focused[0], '001.r
 assert(execution.complete && execution.outputComplete && execution.status === 0 && execution.verificationStatus === 0);
 assert.deepEqual(execution.counts, {tests: expectedTests, passed: expectedTests,
   failed: 0, cancelled: 0, skipped: 0, todo: 0});
-const receipt = {qualification: mockConnector
+const receipt = {fixtureVariant: wholeMock ? 'whole-input' : 'original',
+  qualification: mockConnector
   ? 'Actual declared mock capture, explicit default Local approval and separate-process original Saved before status on the selected normal installation. No provider or installed Effect acceptance claim.'
   : approval
   ? 'Actual installed Local capture, signed approval, exactly one synthetic TLS provider UPDATE and separate-process original Saved before status. No real provider, performance or physical cleanup ACK claim.'
