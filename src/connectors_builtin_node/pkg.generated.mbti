@@ -736,6 +736,12 @@ pub fn client_program_close_host_initialization_preparation(@client_local_host.C
 
 pub fn client_program_close_source_capture(@client_local_host.ClientAccountedSourceCapture, Int?) -> Bool
 
+pub fn client_program_combined_effect_source_unit_catalog_bodies(@run_publication_host.ClientEffectCombinedSourceUnit, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+
+pub fn client_program_combined_effect_source_unit_dependency_bodies(@run_publication_host.ClientEffectCombinedSourceUnit) -> Array[(String, String, String)]
+
+pub fn client_program_combined_effect_source_unit_invocation(@run_publication_host.ClientEffectCombinedSourceUnit) -> @run_publication_host.ClientEffectLocalInvocation
+
 pub fn client_program_compilation_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
 
 pub fn client_program_compilation_executable_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
@@ -979,6 +985,10 @@ pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClient
 pub fn client_program_effect_dependency_body_cid(@run_publication.CapturedEffectDependencyBody) -> String
 
 pub fn client_program_effect_direct_source_coordinates(@run_publication_host.PreparedClientEffectComputation) -> Result[Array[Array[Int]], @run_publication_host.ClientDirectAcquisitionOccurrenceIssue]
+
+pub fn client_program_effect_direct_sources_publication_invocation(@run_publication_host.ClientEffectDirectSourcesPublication) -> @run_publication.PublicationContract
+
+pub fn client_program_effect_direct_sources_publication_observation(@run_publication_host.ClientEffectDirectSourcesPublication) -> @run_publication.RunEvidenceValue
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
 
@@ -2060,6 +2070,8 @@ pub fn client_program_issue_captured_source_logical(@run_publication_host.Prepar
 
 pub fn client_program_issue_captured_task_source_logical(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
+pub fn client_program_issue_combined_source_effect_local_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectCombinedSourceUnit, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
+
 pub fn client_program_issue_compiled_keyed_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, String, String, @run_publication_host.ClientKeyedLookupObservation, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_issue_compiled_multi_task_invocation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
@@ -3012,6 +3024,8 @@ pub fn client_program_prepare_captured_source_identity_scan(@execution_query.Cap
 
 pub fn client_program_prepare_chain_validation(@client_local_host.ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[@client_local_host.ClientProgramValidation, @client_local_host.ClientProgramValidationIssue]
 
+pub fn client_program_prepare_combined_effect_source_unit(@run_publication_host.ClientEffectDirectSourcesPublication, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectCombinedSourceUnit, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+
 pub fn client_program_prepare_commit_validation(@client_local_host.ClientProgramCapture, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Result[@client_local_host.ClientProgramValidation, @client_local_host.ClientProgramValidationIssue]
 
 pub fn client_program_prepare_composed_infer_compute_suffix(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferOccurrence, @client_local_host.ClientInstalledSequenceContracts, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
@@ -3057,6 +3071,8 @@ pub fn client_program_prepare_infer_original_read(@run_publication_host.ClientMo
 pub fn client_program_prepare_infer_response_reconciliation(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@model_execution.ModelResponseReconciliation, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_prepare_installed_effect_capture_recovery(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int) -> Result[@client_local_host.ClientInstalledEffectCaptureRecovery, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_prepare_installed_effect_direct_sources_publication(@client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectDirectSourcesPublication, @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_prepare_installed_managed_source_free_with_contracts(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> Result[@client_local_host.ClientInstalledManagedSourceFreePreparation, @client_local_host.ClientInstalledManagedRunIssue]
 

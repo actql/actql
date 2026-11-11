@@ -503,6 +503,12 @@ pub fn client_effect_allowed_run_result_names(ClientEffectAllowedRun) -> Array[S
 
 pub fn client_effect_allowed_serialization_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
+pub fn client_effect_combined_source_unit_catalog_bodies(ClientEffectCombinedSourceUnit, Int, Int, Int) -> Result[Array[(String, String, String)], ClientEffectAcquiredEvidenceIssue]
+
+pub fn client_effect_combined_source_unit_dependency_bodies(ClientEffectCombinedSourceUnit) -> Array[(String, String, String)]
+
+pub fn client_effect_combined_source_unit_invocation(ClientEffectCombinedSourceUnit) -> ClientEffectLocalInvocation
+
 pub fn client_effect_command_content_current(ClientEffectCommandContent) -> Bool
 
 pub fn client_effect_command_content_matches(ClientEffectCommandContent, PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, String) -> Bool
@@ -544,6 +550,10 @@ pub fn client_effect_dependency_capture_matches(ClientEffectRunMaterials, @physi
 pub fn client_effect_dependency_capture_matches_artifact(ClientEffectDependencyCapture, ClientEffectLocalResultArtifact) -> Bool
 
 pub fn client_effect_direct_acquisition_count(PreparedClientEffectComputation, Int) -> Result[Int, ClientDirectAcquisitionOccurrenceIssue]
+
+pub fn client_effect_direct_sources_publication_invocation(ClientEffectDirectSourcesPublication) -> @run_publication.PublicationContract
+
+pub fn client_effect_direct_sources_publication_observation(ClientEffectDirectSourcesPublication) -> @run_publication.RunEvidenceValue
 
 pub fn client_effect_imported_invocation(ClientEffectImportedEvidence) -> ClientEffectLocalInvocation
 
@@ -1779,6 +1789,8 @@ pub fn issue_client_values_source_free_invocation(ClientValuesCompilation, Strin
 
 pub fn issue_client_whole_native_effect_source_unit(PreparedClientEffectComputation, ClientDirectAcquisitionOccurrences, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @sourceview_resolution.SourceAcquisition, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
+pub fn issue_combined_source_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+
 pub fn issue_imported_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, Array[ClientEffectResultImportObservation], Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
 pub fn issue_imported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectImportedEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
@@ -2017,9 +2029,13 @@ pub fn prepare_client_coordinator_retained_input_producer(ClientRetainedInputEdg
 
 pub fn prepare_client_effect_captured_run(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectPreviewInputs, Array[@physical_strategy_host.CapturedEffectPlanProof], @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], @run_publication.CapturedEffectDependencyInventory, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int, models? : Array[@run_publication.RunEvidenceValue]) -> Result[@run_publication.CapturedRunIssuancePreparation, ClientEffectCapturedRunIssue]
 
+pub fn prepare_client_effect_combined_source_unit(ClientEffectDirectSourcesPublication, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectCombinedSourceUnit, ClientEffectAcquiredEvidenceIssue]
+
 pub fn prepare_client_effect_command_content_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, Int, Int) -> Result[Unit, ClientEffectCommandContentIssue]
 
 pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?, source_catalog? : @program_check.PreparedSourceCatalog?, request_value_policies? : ((@program_check.EffectComputationCandidate) -> Result[Array[@program_check.HostRequestValuePolicyEvidence], ClientEffectComputationIssue])?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
+
+pub fn prepare_client_effect_direct_sources_publication(PreparedClientEffectComputation, ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientDirectAcquisitionOccurrences, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[ClientDirectSourceOriginal], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, String, Int, Int, Int) -> Result[ClientEffectDirectSourcesPublication, @run_publication.RunEvidenceValueIssue]
 
 pub fn prepare_client_effect_keyed_acquisition(PreparedClientEffectComputation, Int, Int, Int, join_step? : Int?) -> Result[ClientKeyedAcquisition, ClientKeyedAcquisitionIssue]
 
@@ -2819,6 +2835,8 @@ pub(all) enum ClientEffectCheckpointWaitingIssue {
   RunState(@checkpoint_runtime.RunStateWireIssue)
 }
 
+type ClientEffectCombinedSourceUnit
+
 type ClientEffectCommandContent
 
 pub(all) enum ClientEffectCommandContentIssue {
@@ -2901,6 +2919,8 @@ pub(all) enum ClientEffectDependencyCaptureIssue {
   Static(@program_check.LocalDependencyBodyIssue)
   ConstructionRefused
 }
+
+type ClientEffectDirectSourcesPublication
 
 type ClientEffectImportedEvidence
 

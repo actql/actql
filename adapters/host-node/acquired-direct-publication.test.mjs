@@ -21,7 +21,7 @@ function fixture({mixed = false, refusal, typed = true} = {}) {
   const originals = sourceObjects.map(() => ({}));
   const sources = sourceObjects.slice(0, mixed ? 2 : 1).map((source, index) => ({
     ...(typed ? {sourceEvidence: originals[index]} : {}), sourceEvidenceWire: `original-source-${index}`,
-    captured: {identity: {index}, logicalInput: {},
+    captured: {identity: {index}, logicalInput: {}, occurrence: {stage: index, input: 0, task: index},
       ...(index === 0 ? {inputKind: 'whole-input', wholeCapacity: {}} : {requirement: {}}),
       capture: {source: () => source}, checkedSource: {sourceDataPolicyCid: `policy-${index}`}},
   }));
@@ -137,12 +137,17 @@ test('direct invocation forwarding preserves the same namespace originals withou
   const observation = {}, context = {authorityScopeCid: 'scope', dataPolicyCid: 'policy',
     captureStartedAt: 'start', captureCompletedAt: 'end'};
   let calls = 0, reads = 0;
-  const moon = {clientProgramIssueInstalledEffectDirectSourcesInvocation(...args) {
+  const sourcePublication = {};
+  const moon = {clientProgramPrepareInstalledEffectDirectSourcesPublication(...args) {
     calls++;
     assert.deepEqual(args, [plan, prepared, request, compilation, admission, definition,
       [capture], [identity], [evidence], [input], 'scope', 'policy', 'start', 'end',
       limits.maxWireBytes, limits.maxNodes, limits.maxDepth]);
-    return {$tag: 1, _0: {_0: observation, _1: invocation}};
+    return {$tag: 1, _0: sourcePublication};
+  }, clientProgramEffectDirectSourcesPublicationInvocation(actual) {
+    assert.strictEqual(actual, sourcePublication); return invocation;
+  }, clientProgramEffectDirectSourcesPublicationObservation(actual) {
+    assert.strictEqual(actual, sourcePublication); return observation;
   }};
   const create = Function('issuanceLimits', 'checked', 'moon', 'admissionToken',
     'evidenceToken', 'runtimeField', 'inspectEvidence', 'inspect',
@@ -156,6 +161,49 @@ test('direct invocation forwarding preserves the same namespace originals withou
     [{captured: {capture: {source() { reads++; return capture; }}, identity, logicalInput: input}}],
     [{original: evidence, get wire() { assert.fail('do not emit admitted original evidence'); }}], context, limits);
   assert.strictEqual(returned.owner, invocation);
+  assert.strictEqual(returned.sourcePublication, sourcePublication);
   assert.strictEqual(returned.observation.original, observation);
   assert.equal(calls, 1); assert.equal(reads, 1);
+});
+
+
+test('combined Source preparation stays nominal and forwards only the actual Result export receipt', () => {
+  const source = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  const parsed = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), properties = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && ['prepareCombinedEffectSourceUnit', 'issueDependentLocalEffectResultArtifact'].includes(node.key?.name)) properties.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(parsed);
+  assert.equal(properties.length, 2);
+  const publication = {}, retention = {}, prepared = {}, invocation = {}, artifact = {};
+  const owner = {}, inputs = {}, exported = {}, definition = {}, receipt = {}, context = {};
+  const exactContext = Array.from({length: 4}, () => ({})), calls = [];
+  const moon = {clientProgramPrepareCombinedEffectSourceUnit(actual, unit, policy, ...bounds) {
+    assert.strictEqual(actual, publication); assert.equal(unit, 0); assert.strictEqual(policy, retention);
+    assert.deepEqual(bounds, [limits.maxWireBytes, limits.maxNodes, limits.maxDepth]); calls.push('prepare');
+    return {$tag: 1, _0: prepared};
+  }, clientProgramCombinedEffectSourceUnitInvocation(actual) {assert.strictEqual(actual, prepared); return invocation;},
+    clientProgramCombinedEffectSourceUnitDependencyBodies: () => [],
+    clientProgramCombinedEffectSourceUnitCatalogBodies: () => ({$tag: 1, _0: []}),
+    clientProgramIssueCombinedSourceEffectLocalResultArtifact(...args) {
+      assert.deepEqual(args, [owner, inputs, exported, prepared, definition, receipt, ...exactContext,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth]); calls.push('artifact');
+      return {$tag: 1, _0: artifact};
+    }};
+  const tokens = new WeakMap();
+  const create = Function('issuanceLimits','checked','moon','token','runtimeField','localEffectDependencyTokens',
+    'localEffectContext','inspectLocalEffectArtifact','return ({'+properties.map(node => source.slice(node.start,node.end)).join(',')+'});');
+  const methods = create(() => {}, checked, moon, value => value, runtimeField, tokens,
+    actual => {assert.strictEqual(actual, context); return exactContext;}, value => value);
+  const dependency = methods.prepareCombinedEffectSourceUnit(publication, 0, retention, limits);
+  assert.deepEqual(calls, ['prepare'], 'semantic preparation alone issues no Result Artifact');
+  assert.throws(() => methods.issueDependentLocalEffectResultArtifact(owner, inputs, exported,
+    {...dependency}, definition, receipt, retention, context, limits), /Foreign local Effect dependency evidence/u);
+  assert.strictEqual(methods.issueDependentLocalEffectResultArtifact(owner, inputs, exported,
+    dependency, definition, receipt, retention, context, limits), artifact);
+  assert.deepEqual(calls, ['prepare', 'artifact']);
 });

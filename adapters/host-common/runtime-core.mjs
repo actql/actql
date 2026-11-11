@@ -4418,7 +4418,7 @@ function publicationControl(moon) {
           !Array.isArray(sourceEvidence) || sourceEvidence.length !== sources.length) {
         throw new TypeError('Incomplete Effect Source coverage');
       }
-      const issued = checked(moon.clientProgramIssueInstalledEffectDirectSourcesInvocation(
+      const issued = checked(moon.clientProgramPrepareInstalledEffectDirectSourcesPublication(
         plan, checkedEffect, request, compilation, admissionToken(admission), definition,
         sources.map(({captured}) => captured.capture.source()),
         sources.map(({captured}) => captured.identity),
@@ -4427,8 +4427,10 @@ function publicationControl(moon) {
         context.authorityScopeCid, context.dataPolicyCid,
         context.captureStartedAt, context.captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+      const invocation = moon.clientProgramEffectDirectSourcesPublicationInvocation(issued);
+      const observation = moon.clientProgramEffectDirectSourcesPublicationObservation(issued);
+      return Object.freeze({observation: inspectEvidence(observation),
+        invocation: inspect(invocation), owner: invocation, sourcePublication: issued});
     },
     issueCheckedClientEffectMultiCapturedInvocation(checkedEffect, compilation,
       admission, definition, sources, context, limits) {
@@ -4491,6 +4493,26 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       const value = inspectAcquiredEffectEvidence(issued, retention, limits);
       localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
+      return value;
+    },
+    prepareCombinedEffectSourceUnit(publication, unit, retention, limits) {
+      issuanceLimits(limits, 'Combined Effect Source Unit');
+      if (!Number.isSafeInteger(unit) || unit < 0) {
+        throw new TypeError('Invalid acquired Effect Unit');
+      }
+      const prepared = checked(moon.clientProgramPrepareCombinedEffectSourceUnit(
+        publication, unit, token(retention), limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const value = Object.freeze({
+        invocation: moon.clientProgramCombinedEffectSourceUnitInvocation(prepared),
+        bodies: Object.freeze(moon.clientProgramCombinedEffectSourceUnitDependencyBodies(prepared)
+          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
+        catalogBodies: Object.freeze(checked(moon.clientProgramCombinedEffectSourceUnitCatalogBodies(
+          prepared, limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
+          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
+      });
+      // This is semantic preparation, not a completed producer. Only the
+      // actual Result export/receipt issuer below can mint its Artifact.
+      localEffectDependencyTokens.set(value, {kind: 'combined_source', issued: prepared});
       return value;
     },
     issueSourceFreeEffectEvidence(owner, unit, limits) {
@@ -4559,7 +4581,11 @@ function publicationControl(moon) {
         throw new TypeError('Foreign local Effect dependency evidence');
       }
       const exactContext = localEffectContext(context);
-      const result = owned.kind === 'model'
+      const result = owned.kind === 'combined_source'
+        ? moon.clientProgramIssueCombinedSourceEffectLocalResultArtifact(
+          owner, inputs, exported, owned.issued, definition, receipt,
+          ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : owned.kind === 'model'
         ? moon.clientProgramOriginalModelEffectResultArtifact(
           owned.original, owner, inputs, exported, owned.issued, definition, receipt,
           ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)

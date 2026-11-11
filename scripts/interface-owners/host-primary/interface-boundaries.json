@@ -24533,7 +24533,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "305d9e805a29273f0b9dd53979a39b630d67cf9b08daf221fd8bfbe72ba708c9",
+      "sha256": "018dbf6cfc1cee4a3128977e791d9262ce9a9422442e2799ada5c407eb2771cf",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24721,6 +24721,13 @@
           "name": "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#6",
           "parameters": [
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/direct/direct",
+          "parameters": [
+            "count"
           ],
           "async": false
         },
@@ -25242,6 +25249,7 @@
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#2",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#3",
+            "acquiredMultiEffectPublicationPlan/direct/direct",
             "acquiredMultiEffectPublicationPlan/sourceEvidence/sourceEvidence",
             "acquiredMultiEffectPublicationPlan/whole/whole",
             "acquiredMultiTaskPublicationPlan",

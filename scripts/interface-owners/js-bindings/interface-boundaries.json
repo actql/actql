@@ -16691,6 +16691,9 @@
       "contracts": [
         {
           "operations": [
+            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
+            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
+            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
             "usageKeys/usageKeys",
             "usageKeys/usageKeys/usageKeys"
           ],
@@ -28302,6 +28305,30 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
+          "parameters": [
+            "publication",
+            "unit",
+            "retention",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
           "parameters": [
             "limits"
@@ -31755,7 +31782,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6fb4c3135bbfba8ffb316a52de0b17722ce106c2fa25277b75d12980a69be753"
+      "sha256": "2cf6a5dc9145e5277b2030760b60b2eddfc999b691c7ad587adc2d1c824f413e"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -97031,7 +97058,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "305d9e805a29273f0b9dd53979a39b630d67cf9b08daf221fd8bfbe72ba708c9",
+      "sha256": "018dbf6cfc1cee4a3128977e791d9262ce9a9422442e2799ada5c407eb2771cf",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -97221,6 +97248,13 @@
           "name": "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#6",
           "parameters": [
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/direct/direct",
+          "parameters": [
+            "count"
           ],
           "async": false
         },
@@ -97729,7 +97763,9 @@
       ],
       "contracts": [
         {
-          "operations": [],
+          "operations": [
+            "acquiredMultiEffectPublicationPlan/direct/direct"
+          ],
           "exports": [
             "localContractLimits",
             "localOutputLimits"

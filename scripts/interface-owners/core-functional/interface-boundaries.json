@@ -1912,6 +1912,11 @@
             "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#5",
             "publicationControl/init:issueCheckedClientInferRawCapturePolicy/init:issueCheckedClientInferRawCapturePolicy",
             "publicationControl/init:issueCheckedClientSerializationInvocation/init:issueCheckedClientSerializationInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
+            "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
             "publicationControl/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
             "publicationControl/init:issueDeliveryRecord/init:issueDeliveryRecord",
             "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
@@ -1991,6 +1996,9 @@
             "publicationControl/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
             "publicationControl/init:prepareCheckedClientSerializedInferGraph/init:prepareCheckedClientSerializedInferGraph",
             "publicationControl/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
+            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
+            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
+            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
             "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
@@ -2379,12 +2387,7 @@
             "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys",
-            "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3"
+            "usageKeys/usageKeys/usageKeys"
           ],
           "exports": [
             "contentCaptureControl",
@@ -2576,6 +2579,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_combined_source_unit.mbt",
+                "anchor": "pub fn issue_combined_source_client_effect_local_result_artifact("
               }
             ],
             "ownership": [
@@ -3066,6 +3073,10 @@
               {
                 "path": "adapters/host-node/infer-model-effect-control.test.mjs",
                 "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_combined_source_unit_wbtest.mbt",
+                "anchor": "test \"combined Source Unit keeps both original inputs and requires its actual completed producer\" {"
               }
             ]
           }
@@ -11901,6 +11912,30 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
+          "parameters": [
+            "publication",
+            "unit",
+            "retention",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
           "parameters": [
             "limits"
@@ -15354,7 +15389,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6fb4c3135bbfba8ffb316a52de0b17722ce106c2fa25277b75d12980a69be753"
+      "sha256": "2cf6a5dc9145e5277b2030760b60b2eddfc999b691c7ad587adc2d1c824f413e"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

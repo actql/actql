@@ -508,13 +508,22 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
   const sourceEvidence = sources.map(source => source.sourceEvidence === undefined
     ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits)
     : source.sourceEvidence);
+  const sourceUnits = new Map();
+  for (const {captured} of sources) {
+    const unit = captured.occurrence?.stage;
+    if (!Number.isSafeInteger(unit) || unit < 0) {
+      throw new TypeError('OriginalEffectSourceCoordinateRequired');
+    }
+    sourceUnits.set(unit, (sourceUnits.get(unit) ?? 0) + 1);
+  }
   const whole = issuedModel === undefined &&
     sources.some(({captured}) => captured.inputKind === 'whole-input');
-  if (whole && (sourcePlan === undefined || acquired.requestIdentity === undefined)) {
+  const direct = issuedModel === undefined && (whole || [...sourceUnits.values()].some(count => count > 1));
+  if (direct && (sourcePlan === undefined || acquired.requestIdentity === undefined)) {
     throw new TypeError('WholeEffectProducerUnitOriginalRequired');
   }
   const context = {authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt};
-  const {observation, invocation, owner: invocationOwner} = whole
+  const {observation, invocation, owner: invocationOwner, sourcePublication} = direct
     ? control.issueCheckedInstalledEffectDirectSourcesInvocation(sourcePlan, prepared,
       acquired.requestIdentity, compilation, admission, definition, sources, sourceEvidence, context, limits)
     : issuedModel === undefined ? control.issueCheckedClientEffectMultiCapturedInvocation(
@@ -545,7 +554,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
   const acquisitionDependencies = [];
   const acquiredEvidenceByUnit = [];
   for (const [slot, {captured}] of sources.entries()) {
-    const unit = issuedModel === undefined ? slot : captured.occurrence?.stage;
+    const unit = captured.occurrence?.stage;
     if (!Number.isSafeInteger(unit) || unit < 0) {
       throw new TypeError('OriginalEffectSourceCoordinateRequired');
     }
@@ -553,7 +562,15 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     // complete evidence is issued from its retained Model observation below,
     // never through the Query-only single-Source Unit entrance.
     const modelContribution = issuedModel !== undefined && modelOriginals.some(model => model.unit === unit);
-    if (!modelContribution) {
+    if (!modelContribution && sourceUnits.get(unit) > 1) {
+      if (acquiredEvidenceByUnit[unit] === undefined) {
+        if (sourcePublication === undefined) {
+          throw new TypeError('CombinedEffectProducerUnitOriginalRequired');
+        }
+        acquiredEvidenceByUnit[unit] = control.prepareCombinedEffectSourceUnit(
+          sourcePublication, unit, retention, limits);
+      }
+    } else if (!modelContribution) {
       if (acquiredEvidenceByUnit[unit] !== undefined) {
         throw new TypeError('DuplicateEffectProducerUnitEvidence');
       }

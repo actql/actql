@@ -84,11 +84,37 @@ fn issue_client_direct_source_observation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   @publication.RunEvidenceValueIssue,
 ] {
+  prepare_client_direct_source_observation(
+    prepared, template, occurrences, captures, identities, originals, sources, inputs,
+    authority_scope_cid, data_policy_cid, capture_started_at, capture_completed_at,
+    max_wire_bytes, max_nodes, max_depth,
+  ).map(value => (value.observation, value.invocation))
+}
+
+///|
+fn prepare_client_direct_source_observation(
+  prepared : PreparedClientProgram,
+  template : @publication.RunEvidenceValue,
+  occurrences : ClientDirectAcquisitionOccurrences,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  originals : Array[ClientDirectSourceOriginal],
+  sources : Array[@publication.RunEvidenceValue],
+  inputs : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientDirectSourceObservation, @publication.RunEvidenceValueIssue] {
   if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return Err(@publication.RunEvidenceInvalidLimits)
   }
   let count = captures.length()
   if count < 1 ||
+    count > max_nodes ||
     identities.length() != count ||
     originals.length() != count ||
     sources.length() != count ||
@@ -193,14 +219,88 @@ fn issue_client_direct_source_observation(
   if !captures.all(@query.captured_source_available) {
     return Err(@publication.RunEvidenceReferenceMismatch("source_task"))
   }
-  issue_client_captured_observation_from_template(
-    template,
-    sources.map(@publication.run_evidence_value_identity),
+  let (observation, invocation) = match
+    issue_client_captured_observation_from_template(
+      template,
+      sources.map(@publication.run_evidence_value_identity),
+      data_policy_cid,
+      capture_started_at,
+      capture_completed_at,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({
+    occurrences,
+    captures: captures.copy(),
+    identities: identities.copy(),
+    originals: originals.copy(),
+    sources: sources.copy(),
+    inputs: inputs.copy(),
+    observation,
+    invocation,
+  })
+}
+
+///|
+/// Retain the originals admitted once for this same Run; this is no completion.
+pub fn prepare_client_effect_direct_sources_publication(
+  prepared : PreparedClientEffectComputation,
+  compilation : ClientEffectCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  occurrences : ClientDirectAcquisitionOccurrences,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  originals : Array[ClientDirectSourceOriginal],
+  sources : Array[@publication.RunEvidenceValue],
+  inputs : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientEffectDirectSourcesPublication,
+  @publication.RunEvidenceValueIssue,
+] {
+  if !physical_equal(compilation.owner, prepared) ||
+    !client_direct_acquisition_occurrences_match_effect_program(
+      occurrences, prepared,
+    ) ||
+    bind_prepared_client_effect_run(prepared, admission, definition) is Err(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("effect_run"))
+  }
+  if !compilation.compiled.infers.is_empty() {
+    return Err(@publication.RunEvidenceReferenceMismatch("model_capture"))
+  }
+  if compilation.compiled.serialization is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("content_generation"))
+  }
+  prepare_client_direct_source_observation(
+    client_effect_program_view(prepared),
+    client_effect_compilation_template(compilation),
+    occurrences,
+    captures,
+    identities,
+    originals,
+    sources,
+    inputs,
+    authority_scope_cid,
     data_policy_cid,
     capture_started_at,
     capture_completed_at,
     max_wire_bytes,
     max_nodes,
     max_depth,
-  )
+  ).map(value => {
+    owner: prepared,
+    source: value,
+    run_definition_cid: @publication.publication_contract_identity(definition),
+  })
 }

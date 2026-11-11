@@ -395,7 +395,8 @@ test('ordinary published Model group caller forwards each same required input bo
 // and its admitted evidence remain distinct inputs to the original invocation.
 test('actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies', () => {
   const logical = 'sha256:' + 'a'.repeat(64), stop = new Error('ReachedOriginalResultPlan');
-  const sources = [0, 1, 2].map(slot => ({captured: {identity: {slot}}, sourceEvidence: {slot}}));
+  const sources = [0, 1, 2].map(slot => ({captured: {identity: {slot},
+    occurrence: {stage: slot, input: 0, task: slot}}, sourceEvidence: {slot}}));
   const acquired = {prepared: {}, compilation: {}, admission: {}, definition: {},
     runDefinition: {wire: '{"created_at":"2026-11-11T00:00:00.000Z"}'},
     compiledPlan: {identity: 'original-plan'}};
@@ -421,3 +422,49 @@ test('actual multi-Source Effect publication keeps all Source originals but uniq
   assert.throws(() => run({acquired, sources}), error => error === stop);
   assert.deepEqual({invocations, plans}, {invocations: 1, plans: 1});
 });
+
+
+// Execute the actual publication consumer with explicit same-Owner metadata
+// ports. This does not execute a JOIN or supply a completed Artifact; that
+// boundary is covered by the Core completed-producer fixture and normal Host.
+for (const units of [[0, 0], [0, 0, 2]]) {
+  test('multi-Source Effect publication groups originals by checked Unit ' + units.join(','), () => {
+    const sourcePlan = {}, sourcePublication = {}, retention = {wire: '{}'}, combined = {invocation: {}, catalogBodies: []};
+    const singles = new Map(), calls = [];
+    const sources = units.map((stage, slot) => ({captured: {inputKind: 'whole-input',
+      occurrence: {stage, input: slot < 2 ? slot : 0, task: slot, computeTask: stage},
+      identity: {slot}, capture: {source: () => ({slot})}, wholeCapacity: {}, logicalInput: {}}, sourceEvidence: {slot}}));
+    const acquired = {prepared: {}, requestIdentity: {}, compilation: {}, admission: {}, definition: {},
+      runDefinition: {wire: '{"created_at":"2026-11-11T00:00:00.000Z"}'}, compiledPlan: {identity: 'original-plan'}};
+    const moon = acquired.moon = {clientProgramEffectPublicationDataPolicyCid: () => 'original-policy',
+      clientProgramEffectDefinitionCid: () => 'original-definition', clientProgramEffectCompilationResultNames: () => ['joined'],
+      clientProgramCapturedSourceLogicalCid: identity => 'logical-' + identity.slot,
+      clientProgramCapturedSourceSchemaCid: () => 'original-schema',
+      clientProgramCapturedSourceDependencyBodies: identity => ['rows-' + identity.slot, 'original-schema-body'],
+      clientProgramEffectPublicationPolicyBodies: () => ({ok: []})};
+    acquired.control = {issueCheckedInstalledEffectDirectSourcesInvocation(plan, prepared, request, compilation, admission, definition, actual, evidence) {
+      assert.strictEqual(plan, sourcePlan); assert.strictEqual(prepared, acquired.prepared); assert.strictEqual(request, acquired.requestIdentity);
+      assert.strictEqual(actual, sources); assert.equal(evidence.length, sources.length); calls.push('full-invocation');
+      return {observation: {}, invocation: {}, owner: {}, sourcePublication};
+    }, prepareCombinedEffectSourceUnit(original, unit, policy) {
+      assert.strictEqual(original, sourcePublication); assert.equal(unit, 0); assert.strictEqual(policy, retention);
+      calls.push('combined-0'); return combined;
+    }, issueCheckedWholeEffectSourceUnit(plan, prepared, request, slot) {
+      assert.equal(units[slot], 2, 'a contribution to the joined Unit must never enter the single-producer issuer');
+      calls.push('single-2'); const value = {catalogBodies: []}; singles.set(2, value); return value;
+    }};
+    const run = composedSourceFunction('./local-values-plan.mjs', 'acquiredMultiEffectPublicationPlan', {
+      limits: {}, runtimeField: (value, index) => value[index], runtimeOptionalField: (value, index) => value[index],
+      checked: value => value.ok, buildLocalPublicationPlan(facts) {
+        assert.equal(facts.sourceEvidence.length, sources.length);
+        return {plan: {}, retention, retentionDependencies: []};
+      },
+    });
+    const plan = run({acquired, sources, sourcePlan});
+    assert.deepEqual(calls, units.length === 2 ? ['full-invocation', 'combined-0'] : ['full-invocation', 'combined-0', 'single-2']);
+    assert.strictEqual(plan.localEvidenceContext.acquiredEvidenceByUnit[0], combined);
+    assert.equal(plan.localEvidenceContext.acquiredEvidenceByUnit[1], undefined);
+    if (units.length === 3) assert.strictEqual(plan.localEvidenceContext.acquiredEvidenceByUnit[2], singles.get(2));
+    assert.equal(plan.localEvidenceContext.acquisitionDependencies.length, sources.length * 2);
+  });
+}
