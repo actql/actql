@@ -129,13 +129,14 @@ fn native_project_mock_model_backed_read(
   effect_material_restore? : Bool = false,
   effect_prepared_restore? : Bool = false,
   pure_file_source? : Bool = false,
+  pure_file_plan? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
   // Both physical facilities are created in the outer control lifetime.
   // Project metadata stays retained while its SAME immutable originals are
   // borrowed by the separate Request payload, as in the ordinary command.
-  let request_facility = if readme_request || pure_file_source {
+  let request_facility = if readme_request || pure_file_source || pure_file_plan {
     Some(native_mock_readme_request_facility())
   } else {
     None
@@ -192,9 +193,12 @@ fn native_project_mock_model_backed_read(
   }
   host.enter_domain_original_read(read).unwrap()
   let mut request_issue : String? = None
-  if pure_file_source && request_facility is Some(facility) {
+  if (pure_file_source || pure_file_plan) && request_facility is Some(facility) {
     request_issue = native_pure_file_request_in_metadata_read(
-      host, read, facility,
+      host,
+      read,
+      facility,
+      prepare_plan=pure_file_plan,
     )
   } else if request_facility is Some(facility) {
     request_issue = native_mock_readme_request_in_metadata_read(
