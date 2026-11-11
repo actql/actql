@@ -1026,6 +1026,7 @@ jobs:
   # Ready PRs must exercise the README consumers on the same ordinary tars.
   # This is functional once per variant/Node, independent of speed profiles.
   client-readme-packed:
+    name: client-readme-packed (${{ matrix.node }})
     needs: [select-targets, preflight, client-packages]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04

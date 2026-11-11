@@ -41,7 +41,9 @@ export function fullCheckpointJobs(gateJobs) {
   return ['check', ...gateJobs.filter(name => !['focused-tests', 'main-performance', 'health-quick'].includes(name))
     .flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)',
       'core (native 1/2)', 'core (native 2/2)'] : name === 'native-separated-network'
-      ? ['native-separated-network (direct)', 'native-separated-network (store)'] : [name])];
+      ? ['native-separated-network (direct)', 'native-separated-network (store)']
+      : name === 'client-readme-packed'
+        ? ['client-readme-packed (22.22.0)', 'client-readme-packed (24)'] : [name])];
 }
 
 function validRun(run, {repository, repositoryId, workflowId, ancestors}) {
