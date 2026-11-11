@@ -52,9 +52,38 @@ try {
       if (count === 100000) {
         await assert.rejects(result.all({maxRows: 7}), {code: 'ResultRetainedLimit'});
         await assert.rejects(result.all({maxRetainedValueBytes: 500}), {code: 'ResultRetainedLimit'});
+        await assert.rejects(result.all({maxWireBytes: 20}), {code: 'ResultWireLimit'});
+        await assert.rejects(result.all({maxRowWireBytes: 2}), {code: 'ResultRowWireLimit'});
+        await assert.rejects(result.all({maxRowRetainedValueBytes: 8}), {code: 'ResultRowRetainedLimit'});
+        let validated = 0;
+        const shrinking = {'~standard': {version: 1, vendor: 'collection-control', validate(row) {
+          assert.deepEqual(row, {n: 0}); validated++; delete row.n; return {value: null};
+        }}};
+        await assert.rejects(result.all(shrinking, {maxRetainedValueBytes: 500}), {code: 'ResultRetainedLimit'});
+        assert.equal(validated, 1, 'Charge the original decoded row before application mutation');
+        let batches = 0;
+        for await (const batch of result.batches({maxBatchRows: 2, maxBatchRetainedValueBytes: 1000})) {
+          exactRows(batch, 2);
+          if (++batches === 3) break;
+        }
+        assert.equal(batches, 3);
+        await assert.rejects(async () => {
+          for await (const _batch of result.batches({maxBatchRetainedValueBytes: 8})) {
+            assert.fail('An oversized row cannot enter the caller batch');
+          }
+        }, {code: 'ResultBatchLimit'});
         let seen = 0;
         for await (const row of result.rows()) {assert.deepEqual(row, {n: 0}); seen++; break;}
         assert.equal(seen, 1);
+        const controller = new AbortController(); let cancelledRows = 0;
+        const cancelling = {'~standard': {version: 1, vendor: 'collection-control', validate(row) {
+          assert.deepEqual(row, {n: 0}); cancelledRows++; controller.abort(); return {value: row};
+        }}};
+        await assert.rejects(result.all(cancelling, {signal: controller.signal}));
+        assert.equal(cancelledRows, 1, 'Cancel this original reader without cancelling or resubmitting its Run');
+        report.controls = {tighterRows: true, collectionBytes: true, wireBytes: true, rowWireBytes: true,
+          rowBytes: true, originalChargeBeforeValidation: true, boundedBatches: true,
+          batchBytes: true, earlyBreak: true, readerCancellation: true};
         await save(handoffPath, {ref: run.ref, resultName: names[0], count});
       }
     }
@@ -81,8 +110,14 @@ finally {
     assert.deepEqual(report.aliveScopedFD, {before: 0, after: 0});
   } catch (error) {cleanup.push(error);}
   if (!failed && cleanup.length === 0 && phase === 'capture') {
-    for (const path of programs) await unlink(path);
-    report.originalProgramsRemovedAfterFirstClose = programs.length;
+    report.originalProgramsRemovedAfterFirstClose = 0;
+    try {
+      await span('remove-original-Programs', async () => {
+        for (const path of programs) {
+          await unlink(path); report.originalProgramsRemovedAfterFirstClose++;
+        }
+      });
+    } catch (error) {cleanup.push(error);}
   }
   report.cleanup = cleanup.map(error => ({name: error?.name, code: error?.code}));
   report.complete = !failed && cleanup.length === 0;

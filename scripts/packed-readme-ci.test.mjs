@@ -4,6 +4,7 @@ import {readFile, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {parse} from 'yaml';
+import {parse as parseJavaScript} from 'acorn';
 import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets.mjs';
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases} from './test-packed-readme-workflows.mjs';
@@ -103,4 +104,36 @@ test('failed README command retains original exit primary and first-close failur
   assert.equal(actual.summary.code, 'OriginalRefusal'); assert.equal(actual.summary.cleanupCode, 'ClientCleanupPending');
   assert.equal(observed[0].samples[0].verified, false);
   assert.equal(observed[0].samples[0].phases.length, 1);
+});
+
+test('packed collection persists Program-removal failure after FIRST close and never removes in Saved', async () => {
+  // Execute the actual fixture finalizer with explicit filesystem/close ports.
+  // This verifies failure recording, not installed Host or Run behavior.
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const finalizer = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'})
+    .body.find(value => value.type === 'TryStatement').finalizer;
+  const runFinalizer = Function('client', 'span', 'report', 'cleanup', 'failed', 'phase', 'programs',
+    'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert',
+    `return (async () => ${source.slice(finalizer.start, finalizer.end)})();`);
+  for (const phase of ['capture', 'saved']) {
+    const events = [], cleanup = [], report = {firstClose: 'unobserved'}, observations = [];
+    const failure = Object.assign(new Error('Original Program removal failed'), {code: 'EACCES'});
+    await runFinalizer({async close() {events.push('FIRST-close');}},
+      async (_name, action) => action(), report, cleanup, false, phase, ['first.sql', 'second.sql'],
+      async path => {events.push(path); if (path === 'second.sql') throw failure;},
+      async (path, value) => observations.push({path, value: structuredClone(value)}),
+      async () => ({openPaths: []}), async () => {}, '/authored-test-state', assert);
+    assert.equal(observations.length, 1); assert.equal(observations[0].path, `${phase}.observation.json`);
+    assert.equal(observations[0].value.firstClose, 'returned');
+    assert.deepEqual(observations[0].value.aliveScopedFD, {before: 0, after: 0});
+    if (phase === 'capture') {
+      assert.deepEqual(events, ['FIRST-close', 'first.sql', 'second.sql']);
+      assert.equal(cleanup[0], failure); assert.equal(report.originalProgramsRemovedAfterFirstClose, 1);
+      assert.equal(observations[0].value.complete, false);
+      assert.deepEqual(observations[0].value.cleanup, [{name: 'Error', code: 'EACCES'}]);
+    } else {
+      assert.deepEqual(events, ['FIRST-close']); assert.deepEqual(cleanup, []);
+      assert.equal(observations[0].value.complete, true);
+    }
+  }
 });

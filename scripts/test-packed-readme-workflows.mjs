@@ -80,6 +80,9 @@ export async function runPackedReadmeWorkflows(root) {
         assert.equal(actual.submits, phase === 'capture' ? 4 : 0);
         if (phase === 'capture') {
           assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
+          assert.deepEqual(actual.controls, {tighterRows: true, collectionBytes: true,
+            wireBytes: true, rowWireBytes: true, rowBytes: true, originalChargeBeforeValidation: true,
+            boundedBatches: true, batchBytes: true, earlyBreak: true, readerCancellation: true});
           assert.equal(actual.originalProgramsRemovedAfterFirstClose, 4);
         } else assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
         record.completed = true;
