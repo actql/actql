@@ -4,6 +4,7 @@ import {compileFunction} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {createResultFactory} from '../../packages/sdk/internal/result-read.mjs';
+import {localResourceResultReadLimits} from './installed-host-policy.mjs';
 import recipe from './host-result-service-recipe.cjs';
 
 // Execute the installed Host's actual policy and authority callbacks without
@@ -32,7 +33,16 @@ function original(name, bindings) {
 }
 
 async function fixture(lengths, {deny = false, revokeAt, cleanupFails = false} = {}) {
-  const resultReadLimits = original('resultReadLimits', {});
+  const policy = Object.freeze({});
+  const moon = {
+    clientLocalResourcePolicyOriginal: () => policy,
+    clientLocalPreparationResourceLimits(value) {
+      assert.equal(value, policy);
+      return [100000n, 100000n, 100000n, 100000000000n, 536870912n, 536870912n];
+    },
+    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, policy); return 2097152;},
+  };
+  const resultReadLimits = original('resultReadLimits', {moon, localResourceResultReadLimits});
   const limits = (await original('negotiate', {mode: 'local', workspaceId: undefined,
     authorityScopeCid: 'scope', hostConnection: () => false, resultReadLimits})({connection: {}})).limits;
   let allowed = !deny, opened = 0, stopped = 0, closed = 0, produced = 0, bytes = 0;
@@ -137,8 +147,8 @@ test('read authorization remains required before opening and during delivery', a
 test('streaming does not relax explicit collection or per-row bounds', async () => {
   const collection = await fixture(Array(200).fill(52000));
   await assert.rejects(collection.result.all({maxRows: 2}), {code: 'ResultRetainedLimit'});
-  assert.equal(collection.limits.maxRows, 10000);
-  assert.equal(collection.limits.maxRetainedValueBytes, 10 * 1024 * 1024);
+  assert.equal(collection.limits.maxRows, 2097152);
+  assert.equal(collection.limits.maxRetainedValueBytes, 536870912);
   retired(collection);
   const row = await fixture([1024 * 1024 + 1]);
   await assert.rejects(drain(row.result.rows()), {code: 'ResultRowWireLimit'});
