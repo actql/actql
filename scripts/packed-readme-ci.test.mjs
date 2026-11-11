@@ -81,7 +81,7 @@ test('required README cases use three distinct project paths and original indepe
           ...(await readdir(join(options.cwd, 'mock'))).filter(name => name.endsWith('.answers.yaml')).map(name => `mock/${name}`)];
         }
         for (const input of originalInputs) {
-          if (phase === 'recover') await assert.rejects(readFile(join(options.cwd, input)), {code: 'ENOENT'});
+          if (phase !== 'capture') await assert.rejects(readFile(join(options.cwd, input)), {code: 'ENOENT'});
           else assert((await readFile(join(options.cwd, input))).length > 0);
         }
         // Recovery keeps the original configuration and physical target input.
@@ -99,10 +99,11 @@ test('required README cases use three distinct project paths and original indepe
     for (const phase of ['capture', 'approve', 'recover']) {
       const actual = JSON.parse(await readFile(join(project, `${phase}.observation.json`), 'utf8'));
       assert.equal(actual.completed, true); assert.equal(actual.exitCode, 0);
-      if (phase === 'approve') {
+      if (phase === 'capture') {
         assert.equal(actual.inputRemoval.completed, true);
         assert.deepEqual([...actual.inputRemoval.paths].sort(), [...originalInputs].sort());
       }
+      if (phase === 'approve') assert.equal(actual.originalInputsAbsentBeforeApproval, true);
       if (phase === 'recover') {
         assert.equal(actual.originalInputsAbsentBeforeSaved, true);
         assert.equal(actual.originalInputsAbsentAfterSaved, true);
@@ -123,12 +124,12 @@ test('required README preserves inputs and never starts Saved after an unreturne
         stdout: [...Array.from({length: phase === 'capture' ? 10 : 11}, (_, n) =>
           ({phase, step: `explicit-${n}`, status: 'passed'})),
         {phase, status: 'passed', firstFailedStep: null,
-          firstClose: {attempted: true, returned: phase !== 'approve'}}].map(value => JSON.stringify(value)).join('\n')};
+          firstClose: {attempted: true, returned: phase !== 'capture'}}].map(value => JSON.stringify(value)).join('\n')};
     }}), {code: 'ERR_ASSERTION'});
-  assert.deepEqual(phases, ['capture', 'approve']);
+  assert.deepEqual(phases, ['capture']);
   const project = join(root, 'mock-project-churn-risk-mock-readme-0');
   for (const input of ['churn-risk.aql', 'mock/churn-risk.v1.answers.yaml']) assert((await readFile(join(project, input))).length > 0);
-  const record = JSON.parse(await readFile(join(project, 'approve.observation.json'), 'utf8'));
+  const record = JSON.parse(await readFile(join(project, 'capture.observation.json'), 'utf8'));
   assert.equal(record.completed, false); assert.equal(record.exitCode, 0);
   assert.equal(record.inputRemoval, undefined);
 });
@@ -139,18 +140,18 @@ test('required README never deletes replaced authored inputs or enters dependent
     counts: {coldSamples: 1}, onMetric() {},
     async command(_executable, args, options) {
       const phase = args[1]; phases.push(phase);
-      if (phase === 'approve') await writeFile(join(options.cwd, 'mock/churn-risk.v1.answers.yaml'), 'changed input');
+      if (phase === 'capture') await writeFile(join(options.cwd, 'mock/churn-risk.v1.answers.yaml'), 'changed input');
       return {pid: 10000 + phases.length, code: 0, signal: null, wallNs: 100,
         stdout: [...Array.from({length: phase === 'capture' ? 10 : 11}, (_, n) =>
           ({phase, step: `explicit-${n}`, status: 'passed'})),
         {phase, status: 'passed', firstFailedStep: null,
           firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
     }}), {code: 'ERR_ASSERTION'});
-  assert.deepEqual(phases, ['capture', 'approve']);
+  assert.deepEqual(phases, ['capture']);
   const project = join(root, 'mock-project-churn-risk-mock-readme-0');
   assert.equal(await readFile(join(project, 'mock/churn-risk.v1.answers.yaml'), 'utf8'), 'changed input');
   assert((await readFile(join(project, 'churn-risk.aql'))).length > 0);
-  const record = JSON.parse(await readFile(join(project, 'approve.observation.json'), 'utf8'));
+  const record = JSON.parse(await readFile(join(project, 'capture.observation.json'), 'utf8'));
   assert.equal(record.completed, false); assert.deepEqual(record.inputRemoval, {completed: false, paths: []});
 });
 
@@ -267,6 +268,27 @@ test('collection saves its original primary before pending close and diagnostic 
   }
 });
 
+test('collection full stream drains all 100k original rows and refuses truncation or changed rows', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const declaration = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'})
+    .body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'drainOriginalRows');
+  assert(declaration);
+  const drain = Function('assert', `return (${source.slice(declaration.start, declaration.end)});`)(assert);
+  for (const [count, changed] of [[100000, false], [99999, false], [100000, true]]) {
+    let delivered = 0, closed = 0, opened = 0;
+    const result = {rows() {opened++;return (async function* () {
+      try {
+        for (let n = 0; n < count; n++) {delivered++;yield {n: changed && n === 59999 ? 1 : 0};}
+      } finally {closed++;}
+    })();}};
+    if (count === 100000 && !changed) {
+      assert.deepEqual(await drain(result, 100000), {rows: 100000, complete: true});
+      assert.equal(delivered, 100000);
+    } else await assert.rejects(drain(result, 100000), {code: 'ERR_ASSERTION'});
+    assert.equal(opened, 1); assert.equal(closed, 1);
+  }
+});
+
 async function runnerFunctions() {
   const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
   const declarations = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
@@ -282,6 +304,33 @@ async function runnerFunctions() {
     return Function(...Object.keys(ports), `return (${body});`)(...Object.values(ports));
   };
 }
+
+test('collection aggregate requires completed full stream independently of successful all collection', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  const actual = {phase: 'capture', pid: 123, complete: true, firstClose: 'returned',
+    aliveScopedFD: {before: 0, after: 0}, submits: 5, sourceFreeMaxWork: 30000000,
+    requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
+    cases: [9999, 10000, 10001, 100000].map(count => ({count})),
+    fullStream: {rows: 100000, complete: true},
+    controls: {tighterRows: true, collectionBytes: true, wireBytes: true, rowWireBytes: true,
+      rowBytes: true, originalChargeBeforeValidation: true, boundedBatches: true,
+      batchBytes: true, earlyBreak: true, readerCancellation: true},
+    oversizedRow: {rows: 1, arrayElements: 20000, expectedRefusal: 'ResultRowRetainedLimit', complete: true},
+    originalProgramsRemovedAfterFirstClose: 5};
+  for (const fullStream of [actual.fullStream, undefined, {rows: 99999, complete: true}]) {
+    const record = {phase: 'capture'};
+    const promise = run({collection: root, record, async command() {
+      return {pid: 123, code: 0, wallNs: 10, stdout: JSON.stringify({...actual, fullStream})};
+    }});
+    if (fullStream === actual.fullStream) {
+      await promise; assert.equal(record.status, 'passed'); assert.equal(record.completed, true);
+    } else {
+      await assert.rejects(promise, {code: 'ERR_ASSERTION'});
+      assert.equal(record.status, 'failed'); assert.notEqual(record.completed, true);
+    }
+  }
+});
 
 test('collection timeout retains only its actual child pending primary and never infers close return', async t => {
   const {root} = await scratch(t), load = await runnerFunctions();

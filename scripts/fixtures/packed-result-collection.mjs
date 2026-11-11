@@ -30,6 +30,12 @@ function exactRows(rows, count) {
   assert.equal(rows.length, count);
   for (const row of rows) assert.deepEqual(row, {n: 0});
 }
+async function drainOriginalRows(result, expected) {
+  let rows = 0;
+  for await (const row of result.rows()) {assert.deepEqual(row, {n: 0}); rows++;}
+  assert.equal(rows, expected, 'The original stream must reach EOF with every expected row');
+  return {rows, complete: true};
+}
 let client, failed = false, primary;
 const cleanup = [], programs = [];
 try {
@@ -60,6 +66,7 @@ try {
         ? result.all({maxRows: count}) : result.all()), count);
       report.cases.push({count, ref: run.ref, resultName: names[0], complete: true});
       if (count === 100000) {
+        report.fullStream = await span('rows-100000-FULL', () => drainOriginalRows(result, count));
         await assert.rejects(result.all({maxRows: 7}), {code: 'ResultRetainedLimit'});
         await assert.rejects(result.all({maxRetainedValueBytes: 500}), {code: 'ResultRetainedLimit'});
         await assert.rejects(result.all({maxWireBytes: 20}), {code: 'ResultWireLimit'});

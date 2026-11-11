@@ -373,11 +373,11 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
         await writeFile(path, JSON.stringify(record, null, 2) + '\n', {mode: 0o600, flag: 'wx'});
         let observation, phaseFailed = false, primary;
         try {
-          if (phase === 'recover') {
+          if (phase !== 'capture') {
             for (const input of recoveryInputs) {
               await assert.rejects(lstat(join(project, input)), {code: 'ENOENT'});
             }
-            record.originalInputsAbsentBeforeSaved = true;
+            record[phase === 'approve' ? 'originalInputsAbsentBeforeApproval' : 'originalInputsAbsentBeforeSaved'] = true;
           }
           observation = await command(process.execPath, args,
             {cwd: project, name: `workflow-${template}-${variant}-${iteration}-${phase}`, timeout: 30_000});
@@ -390,10 +390,12 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
           assert.equal(record.summary.status, 'passed'); assert.equal(record.summary.firstFailedStep, null);
           assert.deepEqual(record.summary.firstClose, {attempted: true, returned: true});
-          if (phase === 'approve') {
+          if (phase === 'capture') {
             // Only the authored inputs in this fresh private fixture may go.
             // The child has exited and its FIRST public close returned. Keep
             // config, captured state, target data and every original reference.
+            // Approval must consume the completed capture, not reacquire its
+            // Source or rerun Models from the removed Program/answer inputs.
             record.inputRemoval = {completed: false, paths: []};
             for (const input of recoveryInputs) {
               const selected = join(project, input), info = await lstat(selected);
