@@ -136,6 +136,8 @@ priv struct ProgramCheckArguments {
 /// record; its own packet neither creates nor closes a Resource owner.
 struct ClientProgramCheckPreparation[I, P] {
   capacity : @resources.PreparationCapacity[I, P]
+  mut _observed_semantic_check_calls : Int64
+  mut _observed_program_compile_calls : Int64
   mut input : I?
   mut arguments : ProgramCheckArguments?
   mut check_input : @checked.ParsedCheckInput?
@@ -317,6 +319,8 @@ fn[I, P] new_program_check_preparation(
     compiled_effect: None,
     effect_targets: None,
     compilation_known_work: 0L,
+    _observed_semantic_check_calls: 0L,
+    _observed_program_compile_calls: 0L,
     environment_scratch: None,
     binding_inventory: None,
     binding_quote: None,

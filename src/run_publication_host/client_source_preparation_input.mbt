@@ -170,6 +170,7 @@ pub fn client_source_input_parts(
 pub fn observe_client_source_input_query(
   input : ClientSourceInput,
   source_path? : String = "<source>",
+  calls_out? : Ref[Int64]? = None,
 ) -> Result[
   (Result[@query_syntax.Query, @source_frontend.Issue], Int64, Bool),
   ClientSourcePreparationIssue,
@@ -182,6 +183,7 @@ pub fn observe_client_source_input_query(
     input.source_document,
     input.selected,
     source_path~,
+    calls_out~,
   )
   if observed.0 is Ok(query) {
     input.query = Some(query)
@@ -198,6 +200,7 @@ pub fn lower_client_source_input_query(
   environment : @checked.CheckEnvironment,
   query : @query_syntax.Query,
   public_primary? : Bool = false,
+  calls_out? : Ref[Int64]? = None,
 ) -> Result[
   (
     @source_frontend.Lowered,
@@ -227,6 +230,7 @@ pub fn lower_client_source_input_query(
       query,
       input.declarations,
       public_primary~,
+      calls_out~,
     ) {
     Err(issue) => Err(source_prepared_publication_issue(issue))
     Ok(output) => {

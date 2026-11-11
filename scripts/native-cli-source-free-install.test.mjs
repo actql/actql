@@ -11,23 +11,28 @@ import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiag
 
 // Independent counter DATA checks, not Native execution or a second protocol
 // fixture. The shared diagnostic parser owns stream/schema validation.
-const sourceFreeCounterRows = (environment = 1) => [
-  {tag: 21, count: environment}, {tag: 31, count: 1}, {tag: 58, count: 1},
+const sourceFreeCounterRows = (operation = 'run') => [
+  {tag: 21, count: operation === 'result' ? 0 : 1}, {tag: 31, count: 1}, {tag: 58, count: 1},
   {tag: 59, count: 1}, {tag: 17, count: 7},
+  {tag: 66, count: operation === 'result' ? 0 : 1},
+  {tag: 67, count: operation === 'result' ? 0 : 1},
+  {tag: 68, count: operation === 'result' ? 0 : 1},
+  {tag: 69, count: operation === 'run' || operation === 'sql' ? 1 : 0},
 ];
 
-test('source-free existing work counters distinguish fresh admission from Saved and retain unmeasured SQL work', () => {
+test('source-free existing work counters distinguish actual SQL work from Saved and unrelated JSON helpers', () => {
   for (const operation of ['check', 'run', 'sql', 'result']) {
-    const observed = requireNativeSourceFreeWorkCounts(operation, sourceFreeCounterRows(operation === 'result' ? 0 : 1));
+    const observed = requireNativeSourceFreeWorkCounts(operation, sourceFreeCounterRows(operation));
     assert.equal(observed.measured.checkingEnvironmentAdmissions, operation === 'result' ? 0 : 1);
     assert.equal(observed.measured.legacyJsonOrSubmittedIntentHelperCalls, 7);
-    assert.deepEqual(observed.unmeasured, {sqlInputParseCalls: null, sqlTypeCheckCalls: null,
-      sqlCompileCalls: null, immutableBodyReadmissionCalls: null});
+    assert.equal(observed.measured.requestQueryParseCalls, operation === 'result' ? 0 : 1);
+    assert.equal(observed.measured.requestProgramCompileCalls, operation === 'run' || operation === 'sql' ? 1 : 0);
+    assert.deepEqual(observed.unmeasured, {otherCheckerPhaseCalls: null, immutableBodyReadmissionCalls: null});
   }
 });
 
 test('source-free existing work counters refuse doubled missing and duplicate actual admission work', () => {
-  for (const tag of [21, 31, 58, 59]) {
+  for (const tag of [21, 31, 58, 59, 66, 67, 68, 69]) {
     for (const count of [0, 2]) {
       const rows = sourceFreeCounterRows().map(row => row.tag === tag ? {...row, count} : row);
       assert.throws(() => requireNativeSourceFreeWorkCounts('run', rows), /Repeated or missing/u);
@@ -36,6 +41,8 @@ test('source-free existing work counters refuse doubled missing and duplicate ac
     assert.throws(() => requireNativeSourceFreeWorkCounts('run', [...sourceFreeCounterRows(), {tag, count: 1}]), /Missing or duplicate/u);
   }
   assert.throws(() => requireNativeSourceFreeWorkCounts('result', sourceFreeCounterRows()), /checking Environment/u);
+  const recompiledCheck = sourceFreeCounterRows('check').map(row => row.tag === 69 ? {...row, count: 1} : row);
+  assert.throws(() => requireNativeSourceFreeWorkCounts('check', recompiledCheck), /requestProgramCompileCalls/u);
 });
 
 test('source-free existing work counters restore diagnostic flags and never retry a failed command', async () => {

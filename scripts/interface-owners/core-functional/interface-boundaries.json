@@ -40949,7 +40949,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_check_domain.mbt",
-      "sha256": "55759133e7004ba25f78c410e5613c3f630409e5790ce1d857de1f5c176401fb",
+      "sha256": "5992cd72310ea4296e6130aee0a97e20face8322573dd104c42b531ba2e6163a",
       "exports": [],
       "operations": [
         {
@@ -41144,7 +41144,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_compile.mbt",
-      "sha256": "9cbdeaa1bebf0645791ee9bd408797de0d95d71623f66f0ccd9ed71525801798",
+      "sha256": "21d80f22bacb939b744758d31c5ce2eebf51fbd078bfc15a7d9dafa5e2fea293",
       "exports": [],
       "operations": [
         {
@@ -42564,7 +42564,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "082d37fd9201c9b7623cae01f7de2e0998454765482f5cc04c6b8bf9f8888617",
+      "sha256": "07a2176ea65062ed0b6dcfd82d61fe592011266ad90ea526a8bcab2c590c32e2",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -44529,7 +44529,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7138d63c98eb7dd2176f65b5ab05b07d0032177d22e269451434007cb396c515",
+      "sha256": "76ce19d94969cad15c7560b9b8b24dc10f38771158b4e553c845647cc740ad9e",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -44569,6 +44569,10 @@
         {
           "name": "[I]request_preparation_accounting",
           "declaration": "[ I ] request_preparation_accounting ( owner : ClientRequestPreparation [ I ] , ) - > ( Int64 , Int64 , Int64 , Int64 , Int64 , Int64 )"
+        },
+        {
+          "name": "[I]request_preparation_work_calls",
+          "declaration": "[ I ] request_preparation_work_calls ( owner : ClientRequestPreparation [ I ] , ) - > ( Int64 , Int64 , Int64 , Int64 )"
         },
         {
           "name": "client_request_preparation_control_capacity",
@@ -45347,6 +45351,74 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
                 "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]request_preparation_work_calls"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request actual-work observations"
               }
             ]
           }
@@ -46287,7 +46359,7 @@
           }
         }
       ],
-      "sha256": "c4d20d00f573acbcbd99931da04c5fb99ba4ad2684358d6dc0bda77a784afe87",
+      "sha256": "0c3bd672ddfe0eed7a854db31b10548275a2a0464af45134755d1a34cc6c3c38",
       "exports": [],
       "operations": [
         {
@@ -46375,7 +46447,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3a86144878298b87b826935e07702547a404cef60404953b178625815f064c4a",
+      "sha256": "ffc8024f8e1fac5b7df51646f908a4ade01b681ead04e05852b99cdce2d0a247",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -46627,7 +46699,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ea8818782aadff4c3765baee5900f8c95dc20a7c202129013f8d831a9b6d3d2d",
+      "sha256": "d14de2082a6940b3dd8f7595b9a5840a1b0caa90cac233aa157afc7a3620662c",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -50418,7 +50490,7 @@
     },
     {
       "module": "src/client_source_publication/prepared_environment.mbt",
-      "sha256": "1b40ef9ae3f9c75e6900b19d6dfaac883f9cd343079d8aa2ab6312f15e78451f",
+      "sha256": "7bef13cba322900f2a5a84d29c75d5d509e59ec64814b0f17d9baef6e7000027",
       "exports": [],
       "operations": [
         {
@@ -50431,7 +50503,7 @@
         },
         {
           "name": "lower_prepared_query_in_context",
-          "declaration": "lower_prepared_query_in_context ( prepared : PreparedPublishedQueryEnvironment , query : @ query_syntax . Query , context : @ query_program . Context , public_primary : Bool , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , PreparedPublicationIssue , ]"
+          "declaration": "lower_prepared_query_in_context ( prepared : PreparedPublishedQueryEnvironment , query : @ query_syntax . Query , context : @ query_program . Context , public_primary : Bool , calls_out ? : Ref [ Int64 ] ?"
         },
         {
           "name": "lower_prepared_query_with_declarations",
@@ -71861,12 +71933,12 @@
           }
         }
       ],
-      "sha256": "592f970540c2cab3ac34ba747a2520a3e8d933d1dad8e89a9d1952ecde36f8b6",
+      "sha256": "710b0c11d18cf9019c5dc0d0102900a4505a872c038fd3f7b8f30388bf969c4d",
       "exports": [],
       "operations": [
         {
           "name": "[T]emit_client_task_pipeline_body",
-          "declaration": "[ T ] emit_client_task_pipeline_body ( input : ClientTaskPipelineInput , projected : Bool , steps : T , emit_steps : ( T , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , writer : @ encode . Writer , ) - > Result [ Unit , ClientTaskPipelineIssue ] raise @ encode . EncodeFailure"
+          "declaration": "[ T ] emit_client_task_pipeline_body ( input : ClientTaskPipelineInput , projected : Bool , steps : T , emit_steps : ( T , @ encode . Writer ) - > Unit raise @ encode . EncodeFailure , writer : @ encode . Writer , source_selection ? : Array [ Int ] ?"
         },
         {
           "name": "admit_prepared_client_run_publication",
@@ -71922,7 +71994,7 @@
         },
         {
           "name": "construct_client_task_pipeline",
-          "declaration": "construct_client_task_pipeline ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientTaskPipelineConstruction , ClientTaskPipelineIssue ]"
+          "declaration": "construct_client_task_pipeline ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , source_selection ? : Array [ Int ] ?"
         },
         {
           "name": "construct_client_task_pipeline_prefix",
@@ -71938,7 +72010,7 @@
         },
         {
           "name": "emit_client_task_pipeline_input_body",
-          "declaration": "emit_client_task_pipeline_input_body ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , writer : @ encode . Writer , ) - > Unit raise @ encode . EncodeFailure"
+          "declaration": "emit_client_task_pipeline_input_body ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , writer : @ encode . Writer , source_selection ? : Array [ Int ] ?"
         },
         {
           "name": "emit_client_task_pipeline_measurement",
@@ -72022,11 +72094,11 @@
         },
         {
           "name": "measure_client_task_pipeline_construction",
-          "declaration": "measure_client_task_pipeline_construction ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( ( Int , Int , Int ) , ( Int , Int , Int ) ) , ClientTaskPipelineIssue ]"
+          "declaration": "measure_client_task_pipeline_construction ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , source_selection ? : Array [ Int ] ?"
         },
         {
           "name": "measure_client_task_pipeline_input",
-          "declaration": "measure_client_task_pipeline_input ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Int , Int , Int ) , ClientTaskPipelineIssue ]"
+          "declaration": "measure_client_task_pipeline_input ( input : ClientTaskPipelineInput , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , source_selection ? : Array [ Int ] ?"
         },
         {
           "name": "measure_client_values_pipeline_graph",
@@ -78264,7 +78336,7 @@
           }
         }
       ],
-      "sha256": "9974259404ed518e5f7fcaf270577c6c5b53d7b38432ede0f431e947a94426bc",
+      "sha256": "93648a75b22487237ebeae1d4ac98d51c8458e21f598f23076a876002f3d2ce1",
       "operations": [
         {
           "name": "program_check_preparation_initial_inventory",
@@ -78739,7 +78811,7 @@
           }
         }
       ],
-      "sha256": "f565dd82085fd1292d570a6eb51a8497dd5f2c2c18cef13a65c2413bdee04393",
+      "sha256": "8dc5e07cfafad6ed2bc73a200365c00b8f23c38adbbca44a460149cbf6913c70",
       "operations": [
         {
           "name": "[T]same_client_source_optional",

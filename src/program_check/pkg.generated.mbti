@@ -33,6 +33,7 @@ import {
   "actql/actql/stage_syntax",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -492,7 +493,7 @@ pub fn nest_resource_subject(NestResourceSource, NestResourceScope, Int) -> Stri
 
 pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 
-pub fn observe_finish_parsed_check_registry(ParsedCheckRegistry) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue]
+pub fn observe_finish_parsed_check_registry(ParsedCheckRegistry, calls_out? : @ref.Ref[Int64]?) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue]
 
 pub fn observe_finish_parsed_effect_check_registry(ParsedCheckRegistry) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
 

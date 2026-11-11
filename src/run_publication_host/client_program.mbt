@@ -2287,6 +2287,7 @@ pub fn observe_prepare_checked_effect_free_client_program(
   max_tasks~ : Int,
   max_graph_work~ : Int,
   values_max_rows? : Int? = None,
+  calls_out? : Ref[Int64]? = None,
 ) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64) {
   let work = Ref(0L)
   let result = prepare_checked_effect_free_client_program_owned(
@@ -2298,6 +2299,7 @@ pub fn observe_prepare_checked_effect_free_client_program(
     max_graph_work~,
     values_max_rows~,
     lowering_work_out=Some(work),
+    calls_out~,
   )
   (result, work.val)
 }
@@ -2312,6 +2314,7 @@ fn prepare_checked_effect_free_client_program_owned(
   max_graph_work~ : Int,
   values_max_rows? : Int? = None,
   lowering_work_out? : Ref[Int64]? = None,
+  calls_out? : Ref[Int64]? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   // The checker already refused nonempty Effects on its Pure path. Read its
   // retained classification instead of copying/scanning every Stage again.
@@ -2332,6 +2335,7 @@ fn prepare_checked_effect_free_client_program_owned(
     max_graph_work~,
     values_max_rows~,
     lowering_work_out~,
+    calls_out~,
   )
 }
 
@@ -2345,7 +2349,11 @@ fn compile_effect_free_checked_client_program(
   max_graph_work~ : Int,
   values_max_rows? : Int? = None,
   lowering_work_out? : Ref[Int64]? = None,
+  calls_out? : Ref[Int64]? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  if calls_out is Some(observed) {
+    observed.val += 1L
+  }
   let owners = match
     prepare_client_stage_owners(
       checked,

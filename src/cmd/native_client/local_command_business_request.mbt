@@ -46,7 +46,25 @@ fn[T] LocalCommandPreparationOriginal::with_business_request(
     .map_err(issue => CommandRetainedExecution(issue)),
     stage=Some("request-enter"),
   )
+  // Bounded scalar snapshots use this existing Request control envelope. Keep
+  // the SAME light parent across its callback; payload retirement severs its
+  // heavy aliases, while scalar history remains readable without current I/O.
+  let observation = if self.extent_diagnostics {
+    match business.request_parent {
+      Some(parent) =>
+        Some((parent, @local_values.request_preparation_work_calls(parent)))
+      None => None
+    }
+  } else {
+    None
+  }
   let result = Ok(callback()) catch { ClientStop(message) => Err(message) }
+  if observation is Some((parent, before)) {
+    record_request_work_delta(
+      before,
+      @local_values.request_preparation_work_calls(parent),
+    )
+  }
   let returned = host
     .leave_domain_retained_execution(execution)
     .map_err(issue => CommandRetainedExecution(issue))

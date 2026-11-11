@@ -166,18 +166,23 @@ pub fn[I] parse_request_query_syntax(
     }
     Ok(value) => value
   }
+  // The existing parser observer reports actual work after its own guards.
+  // A Source wrapper's pre-work refusal cannot manufacture a parser call.
+  let calls = Ref(0L)
   let (outcome, known, complete) = match source {
     None =>
       @frontend.observe_parse_query(
         selected.document,
         selected.format,
         source_path=selected.source_path,
+        calls_out=Some(calls),
       )
     Some(source) =>
       match
         @publication_host.observe_client_source_input_query(
           source,
           source_path=selected.source_path,
+          calls_out=Some(calls),
         ) {
         Ok(observed) => observed
         Err(issue) => {
@@ -198,6 +203,7 @@ pub fn[I] parse_request_query_syntax(
         }
       }
   }
+  owner._observed_query_parse_calls += calls.val
   selected.known_work = known
   selected.counters_complete = complete
   let charged = @resources.spend_preparation_phase_work64(work, known)

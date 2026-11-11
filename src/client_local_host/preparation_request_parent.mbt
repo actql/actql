@@ -114,6 +114,10 @@ priv enum ClientRequestDomainCompilationInputs {
 /// This record owns no second Ledger, byte allowance, parser or serializer.
 struct ClientRequestPreparation[I] {
   initial : ClientPreparationInitial[I]
+  mut _observed_query_parse_calls : Int64
+  mut _observed_query_lower_calls : Int64
+  mut _observed_semantic_check_calls : Int64
+  mut _observed_program_compile_calls : Int64
   ledger : @resources.Ledger
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
@@ -244,10 +248,12 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 // Input/AST/wire/row/operation storage, selected domain construction and live
 // child overlap remain separately charged before their actual constructors.
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
+// Four scalar observations (4W) remain on this SAME Request through its typed
+// continuation. No new observer record, parent backreference or callback exists.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
   record_headers: 233L,
   reference_slots: 416L,
-  scalar_words: 477L,
+  scalar_words: 481L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -277,6 +283,9 @@ pub fn client_request_preparation_control_capacity(
   // The same group covers later Run growth entry. Its original owner fences
   // recursion before payload construction, so only one refused nested entry
   // overlaps. The fixed carriers are backed NOW, not by a later resize.
+  // Optional Native scalar diagnostics retain only bounded before/after tuples
+  // and the SAME light parent, plus parser/lowerer Ref/Some call observations
+  // (together under 512 bytes), within this fixed 4096 group.
   let growth = @resources.preparation_inventory_growth_entry_construction()
   guard @execution.preparation_representation_cost({
       record_headers: growth.record_headers,
@@ -349,6 +358,10 @@ fn[I] begin_request_preparation_original(
   // The manager stores this original before any shape-specific constructor.
   Ok({
     initial,
+    _observed_query_parse_calls: 0L,
+    _observed_query_lower_calls: 0L,
+    _observed_semantic_check_calls: 0L,
+    _observed_program_compile_calls: 0L,
     ledger,
     capacity,
     input: Some(input),
@@ -615,6 +628,35 @@ fn[I] prepare_request_check_preparation_owned(
 }
 
 ///|
+/// Actual observed work on this SAME Request, including attempted work that
+/// returned a parser/checker/compiler failure. Foreign input, pre-work refusal
+/// and cached projections cannot increment it. DATA only, never permission or
+/// currentness. Scalar history survives payload retirement without retaining
+/// the input/body. The caller funds this bounded tuple before projection.
+pub fn[I] request_preparation_work_calls(
+  owner : ClientRequestPreparation[I],
+) -> (Int64, Int64, Int64, Int64) {
+  let (checked, compiled) = match owner.program_check {
+    Some(child) =>
+      (
+        child._observed_semantic_check_calls,
+        child._observed_program_compile_calls,
+      )
+    None =>
+      (
+        owner._observed_semantic_check_calls,
+        owner._observed_program_compile_calls,
+      )
+  }
+  (
+    owner._observed_query_parse_calls,
+    owner._observed_query_lower_calls,
+    checked,
+    compiled,
+  )
+}
+
+///|
 /// Only after this fixed callback's construction/snapshot aliases unwound.
 /// Pending original report/stop remains on this same admission; a later callback
 /// cannot replace its original unknown outcome with an acknowledgement.
@@ -654,7 +696,11 @@ pub fn[I] abort_request_preparation_after_cleanup(
         owner.phase = previous
         return Err(ProgramCheck(issue))
       }
-      Ok(_) => owner.program_check = None
+      Ok(_) => {
+        owner._observed_semantic_check_calls = child._observed_semantic_check_calls
+        owner._observed_program_compile_calls = child._observed_program_compile_calls
+        owner.program_check = None
+      }
     }
     owner.phase = previous
   }

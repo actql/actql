@@ -40,14 +40,21 @@ export function requireNativeSourceFreeWorkCounts(operation, counters) {
     productConfigurationStagePasses: selected(58),
     packagedRuntimeOriginalChecks: selected(59),
     legacyJsonOrSubmittedIntentHelperCalls: selected(17),
+    requestQueryParseCalls: selected(66),
+    requestQueryLowerCalls: selected(67),
+    requestSemanticCheckCalls: selected(68),
+    requestProgramCompileCalls: selected(69),
   };
   assert.equal(measured.checkingEnvironmentAdmissions, operation === 'result' ? 0 : 1,
     'Repeated or missing checking Environment admission');
   for (const name of ['runInstallationAdmissions', 'productConfigurationStagePasses',
     'packagedRuntimeOriginalChecks']) assert.equal(measured[name], 1, `Repeated or missing ${name}`);
+  for (const name of ['requestQueryParseCalls', 'requestQueryLowerCalls', 'requestSemanticCheckCalls'])
+    assert.equal(measured[name], operation === 'result' ? 0 : 1, `Repeated or missing ${name}`);
+  assert.equal(measured.requestProgramCompileCalls, operation === 'run' || operation === 'sql' ? 1 : 0,
+    'Repeated or missing requestProgramCompileCalls');
   return {operation, measured, unmeasured: {
-    sqlInputParseCalls: null, sqlTypeCheckCalls: null, sqlCompileCalls: null,
-    immutableBodyReadmissionCalls: null,
+    otherCheckerPhaseCalls: null, immutableBodyReadmissionCalls: null,
   }};
 }
 

@@ -14,6 +14,20 @@ extern "C" fn native_timing_count(tag : Int) -> Unit = "actql_native_timing_coun
 extern "C" fn native_timing_amount(tag : Int, amount : Int64) -> Unit = "actql_native_timing_amount"
 
 ///|
+// Differences belong to the SAME existing entered Request interval. Repeated
+// getters/cached returns add zero, and a decreasing observation marks the
+// existing recorder invalid instead of manufacturing a successful zero.
+fn record_request_work_delta(
+  before : (Int64, Int64, Int64, Int64),
+  after : (Int64, Int64, Int64, Int64),
+) -> Unit {
+  native_timing_amount(66, after.0 - before.0)
+  native_timing_amount(67, after.1 - before.1)
+  native_timing_amount(68, after.2 - before.2)
+  native_timing_amount(69, after.3 - before.3)
+}
+
+///|
 // Observe only an already-entered original backing loan. Diagnostics never
 // acquire another loan, change a command failure or supply capacity/close ACK.
 fn LocalCommandPreparationOriginal::observe_extent_work(

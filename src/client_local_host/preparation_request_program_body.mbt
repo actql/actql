@@ -48,6 +48,8 @@ pub fn[I] continue_request_program_preparation(
   owner.program_capacity = Some(next)
   owner.compiled_program = Some(prepared)
   owner.program_data = Some(data)
+  owner._observed_semantic_check_calls = child._observed_semantic_check_calls
+  owner._observed_program_compile_calls = child._observed_program_compile_calls
   transfer_program_check_input(child)
   child.busy = false
   owner.program_check = None

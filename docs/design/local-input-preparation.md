@@ -6191,3 +6191,39 @@ identity and permission rules. Source payload access and child cleanup remain
 inside the original entered Read; original parent retirement and accounting
 snapshots remain separate. This lifetime ordering does not supply the normal
 Host's required constructor/control backing by itself.
+
+### Request actual-work observations
+
+The existing Request retains four scalar counts for original query parsing,
+query lowering, the remaining semantic check, and Pure Program compilation.
+The existing observed operations accept an optional `calls_out` reference and
+increment it only after their own original/input/phase guards, immediately
+before the selected work. Source and publication wrappers forward that same
+reference. A declined grow, consumed registry, foreign publication, cached
+return or read-only projection contributes no work. A parser or checker that
+actually consumes a failed prefix remains one attempted work call.
+
+The Request copies its check child's two scalar counts before the existing
+child clear or typed continuation. These numbers survive payload retirement;
+they retain no input, Program, credentials, authority or cleanup witness. The
+parent's four words and child's two words are included in their original fixed
+control quotes. The two temporary check/compiler Ref/Some observations are
+conservatively co-counted in that same child quote. Parser/lowerer observations
+and bounded Native before/after snapshots use the existing Request control
+group, without a second reservation or changed semantic limit.
+
+The Native caller reads the same parent's scalar snapshots inside its existing
+entered Request interval, adds only the difference to diagnostic slots 66--69,
+and leaves its primary result and all current/return/retirement boundaries
+unchanged. A decreasing observation invalidates the existing recorder; missing,
+truncated or overflowed diagnostics cannot establish a successful count.
+Portable Core does not import Native, invoke a telemetry callback, or retain a
+global cache. These diagnostic counts are DATA, never capacity or permission.
+
+The existing mandatory installed source-free consumer checks the same SELECT
+and Number aggregate commands: parse/lower/remaining-check once, compilation
+once for run/sql, no compilation for check, and none of those operations for
+Saved Result. Original runnable, exact rows and input-removal/Saved assertions
+remain required. Legacy JSON helper tag 17 is a distinct observation; neither
+it nor the four selected counts proves the absence of other checker phases or
+complete immutable-body readmission. Those remain explicitly unmeasured.

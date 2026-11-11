@@ -1115,6 +1115,8 @@ pub fn[I] request_preparation_accounting(ClientRequestPreparation[I]) -> (Int64,
 
 pub fn[I] request_preparation_parameters_original(ClientRequestPreparation[I], I) -> Result[@decode_core.Cursor?, ClientRequestPreparationIssue]
 
+pub fn[I] request_preparation_work_calls(ClientRequestPreparation[I]) -> (Int64, Int64, Int64, Int64)
+
 pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> Result[ClientRequestComputationKind, ClientRequestPreparationIssue]
 
 pub fn[I] request_program_compilation_limits(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientPureCompilationLimits, ClientRequestProgramPlanIssue]

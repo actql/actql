@@ -190,6 +190,7 @@ pub fn[I] lower_request_published_query(
     }
     Ok(_) => ()
   }
+  let calls = Ref(0L)
   let outcome = if source is Some(source) {
     @publication_host.lower_client_source_input_query(
       source,
@@ -197,6 +198,7 @@ pub fn[I] lower_request_published_query(
       selected.environment,
       parsed,
       public_primary=selected.public_primary,
+      calls_out=Some(calls),
     ).map_err(issue => {
       ClientRequestQueryLoweringIssue::Request(SourceInput(Source(issue)))
     })
@@ -207,6 +209,7 @@ pub fn[I] lower_request_published_query(
       parsed,
       owner.native_query_declarations.map(pair => pair.1),
       public_primary=selected.public_primary,
+      calls_out=Some(calls),
     ).map_err(issue => Publication(issue))
   } else {
     @source_publication.lower_prepared_published_parsed_query(
@@ -215,8 +218,10 @@ pub fn[I] lower_request_published_query(
       parsed,
       selected.declarations,
       public_primary=selected.public_primary,
+      calls_out=Some(calls),
     ).map_err(issue => Publication(issue))
   }
+  owner._observed_query_lower_calls += calls.val
   owner.phase = QueryLoweringFailed
   selected.output = Some(outcome)
   match outcome {

@@ -14,6 +14,7 @@ import {
   "actql/actql/relation_schema",
   "actql/actql/stage_syntax",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -27,7 +28,7 @@ pub fn lower_parsed_with_source(@query_syntax.Query, @query_program.Context?, ta
 
 pub fn lower_with_source(String, Format, @query_program.Context?, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?, public_primary? : Bool) -> Result[(Lowered, @program_source_builder.Source?), Issue]
 
-pub fn observe_parse_query(String, Format, source_path? : String) -> (Result[@query_syntax.Query, Issue], Int64, Bool)
+pub fn observe_parse_query(String, Format, source_path? : String, calls_out? : @ref.Ref[Int64]?) -> (Result[@query_syntax.Query, Issue], Int64, Bool)
 
 pub fn parse_query(String, Format, source_path? : String) -> Result[@query_syntax.Query, Issue]
 

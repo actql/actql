@@ -48,6 +48,7 @@ fn[I, P] compile_program_check_preparation_owned(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  let calls = Ref(0L)
   let (result, known) = @publication_host.observe_prepare_checked_effect_free_client_program(
     checked,
     limits.lowering,
@@ -56,7 +57,9 @@ fn[I, P] compile_program_check_preparation_owned(
     max_tasks=limits.max_tasks,
     max_graph_work=limits.max_graph_work,
     values_max_rows=limits.values_max_rows,
+    calls_out=Some(calls),
   )
+  owner._observed_program_compile_calls += calls.val
   owner.compilation_known_work = known
   let charged = @resources.spend_preparation_phase_work64(work, known)
   match @resources.finish_preparation_phase_work64(work) {

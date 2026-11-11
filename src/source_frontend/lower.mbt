@@ -346,10 +346,14 @@ pub fn observe_parse_query(
   document : String,
   format : Format,
   source_path? : String = "<source>",
+  calls_out? : Ref[Int64]? = None,
 ) -> (Result[@syntax.Query, Issue], Int64, Bool) {
   match format {
     Text | Sql => ()
     Json | Yaml => return (Err(InvalidFormat), 0L, true)
+  }
+  if calls_out is Some(observed) {
+    observed.val += 1L
   }
   let (outcome, spent, complete) = @syntax.observe_selected_query_script(
     document,
