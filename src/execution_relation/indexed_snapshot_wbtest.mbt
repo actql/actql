@@ -207,9 +207,9 @@ test "row name cursor preserves exact UTF8 budgets and atomic Value accounting" 
 }
 
 ///|
-test "retained row names stop in input snapshot output and capture phases" {
+test "retained row names stop in input output and capture traversal phases" {
   let name = "x".repeat(256)
-  for target in [0, 1, 2, 3] {
+  for target in [0, 2, 3] {
     let execution = indexed_snapshot_fixture(name)
     let mut inside = false
     for _ in 0..<6000 {
@@ -221,7 +221,6 @@ test "retained row names stop in input snapshot output and capture phases" {
         if execution.state.name_charge is Some(cursor) && cursor.offset == 64 {
           inside = match execution.state.phase {
             ChargeInput => target == 0
-            SnapshotRow => target == 1
             BuildOutputRow => target == 2
             ChargeCaptureRow => target == 3
             _ => false
@@ -247,7 +246,7 @@ test "retained row names stop in input snapshot output and capture phases" {
 }
 
 ///|
-test "long row snapshot names yield without a whole spelling charge" {
+test "long row snapshot aliases copy one checked name without spelling traversal" {
   let execution = indexed_snapshot_fixture("x".repeat(256))
   let mut inside = false
   for _ in 0..<2000 {
@@ -267,10 +266,18 @@ test "long row snapshot names yield without a whole spelling charge" {
     is BoundedBindingRowsContinue(..),
   )
   assert_true(
-    before - execution.state.control.remaining <= 64,
-    msg="snapshot construction must not scan an entire long name in one poll",
+    before - execution.state.control.remaining == 1,
+    msg="snapshot construction charges one shared entry without scanning its name",
   )
-  @bounded.request_cancel(execution.state.engine) |> ignore
-  advance_bounded_binding_rows(execution, 1) |> ignore
+  assert_true(execution.state.name_charge is None)
+  let remaining = execution.state.control.remaining
+  assert_true(@bounded.request_cancel(execution.state.engine))
+  assert_true(
+    advance_bounded_binding_rows(execution, 1).unwrap()
+    is BoundedBindingRowsStopped(_, ..),
+  )
   cleanup_bounded_binding_rows(execution).unwrap() |> ignore
+  assert_eq(execution.state.control.remaining, remaining)
+  assert_eq(execution.state.workspace.live, 0)
+  assert_true((execution.state.available)())
 }
