@@ -2192,6 +2192,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // acquisition occurrence. An Effect answer is never a read permit.
     async computationSourceAuthorization({runId, runDefinitionCid, unitId,
       occurrence, declaredResults, continuation, beforeDefer, journalPort = journal}) {
+      // The checked Program/Plan owns Source cardinality. This original port's
+      // ordinal is not a second Host limit on the number of acquired Sources.
       if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
           typeof runDefinitionCid !== 'string' ||
           typeof continuation !== 'function' || typeof beforeDefer !== 'function' ||
@@ -2199,7 +2201,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           ![occurrence?.stage, occurrence?.input, occurrence?.task]
             .every(Number.isSafeInteger) ||
           occurrence.input !== 0 || occurrence.task !== occurrence.stage ||
-          occurrence.stage < 0 || occurrence.stage > 1) {
+          occurrence.stage < 0) {
         fail('InvalidComputationSourceContinuation');
       }
       occurrence = JSON.parse(JSON.stringify(occurrence));

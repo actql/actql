@@ -20612,7 +20612,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "677dee6ffe9169e279fb42eda2256fa6f355be46d55de1b11eed82011ae7fbb4",
+      "sha256": "fb3468beee4c27aa493b655060c1ba4eae890ce9ac3c257247ac6d2f1e06c953",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -22732,6 +22732,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
+                "anchor": "three original Source ports reach the same continuation authorization caller without a two-Source cap"
               }
             ]
           }
