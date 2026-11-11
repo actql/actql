@@ -10,6 +10,7 @@ import {parse} from 'yaml';
 import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
+import {readCiInput} from './ci-input.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
@@ -593,7 +594,7 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.match(capacity, /node proofs\/relation-pipeline\/run\.mjs all/u);
   const check = jobs.check;
   assert(check.needs.includes('select-targets'));
-  assert.equal(check.steps.find(step => step.run).env.CI_PLAN, '${{ needs.select-targets.outputs.plan }}');
+  assert.equal(check.steps.find(step => step.run).env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
   assert.match(check.if, /always\(\)/u);
 });
 const head = 'b'.repeat(40);
@@ -998,8 +999,11 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   writeFileSync(eventPath, JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   const selection = maintenanceSelection(['docs/development.md']);
   const script = jobs.check.steps.find(step => step.run).run;
-  const run = value => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {cwd: new URL('../', import.meta.url),
-    encoding: 'utf8', env: {...process.env, CI_PLAN: value, RESULTS: JSON.stringify(results(selection)),
+  const run = value => spawnSync('bash', ['-eo', 'pipefail', '-c', script
+    .replaceAll('${{ needs.select-targets.outputs.plan }}', value)
+    .replaceAll('${{ toJSON(needs) }}', JSON.stringify(results(selection)))], {cwd: new URL('../', import.meta.url),
+    encoding: 'utf8', env: {...process.env, CI_PLAN: '', RESULTS: '',
+      CI_PLAN_PATH: join(dir, 'plan.json'), RESULTS_PATH: join(dir, 'results.json'),
       GITHUB_SHA: head, GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: eventPath, GITHUB_STEP_SUMMARY: ''}});
   const good = run(JSON.stringify(plan(selection)));
   assert.equal(good.status, 0, good.stderr);
@@ -1012,6 +1016,102 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   assert.equal(run(JSON.stringify(plan(selection))).status, 0);
   for (const value of ['', 'undefined', '{}', JSON.stringify({...plan(selection), sourceRevision: 'a'.repeat(40)})]) {
     assert.notEqual(run(value).status, 0);
+  }
+});
+
+test('CI JSON file input preserves originals and refuses conflicting, absent or malformed evidence', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'actql-ci-input-'));
+  t.after(() => rmSync(dir, {recursive: true, force: true}));
+  const path = join(dir, 'plan.json'), original = plan(selectTargets(['src/original.mbt']));
+  writeFileSync(path, JSON.stringify(original));
+  assert.deepEqual(readCiInput('CI_PLAN', {CI_PLAN_PATH: path}), original);
+  assert.deepEqual(readCiInput('CI_PLAN', {CI_PLAN: JSON.stringify(original)}), original);
+  assert.equal(readCiInput('CI_PLAN', {}), undefined);
+  assert.throws(() => readCiInput('CI_PLAN', {CI_PLAN_PATH: path, CI_PLAN: '{}'}), /Conflicting/u);
+  assert.throws(() => readCiInput('CI_PLAN', {CI_PLAN_PATH: join(dir, 'missing')}), {code: 'ENOENT'});
+  for (const invalid of ['', '{', 'undefined']) {
+    writeFileSync(path, invalid);
+    assert.throws(() => readCiInput('CI_PLAN', {CI_PLAN_PATH: path}), SyntaxError);
+  }
+  // No fallback from an unreadable/malformed file to a different inline plan.
+  assert.throws(() => readCiInput('CI_PLAN', {CI_PLAN_PATH: path, CI_PLAN: JSON.stringify(original)}), /Conflicting/u);
+});
+
+test('large CI plans reach the original aggregate through files without shell interpretation', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'actql-large-ci-plan-'));
+  t.after(() => rmSync(dir, {recursive: true, force: true}));
+  const selection = selectTargets(Array.from({length: 6000}, (_, i) => `src/changed/package-${i}/original-file.mbt`),
+    {event: 'push'});
+  selection.paths.push('src/$(touch injected)', 'src/`touch injected`');
+  const original = JSON.stringify(plan(selection));
+  assert(Buffer.byteLength(original) > 128 * 1024, 'Exceed Linux single-environment-string limit');
+  const outcomes = results(selection);
+  // The real needs object repeats the full plan in select-targets outputs.
+  outcomes['select-targets'].outputs = {plan: original};
+  for (const [job, name] of [['focused-tests', 'Check package and execute changed tests plus owning JS family'],
+    ['core', 'Test common core'], ['check', 'Require every selected integration obligation']]) {
+    const step = jobs[job].steps.find(step => step.name === name);
+    assert.equal(step.env.CI_PLAN, undefined, job);
+    assert.equal(step.env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json', job);
+  }
+  const step = jobs.check.steps.find(step => step.name === 'Require every selected integration obligation');
+  const run = (value, needs = outcomes, revision = head) => {
+    const script = step.run.replaceAll('${{ needs.select-targets.outputs.plan }}', value)
+      .replaceAll('${{ toJSON(needs) }}', JSON.stringify(needs));
+    const scriptPath = join(dir, 'step.sh');
+    writeFileSync(scriptPath, script);
+    return spawnSync('bash', ['-eo', 'pipefail', scriptPath], {cwd: new URL('../', import.meta.url),
+      encoding: 'utf8', env: {...process.env, CI_PLAN: '', RESULTS: '',
+        CI_PLAN_PATH: join(dir, 'plan.json'), RESULTS_PATH: join(dir, 'results.json'),
+        GITHUB_SHA: revision, GITHUB_EVENT_NAME: 'push', GITHUB_STEP_SUMMARY: ''}});
+  };
+  const good = run(original);
+  assert.equal(good.status, 0, good.stderr);
+  assert.match(good.stdout, /PASS core/u);
+  assert.equal(readFileSync(join(dir, 'plan.json'), 'utf8'), original + '\n');
+  assert.notEqual(run('{}').status, 0);
+  assert.notEqual(run(original, outcomes, 'a'.repeat(40)).status, 0);
+  assert.notEqual(run(original, {...outcomes, core: {result: 'failure'}}).status, 0);
+  assert(!readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')
+    .includes('CI_PLAN: ${{ needs.select-targets.outputs.plan }}'));
+  assert.throws(() => readFileSync(new URL('../injected', import.meta.url)), {code: 'ENOENT'});
+});
+
+test('large CI plans launch both original portable Core step command sequences', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-core-ci-transport-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  mkdirSync(join(root, 'bin'));
+  const selection = selectTargets(Array.from({length: 6000}, (_, i) => `src/package-${i}/original-code.mbt`),
+    {event: 'push'});
+  const original = JSON.stringify(plan(selection));
+  assert(Buffer.byteLength(original) > 128 * 1024);
+  // Only process/argument transport is under test: no compiler or product
+  // runtime is invoked by these executable recording ports.
+  const recorder = `#!${process.execPath}\nconst fs = require('node:fs');
+    const plan = JSON.parse(fs.readFileSync(process.env.CI_PLAN_PATH, 'utf8'));
+    fs.appendFileSync(process.env.CALLS, JSON.stringify({
+      command: require('node:path').basename(process.argv[1]), args: process.argv.slice(2),
+      revision: plan.sourceRevision, paths: plan.selection.paths.length}) + '\\n');\n`;
+  for (const command of ['moon', 'node']) {
+    writeFileSync(join(root, 'bin', command), recorder, {mode: 0o755});
+  }
+  writeFileSync(join(root, 'bin/getconf'), '#!/bin/sh\nprintf "2\\n"\n', {mode: 0o755});
+  const step = jobs.core.steps.find(step => step.name === 'Test common core');
+  for (const target of ['js', 'wasm']) {
+    const script = step.run.replaceAll('${{ needs.select-targets.outputs.plan }}', original)
+      .replaceAll('${{ matrix.target }}', target)
+      .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false');
+    const scriptPath = join(root, `${target}.sh`), calls = join(root, `${target}.jsonl`);
+    writeFileSync(scriptPath, script);
+    const child = spawnSync('bash', ['-eo', 'pipefail', scriptPath], {encoding: 'utf8',
+      env: {...process.env, CI_PLAN: '', CI_PLAN_PATH: join(root, 'plan.json'),
+        PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: calls}});
+    assert.equal(child.status, 0, child.stderr);
+    const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    assert.deepEqual(observed[0].args, ['test', '--target', target, '--deny-warn', '-j', '2']);
+    assert.deepEqual(observed.map(entry => entry.command), target === 'js' ? ['moon'] : ['moon', 'moon', 'node', 'node']);
+    assert(observed.every(entry => entry.revision === head && entry.paths === selection.paths.length));
+    assert.equal(readFileSync(join(root, 'plan.json'), 'utf8'), original + '\n');
   }
 });
 

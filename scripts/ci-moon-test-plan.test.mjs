@@ -184,9 +184,25 @@ test('Native caller consumes the same checked package closure without changing i
   assert.throws(() => nativeMoonPackages(env, {...options, git:() => other}));
   const source = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
   assert.match(source, /const full = !\['focused', 'reporting'\]\.includes/u);
-  assert.match(source, /full && process\.env\.CI_PLAN/u);
+  assert.match(source, /full && \(process\.env\.CI_PLAN \|\| process\.env\.CI_PLAN_PATH\)/u);
   assert.match(source, /nativeMoonPackages\(\)/u);
   assert.match(source, /timeoutMs: 5 \* 60_000, executionPackages/u);
+});
+
+test('Native file transport retains the original compiler inventory and refuses changed evidence', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-ci-plan-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const path = join(root, 'plan.json');
+  const selection = selectTargets(['src/a/code.mbt'], {moonTests: fixture().plan});
+  writeFileSync(path, JSON.stringify({sourceRevision: hash, selection}));
+  const environment = {CI_PLAN_PATH: path, GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: 'original-event'};
+  const options = {git: () => hash, discover: () => selection.moonTests,
+    readEvent: () => ({pull_request: {base: {sha: other}}})};
+  assert.deepEqual(nativeMoonPackages(environment, options), selection.moonTests.packages);
+  assert.throws(() => nativeMoonPackages(environment, {...options, git: () => other}), /Foreign/u);
+  assert.throws(() => nativeMoonPackages(environment, {...options, discover: () => ({})}), /Changed/u);
+  writeFileSync(path, '{');
+  assert.throws(() => nativeMoonPackages(environment, options), SyntaxError);
 });
 
 test('raw additions/deletions/renames/modes and omitted mixed changes refuse before graph discovery', () => {
@@ -228,7 +244,7 @@ test('workflow prepares graph tools only for candidates and retains full checks 
   const run = core.find(step => step.name === 'Test common core');
   assert.match(run.run, /node scripts\/ci-moon-tests\.mjs "\$\{\{ matrix\.target \}\}"/u);
   assert.match(run.run, /MOONBIT_NEW_NATIVE=0 node scripts\/test-native-core\.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose/u);
-  assert.equal(run.env.CI_PLAN, '${{ needs.select-targets.outputs.plan }}');
+  assert.equal(run.env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
   assert(workflow.jobs.lint.steps.some(step => step.run === 'node --test scripts/ci-moon-test-plan.test.mjs'));
 });
 

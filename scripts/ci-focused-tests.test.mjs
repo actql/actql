@@ -256,7 +256,8 @@ test('workflow selects focused job only for this profile and retains mandatory g
   const job = workflow.jobs['focused-tests'];
   assert.deepEqual(job.needs, ['select-targets', 'preflight']);
   assert.match(job.if, /profile == 'focused-tests'/u);
-  assert(job.steps.some(step => step.run === 'node scripts/ci-focused-tests.mjs'));
+  assert(job.steps.some(step => step.run?.endsWith('node scripts/ci-focused-tests.mjs\n') &&
+    step.env.CI_PLAN_PATH === '${{ runner.temp }}/actql-ci-plan.json'));
   assert.deepEqual(workflow.jobs.check.needs, gateJobs);
   assert(workflow.jobs.lint.steps.some(step => step.run === 'node --test scripts/ci-focused-tests.test.mjs'));
 });

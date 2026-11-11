@@ -69,6 +69,12 @@ function commands(name, target, raw = false) {
       // including when the developer's parent shell contains a CI_PLAN value.
       return [key, ''];
     }
+    if (!raw && name === 'core' && key === 'CI_PLAN_PATH') {
+      if (value !== '${{ runner.temp }}/actql-ci-plan.json') {
+        fail('Unsupported Core selection path; local CI must retain complete coverage');
+      }
+      return [key, ''];
+    }
     if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PARTITION') {
       if (value !== "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}") {
         fail('Unsupported Native Core partition expression; local CI must retain complete coverage');
@@ -174,7 +180,7 @@ async function runJob(name, args) {
   requireHeavy(classification, options);
   return execute(selected.map(step => ({name: `${name}: ${step.name}`,
     command: 'bash', args: ['-eo', 'pipefail', '-c', step.run], scratch: step.scratch,
-    env: {RUNNER_TEMP: step.scratch, ...step.env},
+    env: {RUNNER_TEMP: step.scratch, ...(name === 'core' ? {CI_PLAN: '', CI_PLAN_PATH: ''} : {}), ...step.env},
   })), classification, options, workflowMinutes(name, target));
 }
 

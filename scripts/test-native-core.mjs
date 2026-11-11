@@ -44,7 +44,7 @@ const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
 // Keep the unscoped classification and its original fixture/backing setup.
 // Only the compiler-owned case inventory below receives this checked closure.
-const executionPackages = full && process.env.CI_PLAN && JSON.parse(process.env.CI_PLAN).selection?.moonTests
+const executionPackages = full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
   ? (await import('./ci-moon-tests.mjs')).nativeMoonPackages() : undefined;
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
 if (partition && !full) throw new Error('Native Core partitions require the complete original selection');

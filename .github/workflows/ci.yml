@@ -309,8 +309,12 @@ jobs:
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - name: Check package and execute changed tests plus owning JS family
         env:
-          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
-        run: node scripts/ci-focused-tests.mjs
+          CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
+        run: |
+          cat > "$CI_PLAN_PATH" <<'ACTQL_CI_PLAN_JSON'
+          ${{ needs.select-targets.outputs.plan }}
+          ACTQL_CI_PLAN_JSON
+          node scripts/ci-focused-tests.mjs
       - name: Upload focused execution diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -383,8 +387,14 @@ jobs:
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
           ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}
-          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
+          CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
         run: |
+          # Local full-Core execution has no hosted selection file.
+          if [ -n "$CI_PLAN_PATH" ]; then
+            cat > "$CI_PLAN_PATH" <<'ACTQL_CI_PLAN_JSON'
+          ${{ needs.select-targets.outputs.plan }}
+          ACTQL_CI_PLAN_JSON
+          fi
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
             # compiler stack. This does not change product resource budgets.
@@ -2147,9 +2157,16 @@ jobs:
           fetch-depth: 0
       - name: Require every selected integration obligation
         env:
-          RESULTS: ${{ toJSON(needs) }}
-          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
-        run: node scripts/ci-targets.mjs gate
+          RESULTS_PATH: ${{ runner.temp }}/actql-ci-results.json
+          CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
+        run: |
+          cat > "$CI_PLAN_PATH" <<'ACTQL_CI_PLAN_JSON'
+          ${{ needs.select-targets.outputs.plan }}
+          ACTQL_CI_PLAN_JSON
+          cat > "$RESULTS_PATH" <<'ACTQL_CI_RESULTS_JSON'
+          ${{ toJSON(needs) }}
+          ACTQL_CI_RESULTS_JSON
+          node scripts/ci-targets.mjs gate
       - name: Set up pinned Node for the selected evidence consumer
         if: ${{ needs.session-evidence.result == 'success' || needs.pipeline-evidence.result == 'success' }}
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6

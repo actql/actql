@@ -1174,6 +1174,15 @@ invalid selection, failed or cancelled required jobs, and unexpected skips
 cannot satisfy the final `check`. Inspect the jobs actually executed; a narrow
 PR run does not establish a full integration or release checkpoint.
 
+CI passes the complete selection and aggregate job results through quoted JSON
+files in the runner's temporary directory (`CI_PLAN_PATH` and `RESULTS_PATH`).
+Source inventories can exceed Linux's per-environment-string execution limit.
+File transport preserves the original SHA, event, paths and compiler evidence;
+the same consumers validate them without truncating or reselecting coverage.
+Direct callers may still supply the existing inline inputs, but conflicting
+inline/file inputs refuse rather than silently choosing one. Local full-Core
+execution excludes both hosted plan transports and retains complete coverage.
+
 The Native HTTP and Remote Query harnesses select their existing owned files
 through the Query packages' transitive imports and literal FFI includes. Separate
 CLI/conformance packages do not widen this closure. Unknown imported environment
