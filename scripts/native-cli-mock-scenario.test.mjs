@@ -96,6 +96,25 @@ test('Native Journal shared Read counter cannot become a failed acceptance count
   assert.equal(record.stderr, stderr, 'Keep the original Read observation without subtraction');
 });
 
+test('Native Journal refuses transaction tags after overlapping Compute observations', () => {
+  const original = journalCapacityRefusal();
+  for (const overlap of ['phase', 'inventory']) {
+    const stderr = original.stderr.split('\n').map(line => {
+      const index = line.indexOf(' '), prefix = line.slice(0, index);
+      if (prefix !== 'ACTQL_NATIVE_PHASE' && prefix !== 'ACTQL_NATIVE_COUNTER') return line;
+      const value = JSON.parse(line.slice(index + 1));
+      if (overlap === 'phase' && prefix === 'ACTQL_NATIVE_PHASE' && value.tag === 3) {
+        value.begins = 1; value.ends = 1;
+      }
+      if (overlap === 'inventory' && prefix === 'ACTQL_NATIVE_COUNTER' && value.tag === 60)
+        value.count = 1;
+      return prefix + ' ' + JSON.stringify(value);
+    }).join('\n');
+    assert.throws(() => requireNativeJournalCapacityRefusal({...original, stderr}),
+      {code: 'ERR_ASSERTION'});
+  }
+});
+
 async function journalFixture(t, fault) {
   const project = await mkdtemp(join(tmpdir(), 'native-journal-exhaustion-oracle-'));
   t.after(() => rm(project, {recursive: true, force: true}));
