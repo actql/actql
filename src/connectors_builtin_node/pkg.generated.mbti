@@ -1342,6 +1342,8 @@ pub fn client_program_generated_infer_local_provider(@run_publication_host.Clien
 
 pub fn client_program_grow_captured_content_workspace(@physical_resources.Ledger, @physical_resources.Reservation, Int, Int) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn client_program_grow_original_infer_publication_capacity(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_hubspot_account_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_hubspot_effect_constructor_capacity(Int, Array[Int], Array[Int], Array[Int]) -> @execution_relation.ExecutionCapacity?
@@ -1452,6 +1454,8 @@ pub fn client_program_infer_invocation_binding_invocation(@client_infer_host.Inv
 
 pub fn client_program_infer_invocation_binding_observation(@client_infer_host.InvocationBinding) -> @run_publication.RunEvidenceValue?
 
+pub fn client_program_infer_invocation_binding_original_model_outcomes(@client_infer_host.InvocationBinding) -> @execution_relation.CompletedOutput?
+
 pub fn client_program_infer_invocation_binding_output(@client_infer_host.InvocationBinding) -> @execution_relation.CompletedOutput?
 
 pub fn client_program_infer_invocation_evidence(@client_infer_host.Execution, Int) -> @run_publication.RunEvidenceValue?
@@ -1461,6 +1465,24 @@ pub fn client_program_infer_media_dependency_references(@check_environment.Model
 pub fn client_program_infer_model_dependency_issue_kind(@check_environment.ModelDependencyIssue) -> String
 
 pub fn client_program_infer_model_execution_issue_kind(@run_publication_host.ClientInferPlanGraphIssue) -> String
+
+pub fn client_program_infer_model_identity_advance(@execution_relation.CompletedRelationIdentityScan, Int, Int64, Int64) -> Result[(Bool, Int), @execution_relation.CompletedExportIssue]
+
+pub fn client_program_infer_model_identity_body(@execution_relation.CompletedRelationIdentityScan, @execution_relation.CompletedRelationExportReceipt) -> String?
+
+pub fn client_program_infer_model_identity_cancel(@execution_relation.CompletedRelationIdentityScan) -> Bool
+
+pub fn client_program_infer_model_identity_finish(@execution_relation.CompletedRelationIdentityScan) -> Result[@execution_relation.CompletedRelationExportReceipt, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_infer_model_identity_next_capacity(@execution_relation.CompletedRelationIdentityScan) -> (Int64, Int64)?
+
+pub fn client_program_infer_model_identity_receipt_cancel(@execution_relation.CompletedRelationExportReceipt) -> Unit
+
+pub fn client_program_infer_model_identity_start(@client_infer_host.InvocationBinding) -> Result[@execution_relation.CompletedRelationIdentityScan, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_infer_model_identity_start_capacity(@client_infer_host.InvocationBinding) -> (Int64, Int64)?
+
+pub fn client_program_infer_model_observation_capacity(@client_infer_host.InvocationBinding, @execution_relation.CompletedRelationExportReceipt, Int) -> (Int64, Int64)?
 
 pub fn client_program_infer_model_task_cid(@run_publication_host.PreparedClientProgram, Int) -> String?
 
@@ -2091,6 +2113,8 @@ pub fn client_program_issue_imported_local_effect_table_artifact(@run_publicatio
 pub fn client_program_issue_infer_attachment_admission(@client_infer_host.Execution, Int) -> Result[@run_publication.RunEvidenceValue?, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_issue_infer_dispatch_admission(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, AuthorizationAccount, String, String, AuthorizationDecision?, () -> AuthorizationAccount, () -> String) -> Result[@run_publication_host.ClientInferDispatchAdmission, @run_publication_host.ClientInferDispatchIssue]
+
+pub fn client_program_issue_infer_invocation_binding_original_model_observation(@client_infer_host.InvocationBinding, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> @client_infer_host.LocalModelObservation?
 
 pub fn client_program_issue_infer_raw_capture_policy(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, String, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, String, String, String, String, String) -> Result[@run_publication.BoundModelRawCapturePolicy, @run_publication_host.ClientModelRawCaptureIssue]
 
@@ -2919,6 +2943,24 @@ pub fn client_program_original_composed_keyed_prefix_advance(@client_local_host.
 pub fn client_program_original_composed_keyed_prefix_execution(@client_local_host.ClientOriginalComposedKeyedPrefix) -> @client_local_host.ClientSerializationPrefix
 
 pub fn client_program_original_mock_provider(@model_execution.ModelMockInstallation) -> Result[@model_execution.ModelProvider, @model_execution.ModelMockInstallationIssue]
+
+pub fn client_program_original_model_acquired_effect_evidence(@client_infer_host.LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int, @run_publication_host.ClientEffectImportedEvidence?) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+
+pub fn client_program_original_model_acquired_effect_invocation(@run_publication_host.ClientEffectModelAcquiredEvidence) -> @run_publication_host.ClientEffectLocalInvocation
+
+pub fn client_program_original_model_acquired_effect_lookup_barrier(@run_publication_host.ClientEffectModelAcquiredEvidence) -> (String, String)?
+
+pub fn client_program_original_model_acquired_effect_scope(@run_publication_host.ClientEffectModelAcquiredEvidence) -> String
+
+pub fn client_program_original_model_acquired_effect_sources(@run_publication_host.ClientEffectModelAcquiredEvidence) -> Array[@run_publication_host.ClientEffectAcquiredEvidence]
+
+pub fn client_program_original_model_effect_result_artifact(@client_infer_host.LocalModelObservation, @run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
+
+pub fn client_program_original_model_observation_body(@client_infer_host.LocalModelObservation) -> (String, String)?
+
+pub fn client_program_original_model_observation_coordinates(@client_infer_host.LocalModelObservation) -> (Int, Int, Int)?
+
+pub fn client_program_original_model_observation_input_bodies(@client_infer_host.LocalModelObservation) -> Array[(String, String, String)]?
 
 pub fn client_program_park_infer_original_model_resources(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 

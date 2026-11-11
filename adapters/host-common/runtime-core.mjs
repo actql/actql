@@ -1923,6 +1923,7 @@ function publicationControl(moon) {
     });
   };
   const inferInvocationTokens = new WeakMap();
+  const inferModelObservationTokens = new WeakMap();
   const compiledRunResult = (result, code) => {
     try {
       return checked(result);
@@ -2022,6 +2023,28 @@ function publicationControl(moon) {
     });
     localEffectArtifactTokens.set(value, issued);
     return value;
+  };
+  // The actual Core-issued Source metadata is projected once. Only callers
+  // with an admitted whole Unit register an Artifact dependency token below;
+  // Model contributions remain inside their complete Model context.
+  const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits) => {
+    return Object.freeze({
+      invocation: moon.clientProgramAcquiredEffectInvocation(issued),
+      bodies: Object.freeze([
+        ...moon.clientProgramAcquiredEffectDependencyBodies(issued)
+          .map(pair => Object.freeze({kind: runtimeField(pair, 0), wire: runtimeField(pair, 1),
+            ...(runtimeField(pair, 0) === 'request_values' ? {
+              cid: moon.clientProgramAcquiredEffectRequestCid(issued),
+            } : {})})),
+        Object.freeze({kind: 'result_retention_policy',
+          wire: inspect(token(publicationRetention)).wire}),
+      ]),
+      catalogBodies: Object.freeze(checked(
+        moon.clientProgramAcquiredEffectCatalogBodies(issued,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
+        .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1),
+          wire: runtimeField(body, 2)}))),
+    });
   };
   const localEffectContext = context => {
     if (context === null || typeof context !== 'object' ||
@@ -4273,6 +4296,73 @@ function publicationControl(moon) {
       return Object.freeze({observation: issued.observation, invocation: issued.invocation,
         owner: token(issued.invocation)});
     },
+    captureCheckedClientInferModelObservation(issued, scan, receipt, limits) {
+      issuanceLimits(limits, 'Original Model observation');
+      if (!inferInvocationTokens.has(issued)) {
+        throw new TypeError('Foreign Model observation Invocation');
+      }
+      const original = moon.clientProgramIssueInferInvocationBindingOriginalModelObservation(
+        issued.binding, receipt, limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
+      if (original === undefined) throw new TypeError('Foreign Model outcome receipt');
+      const body = moon.clientProgramOriginalModelObservationBody(original);
+      const coordinates = moon.clientProgramOriginalModelObservationCoordinates(original);
+      const inputs = moon.clientProgramOriginalModelObservationInputBodies(original);
+      const outcomes = moon.clientProgramInferModelIdentityBody(scan, receipt);
+      if (typeof runtimeOptionalField(body, 0) !== 'string' ||
+          typeof runtimeOptionalField(body, 1) !== 'string' || coordinates === undefined ||
+          !Array.isArray(inputs) || typeof outcomes !== 'string') {
+        throw new TypeError('Original Model dependency bodies unavailable');
+      }
+      const unit = runtimeField(coordinates, 1);
+      if (!Number.isSafeInteger(unit) || unit < 0) {
+        throw new TypeError('Foreign Model Unit coordinate');
+      }
+      const value = Object.freeze({unit,
+        bodies: Object.freeze([
+          Object.freeze({kind: 'local_model_observation', cid: runtimeField(body, 0),
+            wire: runtimeField(body, 1)}),
+          ...inputs.map(entry => Object.freeze({kind: runtimeField(entry, 0),
+            cid: runtimeField(entry, 1), wire: runtimeField(entry, 2)})),
+          Object.freeze({kind: 'relation_value',
+            cid: moon.clientProgramEffectInputExportLogicalCid(receipt), wire: outcomes}),
+          Object.freeze({kind: 'relation_schema',
+            cid: moon.clientProgramEffectInputExportSchemaCid(receipt),
+            wire: moon.clientProgramEffectInputExportSchemaWire(receipt)}),
+        ])});
+      inferModelObservationTokens.set(value, {original, issued});
+      return value;
+    },
+    issueOriginalModelEffectEvidence(model, retention, imports, limits) {
+      issuanceLimits(limits, 'Original Model Effect dependency');
+      const retained = inferModelObservationTokens.get(model);
+      const imported = imports === undefined ? undefined : localEffectDependencyTokens.get(imports);
+      if (retained === undefined || !inferInvocationTokens.has(retained.issued) ||
+          imports !== undefined && imported?.kind !== 'imported') {
+        throw new TypeError('Foreign Model Effect originals');
+      }
+      const acquired = checked(moon.clientProgramOriginalModelAcquiredEffectEvidence(
+        retained.original, token(retention), limits.maxWireBytes, limits.maxNodes,
+        limits.maxDepth, imported?.issued));
+      const direct = moon.clientProgramOriginalModelAcquiredEffectSources(acquired)
+        .map(source => inspectAcquiredEffectEvidence(source, retention, limits));
+      const barrier = moon.clientProgramOriginalModelAcquiredEffectLookupBarrier(acquired);
+      const value = Object.freeze({
+        invocation: moon.clientProgramOriginalModelAcquiredEffectInvocation(acquired),
+        bodies: Object.freeze([
+          ...model.bodies,
+          ...direct.flatMap(source => source.bodies),
+          ...(imports?.bodies ?? []),
+          Object.freeze({kind: 'acquisition_scope',
+            wire: moon.clientProgramOriginalModelAcquiredEffectScope(acquired)}),
+          ...(barrier === undefined ? [] : [Object.freeze({kind: 'lookup_barrier',
+            cid: runtimeField(barrier, 0), wire: runtimeField(barrier, 1)})]),
+        ]),
+        catalogBodies: Object.freeze(direct.flatMap(source => source.catalogBodies)),
+      });
+      localEffectDependencyTokens.set(value, {kind: 'model', issued: acquired,
+        original: retained.original});
+      return value;
+    },
     readCheckedClientInferSlotReplay(compiled, definition, observation,
       records, bundle, proofs, {maxSlots, maxSlotWireUnits}) {
       const value = compiledRunTokens.get(compiled);
@@ -4366,23 +4456,7 @@ function publicationControl(moon) {
           evidenceToken(observation), authorityScopeCid, dataPolicyCid,
           token(retention), token(publicationRetention),
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-      const value = Object.freeze({
-        invocation: moon.clientProgramAcquiredEffectInvocation(issued),
-        bodies: Object.freeze([
-          ...moon.clientProgramAcquiredEffectDependencyBodies(issued)
-            .map(pair => Object.freeze({kind: runtimeField(pair, 0), wire: runtimeField(pair, 1),
-              ...(runtimeField(pair, 0) === 'request_values' ? {
-                cid: moon.clientProgramAcquiredEffectRequestCid(issued),
-              } : {})})),
-          Object.freeze({kind: 'result_retention_policy',
-            wire: inspect(token(publicationRetention)).wire}),
-        ]),
-        catalogBodies: Object.freeze(checked(
-          moon.clientProgramAcquiredEffectCatalogBodies(issued,
-            limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
-          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1),
-            wire: runtimeField(body, 2)}))),
-      });
+      const value = inspectAcquiredEffectEvidence(issued, publicationRetention, limits);
       localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
       return value;
     },
@@ -4452,7 +4526,11 @@ function publicationControl(moon) {
         throw new TypeError('Foreign local Effect dependency evidence');
       }
       const exactContext = localEffectContext(context);
-      const result = owned.kind === 'source_free'
+      const result = owned.kind === 'model'
+        ? moon.clientProgramOriginalModelEffectResultArtifact(
+          owned.original, owner, inputs, exported, owned.issued, definition, receipt,
+          ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : owned.kind === 'source_free'
         ? moon.clientProgramIssueSourceFreeExportedLocalEffectResultArtifact(
           owner, inputs, exported, owned.issued, definition, receipt,
           token(retention), ...exactContext,

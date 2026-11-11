@@ -185,6 +185,7 @@ export async function preparePinnedEffectSourceSet({
     // silently flatten that inventory to one representative member.
     if (options.localEvidenceContext?.acquiredEvidence !== undefined ||
         options.localEvidenceContext?.acquiredEvidenceByUnit !== undefined ||
+        options.localEvidenceContext?.modelOriginalByUnit !== undefined ||
         typeof moon.clientProgramEffectResultImportCount !== 'function') {
       throw new TypeError('UnsupportedDependentEffectMemberSourceBindings');
     }
@@ -213,7 +214,8 @@ export async function preparePinnedEffectSourceSet({
         : moon.clientProgramEffectTableInputStage(table);
       return moon.clientProgramEffectResultImportCount(options.checkedOwner, stage) > 0;
     }).some(Boolean);
-  if (options.localEvidenceContext?.acquiredEvidence !== undefined || importedSourceFree) {
+  if (options.localEvidenceContext?.acquiredEvidence !== undefined ||
+      options.localEvidenceContext?.modelOriginalByUnit !== undefined || importedSourceFree) {
     return prepareDependentEffectSourceSet({...options, commandWorkspaces: workspaces, publishedTargets: targets},
       count, maxGroupingWork, hasCommandWorkspace, hasPublishedTarget);
   }
@@ -509,7 +511,9 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
           dependency = control.issueSourceFreeEffectEvidence(checkedOwner,
             unitIndex, owned.contractLimits);
         }
-        if (dependency === undefined) throw new TypeError('MissingEffectSourceEvidence');
+        if (dependency === undefined && owned.localEvidenceContext.modelOriginalByUnit?.[unitIndex] === undefined) {
+          throw new TypeError('MissingEffectSourceEvidence');
+        }
       } else {
         const observations = [];
         for (let index = 0; index < imports; index++) {
@@ -536,6 +540,12 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
         }
         dependency = control.issueImportedEffectEvidence(checkedOwner,
           inputs, unitIndex, observations, owned.contractLimits);
+      }
+      const model = owned.localEvidenceContext.modelOriginalByUnit?.[unitIndex];
+      if (model !== undefined) {
+        dependency = control.issueOriginalModelEffectEvidence(model,
+          owned.localEvidenceContext.modelRetention,
+          imports === 0 ? undefined : dependency, owned.contractLimits);
       }
       const unit = {invocation: dependency.invocation, artifacts: []};
       const manifestSet = new Map([[unitIndex, unit]]);
@@ -1162,6 +1172,7 @@ async function preparePinnedEffectSourcePayloadOwned({
       localManifest,
       ...(!dependent ? {} : {dependencyBodies: Object.freeze([
         ...local.dependency.bodies,
+        ...(local.dependency.catalogBodies ?? []),
         ...local.staticBodies,
         ...localEvidenceContext.retentionDependencies,
         ...(localEvidenceContext.resultDataPolicy === undefined ? [] :

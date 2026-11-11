@@ -7,6 +7,7 @@ import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
+import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
 
 function prepareQueryInvocation(control, prepared, request, retained) {
   if (control.clientRequiresQueryTime?.(prepared) !== true) return undefined;
@@ -477,13 +478,17 @@ export function acquiredEffectPublicationPlan({acquired, captured,
 // input retention carries each original policy; derived publication carries
 // the checked combined policy with exactly the same custody/time bounds.
 export function acquiredMultiEffectPublicationPlan({acquired, sources,
-  captureStartedAt, captureCompletedAt, issuedModel, modelEvidence = [], keyedSource}) {
+  captureStartedAt, captureCompletedAt, issuedModel, modelOriginal, modelEvidence = [], keyedSource}) {
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
   if (!Array.isArray(sources) || (issuedModel === undefined ? sources.length !== 2
     : ![1, 2].includes(sources.length))) {
     throw new TypeError('IncompleteAcquiredEffectSources');
+  }
+  if (issuedModel !== undefined && (modelOriginal === undefined ||
+      !Number.isSafeInteger(modelOriginal.unit) || modelOriginal.unit < 0)) {
+    throw new TypeError('OriginalEffectModelObservationRequired');
   }
   const dataPolicyCid = moon.clientProgramEffectPublicationDataPolicyCid(prepared);
   if (typeof dataPolicyCid !== 'string') {
@@ -517,17 +522,34 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared});
   const acquisitionDependencies = [];
-  const acquiredEvidenceByUnit = sources.map(({captured}, unit) => {
-    const body = JSON.parse(retention.wire);
-    delete body.effective_retention_policy_cid;
-    body.effective_data_policy_cid = captured.checkedSource.sourceDataPolicyCid;
-    const sourceRetention = control.seal('result_retention_policy',
-      JSON.stringify(body), limits);
-    const evidence = control.issueCheckedAcquiredEffectEvidence(
-      prepared, captured.capture.source(), captured.identity,
-      captured.requirement, captured.logicalInput, sourceEvidence[unit],
-      authorityScopeCid, captured.checkedSource.sourceDataPolicyCid,
-      sourceRetention, limits, unit, retention);
+  const acquiredEvidenceByUnit = [];
+  for (const [slot, {captured}] of sources.entries()) {
+    const unit = issuedModel === undefined ? slot : captured.occurrence?.stage;
+    if (!Number.isSafeInteger(unit) || unit < 0) {
+      throw new TypeError('OriginalEffectSourceCoordinateRequired');
+    }
+    // Inline Query/Whole inputs contribute to this SAME Model Unit. Their
+    // complete evidence is issued from its retained Model observation below,
+    // never through the Query-only single-Source Unit entrance.
+    const modelContribution = issuedModel !== undefined && unit === modelOriginal.unit;
+    if (!modelContribution) {
+      const body = JSON.parse(retention.wire);
+      delete body.effective_retention_policy_cid;
+      body.effective_data_policy_cid = captured.checkedSource.sourceDataPolicyCid;
+      const sourceRetention = control.seal('result_retention_policy',
+        JSON.stringify(body), limits);
+      if (captured.inputKind === 'whole-input' || captured.requirement === undefined) {
+        throw new TypeError('WholeEffectProducerUnitEvidenceUnavailable');
+      }
+      if (acquiredEvidenceByUnit[unit] !== undefined) {
+        throw new TypeError('DuplicateEffectProducerUnitEvidence');
+      }
+      acquiredEvidenceByUnit[unit] = control.issueCheckedAcquiredEffectEvidence(
+        prepared, captured.capture.source(), captured.identity,
+        captured.requirement, captured.logicalInput, sourceEvidence[slot],
+        authorityScopeCid, captured.checkedSource.sourceDataPolicyCid,
+        sourceRetention, limits, unit, retention);
+    }
     const bodies = moon.clientProgramCapturedSourceDependencyBodies(
       captured.identity, captured.capture.source());
     if (typeof runtimeOptionalField(bodies, 0) !== 'string' || typeof runtimeOptionalField(bodies, 1) !== 'string') {
@@ -540,12 +562,15 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
       Object.freeze({kind: 'relation_schema',
         cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
         wire: runtimeField(bodies, 1)}));
-    return evidence;
-  });
+  }
   return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence: acquiredEvidenceByUnit[0],
       acquiredEvidenceByUnit: Object.freeze(acquiredEvidenceByUnit),
+      ...(modelOriginal === undefined ? {} : {
+        modelOriginalByUnit: Object.freeze({[modelOriginal.unit]: modelOriginal}),
+        modelRetention: retention,
+      }),
       acquiredCatalogBodies: Object.freeze([
         ...acquiredEvidenceByUnit.flatMap(value => value.catalogBodies),
         ...checked(moon.clientProgramEffectPublicationPolicyBodies(prepared,
@@ -559,13 +584,18 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
 
 // The original Model issuer has already adopted the real capture into the
 // original Effect Run. Its live binding remains held by capture custody.
-export function acquiredInferEffectPublicationPlan({acquired, sources,
-  compiled, operation, issuance, modelEvidence, captureStartedAt, captureCompletedAt, keyedSource}) {
+export async function acquiredInferEffectPublicationPlan({acquired, sources,
+  compiled, operation, issuance, modelEvidence, captureStartedAt, captureCompletedAt, keyedSource, signal}) {
   const issued = operation.bindIssuedInvocation(acquired.control, {
     compiled, runDefinition: acquired.runDefinition, issued: issuance});
   try {
+    const modelOriginal = await withOriginalInferModelObservation({
+      moon: acquired.moon, operation, binding: issued.binding, signal,
+      consume: ({scan, receipt}) => acquired.control.captureCheckedClientInferModelObservation(
+        issued, scan, receipt, limits),
+    });
     const plan = acquiredMultiEffectPublicationPlan({acquired, sources,
-      captureStartedAt, captureCompletedAt, issuedModel: issued, modelEvidence, keyedSource});
+      captureStartedAt, captureCompletedAt, issuedModel: issued, modelOriginal, modelEvidence, keyedSource});
     const contentGenerations = operation.contentGenerations?.();
     const completePlan = contentGenerations === undefined ? plan : Object.freeze({...plan,
       receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),

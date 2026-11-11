@@ -432,7 +432,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
               acquiredInferEffectPublicationPlan({acquired, sources: evidence,
                 compiled, operation, issuance, modelEvidence,
                 keyedSource: keyedFamily?.evidence ?? restoredKeyedSource,
-                captureStartedAt, captureCompletedAt})});
+                captureStartedAt, captureCompletedAt, signal})});
         },
         retainCompleted: () => inferCapture.retainCompleted()};
       return originalModelComponent === undefined ? openNodeComposedInferProvider(context)

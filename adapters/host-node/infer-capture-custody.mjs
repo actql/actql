@@ -431,7 +431,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         });
         if (!issuanceComplete) await yieldEventLoop();
       }
-      publication = publicationFor({operation, issuance, modelEvidence});
+      publication = await publicationFor({operation, issuance, modelEvidence});
     }
     await hold('observation_set', -1, publication.observation.wire,
       publication.observation.identity);

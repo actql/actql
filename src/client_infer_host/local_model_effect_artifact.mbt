@@ -54,9 +54,54 @@ pub fn issue_original_local_model_effect_artifact(
   @publication_host.ClientEffectLocalResultArtifact,
   @publication_host.ClientEffectLocalResultArtifactIssue,
 ] {
+  guard value.issued.state.observation is Some(observation) &&
+    value.issued.state.invocation is Some(invocation) else {
+    return Err(ForeignOwner)
+  }
+  issue_original_local_model_effect_artifact_with_context(
+    value,
+    materials.prepared,
+    inputs,
+    exported,
+    acquired,
+    definition,
+    receipt,
+    @publication_host.client_effect_allowed_run_admission(materials.allowed),
+    materials.run_definition,
+    invocation,
+    observation,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// The installed publisher already retains these original typed contracts.
+/// Require the SAME complete issuer context; do not reconstruct materials or
+/// accept a Source-only invocation in place of the original Model invocation.
+/// Existing artifact admission still binds the actual output/Result/current
+/// custody and full publication tuple. This grants no Store/Effect authority.
+pub fn issue_original_local_model_effect_artifact_with_context(
+  value : LocalModelObservation,
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  acquired : @publication_host.ClientEffectModelAcquiredEvidence,
+  definition : @publication_host.ClientEffectLocalResultDefinition,
+  receipt : @relation.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
   guard original_local_model_observation_current(value.held, value.issued) &&
-    !value.issued.reclaimed &&
-    value.issued.accepted &&
     value.held.owner.call_scope is Some(scope) &&
     @publication_host.client_effect_model_acquired_matches(
       acquired,
@@ -64,22 +109,24 @@ pub fn issue_original_local_model_effect_artifact(
       scope,
       value.body,
     ) &&
-    @publication.publication_contract_identity(materials.run_definition) ==
+    @publication.publication_contract_identity(run_definition) ==
     @publication.publication_contract_identity(value.issued.state.definition) &&
-    value.issued.state.observation is Some(observation) &&
-    value.issued.state.invocation is Some(invocation) else {
+    value.issued.state.observation is Some(original_observation) &&
+    physical_equal(observation, original_observation) &&
+    value.issued.state.invocation is Some(original_invocation) &&
+    physical_equal(invocation, original_invocation) else {
     return Err(ForeignOwner)
   }
   let result = @publication_host.issue_model_client_effect_local_result_artifact(
-    materials.prepared,
+    owner,
     inputs,
     exported,
     acquired,
     value.held.output,
     definition,
     receipt,
-    @publication_host.client_effect_allowed_run_admission(materials.allowed),
-    materials.run_definition,
+    admission,
+    run_definition,
     invocation,
     observation,
     max_bytes,

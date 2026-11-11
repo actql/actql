@@ -215,6 +215,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let originalMetadata;
   let originalStoreBootstrap;
   let originalPublicationCapacity;
+  let publicationBaseRetained, publicationBaseExecution;
+  let publicationHeldRetained, publicationHeldExecution;
   let originalPublicationSelection;
   let originalPublicationReceiver;
   if (originalPreparation !== undefined) {
@@ -1115,13 +1117,41 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // original Run Ledger. Missing/refused selection never falls back.
       originalPublicationCapacity = checked(moon.clientProgramReserveOriginalInferPublicationCapacity(
         active, retained.value, workspace.value));
+      publicationBaseRetained = publicationHeldRetained = retained.value;
+      publicationBaseExecution = publicationHeldExecution = workspace.value;
+    },
+    // Actual next scan/writer construction, in addition to this same original
+    // publication's retained controls. Covered phases make no extra Resource
+    // callback. This grows neither an installed limit nor another Ledger.
+    growOriginalPublicationCapacity(retained, execution) {
+      if (reclaimed || closing || originalPublicationCapacity === undefined ||
+          typeof retained !== 'bigint' || typeof execution !== 'bigint' ||
+          retained < 0n || execution < 0n ||
+          retained > 9223372036854775807n - publicationBaseRetained ||
+          execution > 9223372036854775807n - publicationBaseExecution) {
+        throw new Error('InferOriginalPublicationCapacityUnavailable');
+      }
+      const nextRetained = publicationBaseRetained + retained;
+      const nextExecution = publicationBaseExecution + execution;
+      if (nextRetained <= publicationHeldRetained && nextExecution <= publicationHeldExecution) return;
+      checked(moon.clientProgramGrowOriginalInferPublicationCapacity(active,
+        originalPublicationCapacity, nextRetained, nextExecution));
+      publicationHeldRetained = nextRetained > publicationHeldRetained ? nextRetained : publicationHeldRetained;
+      publicationHeldExecution = nextExecution > publicationHeldExecution ? nextExecution : publicationHeldExecution;
+      // Preserve a real grow even if its callback closed this original. No
+      // following projection constructor may proceed after that transition.
+      if (reclaimed || closing) throw new Error('InferOriginalPublicationCapacityUnavailable');
     },
     publicationCapacityPending: () => originalPublicationCapacity !== undefined,
     releaseOriginalPublicationCapacity() {
       if (originalPublicationCapacity === undefined) return true;
       const released = checked(moon.clientProgramReleaseOriginalInferPublicationCapacity(
         originalPublicationCapacity));
-      if (released) originalPublicationCapacity = undefined;
+      if (released) {
+        originalPublicationCapacity = undefined;
+        publicationBaseRetained = publicationBaseExecution = undefined;
+        publicationHeldRetained = publicationHeldExecution = undefined;
+      }
       return released;
     },
     startObservation: ({ledger, maxSlots, maxWireBytes, maxWork, operations}) => {

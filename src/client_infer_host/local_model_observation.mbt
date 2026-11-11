@@ -9,6 +9,170 @@ pub struct LocalModelObservation {
 }
 
 ///|
+/// Borrow the original unfiltered Model outcomes through the SAME accepted
+/// invocation binding used by the installed publisher. A Result suffix is not
+/// this relation; the existing output use and issuer retain its lifetime.
+pub fn invocation_binding_original_model_outcomes(
+  binding : InvocationBinding,
+) -> @relation.CompletedOutput? {
+  guard binding.issuance is Some(issued) &&
+    binding.output_use.owner.plan is Some(plan) &&
+    original_local_model_observation_current(binding.output_use, issued) else {
+    return None
+  }
+  borrow_original_live_model_relations(
+    binding.output_use,
+    issued.state.compiled,
+    issued.state.definition,
+    plan,
+  ).map(pair => pair.1)
+}
+
+///|
+/// Immutable original checked coordinates, alongside the same live Model
+/// observation. The task and Unit are distinct and are never inferred from
+/// a Source's position in a JavaScript array.
+pub fn original_local_model_observation_coordinates(
+  value : LocalModelObservation,
+) -> (Int, Int, Int)? {
+  if !original_local_model_observation_current(value.held, value.issued) {
+    return None
+  }
+  Some(
+    @publication_host.client_infer_occurrence_coordinates(
+      value.held.owner.occurrence,
+    ),
+  )
+}
+
+///|
+/// Connect the installed binding to the existing Model observation owner.
+/// The receipt must be the complete original outcome export; the input comes
+/// from its first checked CallScope scan. No Source/Model is read again, and
+/// neither raw body DATA nor a filtered Result can stand in for this receipt.
+pub fn issue_invocation_binding_original_model_observation(
+  binding : InvocationBinding,
+  outcome_receipt : @relation.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> LocalModelObservation? {
+  guard binding.issuance is Some(issued) else { return None }
+  issue_original_local_model_observation_from_scope(
+    binding.output_use,
+    issued,
+    outcome_receipt,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Actual outcome scan controls before allocation. The installed caller must
+/// back this extent on its SAME terminal Model publication borrow first.
+pub fn invocation_binding_original_model_identity_start_capacity(
+  binding : InvocationBinding,
+) -> @relation.ExecutionCapacity? {
+  invocation_binding_original_model_outcomes(binding).bind(outcomes => {
+    @relation.completed_relation_identity_scan_start_construction_capacity(
+      outcomes,
+      retain_body=true,
+    )
+  })
+}
+
+///|
+/// Scan the original unfiltered outcomes under that execution's existing
+/// row/value/wire/work bounds. The original input identity is not scanned.
+pub fn start_invocation_binding_original_model_identity(
+  binding : InvocationBinding,
+) -> Result[
+  @relation.CompletedRelationIdentityScan,
+  @relation.CompletedExportIssue,
+] {
+  guard invocation_binding_original_model_outcomes(binding) is Some(outcomes) else {
+    return Err(Unavailable)
+  }
+  let limits = binding.output_use.owner.limits
+  @relation.start_completed_relation_identity_scan(
+    outcomes,
+    limits.output_rows,
+    limits.output_values,
+    limits.identity.wire,
+    limits.identity.logical_wire,
+    limits.identity.schema,
+    limits.identity.work,
+    limits.identity.workspace,
+    incremental_metadata=true,
+    retain_body=true,
+  )
+}
+
+///|
+/// Closed eight-member observation metadata, beside the retained outcome
+/// scan/body. The existing shared writer/representation recipes price the
+/// actual original CID strings; byte DATA is not funding or permission.
+pub fn invocation_binding_original_model_observation_capacity(
+  binding : InvocationBinding,
+  receipt : @relation.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+) -> @relation.ExecutionCapacity? {
+  guard max_wire_bytes >= 0 &&
+    binding.output_use.owner.call_scope is Some(scope) &&
+    @publication.model_input_artifact_relation_identities(
+      @publication_host.client_infer_call_scope_artifact(scope),
+    )
+    is Some((logical, schema)) else {
+    return None
+  }
+  let (unit, _) = @publication_host.client_infer_call_scope_local_coordinate(
+    scope,
+  )
+  let outcome = @relation.logical_relation_cid(
+    @relation.completed_relation_export_identity(receipt),
+  )
+  let outcome_schema = @relation.relation_schema_cid(
+    @relation.completed_relation_export_schema_identity(receipt),
+  )
+  let strings = unit.length().to_int64() +
+    logical.length().to_int64() +
+    schema.length().to_int64() +
+    outcome.length().to_int64() +
+    outcome_schema.length().to_int64() +
+    71L
+  let bytes = Int64::min(max_wire_bytes.to_int64(), 512L + 6L * strings).to_int()
+  guard @encode.hash_writer_construction_inventory(9, 1) is Some(hash) &&
+    @encode.text_writer_construction_inventory(bytes, 9, 1) is Some(text) &&
+    @relation.preparation_execution_capacity({
+      retained: {
+        record_headers: 6L + hash.record_headers + text.record_headers,
+        reference_slots: 16L + hash.reference_slots + text.reference_slots,
+        scalar_words: 8L + hash.scalar_words + text.scalar_words,
+        owned_utf16_units: hash.owned_utf16_units + text.owned_utf16_units,
+        owned_wire_bytes: hash.owned_wire_bytes,
+      },
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(writers) else {
+    return None
+  }
+  @input.installed_json_effect_request_construction_capacity(
+    writers, bytes, 9, 1,
+  )
+}
+
+///|
 fn original_local_model_observation_current(
   held : OutputUse,
   issued : ObservationIssuance,

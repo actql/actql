@@ -56,11 +56,57 @@ function fixture({missing=false,reserveIssue,releaseIssue}={}) {
     originalPreparation:{compiled,runDefinition:definition,control,scope:{},read:{},
       nodeInstallation:original.nodeInstallation,metadataInstallation:original,
       readRetainedBytes:1n,readExecutionBytes:1n,modelRetainedBytes:1n,modelExecutionBytes:0n}});
-  return {operation,calls,borrow,issued,
+  return {operation,calls,borrow,issued,moon,active,
     releaseComplete(value){releaseComplete=value;},
     releaseIssue(value){releaseIssue=value;}};
 }
 const limits={maxSlots:1,maxWireBytes:4096,maxWork:3};
+
+test('original publication grows same borrower only for new simultaneous construction demand',()=>{
+  const f=fixture(),grows=[];
+  f.moon.clientProgramGrowOriginalInferPublicationCapacity=(active,borrow,r,e)=>{
+    assert.strictEqual(active,f.active);
+    assert.strictEqual(borrow,f.borrow);grows.push([r,e]);return {$tag:1,_0:undefined};
+  };
+  assert.throws(()=>f.operation.growOriginalPublicationCapacity(1n,2n),
+    /InferOriginalPublicationCapacityUnavailable/);
+  f.operation.reserveOriginalPublicationCapacity();
+  f.operation.growOriginalPublicationCapacity(10n,20n);
+  f.operation.growOriginalPublicationCapacity(10n,20n);
+  f.operation.growOriginalPublicationCapacity(4n,8n);
+  assert.deepEqual(grows,[[133n,476n]],'covered bounded steps make no Resource call');
+  const issue={kind:'OriginalPublicationExhausted'};
+  f.moon.clientProgramGrowOriginalInferPublicationCapacity=()=>({$tag:0,_0:issue});
+  assert.throws(()=>f.operation.growOriginalPublicationCapacity(30n,40n),error=>error.cause===issue);
+  assert.equal(f.operation.publicationCapacityPending(),true);
+  f.moon.clientProgramGrowOriginalInferPublicationCapacity=(active,borrow,r,e)=>{
+    assert.strictEqual(active,f.active);
+    assert.strictEqual(borrow,f.borrow);grows.push([r,e]);return {$tag:1,_0:undefined};
+  };
+  f.operation.growOriginalPublicationCapacity(30n,40n);
+  assert.deepEqual(grows,[[133n,476n],[153n,496n]],'refusal cannot record unfunded coverage');
+  assert.equal(f.calls.filter(x=>x==='reserve').length,1);
+  assert.equal(f.operation.releaseOriginalPublicationCapacity(),true);
+  assert.throws(()=>f.operation.growOriginalPublicationCapacity(1n,2n),
+    /InferOriginalPublicationCapacityUnavailable/);
+  assert.equal(f.operation.cleanup(),true);
+});
+
+test('publication grow preserves actual debt but stops construction after a reentrant original close',async()=>{
+  const f=fixture();let stopped;
+  f.operation.reserveOriginalPublicationCapacity();
+  f.moon.clientProgramGrowOriginalInferPublicationCapacity=(active,borrow)=>{
+    assert.strictEqual(active,f.active);assert.strictEqual(borrow,f.borrow);
+    stopped=f.operation.stop();return {$tag:1,_0:undefined};
+  };
+  assert.throws(()=>f.operation.growOriginalPublicationCapacity(10n,20n),
+    /InferOriginalPublicationCapacityUnavailable/);
+  await stopped;
+  assert.equal(f.operation.publicationCapacityPending(),true);
+  assert.equal(f.operation.cleanup(),false);
+  assert.equal(f.operation.releaseOriginalPublicationCapacity(),true);
+  assert.equal(f.operation.cleanup(),true);
+});
 
 test('original publication reserves once and reuses its nominal borrower without exporting a Ledger',()=>{
   const f=fixture();
@@ -179,7 +225,9 @@ function ordinaryFixture({select, reserveIssue}={}) {
     clientProgramInferExecutionStopped:()=>true,
     clientProgramCleanupInferExecution(owner){assert.strictEqual(owner,active);calls.push('cleanup');return ok(true);},
   };
-  const options={moon,preparedProgram:{},graph,provider:{},composedInput,originalPreparation:preparation};
+  // Match openNodeComposedInferProvider's Local-scheduled caller. A separate
+  // preparedProgram would select the distinct installed one-Unit entrance.
+  const options={moon,graph,provider:{},composedInput,originalPreparation:preparation};
   return {options,preparation,calls,issued,
     current(value){current=value;},releaseComplete(value){releaseComplete=value;}};
 }
