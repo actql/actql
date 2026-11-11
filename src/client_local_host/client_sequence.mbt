@@ -919,16 +919,19 @@ fn prepare_client_local_sequences_owned(
           // Compute uses the same finite row/measurement profile as its
           // installed consumer. Acquisition keeps its independently selected
           // query guard; neither path obtains storage or an execution grant.
-          let value_bytes = if acquiring {
-            10000
+          let (value_bytes, semantic_work) = if acquiring {
+            (10000, 10000000L)
           } else {
             let (values, _, measurement) = client_local_execution_limits()
-            Int::min(
-              client_local_import_limits_for_rows(
-                client_local_default_row_profile(),
-                values,
-              ).row.max_bytes,
-              measurement.max_bytes,
+            (
+              Int::min(
+                client_local_import_limits_for_rows(
+                  client_local_default_row_profile(),
+                  values,
+                ).row.max_bytes,
+                measurement.max_bytes,
+              ),
+              values.max_work.to_int64(),
             )
           }
           let logical : @lower.FragmentRowLimits = {
@@ -939,7 +942,9 @@ fn prepare_client_local_sequences_owned(
             } else {
               100000L
             },
-            max_work: 10000000L,
+            // Same selected value-weight allowance. The fragment still owns
+            // one cumulative semantic counter; provider control work is distinct.
+            max_work: semantic_work,
           }
           let ordered = @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
           let request = match

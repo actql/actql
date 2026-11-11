@@ -198,6 +198,24 @@ pub fn[T] append_managed_producer_bridge_wire(
 }
 
 ///|
+/// Completed admission quantities from this same live import buffer. Parser
+/// workspace must already be funded before append; this DATA is neither a
+/// refund nor permission to read a producer. The original append/current
+/// boundary supplies authority; this quantity read invokes no current port.
+pub fn[T] managed_producer_bridge_import_usage(
+  bridge : ManagedProducerBridge[T],
+) -> ValueUsage? {
+  if !bridge.live.val ||
+    bridge.finished ||
+    !bridge.admitted.buffer.open ||
+    bridge.admitted.buffer.reading {
+    return None
+  }
+  let budget = bridge.admitted.buffer.budget
+  Some({ nodes: budget.nodes, text_bytes: budget.text, work: budget.work, })
+}
+
+///|
 /// Seal the imported values and bind them to the exact checked receiving port.
 /// The returned ProducerRead remains unusable after this bridge is closed even
 /// if a caller retained the opaque value.

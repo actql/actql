@@ -1469,11 +1469,32 @@ pub fn[T] start_local_managed_dispatch(
           copied_nodes.val = nodes
           copied_text.val = text
           copied_extent.val = extent
-          @execution.append_managed_producer_bridge_wire(
-            bridge,
-            row,
-            setup.imports.row,
-          ).map_err(_ => Configuration(InputUnavailable))
+          match
+            @execution.append_managed_producer_bridge_wire(
+              bridge,
+              row,
+              setup.imports.row,
+            ) {
+            Err(_) => Err(Configuration(InputUnavailable))
+            Ok(_) => {
+              // The row's parser and worst-case copied DATA were funded before
+              // decode. Completed admission already measured this same buffer;
+              // a field-name byte must not remain a retained value node bound
+              // on every later row. Keep the paid extent monotone above, and
+              // preserve the conservative counters on any failed observation.
+              guard @execution.managed_producer_bridge_import_usage(bridge)
+                is Some(usage) &&
+                usage.nodes >= 0 &&
+                usage.nodes.to_int64() <= nodes &&
+                usage.text_bytes >= 0 &&
+                usage.text_bytes.to_int64() <= text else {
+                return Err(Configuration(InputUnavailable))
+              }
+              copied_nodes.val = usage.nodes.to_int64()
+              copied_text.val = usage.text_bytes.to_int64()
+              Ok(())
+            }
+          }
         })
       },
       finish: fn() {

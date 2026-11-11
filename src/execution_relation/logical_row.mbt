@@ -99,3 +99,25 @@ fn[T : RowValues] retain_logical_row(
   }
   reserve_logical_bytes(b, m.wire_bytes.to_int64())
 }
+
+///|
+/// The bounded reader borrows immutable cells from its still-retained input;
+/// this root constructs no row body or canonical wire. Preserve the complete
+/// logical occurrence/work/live-byte debit. Its registry slot is separately
+/// funded by that same reader's workspace before either root array grows.
+fn retain_bounded_input_logical_row(
+  b : LogicalBudget,
+  names : Array[String],
+  row : BoundedBindingRow,
+) -> Result[LogicalRoot, LogicalBudgetIssue] {
+  let measured = match charge_logical_row(b, names, row) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  reserve_logical_root(
+    b,
+    measured.wire_bytes.to_int64(),
+    None,
+    workspace_bytes=Some(0L),
+  )
+}

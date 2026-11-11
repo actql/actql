@@ -22,6 +22,7 @@ priv struct LogicalBudget {
 priv struct LogicalRoot {
   owner : LogicalBudget
   mut bytes : Int64
+  mut workspace_bytes : Int64
   mut measurement : LogicalValueMeasure?
   mut text_capacity : Int64?
   mut released : Bool
@@ -202,6 +203,7 @@ fn reserve_logical_root(
   b : LogicalBudget,
   bytes : Int64,
   text_capacity : Int64?,
+  workspace_bytes? : Int64? = None,
 ) -> Result[LogicalRoot, LogicalBudgetIssue] {
   if b.failed {
     return Err(FailedLogicalBudget)
@@ -210,13 +212,49 @@ fn reserve_logical_root(
     b.failed = true
     return Err(LiveValueLimit)
   }
-  if text_capacity is None && !reserve_logical_working(b, bytes) {
+  let physical_bytes = workspace_bytes.unwrap_or(
+    if text_capacity is None {
+      bytes
+    } else {
+      0L
+    },
+  )
+  if physical_bytes < 0L || physical_bytes > bytes {
+    b.failed = true
+    return Err(InvalidRootLifetime)
+  }
+  let funded = if text_capacity is Some(_) {
+    true
+  } else if workspace_bytes == Some(0L) {
+    // Borrowing does not construct a generic body, but cannot revive a failed
+    // or reentered attachment. Generic zero-byte roots keep their old check.
+    match b.growth {
+      Some(growth) =>
+        if growth.failed || growth.busy {
+          growth.failed = true
+          false
+        } else {
+          true
+        }
+      None => true
+    }
+  } else {
+    reserve_logical_working(b, physical_bytes)
+  }
+  if !funded {
     b.failed = true
     return Err(LiveValueLimit)
   }
   b.live += bytes
   b.peak = Int64::max(b.peak, b.live)
-  Ok({ owner: b, bytes, released: false, measurement: None, text_capacity, })
+  Ok({
+    owner: b,
+    bytes,
+    workspace_bytes: physical_bytes,
+    released: false,
+    measurement: None,
+    text_capacity,
+  })
 }
 
 ///|
@@ -234,7 +272,7 @@ fn release_logical_root(
   if b.growth is Some(growth) {
     match root.text_capacity {
       Some(bytes) => growth.text -= bytes
-      None => growth.logical -= root.bytes
+      None => growth.logical -= root.workspace_bytes
     }
   }
   Ok(())

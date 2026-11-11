@@ -150,6 +150,10 @@ fn grow_object_root(
   guard physical_equal(root.root.owner, budget) &&
     root.scope.slots.get(root.slot) is Some(Some(live)) &&
     physical_equal(live, root.root) &&
+    (
+      root.root.text_capacity is Some(_) ||
+      root.root.workspace_bytes == root.root.bytes
+    ) &&
     !root.root.released else {
     budget.failed = true
     return Err(InvalidRootLifetime)
@@ -176,6 +180,9 @@ fn grow_object_root(
     return Err(LiveValueLimit)
   }
   root.root.bytes += bytes
+  if root.root.text_capacity is None {
+    root.root.workspace_bytes += bytes
+  }
   budget.live += bytes
   budget.peak = Int64::max(budget.peak, budget.live)
   Ok(())

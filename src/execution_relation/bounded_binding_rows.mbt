@@ -1692,7 +1692,8 @@ fn bounded_binding_rows_step(
         let small = state.input_logical is None &&
           bounded_small_logical_row(state.input_names, source)
         let root = if small {
-          match retain_logical_row(logical, state.input_names, source) {
+          match
+            retain_bounded_input_logical_row(logical, state.input_names, source) {
             Ok(value) => value
             Err(issue) =>
               return fail_bounded_binding_rows(
@@ -1729,18 +1730,22 @@ fn bounded_binding_rows_step(
               return fail_bounded_binding_rows(Rows(issue), progress, used)
           }
         }
+        // Each retained input root occupies this same finite workspace. Fund
+        // its registry/input entry before either array can be extended.
+        if !reserve_slots(state.workspace, 1) {
+          release_logical_root(logical, root) |> ignore
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
         let lease = match register_scope_root(scope, root) {
           Ok(value) => value
-          Err(issue) =>
+          Err(issue) => {
+            release_slots(state.workspace, 1)
             return fail_bounded_binding_rows(
               Rows(LogicalRows(issue)),
               progress,
               used,
             )
-        }
-        if !reserve_slots(state.workspace, 1) {
-          release_expression_root(lease) |> ignore
-          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
         }
         state.input_roots.push(lease)
         state.input_row += 1
@@ -2437,37 +2442,12 @@ fn bounded_binding_rows_step(
           }
           continue
         }
-        if state.name_charge is None {
-          if !reserve_slots(state.workspace, 1) ||
-            !spend_control(state.control, 1) {
-            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-          }
-          if state.input_names[state.column].length() > 64 {
-            guard start_row_name_charge(
-                state.input_names[state.column],
-                state.workspace,
-              )
-              is Some(cursor) else {
-              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-            }
-            state.name_charge = Some(cursor)
-            used += 1
-            continue
-          }
-          if !spend_control_text(state.control, state.input_names[state.column]) {
-            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-          }
-        } else {
-          let cursor = state.name_charge.unwrap()
-          match advance_row_name_charge(cursor, Some(state.control), None) {
-            Err(_) =>
-              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-            Ok(false) => {
-              used += 1
-              continue
-            }
-            Ok(true) => state.name_charge = None
-          }
+        // Snapshot construction copies existing checked name references only.
+        // Actual expression lookup and semantic row/name measurement keep
+        // their original full charges; no name bytes are traversed here.
+        if !reserve_slots(state.workspace, 1) ||
+          !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         let field = @schema.field_at(
           bounded_binding_input_schema(state.input),
@@ -4132,6 +4112,20 @@ fn start_bounded_binding_rows_with_input(
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = working_row_workspace(generated, max_entries)
+  // The scope retains every admitted input root alongside the unchanged
+  // transient expression allowance. max_entries alone is not a row ceiling.
+  let scope_limit = if logical is Some(_) {
+    match
+      checked_row_slots_add(max_entries, bounded_binding_input_row_count(input)) {
+      Some(value) => value
+      None => {
+        cancel_admitted_output(output) |> ignore
+        return Err(Rows(RowLimit))
+      }
+    }
+  } else {
+    max_entries
+  }
   if !reserve_slots(workspace, metadata_entries) ||
     (
       watermark_kind &&
@@ -4263,7 +4257,7 @@ fn start_bounded_binding_rows_with_input(
           budget: logical,
           slots: [],
           free: [],
-          limit: max_entries,
+          limit: scope_limit,
         } : ExpressionRoots)
     }),
     control,

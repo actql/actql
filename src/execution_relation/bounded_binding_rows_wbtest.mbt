@@ -1476,14 +1476,16 @@ test "bounded binding rows resume vector expressions and complete exactly" {
 test "bounded vector expressions admit exact work and workspace" {
   let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
   // The two-row fixture executes both dot score and concatenation through the
-  // selected derive path. Its fixed control boundary is 160 units, including
-  // both input occurrences, expression transitions, and output names. The
+  // selected derive path. Its control boundary is138: the old160 minus two
+  // obsolete snapshot scans of id/left/right (2+4+5 UTF-8 bytes per row).
+  // Input occurrences, actual lookups, expression transitions and output names
+  // keep their full charges. The
   // simultaneous metadata, retained roots, and vector scratch peak at 34.
   for
     (limit_work, slots, accepted) in [
-      (160, 34, true),
-      (159, 34, false),
-      (160, 33, false),
+      (138, 34, true),
+      (137, 34, false),
+      (138, 33, false),
     ] {
     let (_, execution, _) = bounded_binding_rows_fixture(
       rows,
