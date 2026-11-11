@@ -8,7 +8,7 @@ import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets.mjs';
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
-import {packedReadmeCases} from './test-packed-readme-workflows.mjs';
+import {packedReadmeCases, packedCompositionCases} from './test-packed-readme-workflows.mjs';
 import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
@@ -590,7 +590,7 @@ test('independent normal consumers continue after collection and variant failure
     process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/authored-normal-input'}, version: 'explicit-test',
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
     URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
-    packedReadmeCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+    packedReadmeCases, packedCompositionCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async () => ({consumer, manifest: {}, manifestPath: '/authored-manifest'}),
     runCollectionConsumer: async ({report, cleanup}) => {
       report.collection[0].status = 'failed'; cleanup.push(cleanupFailure); throw collectionFailure;
@@ -599,13 +599,54 @@ test('independent normal consumers continue after collection and variant failure
     assert(error instanceof AggregateError); assert.equal(error.cause, collectionFailure);
     assert.deepEqual(error.errors, [collectionFailure, variantFailure, cleanupFailure]); return true;
   });
-  assert.deepEqual(calls, packedReadmeCases);
+  assert.deepEqual(calls, [...packedReadmeCases, ...packedCompositionCases]);
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
   assert.equal(report.complete, false);
   assert.deepEqual(report.cases.map(value => value.status), ['failed', 'passed', 'passed']);
+  assert.deepEqual(report.compositions.map(value => value.status), ['passed']);
   assert.equal(report.collection[1].status, 'unexecuted');
   assert.match(report.collection[1].unexecutedReason, /completed original 100000 Result/u);
   assert.equal(report.failures.length, 2); assert.equal(report.cleanup.length, 1);
+});
+
+test('required mixed Model Whole is distinct from README three and cannot pass failed or unexecuted', async t => {
+  assert.equal(packedReadmeCases.length, 3);
+  assert.deepEqual(packedCompositionCases, [{template: 'deal-review-mock', variant: 'two-models-whole'}]);
+  assert(!packedReadmeCases.some(value => value.variant === 'two-models-whole'));
+  for (const mode of ['passed', 'failed', 'unexecuted']) {
+    const {root, consumer} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions(), calls = [];
+    const failure = new Error('OriginalMixedCompositionFailed'), prepared = {consumer, manifest: {}, manifestPath: '/exact-original'};
+    const verifyNodeBenchmarkPackages = async (manifest, manifestPath, actual) => {
+      assert.strictEqual(manifest, prepared.manifest); assert.equal(manifestPath, prepared.manifestPath);
+      assert.equal(actual, consumer);
+    };
+    const runCases = load('runReadmeCases', {verifyNodeBenchmarkPackages, assert, writeFile, join,
+      nodeBenchmarkFailure, async mockWorkflowMetrics({template, variant, onMetric, prepared: actual}) {
+        assert.strictEqual(actual, prepared); calls.push({template, variant});
+        const failed = mode === 'failed' && variant === 'two-models-whole';
+        await onMetric({samples: [{completed: !failed, verified: !failed}]});
+        if (failed) throw failure;
+      }});
+    const before = {clean: true, revision: 'a'.repeat(40)};
+    const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+      process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/authored-original'}, version: 'explicit-test',
+        platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
+      URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
+      packedReadmeCases, packedCompositionCases, nodeBenchmarkFailure,
+      execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => prepared,
+      runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true; row.status = 'passed';}),
+      runReadmeCases: async options => {
+        if (mode === 'unexecuted' && options.cases === options.report.compositions) return;
+        await runCases(options);
+      }, verifyNodeBenchmarkPackages});
+    if (mode === 'passed') assert.equal((await run(output)).complete, true);
+    else await assert.rejects(run(output), error => mode === 'failed' ? error === failure : error.code === 'ERR_ASSERTION');
+    assert.deepEqual(calls, mode === 'unexecuted' ? packedReadmeCases : [...packedReadmeCases, ...packedCompositionCases]);
+    const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
+    assert.equal(report.complete, mode === 'passed');
+    assert.equal(report.compositions[0].status, mode);
+    assert(report.cases.every(value => value.completed));
+  }
 });
 
 test('failed shared package preparation records every dependent as unexecuted and runs no consumer', async t => {
@@ -615,7 +656,7 @@ test('failed shared package preparation records every dependent as unexecuted an
     process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/authored-normal-input'}, version: 'explicit-test',
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository, URL,
     checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
-    packedReadmeCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+    packedReadmeCases, packedCompositionCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async () => {throw failure;},
     runCollectionConsumer: async () => assert.fail('No collection with failed shared input'),
     runReadmeCases: async () => assert.fail('No README with failed shared input'),
@@ -623,7 +664,7 @@ test('failed shared package preparation records every dependent as unexecuted an
   await assert.rejects(run(output), error => error === failure);
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
   assert.equal(report.complete, false);
-  assert([...report.collection, ...report.cases].every(value =>
+  assert([...report.collection, ...report.cases, ...report.compositions].every(value =>
     value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
   assert.equal(report.failures.length, 1);
 });

@@ -14,6 +14,11 @@ export const packedReadmeCases = Object.freeze([
   Object.freeze({template: 'deal-review-mock', variant: 'readme'}),
   Object.freeze({template: 'deal-review-mock', variant: 'two-models'}),
 ]);
+// The genuine mixed-Model/Whole fixture is a separate required regression,
+// rather than a fourth README label or a manual-only performance selection.
+export const packedCompositionCases = Object.freeze([
+  Object.freeze({template: 'deal-review-mock', variant: 'two-models-whole'}),
+]);
 
 // The existing phase and its complete oracles, independently invocable for the
 // SAME completed original Result. This helper installs nothing and submits no
@@ -119,8 +124,8 @@ async function runCollectionConsumer({prepared, root, repository, command, repor
   }
 }
 
-async function runReadmeCases({prepared, root, repository, command, report, failures}) {
-  for (const record of report.cases) {
+async function runReadmeCases({prepared, root, repository, command, report, failures, cases = report.cases}) {
+  for (const record of cases) {
     // A shared software failure invalidates the remaining inputs. A failed
     // consumer does not mask the other fresh, independent project variants.
     await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
@@ -159,11 +164,14 @@ export async function runPackedReadmeWorkflows(root) {
   await mkdir(root);
   const raw = join(root, 'raw'); await mkdir(raw);
   const report = {source, node: process.version, platform: process.platform,
-    architecture: process.arch, requiredCases: packedReadmeCases,
+    architecture: process.arch, requiredCases: packedReadmeCases, requiredCompositions: packedCompositionCases,
     collection: ['capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
-      unexecutedReason: 'Requires verified unchanged normal packages'})), complete: false, performanceAcceptance: false,
+      unexecutedReason: 'Requires verified unchanged normal packages'})),
+    compositions: packedCompositionCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
+      unexecutedReason: 'Requires verified unchanged normal packages and matching composition fixture'})),
+    complete: false, performanceAcceptance: false,
     qualification: 'Same normal artifact, fresh state per variant; functional once each, not a latency verdict'};
   const command = (cmd, args, options) => execute(cmd, args, {...options, raw});
   let prepared;
@@ -175,8 +183,9 @@ export async function runPackedReadmeWorkflows(root) {
       await runCollectionConsumer({prepared, root, repository, command, report, cleanup});
     } catch (error) {failures.push(error);}
     await runReadmeCases({prepared, root, repository, command, report, failures});
+    await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
     report.complete = failures.length === 0 && report.collection.every(row => row.completed) &&
-      report.cases.every(row => row.completed);
+      report.cases.every(row => row.completed) && report.compositions.every(row => row.completed);
   } catch (error) {failures.push(error);}
   finally {
     if (prepared) try {
@@ -193,6 +202,7 @@ export async function runPackedReadmeWorkflows(root) {
     'PackedReadmeConsumersFailed', {cause: failures[0]});
   if (failures.length) throw failures[0];
   if (cleanup.length) throw new AggregateError(cleanup, 'PackedReadmeCleanupUnconfirmed');
+  assert(report.complete, 'Unexecuted or incomplete required consumers cannot establish normal acceptance');
   return report;
 }
 
