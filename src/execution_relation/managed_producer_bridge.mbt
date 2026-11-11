@@ -37,13 +37,24 @@ pub(all) enum ManagedProducerBridgeIssue {
 fn managed_schema_reference_free(
   schema : @schema.Schema,
   max_nodes : Int,
+  reserve? : ((Int) -> Bool)? = None,
 ) -> Bool? {
   if max_nodes < 0 {
     return None
   }
   let pending = []
+  let push = fn(contract) {
+    if reserve is Some(reserve) && !reserve(pending.length() + 1) {
+      false
+    } else {
+      pending.push(contract)
+      true
+    }
+  }
   for index in 0..<@schema.field_count(schema) {
-    pending.push(@schema.field_at(schema, index).unwrap().contract)
+    if !push(@schema.field_at(schema, index).unwrap().contract) {
+      return None
+    }
   }
   let mut remaining = max_nodes
   while pending.pop() is Some(contract) {
@@ -53,10 +64,12 @@ fn managed_schema_reference_free(
     remaining -= 1
     match contract.shape {
       @contract.ResourceRef(..) | @contract.ContentRef(..) => return Some(false)
-      @contract.Array(item, ..) => pending.push(item)
+      @contract.Array(item, ..) => if !push(item) { return None }
       @contract.Object(fields) =>
         for index in 0..<@contract.field_count(fields) {
-          pending.push(@contract.field_at(fields, index).unwrap().contract)
+          if !push(@contract.field_at(fields, index).unwrap().contract) {
+            return None
+          }
         }
       _ => ()
     }

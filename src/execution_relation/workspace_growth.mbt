@@ -255,9 +255,26 @@ fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool 
     growth.retained_outputs is Some(total) else {
     return true
   }
+  let (nodes, text, copies) = match budget.row_scratch_start {
+    None => (nodes, text, 1L)
+    Some((start_nodes, start_text)) =>
+      (nodes - start_nodes, text - start_text, 2L)
+  }
+  // Array.clear may retain the previous row in Native backing. Keep TWO
+  // complete largest rows funded through original Task cleanup, not just the
+  // current logical length. Never return or reset an original output charge.
+  guard output_retention_required_bytes(nodes, text) is Some(row_bytes) &&
+    checked_preparation_add_product(0L, row_bytes, copies) is Some(required) else {
+    growth.failed = true
+    return false
+  }
+  let required = if budget.row_scratch_start is Some(_) {
+    Int64::max(required, budget.retention_funded)
+  } else {
+    required
+  }
   guard !growth.failed &&
     !growth.busy &&
-    output_retention_required_bytes(nodes, text) is Some(required) &&
     required >= budget.retention_funded &&
     required - budget.retention_funded <= 9223372036854775807L - total else {
     growth.failed = true

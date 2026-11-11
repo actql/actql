@@ -94,6 +94,9 @@ pub fn prepare_managed_output_values(
     Ok(value) => value
     Err(issue) => return Err(Admission(issue))
   }
+  if !prepare_managed_output_scratch(output.buffer.budget, output.buffer.schema) {
+    return Err(Admission(CaptureLimit))
+  }
   let carrier_binding = match @managed_carrier.prepare_binding(owner, target) {
     Ok(value) => value
     Err(_) => return Err(Admission(InvalidCheckedRow))
@@ -582,38 +585,51 @@ fn finish_managed_output_row_active(
         )
     }
   }
-  let references : Array[Array[@admitted.ReferenceValue]] = []
-  for column in 0..<@schema.field_count(stream.buffer.schema) {
-    let value = match presence {
-      Some(row) => row.cells[column]
-      None => Some(stream.buffer.rows[0][column])
-    }
-    guard value is Some(value) else {
-      references.push([])
-      continue
-    }
-    match
-      collect_managed_references(value, stream.buffer.budget.limits.max_nodes) {
-      Some(found) => references.push(found)
-      None => {
-        cancel_managed_output_values(stream) |> ignore
-        return Err(ReferenceUnavailable(stream.rows, column))
+  if stream.buffer.budget.row_scratch_start is None {
+    let references : Array[Array[@admitted.ReferenceValue]] = []
+    for column in 0..<@schema.field_count(stream.buffer.schema) {
+      let value = match presence {
+        Some(row) => row.cells[column]
+        None => Some(stream.buffer.rows[0][column])
+      }
+      guard value is Some(value) else {
+        references.push([])
+        continue
+      }
+      match
+        collect_managed_references(value, stream.buffer.budget.limits.max_nodes) {
+        Some(found) => references.push(found)
+        None => {
+          cancel_managed_output_values(stream) |> ignore
+          return Err(ReferenceUnavailable(stream.rows, column))
+        }
       }
     }
+    // Reference availability is a Host callback. Disposal may have retired
+    // admission while the active frame still held the row and reference roots.
+    if !stream.open {
+      return Err(Closed)
+    }
+    stream.reference_rows.push(
+      references.map(found => found.map(reference => Some(reference))),
+    )
   }
-  // Reference availability is a Host callback. Disposal may have retired
-  // admission while the active frame still held the row and reference roots.
+  // Preserve the original post-measurement/current frame fence even when the
+  // complete schema proof establishes that no reference callbacks can occur.
   if !stream.open {
     return Err(Closed)
   }
-  stream.reference_rows.push(
-    references.map(found => found.map(reference => Some(reference))),
-  )
   // Admission keeps running after a deferred measurement failure, as in the old
   // streamed output path. No successful receipt may conceal that failure.
   stream.buffer.rows.clear()
   stream.buffer.presence_rows.clear()
   stream.rows += 1
+  let budget = stream.buffer.budget
+  if budget.row_scratch_start is Some(_) {
+    // This changes only the next row's physical extent origin. All semantic
+    // counters and the TWO-largest-rows reservation remain cumulative/live.
+    budget.row_scratch_start = Some((budget.nodes, budget.text))
+  }
   Ok(())
 }
 
