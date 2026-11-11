@@ -456,6 +456,7 @@ test "complete original observation keeps compiler order when the second Model o
       // total ceiling beside this startup; neither is removed or relaxed.
       100L,
       5L,
+      input_body_read=Some(reads[index]),
     ).unwrap()
     // Multi-Model dispatch selects the existing original per-occurrence
     // BoundModelInvocationScope. The singular no-scope getter must refuse;
@@ -493,6 +494,7 @@ test "complete original observation keeps compiler order when the second Model o
         )
     }
     owners[index] = Some(active)
+    assert_true(active.identity_body.unwrap().retained > 7L)
   }
   assert_eq(calls[0].val + calls[1].val, 2)
   let ordered = [owners[0].unwrap(), owners[1].unwrap()]
@@ -554,6 +556,16 @@ test "complete original observation keeps compiler order when the second Model o
     assert_eq(
       original_local_model_observation_coordinates(original).unwrap().1,
       index,
+    )
+    let inputs = original_local_model_observation_input_bodies(original).unwrap()
+    assert_eq(
+      inputs[0],
+      (
+        "relation_value",
+        "{\"sort\":\"relation\",\"value\":[{\"id\":\"a\",\"text\":\"" +
+        (if index == 0 { "first" } else { "second" }) +
+        "\"}]}",
+      ),
     )
     @relation.cancel_completed_relation_export_receipt(receipt)
     original
