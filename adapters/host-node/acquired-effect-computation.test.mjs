@@ -3,6 +3,7 @@ import test from 'node:test';
 import './acquired-effect-unknown-primary.test.mjs';
 import './effect-preflight-custody.test.mjs';
 import './acquired-effect-before-compute-custody.test.mjs';
+import './acquired-model-failed-publication-close.test.mjs';
 import './acquired-model-publication.test.mjs';
 import './acquired-direct-publication.test.mjs';
 import {readFileSync} from 'node:fs';
