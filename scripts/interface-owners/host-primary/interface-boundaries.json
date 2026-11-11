@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "05917cde55285c57d4e3481dda5e461c3f364e00761502d2455e773028d1d2e5",
+      "sha256": "4b5bf04200294c1a0378a02da4e5c923ce307a7807b61b2187a83fe5f9720c84",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -35,7 +35,8 @@
             "modelJournalPort",
             "sourceContinuation",
             "faultInjection",
-            "current"
+            "current",
+            "sourcePlan"
           ],
           "async": false
         },
@@ -222,18 +223,6 @@
           "async": false
         },
         {
-          "name": "acquiredEffectModelGroup/init:persist/init:persist",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "acquiredEffectModelGroup/init:persist/init:persist/init:persist",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
           "name": "acquiredEffectModelGroup/init:persistStopped/init:persistStopped",
           "parameters": [],
           "async": true
@@ -280,6 +269,49 @@
           "async": false
         },
         {
+          "name": "acquiredEffectModelGroup/persistPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquiredEffectModelGroup/retainCompleted/retainCompleted",
           "parameters": [
             "child"
@@ -302,6 +334,11 @@
         },
         {
           "name": "acquiredEffectModelGroup/retirePublication",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "acquiredEffectModelGroup/retirePublication/retirePublication",
           "parameters": [],
           "async": true
         },
@@ -811,8 +848,6 @@
             "acquiredEffectModelGroup/init:openRestoredHost/init:openRestoredHost/init:openRestoredHost#2",
             "acquiredEffectModelGroup/init:openRestoredHost/init:openRestoredHost/init:openRestoredHost#3",
             "acquiredEffectModelGroup/init:openRestoredHost/init:openRestoredHost/retained/retained",
-            "acquiredEffectModelGroup/init:persist/init:persist",
-            "acquiredEffectModelGroup/init:persist/init:persist/init:persist",
             "acquiredEffectModelGroup/init:persistStopped/init:persistStopped",
             "acquiredEffectModelGroup/init:prime/init:prime",
             "acquiredEffectModelGroup/init:prime/init:prime/candidates/candidates",
@@ -832,7 +867,15 @@
             "openAcquiredEffectComputation/retireUnenteredCompute/retireUnenteredCompute",
             "openAcquiredEffectComputation/wholeInputs/wholeInputs",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
-            "openAcquiredEffectComputation/retainPreflightCleanup/retainPreflightCleanup"
+            "openAcquiredEffectComputation/retainPreflightCleanup/retainPreflightCleanup",
+            "acquiredEffectModelGroup/persistPublication",
+            "acquiredEffectModelGroup/persistPublication/persistPublication",
+            "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
+            "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
+            "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
+            "acquiredEffectModelGroup/persistPublication/persistPublication#2",
+            "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
+            "acquiredEffectModelGroup/retirePublication/retirePublication"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -24474,7 +24517,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "b949028d475dc02e0ffa690a102fc16a43cfc578854e4c3832960a5fe03f613d",
+      "sha256": "486e19db4dd81294ed7e4a09970e7f99833e63dc9ddd0d6b0cafe505fc656622",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24541,21 +24584,48 @@
             "sources",
             "compiled",
             "operation",
+            "operations",
             "issuance",
             "modelEvidence",
             "captureStartedAt",
             "captureCompletedAt",
             "keyedSource",
             "signal",
-            "sourcePlan"
+            "sourcePlan",
+            "fundingOperation",
+            "current",
+            "retainBinding"
           ],
           "async": true
         },
         {
-          "name": "acquiredInferEffectPublicationPlan/modelOriginal/modelOriginal",
+          "name": "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredInferEffectPublicationPlan/generations/generations",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredInferEffectPublicationPlan/model/model",
           "parameters": [
             "scan",
-            "receipt"
+            "receipt",
+            "retainedBytes",
+            "executionBytes"
           ],
           "async": false
         },
@@ -24589,6 +24659,7 @@
             "captureCompletedAt",
             "issuedModel",
             "modelOriginal",
+            "modelOriginals",
             "modelEvidence",
             "keyedSource",
             "sourcePlan"
@@ -24598,21 +24669,49 @@
         {
           "name": "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
           "parameters": [
-            "captured"
+            "model"
           ],
           "async": false
         },
         {
           "name": "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#2",
           "parameters": [
-            "value"
+            "model"
           ],
           "async": false
         },
         {
           "name": "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#3",
           "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#4",
+          "parameters": [
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#6",
+          "parameters": [
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/modelContribution/modelContribution",
+          "parameters": [
+            "model"
           ],
           "async": false
         },
@@ -25051,7 +25150,16 @@
             "compiled",
             "operation",
             "issuance",
-            "modelEvidence"
+            "modelEvidence",
+            "issuedModel",
+            "modelOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
+          "parameters": [
+            "model"
           ],
           "async": false
         },
@@ -25113,7 +25221,6 @@
             "acquiredEffectPublicationPlan",
             "acquiredEffectPublicationPlan/acquiredEffectPublicationPlan",
             "acquiredInferEffectPublicationPlan",
-            "acquiredInferEffectPublicationPlan/modelOriginal/modelOriginal",
             "acquiredKeyedTaskPublicationPlan",
             "acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
@@ -25149,7 +25256,16 @@
             "sourceFreeTaskPlan",
             "sourceFreeValuesAdmissionEvidence",
             "sourceFreeValuesPlan",
-            "acquiredMultiEffectPublicationPlan/whole/whole"
+            "acquiredMultiEffectPublicationPlan/whole/whole",
+            "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan",
+            "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan#2",
+            "acquiredInferEffectPublicationPlan/generations/generations",
+            "acquiredInferEffectPublicationPlan/model/model",
+            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#4",
+            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#5",
+            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#6",
+            "acquiredMultiEffectPublicationPlan/modelContribution/modelContribution",
+            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan"
           ],
           "exports": [
             "acquiredEffectPublicationAdmission",
@@ -27422,9 +27538,9 @@
     }
   ],
   "counts": {
-    "modules": 16,
-    "operations": 960,
-    "exports": 102,
-    "explicitContractGroups": 101
+    "modules": 17,
+    "operations": 1099,
+    "exports": 106,
+    "explicitContractGroups": 104
   }
 }

@@ -350,10 +350,10 @@ export function sourceFreeContentEffectPublicationPlan({acquired,compiled,genera
 // Keep the original Effect admission and bind that exact Model issuer instead
 // of issuing a no-external-work observation during Run preparation.
 export function sourceFreeInferEffectPublicationPlan({acquired,
-  compiled, operation, issuance, modelEvidence}) {
+  compiled, operation, issuance, modelEvidence, issuedModel, modelOriginals}) {
   const {moon, control, prepared, compilation, admission, runDefinition,
     compiledPlan, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
-  const issued = operation.bindIssuedInvocation(control, {
+  const issued = issuedModel ?? operation.bindIssuedInvocation(control, {
     compiled, runDefinition, issued: issuance});
   try {
     const {observation, invocation, owner: invocationOwner} =
@@ -378,11 +378,15 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
           Object.freeze({kind: 'result_retention_policy',
             cid: retention.identity, wire: retention.wire})]),
         sourceFreeDependencyClosure:true,
+        ...(modelOriginals === undefined ? {} : {
+          modelOriginalByUnit: Object.freeze(Object.fromEntries(modelOriginals.map(model => [model.unit, model]))),
+          modelRetention: retention,
+        }),
         resultDataPolicy: control.compiledInferSourceFreeResultPolicy(compiled),
         runInvocation: invocation,
         observation})})});
   } catch (error) {
-    moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+    if (issuedModel === undefined) moon.clientProgramReleaseInferInvocationBinding(issued.binding);
     throw error;
   }
 }
@@ -485,15 +489,16 @@ export function acquiredEffectPublicationPlan({acquired, captured,
 // input retention carries each original policy; derived publication carries
 // the checked combined policy with exactly the same custody/time bounds.
 export function acquiredMultiEffectPublicationPlan({acquired, sources,
-  captureStartedAt, captureCompletedAt, issuedModel, modelOriginal, modelEvidence = [], keyedSource, sourcePlan}) {
+  captureStartedAt, captureCompletedAt, issuedModel, modelOriginal, modelOriginals = modelOriginal === undefined ? [] : [modelOriginal], modelEvidence = [], keyedSource, sourcePlan}) {
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
   if (!Array.isArray(sources) || sources.length < 1) {
     throw new TypeError('IncompleteAcquiredEffectSources');
   }
-  if (issuedModel !== undefined && (modelOriginal === undefined ||
-      !Number.isSafeInteger(modelOriginal.unit) || modelOriginal.unit < 0)) {
+  if (!Array.isArray(modelOriginals) || issuedModel !== undefined && (modelOriginals.length === 0 ||
+      modelOriginals.some(model => !Number.isSafeInteger(model?.unit) || model.unit < 0) ||
+      new Set(modelOriginals.map(model => model.unit)).size !== modelOriginals.length)) {
     throw new TypeError('OriginalEffectModelObservationRequired');
   }
   const dataPolicyCid = moon.clientProgramEffectPublicationDataPolicyCid(prepared);
@@ -547,7 +552,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     // Inline Query/Whole inputs contribute to this SAME Model Unit. Their
     // complete evidence is issued from its retained Model observation below,
     // never through the Query-only single-Source Unit entrance.
-    const modelContribution = issuedModel !== undefined && unit === modelOriginal.unit;
+    const modelContribution = issuedModel !== undefined && modelOriginals.some(model => model.unit === unit);
     if (!modelContribution) {
       if (acquiredEvidenceByUnit[unit] !== undefined) {
         throw new TypeError('DuplicateEffectProducerUnitEvidence');
@@ -594,8 +599,8 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence: acquiredEvidenceByUnit[0],
       acquiredEvidenceByUnit: Object.freeze(acquiredEvidenceByUnit),
-      ...(modelOriginal === undefined ? {} : {
-        modelOriginalByUnit: Object.freeze({[modelOriginal.unit]: modelOriginal}),
+      ...(modelOriginals.length === 0 ? {} : {
+        modelOriginalByUnit: Object.freeze(Object.fromEntries(modelOriginals.map(model => [model.unit, model]))),
         modelRetention: retention,
       }),
       acquiredCatalogBodies: Object.freeze([
@@ -612,24 +617,55 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
 // The original Model issuer has already adopted the real capture into the
 // original Effect Run. Its live binding remains held by capture custody.
 export async function acquiredInferEffectPublicationPlan({acquired, sources,
-  compiled, operation, issuance, modelEvidence, captureStartedAt, captureCompletedAt, keyedSource, signal, sourcePlan}) {
-  const issued = operation.bindIssuedInvocation(acquired.control, {
-    compiled, runDefinition: acquired.runDefinition, issued: issuance});
+  compiled, operation, operations = [operation], issuance, modelEvidence,
+  captureStartedAt, captureCompletedAt, keyedSource, signal, sourcePlan, fundingOperation = operation, current, retainBinding}) {
+  if (!Array.isArray(operations) || operations.length === 0 || operations[0] !== operation ||
+      new Set(operations).size !== operations.length) {
+    throw new TypeError('OriginalEffectModelInventoryRequired');
+  }
+  const issuedModels = [], modelOriginals = [];
+  let retainedBase = 0n, executionBase = 0n;
   try {
-    const modelOriginal = await withOriginalInferModelObservation({
-      moon: acquired.moon, operation, binding: issued.binding, signal,
-      consume: ({scan, receipt}) => acquired.control.captureCheckedClientInferModelObservation(
-        issued, scan, receipt, limits),
-    });
-    const plan = acquiredMultiEffectPublicationPlan({acquired, sources,
-      captureStartedAt, captureCompletedAt, issuedModel: issued, modelOriginal, modelEvidence, keyedSource, sourcePlan});
-    const contentGenerations = operation.contentGenerations?.();
-    const completePlan = contentGenerations === undefined ? plan : Object.freeze({...plan,
-      receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
-      captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations})});
-    return Object.freeze({...issued, plan: completePlan});
+    for (const originalOperation of operations) {
+      current?.(); signal?.throwIfAborted();
+      const issued = originalOperation.bindIssuedInvocation(acquired.control, {
+        compiled, runDefinition: acquired.runDefinition, issued: issuance});
+      issuedModels.push(issued);
+      retainBinding?.(issued.binding);
+      const model = await withOriginalInferModelObservation({
+        moon: acquired.moon, operation: fundingOperation, binding: issued.binding, signal, retainedBase, executionBase,
+        consume: ({scan, receipt, retainedBytes, executionBytes}) => {
+          const original = acquired.control.captureCheckedClientInferModelObservation(issued, scan, receipt, limits);
+          retainedBase += retainedBytes; executionBase += executionBytes;
+          return original;
+        },
+      });
+      current?.(); signal?.throwIfAborted();
+      if (!Number.isSafeInteger(model?.unit) || model.unit < 0 ||
+          modelOriginals.some(original => original.unit === model.unit)) {
+        throw new TypeError('OriginalEffectModelUnitInventoryRequired');
+      }
+      modelOriginals.push(model);
+    }
+    const issued = issuedModels[0];
+    const plan = sources.length === 0
+      ? sourceFreeInferEffectPublicationPlan({acquired, compiled, operation, issuance,
+        issuedModel: issued, modelOriginals, modelEvidence}).plan
+      : acquiredMultiEffectPublicationPlan({acquired, sources,
+        captureStartedAt, captureCompletedAt, issuedModel: issued, modelOriginals, modelEvidence, keyedSource, sourcePlan});
+    const generations = operations.flatMap(original => original.contentGenerations?.() ?? []);
+    const completePlan = generations.length === 0 ? plan : Object.freeze({...plan,
+      receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations: generations}),
+      captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations: generations})});
+    return Object.freeze({...issued, bindings: Object.freeze(issuedModels.map(original => original.binding)), plan: completePlan});
   } catch (error) {
-    acquired.moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+    // Group custody retains each original binding before the first await. A
+    // standalone caller transfers no such custody, so retire its partials here.
+    if (retainBinding === undefined) {
+      for (const issued of issuedModels) {
+        try {acquired.moon.clientProgramReleaseInferInvocationBinding(issued.binding);} catch { /* Preserve the primary. */ }
+      }
+    }
     throw error;
   }
 }

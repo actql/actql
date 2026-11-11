@@ -86951,7 +86951,7 @@
     },
     {
       "module": "adapters/host-node/infer-effect-observation.mjs",
-      "sha256": "7689a846ab1c8b5d76229fcc070eb6f3c6acc3e9f646941788fef28f7d09827a",
+      "sha256": "eb06ee6e79dadb4293ad452951834fa355a5d522a25e13488ccf9f93c0e6ea40",
       "exports": [
         "withOriginalInferModelObservation"
       ],
@@ -86971,7 +86971,9 @@
             "binding",
             "consume",
             "signal",
-            "quantum"
+            "quantum",
+            "retainedBase",
+            "executionBase"
           ],
           "async": true
         },
@@ -87048,7 +87050,7 @@
               },
               {
                 "path": "adapters/host-node/infer-effect-observation.mjs",
-                "anchor": "return await consume({binding, scan, receipt});"
+                "anchor": "return await consume({binding, scan, receipt, retainedBytes, executionBytes});"
               }
             ],
             "failure": [
@@ -87074,7 +87076,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/infer-effect-observation.mjs",
-                "anchor": "operation.growOriginalPublicationCapacity(retained, execution);"
+                "anchor": "operation.growOriginalPublicationCapacity(retainedBase + retained, executionBase + execution);"
               },
               {
                 "path": "adapters/host-node/infer-effect-observation.test.mjs",
@@ -87084,7 +87086,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "consume: ({scan, receipt}) => acquired.control.captureCheckedClientInferModelObservation("
+                "anchor": "const original = acquired.control.captureCheckedClientInferModelObservation(issued, scan, receipt, limits);"
               }
             ],
             "verification": [

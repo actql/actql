@@ -15,8 +15,135 @@ const body=name=>{
   assert.ok(node);return text.slice(node.start,node.end);
 };
 const limits={maxWireBytes:16384,maxNodes:1024,maxDepth:20};
-function fixture({inline=true,projectionFailure,sourceCount=2,upstreamWhole=false,unitFailure}={}) {
-  const events=[],issued={binding:{}},modelOriginal={unit:inline?0:sourceCount},scan={},receipt={};
+
+const groupText = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+const groupNode = parse(groupText, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.id?.name === 'acquiredEffectModelGroup');
+const deferred = () => {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => {resolve = yes; reject = no;});
+  return {promise, resolve, reject};
+};
+const turn = () => new Promise(resolve => setImmediate(resolve));
+
+// Actual group custody with explicit nominal publication/Store ports. The
+// deferred preparation is not an installed Model, Core ABI or physical ACK.
+function publicationGroupFixture({prepare, commit, faultInjection} = {}) {
+  const events = [], contexts = [], preparedOptions = [], controller = new AbortController();
+  const sourcePlan = {}, plan = {compiled: {}, runDefinition: {}}, issuance = {};
+  const publication = {binding: {}, observation: {name: 'observation', wire: '{}', identity: 'observation'},
+    invocation: {name: 'invocation', wire: '{}', identity: 'invocation'}, plan: {}};
+  let current = true;
+  const selections = Object.freeze([0, 1].map(index => Object.freeze({graph: {index}, occurrence: {index},
+    observeAccount: () => ({})})));
+  const components = selections.map((selection, index) => ({bindOriginal(context) {contexts[index] = context;}}));
+  const originalPreparation = {components: selections.map((selection, index) => ({selection, component: components[index]}))};
+  const operations = selections.map((_, index) => ({index, physicalStopped: () => true,
+    releaseOriginalPublicationCapacity() {events.push('release-capacity'); return true;}}));
+  const acquired = {compilation: {}, prepared: {}, control: {runDefinitionRunId: () => 'component',
+    admitComposedInferSources: () => ({}), composedInferSourcesFor: () => undefined,
+    modelPrivateHoldingCid: () => 'holding'}};
+  const moon = {clientProgramAdvanceInferObservationIssuance: actual => {
+    assert.strictEqual(actual, issuance); return {$tag: 1, _0: {_0: true}};
+  }, clientProgramReleaseInferInvocationBinding(actual) {
+    assert.strictEqual(actual, publication.binding); events.push('release-binding');
+  }, clientProgramCancelInferObservationIssuance: () => false,
+  clientProgramEffectComposedModelKeyedAcquisition: () => ({$tag: 1, _0: undefined})};
+  moon.clientProgramCleanupInferObservationIssuance = () => ({$tag: 1, _0: true});
+  const ports = {runtimeField, checked,
+    startCompleteInferObservation({operations: originals}) {
+      assert.deepEqual(originals, operations); return issuance;
+    }, openNodeInferCaptureCustody({operation}) {
+      return {retainCompleted: () => true, completedCallCount: () => 1, modelEvidence: () => [],
+        async persist() {events.push('capture-' + operation.index);}, custody: {
+          retirePublication: async () => true, close: async () => true, cleanupPending: () => false}};
+    }, preparePrivatePublicationHolding(store, original) {
+      events.push('holding-' + original.name);
+      return {async commit() {events.push('commit-' + original.name); await commit?.(original);}};
+    }, async acquiredInferEffectPublicationPlan(options) {
+      events.push('prepare');
+      preparedOptions.push(options);
+      options.retainBinding(publication.binding);
+      return prepare === undefined ? publication : prepare(publication);
+    }};
+  const create = new Function(...Object.keys(ports), `return (${groupText.slice(groupNode.start, groupNode.end)});`)(...Object.values(ports));
+  const group = create({moon, acquired, infer: {components: selections}, originalModelComponents: components,
+    originalModelSelection: {components: selections}, originalPreparation, plan, sourcePlan,
+    signal: controller.signal, modelController: {}, faultInjection,
+    current() {if (!current) throw new Error('OriginalCurrentLost');}});
+  group.bind({captures: [{}], evidence: [{}], captureStartedAt: 'start', captureCompletedAt: 'end'});
+  for (const [index, context] of contexts.entries()) context.retainOperation(operations[index]);
+  for (const context of contexts) assert.equal(context.retainCompleted(), true);
+  return {group, events, publication, preparedOptions, sourcePlan, signal: controller.signal, operations, cancel: () => controller.abort(new Error('OriginalCancelled')),
+    revoke() {current = false;}};
+}
+
+test('plural publication shares the pending preparation and commits only resolved original values', async () => {
+  const gate = deferred(), f = publicationGroupFixture({prepare: () => gate.promise});
+  const first = f.group.persist(), second = f.group.persist();
+  const outcomes = Promise.all([first, second]);
+  outcomes.catch(() => {});
+  await turn();
+  assert.equal(f.events.filter(value => value === 'prepare').length, 1);
+  assert.equal(f.events.some(value => value.startsWith('holding-')), false);
+  assert.strictEqual(f.preparedOptions[0].sourcePlan, f.sourcePlan);
+  assert.strictEqual(f.preparedOptions[0].signal, f.signal);
+  assert.deepEqual(f.preparedOptions[0].operations, f.operations);
+  gate.resolve(f.publication);
+  assert.deepEqual(await outcomes, [f.publication.plan, f.publication.plan]);
+  assert.deepEqual(f.events.filter(value => value.startsWith('commit-')), ['commit-observation', 'commit-invocation']);
+  assert.equal(f.group.hasOutputPins(), true, 'final Effect evidence still borrows the original Model');
+  await f.group.retirePublication(); await f.group.retirePublication();
+  assert.equal(f.group.hasOutputPins(), false);
+  assert.equal(f.events.filter(value => value === 'release-binding').length, 1);
+});
+
+test('plural cleanup waits for pending preparation and prevents publication after retirement', async () => {
+  const gate = deferred(), f = publicationGroupFixture({prepare: () => gate.promise});
+  const outcome = f.group.persist().then(value => ({value}), error => ({error}));
+  await turn();
+  let retired = false;
+  const cleanup = f.group.retirePublication().then(value => {retired = true; return value;});
+  await turn(); assert.equal(retired, false);
+  gate.resolve(f.publication);
+  const result = await outcome;
+  assert.match(result.error.message, /Retired/);
+  assert.equal(await cleanup, true);
+  assert.equal(f.events.some(value => value.startsWith('holding-')), false);
+  assert.equal(f.events.filter(value => value === 'release-binding').length, 1);
+});
+
+test('plural pending cancel and lost current prevent private publication and retain binding custody', async () => {
+  for (const change of ['cancel', 'revoke']) {
+    const gate = deferred(), f = publicationGroupFixture({prepare: () => gate.promise});
+    const outcome = f.group.persist().then(value => ({value}), error => ({error}));
+    await turn(); f[change](); gate.resolve(f.publication);
+    assert.match((await outcome).error.message, /OriginalCancelled|OriginalCurrentLost/);
+    assert.equal(f.events.some(value => value.startsWith('holding-')), false);
+    await f.group.retirePublication();
+    assert.equal(f.events.filter(value => value === 'release-binding').length, 1);
+  }
+});
+
+test('plural publication retains the first preparation failure including thrown undefined', async () => {
+  for (const primary of [undefined, new Error('OriginalPreparationFailed')]) {
+    const f = publicationGroupFixture({prepare() {throw primary;}});
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let rejected = false;
+      try {await f.group.persist();} catch (error) {rejected = true; assert.strictEqual(error, primary);}
+      assert.equal(rejected, true);
+    }
+    assert.equal(f.events.filter(value => value === 'prepare').length, 1);
+    await f.group.retirePublication();
+    assert.equal(f.events.filter(value => value === 'release-binding').length, 1, 'group retains partial bindings through failure');
+  }
+});
+function fixture({inline=true,projectionFailure,sourceCount=2,upstreamWhole=false,unitFailure,modelUnits,projectionHook}={}) {
+  const events=[],modelOriginal={unit:inline?0:sourceCount};
+  const originals=(modelUnits??[modelOriginal.unit]).map(unit=>({unit}));
+  originals[0]=modelUnits===undefined?modelOriginal:originals[0];
+  const issuedModels=originals.map((_,index)=>({binding:{index}})), issued=issuedModels[0];
+  const scans=originals.map(()=>({})),receipts=originals.map(()=>({}));
   const retention={wire:'{"effective_retention_policy_cid":"retention","effective_data_policy_cid":"combined"}'};
   const sourceObjects=Array.from({length:sourceCount},()=>({}));
   const sources=sourceObjects.map((original,index)=>({sourceEvidence:{original},captured:{
@@ -35,32 +162,35 @@ function fixture({inline=true,projectionFailure,sourceCount=2,upstreamWhole=fals
     clientProgramCapturedSourceDependencyBodies:()=>({_0:'{"rows":[]}',_1:'{"fields":[]}'}),
     clientProgramEffectPublicationPolicyBodies:()=>ok([]),
     clientProgramReleaseInferInvocationBinding:binding=>{
-      assert.strictEqual(binding,issued.binding);events.push('release-binding');
+      assert(issuedModels.some(original=>original.binding===binding));events.push('release-binding');
     },
     clientProgramInferModelIdentityStartCapacity:()=>({_0:3n,_1:4n}),
-    clientProgramInferModelIdentityStart:()=>{events.push('scan-start');return ok(scan);},
+    clientProgramInferModelIdentityStart:binding=>{events.push('scan-start');return ok(scans[binding.index]);},
     clientProgramInferModelIdentityNextCapacity:()=>({_0:3n,_1:4n}),
     clientProgramInferModelIdentityAdvance:()=>ok({_0:true,_1:1}),
-    clientProgramInferModelIdentityFinish:()=>ok(receipt),
+    clientProgramInferModelIdentityFinish:scan=>ok(receipts[scans.indexOf(scan)]),
     clientProgramInferModelIdentityCancel:original=>{
-      assert.strictEqual(original,scan);events.push('cancel-scan');return true;
+      assert(scans.includes(original));events.push('cancel-scan');return true;
     },
     clientProgramInferModelIdentityReceiptCancel:original=>{
-      assert.strictEqual(original,receipt);events.push('cancel-receipt');
+      assert(receipts.includes(original));events.push('cancel-receipt');
     },
     clientProgramInferModelObservationCapacity:()=>({_0:5n,_1:6n}),
   };
   const control={
     checkedClientEffectInferInvocation(prepared,compilation,definition,actual) {
       assert.strictEqual(actual,issued);events.push('same-invocation');
-      return {invocation:{},observation:{},owner:{}};
+      return {invocation:{},observation:{wire:'{"data_policy_cid":"combined","captured_input_artifact_cids":[]}'},owner:{}};
     },
     captureCheckedClientInferModelObservation(actual,originalScan,originalReceipt) {
-      assert.strictEqual(actual,issued);assert.strictEqual(originalScan,scan);
-      assert.strictEqual(originalReceipt,receipt);events.push('original-model');
+      const index=issuedModels.indexOf(actual);assert(index>=0);
+      assert.strictEqual(originalScan,scans[index]);
+      assert.strictEqual(originalReceipt,receipts[index]);events.push('original-model');
+      projectionHook?.(index);
       if(projectionFailure!==undefined)throw projectionFailure;
-      return modelOriginal;
+      return originals[index];
     },
+    compiledInferSourceFreeResultPolicy:()=>({}),
     admitRunEvidence(){assert.fail('Transferred Source evidence is not readmitted');},
     seal(name,wire) {
       assert.equal(inline||upstreamWhole,false,'Whole input retention is issued by its typed Core owner');
@@ -89,22 +219,27 @@ function fixture({inline=true,projectionFailure,sourceCount=2,upstreamWhole=fals
     definition:{},runDefinition:{wire:'{"created_at":"2026-11-11T00:00:00Z","valid_until":"2026-11-12T00:00:00Z"}'},
     compiledPlan:{identity:'compiled-plan'},authorityScopeCid:'authority',namespaceId:'namespace',
     storeAuthorityCid:'store',now:()=> '2026-11-11T00:00:00Z'};
-  const operation={
-    bindIssuedInvocation(){events.push('bind');return issued;},
-    growOriginalPublicationCapacity(){events.push('grow');},
-  };
+  const growth=[];
+  const operations=issuedModels.map((original,index)=>({
+    bindIssuedInvocation(){events.push('bind');return original;},
+    growOriginalPublicationCapacity(retained,execution){
+      assert.equal(index,0,'all scans use the SAME original publication capacity');
+      growth.push([retained,execution]);events.push('grow');
+    },
+  }));
+  const operation=operations[0];
   const buildLocalPublicationPlan=()=>{
     events.push('plan');return {plan:{},retention,retentionDependencies:[]};
   };
   const create=new Function('runtimeField','runtimeOptionalField','checked','limits',
     'withOriginalInferModelObservation','buildLocalPublicationPlan',
-    body('acquiredMultiEffectPublicationPlan')+'\n'+body('acquiredInferEffectPublicationPlan')+
+    body('sourceFreeInferEffectPublicationPlan')+'\n'+body('acquiredMultiEffectPublicationPlan')+'\n'+body('acquiredInferEffectPublicationPlan')+
       '\nreturn {acquiredMultiEffectPublicationPlan,acquiredInferEffectPublicationPlan};');
   const functions=create(runtimeField,runtimeOptionalField,checked,limits,
     withOriginalInferModelObservation,buildLocalPublicationPlan);
   const invoke=()=>functions.acquiredInferEffectPublicationPlan({acquired,sources,
-    compiled:{},operation,issuance:{},modelEvidence:[],sourcePlan});
-  return {events,issued,modelOriginal,functions,acquired,sources,invoke,sourcePlan,operation};
+    compiled:{},operation,operations,issuance:{},modelEvidence:[],sourcePlan});
+  return {events,issued,issuedModels,modelOriginal,originals,functions,acquired,sources,invoke,sourcePlan,operation,operations,growth};
 }
 
 test('upstream Whole Units use the same Plan and original capture tuple without Query conversion',async()=>{
@@ -216,4 +351,90 @@ test('Whole Source Unit runtime facade forwards the original typed tuple and reg
   assert.deepEqual(tokens.get(projected),{kind:'acquired',issued});
   assert.throws(()=>invoke(plan,prepared,request,-1,captured,identity,capacity,input,observation,'authority',retention,limits),/Invalid acquired Effect Source slot/);
   assert.equal(calls.length,1);
+});
+
+
+test('all checked Model Units retain distinct original observations beside a separate Whole Unit',async()=>{
+  const f=fixture({inline:false,sourceCount:1,upstreamWhole:true,modelUnits:[2,5]});
+  const publication=await f.invoke(),context=publication.plan.localEvidenceContext;
+  assert.strictEqual(context.modelOriginalByUnit[2],f.originals[0]);
+  assert.strictEqual(context.modelOriginalByUnit[5],f.originals[1]);
+  assert.equal(context.modelOriginalByUnit[0],undefined);
+  assert.equal(context.acquiredEvidenceByUnit.length,1);
+  assert.deepEqual(publication.bindings,f.issuedModels.map(original=>original.binding));
+  assert.equal(f.events.filter(event=>event==='bind').length,2);
+  assert.equal(f.events.filter(event=>event==='original-model').length,2);
+  assert.deepEqual(f.events.filter(event=>event.startsWith('whole-unit-')),['whole-unit-0']);
+  assert.deepEqual(f.growth,[[3n,4n],[3n,4n],[8n,10n],[11n,14n],[11n,14n],[16n,20n]],
+    'the same original publication owner backs all simultaneously retained projections');
+});
+
+test('duplicate checked Model Units refuse rather than replace an original with an equal coordinate',async()=>{
+  const f=fixture({modelUnits:[0,0]});
+  await assert.rejects(f.invoke(),/OriginalEffectModelUnitInventoryRequired/);
+  assert.equal(f.events.filter(event=>event==='release-binding').length,2);
+  assert.equal(f.events.includes('plan'),false);
+});
+
+test('failure at the later Model preserves the primary and retires each actual binding once',async()=>{
+  for(const primary of [undefined,new Error('SecondOriginalModelFailed')]) {
+    const f=fixture({modelUnits:[0,3],projectionHook(index){if(index===1)throw primary;}});
+    let rejected=false;
+    try {await f.invoke();} catch(error) {rejected=true;assert.strictEqual(error,primary);}
+    assert.equal(rejected,true);
+    assert.equal(f.events.filter(event=>event==='release-binding').length,2);
+    assert.equal(f.events.includes('plan'),false);
+  }
+});
+
+test('lost current after an observation await prevents the next Model binding and publication',async()=>{
+  let current=true;
+  const f=fixture({modelUnits:[0,3],projectionHook(){current=false;}});
+  await assert.rejects(f.functions.acquiredInferEffectPublicationPlan({acquired:f.acquired,sources:f.sources,
+    compiled:{},operation:f.operation,operations:f.operations,issuance:{},modelEvidence:[],sourcePlan:f.sourcePlan,
+    current(){if(!current)throw new Error('OriginalCurrentLost');}}),/OriginalCurrentLost/);
+  assert.equal(f.events.filter(event=>event==='bind').length,1);
+  assert.equal(f.events.filter(event=>event==='release-binding').length,1);
+  assert.equal(f.events.includes('plan'),false);
+});
+
+
+test('plural private holding failure preserves its primary and retires the same partial publication once',async()=>{
+  const primary=new Error('OriginalPrivateHoldingFailed');
+  const f=publicationGroupFixture({faultInjection(){throw primary;}});
+  await assert.rejects(f.group.persist(),error=>error===primary);
+  await assert.rejects(f.group.persist(),error=>error===primary);
+  assert.equal(f.events.filter(value=>value==='prepare').length,1);
+  assert.equal(f.events.some(value=>value.startsWith('commit-')),false);
+  assert.equal(await f.group.retirePublication(),true);
+  assert.equal(f.events.filter(value=>value==='commit-observation').length,1);
+  assert.equal(f.events.includes('commit-invocation'),false);
+  assert.equal(f.events.filter(value=>value==='release-binding').length,1);
+});
+
+
+test('source-free plural Model publication retains every original Unit under the same complete issuer',async()=>{
+  const f=fixture({inline:false,sourceCount:0,modelUnits:[2,5]});
+  const publication=await f.invoke(),context=publication.plan.localEvidenceContext;
+  assert.strictEqual(context.modelOriginalByUnit[2],f.originals[0]);
+  assert.strictEqual(context.modelOriginalByUnit[5],f.originals[1]);
+  assert.equal(context.sourceFreeDependencyClosure,true);
+  assert.equal(publication.bindings.length,2);
+  assert.equal(f.events.filter(event=>event==='bind').length,2);
+  assert.equal(f.events.includes('release-binding'),false);
+});
+
+test('plural cancellation during private commit waits for that original write without starting the next holding',async()=>{
+  const gate=deferred(),f=publicationGroupFixture({commit:()=>gate.promise});
+  const outcome=f.group.persist().then(value=>({value}),error=>({error}));
+  await turn();
+  assert.deepEqual(f.events.filter(value=>value.startsWith('commit-')),['commit-observation']);
+  f.cancel();
+  const first=f.group.retirePublication(),second=f.group.retirePublication();
+  gate.resolve();
+  assert.match((await outcome).error.message,/OriginalCancelled/);
+  assert.deepEqual(await Promise.all([first,second]),[true,true]);
+  assert.equal(f.events.filter(value=>value==='commit-observation').length,1);
+  assert.equal(f.events.includes('holding-invocation'),false);
+  assert.equal(f.events.filter(value=>value==='release-binding').length,1);
 });

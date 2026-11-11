@@ -18,8 +18,10 @@ const extent = value => {
 };
 
 export async function withOriginalInferModelObservation({moon, operation, binding,
-  consume, signal, quantum = 256}) {
-  if (typeof consume !== 'function' ||
+  consume, signal, quantum = 256, retainedBase = 0n, executionBase = 0n}) {
+  if (typeof retainedBase !== 'bigint' || retainedBase < 0n ||
+      typeof executionBase !== 'bigint' || executionBase < 0n ||
+      typeof consume !== 'function' ||
       typeof operation?.growOriginalPublicationCapacity !== 'function' ||
       !Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       !['clientProgramInferModelIdentityStartCapacity', 'clientProgramInferModelIdentityStart',
@@ -31,7 +33,7 @@ export async function withOriginalInferModelObservation({moon, operation, bindin
   }
   signal?.throwIfAborted();
   let [retained, execution] = extent(moon.clientProgramInferModelIdentityStartCapacity(binding));
-  operation.growOriginalPublicationCapacity(retained, execution);
+  operation.growOriginalPublicationCapacity(retainedBase + retained, executionBase + execution);
   const scan = checked(moon.clientProgramInferModelIdentityStart(binding));
   let receipt;
   try {
@@ -41,7 +43,7 @@ export async function withOriginalInferModelObservation({moon, operation, bindin
         moon.clientProgramInferModelIdentityNextCapacity(scan));
       retained = nextRetained > retained ? nextRetained : retained;
       execution = nextExecution > execution ? nextExecution : execution;
-      operation.growOriginalPublicationCapacity(retained, execution);
+      operation.growOriginalPublicationCapacity(retainedBase + retained, executionBase + execution);
       const progress = checked(moon.clientProgramInferModelIdentityAdvance(
         scan, quantum, nextRetained, nextExecution));
       if (runtimeField(progress, 0)) break;
@@ -52,8 +54,9 @@ export async function withOriginalInferModelObservation({moon, operation, bindin
     // This is the existing finite Model observation codec, not a row cap.
     const [writerRetained, writerExecution] = extent(
       moon.clientProgramInferModelObservationCapacity(binding, receipt, 16384));
-    operation.growOriginalPublicationCapacity(retained + writerRetained, execution + writerExecution);
-    return await consume({binding, scan, receipt});
+    const retainedBytes = retained + writerRetained, executionBytes = execution + writerExecution;
+    operation.growOriginalPublicationCapacity(retainedBase + retainedBytes, executionBase + executionBytes);
+    return await consume({binding, scan, receipt, retainedBytes, executionBytes});
   } finally {
     if (receipt !== undefined) moon.clientProgramInferModelIdentityReceiptCancel(receipt);
     moon.clientProgramInferModelIdentityCancel(scan);

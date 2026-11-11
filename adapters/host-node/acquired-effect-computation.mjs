@@ -344,7 +344,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       modelGroup = acquiredEffectModelGroup({moon, acquired, infer, originalModelComponents,
         originalModelSelection, originalPreparation, plan: modelPlan, store, principalId, signal, now,
         modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
-        sourceContinuation, faultInjection, current});
+        sourceContinuation, faultInjection, current, sourcePlan: operationPlan});
       await modelGroup.prime();
       current();
     }
@@ -796,7 +796,12 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         if (typeof refreshScratch !== 'function') {
           throw new TypeError('InstalledEffectCompletedScratchUnavailable');
         }
-        if (!await retireInferPublication()) {
+        if (publicationPlan.localEvidenceContext?.modelOriginalByUnit !== undefined) {
+          // Final Effect dependency issuance still needs the live Model
+          // observation. Stop only its completed physical work here; the
+          // existing enclosing cleanup retires its binding after consumption.
+          await inferOperation.stop();
+        } else if (!await retireInferPublication()) {
           throw Object.assign(new Error('ClientDispatchCleanupPending'),
             {code: 'ClientDispatchCleanupPending'});
         }
@@ -865,7 +870,7 @@ function selectRestoredKeyedSource(moon, originals, direct) {
 function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponents,
   originalModelSelection, originalPreparation, plan, store, principalId, signal, now,
   modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
-  sourceContinuation, faultInjection, current}) {
+  sourceContinuation, faultInjection, current, sourcePlan}) {
   const selected = infer.components, originals = originalPreparation?.components;
   if (!Array.isArray(selected) || selected.length < 2 || selected.length > 128 ||
       !Object.isFrozen(selected) || !Array.isArray(originalModelComponents) ||
@@ -884,6 +889,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         observeAccount() {same(); const account = selection.observeAccount(); same(); return account;}})};
   });
   let issuance, issuanceComplete = false, publicationOwner, publication, holding;
+  let publicationPreparation, publicationFailure, publicationFailed = false;
+  let retirementRequested = false, publicationRetirement;
+  const publicationBindings = [];
   let captures, evidence, captureStartedAt, captureCompletedAt, keyedFamily, restoredHost, restoredKeyed;
   const runId = acquired.control.runDefinitionRunId(plan.runDefinition);
   const same = () => {
@@ -918,25 +926,78 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   };
   const pending = () => children.some(child => child.capture !== undefined && !child.captureReleased ||
     child.continuation !== undefined && !child.continuationReleased || child.output !== undefined);
+  const publicationCurrent = () => {
+    same();
+    signal?.throwIfAborted();
+    if (retirementRequested) throw new Error('InstalledEffectModelPublicationRetired');
+  };
   async function retirePublication() {
-    if (holding !== undefined) {await holding.commit(); holding = undefined;}
-    if (publication !== undefined) {
-      moon.clientProgramReleaseInferInvocationBinding(publication.binding);
+    // Retirement shares the original pending preparation. It cannot treat a
+    // Promise as a binding, detach it, or publish after that preparation settles.
+    retirementRequested = true;
+    publicationRetirement ??= (async () => {
+      if (publicationPreparation !== undefined) {
+        try {await publicationPreparation;} catch { /* The persist caller retains its primary failure. */ }
+        publicationPreparation = undefined;
+      }
+      if (holding !== undefined) {await holding.commit(); holding = undefined;}
+      while (publicationBindings.length > 0) {
+        moon.clientProgramReleaseInferInvocationBinding(publicationBindings[0]);
+        publicationBindings.shift();
+      }
       publication = undefined;
-    }
-    if (issuance !== undefined) {
-      if (moon.clientProgramCancelInferObservationIssuance(issuance)) checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1));
-      if (!checked(moon.clientProgramCleanupInferObservationIssuance(issuance))) return false;
-      issuance = undefined;
-    }
-    if (publicationOwner !== undefined) {
-      let pending = false;
-      for (const child of children) if (child.operation !== undefined && !child.operation.physicalStopped()) await child.operation.stop();
-      for (const child of children) if (child.capture !== undefined && !await child.capture.custody.retirePublication()) pending = true;
-      if (pending || !publicationOwner.releaseOriginalPublicationCapacity()) return false;
-      publicationOwner = undefined;
-    }
-    return true;
+      if (issuance !== undefined) {
+        if (moon.clientProgramCancelInferObservationIssuance(issuance)) checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1));
+        if (!checked(moon.clientProgramCleanupInferObservationIssuance(issuance))) return false;
+        issuance = undefined;
+      }
+      if (publicationOwner !== undefined) {
+        let pending = false;
+        for (const child of children) if (child.operation !== undefined && !child.operation.physicalStopped()) await child.operation.stop();
+        for (const child of children) if (child.capture !== undefined && !await child.capture.custody.retirePublication()) pending = true;
+        if (pending || !publicationOwner.releaseOriginalPublicationCapacity()) return false;
+        publicationOwner = undefined;
+      }
+      return true;
+    })();
+    try {return await publicationRetirement;} finally {publicationRetirement = undefined;}
+  }
+  async function persistPublication() {
+    if (publicationFailed) throw publicationFailure;
+    publicationCurrent();
+    // Install the shared phase before invoking any callback, including capture
+    // persistence. Reentry observes this same phase and cannot issue twice.
+    publicationPreparation ??= Promise.resolve().then(async () => {
+      publicationCurrent();
+      if (!issuanceComplete || issuance === undefined) throw new Error('InstalledComposedInferOriginalObservationUnavailable');
+      for (const child of children) {await child.capture.persist(); publicationCurrent();}
+      publication = await acquiredInferEffectPublicationPlan({
+        acquired, sources: evidence, compiled: plan.compiled,
+        operation: children[0].operation, operations: children.map(child => child.operation), issuance,
+        modelEvidence: children.flatMap(child => child.capture.modelEvidence()), keyedSource: keyedFamily?.evidence ?? restoredKeyed,
+        captureStartedAt, captureCompletedAt, sourcePlan, signal, fundingOperation: publicationOwner, current: publicationCurrent,
+        retainBinding(binding) {publicationBindings.push(binding);}});
+      publicationCurrent();
+      for (const original of [publication.observation, publication.invocation]) {
+        holding = preparePrivatePublicationHolding(store, {name: original.name, wire: original.wire,
+          semanticCid: original.identity, holdingCid: acquired.control.modelPrivateHoldingCid(
+            plan.runDefinition, acquired.storeAuthorityCid, original.name, -1)});
+        await faultInjection?.('infer_private_holding_commit', {role: original.name, slot: -1});
+        publicationCurrent();
+        await holding.commit(); holding = undefined;
+        publicationCurrent();
+      }
+      for (const child of children) {
+        if (!child.operation.physicalStopped()) {await child.operation.stop(); publicationCurrent();}
+      }
+      return publication.plan;
+    }).catch(error => {
+      publicationFailed = true; publicationFailure = error;
+      throw error;
+    });
+    const result = await publicationPreparation;
+    publicationCurrent();
+    return result;
   }
   async function cleanup(includeContinuation) {
     if (!await retirePublication()) return false;
@@ -1093,7 +1154,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         managedRun, owner, captures.map(value => value.capture.source()), retained.map(child => child.output),
         retained.map(child => child.selection.graph));
     },
-    hasOutputPins: () => children.some(child => child.output !== undefined),
+    // Final Effect dependency issuance still borrows each Model original.
+    // Keep these bindings until the existing Host/output retirement boundary.
+    hasOutputPins: () => publicationBindings.length > 0 || children.some(child => child.output !== undefined),
     releaseOutputs() {
       if (restoredHost !== undefined && !checked(moon.clientProgramRetireInstalledEffectCapturedConsumers(restoredHost))) return false;
       for (const child of children) {
@@ -1110,23 +1173,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       const failed = children.find(child => child.component.hasFailure?.() || child.component.failure() !== undefined);
       return failed?.component.failure();
     },
-    async persist() {
-      same();
-      if (!issuanceComplete || issuance === undefined) throw new Error('InstalledComposedInferOriginalObservationUnavailable');
-      for (const child of children) {await child.capture.persist(); same();}
-      publication ??= (evidence.length === 0 ? sourceFreeInferEffectPublicationPlan : acquiredInferEffectPublicationPlan)({
-        acquired, sources: evidence, compiled: plan.compiled, operation: children[0].operation, issuance,
-        modelEvidence: children.flatMap(child => child.capture.modelEvidence()), keyedSource: keyedFamily?.evidence ?? restoredKeyed,
-        captureStartedAt, captureCompletedAt});
-      for (const original of [publication.observation, publication.invocation]) {
-        holding ??= preparePrivatePublicationHolding(store, {name: original.name, wire: original.wire,
-          semanticCid: original.identity, holdingCid: acquired.control.modelPrivateHoldingCid(
-            plan.runDefinition, acquired.storeAuthorityCid, original.name, -1)});
-        await faultInjection?.('infer_private_holding_commit', {role: original.name, slot: -1}); same();
-        await holding.commit(); holding = undefined;
-      }
-      return publication.plan;
-    },
+    persist: persistPublication,
     retirePublication, cleanup, cleanupPending: pending,
   });
 }

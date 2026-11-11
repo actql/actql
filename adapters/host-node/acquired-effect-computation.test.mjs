@@ -598,7 +598,7 @@ for (const [name, options] of [
 // Core/Store/Task owner ports are explicit; this is not ordinary funding proof.
 function persistedModelScratchFixture({retire = true, release = true,
   releaseFailure, closeFailure, heldOutput = false, stopBeforeRetirement = false,
-  stop, current = () => {}, childPending = false} = {}) {
+  stop, current = () => {}, childPending = false, liveModelOriginal = false} = {}) {
   const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = ast.body.map(node => node.declaration ?? node)
@@ -616,7 +616,8 @@ function persistedModelScratchFixture({retire = true, release = true,
     node.declarations.some(value => value.id.name === 'retireUnenteredCompute'));
   const close = custody.declarations[0].init.arguments[0].properties.find(value => value.key.name === 'close');
   assert.ok(cleanup && persisted && close);
-  const events = [], diagnostics = [], plan = {}, content = {live: true};
+  const events = [], diagnostics = [], plan = liveModelOriginal
+    ? {localEvidenceContext: {modelOriginalByUnit: {0: {}}}} : {}, content = {live: true};
   let modelClosed = false, physicallyStopped = !stopBeforeRetirement;
   const inferCapture = {persist: async () => {events.push('persist'); return {plan};},
     custody: {retirePublication: async () => {
@@ -1304,4 +1305,14 @@ test('plural persisted publication retirement preserves both original pending Mo
   f.settle();
   assert.equal(await f.group.cleanup(true), true);
   assert.equal(f.group.cleanupPending(), false);
+});
+
+
+test('original Model observation stays bound through final Effect dependency consumption before enclosing cleanup',async()=>{
+  const f=persistedModelScratchFixture({liveModelOriginal:true});
+  assert.strictEqual(await f.run(),f.plan);
+  assert.deepEqual(f.events,['persist','stop-model','refresh-original-scratch','capture-committed']);
+  assert.equal(await f.cleanup(),true);
+  assert.deepEqual(f.events.slice(4),['stop-model','retire-publication','release-capacity','close-model']);
+  assert.equal(f.events.filter(value=>value==='retire-publication').length,1);
 });

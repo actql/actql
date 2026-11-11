@@ -398,6 +398,22 @@ same-Run recovery, a physical Model supplier, permission or whole-phase funding.
 
 ### Original INFER materials in the installed Host
 
+Plural Model publication retains one pending preparation in the existing group
+custody. Persist and retirement await that same phase; retirement prevents any
+later private-publication entry. The original signal and checked inventory are
+rechecked after asynchronous work, including Store commits. A rejected phase
+retains its first failure, including `undefined`, rather than issuing again.
+Each original Model operation binds to the same complete observation issuer.
+Its checked Unit coordinate selects its own input, unfiltered outcome and local
+observation; the first Model or a Source array position cannot replace another
+Unit. A separate Whole Unit retains its original checked Plan and evidence.
+All bindings enter group custody before observation awaits and retire once,
+including partial preparation. The original publication-capacity owner funds
+the retained overlap of successive scan/writer projections; no child issues a
+second publication reservation. Pending preparation or Store work is not a
+physical cleanup acknowledgement.
+
+
 First admission of the ordinary installed INFER graphs captures the
 Environment and serialized Parameter Values actually used by its preparation.
 The existing preparation membership retains these immutable original inputs;

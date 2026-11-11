@@ -526,6 +526,53 @@ test "complete original observation keeps compiler order when the second Model o
   issuance_finish(issued)
   let (observation, _) = observation_issuance_value(issued).unwrap()
   assert_eq(@publication.model_observation_slot_count(observation), Some(2))
+  // Bind EVERY original execution to the SAME complete issuer. The second
+  // execution still owns the one publication borrow; child order is not a
+  // substitute for the checked Unit coordinate in either observation.
+  let bindings = ordered.map(active => {
+    bind_issued_invocation(active, compiled, definition, issued).unwrap()
+  })
+  let originals = bindings.mapi((index, binding) => {
+    let outcomes = invocation_binding_original_model_outcomes(binding).unwrap()
+    let receipt = local_model_observation_test_export(outcomes)
+    let projection = invocation_binding_original_model_observation_capacity(
+      binding, receipt, 4096,
+    ).unwrap()
+    grow_original_infer_publication_capacity(
+      ordered[1],
+      publication,
+      child.retained_bytes +
+      1L +
+      @relation.execution_capacity_retained_bytes(projection),
+      child.execution_bytes +
+      1L +
+      @relation.execution_capacity_execution_bytes(projection),
+    ).unwrap()
+    let original = issue_invocation_binding_original_model_observation(
+      binding, receipt, 4096, 1024, 20,
+    ).unwrap()
+    assert_eq(
+      original_local_model_observation_coordinates(original).unwrap().1,
+      index,
+    )
+    @relation.cancel_completed_relation_export_receipt(receipt)
+    original
+  })
+  assert_false(
+    @publication.captured_effect_dependency_body_cid(
+      original_local_model_observation_body(originals[0]).unwrap(),
+    ) ==
+    @publication.captured_effect_dependency_body_cid(
+      original_local_model_observation_body(originals[1]).unwrap(),
+    ),
+  )
+  assert_false(cleanup_observation_issuance(issued).unwrap())
+  for binding in bindings {
+    assert_true(release_invocation_binding(binding))
+  }
+  for original in originals {
+    assert_true(original_local_model_observation_coordinates(original) is None)
+  }
   assert_true(cleanup_observation_issuance(issued).unwrap())
   assert_true(release_original_infer_publication_capacity(publication).unwrap())
   for index in 0..<2 {
