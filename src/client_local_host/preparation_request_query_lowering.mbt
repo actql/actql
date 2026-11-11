@@ -190,6 +190,9 @@ pub fn[I] lower_request_published_query(
     }
     Ok(_) => ()
   }
+  let limits = @publication_host.client_program_query_lowering_limits(
+    @publication_host.client_standard_program_preparation_limits(),
+  )
   let calls = Ref(0L)
   let outcome = if source is Some(source) {
     @publication_host.lower_client_source_input_query(
@@ -199,6 +202,7 @@ pub fn[I] lower_request_published_query(
       parsed,
       public_primary=selected.public_primary,
       calls_out=Some(calls),
+      limits=Some(limits),
     ).map_err(issue => {
       ClientRequestQueryLoweringIssue::Request(SourceInput(Source(issue)))
     })
@@ -210,6 +214,7 @@ pub fn[I] lower_request_published_query(
       owner.native_query_declarations.map(pair => pair.1),
       public_primary=selected.public_primary,
       calls_out=Some(calls),
+      limits=Some(limits),
     ).map_err(issue => Publication(issue))
   } else {
     @source_publication.lower_prepared_published_parsed_query(
@@ -219,6 +224,7 @@ pub fn[I] lower_request_published_query(
       selected.declarations,
       public_primary=selected.public_primary,
       calls_out=Some(calls),
+      limits=Some(limits),
     ).map_err(issue => Publication(issue))
   }
   owner._observed_query_lower_calls += calls.val

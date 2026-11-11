@@ -80,7 +80,7 @@ test "effective memory row ceiling validates the selected pair without conflatin
   for
     (retained, execution, rows) in [
       (67108864L, 134217728L, 262144),
-    (1073741824L, 67108864L, 4194304),
+      (1073741824L, 67108864L, 4194304),
       (1073741824L, 2147483648L, 4194304),
       (2147483648L, 2147483648L, 8388608),
     ] {

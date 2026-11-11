@@ -141,6 +141,7 @@ options(
     "installed_keyed_capture_parent_js_wbtest.mbt": [ "js" ],
     "installed_capture_provider_source_js_wbtest.mbt": [ "js" ],
     "preparation_request_query_syntax_js_wbtest.mbt": [ "js" ],
+    "preparation_request_large_literal_js_wbtest.mbt": [ "js" ],
     "preparation_request_query_lowering_js_wbtest.mbt": [ "js" ],
     "preparation_request_snapshot_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_input_js_wbtest.mbt": [ "js" ],

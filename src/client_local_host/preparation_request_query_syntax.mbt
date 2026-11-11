@@ -153,12 +153,15 @@ pub fn[I] parse_request_query_syntax(
     }
     Ok(_) => ()
   }
+  let syntax_limits = @publication_host.client_program_query_syntax_limits(
+    @publication_host.client_standard_program_preparation_limits(),
+  )
   let work = match
     @resources.begin_preparation_phase_work64(
       owner.capacity,
       input,
       @resources.LexicalScan,
-      @frontend.query_syntax_work_limit(),
+      @frontend.query_syntax_work_limit(limits=Some(syntax_limits)),
     ) {
     Err(issue) => {
       owner.phase = QuerySyntaxFailed
@@ -176,6 +179,7 @@ pub fn[I] parse_request_query_syntax(
         selected.format,
         source_path=selected.source_path,
         calls_out=Some(calls),
+        limits=Some(syntax_limits),
       )
     Some(source) =>
       match
@@ -183,6 +187,7 @@ pub fn[I] parse_request_query_syntax(
           source,
           source_path=selected.source_path,
           calls_out=Some(calls),
+          limits=Some(syntax_limits),
         ) {
         Ok(observed) => observed
         Err(issue) => {

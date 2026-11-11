@@ -46598,7 +46598,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ffc8024f8e1fac5b7df51646f908a4ade01b681ead04e05852b99cdce2d0a247",
+      "sha256": "873f6377d0754bfded1fe077f6beda518c18efa5bf9ab279059bbd72478cd32d",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -46850,7 +46850,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d14de2082a6940b3dd8f7595b9a5840a1b0caa90cac233aa157afc7a3620662c",
+      "sha256": "6e24413eee136180d6e6fa175217e34fcc9865b037f50a612d3f9eb03ea4e2f3",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -50666,7 +50666,7 @@
     },
     {
       "module": "src/client_source_publication/prepared_environment.mbt",
-      "sha256": "7bef13cba322900f2a5a84d29c75d5d509e59ec64814b0f17d9baef6e7000027",
+      "sha256": "2c9c9a846478e9dec41c7e07e397dfec4a093ccb689c2e06fe6d963861708a73",
       "exports": [],
       "operations": [
         {
@@ -79118,7 +79118,7 @@
           }
         }
       ],
-      "sha256": "8dc5e07cfafad6ed2bc73a200365c00b8f23c38adbbca44a460149cbf6913c70",
+      "sha256": "e704948c60f23484aa1b9b9c55ceaa385170811218b369cb4117d0fed3d982a1",
       "operations": [
         {
           "name": "[T]same_client_source_optional",
@@ -87138,6 +87138,109 @@
         }
       ],
       "referenceQualification": "Reviewed original Model observation stepping and component boundaries only; normal packed runtime and physical cleanup acceptance remain separate."
+    },
+    {
+      "module": "src/run_publication_host/client_query_preparation_limits.mbt",
+      "sha256": "8d0d0636090fa3c59f77e0828de7f4983f15196cd2fd4b9afcc8d997bc6d88c1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_query_lowering_limits",
+          "declaration": "client_program_query_lowering_limits ( limits : ClientProgramPreparationLimits , ) - > @ update_targets . Limits"
+        },
+        {
+          "name": "client_program_query_syntax_limits",
+          "declaration": "client_program_query_syntax_limits ( limits : ClientProgramPreparationLimits , ) - > @ query_syntax . QueryLimits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Program preparation and original Request resource owners",
+      "referenceQualification": "Finite policy DATA projection and original caller connection; no new owner, allocation, authority or normal artifact claim",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_query_lowering_limits",
+            "client_program_query_syntax_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Query Program preparation limits"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_large_literal_js_wbtest.mbt",
+                "anchor": "test \"funded Request parses and lowers a large literal"
+              },
+              {
+                "path": "src/run_publication_host/client_query_preparation_limits_wbtest.mbt",
+                "anchor": "test \"Program preparation syntax projection preserves explicitly narrowed tokens"
+              },
+              {
+                "path": "src/run_publication_host/client_query_preparation_limits_wbtest.mbt",
+                "anchor": "test \"original Source lowerer receives the selected generated-artifact bound"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

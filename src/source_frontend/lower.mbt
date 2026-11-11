@@ -258,7 +258,7 @@ fn source_limits() -> SourceLimits {
 }
 
 ///|
-fn syntax_limits() -> @syntax.QueryLimits {
+pub fn syntax_limits() -> @syntax.QueryLimits {
   let lexical : @syntax.LexicalLimits = {
     max_source_bytes: 65536,
     max_tokens: 8192,
@@ -275,7 +275,7 @@ fn syntax_limits() -> @syntax.QueryLimits {
 }
 
 ///|
-fn query_limits() -> @query.Limits {
+pub fn query_limits() -> @query.Limits {
   let caps = source_limits()
   {
     source: {
@@ -305,9 +305,14 @@ fn emit(
   command_selection : @query.ShortCommandSelection?,
   keyed_effect_kind : @syntax.KeyedEffectKind?,
   insert_effect : Bool,
+  limits : @query.Limits,
 ) -> Result[Lowered, Issue] {
   let document = try {
-    let writer = @encode.writer(65536, 8192, 64)
+    let writer = @encode.writer(
+      limits.source.max_output_bytes,
+      limits.source.tree.max_nodes,
+      limits.source.tree.max_depth,
+    )
     @program.emit_program_source(program, writer)
     @encode.finish(writer)
   } catch {
@@ -347,6 +352,7 @@ pub fn observe_parse_query(
   format : Format,
   source_path? : String = "<source>",
   calls_out? : Ref[Int64]? = None,
+  limits? : @syntax.QueryLimits? = None,
 ) -> (Result[@syntax.Query, Issue], Int64, Bool) {
   match format {
     Text | Sql => ()
@@ -357,7 +363,10 @@ pub fn observe_parse_query(
   }
   let (outcome, spent, complete) = @syntax.observe_selected_query_script(
     document,
-    syntax_limits(),
+    match limits {
+      Some(selected) => selected
+      None => syntax_limits()
+    },
     format == Sql,
     source_path~,
   )
@@ -372,8 +381,11 @@ pub fn observe_parse_query(
 ///|
 /// The unchanged selected lexical and grammar budgets, for one funded phase.
 /// This projects policy DATA; it neither grants work nor selects a new limit.
-pub fn query_syntax_work_limit() -> Int64 {
-  let limits = syntax_limits()
+pub fn query_syntax_work_limit(limits? : @syntax.QueryLimits? = None) -> Int64 {
+  let limits = match limits {
+    Some(selected) => selected
+    None => syntax_limits()
+  }
   limits.lexical.max_work.to_int64() + limits.max_work.to_int64()
 }
 
@@ -459,8 +471,13 @@ pub fn lower_parsed_with_source(
   store_targets? : @query.StoreTargetPublication? = None,
   command_targets? : @query.CommandTargetPublication? = None,
   public_primary? : Bool = false,
+  limits? : @query.Limits? = None,
 ) -> Result[(Lowered, @builder.Source), Issue] {
   guard context is Some(context) else { return Err(MissingQueryContext) }
+  let limits = match limits {
+    Some(selected) => selected
+    None => query_limits()
+  }
   // Only a new public read-only Source with no authored RESULT selects
   // this configured primary. Structured Programs, explicit exports and
   // operator-specific Effect output laws keep their existing identities.
@@ -478,7 +495,7 @@ pub fn lower_parsed_with_source(
       @query.compile_short_command_with_source(
         parsed,
         context,
-        query_limits(),
+        limits,
         publication,
         table_writes~,
         update_targets~,
@@ -492,7 +509,7 @@ pub fn lower_parsed_with_source(
       @query.compile_with_source(
         parsed,
         context,
-        query_limits(),
+        limits,
         table_writes~,
         update_targets~,
         store_targets~,
@@ -510,6 +527,7 @@ pub fn lower_parsed_with_source(
     command_selection,
     @syntax.terminal_effect(parsed).map(clause => clause.kind),
     @syntax.terminal_insert_effect(parsed) is Some(_),
+    limits,
   ).map(lowered => (lowered, source))
 }
 

@@ -1119,6 +1119,10 @@ pub fn client_original_keyed_lookup_available(ClientModelReadScope, ClientCompil
 
 pub fn client_original_keyed_prefix_lookup_input(ClientOriginalKeyedPrefixLookup) -> ClientKeyedLookupInput?
 
+pub fn client_program_query_lowering_limits(ClientProgramPreparationLimits) -> @query_program.Limits
+
+pub fn client_program_query_syntax_limits(ClientProgramPreparationLimits) -> @query_syntax.QueryLimits
+
 pub fn client_project_catalog_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn client_project_connections_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
@@ -1921,7 +1925,7 @@ pub fn issue_source_free_client_effect_local_table_artifact(PreparedClientEffect
 
 pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
-pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, @query_syntax.Query, public_primary? : Bool, calls_out? : @ref.Ref[Int64]?) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), ClientSourcePreparationIssue]
+pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, @query_syntax.Query, public_primary? : Bool, calls_out? : @ref.Ref[Int64]?, limits? : @query_program.Limits?) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), ClientSourcePreparationIssue]
 
 pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, Int)?
 
@@ -1965,7 +1969,7 @@ pub fn observe_client_keyed_request_attempt(ClientKeyedRequest, Int64, Int64) ->
 
 pub fn observe_client_keyed_response(ClientKeyedRequest, Int64, Int64, Int64) -> Result[Unit, ClientKeyedRequestIssue]
 
-pub fn observe_client_source_input_query(ClientSourceInput, source_path? : String, calls_out? : @ref.Ref[Int64]?) -> Result[(Result[@query_syntax.Query, @source_frontend.Issue], Int64, Bool), ClientSourcePreparationIssue]
+pub fn observe_client_source_input_query(ClientSourceInput, source_path? : String, calls_out? : @ref.Ref[Int64]?, limits? : @query_syntax.QueryLimits?) -> Result[(Result[@query_syntax.Query, @source_frontend.Issue], Int64, Bool), ClientSourcePreparationIssue]
 
 pub fn observe_prepare_checked_client_effect_computation(@program_check.EffectComputationCandidate, ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> (Result[PreparedClientEffectComputation, ClientEffectComputationIssue], Int64)
 

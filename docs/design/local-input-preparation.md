@@ -3071,6 +3071,32 @@ projected as evidence that the authored input was invalid. The SQL/Pipe entry
 alone does not qualify the other Source document controllers or ordinary
 installed/backend execution.
 
+### Query Program preparation limits
+
+The ordinary Request selects its SQL/Pipe lexical and expression/node bounds
+from the existing finite `ClientProgramPreparationLimits`. It forwards that
+same selection through the original Source-input parser when present. Its
+lowerer and canonical Program emitter use the selected compiler artifact
+envelope, since generated Program material is not the original SQL wire.
+Installed collection/join dimensions, depth, CTE policy and original target,
+Catalog, Parameter and Environment bindings remain independent.
+
+These projections are immutable DATA in the existing Program owner, not a new
+Resource, authority or preparation controller. The same Request reserves the
+actual document/syntax and expanded-material coexistence before either call.
+The original builder starts with empty storage and the encoder starts with an
+empty StringBuilder; ceiling values do not allocate their full capacity. Smaller
+explicit limits still refuse. Generic legacy callers that omit a selection
+retain their existing frontend defaults.
+
+The original parser/lowerer is called once. Currentness, wrong-phase, foreign
+original and reentry checks remain before use; cancellation and retirement
+remain on the same Request. A refused lexical prefix remains an incomplete
+observation, and a failed lowerer stays consumed rather than reparsing or
+retrying with larger limits. The Request large-literal component and the
+explicitly narrowed token/output tests exercise this connection separately
+from ordinary installed Result-read acceptance.
+
 ### Source document Request continuation
 
 The existing public JSON/YAML Source spellings select their explicit Program
