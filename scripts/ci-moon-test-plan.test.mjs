@@ -11,7 +11,7 @@ import {moonGraphCandidate, nonMoonRequirements, normalizeMoonGraph, planMoonTes
 import {selectTargets, validateSelection, gateJobRequired, deepProofRequired, verifyGate, gateJobs,
   maintenanceFiles, readChanges} from './ci-targets.mjs';
 import {runMoonTests, nativeMoonPackages} from './ci-moon-tests.mjs';
-import {nativeCoreTestSelection, portableMoonTestCount} from './native-core-test-selection.mjs';
+import {nativeCoreTestSelection, nativeScopedTestFiles, portableMoonTestCount} from './native-core-test-selection.mjs';
 import {runFocusedTests} from './test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url)).replace(/\/$/u, '');
@@ -323,6 +323,40 @@ test('the actual repository Native compiler retains full profiles and partitions
   assert.equal(profiles.ordinary.partitions.length, 2);
   assert(profiles.ordinary.partitions.every(part => part.cases > 0));
   assert.equal(profiles.ordinary.partitions.reduce((sum, part) => sum + part.cases, 0), profiles.ordinary.cases);
+});
+
+test('actual approval Core and Native Host edits retain the scoped call-count owner and required Native job', () => {
+  const counter = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  assert(nativeScopedTestFiles.includes(counter));
+  const tree = git(['ls-tree', '-rz', 'HEAD', '--', 'src']).slice(0, -1).split('\0').map(line => {
+    const [, mode, object, path] = /^(\d{6}) blob ([a-f0-9]{40})\t(.+)$/u.exec(line);
+    return {mode, object, path};
+  });
+  const raw = JSON.parse(execFileSync('moon', ['tree', '--package', '--json'],
+    {cwd:repository, encoding:'utf8', timeout:60000, maxBuffer:16 * 1024 ** 2}));
+  const graph = normalizeMoonGraph(raw, tree, repository);
+  const paths = ['src/execution_authorization/decision.mbt'];
+  let moonTests, moonGraphFailure;
+  try {moonTests = planMoonTests(paths, graph, tree);}
+  catch (error) {
+    // Preserve the existing complete fallback if this real reverse closure
+    // exceeds the original finite argv; never narrow by losing the importer.
+    assert.equal(error.code, 'ERR_ASSERTION');
+    assert.equal(error.message, 'Selected argv exceeds its finite bound');
+    moonGraphFailure = error.message;
+  }
+  const selected = validateSelection(selectTargets(paths, {moonTests, moonGraphFailure}));
+  assert.equal(gateJobRequired(selected, 'native'), true);
+  if (selected.moonTests) {
+    assert(selected.moonTests.packages.includes('src/cmd/native_client'));
+    assert(selected.moonTests.files.includes(counter));
+  } else assert.equal(selected.profile, 'full');
+  for (const path of [counter, 'src/platform_native/client_host/local_installation_original.mbt']) {
+    assert(tree.some(entry => entry.path === path), 'Select an actual tracked Native owner input');
+    const native = validateSelection(selectTargets([path], {draft: false}));
+    assert.equal(gateJobRequired(native, 'native'), true);
+    assert.equal(native.moonTests, undefined, 'Native Host edits retain complete original Native profiles');
+  }
 });
 
 test('executed documentation Quickstart changes retain product owners while pure prose stays maintenance', () => {
