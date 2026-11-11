@@ -62,6 +62,21 @@ Validation or a projected wire alone establishes none of those observations.
 
 ## Representation and lifetime
 
+A complete managed representation copy preserves the original completion
+occurrence through the existing builder, receipt and publication bridge. The
+existing copy loop must commit every row, in order, from the same original
+owner and target. Partial, reordered, mixed-original or manually admitted rows
+cannot seal that association; equal row values or CIDs are insufficient. An
+empty original can transfer its occurrence without inventing row work. Failure
+or cancellation cannot issue a successful receipt.
+
+Only bounded identity, target and copy-progress metadata are retained, not the
+old row buffers or an additional output use. The common construction quote
+backs its 320 logical bytes using the existing representation tariffs and Task
+Ledger. The original and converted output still have their independent current,
+managed-generation, publication and cleanup fences. Sharing an occurrence does
+not grant execution, Model ownership or export authority.
+
 The Core record retains twelve fields and six bounded vectors: five snapshots
 of actual Result contract references, plus declared Result names from the
 admitted manifest. Existing decoded contracts and admitted Set facts are retained

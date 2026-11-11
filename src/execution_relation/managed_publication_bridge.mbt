@@ -217,8 +217,23 @@ pub fn[T] finish_managed_publication_bridge(
   bridge.rows.val = Some(rows)
   match complete_trusted_output(bridge.port, ()) {
     Ok(value) => {
-      bridge.completed = Some(value)
-      Ok(value)
+      // Only the existing full-copy rule can seal this original occurrence.
+      // Keep the bridge's readmission, generation and live callback unchanged.
+      let converted = match
+        bridge.output.material.receipt.completed_projection {
+        Some((identity, target)) if target == value.target &&
+          physical_equal(
+            bridge.output.material.receipt.owner,
+            @lower.sequence_owner(value.completion.sequence),
+          ) =>
+          {
+            ..value,
+            completion: { ..value.completion, result_identity: identity, },
+          }
+        _ => value
+      }
+      bridge.completed = Some(converted)
+      Ok(converted)
     }
     Err(issue) => {
       bridge.live.val = false

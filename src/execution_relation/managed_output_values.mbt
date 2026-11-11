@@ -16,6 +16,9 @@ struct ManagedOutputValues {
   mut column_nulls : Array[Int]
   mut reference_rows : Array[Array[Array[@admitted.ReferenceValue?]]]
   mut row_measurements : ManagedRowMeasurements?
+  // Only a complete ordered copy can transfer this original occurrence.
+  // No source rows, output use or physical availability are retained here.
+  mut completed_projection : (Ref[Unit], @pipeline.Target, Int, Int)?
   mut finish_started : Bool
   mut finish_cursor : ManagedOutputFinishCursor?
   max_value_bytes : Int
@@ -51,6 +54,7 @@ struct ManagedOutputValueReceipt {
   reference_rows : Array[Array[Array[@admitted.ReferenceValue]]]
   measured_depth : Int
   mut row_measurements : ManagedRowMeasurements?
+  completed_projection : (Ref[Unit], @pipeline.Target)?
 }
 
 ///|
@@ -71,6 +75,7 @@ pub fn prepare_managed_output_values(
   max_value_bytes : Int,
   measurement : FixedInputGuardMeasureLimits,
   working? : GeneratedSequence? = None,
+  completed_projection? : CompletedOutput? = None,
 ) -> Result[ManagedOutputValues, ManagedOutputValueIssue] {
   if max_value_bytes < 0 ||
     measurement.max_work < 0 ||
@@ -104,6 +109,26 @@ pub fn prepare_managed_output_values(
   if @managed_carrier.binding_kind(carrier_binding) != @carrier.RelationKind {
     return Err(Admission(InvalidCheckedRow))
   }
+  let projection = match completed_projection {
+    None => None
+    Some(source) => {
+      if !physical_equal(
+          @lower.sequence_owner(source.completion.sequence),
+          owner,
+        ) ||
+        source.target != target {
+        return Err(Admission(InvalidCheckedRow))
+      }
+      Some(
+        (
+          source.completion.result_identity,
+          source.target,
+          completed_row_count(source),
+          0,
+        ),
+      )
+    }
+  }
   Ok({
     carrier_binding,
     owner,
@@ -123,6 +148,7 @@ pub fn prepare_managed_output_values(
     column_nulls: Array::make(@schema.field_count(output.buffer.schema), 0),
     reference_rows: [],
     row_measurements: None,
+    completed_projection: projection,
     finish_started: false,
     finish_cursor: None,
     max_value_bytes,
@@ -159,6 +185,7 @@ pub fn request_managed_output_values_disposal(
   value.disposal_requested = true
   value.open = false
   value.buffer.open = false
+  value.completed_projection = None
 }
 
 ///|
@@ -388,9 +415,15 @@ pub fn append_completed_projection_managed_values(
   if stream.active_uses != 0 {
     return Err(Closed)
   }
-  with_managed_output_scratch_use(stream, fn() {
+  let previous = stream.completed_projection
+  let before = stream.rows
+  let result = with_managed_output_scratch_use(stream, fn() {
     append_completed_projection_managed_values_active(stream, output, row)
   })
+  retain_managed_completed_projection_row(
+    stream, output, row, previous, before, result,
+  )
+  result
 }
 
 ///|
@@ -466,11 +499,62 @@ pub fn append_completed_projection_managed_wire(
   if stream.active_uses != 0 {
     return Err(Closed)
   }
-  with_managed_output_scratch_use(stream, fn() {
+  let previous = stream.completed_projection
+  let before = stream.rows
+  let result = with_managed_output_scratch_use(stream, fn() {
     append_completed_projection_managed_wire_active(
       stream, output, row, wire, decode,
     )
   })
+  retain_managed_completed_projection_row(
+    stream, output, row, previous, before, result,
+  )
+  result
+}
+
+///|
+// The existing copy operation already checked this exact source and row.
+// Keep only its occurrence, and only while every appended row is the complete
+// same-source ordered prefix. This is not currentness or execution authority.
+fn retain_managed_completed_projection_row(
+  stream : ManagedOutputValues,
+  output : CompletedOutput,
+  row : Int,
+  previous : (Ref[Unit], @pipeline.Target, Int, Int)?,
+  before : Int,
+  result : Result[Unit, ManagedOutputValueIssue],
+) -> Unit {
+  if result is Err(_) {
+    if stream.open && stream.rows == before {
+      stream.completed_projection = previous
+    }
+    return
+  }
+  let count = completed_row_count(output)
+  if row != before ||
+    stream.rows != before + 1 ||
+    row >= count ||
+    !physical_equal(
+      @lower.sequence_owner(output.completion.sequence),
+      stream.owner,
+    ) ||
+    output.target != stream.target {
+    stream.completed_projection = None
+    return
+  }
+  let same = match previous {
+    None => before == 0
+    Some((identity, target, rows, copied)) =>
+      physical_equal(identity, output.completion.result_identity) &&
+      target == output.target &&
+      rows == count &&
+      copied == before
+  }
+  stream.completed_projection = if same {
+    Some((output.completion.result_identity, output.target, count, stream.rows))
+  } else {
+    None
+  }
 }
 
 ///|
@@ -525,6 +609,9 @@ fn managed_output_row_start(
     cancel_managed_output_values(stream) |> ignore
     return Err(MeasurementIndexLimit)
   }
+  // Manual/other admission cannot inherit a previous copy's provenance.
+  // The closed projection entrances restore it only after their real copy.
+  stream.completed_projection = None
   Ok(())
 }
 
@@ -734,10 +821,19 @@ fn issue_managed_output_value_receipt(
     reference_rows: cursor.references,
     measured_depth: stream.measurement.depth,
     row_measurements: stream.row_measurements,
+    completed_projection: stream.completed_projection.bind(tuple => {
+      let (identity, target, count, copied) = tuple
+      if count == stream.rows && copied == stream.rows {
+        Some((identity, target))
+      } else {
+        None
+      }
+    }),
   }
   // The receipt now owns the index. Later admission-scratch disposal must not
   // revoke or clear the separately retained successful output.
   stream.row_measurements = None
+  stream.completed_projection = None
   stream.finish_cursor = None
   Ok(receipt)
 }

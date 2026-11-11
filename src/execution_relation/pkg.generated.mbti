@@ -1162,7 +1162,7 @@ pub fn[T] prepare_managed_operation_read(@lowering_relation.BoundPrepared, Int, 
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
-pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits, working? : GeneratedSequence?) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
+pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits, working? : GeneratedSequence?, completed_projection? : CompletedOutput?) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
 
 pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int, deferred_reclamation? : Bool) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
 

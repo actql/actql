@@ -36,13 +36,14 @@ test "managed row scratch preserves original payload and cumulative work without
   append_admitted_output(original, [cell]).unwrap()
   assert_eq(growth.retained_outputs, Some(528L))
   let stream = metered_managed_scratch_stream(original, growth, 1000)
-  // Existing representation tariffs: fixed column/finish/row controls3528,
+  // Existing representation tariffs: fixed column/finish/row controls3528
+  // plus original-projection/bridge controls320,
   // schema traversal192 execution bytes, TWO largest rows2*528 retained.
-  assert_eq(growth.retained_outputs, Some(528L + 3528L))
+  assert_eq(growth.retained_outputs, Some(528L + 3528L + 320L))
   for _ in 0..<1000 {
     append_managed_output_values(stream, 1, _ => Some(cell)).unwrap()
   }
-  assert_eq(growth.retained_outputs, Some(528L + 3528L + 1056L))
+  assert_eq(growth.retained_outputs, Some(528L + 3528L + 320L + 1056L))
   assert_eq(stream.buffer.budget.nodes, 2000)
   assert_eq(stream.buffer.budget.text, 2000)
   assert_eq(stream.buffer.budget.work, 4000)
@@ -88,16 +89,16 @@ test "managed row scratch funds packed facts and refuses a truly occupied origin
         is Err(Admission(CaptureLimit)),
       )
       assert_true(finish_managed_output_values(stream) is Err(Closed))
-      assert_eq(growth.retained_outputs, Some(4056L))
+      assert_eq(growth.retained_outputs, Some(4056L + 320L))
       assert_eq(original.buffer.rows.length(), 1)
     } else {
       enable_managed_row_measurements(stream, 2).unwrap()
-      assert_eq(growth.retained_outputs, Some(4056L + 530L))
+      assert_eq(growth.retained_outputs, Some(4056L + 320L + 530L))
       append_managed_output_values(stream, 1, _ => Some(cell)).unwrap()
       append_managed_output_values(stream, 1, _ => Some(cell)).unwrap()
       let receipt = finish_managed_output_values(stream).unwrap()
       assert_eq(managed_output_measurement_index_cells(receipt), Some(2))
-      assert_eq(growth.retained_outputs, Some(4056L + 530L + 1056L))
+      assert_eq(growth.retained_outputs, Some(4056L + 320L + 530L + 1056L))
     }
     request_managed_output_values_disposal(stream)
     while !advance_managed_output_values_reclamation(stream, 1) {
@@ -129,7 +130,7 @@ test "managed packed scratch facts refuse capacity before allocation and retain 
     is Err(Admission(CaptureLimit)),
   )
   assert_true(stream.row_measurements is None)
-  assert_eq(growth.retained_outputs, Some(4056L))
+  assert_eq(growth.retained_outputs, Some(4056L + 320L))
   assert_eq(original.buffer.rows.length(), 1)
   request_managed_output_values_disposal(stream)
   while !advance_managed_output_values_reclamation(stream, 1) {
@@ -177,7 +178,10 @@ test "nested schema scratch keeps one actual reservation and mandatory first ref
       prepare_managed_output_scratch(budget, output.buffer.schema),
       !refuse,
     )
+    // One existing funded page covers the fixed controls and schema workspace.
+    // Refusal of that first reservation must leave both quantities unchanged.
     assert_eq(calls.val, 1)
+    assert_eq(growth.retained_outputs, Some(if refuse { 0L } else { 320L }))
     assert_eq(growth.text, if refuse { 0L } else { 192L })
     // The nested reference still requires the complete original path. Neither
     // a funded proof stack nor its reuse establishes reference availability.

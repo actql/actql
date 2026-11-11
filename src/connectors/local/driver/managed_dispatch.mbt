@@ -2001,6 +2001,7 @@ pub fn[T] start_local_managed_dispatch(
           } else {
             None
           },
+          completed_projection=ordinary.val,
         ) {
         Ok(value) => value
         Err(issue) => return Err(ManagedValues(issue))

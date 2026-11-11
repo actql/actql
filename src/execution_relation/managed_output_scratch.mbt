@@ -25,6 +25,30 @@ fn prepare_managed_output_scratch(
   guard budget.retention is Some(growth) && growth.retained_outputs is Some(_) else {
     return true
   }
+  // Original-projection tuples/nullable overlap and the bridge's completion
+  // aliases. These are fixed references/scalars, never another payload copy.
+  guard preparation_representation_cost({
+      record_headers: 6L,
+      reference_slots: 24L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(control) &&
+    checked_preparation_add_product(
+      growth.retained_outputs.unwrap(),
+      control,
+      1L,
+    )
+    is Some(retained) &&
+    grow_workspace(
+      growth,
+      growth.slots,
+      growth.logical,
+      retained=Some(retained),
+    ) else {
+    return false
+  }
   let proof_peak = Ref(0L)
   let reference_free = managed_schema_reference_free(
     schema,
