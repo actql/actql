@@ -7,7 +7,8 @@ import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture}
   from './native-project-configuration-fixture.mjs';
-import {nativeClientFileResponseTestFile} from './native-core-test-selection.mjs';
+import {nativeClientFileResponseTestFile, nativeCoreScopedTestEnvironment}
+  from './native-core-test-selection.mjs';
 
 test('Native staged import quote belongs only to its exact scoped Request case', () => {
   const wrapper = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
@@ -43,6 +44,7 @@ test('Native staged import quote belongs only to its exact scoped Request case',
       physical: {ACTQL_TEST_INSTALLED_PROCESS_ROOT: '/original/physical'},
       content: {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: '2', ACTQL_TEST_NATIVE_STORE_ROOT: '/original/content'},
       nativeClientFileResponseTestFile,
+      nativeCoreScopedTestEnvironment,
       fileReceiptCheckpoint: {ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE: 'original-file-receipt'},
       test: {source: selectedSource, index},
     });
