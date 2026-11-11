@@ -17,6 +17,7 @@ const roots = [resolve('.actql'), resolve('mock')];
 const descriptorsBefore = await observeRecordApprovalDescriptors(roots);
 assert.equal(descriptorsBefore.openPaths.length, 0);
 let client, failed = false, primary, closeFailed = false, closeFailure, closeReturned = false;
+let diagnosticFailed = false, diagnosticFailure;
 try {
   client = await connect({mode: 'local', installation: {directory: '.actql'}, profile: 'mock'});
   const execution = await client.attach(original.ref);
@@ -41,15 +42,24 @@ try {
     dev: String(info.dev), ino: String(info.ino), size: String(info.size), mtimeNs: String(info.mtimeNs),
   }}, original.before);
 } catch (error) {failed = true; primary = error;}
+// Preserve the original outcome BEFORE the FIRST close await. A slow or
+// failed close cannot replace that outcome or erase the cancellation receipt.
+try {
+  await writeFile(handoffPath + '.cancel.before-close.json', JSON.stringify({
+    phase: 'cancel', failed, primaryCode: primary?.code,
+    firstClose: {attempted: false, returned: false},
+  }) + '\n', {mode: 0o600, flag: 'wx'});
+} catch (error) {diagnosticFailed = true; diagnosticFailure = error;}
 if (client !== undefined) {
   try {await client.close(); closeReturned = true;}
   catch (error) {closeFailed = true; closeFailure = error;}
 }
 const descriptorsAfter = await observeRecordApprovalDescriptors(roots);
 const fdClosed = descriptorsAfter.openPaths.length === 0;
-console.log(JSON.stringify({phase: 'cancel', status: failed || closeFailed || !fdClosed ? 'failed' : 'passed',
+console.log(JSON.stringify({phase: 'cancel', status: failed || closeFailed || diagnosticFailed || !fdClosed ? 'failed' : 'passed',
   code: primary?.code, cleanupCode: closeFailure?.code,
+  diagnosticCode: diagnosticFailure?.code,
   firstClose: {attempted: client !== undefined, returned: closeReturned},
   aliveScopedFD: {before: descriptorsBefore.openPaths.length, after: descriptorsAfter.openPaths.length},
   qualification: 'Public cancellation/first close; descriptor observation alone is not cleanup acknowledgement'}));
-if (failed || closeFailed || !fdClosed) process.exitCode = 1;
+if (failed || closeFailed || diagnosticFailed || !fdClosed) process.exitCode = 1;
