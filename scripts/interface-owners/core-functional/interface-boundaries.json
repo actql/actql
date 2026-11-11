@@ -18259,7 +18259,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "10d2869a27c45df0d58951dcfd3dfb3679b68bf6445beb48e65d64a5bb5f1570",
+      "sha256": "cb705515875684ca77eb2d1bd46fbc020ba6ea2ae12b21f68623667a3a9531ea",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -18816,6 +18816,10 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
               }
             ]
           }
@@ -18991,6 +18995,10 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
               }
             ]
           }
@@ -19157,6 +19165,10 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
               }
             ]
           }
@@ -19309,6 +19321,10 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
               }
             ]
           }
@@ -19429,6 +19445,10 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "composed private Compute transfers the same complete original evidence to the existing final publisher"
               }
             ]
           }

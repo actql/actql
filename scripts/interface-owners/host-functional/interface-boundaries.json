@@ -44873,7 +44873,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fab9cf7e62aa8210352ae7c124072dbbb948b55f33041dc6f127dd572539e238",
+      "sha256": "94b0abf3df866eb89abdf1cec5925f859ace21e90af0d262f9d783b3c53c17e7",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -44938,7 +44938,8 @@
             "setup",
             "options",
             "signal",
-            "observer"
+            "observer",
+            "cleanup"
           ],
           "async": false
         },
@@ -45308,6 +45309,10 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "internal composed entry preserves the original fifth cleanup envelope without public Result mode"
               }
             ]
           }
@@ -45468,6 +45473,10 @@
               {
                 "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
                 "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "internal composed entry preserves the original fifth cleanup envelope without public Result mode"
               }
             ]
           }

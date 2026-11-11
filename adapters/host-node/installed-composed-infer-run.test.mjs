@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 
 function beforeInstallation({failClose = false, retainedBytes = 0n, abort = false} = {}) {
@@ -138,7 +140,7 @@ test('composed driver cleanup recovers without awaiting its rejected close again
     const entry = new URL('./adapters/host-node/entry.mjs', 'file://' + process.cwd() + '/').href;
     const hook = registerHooks({load(url, context, next) {
       if (url === entry) return {format: 'module', shortCircuit: true,
-        source: 'export async function runCapturedStrategy() {return globalThis.composedTestExecution;}'};
+        source: 'export async function runCapturedInternalStrategy() {return globalThis.composedTestExecution;}'};
       return next(url, context);
     }});
     const {runInstalledComposedInfers} = await import('./adapters/host-node/installed-composed-infer-run.mjs');
@@ -166,4 +168,146 @@ test('composed driver cleanup recovers without awaiting its rejected close again
     assert.equal(retries, 1);
   `], {cwd: fileURLToPath(new URL('../../', import.meta.url)), encoding: 'utf8', timeout: 30000});
   assert.equal(child.status, 0, child.stdout + child.stderr);
+});
+
+
+// Execute the original coordinators with explicit nominal/physical ports.
+// These controls qualify the JS handoff, not Common execution or a close ACK.
+function composedSourceFunction(path, name, ports) {
+  const text = readFileSync(new URL(path, import.meta.url), 'utf8');
+  const node = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .map(node => node.declaration ?? node)
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+  assert(node);
+  return Function(...Object.keys(ports), `return (${text.slice(node.start, node.end)});`)(...Object.values(ports));
+}
+
+test('internal composed entry preserves the original fifth cleanup envelope without public Result mode', async () => {
+  const setup = {}, holder = {}, owner = {}, signal = new AbortController().signal;
+  const cleanup = {preparationHolder: holder, retainPreflightCleanup(actual) {assert.strictEqual(actual, owner);}};
+  const poison = {retainPreflightCleanup() {assert.fail('options cannot replace installed cleanup');}};
+  const native = {}, install = () => assert.fail('no installation in this Source control');
+  let loads = 0;
+  const create = composedSourceFunction('./entry.mjs', 'createNodeHostEntry', {
+    runCapturedStrategyTarget(facts) {
+      assert.strictEqual(facts.setup, setup); assert.strictEqual(facts.control.signal, signal);
+      assert.strictEqual(facts.cleanup, cleanup); assert.strictEqual(facts.composition.install, install);
+      assert.equal(facts.results.publishCheckedResults, false);
+      assert.notStrictEqual(facts.cleanup, facts.options.cleanup);
+      facts.cleanup.retainPreflightCleanup(owner);
+      return facts;
+    },
+  });
+  const entry = create(async () => {loads++; return native;}, install);
+  const facts = await entry.runCapturedInternalStrategy(setup, {cleanup: poison}, signal, undefined, cleanup);
+  assert.equal(loads, 0);
+  assert.strictEqual(await facts.composition.loadRuntime(), native);
+  assert.strictEqual(await facts.composition.loadRuntime(), native);
+  assert.equal(loads, 1);
+});
+
+async function composedPublicationHandoff({complete = true, preflight = false} = {}) {
+  const events = [], setup = {}, preparedProgram = {}, graph = {}, occurrence = {};
+  const operation = {}, issuance = {}, sourceEvidence = {}, modelEvidence = {}, store = {}, control = {};
+  const captured = {capture: {retainTask(actual, task) {assert.strictEqual(actual, setup); assert.equal(task, 0);}}};
+  const selection = {graph, occurrence}, component = {provider: {}};
+  const original = {selection, component};
+  const parent = {components: [original], preparationHolder: {}, retain() {events.push('retain-parent');},
+    openCapturedHost(captures) {assert.deepEqual(captures, [captured]); return setup;},
+    async retire() {events.push('retire-parent'); return true;}};
+  const plan = {runDefinition: {wire: '{"run_id":"same-original-run"}'}};
+  const execution = {status: 'host-tasks-completed'};
+  const observation = {name: 'observation', wire: 'original-observation', identity: 'observation-cid'};
+  const invocation = {name: 'invocation', wire: 'original-invocation', identity: 'invocation-cid'};
+  const finalPlan = {originalEvidence: {}};
+  let context, retainedOwner, publishes = 0, cleanupRetries = 0;
+  const primary = new Error('OriginalComposedPreflightRefusal');
+  const partial = {status: () => ({pending: cleanupRetries < 2}),
+    async retry() {cleanupRetries++; events.push('retry-original-partial');}};
+  component.bindOriginal = actual => {context = actual;};
+  const moon = {clientProgramResultCount: () => 0, strategyHostRun: actual => actual,
+    clientProgramInferPlanBoundary: () => [0], clientProgramAdvanceInferObservationIssuance(actual) {
+      assert.strictEqual(actual, issuance); events.push('seal-original'); return [true];
+    }};
+  control.admitComposedInferSources = (actual, captures, evidence) => {
+    assert.strictEqual(actual, occurrence); assert.deepEqual(captures, [captured]);
+    assert.deepEqual(evidence, [sourceEvidence]); return {};
+  };
+  control.modelPrivateHoldingCid = (definition, authority, name) => {
+    assert.strictEqual(definition, plan.runDefinition); return name;
+  };
+  const run = composedSourceFunction('./installed-composed-infer-run.mjs', 'runInstalledComposedInfers', {
+    runtimeField: (value, index) => value[index], checked: value => value,
+    withLocalExecutionPauseHandler: value => value,
+    runCapturedStrategy() {assert.fail('intermediate Model driver cannot request public checked Result mode');},
+    async runCapturedInternalStrategy(actual, options, signal, observer, cleanup) {
+      assert.strictEqual(actual, setup); assert.strictEqual(cleanup.preparationHolder, parent.preparationHolder);
+      assert.equal(typeof cleanup.retainPreflightCleanup, 'function'); events.push('private-compute');
+      if (preflight) {cleanup.retainPreflightCleanup(partial); throw primary;}
+      context.retainOperation(operation);
+      if (complete) assert.equal(context.retainCompleted(), true);
+      return execution;
+    },
+    openNodeInferCaptureCustody: () => ({retainCompleted(actual) {assert.strictEqual(actual, operation); return true;},
+      completedCallCount: () => 1, async persist() {events.push('persist-capture');}, modelEvidence: () => [modelEvidence]}),
+    startCompleteInferObservation(facts) {
+      assert.deepEqual(facts.operations, [operation]); assert.equal(facts.maxSlots, 1); return issuance;
+    },
+    inferTaskPublicationPlan(facts) {
+      assert.strictEqual(facts.preparedProgram, preparedProgram); assert.strictEqual(facts.admitted, plan);
+      assert.strictEqual(facts.operation, operation); assert.strictEqual(facts.issuance, issuance);
+      assert.deepEqual(facts.sourceEvidence, [sourceEvidence]); assert.deepEqual(facts.modelEvidence, [modelEvidence]);
+      events.push('publication-plan'); return {observation, invocation, plan: finalPlan};
+    },
+    preparePrivatePublicationHolding(actual, facts) {
+      assert.strictEqual(actual, store);
+      assert([observation, invocation].some(value => value.wire === facts.wire && value.identity === facts.semanticCid));
+      return {async commit() {events.push('commit-' + facts.name);}};
+    },
+    async publishCompletedEffectFreeRun(facts) {
+      assert.strictEqual(facts.originalEvidence, finalPlan.originalEvidence);
+      assert.strictEqual(facts.execution, execution); assert.strictEqual(facts.store, store); assert.strictEqual(facts.control, control);
+      assert.deepEqual(events.slice(-2), ['commit-observation', 'commit-invocation']);
+      publishes++; events.push('publish');
+    },
+    async projectInferEvidence(facts) {assert.strictEqual(facts.operation, operation); events.push('project');},
+  });
+  const promise = run({moon, control, preparedProgram, plan, selected: {components: [selection]}, store,
+    acquiredInfer: {captured, sourceEvidence}, originalPreparation: parent,
+    modelController: {discover: () => []}, computeConfigurations: {}, signal: new AbortController().signal,
+    retainExecution(value) {retainedOwner = value;}, beginPhysicalWork() {events.push('begin');}});
+  if (preflight) {
+    await assert.rejects(promise, error => error === primary);
+    assert.equal(await retainedOwner.cleanup(), false);
+    assert.equal(retainedOwner.cleanupPending(), true);
+    assert.equal(await retainedOwner.cleanup(), true);
+    assert.equal(retainedOwner.cleanupPending(), false);
+    assert.equal(await retainedOwner.cleanup(), true);
+    assert.equal(cleanupRetries, 2, 'same retained partial settles once; no replacement setup');
+    assert.equal(publishes, 0);
+    return events;
+  }
+  if (complete) await promise;
+  else await assert.rejects(promise, /InstalledComposedInferOriginalObservationUnavailable/u);
+  assert.equal(retainedOwner.cleanupPending(), true, 'publication does not issue a physical cleanup ACK');
+  assert.equal(publishes, complete ? 1 : 0);
+  return events;
+}
+
+test('composed private Compute transfers the same complete original evidence to the existing final publisher', async () => {
+  const events = await composedPublicationHandoff();
+  assert(events.indexOf('seal-original') < events.indexOf('persist-capture'));
+  assert(events.indexOf('persist-capture') < events.indexOf('publication-plan'));
+  assert.deepEqual(events.slice(-2), ['publish', 'project']);
+});
+
+test('composed private Compute without its original complete issuance cannot publish a Result', async () => {
+  const events = await composedPublicationHandoff({complete: false});
+  assert.equal(events.includes('publication-plan'), false);
+  assert.equal(events.includes('publish'), false);
+});
+
+test('composed private preflight preserves the same failed owner until its actual retry settles', async () => {
+  const events = await composedPublicationHandoff({preflight: true});
+  assert.deepEqual(events.slice(-3), ['retry-original-partial', 'retry-original-partial', 'retire-parent']);
 });

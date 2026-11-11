@@ -2,7 +2,7 @@
 // Local owns scheduling; the original Model journal owns each physical send.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {runCapturedStrategy} from './entry.mjs';
+import {runCapturedInternalStrategy} from './entry.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {openNodeComposedInferProvider, startCompleteInferObservation} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
@@ -449,7 +449,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint};
   });
   beginPhysicalWork();
-  execution = await runCapturedStrategy(setup, {...computeConfigurations, local}, signal, undefined,
+  // This driver computes intermediate Model output. The SAME complete original
+  // observation and invocation are published below by the final Run owner.
+  execution = await runCapturedInternalStrategy(setup, {...computeConfigurations, local}, signal, undefined,
     installedCaptured ? {preparationHolder: originalPreparation.preparationHolder,
       retainPreflightCleanup(owner) {
         if (preflightCleanup !== undefined || pendingSetup !== setup) {

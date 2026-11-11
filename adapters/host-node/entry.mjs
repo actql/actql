@@ -203,9 +203,9 @@ export function createNodeHostEntry(loadRuntime, install) {
     runCapturedStrategy: (setup, options = {}, signal, observer, cleanup) =>
       runCapturedStrategyTarget({setup, options, composition,
         control: {signal, observer}, results: {publishCheckedResults: true}, cleanup}),
-    runCapturedInternalStrategy: (setup, options = {}, signal, observer) =>
+    runCapturedInternalStrategy: (setup, options = {}, signal, observer, cleanup) =>
       runCapturedStrategyTarget({setup, options, composition,
-        control: {signal, observer}, results: {publishCheckedResults: false}}),
+        control: {signal, observer}, results: {publishCheckedResults: false}, cleanup}),
     runCapturedEffectComputation: (
       owner, options = {}, signal, observer, cleanup,
     ) => runCapturedEffectComputationTarget({owner, options, composition,
