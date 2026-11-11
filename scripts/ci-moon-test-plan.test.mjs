@@ -203,6 +203,9 @@ test('Native file transport retains the original compiler inventory and refuses 
   assert.throws(() => nativeMoonPackages(environment, {...options, discover: () => ({})}), /Changed/u);
   writeFileSync(path, '{');
   assert.throws(() => nativeMoonPackages(environment, options), SyntaxError);
+  writeFileSync(path, 'null');
+  assert.throws(() => nativeMoonPackages(environment, options), TypeError);
+  assert.throws(() => nativeMoonPackages({...environment, CI_PLAN_PATH: '', CI_PLAN: 'null'}, options), TypeError);
 });
 
 test('raw additions/deletions/renames/modes and omitted mixed changes refuse before graph discovery', () => {

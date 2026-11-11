@@ -26,7 +26,8 @@ export function originalMoonTestPlan(plan, base, {cwd = process.cwd(),
 export function nativeMoonPackages(environment = process.env, {cwd = process.cwd(),
   readEvent = path => JSON.parse(readFileSync(path, 'utf8')), ...options} = {}) {
   const plan = readCiInput('CI_PLAN', environment);
-  if (!plan?.selection?.moonTests) return undefined;
+  if (plan === undefined) return undefined;
+  if (!plan.selection?.moonTests) return undefined;
   assert.equal(environment.GITHUB_EVENT_NAME, 'pull_request');
   const base = readEvent(environment.GITHUB_EVENT_PATH).pull_request.base.sha;
   return originalMoonTestPlan(plan, base, {cwd, ...options}).packages;
