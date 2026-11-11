@@ -609,12 +609,9 @@ fn open_original_relation_file_work_selected(
           () => access.require_start_current(start) is Ok(_),
           require_live=Some(() => access.poll_execution_original(start)),
         )
-      WholeFileExecution(_, _, _) if @strategy.graph_task_count(
-          @strategy.captured_dag_graph(run),
-        ) ==
-        1 => {
+      WholeFileExecution(_, _, _) => {
         // A complete Source is the original root's supplied input, not a
-        // source-free root. Use the existing single-task executor that keeps
+        // source-free root. Use the existing task loop that keeps
         // that same input/DAG and checks current through finalization.
         guard access.source is WholeRelationFile(_, _, _, managed, _, _) else {
           return Err(unstarted(Configuration))
@@ -629,14 +626,6 @@ fn open_original_relation_file_work_selected(
           () => access.require_start_current(start) is Ok(_),
         )
       }
-      WholeFileExecution(_, _, _) =>
-        @local.execute_source_free_local_tasks_guarded(
-          setup,
-          quantum,
-          max_rounds,
-          () => access.require_start_current(start) is Ok(_),
-          require_live=Some(() => access.poll_execution_original(start)),
-        )
     }) {
     Err(failure) =>
       return Err(

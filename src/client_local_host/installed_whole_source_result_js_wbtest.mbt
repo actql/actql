@@ -8,9 +8,28 @@ fn whole_source_result_publication_fixture(
   filtered_rows? : Bool = false,
   native_geometry? : Bool = false,
   native_execution? : Bool = false,
+  numeric_case? : Bool = false,
+  source_free_refusal? : Bool = false,
 ) -> Unit raise {
-  let declaration = pure_provider_declaration()
-  let document = if filtered_rows {
+  let declaration = if numeric_case {
+    let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 10,
+      max_fields: 100,
+    }).unwrap()
+    let (query_name, original) = @row_source_host.mock_churn_risk_query_alias_at(
+      catalogue, 1,
+    ).unwrap()
+    assert_eq(query_name, "snowflake.usage_30d")
+    original
+  } else {
+    pure_provider_declaration()
+  }
+  let document = if numeric_case {
+    "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d"
+  } else if filtered_rows {
     (
       #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 1","as":"eligible"},{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
     )
@@ -23,34 +42,105 @@ fn whole_source_result_publication_fixture(
       #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
     )
   }
-  let (parent, child, _, input) = registration_parent_fixture(
-    text=document,
-    environment=Some(pure_provider_environment(declaration)),
-  )
-  guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
-    fail("unfiltered whole Source must check")
+  let (parent, prepared, input) = if numeric_case {
+    // Same shipped profile selected by the actual Native default entrance;
+    // this existing fixed CID also pins the original numeric task fixtures.
+    let environment = pure_provider_environment(
+      declaration,
+      numeric_profile_cid=Some(
+        "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+      ),
+    )
+    let view = declaration.views[0]
+    let wire : Json = {
+      "environmentCid": Json::string(
+        @checked.checking_environment_cid(environment),
+      ),
+      "aliases": [
+        {
+          "name": "snowflake.usage_30d",
+          "sourceRef": Json::string(view.source_ref),
+          "sourceViewContractCid": Json::string(view.view_cid),
+          "schemaContractCid": Json::string(view.carrier_schema_cid),
+        },
+      ],
+    }
+    let publication = @source_publication.prepare_published_query_environment(
+      environment,
+      wire.stringify(),
+    ).unwrap()
+    let captured : Json = { "format": "sql", "text": Json::string(document) }
+    let captured = captured.stringify()
+    let (parent, input) = native_driver_parent(captured)
+    match
+      prepare_request_native_source_computation(
+        parent,
+        input,
+        request_native_test_value(captured),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+      ) {
+      Ok(Pure) => ()
+      Ok(_) => fail("original CASE must retain Pure computation")
+      Err(original) => {
+        let cause : Error = original
+        fail("original CASE Request: " + @debug.to_string(cause))
+      }
+    }
+    let prepared = parent.compiled_program.unwrap()
+    assert_eq(
+      @strategy.graph_task_count(
+        @publication_host.prepared_client_graph(prepared),
+      ),
+      2,
+    )
+    (parent, prepared, input)
+  } else {
+    let (parent, child, _, input) = registration_parent_fixture(
+      text=document,
+      environment=Some(pure_provider_environment(declaration)),
+    )
+    guard finish_program_check_preparation(child).unwrap()
+      is @checked.Checked(_) else {
+      fail("unfiltered whole Source must check")
+    }
+    let prepared = compile_program_check_preparation(
+      child,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+    (parent, prepared, input)
   }
-  let prepared = compile_program_check_preparation(
-    child,
-    @publication_host.client_standard_program_preparation_limits(),
-  ).unwrap()
-  assert_true(
-    physical_equal(
-      continue_request_program_preparation(parent, input).unwrap(),
-      prepared,
-    ),
-  )
+  if !numeric_case {
+    assert_true(
+      physical_equal(
+        continue_request_program_preparation(parent, input).unwrap(),
+        prepared,
+      ),
+    )
+  }
   reserve_request_program_plan(parent, input).unwrap()
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
     "whole-source-plan",
   ).unwrap()
+  let assets = @publication_host.client_local_product_assets()
+  let (registry_body, values_body, fragment_body, ordered_body) = if numeric_case {
+    (assets.registry, assets.values, Some(assets.fragment), assets.ordered)
+  } else {
+    (
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+    )
+  }
   let contracts = prepare_installed_sequence_contracts(
-    source_query_original_registry,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
+    registry_body, values_body, fragment_body, ordered_body,
   ).unwrap()
   let provider = installed_json_source_reader_capacity(
     [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4],
@@ -82,7 +172,11 @@ fn whole_source_result_publication_fixture(
         max_work: 1000000,
       },
       wire: {
-        max_columns: 1,
+        max_columns: if numeric_case {
+          3
+        } else {
+          1
+        },
         max_order_work: 10000,
         max_bytes: 20000,
         max_nodes: 10000,
@@ -98,9 +192,9 @@ fn whole_source_result_publication_fixture(
     4096L,
     4096L,
     contracts,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
+    values_body,
+    fragment_body,
+    ordered_body,
     retained_output~,
     provider_factory=_ => [],
   ).unwrap()
@@ -211,7 +305,11 @@ fn whole_source_result_publication_fixture(
     )
     assert_eq(
       @row_source_host.row_input_acquisition_target_resource(source.acquisition),
-      "records",
+      if numeric_case {
+        "usage_30d"
+      } else {
+        "records"
+      },
     )
     let tasks = @strategy.graph_task_count(physical).to_int64()
     let ports = @strategy.graph_data_count(physical).to_int64()
@@ -282,11 +380,45 @@ fn whole_source_result_publication_fixture(
   @row_source_host.bind_row_run_response_borrow_cleanup(responses, () => {
     stopped.val
   }).unwrap()
-  let body = @utf8.encode("[{\"id\":2},{\"id\":1}]")
+  let body = @utf8.encode(
+    if numeric_case {
+      whole_native_numeric_source_document
+    } else {
+      "[{\"id\":2},{\"id\":1}]"
+    },
+  )
   let charge = @row_source_host.charge_row_run_page(run, body).unwrap()
-  @row_source_host.accept_charged_row_run_page(run, charge, body).unwrap()
-  |> ignore
-  @row_source_host.finish_row_run(run).unwrap()
+  if numeric_case {
+    // Same original complete-file projection/typed int64 conversion as the
+    // Native file reader, before the charged whole-input Row acceptance.
+    let document = @row_source_host.admit_relation_document(
+      body,
+      { max_bytes: 4096, max_nodes: 1000, max_depth: 20, max_rows: 128, },
+      10000000,
+    ).unwrap()
+    let target = @row_source_host.project_relation_target_document(
+      document,
+      declaration,
+      "usage_30d",
+      ["snowflake", "usage_30d", "rows"],
+      Some(["snowflake", "usage_30d", "key"]),
+      "account_id",
+      [],
+    ).unwrap()
+    @row_source_host.accept_charged_relation_input_document(
+      run, charge, acquisition, target, 10000000,
+    ).unwrap()
+    |> ignore
+    @row_source_host.finish_row_run(run).unwrap()
+    assert_true(
+      @row_source_host.discard_relation_target_document_original(target),
+    )
+    assert_true(@row_source_host.discard_relation_document_original(document))
+  } else {
+    @row_source_host.accept_charged_row_run_page(run, charge, body).unwrap()
+    |> ignore
+    @row_source_host.finish_row_run(run).unwrap()
+  }
   @row_source_host.begin_row_capture(run).unwrap()
   let mut ready = false
   for _ in 0..<10000 {
@@ -386,6 +518,36 @@ fn whole_source_result_publication_fixture(
     request,
     [captured],
   ).unwrap()
+  if source_free_refusal {
+    let before = @resources.ledger_usage(owner.ledger.unwrap()).attempts
+    let rejected = execute_source_free_local_tasks_guarded(host, 64, 10000, () => {
+      true
+    })
+    guard rejected is Err(original) else {
+      fail("a Whole input cannot supply the Source-free entrance")
+    }
+    assert_true(
+      local_values_execution_failure_issue(original) is UnsupportedGraph,
+    )
+    assert_true(retry_local_values_execution_failure_cleanup(original))
+    assert_false(@strategy.captured_task_completed(dag, 0))
+    assert_eq(@resources.ledger_usage(owner.ledger.unwrap()).attempts, before)
+    assert_true(retire_installed_source_read(read) is Err(_))
+    stopped.val = true
+    let mut retired = false
+    for _ in 0..<10000 {
+      if retire_installed_source_read(read) is Ok(_) {
+        retired = true
+        break
+      }
+    }
+    assert_true(retired)
+    assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+    @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    return
+  }
   let publication = reserve_program_publication(owner, prepared).unwrap()
   if native_execution {
     let foreign = { ..owner, }
@@ -479,14 +641,22 @@ fn whole_source_result_publication_fixture(
       fail("whole result execution: " + label)
     }
   }
-  assert_eq(
-    execution.rows().unwrap(),
-    if filtered_rows {
-      ["{\"id\":2}"]
-    } else {
-      ["{\"id\":2}", "{\"id\":1}"]
-    },
-  )
+  if numeric_case {
+    // Match the original ordinary observer's independent JSON value oracle;
+    // object property order is not part of that caller's assertion.
+    assert_eq(execution.rows().unwrap().map(row => @json.parse(row)), [
+      @json.parse("{\"total\":16,\"average\":8}"),
+    ])
+  } else {
+    assert_eq(
+      execution.rows().unwrap(),
+      if filtered_rows {
+        ["{\"id\":2}"]
+      } else {
+        ["{\"id\":2}", "{\"id\":1}"]
+      },
+    )
+  }
   assert_true(@strategy.captured_task_completed(dag, 0))
   let export_limits = installed_managed_publication_limits(
     owner, prepared, 10000000,
@@ -573,14 +743,21 @@ fn whole_source_result_publication_fixture(
   wire.write_string(stream.finish().unwrap())
   // No authored/inherited order exists: the checked Result uses its
   // canonical field ordering, independently of physical input arrival.
-  assert_eq(
-    wire.to_string(),
-    if filtered_rows {
-      "[{\"id\":2}]"
-    } else {
-      "[{\"id\":1},{\"id\":2}]"
-    },
-  )
+  if numeric_case {
+    assert_eq(
+      @json.parse(wire.to_string()),
+      @json.parse("[{\"total\":16,\"average\":8}]"),
+    )
+  } else {
+    assert_eq(
+      wire.to_string(),
+      if filtered_rows {
+        "[{\"id\":2}]"
+      } else {
+        "[{\"id\":1},{\"id\":2}]"
+      },
+    )
+  }
   assert_true(physical_equal(publication.run.unwrap(), dag))
   stream
   .issue_result_evidence(
@@ -696,3 +873,29 @@ test "Native Whole execution retains its bound Plan and refuses copied or unboun
     native_execution=true,
   )
 }
+
+///|
+test "original Native File CASE16 and AVG8 executes both Whole tasks through publication and cleanup" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    native_geometry=true,
+    native_execution=true,
+    numeric_case=true,
+  )
+}
+
+///|
+test "original Whole input cannot enter Source-free task execution or spend another attempt" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    native_geometry=true,
+    numeric_case=true,
+    source_free_refusal=true,
+  )
+}
+
+///|
+// Exact authored mock/data.json from the tracked churn-risk-mock template.
+let whole_native_numeric_source_document : String = "{\n  \"salesforce\": {\n    \"Account\": {\n      \"key\": [\n        \"id\"\n      ],\n      \"rows\": [\n        {\n          \"id\": \"001Acme\",\n          \"name\": \"Acme Corp\",\n          \"description\": \"Evaluating a competitor; usage down since June.\",\n          \"Churn_Risk__c\": \"low\",\n          \"Risk_Reason__c\": null\n        },\n        {\n          \"id\": \"001Globex\",\n          \"name\": \"Globex Inc\",\n          \"description\": \"Several support tickets about the new pricing.\",\n          \"Churn_Risk__c\": \"medium\",\n          \"Risk_Reason__c\": null\n        }\n      ]\n    }\n  },\n  \"snowflake\": {\n    \"usage_30d\": {\n      \"key\": [\n        \"account_id\"\n      ],\n      \"rows\": [\n        {\n          \"account_id\": \"001Acme\",\n          \"active_users\": 4,\n          \"trend\": \"down\"\n        },\n        {\n          \"account_id\": \"001Globex\",\n          \"active_users\": 12,\n          \"trend\": \"flat\"\n        }\n      ]\n    }\n  }\n}\n"

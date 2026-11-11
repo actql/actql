@@ -27,6 +27,7 @@ fn pure_provider_declaration() -> @row_source_host.RowDeclaration {
 ///|
 fn pure_provider_environment(
   declaration : @row_source_host.RowDeclaration,
+  numeric_profile_cid? : String? = None,
 ) -> @checked.CheckEnvironment raise {
   let parsed = @json.parse(source_query_original_environment)
   guard parsed is Object(base) else { fail("fixture Environment") }
@@ -79,6 +80,7 @@ fn pure_provider_environment(
     evidence,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile_cid~,
   ).unwrap()
 }
 
