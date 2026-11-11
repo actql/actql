@@ -125,6 +125,29 @@ export function localResourceLookupExecutionPolicy(moon, original, selected) {
     max_total_response_bytes: Math.min(policy.max_total_response_bytes, Number(transfer))});
 }
 
+// The materializing Local Task and SDK collection share one installed byte
+// policy. Common derives its necessary row ceiling; this projection grants
+// no allocation or permission. Streaming keeps per-row/wire/batch backpressure,
+// not collection's cumulative retained-row/byte ceiling.
+export function localResourceResultReadLimits(moon) {
+  const original = moon.clientLocalResourcePolicyOriginal();
+  const limits = moon.clientLocalPreparationResourceLimits(original);
+  const maxRows = moon.clientLocalResourcePolicyRowCeiling(original);
+  if (!Array.isArray(limits) || limits.length !== 6 ||
+      [limits[3], limits[4]].some(value => typeof value !== 'bigint' ||
+        value < 1n || value > BigInt(Number.MAX_SAFE_INTEGER)) ||
+      !Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 2147483647) {
+    fail('LocalResultReadPolicyProjection');
+  }
+  const maxReadWireBytes = Math.min(10 * 1024 * 1024, Number(limits[3]));
+  const maxRetainedValueBytes = Number(limits[4]);
+  return Object.freeze({maxReadWireBytes,
+    maxRowWireBytes: Math.min(1024 * 1024, maxReadWireBytes),
+    maxRowRetainedValueBytes: Math.min(1024 * 1024, maxRetainedValueBytes),
+    maxRetainedValueBytes, maxRows, maxBatchRows: 1000,
+    maxBatchRetainedValueBytes: Math.min(10 * 1024 * 1024, maxRetainedValueBytes)});
+}
+
 export function selectInstalledHostEnvironment(moon, baseWire, selection, lookupSelection) {
   const policy = snapshotHostCapacityPolicy(selection);
   const lookup = snapshotHostLookupExecutionPolicy(lookupSelection);

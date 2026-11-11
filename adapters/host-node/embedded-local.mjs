@@ -20,7 +20,7 @@ import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
-  selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy} from './installed-host-policy.mjs';
+  selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy, localResourceResultReadLimits} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {mkdir, readFile, stat} from 'node:fs/promises';
@@ -2418,14 +2418,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
     // One installed read policy supplies negotiation and the authorized
     // delivery grant. Publication output bounds are a separate purpose.
-    const resultReadLimits = Object.freeze({
-      maxReadWireBytes: 10 * 1024 * 1024,
-      maxRowWireBytes: 1024 * 1024,
-      maxRowRetainedValueBytes: 1024 * 1024,
-      maxRetainedValueBytes: 10 * 1024 * 1024,
-      maxRows: 10000, maxBatchRows: 1000,
-      maxBatchRetainedValueBytes: 10 * 1024 * 1024,
-    });
+    const resultReadLimits = localResourceResultReadLimits(moon);
     const negotiate = async value => ({version: 'actql-client-host/0.1',
       mode, owner: mode, durability: 'durable',
       ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),

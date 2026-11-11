@@ -57,11 +57,15 @@ work have their own counters. A policy ceiling does not supply the backing for
 a constructor: its actual input, workspace, output and failed-child overlap
 still need admission under the same original resource.
 
-Result limits are negotiated independently. The current Node Local profile
-advertises `maxReadWireBytes` of 10 MiB and `maxRowWireBytes` of 1 MiB. Its
-separate decoded-value bounds are `maxRetainedValueBytes` of 10 MiB and
-`maxRowRetainedValueBytes` of 1 MiB; batch rows and retained bytes have their own
-bounds too. A total wire limit is not a per-row or decoded-retention limit.
+The current Node Local Result profile derives collection's retained-byte and
+necessary row ceilings from the same installed Local Task resource policy.
+It does not impose a separate 10,000-row maximum. These ceilings remain bounds,
+not an allocation or permission. Wire transfer stays bounded by the original
+policy and at most 10 MiB; each row retains its separate 1 MiB wire and decoded
+limits. Batches retain their 1,000-row and 10 MiB flow-control bounds, narrowed
+by the original byte policy. Streaming does not apply collection's cumulative
+row/retention bounds to the whole stream. A total wire limit is not a per-row
+or decoded-retention limit.
 Client Result-read options default to the negotiated bounds and may only make
 them smaller. The authorized delivery grant uses that same total-wire ceiling;
 publication output bounds do not supply the Result-read ceiling.
