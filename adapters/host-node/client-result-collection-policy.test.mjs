@@ -79,7 +79,7 @@ test('collection negotiation borrows the same Task policy and narrows byte ceili
 for (const count of [9999, 10000, 10001, 100000]) {
   test(`collection reads all ${count} independent small rows within the actual selected budget`, async () => {
     const f = delivered(count);
-    const rows = await f.result.all({maxRows: count});
+    const rows = await (count === 10001 ? f.result.all({maxRows: count}) : f.result.all());
     assert.equal(rows.length, count);
     for (let n = 0; n < count; n++) assert.deepEqual(rows[n], {n});
     assert.equal(f.stats.pulled, count); closed(f);

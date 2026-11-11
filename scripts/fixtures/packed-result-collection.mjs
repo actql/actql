@@ -47,7 +47,8 @@ try {
       const names = state.next_action?.results;
       assert(Array.isArray(names) && names.length === 1, 'Require the actual sole Named Result');
       const result = run.result(names[0]);
-      exactRows(await span(`all-${count}`, () => result.all({maxRows: count})), count);
+      exactRows(await span(`all-${count}`, () => count === 10001
+        ? result.all({maxRows: count}) : result.all()), count);
       report.cases.push({count, ref: run.ref, resultName: names[0], complete: true});
       if (count === 100000) {
         await assert.rejects(result.all({maxRows: 7}), {code: 'ResultRetainedLimit'});
@@ -106,8 +107,7 @@ try {
     const original = JSON.parse(await readFile(handoffPath, 'utf8'));
     assert.equal(original.count, 100000);
     const run = await span('attach', () => client.attach(original.ref));
-    exactRows(await span('original-Saved-FIRST', () => run.result(original.resultName).all(
-      {maxRows: original.count})), original.count);
+    exactRows(await span('original-Saved-FIRST', () => run.result(original.resultName).all()), original.count);
     assert.equal((await span('status-AFTER-Saved', () => run.status())).status, 'succeeded');
     assert.equal(report.submits, 0);
     report.cases.push({count: original.count, complete: true});
