@@ -1,7 +1,7 @@
 // Required functional consumers of one exact normal artifact. No producer,
 // repository runtime import, source overlay or performance campaign.
 import assert from 'node:assert/strict';
-import {mkdir, writeFile, copyFile, symlink, unlink, readlink} from 'node:fs/promises';
+import {mkdir, writeFile, copyFile, symlink, unlink, readlink, readFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {isAbsolute, join, resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -15,6 +15,67 @@ export const packedReadmeCases = Object.freeze([
   Object.freeze({template: 'deal-review-mock', variant: 'two-models'}),
 ]);
 
+// The existing phase and its complete oracles, independently invocable for the
+// SAME completed original Result. This helper installs nothing and submits no
+// replacement Run. Its caller owns software/fixture correspondence and alias cleanup.
+export async function runCollectionPhase({collection, command, record, capturePid}) {
+  assert(['capture', 'saved'].includes(record.phase));
+  if (record.phase === 'saved') assert(Number.isSafeInteger(capturePid) && capturePid > 0);
+  const members = ['scripts/fixtures/packed-result-collection.mjs'];
+  const {phase} = record;
+  const args = [join(collection, members[0]), phase, join(collection, 'original.json')];
+  Object.assign(record, {command: process.execPath, args, cwd: collection,
+    startedAt: new Date().toISOString(), status: 'running'});
+  delete record.unexecutedReason;
+  let observed;
+  try {
+    observed = await command(process.execPath, args,
+      {cwd: collection, name: `collection-${phase}`, timeout: 120_000});
+    const actual = JSON.parse(observed.stdout.trim()); record.actual = actual;
+    assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
+    if (phase === 'saved') assert.notEqual(actual.pid, capturePid);
+    assert.equal(actual.sourceFreeMaxWork, 30000000);
+    assert.deepEqual(actual.requestMemory, {retainedBytes: 1073741824, executionBytes: 1073741824});
+    assert(actual.complete); assert.equal(actual.firstClose, 'returned');
+    assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
+    assert.equal(actual.submits, phase === 'capture' ? 5 : 0);
+    if (phase === 'capture') {
+      assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
+      assert.deepEqual(actual.controls, {tighterRows: true, collectionBytes: true,
+        wireBytes: true, rowWireBytes: true, rowBytes: true, originalChargeBeforeValidation: true,
+        boundedBatches: true, batchBytes: true, earlyBreak: true, readerCancellation: true});
+      assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000,
+        expectedRefusal: 'ResultRowRetainedLimit', complete: true});
+      assert.equal(actual.originalProgramsRemovedAfterFirstClose, 5);
+    } else assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
+    record.completed = true; record.status = 'passed';
+  } catch (error) {
+    observed ??= error?.commandResult;
+    record.status = 'failed'; record.error = nodeBenchmarkFailure(error);
+    throw error;
+  } finally {
+    Object.assign(record, {pid: observed?.pid ?? null, wallNs: observed?.wallNs ?? null,
+      exitCode: observed?.code ?? null, signal: observed?.signal ?? null,
+      endedAt: new Date().toISOString()});
+  }
+}
+
+// Fixture handoff/cleanup evidence only; the actual Saved read keeps all public
+// current, authentication and byte validation in the installed owners.
+export async function completedCollectionCapture(collection, capturePid) {
+  try {
+    const captured = JSON.parse(await readFile(join(collection, 'capture.observation.json'), 'utf8'));
+    const original = JSON.parse(await readFile(join(collection, 'original.json'), 'utf8'));
+    assert.equal(captured.pid, capturePid); assert.equal(captured.phase, 'capture');
+    assert.equal(captured.firstClose, 'returned'); assert.deepEqual(captured.aliveScopedFD, {before: 0, after: 0});
+    assert.deepEqual(captured.cleanup, []);
+    const result = captured.cases.find(value => value.count === 100000 && value.complete === true);
+    assert(result); assert.equal(original.count, 100000);
+    assert.deepEqual(original.ref, result.ref); assert.equal(original.resultName, result.resultName);
+    return true;
+  } catch {return false;}
+}
+
 async function runCollectionConsumer({prepared, root, repository, command, report, cleanup}) {
   const collection = join(root, 'collection'); await mkdir(collection);
   const members = ['scripts/fixtures/packed-result-collection.mjs',
@@ -27,44 +88,19 @@ async function runCollectionConsumer({prepared, root, repository, command, repor
   const software = join(prepared.consumer, 'node_modules'), alias = join(collection, 'node_modules');
   await symlink(software, alias, 'dir');
   try {
+    const failures = [];
+    let capturePid;
     for (const record of report.collection) {
-      const {phase} = record;
-      const args = [join(collection, members[0]), phase, join(collection, 'original.json')];
-      Object.assign(record, {command: process.execPath, args, cwd: collection,
-        startedAt: new Date().toISOString(), status: 'running'});
-      delete record.unexecutedReason;
-      let observed;
-      try {
-        observed = await command(process.execPath, args,
-          {cwd: collection, name: `collection-${phase}`, timeout: 120_000});
-        const actual = JSON.parse(observed.stdout.trim()); record.actual = actual;
-        assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
-        if (phase === 'saved') assert.notEqual(actual.pid, report.collection[0].pid);
-        assert.equal(actual.sourceFreeMaxWork, 30000000);
-        assert.deepEqual(actual.requestMemory, {retainedBytes: 1073741824, executionBytes: 1073741824});
-        assert(actual.complete); assert.equal(actual.firstClose, 'returned');
-        assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
-        assert.equal(actual.submits, phase === 'capture' ? 5 : 0);
-        if (phase === 'capture') {
-          assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
-          assert.deepEqual(actual.controls, {tighterRows: true, collectionBytes: true,
-            wireBytes: true, rowWireBytes: true, rowBytes: true, originalChargeBeforeValidation: true,
-            boundedBatches: true, batchBytes: true, earlyBreak: true, readerCancellation: true});
-          assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000,
-            expectedRefusal: 'ResultRowRetainedLimit', complete: true});
-          assert.equal(actual.originalProgramsRemovedAfterFirstClose, 5);
-        } else assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
-        record.completed = true; record.status = 'passed';
-      } catch (error) {
-        observed ??= error?.commandResult;
-        record.status = 'failed'; record.error = nodeBenchmarkFailure(error);
-        throw error;
-      } finally {
-        Object.assign(record, {pid: observed?.pid ?? null, wallNs: observed?.wallNs ?? null,
-          exitCode: observed?.code ?? null, signal: observed?.signal ?? null,
-          endedAt: new Date().toISOString()});
+      if (record.phase === 'saved' && !await completedCollectionCapture(collection, capturePid)) {
+        record.unexecutedReason = 'Requires completed original 100000 Result, matching handoff and FIRST close';
+        continue;
       }
+      try {await runCollectionPhase({collection, command, record, capturePid});}
+      catch (error) {failures.push(error);}
+      if (record.phase === 'capture') capturePid = record.pid;
     }
+    if (failures.length === 1) throw failures[0];
+    if (failures.length) throw new AggregateError(failures, 'CollectionPhasesFailed', {cause: failures[0]});
   } finally {
     try {assert.equal(await readlink(alias), software); await unlink(alias);}
     catch (error) {cleanup.push(error);}
@@ -113,7 +149,7 @@ export async function runPackedReadmeWorkflows(root) {
   const report = {source, node: process.version, platform: process.platform,
     architecture: process.arch, requiredCases: packedReadmeCases,
     collection: ['capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
-      unexecutedReason: phase === 'saved' ? 'Requires successful collection capture and FIRST close' : 'Requires verified normal packages'})),
+      unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires verified unchanged normal packages'})), complete: false, performanceAcceptance: false,
     qualification: 'Same normal artifact, fresh state per variant; functional once each, not a latency verdict'};

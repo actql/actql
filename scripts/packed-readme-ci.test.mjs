@@ -274,7 +274,7 @@ test('independent normal consumers continue after collection and variant failure
   assert.equal(report.complete, false);
   assert.deepEqual(report.cases.map(value => value.status), ['failed', 'passed', 'passed']);
   assert.equal(report.collection[1].status, 'unexecuted');
-  assert.match(report.collection[1].unexecutedReason, /successful collection capture/u);
+  assert.match(report.collection[1].unexecutedReason, /completed original 100000 Result/u);
   assert.equal(report.failures.length, 2); assert.equal(report.cleanup.length, 1);
 });
 
@@ -304,8 +304,10 @@ test('failed collection capture never runs its dependent Saved and returns its e
     {pid: 123, code: 1, signal: null, wallNs: 10, stdout: ''}});
   const report = {collection: ['capture', 'saved'].map(phase =>
     ({phase, completed: false, status: 'unexecuted'}))}, cleanup = [];
+  const runCollectionPhase = load('runCollectionPhase', {join, assert, process, nodeBenchmarkFailure});
+  const completedCollectionCapture = load('completedCollectionCapture', {readFile, join, assert});
   const run = load('runCollectionConsumer', {join, dirname, mkdir, copyFile, writeFile,
-    symlink, unlink, readlink, assert, process, nodeBenchmarkFailure});
+    symlink, unlink, readlink, assert, process, nodeBenchmarkFailure, runCollectionPhase, completedCollectionCapture});
   await assert.rejects(run({prepared: {consumer}, root, repository, report, cleanup,
     async command(_executable, _args, options) {commands.push(options.name); throw failure;}}),
   error => error === failure);
@@ -350,4 +352,50 @@ test('required Native counter stays case-scoped and nonzero through the original
   assert(gateJobs.includes('native')); assert(workflow.jobs.check.needs.includes('native'));
   assert.equal(workflow.jobs.native.env?.ACTQL_NATIVE_TIMINGS, undefined);
   assert(workflow.jobs.native.steps.every(step => step.env?.ACTQL_NATIVE_TIMINGS === undefined));
+});
+
+
+test('completed original collection Saved is independent of a later capture case failure', async t => {
+  const {root, consumer} = await scratch(t), load = await runnerFunctions(), commands = [];
+  const original = {ref: {nonce: 'authored-reference'}, resultName: 'actual-sole-result', count: 100000};
+  const capture = {phase: 'capture', pid: 123, complete: false, firstClose: 'returned',
+    aliveScopedFD: {before: 0, after: 0}, cleanup: [], cases: [{...original, complete: true}]};
+  const failure = Object.assign(new Error('Later oversized case refused'), {commandResult:
+    {pid: 123, code: 1, signal: null, wallNs: 10, stdout: ''}});
+  const report = {collection: ['capture', 'saved'].map(phase =>
+    ({phase, completed: false, status: 'unexecuted'}))}, cleanup = [];
+  const runCollectionPhase = load('runCollectionPhase', {join, assert, process, nodeBenchmarkFailure});
+  const completedCollectionCapture = load('completedCollectionCapture', {readFile, join, assert});
+  const run = load('runCollectionConsumer', {join, dirname, mkdir, copyFile, writeFile,
+    symlink, unlink, readlink, assert, process, nodeBenchmarkFailure, runCollectionPhase, completedCollectionCapture});
+  await assert.rejects(run({prepared: {consumer}, root, repository, report, cleanup,
+    async command(_executable, args, options) {
+      assert.equal(options.timeout, 120000); commands.push(args[1]);
+      if (args[1] === 'capture') {
+        await writeFile(join(options.cwd, 'capture.observation.json'), JSON.stringify(capture));
+        await writeFile(join(options.cwd, 'original.json'), JSON.stringify(original));
+        throw failure;
+      }
+      assert.equal(args[1], 'saved');
+      return {pid: 456, code: 0, signal: null, wallNs: 10, stdout: JSON.stringify({phase: 'saved',
+        pid: 456, complete: true, firstClose: 'returned', aliveScopedFD: {before: 0, after: 0},
+        submits: 0, sourceFreeMaxWork: 30000000,
+        requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
+        cases: [{count: 100000, complete: true}]})};
+    }}), error => error === failure);
+  assert.deepEqual(commands, ['capture', 'saved']);
+  assert.equal(report.collection[0].status, 'failed'); assert.equal(report.collection[0].completed, false);
+  assert.equal(report.collection[1].status, 'passed'); assert.equal(report.collection[1].completed, true);
+  assert.deepEqual(cleanup, []);
+  assert(!(await readdir(join(root, 'collection'))).includes('node_modules'));
+  const collection = join(root, 'collection');
+  assert(await completedCollectionCapture(collection, 123));
+  for (const changed of [{...capture, firstClose: 'threw'}, {...capture, cleanup: [{code: 'pending'}]},
+    {...capture, aliveScopedFD: {before: 1, after: 1}}, {...capture, cases: []}]) {
+    await writeFile(join(collection, 'capture.observation.json'), JSON.stringify(changed));
+    assert.equal(await completedCollectionCapture(collection, 123), false);
+  }
+  await writeFile(join(collection, 'capture.observation.json'), JSON.stringify(capture));
+  await writeFile(join(collection, 'original.json'), JSON.stringify({...original, ref: {nonce: 'foreign'}}));
+  assert.equal(await completedCollectionCapture(collection, 123), false);
 });
