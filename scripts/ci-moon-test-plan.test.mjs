@@ -265,7 +265,17 @@ test('the actual pinned compiler graph narrows a real Gmail source change and re
   assert(plan.packages.includes('src/connectors/gmail/host_node'));
   assert(plan.packages.length < graph.packages.length);
   assert(!plan.files.some(path => path.startsWith('src/platform_native/')));
-  assert.equal(validateSelection(selectTargets([path], {moonTests:plan})).moonTests, plan);
+  const selection = validateSelection(selectTargets([path], {moonTests:plan}));
+  assert.equal(selection.moonTests, plan);
+  assert.equal(gateJobRequired(selection, 'client-readme-packed'), true,
+    'Compiler-selected Core edits must still run the normal packed README consumers');
+  const sourceRevision = git(['rev-parse', 'HEAD']).trim();
+  const results = Object.fromEntries(gateJobs.map(name => [name,
+    {result: gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
+  const context = {event: 'pull_request', sourceRevision, draft: false};
+  verifyGate({sourceRevision, selection}, results, context);
+  assert.throws(() => verifyGate({sourceRevision, selection},
+    {...results, 'client-readme-packed': {result: 'skipped'}}, context), /client-readme-packed/u);
   for (const target of ['js', 'wasm']) {
     assert(portableMoonTestCount(repository, ['--deny-warn', ...plan.files], target) > 0,
       'The real ordinary input must contain runnable compiler cases, not permanent full fallback');

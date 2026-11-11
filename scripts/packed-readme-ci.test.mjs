@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFile, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
+import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join, dirname} from 'node:path';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets.mjs';
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases} from './test-packed-readme-workflows.mjs';
+import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
@@ -136,4 +137,95 @@ test('packed collection persists Program-removal failure after FIRST close and n
       assert.equal(observations[0].value.complete, true);
     }
   }
+});
+
+async function runnerFunctions() {
+  const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
+  const declarations = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .map(value => value.type === 'ExportNamedDeclaration' ? value.declaration : value)
+    .filter(value => value?.type === 'FunctionDeclaration');
+  return (name, ports) => {
+    const node = declarations.find(value => value.id.name === name);
+    assert(node, `Missing actual runner ${name}`);
+    // Retain the original module coordinate when compiling its actual function
+    // with explicit test ports; Function itself has no import.meta binding.
+    const body = source.slice(node.start, node.end).replaceAll('import.meta.url',
+      JSON.stringify(new URL('./test-packed-readme-workflows.mjs', import.meta.url).href));
+    return Function(...Object.keys(ports), `return (${body});`)(...Object.values(ports));
+  };
+}
+
+test('independent normal consumers continue after collection and variant failure and retain all original errors', async t => {
+  // Exercise the actual orchestration with explicit package and command ports;
+  // these synthetic outcomes do not qualify product or installed execution.
+  const {root, consumer} = await scratch(t), output = join(root, 'out'), calls = [];
+  const load = await runnerFunctions();
+  const collectionFailure = new Error('Original collection failure'), variantFailure = new Error('Original churn failure');
+  const cleanupFailure = new Error('Original alias cleanup failure');
+  const verifyNodeBenchmarkPackages = async () => {};
+  const runReadmeCases = load('runReadmeCases', {verifyNodeBenchmarkPackages, assert, writeFile, join,
+    nodeBenchmarkFailure, async mockWorkflowMetrics({template, variant, onMetric}) {
+      calls.push({template, variant});
+      const failed = template === 'churn-risk-mock';
+      await onMetric({samples: [{completed: !failed, verified: !failed}]});
+      if (failed) throw variantFailure;
+    }});
+  const before = {clean: true, revision: 'a'.repeat(40)};
+  const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+    process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/authored-normal-input'}, version: 'explicit-test',
+      platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
+    URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
+    packedReadmeCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+    prepareHealthPackages: async () => ({consumer, manifest: {}, manifestPath: '/authored-manifest'}),
+    runCollectionConsumer: async ({report, cleanup}) => {
+      report.collection[0].status = 'failed'; cleanup.push(cleanupFailure); throw collectionFailure;
+    }, runReadmeCases, verifyNodeBenchmarkPackages});
+  await assert.rejects(run(output), error => {
+    assert(error instanceof AggregateError); assert.equal(error.cause, collectionFailure);
+    assert.deepEqual(error.errors, [collectionFailure, variantFailure, cleanupFailure]); return true;
+  });
+  assert.deepEqual(calls, packedReadmeCases);
+  const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
+  assert.equal(report.complete, false);
+  assert.deepEqual(report.cases.map(value => value.status), ['failed', 'passed', 'passed']);
+  assert.equal(report.collection[1].status, 'unexecuted');
+  assert.match(report.collection[1].unexecutedReason, /successful collection capture/u);
+  assert.equal(report.failures.length, 2); assert.equal(report.cleanup.length, 1);
+});
+
+test('failed shared package preparation records every dependent as unexecuted and runs no consumer', async t => {
+  const {root} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions();
+  const failure = new Error('Original normal package mismatch'), before = {clean: true, revision: 'a'.repeat(40)};
+  const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+    process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/authored-normal-input'}, version: 'explicit-test',
+      platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository, URL,
+    checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
+    packedReadmeCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+    prepareHealthPackages: async () => {throw failure;},
+    runCollectionConsumer: async () => assert.fail('No collection with failed shared input'),
+    runReadmeCases: async () => assert.fail('No README with failed shared input'),
+    verifyNodeBenchmarkPackages: async () => assert.fail('No successful prepared input')});
+  await assert.rejects(run(output), error => error === failure);
+  const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
+  assert.equal(report.complete, false);
+  assert([...report.collection, ...report.cases].every(value =>
+    value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
+  assert.equal(report.failures.length, 1);
+});
+
+test('failed collection capture never runs its dependent Saved and returns its exact software alias', async t => {
+  const {root, consumer} = await scratch(t), load = await runnerFunctions(), commands = [];
+  const failure = Object.assign(new Error('Original capture failure'), {commandResult:
+    {pid: 123, code: 1, signal: null, wallNs: 10, stdout: ''}});
+  const report = {collection: ['capture', 'saved'].map(phase =>
+    ({phase, completed: false, status: 'unexecuted'}))}, cleanup = [];
+  const run = load('runCollectionConsumer', {join, dirname, mkdir, copyFile, writeFile,
+    symlink, unlink, readlink, assert, process, nodeBenchmarkFailure});
+  await assert.rejects(run({prepared: {consumer}, root, repository, report, cleanup,
+    async command(_executable, _args, options) {commands.push(options.name); throw failure;}}),
+  error => error === failure);
+  assert.deepEqual(commands, ['collection-capture']); assert.deepEqual(cleanup, []);
+  assert.equal(report.collection[0].status, 'failed'); assert.equal(report.collection[0].exitCode, 1);
+  assert.equal(report.collection[1].status, 'unexecuted');
+  assert(!(await readdir(join(root, 'collection'))).includes('node_modules'));
 });
