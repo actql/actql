@@ -34,6 +34,9 @@ enum {
 void actql_native_timing_begin(int32_t tag);
 void actql_native_timing_end(int32_t tag);
 void actql_native_timing_count(int32_t tag);
+/* Read an existing process-local diagnostic counter without resetting it.
+ * -1 means unavailable; it must never be interpreted as zero work. */
+int64_t actql_native_timing_counter_value(int32_t tag);
 /* Acceptance metadata is separate from numeric timing counters and authority. */
 int32_t actql_native_acceptance_enabled(void);
 void actql_native_acceptance_identity(int32_t tag, int32_t ordinal,

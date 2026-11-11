@@ -277,6 +277,18 @@ void actql_native_timing_amount(int32_t tag, int64_t amount) {
 void actql_native_timing_count(int32_t tag) {
   actql_native_timing_amount(tag, 1);
 }
+int64_t actql_native_timing_counter_value(int32_t tag) {
+  int saved_errno = errno;
+  int64_t result = -1;
+  if (actql_timing_enabled() && getpid() == actql_timing_process &&
+      tag >= 0 && tag < ACTQL_TIMING_COUNTERS &&
+      !atomic_load_explicit(&actql_timing_overflow, memory_order_relaxed)) {
+    uint64_t value = atomic_load_explicit(&actql_timing_counts[tag], memory_order_relaxed);
+    if (value <= INT64_MAX) result = (int64_t)value;
+  }
+  errno = saved_errno;
+  return result;
+}
 void actql_native_timing_begin(int32_t tag) {
   int saved_errno = errno;
   if (actql_timing_enabled()) {

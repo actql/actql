@@ -1225,12 +1225,45 @@ fn native_mock_original_journal_body(
   arena
   .leave_local_host_phase(pair)
   .native_mock_journal_required("leave initial Read")
+  let retained_signing = Ref(None)
+  let signing_counts = Ref(None)
   let observed = native_mock_journal_adoption_result(
-    capture.with_original_read(_ => {
+    capture.with_original_read(actual => {
       let account = match capture.configuration_in_original_read() {
         Ok(value) => value
         Err(_) => return None
       }
+      let signing = match
+        actual.restore_initial_signing_original(capture=Some(capture)) {
+        Ok(value) => value
+        Err(_) => return None
+      }
+      retained_signing.val = Some(signing)
+      // These are real original-control/key projections in the same entered
+      // Read, not flags pretending to acquire that Read. Helper chaining must
+      // not re-admit immutable Source/config/Account or amplify its SQL work.
+      let source_before = native_approval_counter(37)
+      let admission_before = native_approval_counter(33)
+      let digest_before = native_approval_counter(26)
+      let sql_before = native_approval_counter(1)
+      let repeats = 3
+      for _ in 0..<repeats {
+        if signing.require_current() is Err(_) || signing.public_key() is Err(_) {
+          return None
+        }
+      }
+      signing_counts.val = Some(
+        (
+          source_before,
+          admission_before,
+          digest_before,
+          sql_before,
+          native_approval_counter(37),
+          native_approval_counter(33),
+          native_approval_counter(26),
+          native_approval_counter(1),
+        ),
+      )
       let allow = @authorization.evaluate_account(account, {
           principal: "local-cli",
           connection: "mock",
@@ -1254,6 +1287,49 @@ fn native_mock_original_journal_body(
   }
   assert_true(allow && delegated)
   assert_true(configuration.has_prefix("sha256:"))
+  let (
+    source_before,
+    admission_before,
+    digest_before,
+    sql_before,
+    source_after,
+    admission_after,
+    digest_after,
+    sql_after,
+  ) = signing_counts.val.unwrap()
+  for
+    value in [
+      source_before, admission_before, digest_before, sql_before, source_after, admission_after,
+      digest_after, sql_after,
+    ] {
+    assert_true(value >= 0L, msg="Native approval diagnostics unavailable")
+  }
+  assert_eq(source_after - source_before, 0L)
+  assert_eq(admission_after - admission_before, 0L)
+  assert_eq(digest_after - digest_before, 0L)
+  // Keep actual mutable custody/key reads; bound them by the three caller
+  // iterations, independently of speed. Zero SQL would omit those checks.
+  assert_true(sql_after - sql_before >= 3L && sql_after - sql_before <= 36L)
+  let signing = retained_signing.val.unwrap()
+  // The exact borrowed material expires on Read exit, even while its Host is
+  // alive. A new public operation must validate originals afresh and cannot
+  // bless that old signing view by entering the same capture again.
+  assert_true(signing.require_current() is Err(_))
+  let source_before = native_approval_counter(37)
+  let admission_before = native_approval_counter(33)
+  native_mock_journal_adoption_result(
+    capture.with_original_read(actual => {
+      if signing.require_current() is Ok(_) {
+        return Err(@local_host.CustodyLost)
+      }
+      actual.restore_initial_signing_original(capture=Some(capture))
+    }),
+    "new public Read revalidates original signing material",
+  )
+  |> native_mock_journal_adoption_result("fresh signing original")
+  |> ignore
+  assert_true(native_approval_counter(37) > source_before)
+  assert_eq(native_approval_counter(33) - admission_before, 1L)
   assert_true(capture.close().issue() is None)
   // Journal close selects cleanup-only custody. Match the ordinary caller:
   // retire the remaining Read aliases in that SAME cleanup frame.
@@ -1311,4 +1387,13 @@ fn[T] Option::native_mock_journal_required(
     Some(value) => value
     None => fail(stage)
   }
+}
+
+///|
+// Existing opt-in diagnostics, read only. No reset or test-only admission path.
+extern "C" fn native_approval_counter_raw(tag : Int) -> Int64 = "actql_native_timing_counter_value"
+
+///|
+fn native_approval_counter(tag : Int) -> Int64 {
+  native_approval_counter_raw(tag)
 }

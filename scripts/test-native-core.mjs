@@ -303,6 +303,8 @@ if (full) {
         {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment,
           ACTQL_TEST_NATIVE_TARGET_IO_ROOT: undefined, ...physical, ...content,
           ...(test.source === nativeClientFileResponseTestFile ? fileReceiptCheckpoint : {}),
+          ...(test.source === 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt' &&
+            test.index === 13 ? {ACTQL_NATIVE_TIMINGS: '1'} : {}),
           ACTQL_TEST_NATIVE_IMPORT_QUOTE:
             test.source === 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt' &&
             test.index === 10 ? '1' : undefined}}));
