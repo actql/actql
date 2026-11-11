@@ -265,7 +265,10 @@ fn local_initial_signing_grant_original_locked(
     earlier_valid_until,
     host_configuration_file: key.installed.file,
     host_configuration_cid: match
-      local_adoption_digest(host.epoch.crypto, key.installed.original_bytes) {
+      key.original.selected_configuration_cid_after_current(
+        key.installed.file,
+        key.installed.original_bytes,
+      ) {
       Ok(value) => value
       Err(_) => return Err(Encoding)
     },

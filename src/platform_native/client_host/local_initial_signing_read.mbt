@@ -196,6 +196,25 @@ fn NativeLocalInitialSigningOriginal::authority_scope_cid(
 }
 
 ///|
+// Only this active original Read may project the already-admitted raw-file
+// CID. The enclosing key/account checks keep their independent current roles.
+// Omitted legacy scope retains the complete original digest computation.
+fn NativeLocalInitialSigningOriginal::selected_configuration_cid_after_current(
+  self : NativeLocalInitialSigningOriginal,
+  name : String,
+  body : Bytes,
+) -> Result[String, NativeLocalAdoptionIssue] {
+  if self.original_read is None {
+    return local_adoption_digest(self.host.epoch.crypto, body)
+  }
+  match self.check_initial_control_read_scope(self.host) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.host.selected_configuration_cid_after_current(name, body)
+}
+
+///|
 // Keep every role's Account evaluation fresh. The existing operation's cached
 // read decision is deliberately not consulted for Reviewer resolve or Host sign.
 fn NativeLocalInitialSigningOriginal::authorize(

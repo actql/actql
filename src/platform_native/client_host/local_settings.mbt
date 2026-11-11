@@ -235,6 +235,25 @@ pub fn NativeLocalHostConnection::selected_configuration(
 }
 
 ///|
+// Immutable DATA after the enclosing original current check. Exact file/body
+// correspondence is mandatory; this projection observes no role or permission.
+fn NativeLocalHostConnection::selected_configuration_cid_after_current(
+  self : NativeLocalHostConnection,
+  name : String,
+  body : Bytes,
+) -> Result[String, NativeLocalAdoptionIssue] {
+  for file in self.session.settings.files {
+    if file.name == name {
+      if file.body != body {
+        return Err(CustodyLost)
+      }
+      return Ok(file.content_cid)
+    }
+  }
+  Err(CustodyLost)
+}
+
+///|
 pub fn NativeLocalHostConnection::managed_root_path(
   self : NativeLocalHostConnection,
 ) -> Result[String?, NativeLocalAdoptionIssue] {

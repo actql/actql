@@ -179,7 +179,10 @@ fn local_initial_host_signing_grant_original_locked(
     Err(issue) => return Err(issue)
   }
   let configuration = match
-    local_adoption_digest(host.epoch.crypto, account.installed.original_bytes) {
+    key.reviewer.selected_configuration_cid_after_current(
+      account.installed.file,
+      account.installed.original_bytes,
+    ) {
     Ok(value) => value
     Err(_) => return Err(Encoding)
   }

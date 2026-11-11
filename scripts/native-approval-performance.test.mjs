@@ -78,6 +78,21 @@ test('OS approval resources retain actual command scope and reject unavailable m
 });
 
 
+test('approval work allowance rejects one extra digest or helper independently of observations', () => {
+  const boundaries = 3;
+  const fixedAndBoundaryWork = 32 + 2 * boundaries;
+  const counts = {pid: 1, sqlPrepares: 300, currentCalls: 50, externalBoundaries: boundaries,
+    unexpectedHelperRevalidations: 0, hostAuthorizations: 0, adoptionDigests: fixedAndBoundaryWork,
+    materialAdmissions: 1, sourceValidations: fixedAndBoundaryWork, memberHashes: 11};
+  assertApprovalCallCounts(counts, 1);
+  assert.throws(() => assertApprovalCallCounts({...counts, adoptionDigests: fixedAndBoundaryWork + 1}, 1),
+    /adoption validation amplified/u);
+  assert.throws(() => assertApprovalCallCounts({...counts, sourceValidations: fixedAndBoundaryWork + 1}, 1),
+    /Source validation amplified/u);
+  assert.throws(() => assertApprovalCallCounts({...counts, unexpectedHelperRevalidations: 1}, 1),
+    /repeated immutable/u);
+});
+
 test('approval phases require complete actual boundaries and retain inclusive durations separately', () => {
   const rows = [5, 7, 32, 33, 34, 35, 36, 37, 38].map(tag => ({tag, name: 'synthetic policy fixture',
     begins: 1, ends: 1, active: 0, overlap: 0, unmatched_end: 0, inclusive_ns: 10, exclusive_ns: 2, sql_prepares: 3, current_calls: 2}));

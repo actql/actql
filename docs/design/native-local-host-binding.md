@@ -581,6 +581,15 @@ Account outcome is introduced. Row scans, authenticated original packets,
 generation/revision checks, independent role authorization and every existing
 callback, clock, claim, physical-signing and Unknown boundary remain unchanged.
 
+First-issue Reviewer and Host metadata use the existing selected-file content
+CID only within that same active original Read/material/Library, after their
+independent current key/account checks. The exact selected name and raw bytes
+must match the previously admitted configuration. Missing or changed selection
+refuses; a selected unentered Read cannot fall back to hashing. Legacy scope
+omission keeps the old raw digest. This avoids recomputing an admitted raw-file
+CID; it removes no control authentication, key/generation validation, role
+decision or physical signing check and adds no retained cache or issuer.
+
 This physical metadata seam is not default-signer selection, Account/Reviewer/
 Run authorization, first issue, use claim, signature or public approval. Those
 existing operational gates must independently bind the exact original purpose,
