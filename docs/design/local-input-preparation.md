@@ -5966,6 +5966,29 @@ the separately parsed child families. A later reader's independent parser remain
 its own funded boundary. This excludes an absent constructor, without reducing
 any original parser's rejection bound or acknowledging physical cleanup.
 
+### Derived output width remains separate from expression storage
+
+The original Stage envelope's `preparation_step` counts an object-form `derive`
+by its named output fields. This matches the existing relation checker: each
+key introduces at most one output column, independently of the nested expression
+shape. The same envelope retains that scalar count; no later tree walk, parser,
+schema constructor or semantic admission is added. Replacement and collision
+rules remain with the original checker. Other operands, including unknown
+objects and sequential arrays, retain their previous conservative bounds.
+
+Nested literal and expression nodes, text and collection storage remain in the
+same admitted Program's original data estimate. They do not also become row
+width multiplied across every operation and result. The Request, checker,
+compiler and Plan construction keep their existing same-owner reservations,
+current checks and borrow/retirement rules; this geometry grants no capacity or
+execution permission. Smaller explicit memory limits can still refuse before
+the compiler, and returning a construction borrow is not a cleanup ACK. These
+synchronous DATA projections add no cancellation or external callback boundary.
+Extensions to another operand must establish its actual output-width bound;
+unknown syntax is not assumed narrow. The focused geometry and original Request
+tests distinguish nested storage, multiple named fields, conservative unknown
+operands, finite refusal and final reservation cleanup.
+
 ### Codec geometry stays with its original construction role
 
 The existing JSON writer can retain construction geometry during the same

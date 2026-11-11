@@ -87714,6 +87714,115 @@
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
       "sha256": "d1d4c8ea969a549c95e19c50bee3d8a808875999d3473dd21ecf93629c7289df"
+    },
+    {
+      "module": "src/stage_syntax/preparation_data.mbt",
+      "sha256": "6dfe28da86a12432726ce9605b36e600800f920a2d587d146b98026186e03ce2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "preparation_member",
+          "declaration": "preparation_member ( root : @ wire . Cursor , name : String ) - > @ wire . Cursor ?"
+        },
+        {
+          "name": "preparation_schema",
+          "declaration": "preparation_schema ( root : @ wire . Cursor , state : ProgramPreparationState , ) - > Unit"
+        },
+        {
+          "name": "preparation_step",
+          "declaration": "preparation_step ( step : @ wire . Cursor , state : ProgramPreparationState , ) - > Unit"
+        },
+        {
+          "name": "program_preparation_data",
+          "declaration": "program_preparation_data ( program : Program ) - > ProgramPreparationData"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Program structural admission and original Request resource owners",
+      "referenceQualification": "Pure original-envelope geometry and selected Request component checks, not normal artifact or execution acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "preparation_member",
+            "preparation_schema",
+            "preparation_step",
+            "program_preparation_data"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Derived output width remains separate from expression storage"
+              },
+              {
+                "path": "src/stage_syntax/preparation_literal_expression_wbtest.mbt",
+                "anchor": "test \"derived field growth counts output names"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
+                "anchor": "test \"selected large Source retains its original through funded Plan input borrow"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
