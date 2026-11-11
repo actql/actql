@@ -34,7 +34,9 @@ test('distinct Whole producer fixture retains both Model Units and all public Re
   assert.deepEqual(program.stages[0].inputs,
     {opportunities: {connector: 'salesforce', resource: 'Opportunity'}});
   assert.equal(program.stages.flatMap(stage => stage.steps).filter(step => step.infer !== undefined).length, 2);
-  assert.deepEqual(Object.keys(program.results), ['source_rows', 'reviewed', 'confirmed', 'updates']);
+  assert.deepEqual(program.stages[3].inputs.confirmed, {result: {stage: 'confirm', result: 'rows'}});
+  assert.deepEqual(program.results?.updates, {from: {stage: 'apply', result: 'rows'}});
+  assert.deepEqual(Object.keys(program.results), ['answer', 'main', 'updates']);
   const source = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
   const original = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
     .find(node => node.id?.name === 'readWholeResults');
@@ -46,11 +48,11 @@ test('distinct Whole producer fixture retains both Model Units and all public Re
   const updates = sourceRows.map(({name, ...row}) => ({...row, review: {outcome: 'ok', value: {}},
     confirmation: {outcome: 'ok', value: {confirmed: true}}}));
   const reviewed = updates.map(({confirmation, ...row}) => row);
-  const roots = {source_rows: sourceRows, reviewed, confirmed: updates}, calls = [];
+  const roots = {answer: sourceRows, main: reviewed}, calls = [];
   const execution = {result(name) {calls.push(name); return {all: async () => roots[name]};}};
   assert.deepEqual(await read(execution, updates), roots);
-  assert.deepEqual(calls, ['source_rows', 'reviewed', 'confirmed']);
-  roots.reviewed = [];
+  assert.deepEqual(calls, ['answer', 'main']);
+  roots.main = [];
   await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
 });
 

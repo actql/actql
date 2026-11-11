@@ -149,17 +149,15 @@ function checkRows(rows) {
   }
 }
 async function readWholeResults(execution, updates) {
-  const sourceRows = await execution.result('source_rows').all();
+  const sourceRows = await execution.result('answer').all();
   assert.deepEqual([...sourceRows].sort((left, right) => left.id.localeCompare(right.id)), [
     {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
     {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
   ]);
-  const reviewed = await execution.result('reviewed').all();
-  const confirmed = await execution.result('confirmed').all();
+  const reviewed = await execution.result('main').all();
   const ordered = rows => [...rows].sort((left, right) => left.id.localeCompare(right.id));
   assert.deepEqual(ordered(reviewed), ordered(updates.map(({confirmation, ...row}) => row)));
-  assert.deepEqual(ordered(confirmed), ordered(updates));
-  return {source_rows: sourceRows, reviewed, confirmed};
+  return {answer: sourceRows, main: reviewed};
 }
 
 function checkReview(review, summary, ref) {

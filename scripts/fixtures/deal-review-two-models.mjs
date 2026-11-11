@@ -53,9 +53,8 @@ export function twoModelWholeDealReviewFiles() {
   }, from: 'opportunities', steps: [{select: fields, as: 'original'}],
   results: {rows: {from: 'original', fields}}});
   program.results = {
-    source_rows: {from: {stage: 'source_opportunities', result: 'rows'}},
-    reviewed: {from: {stage: 'review', result: 'rows'}},
-    confirmed: {from: {stage: 'confirm', result: 'rows'}},
+    answer: {from: {stage: 'source_opportunities', result: 'rows'}},
+    main: {from: {stage: 'review', result: 'rows'}},
     ...program.results,
   };
   files['deal-review.program.json'] = JSON.stringify(program, null, 2) + '\n';
