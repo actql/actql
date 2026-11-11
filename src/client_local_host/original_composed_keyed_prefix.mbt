@@ -31,6 +31,8 @@ struct ClientOriginalComposedKeyedPrefix {
 // No byte coefficient is an admission policy, transport cap or row prediction.
 fn composed_keyed_root_control_bytes(
   sequences : Array[@execution.GeneratedSequence],
+  producer_sources? : Int = 0,
+  producer_tasks? : Int = 0,
 ) -> Int64? {
   let mut ports = 0L
   let mut columns = 0L
@@ -75,7 +77,7 @@ fn composed_keyed_root_control_bytes(
   // Each external read: exact binding/identity, restricted completion/liveness,
   // ProducerRead, columns, tuple and copied port slots. One bounded read cursor
   // and return/Some frames coexist during construction (included in this peak).
-  @execution.preparation_representation_cost({
+  let original : @execution.PreparationRepresentationUnits = {
     record_headers: 12L + 16L * roots + 13L * ports,
     reference_slots: 30L +
     33L * roots +
@@ -86,7 +88,36 @@ fn composed_keyed_root_control_bytes(
     scalar_words: 16L + 15L * roots + 23L * ports + columns,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
-  })
+  }
+  if producer_sources == 0 && producer_tasks == 0 {
+    return @execution.preparation_representation_cost(original)
+  }
+  guard producer_sources > 0 &&
+    producer_tasks > 0 &&
+    producer_sources <= 2147483647 - producer_tasks &&
+    @execution.preparation_array_representation(
+      1L,
+      (producer_sources + producer_tasks).to_int64(),
+      false,
+    )
+    is Some(index) else {
+    return None
+  }
+  // Input construction and retained-left construction do not overlap. Each
+  // keeps one exact Source/task index plus its variant/Some frames. Their
+  // copied producer vector uses the existing two Root-vector slot envelope:
+  // caller map + retained copy, already simultaneous in the former left path.
+  @execution.compose_preparation_representation([
+    original,
+    index,
+    {
+      record_headers: 2L,
+      reference_slots: 3L,
+      scalar_words: 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  ]).bind(@execution.preparation_representation_cost)
 }
 
 ///|
@@ -281,7 +312,13 @@ fn start_client_original_composed_keyed_prefix_owned(
     // is retained before upstream constructors; actual byte backing grows on
     // this same reservation before the main provider is eventually entered.
     let control_bytes = match
-      composed_keyed_root_control_bytes(roots.map(root => root.sequence)) {
+      composed_keyed_root_control_bytes(
+        roots.map(root => root.sequence),
+        producer_sources=sources.length(),
+        producer_tasks=@strategy.graph_task_count(
+          @publication_host.prepared_client_graph(plan.owner),
+        ),
+      ) {
       Some(value) => value
       None => return Err(Unavailable)
     }

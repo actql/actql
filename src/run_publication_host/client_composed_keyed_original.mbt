@@ -14,7 +14,65 @@ priv struct ClientComposedKeyedOriginal {
   completed : @execution.CompletedSegmentInputs
   prefix : @resources.Reservation
   prefix_work : Int64
-  producers : Array[ClientComposedKeyedProducer]
+  producers : ClientComposedKeyedProducerIndex
+}
+
+///|
+// Immutable slot metadata on the SAME completed lookup. The retained vector
+// keeps its caller order; neither the index nor a task number proves output,
+// currentness, a read grant or completion.
+priv enum ClientComposedKeyedProducerIndex {
+  NoProducers
+  ProducerSlots(Array[ClientComposedKeyedProducer], Array[Int])
+}
+
+///|
+// The caller backs the copied vector and exact Source/task index before this
+// constructor. Both phases use the existing prefix's control reservation.
+fn client_composed_keyed_index_producers(
+  producers : Array[ClientComposedKeyedProducer],
+  sources : Int,
+  tasks : Int,
+) -> ClientComposedKeyedProducerIndex? {
+  if producers.is_empty() {
+    return Some(NoProducers)
+  }
+  if sources < 0 || tasks < 0 || sources > 2147483647 - tasks {
+    return None
+  }
+  let slots = Array::make(sources + tasks, -1)
+  for index, producer in producers {
+    if producer.slot < 0 ||
+      producer.slot >= sources ||
+      producer.task < 0 ||
+      producer.task >= tasks ||
+      slots[producer.slot] != -1 ||
+      slots[sources + producer.task] != -1 {
+      return None
+    }
+    slots[producer.slot] = index
+    slots[sources + producer.task] = index
+  }
+  Some(ProducerSlots(producers.copy(), slots))
+}
+
+///|
+fn client_composed_keyed_indexed_producer(
+  index : ClientComposedKeyedProducerIndex,
+  slot : Int,
+) -> ClientComposedKeyedProducer? {
+  match index {
+    NoProducers => None
+    ProducerSlots(producers, slots) => {
+      guard slots.get(slot) is Some(position) &&
+        position >= 0 &&
+        producers.get(position) is Some(producer) &&
+        producer.slot == slot else {
+        return None
+      }
+      Some(producer)
+    }
+  }
 }
 
 ///|
@@ -568,17 +626,21 @@ fn client_composed_keyed_original_current(
   )
   is Some(_) &&
   value.sources.all(@query.captured_source_available) &&
-  value.producers.all(producer => {
-    client_composed_keyed_producer_output(
-      producer,
-      value.scope,
-      value.compiled,
-      value.definition,
-      value.plan,
-      value.keyed,
-      value.sources,
-    )
-    is Some(_)
+  (match value.producers {
+    NoProducers => true
+    ProducerSlots(producers, _) =>
+      producers.all(producer => {
+        client_composed_keyed_producer_output(
+          producer,
+          value.scope,
+          value.compiled,
+          value.definition,
+          value.plan,
+          value.keyed,
+          value.sources,
+        )
+        is Some(_)
+      })
   }) &&
   @row_host.row_captured_inputs_borrowed_available(
     value.captures,
@@ -771,15 +833,17 @@ fn client_composed_keyed_lookup_has_source_producer(
     sources.length() == original.sources.length() else {
     return false
   }
-  for index, source in sources {
-    if !physical_equal(source, original.sources[index]) {
-      return false
-    }
+  // The enclosing admission checks the complete vector after all callbacks.
+  // This iteration binds only its exact original slot, never another Source.
+  guard sources.get(slot) is Some(source) &&
+    original.sources.get(slot) is Some(actual) &&
+    physical_equal(source, actual) &&
+    client_composed_keyed_indexed_producer(original.producers, slot)
+    is Some(producer) else {
+    return false
   }
-  let matches = original.producers.filter(producer => producer.slot == slot)
-  matches.length() == 1 &&
   client_composed_keyed_producer_output(
-    matches[0],
+    producer,
     original.scope,
     original.compiled,
     original.definition,
@@ -824,12 +888,12 @@ pub fn client_composed_keyed_lookup_source_read_matches(
     original.sources.get(slot) is Some(source) else {
     return false
   }
-  let producers = original.producers.filter(producer => producer.slot == slot)
-  let matched = match producers.length() {
-    0 => @query.captured_source_matches_segment_input(source, read)
-    1 =>
+  let matched = match
+    client_composed_keyed_indexed_producer(original.producers, slot) {
+    None => @query.captured_source_matches_segment_input(source, read)
+    Some(producer) =>
       client_composed_keyed_producer_output(
-        producers[0],
+        producer,
         original.scope,
         original.compiled,
         original.definition,
@@ -841,7 +905,6 @@ pub fn client_composed_keyed_lookup_source_read_matches(
         @execution.producer_read_matches_completed_output(read, output)
       })
       .unwrap_or(false)
-    _ => false
   }
   // The enclosing ordered-vector entry already checked the complete lookup;
   // its existing join receiver checks current again after these read callbacks.
@@ -881,28 +944,31 @@ pub fn client_composed_keyed_lookup_source_results(
       @execution.CompletedSegmentInputs,
     ),
   ] = []
-  for producer in original.producers {
-    guard !results.any(result => result.0 == producer.task) &&
-      client_composed_keyed_producer_output(
-        producer,
-        original.scope,
-        original.compiled,
-        original.definition,
-        original.plan,
-        original.keyed,
-        original.sources,
-      )
-      is Some(_) else {
-      return None
-    }
-    results.push(
-      (
-        producer.task,
-        producer.sequence,
-        producer.inputs.copy(),
-        producer.completed,
-      ),
-    )
+  match original.producers {
+    NoProducers => ()
+    ProducerSlots(producers, _) =>
+      for producer in producers {
+        guard client_composed_keyed_producer_output(
+            producer,
+            original.scope,
+            original.compiled,
+            original.definition,
+            original.plan,
+            original.keyed,
+            original.sources,
+          )
+          is Some(_) else {
+          return None
+        }
+        results.push(
+          (
+            producer.task,
+            producer.sequence,
+            producer.inputs.copy(),
+            producer.completed,
+          ),
+        )
+      }
   }
   if !client_composed_keyed_original_current(original) {
     return None
@@ -975,6 +1041,14 @@ pub fn prepare_client_original_composed_keyed_inputs(
     return Err(ForeignLeft)
   }
   let graph = plan.owner.graph
+  guard client_composed_keyed_index_producers(
+      producers,
+      sources.length(),
+      @strategy.graph_task_count(graph),
+    )
+    is Some(producer_index) else {
+    return Err(ForeignLeft)
+  }
   let inputs : Array[(Int, Int, @execution.ProducerRead)] = []
   let used : Array[Int] = []
   for position in 0..<@execution.generated_sequence_step_count(sequence) {
@@ -1029,17 +1103,11 @@ pub fn prepare_client_original_composed_keyed_inputs(
         return Err(ForeignLeft)
       }
       let bound = match
-        (if whole && producers.any(producer => producer.slot == task) {
-          let selected = producers.filter(producer => producer.slot == task)
-          guard selected.length() == 1 &&
-            client_composed_keyed_producer_output(
-              selected[0],
-              scope,
-              compiled,
-              definition,
-              plan,
-              keyed,
-              sources,
+        (if whole &&
+          client_composed_keyed_indexed_producer(producer_index, task)
+          is Some(selected) {
+          guard client_composed_keyed_producer_output(
+              selected, scope, compiled, definition, plan, keyed, sources,
             )
             is Some(output) else {
             return Err(ForeignLeft)
@@ -1049,7 +1117,7 @@ pub fn prepare_client_original_composed_keyed_inputs(
               @execution.bind_completed_input(
                 keyed.owner,
                 index,
-                @execution.generated_sequence_owner(selected[0].sequence),
+                @execution.generated_sequence_owner(selected.sequence),
                 output,
               ).map_err(issue => @query.CapturedSourceIssue::Binding(issue))
             _ => return Err(ForeignLeft)
@@ -1145,18 +1213,20 @@ pub fn prepare_client_original_composed_keyed_left(
     is Some(completed) else {
     return Err(ForeignLeft)
   }
+  guard client_composed_keyed_index_producers(
+      producers,
+      sources.length(),
+      @strategy.graph_task_count(plan.owner.graph),
+    )
+    is Some(producer_index) else {
+    return Err(ForeignLeft)
+  }
   for (_, _, read) in inputs {
     let mut matches = 0
     for slot, source in sources {
-      let mut selected = None
-      for producer in producers {
-        if producer.slot == slot {
-          if selected is Some(_) {
-            return Err(ForeignLeft)
-          }
-          selected = Some(producer)
-        }
-      }
+      let selected = client_composed_keyed_indexed_producer(
+        producer_index, slot,
+      )
       let matched = match selected {
         None => @query.captured_source_matches_segment_input(source, read)
         Some(producer) =>
@@ -1208,7 +1278,7 @@ pub fn prepare_client_original_composed_keyed_left(
     completed,
     prefix,
     prefix_work,
-    producers: producers.copy(),
+    producers: producer_index,
   }
   guard client_composed_keyed_original_current(original) &&
     borrow_client_original_composed_keyed_ledger(

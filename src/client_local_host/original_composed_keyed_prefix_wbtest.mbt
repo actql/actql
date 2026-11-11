@@ -997,6 +997,59 @@ fn original_composed_keyed_consumer(
     }
   }
 
+  if shared_source_producers {
+    let producers = original.roots.map(root => root.completed.unwrap())
+    assert_eq(producers.length(), 2)
+    // Actual completed producers may arrive in a different vector order.
+    // Slot metadata must preserve their exact output occurrence, not infer
+    // a capture or rerun a Root. Duplicate slots refuse before any provider.
+    let reordered = [producers[1], producers[0]]
+    let before = @resources.ledger_usage(ledger)
+    let rebound = @publication_host.prepare_client_original_composed_keyed_inputs(
+      scope,
+      model.compiled,
+      model.definition,
+      model.graph,
+      keyed,
+      sources,
+      row_inputs,
+      original.sequence,
+      10000,
+      10000,
+      producers=reordered,
+    ).unwrap()
+    assert_eq(rebound.length(), original.inputs.length())
+    let proofs = @publication_host.client_composed_keyed_lookup_source_results(
+      lookup,
+      model._occurrence,
+    ).unwrap()
+    for slot, (_, _, read) in rebound {
+      let (_, sequence, bindings, proof) = proofs[slot]
+      let output = @execution.completed_segment_inputs_output(
+        proof, sequence, bindings,
+      ).unwrap()
+      assert_true(
+        @execution.producer_read_matches_completed_output(read, output),
+      )
+    }
+    assert_true(
+      @publication_host.prepare_client_original_composed_keyed_inputs(
+        scope,
+        model.compiled,
+        model.definition,
+        model.graph,
+        keyed,
+        sources,
+        row_inputs,
+        original.sequence,
+        10000,
+        10000,
+        producers=[producers[0], producers[0]],
+      )
+      is Err(@publication_host.ForeignLeft),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+  }
   if left_plan_reentry {
     let limits = original_keyed_content_workspace().export_limits
     let planned = Ref(false)
