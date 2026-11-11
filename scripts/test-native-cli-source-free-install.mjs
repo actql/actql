@@ -365,8 +365,19 @@ export function requireNativeJournalCapacityRefusal(record) {
   // that observation untouched; it cannot count Native failed acceptances.
   assert.equal(counters.get(10), 7, 'Original Journal failure required');
   assert.equal(counters.get(11), 5001, 'Original Journal CapacityExceeded required');
+  // This admission failure precedes business preparation in local_start.mbt.
+  // Compute cleanup also uses slots 14/15: do not read transaction tags after
+  // business work or an ambiguous/missing domain observation.
+  const phases = values('ACTQL_NATIVE_PHASE ');
+  for (const tag of [2, 3, 4]) {
+    const phase = phases.find(row => row.tag === tag);
+    assert(phase.begins === 0 && phase.ends === 0 && phase.active === 0,
+      'Only the original pre-business Journal admission failure qualifies');
+  }
+  for (const tag of [60, 61, 62, 63]) assert.equal(counters.get(tag), 0,
+    'Compute inventory overlap or unavailable observation cannot qualify transaction tags');
   assert([0, 2].includes(counters.get(14)), 'Transaction Unknown cannot qualify this refusal');
-  const close = values('ACTQL_NATIVE_PHASE ').find(row => row.tag === 5);
+  const close = phases.find(row => row.tag === 5);
   assert(close.begins > 0 && close.begins === close.ends && close.active === 0 &&
     close.unmatched_end === 0, 'The original failed command must complete its first cleanup');
   return {pid: groups[0].pid, publicFailure: 'LocalSubmissionAcceptanceUnavailable',
