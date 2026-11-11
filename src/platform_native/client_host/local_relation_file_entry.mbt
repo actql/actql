@@ -27,9 +27,11 @@ struct NativeClientRelationFileWorkEntry {
   mut access : NativeLocalRelationOriginalAccess?
   original : NativeLocalJournalOriginalResources
   arena : @arena.InstalledArenaNonModelWorkEntry
-  prepared : @host.PreparedClientProgram
-  compiled : @host.ClientCompiledRun
-  definition : @publication.PublicationContract
+  mut payload : (
+    @host.PreparedClientProgram,
+    @host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )?
   capacity : @execution.ExecutionCapacity
   selection : @row_file.NativeRelationFileSelection
   limits : @row_file.NativeRelationFileLimits
@@ -171,9 +173,7 @@ pub fn NativeLocalHostConnection::prepare_original_relation_file_work_entry(
     access: Some(access),
     original,
     arena,
-    prepared,
-    compiled,
-    definition,
+    payload: Some((prepared, compiled, definition)),
     capacity,
     selection: selected,
     limits,
@@ -199,7 +199,10 @@ fn NativeClientRelationFileWorkEntry::take_entered_ledger(
   host : NativeLocalHostConnection,
   operation : NativeLocalStoreOperation,
 ) -> @resources.Ledger? {
-  guard self.access is Some(access) else { return None }
+  guard self.access is Some(access) &&
+    self.payload is Some((prepared, compiled, definition)) else {
+    return None
+  }
   let original = self.original
   let receiver = operation.receiver
   if !physical_equal(operation, access.base.operation) ||
@@ -208,9 +211,9 @@ fn NativeClientRelationFileWorkEntry::take_entered_ledger(
     !relation_file_prepared_binding_current(
       host.journal,
       access.base.request,
-      self.prepared,
-      self.compiled,
-      self.definition,
+      prepared,
+      compiled,
+      definition,
     ) ||
     !self.ready ||
     self.used ||
@@ -263,6 +266,8 @@ pub fn NativeClientRelationFileWorkEntry::cancel_unclaimed_in_original_read(
     return false
   }
   self.ready = false
+  self.payload = None
+  self.access = None
   self.closed = true
   true
 }
@@ -301,6 +306,10 @@ fn NativeClientRelationFileWorkEntry::retire_operation_projection(
     Err(_) => false
     Ok(_) => {
       self.ready = false
+      // This projection can outlive the original business C context while
+      // its arena view waits for the parent's physical return. Drop heavy
+      // Prepared/compiler/definition aliases before that retirement attempt.
+      self.payload = None
       self.access = None
       true
     }

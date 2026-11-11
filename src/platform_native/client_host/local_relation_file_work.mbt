@@ -141,9 +141,8 @@ pub fn NativeLocalHostConnection::open_original_relation_file_source_work(
   let source_limits = entry.limits
   let access = entry.access.unwrap()
   let original = entry.original
-  let prepared = entry.prepared
-  let compiled = entry.compiled
-  let definition = entry.definition
+  // The nominal once-only take above established this same live payload.
+  let (prepared, compiled, definition) = entry.payload.unwrap()
   let request = access.base.request
   let execution = match operation.receiver.domain {
     StoreBusinessDomain(value) => value

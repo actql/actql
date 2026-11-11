@@ -10,8 +10,10 @@
 //   remain Read-owned; this is not another reservation in the business Ledger.
 // * Arena entry, self-marker Ref/Some and borrowed Ledger Some: H5/R12/S8.
 // * Arena Ready/Pending, Result and Some: H3/R3/S3.
-// * Client entry/access/source projections and inert refusals: H9/R27/S10.
+// * Client entry/access/source projections and inert refusals: H11/R29/S11.
 //   Includes two preowned current/export scalar Errs and their entry fields.
+//   The clearable original payload adds tuple/Some H2/R2/S1 to the old
+//   three-field view; physical retirement must not retain those heavy aliases.
 // * Pending client failure, entry Some, Result and outer Some: H4/R7/S3.
 //   This dominates the Ready return H2/R2/S2 without fabricating a grant.
 // * Never-entered cancellation/current frontier: H22/R13/S59. It is retained
@@ -51,7 +53,7 @@ pub fn native_relation_file_entry_read_capacity(
       26L +
       5L +
       3L +
-      9L +
+      11L +
       4L +
       22L +
       5L +
@@ -65,7 +67,7 @@ pub fn native_relation_file_entry_read_capacity(
       20L +
       12L +
       3L +
-      27L +
+      29L +
       7L +
       13L +
       2L +
@@ -80,7 +82,7 @@ pub fn native_relation_file_entry_read_capacity(
       60L +
       8L +
       3L +
-      10L +
+      11L +
       3L +
       59L +
       2L +

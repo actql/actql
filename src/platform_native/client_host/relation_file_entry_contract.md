@@ -178,3 +178,12 @@ The borrowed view never settles the reservation, closes the C context, reports
 the child or returns parent capacity. Its final close waits for that exact
 retained execution's physical retirement, report and close. The dedicated Query
 entry retains its existing exact-token settlement and physical-close sequence.
+
+
+The client entry retains Prepared, compiled Run and definition in one clearable
+original payload. Its once-only nominal take requires that same live payload.
+Cancellation and original operation retirement cut the payload and access
+aliases before physical business-context retirement. Keeping the inert arena
+view for the final original-return observation must not keep the former Native
+business payload alive. This alias cut neither closes another owner's child
+nor claims that physical retirement has already succeeded.
