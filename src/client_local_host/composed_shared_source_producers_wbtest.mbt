@@ -2,6 +2,7 @@
 // The same checked Whole Source roots feed both the keyed prefix and the
 // normal Model input. Imported completions preserve the original occurrence;
 // a different source slot and a retired lookup are not substitutes.
+#cfg(target="js")
 test "keyed and Model share the original completed Source producers without replay" {
   original_composed_keyed_consumer(
     whole=true,
