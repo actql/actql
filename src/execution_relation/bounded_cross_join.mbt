@@ -43,6 +43,7 @@ priv struct BoundedCrossJoinState {
   mut checked_row : Array[@admitted.Value]
   mut output_recheck : @admitted.RecheckCursor?
   mut output_charge : BoundedOutputRowCharge?
+  mut reclamation_steps : Int64
 }
 
 ///|
@@ -111,7 +112,14 @@ fn cleanup_bounded_cross_join_state(state : BoundedCrossJoinState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+    let (released, removed) = reclaim_bounded_admitted_output_counted(
+      output,
+      state.accepted.val,
+    )
+    // Every row/cell reference is removed once; Int-sized row and field
+    // bounds keep the total below Int64's ceiling.
+    state.reclamation_steps += removed.to_int64()
+    if !released {
       return false
     }
     state.output = None
@@ -591,6 +599,7 @@ pub fn start_bounded_cross_join(
     checked_row: [],
     output_recheck: None,
     output_charge: None,
+    reclamation_steps: 0L,
   }
   let (session, token) = @bounded.start(
     engine,
@@ -641,6 +650,26 @@ pub fn bounded_cross_join_cleanup_pending(
   value : BoundedCrossJoinExecution,
 ) -> Bool {
   @bounded.cleanup_pending(value.session)
+}
+
+///|
+/// Only a stopped, unpublished private buffer can continue local reclamation.
+/// The cursor observes actual removals; it is not stop, release or work credit.
+pub fn bounded_cross_join_cleanup_continuation(
+  value : BoundedCrossJoinExecution,
+) -> Int64 {
+  if !@bounded.session_stopped(value.session) ||
+    value.accepted.val ||
+    !@bounded.cleanup_pending(value.session) {
+    return -1L
+  }
+  guard value.state.output is Some(output) &&
+    !output.buffer.open &&
+    output.buffer.reclaiming &&
+    !output.buffer.reading else {
+    return -1L
+  }
+  value.state.reclamation_steps
 }
 
 ///|

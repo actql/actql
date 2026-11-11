@@ -99,14 +99,24 @@ fn advance_admitted_buffer_reclamation(
   input : AdmittedRowBuffer,
   quantum : Int,
 ) -> Bool {
+  advance_admitted_buffer_reclamation_counted(input, quantum).0
+}
+
+///|
+// Count actual private reference removals, never cleanup calls or Compute work.
+fn advance_admitted_buffer_reclamation_counted(
+  input : AdmittedRowBuffer,
+  quantum : Int,
+) -> (Bool, Int) {
   if !input.open && !input.reclaiming {
-    return true
+    return (true, 0)
   }
   if quantum <= 0 {
-    return false
+    return (false, 0)
   }
   input.open = false
   input.reclaiming = true
+  let mut removed = 0
   for _ in 0..<quantum {
     if input.rows.last() is Some(row) {
       if row.is_empty() {
@@ -130,16 +140,17 @@ fn advance_admitted_buffer_reclamation(
     } else {
       break
     }
+    removed += 1
   }
   if !input.rows.is_empty() || !input.presence_rows.is_empty() {
-    return false
+    return (false, removed)
   }
   // Empty logical arrays still own backing storage on Native/Wasm. Detach it
   // after every original row and cell reference has been individually removed.
   input.rows = []
   input.presence_rows = []
   input.reclaiming = false
-  true
+  (true, removed)
 }
 
 ///|

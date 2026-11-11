@@ -940,7 +940,20 @@ fn bounded_relation_chain_execution_state(
         None
       },
     ),
-  ).map(active => (active, state))
+  ).map(active => {
+    active.cleanup_continuation = Some(fn() {
+      // Only the existing reverse cleanup cursor selects a stopped child.
+      // An active/pending input or an uninstrumented family remains blocked.
+      if !terminal.val || reclaimed.val || cleanup_index.val < 0 {
+        return -1L
+      }
+      state.children
+      .get(cleanup_index.val)
+      .map(managed_provider_cleanup_continuation)
+      .unwrap_or(-1L)
+    })
+    (active, state)
+  })
 }
 
 ///|

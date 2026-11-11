@@ -149,7 +149,12 @@ fn cross_join_provider(
             }
           },
         ),
-      )
+      ).map(owner => {
+        owner.cleanup_continuation = Some(() => {
+          @execution.bounded_cross_join_cleanup_continuation(active)
+        })
+        owner
+      })
     },
   )
 }

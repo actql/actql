@@ -875,8 +875,18 @@ pub fn[T] start_local_managed_dispatch(
   // releases its owned state. Cache the existing owner's cumulative work
   // before dropping its last driver reference, without inventing cleanup work.
   let provider_completion_retained = Ref(false)
+  let provider_reclamation_steps = Ref(0L)
   let release_provider_scratch = fn() {
-    release_local_managed_provider_scratch(
+    let observe = fn() {
+      if provider_execution.val is Some(active) {
+        let cursor = @local.managed_provider_cleanup_continuation(active)
+        if cursor > provider_reclamation_steps.val {
+          provider_reclamation_steps.val = cursor
+        }
+      }
+    }
+    observe()
+    let released = release_local_managed_provider_scratch(
       provider_execution,
       provider_completion_retained,
       live.val &&
@@ -884,6 +894,8 @@ pub fn[T] start_local_managed_dispatch(
       (ordinary.val is Some(_) || carrier.val is Some(_)),
       final_provider_work,
     )
+    observe()
+    released
   }
   let retired_carriers : Array[@carrier_runtime.Material] = []
   let snapshot_attempted = Ref(false)
@@ -3218,7 +3230,7 @@ pub fn[T] start_local_managed_dispatch(
     },
     cleanup_progress: fn() { finalization_reclamation_steps.val },
     // -1 means no authorized local continuation, not a stop/release witness.
-    // Provider, borrowed input, snapshot and active-reader waits retain custody.
+    // External provider, borrowed input, snapshot and reader waits retain custody.
     cleanup_local_continuation: fn() {
       // Completed Relation material owns its independent receipt/index. Its
       // stopped provider can retire temporary roots before that live output
@@ -3231,7 +3243,6 @@ pub fn[T] start_local_managed_dispatch(
         ordinary.val is Some(_)
       if ((!disposed.val || live.val) && !completed_relation) ||
         scratch_uses.val != 0 ||
-        (provider_execution.val is Some(_) && !provider_completion_retained.val) ||
         relation_snapshot_cancel.val is Some(_) ||
         (!completed_relation && input_stop.phase != Stopped) ||
         carrier.val is Some(_) ||
@@ -3240,14 +3251,33 @@ pub fn[T] start_local_managed_dispatch(
         snapshot_storage_released.val is Some(_) {
         return -1L
       }
+      let provider_pending = match provider_execution.val {
+        Some(active) if !provider_completion_retained.val => {
+          let cursor = @local.managed_provider_cleanup_continuation(active)
+          if cursor < 0L {
+            return -1L
+          }
+          true
+        }
+        _ => false
+      }
       if finalization_values.val is Some(values) &&
         !@execution.managed_output_values_scratch_released(values) &&
         !@execution.managed_output_values_reclamation_runnable(values) {
         return -1L
       }
-      if scratch_retirement.phase != Retired ||
+      if provider_pending ||
+        scratch_retirement.phase != Retired ||
         finalization_values.val is Some(_) {
-        scratch_retirement.steps + finalization_reclamation_steps.val
+        let scratch = scratch_retirement.steps
+        let provider = provider_reclamation_steps.val
+        let values = finalization_reclamation_steps.val
+        if scratch > 9223372036854775807L - provider ||
+          values > 9223372036854775807L - provider - scratch {
+          -1L
+        } else {
+          provider + scratch + values
+        }
       } else {
         -1L
       }
