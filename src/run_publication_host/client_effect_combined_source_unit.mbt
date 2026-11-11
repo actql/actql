@@ -421,6 +421,9 @@ pub fn issue_combined_source_client_effect_local_result_artifact(
     Ok(value) => value
     Err(issue) => return Err(Context(issue))
   }
+  if !@strategy.captured_effect_local_result_export_retained(inputs, exported) {
+    return Err(ForeignExport)
+  }
   build_client_effect_local_result_artifact(
     EffectInputs(inputs),
     ResultSource(borrow, definition),
