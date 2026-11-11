@@ -1075,3 +1075,21 @@ test('small policy and oracle units run during Draft while normal required gates
   }
   assert(gateJobs.includes('client-readme-packed')); assert.deepEqual(workflow.jobs.check.needs, gateJobs);
 });
+
+test('small original Model failure and preclose units run once in Draft lint without a runtime supplier', () => {
+  const files = ['adapters/host-node/infer-model-effect-control.test.mjs',
+    'adapters/host-node/acquired-effect-unknown-primary.test.mjs',
+    'adapters/host-node/mock-project-effect-public.test.mjs',
+    'adapters/host-common/observation.test.mjs'];
+  const step = workflow.jobs.lint.steps.find(value => value.name === 'Test original Model failure and workflow observation');
+  assert(step, 'The actual small original failure cases must have a CI caller');
+  assert.equal(step.if, undefined);
+  assert(!workflow.jobs.lint.if.includes('draft'));
+  assert.equal(step.run, `node --test ${files.join(' ')}`);
+  const commands = Object.values(workflow.jobs).flatMap(value => value.steps ?? [])
+    .flatMap(value => (value.run ?? '').split(/\s+/u));
+  for (const file of files) assert.equal(commands.filter(value => value === file).length, 1, file);
+  assert(!/moon |npm (?:pack|run)|build-runtime/u.test(step.run));
+  assert(gateJobs.includes('client-readme-packed'));
+  assert.deepEqual(workflow.jobs.check.needs, gateJobs);
+});
