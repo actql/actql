@@ -363,6 +363,8 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
   const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   assert.deepEqual(ci.jobs['performance-matrix'].with, {
+    'native-approval-only': '${{ inputs.performance_native_approval_only }}',
+    'native-approval-runner': '${{ inputs.performance_native_approval_runner }}',
     'priority-node-mode': '${{ inputs.performance_priority_node_mode }}',
     'priority-python-mode': '${{ inputs.performance_priority_python_mode }}',
     'package-run-id': '${{ inputs.performance_package_run_id }}',
@@ -376,7 +378,11 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   });
   assert.ok(ci.jobs.lint.steps.some(s => s.run === 'node --test scripts/ordinary-operation-packages.test.mjs'));
   assert.equal(ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance assessment').run,
-    'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
+    'node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
+  const policy = ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance policy oracles');
+  assert.equal(policy.run, 'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs');
+  assert.equal(policy.if, undefined);
+  assert.equal(policy['continue-on-error'], undefined);
   const job = workflow.jobs['ordinary-operations'];
   assert.equal(job.permissions.actions, 'read');
   const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package producer');
@@ -523,8 +529,22 @@ test('ordinary process jobs execute the tested collector contract and retain ass
   assert(Object.keys(entry.on.workflow_dispatch.inputs).length <= 25);
   for (const adapter of ['native', 'python']) {
     for (const key of ['run-id', 'artifact-id', 'producer-job']) {
-      assert(workflow.on.workflow_call.inputs[`${adapter}-package-${key}`].required);
+      const input = workflow.on.workflow_call.inputs[`${adapter}-package-${key}`];
+      assert.equal(input.required, adapter === 'native');
+      // Native-only approval does not need unrelated Python artifacts. The
+      // ordinary Python job still authenticates every original producer field.
+      if (adapter === 'python') assert.equal(input.default, '');
       assert(entry.jobs['performance-matrix'].with[`${adapter}-package-${key}`]);
+      const field = {'run-id': 'runId', 'artifact-id': 'artifactId', 'producer-job': 'producerJob'}[key];
+      assert.throws(() => validatePerformanceProcessPackageProducer({
+        ...provenance(), adapter, producerJob: 'client-packages', [field]: '',
+      }));
+    }
+    for (const nativeOnly of [false, true]) {
+      assert.equal(runInNewContext(workflow.jobs[`ordinary-${adapter}`].if.slice(3, -2), {
+        github: {event: {repository: {visibility: 'public', private: false}}},
+        inputs: {'native-approval-only': nativeOnly}, toJSON: JSON.stringify,
+      }, {timeout: 100}), !nativeOnly);
     }
   }
 });
