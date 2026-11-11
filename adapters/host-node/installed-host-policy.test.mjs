@@ -12,6 +12,7 @@ import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {DatabaseSync} from 'node:sqlite';
 import test, {after} from 'node:test';
+import './request-memory-policy.test.mjs';
 import {connect as connectRemote} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 const connect = options => options.mode === 'local'
