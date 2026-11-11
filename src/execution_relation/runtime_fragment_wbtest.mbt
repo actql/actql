@@ -125,3 +125,39 @@ test "wide compiler codec keeps the complete measured Fragment above its runtime
     is Err(Runtime(InvalidLimits)),
   )
 }
+
+///|
+test "runtime body floor never widens the original selected depth" {
+  let candidate = admission_candidate("7")
+  let request = candidate.material.request.request
+  let selected = { ..registry_limits(), max_body_depth: 20, }
+  let logical : LogicalLimits = {
+    max_input_rows: 10L,
+    max_value_bytes: 1000L,
+    max_live_value_bytes: 10000L,
+    max_work: 100000L,
+  }
+  let explicit = prepare_runtime_fragment(
+    request,
+    candidate.contract,
+    material_demands(),
+    selected,
+    logical,
+  ).unwrap()
+  assert_eq(explicit.physical.max_body_depth, 20)
+  for depth in [0, 20, 100] {
+    let runtime = prepare_runtime_fragment(
+      request,
+      candidate.contract,
+      material_demands(),
+      selected,
+      logical,
+      runtime_body_floor=Some({ ..selected, max_body_depth: depth, }),
+    ).unwrap()
+    assert_eq(runtime.physical.max_body_depth, 20)
+    assert_eq(
+      runtime.fragment.candidate.artifact.cid,
+      explicit.fragment.candidate.artifact.cid,
+    )
+  }
+}

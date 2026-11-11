@@ -106,7 +106,7 @@ fn prepare_runtime_fragment_owned(
       {
         max_body_bytes: Int::max(floor.max_body_bytes, candidate.artifact.bytes),
         max_body_nodes: Int::max(floor.max_body_nodes, candidate.artifact.nodes),
-        max_body_depth: Int::max(floor.max_body_depth, physical.max_body_depth),
+        max_body_depth: physical.max_body_depth,
       }
   }
   match prepare_fragment_runtime_context(checked, logical, runtime) {
