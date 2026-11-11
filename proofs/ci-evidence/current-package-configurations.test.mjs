@@ -256,10 +256,14 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   const currentDigest = '5a8d99327028ad653aae66e18dcb81a190c2dadbe7b3a948ad30196149a0eac9';
   const modelRevision = '4c6c5793f750577c21724f75b09380e598f7a4c2';
   const modelDigest = '5af382fee097e2f379cb3a50727ea88d0fc462f6d0beab3f15d0affb39971363';
+  const selectorRevision = '112a38375c2f57f33424f018456f25f9920a044b';
+  const selectorDigest = '1f51429964f1bd98f0089a0f62b19d0f53bf1f0ea50c87b5ce80ac408af70946';
   const scopeRevision = 'ff4e214d60984ee7b5c42ae57943d0b6d3e95437';
   const catalogRevision = 'f213d49c0748b99a69ae25fd462e8f9d500d7109';
   const catalogDigest = '11e08f7a636e2e73d47863ea626632b5dbf6e45e16ba00a32a27952c72e4007e';
-  assert.deepEqual(currentPackageConfigurations[path], {revision: modelRevision, digest: modelDigest, rule});
+  assert.deepEqual(currentPackageConfigurations[path], {revision: selectorRevision, digest: selectorDigest, rule});
+  execFileSync('git', ['merge-base', '--is-ancestor', modelRevision, selectorRevision], {cwd: root});
+  execFileSync('git', ['merge-base', '--is-ancestor', selectorRevision, 'HEAD'], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', modelRevision, 'HEAD'], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', currentRevision, modelRevision], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', currentRevision, 'HEAD'], {cwd: root});
@@ -268,6 +272,20 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   const keyedSelector = '    "request_native_keyed_plan_js_wbtest.mbt": [ "js" ],\n';
   const currentBody = gitTree(root, currentRevision).read(path).toString();
   const modelBody = gitTree(root, modelRevision).read(path).toString();
+  const selectorBody = gitTree(root, selectorRevision).read(path).toString();
+  const workSelectors = ['collection_request_finalization_js_wbtest.mbt',
+    'preparation_request_large_literal_js_wbtest.mbt', 'preparation_request_query_selection_js_wbtest.mbt',
+    'preparation_request_work_calls_js_wbtest.mbt'].map(name => `    "${name}": [ "js" ],\n`);
+  assert.equal(hash(selectorBody), selectorDigest);
+  assert.equal(Buffer.byteLength(selectorBody), 10649);
+  let restoredModelBody = selectorBody;
+  for (const selector of workSelectors) {
+    assert.equal(selectorBody.split(selector).length, 2);
+    restoredModelBody = restoredModelBody.replace(selector, '');
+  }
+  assert.equal(restoredModelBody, modelBody,
+    'only four literal JS-only Request regressions extend the complete prior descriptor');
+  assert.deepEqual(packageImports(selectorBody).imports, packageImports(modelBody).imports);
   const modelImport = '  "actql/actql/client_infer_host" @infer_host,\n';
   assert.equal(hash(modelBody), modelDigest);
   assert.equal(Buffer.byteLength(modelBody), 10392);
@@ -411,9 +429,10 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
-  assert.equal(currentTree.read(path).toString(), modelBody);
+  assert.equal(currentTree.read(path).toString(), selectorBody);
   assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, modelDigest))?.revision, modelRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, selectorDigest))?.revision, selectorRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, modelDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, digest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(previous))), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(introduced))), null);
@@ -435,7 +454,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/logical_request_scope/*')?.members, scopeMembers);
   assert.deepEqual(packageImports(currentTree.read('src/logical_request_scope/moon.pkg').toString()).imports,
     ['actql/actql/canonical_value', 'actql/actql/encode_core', 'actql/actql/sha256', 'moonbitlang/core/encoding/utf8'].sort());
-  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors, ...completionSelectors].map(selector =>
+  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
@@ -446,30 +465,30 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
     assert.equal(currentTree.entries.get(member)?.mode, '100644');
   }
-  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody, currentBody,
-    modelBody.replace(modelImport, ''), modelBody.replace('@infer_host,', '@unreviewed_model,'),
-    modelBody.replace(modelImport, '').replace('import {\n', 'import {\n' + modelImport),
-    modelBody.replace('@request_scope,', '@unreviewed_scope,'),
-    modelBody.replace('actql/actql/logical_request_scope', 'actql/actql/unreviewed_scope'),
-    modelBody.replace(scopeImport, scopeImport + '  "actql/actql/unreviewed_scope" @extra,\n'),
-    modelBody.replace('@hubspot_catalog,', '@unreviewed_hubspot,'),
-    modelBody.replace('actql/actql/connectors/hubspot/catalog', 'actql/actql/unreviewed_catalog'),
-    modelBody.replace(dependency, ''), modelBody.replace('@capacity,', '@permission,'),
-    modelBody.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/encoding/utf16"'),
-    ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => modelBody.replace(selector, selector.replace('"js"', '"native"'))),
-    ...completionSelectors.flatMap(selector => [modelBody.replace(selector, ''),
-      modelBody.replace(selector, selector.replace('"js"', '"native"')),
-      modelBody.replace(selector, selector.replace('"js"', '"wasm"')),
-      modelBody.replace(selector, selector.replace('.mbt', '_unreviewed.mbt'))]),
-    modelBody.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
-    modelBody + '\noptions(pre_build: {command: "unreviewed"})\n']) {
+  for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody, currentBody, modelBody,
+    selectorBody.replace(modelImport, ''), selectorBody.replace('@infer_host,', '@unreviewed_model,'),
+    selectorBody.replace(modelImport, '').replace('import {\n', 'import {\n' + modelImport),
+    selectorBody.replace('@request_scope,', '@unreviewed_scope,'),
+    selectorBody.replace('actql/actql/logical_request_scope', 'actql/actql/unreviewed_scope'),
+    selectorBody.replace(scopeImport, scopeImport + '  "actql/actql/unreviewed_scope" @extra,\n'),
+    selectorBody.replace('@hubspot_catalog,', '@unreviewed_hubspot,'),
+    selectorBody.replace('actql/actql/connectors/hubspot/catalog', 'actql/actql/unreviewed_catalog'),
+    selectorBody.replace(dependency, ''), selectorBody.replace('@capacity,', '@permission,'),
+    selectorBody.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/encoding/utf16"'),
+    ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, ...selectors, ...successorSelectors].map(selector => selectorBody.replace(selector, selector.replace('"js"', '"native"'))),
+    ...[...completionSelectors, ...workSelectors].flatMap(selector => [selectorBody.replace(selector, ''),
+      selectorBody.replace(selector, selector.replace('"js"', '"native"')),
+      selectorBody.replace(selector, selector.replace('"js"', '"wasm"')),
+      selectorBody.replace(selector, selector.replace('.mbt', '_unreviewed.mbt'))]),
+    selectorBody.replace(keyedSelector, keyedSelector + '    "unreviewed_keyed_target.mbt": [ "js" ],\n'),
+    selectorBody + '\noptions(pre_build: {command: "unreviewed"})\n']) {
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
     assert(packageSourceInputs({tree: altered, packages: ['src/client_local_host'], target: 'js'})
       .unresolved.includes('Unreviewed package configuration: ' + path));
   }
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
-    assert.equal(currentPackageConfigurationReviewFor({...request(path, modelDigest), ...delta}), null);
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, selectorDigest), ...delta}), null);
 });
 
 test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {
