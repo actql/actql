@@ -3,8 +3,9 @@ import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/proje
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
 import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {readFile, stat, unlink} from 'node:fs/promises';
+import {open, readFile, stat, unlink} from 'node:fs/promises';
 import {join} from 'node:path';
 
 export const mockTemplates = Object.freeze(['deal-review-mock', 'churn-risk-mock']);
@@ -31,6 +32,62 @@ const expectedChanges = Object.freeze({
     ],
   },
 });
+
+// The caller's existing scratch owner retains this exclusive diagnostic file.
+// Native deliberately drops observations on pipe backpressure. A regular sink
+// preserves its unchanged best-effort writer while the parent registry stays
+// asynchronous. Read the original bytes only after the command has closed.
+export async function captureNativeMockCommand(command, args, {
+  cwd, env, stderrPath, timeout = 120_000, maxBuffer = 8 * 1024 * 1024,
+  killSignal = 'SIGKILL',
+}) {
+  assert(Number.isSafeInteger(timeout) && timeout > 0);
+  assert(Number.isSafeInteger(maxBuffer) && maxBuffer > 0);
+  const sink = await open(stderrPath, 'wx+', 0o600);
+  try {
+    const stdout = [];
+    let stdoutBytes = 0, failure, killed = false;
+    const outcome = await new Promise(resolve => {
+      const child = spawn(command, args, {cwd, env, stdio: ['ignore', 'pipe', sink.fd]});
+      const stop = error => {
+        failure ??= error;
+        killed = child.kill(killSignal) || killed;
+      };
+      const timer = setTimeout(() => stop(Object.assign(new Error('Native command timed out'),
+        {code: 'ETIMEDOUT'})), timeout);
+      child.stdout.on('data', chunk => {
+        const remaining = maxBuffer - stdoutBytes;
+        if (remaining > 0) stdout.push(chunk.subarray(0, remaining));
+        stdoutBytes += chunk.length;
+        if (stdoutBytes > maxBuffer) stop(Object.assign(new Error('stdout maxBuffer exceeded'),
+          {code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}));
+      });
+      child.stdout.once('error', stop);
+      child.once('error', error => {failure ??= error;});
+      child.once('close', (code, signal) => {clearTimeout(timer); resolve({code, signal});});
+    });
+    const size = (await sink.stat()).size;
+    const body = Buffer.alloc(Math.min(size, maxBuffer));
+    let offset = 0;
+    while (offset < body.length) {
+      const {bytesRead} = await sink.read(body, offset, body.length - offset, offset);
+      if (bytesRead === 0) break;
+      offset += bytesRead;
+    }
+    if (size > maxBuffer) failure ??= Object.assign(new Error('stderr maxBuffer exceeded'),
+      {code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'});
+    if (offset !== body.length || (await sink.stat()).size !== size)
+      failure ??= Object.assign(new Error('Native diagnostic file changed after child close'),
+        {code: 'ERR_NATIVE_MOCK_STDERR'});
+    const result = {stdout: Buffer.concat(stdout).toString('utf8'),
+      stderr: body.subarray(0, offset).toString('utf8')};
+    if (failure || outcome.code !== 0 || outcome.signal !== null) {
+      throw Object.assign(failure ?? new Error('Native command failed'), result,
+        {code: failure?.code ?? outcome.code, exitCode: outcome.code, signal: outcome.signal, killed});
+    }
+    return result;
+  } finally {await sink.close();}
+}
 
 async function targetSnapshot(file) {
   const bytes = await readFile(file);

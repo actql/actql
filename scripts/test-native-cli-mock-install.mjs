@@ -15,7 +15,7 @@ import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases} from './native-approval-performance.mjs';
-import {mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
+import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, ...extra] = process.argv.slice(2);
@@ -53,11 +53,16 @@ async function run(command, args, cwd = root, timeoutMs = 120_000) {
     ? ['-l', '-p', '-o', resources] : ['--verbose', '--output', resources]), command, ...args] : args;
   let result;
   try {
-    result = {...await execute(observedCommand, observedArgs, {cwd, env, timeout: timeoutMs,
-      killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024}), code: 0, signal: null};
+    const options = {cwd, env, timeout: timeoutMs, killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024};
+    const captured = command === process.execPath
+      ? await captureNativeMockCommand(observedCommand, observedArgs,
+        {...options, stderrPath: join(root, `command-${records.length}.stderr`)})
+      : await execute(observedCommand, observedArgs, options);
+    result = {...captured, code: 0, signal: null};
   } catch (error) {
     result = {code: error.code ?? null, signal: error.signal ?? null,
-      killed: error.killed ?? false, stdout: error.stdout ?? '', stderr: error.stderr ?? ''};
+      killed: error.killed ?? false, stdout: error.stdout ?? '', stderr: error.stderr ?? '',
+      ...(error.exitCode !== undefined ? {childExitCode: error.exitCode} : {})};
   }
   const wallNs = Number(process.hrtime.bigint() - started);
   assert(Number.isSafeInteger(wallNs) && wallNs >= 0);

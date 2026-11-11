@@ -3,11 +3,13 @@ import {runInNewContext} from 'node:vm';
 // here does not establish that the Native mock workflow is implemented.
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
+import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
-import {mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
+import {nativeMockAcceptanceObservations, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
+import {captureNativeMockCommand, mockTemplates, nativeLauncherEnvelope, runNativeCliMockScenario}
+  from './native-cli-mock-scenario.mjs';
 import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
   from './test-native-cli-source-free-install.mjs';
 
@@ -529,4 +531,80 @@ for (const [name, envelope] of [
   const options=await fixture(t,'deal-review-mock',({record})=>{record.stderr=envelope(record.stderr);});
   options.launcherTimings='required';
   await assert.rejects(runNativeCliMockScenario(options));
+});
+
+test('Native mock command capture preserves complete diagnostics on an owned regular stderr file', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-stderr-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  const server = createServer((_request, response) => response.end('original registry is responsive'));
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const events = [0,1].flatMap(ordinal => [0,1,2].map(tag =>
+    ({tag,ordinal,identity:observedCid(String(ordinal + 1))})));
+  const native = observation(901, events) + observation(902), original = native + launcherTimingTrailer();
+  assert(Buffer.byteLength(original) > 16 * 1024, 'Exercise more than a small pipe window');
+  const payload = join(root, 'original.txt'), stderrPath = join(root, 'command.stderr');
+  await writeFile(payload, original);
+  const source = `import assert from 'node:assert/strict';
+    import {fstatSync,readFileSync,writeSync} from 'node:fs';
+    assert(fstatSync(2).isFile());
+    const reply=await fetch(process.argv[2]);
+    assert.equal(await reply.text(),'original registry is responsive');
+    const body=readFileSync(process.argv[1]);
+    for(let offset=0;offset<body.length;offset+=512)
+      assert.equal(writeSync(2,body.subarray(offset,offset+512)),Math.min(512,body.length-offset));
+    writeSync(1,'complete original child\\n');`;
+  const result = await captureNativeMockCommand(process.execPath,
+    ['--input-type=module','-e',source,payload,`http://127.0.0.1:${server.address().port}`],
+    {cwd:root, env:process.env, stderrPath, timeout:5000});
+  assert.equal(result.stdout, 'complete original child\n');
+  assert.equal(result.stderr, original);
+  assert.equal(await readFile(stderrPath, 'utf8'), original);
+  assert.equal((await stat(stderrPath)).mode & 0o777, 0o600);
+  const envelope = nativeLauncherEnvelope(result.stderr, 'required');
+  assert.equal(envelope.native, native);
+  assert.equal(nativeMockAcceptanceObservations(envelope.native)[0].events.length, 6);
+  await assert.rejects(captureNativeMockCommand(process.execPath, ['-e','process.exit(99)'],
+    {cwd:root,env:process.env,stderrPath,timeout:5000}), {code:'EEXIST'});
+  assert.equal(await readFile(stderrPath, 'utf8'), original, 'Never overwrite the original diagnostic file');
+});
+
+test('Native mock command capture retains original failures and bounded reads', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-capture-failures-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  for (const [name, source, options, expected] of [
+    ['nonzero', "process.stderr.write('original error\\n');process.exitCode=7", {}, {code:7,exitCode:7,signal:null,stderr:'original error\n'}],
+    ['signal', "process.kill(process.pid,'SIGTERM')", {}, {code:null,exitCode:null,signal:'SIGTERM'}],
+    ['timeout', 'setInterval(()=>{},1000)', {timeout:100}, {code:'ETIMEDOUT',signal:'SIGKILL',killed:true}],
+    ['stdout', "require('node:fs').writeSync(1,Buffer.alloc(4096,120))", {maxBuffer:32}, {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}],
+    ['stderr', "require('node:fs').writeSync(2,Buffer.alloc(4096,120))", {maxBuffer:32}, {code:'ERR_CHILD_PROCESS_STDIO_MAXBUFFER',exitCode:0,signal:null,killed:false}],
+  ]) {
+    await assert.rejects(captureNativeMockCommand(process.execPath, ['-e',source],
+      {cwd:root,env:process.env,stderrPath:join(root,name+'.stderr'),timeout:5000,...options}), error => {
+      for (const [key,value] of Object.entries(expected)) assert.equal(error[key],value,name+': '+key);
+      assert(Buffer.byteLength(error.stdout) <= (options.maxBuffer ?? 8 * 1024 * 1024));
+      assert(Buffer.byteLength(error.stderr) <= (options.maxBuffer ?? 8 * 1024 * 1024));
+      return true;
+    });
+  }
+});
+
+test('Native mock command capture cannot launder incomplete or foreign diagnostic rows', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-mock-capture-refusals-'));
+  t.after(() => rm(root, {recursive:true, force:true}));
+  const native = observation(902);
+  for (const [index, original] of [
+    native+'ACTQL_NATIVE_ACCEPTANCE_EVEN'+launcherTimingTrailer(),
+    native+launcherTimingTrailer()+launcherTimingTrailer(),
+    native+launcherTimingTrailer()+'unknown trailing garbage\n',
+    'original Native error\n'+native+launcherTimingTrailer(),
+    native,
+  ].entries()) {
+    const payload = join(root,index+'.txt'); await writeFile(payload,original);
+    const result = await captureNativeMockCommand(process.execPath,
+      ['-e',"require('node:fs').writeSync(2,require('node:fs').readFileSync(process.argv[1]))",payload],
+      {cwd:root,env:process.env,stderrPath:join(root,index+'.stderr'),timeout:5000});
+    assert.equal(result.stderr,original);
+    assert.throws(() => nativeMockAcceptanceObservations(nativeLauncherEnvelope(result.stderr,'required').native));
+  }
 });
