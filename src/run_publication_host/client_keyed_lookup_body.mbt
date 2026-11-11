@@ -326,6 +326,9 @@ fn clear_keyed_lookup_identity_bodies(lookup : ClientKeyedLookupInput) -> Unit {
     state.sources.clear()
     state.sources.shrink_to_fit()
     state.relation = None
+    state.retention_base = None
+    state.dependency_bodies = None
+    state.physical_source = None
     state.request = None
   }
   lookup.native_sources = None

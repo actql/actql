@@ -58,8 +58,12 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
   const actual = inspectSqliteSnapshot(join(directory, 'client-requests.sqlite3'), original =>
     original.prepare('SELECT sql FROM sqlite_schema WHERE sql IS NOT NULL')
       .all().map(row => row.sql).sort(), {maxSourceBytes: options.maxDatabaseBytes});
-  assert.equal(actual.length, 31);
-  assert.deepEqual(actual, [...support.sql].sort());
+  assert.equal(actual.length, 32);
+  // This fixture intentionally opens without an owned Store. The supported
+  // local execution-owner table is conditional on that original ownership and
+  // must not be manufactured just to make an unowned schema equal the asset.
+  const selectedSql = support.sql.filter(sql => !sql.startsWith('CREATE TABLE client_local_execution_owners ('));
+  assert.deepEqual(actual, [...selectedSql].sort());
   const before = snapshot(directory);
   const restored = openClientRequestJournal(directory, selected);
   restored.observationStorage();

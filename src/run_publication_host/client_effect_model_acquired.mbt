@@ -199,6 +199,22 @@ pub fn client_effect_model_acquired_lookup_barrier(
 }
 
 ///|
+/// Borrow the complete original closure frozen before the Model Read. Its
+/// original lookup retains all semantic bodies through the existing lifetime;
+/// a copy of the pointer array cannot mutate that private retained inventory.
+pub fn client_effect_model_acquired_lookup_dependency_bodies(
+  value : ClientEffectModelAcquiredEvidence,
+) -> Result[Array[@publication.CapturedEffectDependencyBody], ClientEffectLocalResultArtifactIssue] {
+  guard value.keyed is Some((lookup, completed)) else { return Ok([]) }
+  guard !lookup.closed && lookup.left.lookup_issue is None &&
+    lookup.native_completion is Some(same) && physical_equal(same, completed) &&
+    lookup.native_sources is Some(state) && state.dependency_bodies is Some(bodies) else {
+    return Err(ForeignOwner)
+  }
+  Ok(bodies.copy())
+}
+
+///|
 /// Bind the named Result's exact export to the original completed Model host
 /// output, directly or through its checked serial same-Unit suffix input.
 /// The calling Model owner retains OutputUse/currentness; the captured

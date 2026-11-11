@@ -156,10 +156,15 @@ fn build_client_keyed_native_captured_page(
   // capture/read/result/history Some4H4R4W and immutable metadata1H9R2W.
   // The raw binding projection's tuple/Some adds2H3R2W. Scanner and protocol
   // writers have their own existing dynamic constructor quotes below.
+  let declared = state.native_read_profile
+    .map(@publication.publication_contract_name)
+    .unwrap_or("") ==
+    "declared_file_content_read"
   let controls = @execution.preparation_representation_cost({
-    record_headers: 20L,
+    // Actual shape tuple1H2W; selected declared page wire/schema records3H14W.
+    record_headers: 21L + (if declared { 3L } else { 0L }),
     reference_slots: 39L,
-    scalar_words: 19L,
+    scalar_words: 21L + (if declared { 14L } else { 0L }),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -176,6 +181,26 @@ fn build_client_keyed_native_captured_page(
   }
   guard history._retained_native_page is None && !state.closed else {
     return Err(Assembly("claimed_native_page_state"))
+  }
+  let (actual_rows, actual_columns) = if declared {
+    @row_host.keyed_row_capture_dimensions(capture)
+  } else {
+    (max_rows, payload_wire.max_columns)
+  }
+  let payload_wire = if declared {
+    { ..payload_wire, max_columns: actual_columns, }
+  } else {
+    payload_wire
+  }
+  let logical_wire = if declared {
+    { ..logical_wire, max_columns: actual_columns, }
+  } else {
+    logical_wire
+  }
+  let schema = if declared {
+    { ..schema, max_fields: actual_columns, }
+  } else {
+    schema
   }
   let partial : ClientKeyedNativePageState = {
     read: None,
@@ -216,7 +241,7 @@ fn build_client_keyed_native_captured_page(
   let scan = match
     @execution.start_completed_relation_identity_scan(
       output,
-      max_rows,
+      actual_rows,
       values,
       payload_wire,
       logical_wire,
@@ -278,10 +303,29 @@ fn build_client_keyed_native_captured_page(
   if logical_bytes > 16777216 || schema_bytes > 16777216 - logical_bytes {
     return Err(Assembly("native_page_dependency_limit"))
   }
+  let codec_bytes = if state.native_read_profile
+    .map(@publication.publication_contract_name)
+    .unwrap_or("") ==
+    "declared_file_content_read" {
+    let units = @publication.publication_contract_json(raw.metadata)
+      .length()
+      .to_int64() +
+      activation.issuer_id.length().to_int64() +
+      recorded_at.length().to_int64() +
+      response_schema.length().to_int64() +
+      barrier.length().to_int64()
+    guard @execution.checked_preparation_add_product(4096L, units, 6L)
+      is Some(bound) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    Int64::min(bound, max_bytes.to_int64()).to_int()
+  } else {
+    max_bytes
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       state,
-      max_bytes,
+      codec_bytes,
       2L,
       copies=3,
       extra_controls=controls,
@@ -311,7 +355,7 @@ fn build_client_keyed_native_captured_page(
   let raw_cid = @publication.publication_contract_identity(raw.metadata)
   let authority = client_request_authority_scope_cid(activation.client_request)
   let event_body = try {
-    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    let writer = @encode.writer(codec_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     for
       (name, text) in [
@@ -341,14 +385,14 @@ fn build_client_keyed_native_captured_page(
   }
   let event = match
     native_lookup_seal(
-      "native_file_lookup_attempt_event", event_body, max_bytes, max_nodes, max_depth,
+      "native_file_lookup_attempt_event", event_body, codec_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let page_cid = @execution.logical_relation_cid(logical)
   let adoption_body = try {
-    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    let writer = @encode.writer(codec_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     for
       (name, text) in [
@@ -383,7 +427,7 @@ fn build_client_keyed_native_captured_page(
   }
   let adoption = match
     native_lookup_seal(
-      "native_file_lookup_adoption", adoption_body, max_bytes, max_nodes, max_depth,
+      "native_file_lookup_adoption", adoption_body, codec_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

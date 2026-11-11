@@ -4543,6 +4543,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                   return await openAcquiredEffectComputation({moon,
                     owner: facts.owner, acquired: facts.preparedExecution, managedRun,
                     sourceSelection: selectedSources, sourceSelectionPlan,
+                    requestJournal: journal, runRef: facts.ref,
                     originalContent: managedEffect.contentOriginal,
                     originalModelComponent: managedEffect.modelComponent,
                     originalModelComponents: managedEffect.modelMembers === undefined ? undefined

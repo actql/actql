@@ -24,7 +24,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
   assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan,
   originalModelComponent, originalModelComponents, originalModelSelection, originalContent,
-  sourceSelection, sourceSelectionPlan}) {
+  sourceSelection, sourceSelectionPlan, requestJournal, runRef}) {
   const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
@@ -597,7 +597,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       const member = pluralModels ? modelGroup.keyedMember() : undefined;
       keyedFamily = pluralModels && member === undefined ? undefined : await prepareAcquiredEffectKeyedPrefix({moon, acquired, managedRun, infer: member?.selection ?? infer,
         selected: member?.originalSelection ?? originalModelSelection,
-        originalPreparation: member?.originalPreparation ?? originalPreparation, plan: modelPlan, captures,
+        originalPreparation: member?.originalPreparation ?? originalPreparation, plan: modelPlan, captures, sources: evidence, requestJournal, runRef,
         sourceProfile, ledger, contentRun, store, principalId, signal, now, current,
         retain(child) {
           if (keyedCleanup !== undefined) throw new Error('InstalledComposedKeyedAlreadyRetained');

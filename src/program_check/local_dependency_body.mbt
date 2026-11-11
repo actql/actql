@@ -47,6 +47,7 @@ pub fn checked_local_catalog_dependency_body(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue] {
   let (section, self_field) = match role {
     "schema_evidence" => (@environment.SchemaSnapshots, None)
@@ -84,6 +85,13 @@ pub fn checked_local_catalog_dependency_body(
     }
   }
   guard selected is Some(index) else { return Err(MissingDependency) }
+  if before_body is Some(prepare) {
+    guard @environment.member_at(environment, section, index) is Some(original) else {
+      return Err(MissingDependency)
+    }
+    let (bytes, nodes, depth) = @environment.member_emission_geometry(original)
+    if !prepare(bytes, nodes, depth) { return Err(BudgetExceeded) }
+  }
   let kind = match role {
     "schema_evidence" => SourceSchema(index)
     "capability_evidence" => SourceCapability(index)

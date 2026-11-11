@@ -240,3 +240,26 @@ pub fn client_keyed_native_left_identity(
     }
   }
 }
+
+///|
+/// The completed checked prefix already bounded its rows and column inventory.
+/// Result-output row/width limits do not reclassify that earlier private input.
+/// Reuse its actual counts and the selected value/wire/work policies; never
+/// re-execute, copy or replace the original completed output.
+pub fn prepare_client_keyed_captured_left_identity(
+  lookup : ClientKeyedLookupInput,
+  limits : PublicationOutputExportLimits,
+  max_work : Int,
+  workspace : Int,
+) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
+  guard lookup.left.composed is Some(original) && original.plan.keyed is Some(component) else {
+    return Err(Assembly("foreign_captured_left_identity"))
+  }
+  let width = component.original.left_fields.length()
+  prepare_client_keyed_native_left_identity(
+    lookup, lookup.rows, limits.values,
+    { ..limits.payload_wire, max_columns: width },
+    { ..limits.logical_wire, max_columns: width },
+    { ..limits.schema, max_fields: width }, max_work, workspace,
+  )
+}

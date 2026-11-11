@@ -16,6 +16,7 @@ pub(all) struct DeclaredFileReadFields {
 priv struct DeclaredFileReadProfile {
   source_ref : String
   physical_view : RowDeclaredView
+  physical_wire : String
   physical_resource : String
   fields : DeclaredFileReadFields
   contract : @publication.PublicationContract
@@ -120,7 +121,7 @@ pub fn declared_file_read_profile_construction_inventory(
     is Some(profile_forests) &&
     @shape.collection_construction_extent({
       records: 6L,
-      record_references: 25L,
+      record_references: 26L,
       record_words: 2L,
       reference_arrays: 4L,
       reference_items: prior_profiles.to_int64() + fields.items_path.length().to_int64() +
@@ -177,6 +178,10 @@ pub fn bind_declared_file_read_profile(
     !fields.key_path.is_empty() else {
     return Err(InvalidSpecification)
   }
+  guard physical.views.search_by(view => physical_equal(view, physical_view)) is Some(physical_index) &&
+    physical.view_bodies.get(physical_index) is Some(physical_wire) else {
+    return Err(InvalidSpecification)
+  }
   let mut wire_units = 0L
   for wire in physical.view_bodies { wire_units += wire.length().to_int64() }
   for wire in physical.contracts {
@@ -196,6 +201,11 @@ pub fn bind_declared_file_read_profile(
     }) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  guard physical.views.get(physical_index) is Some(same_view) &&
+    physical_equal(same_view, physical_view) &&
+    physical.view_bodies.get(physical_index) == Some(physical_wire) else {
+    return Err(InvalidSpecification)
   }
   guard original.shape is @contract.Object(columns) else {
     return Err(InvalidSpecification)
@@ -288,6 +298,7 @@ pub fn bind_declared_file_read_profile(
   let profile = {
     source_ref,
     physical_view,
+    physical_wire,
     physical_resource,
     fields: {
       ..fields,
@@ -363,4 +374,18 @@ pub fn row_declaration_file_read_profile_matches(
   original.path == fields.path &&
   same_path(original.items_path, fields.items_path) &&
   same_path(original.key_path, fields.key_path)
+}
+
+
+///|
+/// Original installing View body retained by the profile's existing Mapping
+/// validation. Equal-CID profiles cannot select this borrowed publication DATA.
+/// This performs no schema/identity check, allocation grant or Source read.
+pub fn row_declaration_file_read_physical_source(
+  declaration : RowDeclaration,
+  profile : @publication.PublicationContract,
+) -> (String, String)? {
+  declaration.file_read_profiles.bind(profiles =>
+    profiles.iter().find_first(value => physical_equal(value.contract, profile))
+      .map(value => (value.physical_view.view_cid, value.physical_wire)))
 }

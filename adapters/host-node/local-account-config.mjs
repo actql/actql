@@ -110,6 +110,18 @@ export function contentCid(value) {
     .digest('hex')}`;
 }
 
+// Immutable private Store policy DATA shared by projected Content and the
+// original lookup transport. This computes identities, never capture authority.
+export function originalLocalContentStoragePolicy({storeAuthorityCid, authorityScopeCid,
+  runDefinitionCid, expiresAt}) {
+  return Object.freeze({
+    availabilityEvidenceCid: contentCid({version:'actql-installed-local-policy/0.1',
+      name:'content-availability', storeAuthorityCid, runDefinitionCid, expiresAt}),
+    issuerContractCid: contentCid({version:'actql-installed-local-policy/0.1',
+      name:'content-issuer', storeAuthorityCid, authorityScopeCid}),
+  });
+}
+
 export function bytesCid(bytes) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }

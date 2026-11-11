@@ -89,6 +89,8 @@ pub fn begin_row_run_response_attempt(RowRunResponseBorrow) -> Result[Unit, RowH
 
 pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
 
+pub fn bind_declared_file_read_profile(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Result[RowDeclaration, RowMappingIssue]
+
 pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]
 
 pub fn borrow_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?
@@ -141,6 +143,8 @@ pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit,
 
 pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]
 
+pub fn declared_file_read_profile_construction_inventory(RowDeclaration, RowDeclaration, DeclaredFileReadFields, prior_profiles? : Int) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView
 
 pub fn discard_relation_document_original(RelationDocument) -> Bool
@@ -182,6 +186,8 @@ pub fn keyed_row_capacity_bytes(RowKeyedCapacity) -> (Int64, Int64)
 pub fn keyed_row_capacity_matches(RowKeyedCapacity, @lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts) -> Bool
 
 pub fn keyed_row_capacity_target(RowKeyedCapacity, RowDeclaration) -> Result[(String, Array[String]), RowHostIssue]
+
+pub fn keyed_row_capture_dimensions(RowKeyedSourceCapture) -> (Int, Int)
 
 pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?
 
@@ -379,6 +385,12 @@ pub fn row_declaration_catalog_cid(RowDeclaration) -> String
 
 pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure
 
+pub fn row_declaration_file_read_physical_source(RowDeclaration, @run_publication.PublicationContract) -> (String, String)?
+
+pub fn row_declaration_file_read_profile(RowDeclaration, String) -> @run_publication.PublicationContract?
+
+pub fn row_declaration_file_read_profile_matches(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Bool
+
 pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?
 
 pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?
@@ -478,6 +490,17 @@ pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> 
 // Errors
 
 // Types and methods
+pub(all) struct DeclaredFileReadFields {
+  identity : String
+  name : String
+  version : String
+  media_type : String
+  content_utf8 : String
+  path : String?
+  items_path : Array[String]
+  key_path : Array[String]
+}
+
 pub struct MockChurnRiskCatalogue {
   // private fields
 }
@@ -558,6 +581,7 @@ pub struct RowDeclaration {
   view_bodies : Array[String]
   manifest_entry : String
   manifest_entry_cid : String
+  // private fields
 }
 
 pub(all) enum RowDeclarationIssue {

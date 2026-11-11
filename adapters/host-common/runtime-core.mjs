@@ -3448,6 +3448,108 @@ function publicationControl(moon) {
         scope, value, token(definition), graph, keyed,
         captures.map(value => value.capture.originalRowCapture())));
     },
+    prepareKeyedLookupSourceMetadata(lookup, request, captures, sources,
+      retentionSelection, outputLimits, maxWork, limits, fileReadDeclarations) {
+      limits = captureContractLimits(limits, 'keyed Source metadata');
+      if (!Array.isArray(captures) || !Array.isArray(sources) || !Array.isArray(fileReadDeclarations) ||
+          !Object.isFrozen(fileReadDeclarations) || captures.length < 1 ||
+          captures.length !== sources.length || !validResultOutputLimits(outputLimits) ||
+          !Number.isSafeInteger(maxWork) || maxWork < 1 ||
+          captures.some((captured, index) => sources[index]?.captured !== captured ||
+            sources[index]?.sourceEvidence === undefined)) {
+        throw new TypeError('ForeignOriginalKeyedSourceMetadata');
+      }
+      const exported = moon.clientProgramEffectInputExportLimits(
+        ...resultOutputLimitFields.map(name => outputLimits[name]));
+      if (exported === undefined) throw new TypeError('Invalid original keyed input limits');
+      const selected = retentionSelection;
+      const retention = checked(moon.clientProgramKeyedLookupPrepareRetention(lookup,
+        request, selected.retentionContractCid, selected.availableUntil, selected.deleteBy,
+        selected.metadataDeleteBy, selected.metadataRetentionPolicyCid,
+        selected.clockContractCid, limits.maxWireBytes));
+      checked(moon.clientProgramKeyedLookupPrepareLeftIdentity(lookup, exported, maxWork));
+      for (let index = 0; index < captures.length; index++) {
+        const captured = captures[index], observation = evidenceToken(sources[index].sourceEvidence);
+        if (captured.inputKind === 'whole-input') {
+          checked(moon.clientProgramKeyedLookupBindWholeSourceMetadata(lookup, index,
+            captured.identity, captured.logicalInput, observation, request, retention,
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+        } else {
+          checked(moon.clientProgramKeyedLookupBindQuerySourceMetadata(lookup, index,
+            captured.requirement, captured.identity, captured.logicalInput, observation,
+            request, retention, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+        }
+      }
+      checked(moon.clientProgramKeyedLookupPrepareLeftRelation(lookup, request, retention,
+        moon.clientRequestAuthorityScopeCid(request),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      checked(moon.clientProgramKeyedLookupBindDeclaredFilePhysicalSource(lookup, fileReadDeclarations));
+      return inspect(retention, limits);
+    },
+    keyedLookupActivationJournalRecord(original, request, compiled, definition, graph, limits) {
+      limits = captureContractLimits(limits, 'keyed lookup activation');
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const wire = checked(moon.clientProgramKeyedLookupDeclaredFileActivationRecord(
+        original, request, value, token(definition), graph, limits.maxWireBytes));
+      const fields = moon.clientProgramKeyedLookupActivationFields(original);
+      return Object.freeze({wire, batchCid: runtimeField(fields, 0),
+        slotCid: runtimeField(fields, 1), batchIndex: runtimeField(fields, 2),
+        batchCount: runtimeField(fields, 3)});
+    },
+    keyedLookupActivationJournalCurrent(original, request, compiled, definition, graph) {
+      const value = compiledRunTokens.get(compiled);
+      return value !== undefined && compiled.kind === 'infer' &&
+        moon.clientProgramKeyedLookupActivationMatches(original, request, value,
+          token(definition), graph) === true;
+    },
+    prepareKeyedLookupRawCapture(keyedRequest, compiled, definition, retention,
+      storage, contentCid, bytes, at, nowMs, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const raw = checked(moon.clientProgramKeyedLookupPrepareDeclaredFileRawCapture(
+        value, token(definition), keyedRequest, token(retention), storage.namespaceId,
+        storage.storeAuthorityCid, storage.availabilityEvidenceCid, storage.issuerContractCid,
+        contentCid, bytes, at, nowMs, limits.maxBytes, limits.maxNodes,
+        limits.maxDepth, limits.maxTextUnits));
+      const fields = checked(moon.clientProgramKeyedLookupRawStoreBinding(raw));
+      return Object.freeze({original:raw, binding:Object.freeze({name:'lookup_raw_response',
+        semanticCid:runtimeField(fields,0), holdingCid:runtimeField(fields,1),
+        wire:runtimeField(fields,2), contentCid:runtimeField(fields,3),
+        byteCount:Number(runtimeField(fields,4))})});
+    },
+    prepareKeyedLookupCapturedPage(keyedRequest, capture, raw, at, outputLimits, maxWork, limits) {
+      limits = captureContractLimits(limits, 'keyed captured page');
+      if (!validResultOutputLimits(outputLimits)) throw new TypeError('Invalid keyed page limits');
+      const exported = moon.clientProgramEffectInputExportLimits(
+        ...resultOutputLimitFields.map(name => outputLimits[name]));
+      if (exported === undefined) throw new TypeError('Invalid keyed page limits');
+      return checked(moon.clientProgramKeyedLookupPrepareCapturedPage(keyedRequest, capture,
+        raw, at, exported, maxWork, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    keyedLookupPageJournalRecord(page, keyedRequest, request, compiled, definition, graph, limits) {
+      limits = captureContractLimits(limits, 'keyed lookup page');
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const wire = checked(moon.clientProgramKeyedLookupDeclaredFilePageRecord(
+        page, keyedRequest, request, value, token(definition), graph, limits.maxWireBytes));
+      const fields = moon.clientProgramKeyedLookupCapturedPageFields(page);
+      return Object.freeze({wire, batchCid: runtimeField(fields, 0),
+        slotCid: runtimeField(fields, 1), activationCid: runtimeField(fields, 2),
+        batchIndex: runtimeField(fields, 3)});
+    },
+    keyedLookupPageJournalCurrent(page, keyedRequest, request, compiled, definition, graph) {
+      const value = compiledRunTokens.get(compiled);
+      return value !== undefined && compiled.kind === 'infer' &&
+        moon.clientProgramKeyedLookupCapturedPageMatches(page, keyedRequest,
+          request, value, token(definition), graph) === true;
+    },
     takeSourceEvidenceOriginal(capture) {
       const take = Object.getOwnPropertyDescriptor(capture ?? {}, 'takeSourceEvidenceOriginal')?.value;
       if (typeof take !== 'function') throw new TypeError('InstalledSourceEvidenceUnavailable');
@@ -4367,18 +4469,24 @@ function publicationControl(moon) {
       const direct = moon.clientProgramOriginalModelAcquiredEffectSources(acquired)
         .map(source => inspectAcquiredEffectEvidence(source, retention, limits));
       const barrier = moon.clientProgramOriginalModelAcquiredEffectLookupBarrier(acquired);
+      const lookupBodies = checked(moon.clientProgramOriginalModelAcquiredLookupDependencyBodies(acquired))
+        .map(body => Object.freeze({kind:runtimeField(body,0), cid:runtimeField(body,1),
+          wire:runtimeField(body,2)}));
       const value = Object.freeze({
         invocation: moon.clientProgramOriginalModelAcquiredEffectInvocation(acquired),
         bodies: Object.freeze([
           ...model.bodies,
           ...direct.flatMap(source => source.bodies),
+          ...lookupBodies,
           ...(imports?.bodies ?? []),
           Object.freeze({kind: 'acquisition_scope',
             wire: moon.clientProgramOriginalModelAcquiredEffectScope(acquired)}),
-          ...(barrier === undefined ? [] : [Object.freeze({kind: 'lookup_barrier',
+          ...(barrier === undefined || lookupBodies.length !== 0 ? [] : [Object.freeze({kind: 'lookup_barrier',
             cid: runtimeField(barrier, 0), wire: runtimeField(barrier, 1)})]),
         ]),
-        catalogBodies: Object.freeze(direct.flatMap(source => source.catalogBodies)),
+        catalogBodies: Object.freeze([...direct.flatMap(source => source.catalogBodies),
+          ...lookupBodies.filter(body => ['source_contract', 'source_view_contract', 'data_policy',
+            'request_schema', 'carrier_schema', 'schema_evidence', 'capability_evidence'].includes(body.kind))]),
       });
       localEffectDependencyTokens.set(value, {kind: 'model', issued: acquired,
         original: retained.original});

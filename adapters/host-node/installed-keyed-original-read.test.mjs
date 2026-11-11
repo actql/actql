@@ -17,6 +17,7 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
   const expectedTransfer = Object.getOwnPropertyDescriptor(transport ?? {}, 'transferBytes')?.value ?? 2048n;
   const expectedExecution = Object.getOwnPropertyDescriptor(transport ?? {}, 'executionBytes')?.value ?? 1024n;
   const currentFailure = new Error('original-current'), readerFailure = new Error('original-reader');
+  const activation = {}, activationRecord = {}, rawOriginal = {};
   let pendingTicket, cleanupConfirmed, physicalAcknowledged = !failReader, finished = false;
   const physicalRecovery = Object.freeze({close() {calls.push('physical-stop');},
     cleanup() {calls.push('physical-cleanup'); return physicalAcknowledged;},
@@ -151,16 +152,40 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
       assert.strictEqual(options.rowRun.run, run);
       await options.beginRequest(new Uint8Array([1]));
       if (failReader) throw new AcquisitionOpenError(readerFailure, 'unknown', physicalRecovery);
-      const rawCharge = options.chargePage(new Uint8Array([2, 3]));
+      const rawBytes = new Uint8Array([2, 3]);
+      const rawCharge = options.chargePage(rawBytes);
+      await options.retainRawResponse?.(rawBytes);
+      calls.push('decode-page');
       options.consumeObservation(rawCharge);
       await options.consumePage([{content: 'original'}]);
     }});
   const selected = await adapter.prepareKeyed({preparedProgram, preparedEffect, keyedAcquisition, requestIdentity: {}});
-  return {calls, currentFailure, readerFailure, planFailure, get finished() {return finished;},
+  const publication = {
+    initialize(value) {assert.strictEqual(value, lookup); calls.push('plan-start');},
+    activate(value, selected) {
+      assert.strictEqual(value, lookup); assert.strictEqual(selected, request);
+      calls.push('journal-activation'); return {activation, record:activationRecord};
+    },
+    async retainRawResponse(value, selected, attempt, bytes) {
+      assert.strictEqual(value, lookup); assert.strictEqual(selected, request);
+      assert.strictEqual(attempt.activation, activation); assert.strictEqual(attempt.record, activationRecord);
+      assert.deepEqual(bytes, new Uint8Array([2,3])); calls.push('raw-store'); return rawOriginal;
+    },
+    adopt(value, selected, attempt, actualCapture, raw) {
+      assert.strictEqual(value, lookup); assert.strictEqual(selected, request);
+      assert.strictEqual(attempt.activation, activation); assert.strictEqual(actualCapture, capture);
+      assert.strictEqual(raw, rawOriginal); calls.push('journal-page');
+    },
+    finishInput(value) {
+      assert.strictEqual(value, lookup); assert.equal(responseRetained, true);
+      calls.push('retain-original-right-body'); return {};
+    },
+  };
+  return {calls, publication, currentFailure, readerFailure, planFailure, get finished() {return finished;},
     acknowledgePhysical() {physicalAcknowledged = true;},
     capacity: () => adapter.keyedLedgerCapacity(keyedAcquisition),
     open: () => adapter.openKeyed({preparedProgram, keyedAcquisition, request, ledger, preparedKeyed: selected.prepared}),
-    openLookup: () => adapter.openKeyedLookup({preparedEffect, managedRun, keyedAcquisition, left: {}, ledger,
+    openLookup: () => adapter.openKeyedLookup({preparedEffect, managedRun, publication, keyedAcquisition, left: {}, ledger,
       preparedKeyed: selected.prepared})};
 }
 
@@ -225,6 +250,10 @@ test('canonical Effect lookup retains every original request before the first ph
   assert.equal(f.calls.filter(name => name.startsWith('prepare-request-')).length, 2);
   assert.equal(f.calls.filter(name => name === 'plan-retain').length, 2);
   assert.ok(f.calls.indexOf('plan-finish') < f.calls.indexOf('grant'));
+  assert.ok(f.calls.indexOf('journal-activation') < f.calls.indexOf('raw-store'));
+  assert.ok(f.calls.indexOf('raw-store') < f.calls.indexOf('decode-page'));
+  assert.ok(f.calls.indexOf('decode-page') < f.calls.indexOf('journal-page'));
+  assert.ok(f.calls.indexOf('journal-page') < f.calls.indexOf('retain-original-right-body'));
   assert.equal(f.calls.filter(name => name === 'grant').length, 1);
   assert.equal(f.calls.filter(name => name === 'reuse-original-response').length, 1);
   assert.equal(f.calls.filter(name => name === 'retain-original-right-body').length, 1);

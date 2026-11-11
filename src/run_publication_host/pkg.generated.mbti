@@ -227,6 +227,12 @@ pub fn bind_client_effect_query_time_sequence(PreparedClientEffectComputation, I
 
 pub fn bind_client_effect_source_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[PreparedClientEffectRun, ClientEffectSourceDispatchIssue]
 
+pub fn bind_client_keyed_declared_file_physical_source(ClientKeyedLookupInput, Array[@client_row_source_host.RowDeclaration]) -> Result[Unit, ClientKeyedRequestIssue]
+
+pub fn bind_client_keyed_query_source_metadata(ClientKeyedLookupInput, Int, @query_planning.QueryRequirement, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientKeyedNativeSourceEvidence, ClientKeyedRequestIssue]
+
+pub fn bind_client_keyed_whole_source_metadata(ClientKeyedLookupInput, Int, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientKeyedNativeSourceEvidence, ClientKeyedRequestIssue]
+
 pub fn[Store, E] bind_client_local_adopted_host_material(Store, () -> Result[ClientLocalAdoptionCurrentObservation[Store], E]) -> Result[ClientLocalAdoptedHostMaterial[Store, E], ClientLocalAdoptedCurrentIssue[E]]
 
 pub fn bind_client_local_run_policy_original(ClientLocalRunPolicyProfile, ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String) -> Result[ClientLocalRunPolicyOriginal, ClientLocalRunPolicyProfileIssue]
@@ -635,6 +641,8 @@ pub fn client_effect_model_acquired_invocation(ClientEffectModelAcquiredEvidence
 
 pub fn client_effect_model_acquired_lookup_barrier(ClientEffectModelAcquiredEvidence) -> (String, String)?
 
+pub fn client_effect_model_acquired_lookup_dependency_bodies(ClientEffectModelAcquiredEvidence) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientEffectLocalResultArtifactIssue]
+
 pub fn client_effect_model_acquired_matches(ClientEffectModelAcquiredEvidence, ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody) -> Bool
 
 pub fn client_effect_model_acquired_scope_json(ClientEffectModelAcquiredEvidence) -> String
@@ -877,7 +885,7 @@ pub fn client_keyed_lookup_input_work(ClientKeyedLookupInput) -> Int64
 
 pub fn client_keyed_lookup_native_completion(ClientKeyedLookupInput) -> ClientKeyedNativeCompletion?
 
-pub fn client_keyed_lookup_native_dependency_bodies(ClientKeyedLookupInput, @run_publication.PublicationContract, @run_publication.CapturedEffectDependencyLimits, Int, Int, physical_source? : (String, String)?) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientEffectDependencyCaptureIssue]
+pub fn client_keyed_lookup_native_dependency_bodies(ClientKeyedLookupInput, @run_publication.PublicationContract, @run_publication.CapturedEffectDependencyLimits, Int, Int, physical_source? : (String, String)?, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientEffectDependencyCaptureIssue]
 
 pub fn client_keyed_lookup_native_transport(ClientKeyedLookupInput) -> @run_publication.PublicationContract?
 
@@ -2081,6 +2089,18 @@ pub fn prepare_client_keyed_acquisition(PreparedClientProgram, Int, Int, Int, jo
 
 pub fn prepare_client_keyed_capture_left_read(ClientKeyedAcquisition, @execution_query.CapturedInputSource, Int, Int) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue]
 
+pub fn prepare_client_keyed_captured_left_identity(ClientKeyedLookupInput, PublicationOutputExportLimits, Int, Int) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_declared_file_activation_record(ClientKeyedNativeActivation, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int) -> Result[String, ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_declared_file_page_record(ClientKeyedNativeCapturedPage, ClientKeyedRequest, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int) -> Result[String, ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_declared_file_raw_capture(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedRequest, @run_publication.PublicationContract, String, String, String, String, String, Int, String, Int64, @value_admission.ReferenceLimits) -> Result[ClientKeyedNativeRawResponse, ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_declared_file_raw_store(ClientKeyedRequest, ClientKeyedNativeRawResponse) -> Result[Unit, ClientKeyedRequestIssue]
+
+pub fn prepare_client_keyed_declared_file_retention(ClientKeyedLookupInput, ClientRequestIdentity, String, String, String, String, String, String, Int) -> Result[@run_publication.PublicationContract, ClientKeyedRequestIssue]
+
 pub fn prepare_client_keyed_lookup_join_inputs(ClientKeyedLookupInput, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_native_activation(ClientKeyedLookupInput, ClientKeyedRequest, ClientRequestIdentity, String, String, Int64, Int, Int, Int) -> Result[ClientKeyedNativeActivation, ClientKeyedRequestIssue]
@@ -2502,6 +2522,8 @@ pub fn[T] start_captured_managed_result_transformation(ClientResultTransformatio
 pub fn start_captured_result_publication_export(@physical_strategy_host.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
 
 pub fn start_client_composed_keyed_file_locator(ClientKeyedLookupInput, ClientKeyedRequest, Array[@execution_query.CapturedInputSource], Array[@execution_relation.SuppliedRelationRead?]) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue]
+
+pub fn start_client_keyed_declared_file_request_plan(ClientKeyedLookupInput, String, Int64, String) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn start_client_keyed_file_locator(ClientKeyedLookupInput, ClientKeyedRequest, @execution_query.CapturedInputSource, @execution_relation.SuppliedRelationRead) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue]
 
@@ -3554,6 +3576,7 @@ pub struct ClientKeyedNativeRawResponse {
   metadata : @run_publication.PublicationContract
   retention : @run_publication.PublicationContract
   holding : String
+  // private fields
 }
 
 pub struct ClientKeyedNativeSourceEvidence {
@@ -3566,6 +3589,7 @@ pub struct ClientKeyedNativeSourceEvidence {
   retention : @run_publication.PublicationContract
   request : @encode_core.EncodedDocument
   request_cid : String
+  // private fields
 }
 
 type ClientKeyedRequest
@@ -3589,6 +3613,7 @@ pub(all) enum ClientKeyedRequestIssue {
   SourceLogical(ClientCapturedSourceLogicalIssue)
   SourceObservation(@client_row_source_host.RowHostIssue)
   Derivation(@run_publication.ResultEvidenceIssuanceIssue)
+  Dependency(ClientEffectDependencyCaptureIssue)
 }
 
 pub enum ClientKeyedRequestPoll {

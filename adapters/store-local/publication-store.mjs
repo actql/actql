@@ -4519,18 +4519,18 @@ async function openOriginalLocalPublicationStore(
       fail('PublicationModelRawContentMismatch');
     }
   };
-  const prepareModelRawEvidence = async (binding, bytes) => {
+  const preparePrivateRawEvidence = async (binding, bytes, kind) => {
     active();
     binding = validateModelRawBinding(binding);
     verifyModelRawBytes(binding, bytes);
     // Hash and encrypt the same borrowed physical bytes before the first
     // await. No caller callback can change the content between these steps.
     const content = await preparePrivateEvidenceBytes(
-      'model_raw_content', bytes, binding.semanticCid,
+      `${kind}_raw_content`, bytes, binding.semanticCid,
     );
     try {
       const descriptor = await preparePrivateEvidence(
-        'model_raw_descriptor', binding.wire, binding.semanticCid,
+        `${kind}_raw_descriptor`, binding.wire, binding.semanticCid,
       );
       return Object.freeze([descriptor, content]);
     } catch (error) {
@@ -4567,7 +4567,11 @@ async function openOriginalLocalPublicationStore(
       throw failure;
     }
   };
-  const readModelRawEvidenceOriginal = async (binding, confirm = false) => {
+  const prepareModelRawEvidence = (binding, bytes) =>
+    preparePrivateRawEvidence(binding, bytes, 'model');
+  const prepareLookupRawEvidence = (binding, bytes) =>
+    preparePrivateRawEvidence(binding, bytes, 'lookup');
+  const readPrivateRawEvidenceOriginal = async (binding, kind, confirm = false) => {
     active();
     if (await readPhysicalHoldingDeletion(binding.holdingCid) !== undefined) return undefined;
     const record = await readPhysicalHolding(binding.holdingCid);
@@ -4579,12 +4583,12 @@ async function openOriginalLocalPublicationStore(
     const release = retainPhysicalHoldingReader(binding.holdingCid);
     try {
       if (!exactUtf8WireMatches(await readPrivateEvidenceObject(
-        'model_raw_descriptor', binding.semanticCid, binding.holdingCid, 0, 2, record,
+        `${kind}_raw_descriptor`, binding.semanticCid, binding.holdingCid, 0, 2, record,
       ), binding.wire)) {
         fail('PublicationPrivateEvidenceConflict');
       }
       const bytes = await readPrivateEvidenceObject(
-        'model_raw_content', binding.semanticCid, binding.holdingCid, 1, 2, record,
+        `${kind}_raw_content`, binding.semanticCid, binding.holdingCid, 1, 2, record,
       );
       verifyModelRawBytes(binding, bytes);
       if (confirm) {
@@ -4595,6 +4599,8 @@ async function openOriginalLocalPublicationStore(
       return Object.freeze({record, bytes});
     } finally {release();}
   };
+  const readModelRawEvidenceOriginal = (binding, confirm = false) =>
+    readPrivateRawEvidenceOriginal(binding, 'model', confirm);
   const readModelRawEvidence = async binding => {
     active();
     return (await readModelRawEvidenceOriginal(validateModelRawBinding(binding)))?.bytes;
@@ -4603,6 +4609,24 @@ async function openOriginalLocalPublicationStore(
     active();
     const original = validateModelRawBinding(binding);
     const operation = materialRetentionBusy.then(() => readModelRawEvidenceOriginal(original, true));
+    materialRetentionBusy = operation.catch(() => {});
+    return operation;
+  };
+
+  // Lookup transport bytes have a separate closed AAD domain. Reuse the SAME
+  // private Store writer/custody protocol; a Model raw holding cannot stand in
+  // for a lookup response, and neither physical port admits semantic evidence.
+  const readLookupRawEvidence = async binding => {
+    active();
+    return (await readPrivateRawEvidenceOriginal(
+      validateModelRawBinding(binding), 'lookup',
+    ))?.bytes;
+  };
+  const confirmLookupRawEvidence = async binding => {
+    active();
+    const original = validateModelRawBinding(binding);
+    const operation = materialRetentionBusy.then(() =>
+      readPrivateRawEvidenceOriginal(original, 'lookup', true));
     materialRetentionBusy = operation.catch(() => {});
     return operation;
   };
@@ -9190,6 +9214,9 @@ async function openOriginalLocalPublicationStore(
     prepareModelRawEvidence,
     readModelRawEvidence,
     confirmModelRawEvidence,
+    prepareLookupRawEvidence,
+    readLookupRawEvidence,
+    confirmLookupRawEvidence,
     confirmModelRawCaptureOriginals,
     confirmCapturedContentHoldings,
     putPreparedResultSchema,

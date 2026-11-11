@@ -76,6 +76,9 @@ fn original_composed_keyed_consumer(
   request_metadata_policy? : Int = 16384,
   native_transport? : Bool = false,
   captured_source_metadata? : Bool = false,
+  declared_activation_record? : Bool = false,
+  declared_raw_page? : Bool = false,
+  declared_dependency_closure? : Bool = false,
   borrowed_source_cleanup? : Bool = false,
   borrowed_source_failure? : Bool = false,
   native_activation? : Bool = false,
@@ -91,9 +94,55 @@ fn original_composed_keyed_consumer(
 ) -> Unit raise {
   let activation_source_live : Ref[(() -> Unit)?] = Ref(None)
   let publication_early = publication_early || pre_dispatch_plan
-  let (declaration, keyed_environment) = original_keyed_declaration_environment(
+  let (unbound_declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
   )
+  let declaration = if declared_dependency_closure {
+    let physical = @row_source_host.generate_row_declaration(
+      "declared-physical-fixture",
+      "fixture",
+      "fixture/0.1",
+      [
+        {
+          resource: "records",
+          resource_kind: "file",
+          fields: ["id", "name", "version", "mime", "text"].map(name => @row_source_host.RowField::{
+            name,
+            value_type: "string",
+            nullable: false,
+          }),
+        },
+      ],
+      {
+        max_bytes: 65536,
+        max_nodes: 4096,
+        max_depth: 32,
+        max_views: 1,
+        max_fields: 10,
+      },
+    ).unwrap()
+    let contents = unbound_declaration.views.filter(view => {
+        view.resource == "contents"
+      })[0]
+    @row_source_host.bind_declared_file_read_profile(
+      unbound_declaration,
+      contents.source_ref,
+      physical,
+      "records",
+      {
+        identity: "id",
+        name: "name",
+        version: "version",
+        media_type: "mime",
+        content_utf8: "text",
+        path: None,
+        items_path: ["items"],
+        key_path: ["id"],
+      },
+    ).unwrap()
+  } else {
+    unbound_declaration
+  }
   guard @json.parse(keyed_environment) is Object(fields) &&
     fields["host_policy_profile"] is Object(policy) else {
     fail("the original finite keyed policy is required")
@@ -104,49 +153,66 @@ fn original_composed_keyed_consumer(
       declaration,
       view.source_ref,
     ).unwrap()
-    let body = "{\"physical_source_view_contract_cid\":\"sha256:" +
-      "b".repeat(64) +
-      "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"name\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
-      request +
-      "\",\"response_schema_cid\":\"" +
-      response +
-      "\",\"source_view_contract_cid\":\"" +
-      view.view_cid +
-      "\",\"version\":\"actql-native-file-content-read/0.1\"}"
-    let body = if captured_source_metadata {
-      body.replace(
-        old="actql-native-file-content-read/0.1",
-        new="actql-declared-file-content-read/0.1",
+    if declared_dependency_closure {
+      Some(
+        (
+          view.source_ref,
+          @row_source_host.row_declaration_file_read_profile(
+            declaration,
+            view.source_ref,
+          ).unwrap(),
+        ),
       )
     } else {
-      body
+      let body = "{\"physical_source_view_contract_cid\":\"sha256:" +
+        "b".repeat(64) +
+        "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"name\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
+        request +
+        "\",\"response_schema_cid\":\"" +
+        response +
+        "\",\"source_view_contract_cid\":\"" +
+        view.view_cid +
+        "\",\"version\":\"actql-native-file-content-read/0.1\"}"
+      let body = if captured_source_metadata {
+        body.replace(
+          old="actql-native-file-content-read/0.1",
+          new="actql-declared-file-content-read/0.1",
+        )
+      } else {
+        body
+      }
+      Some(
+        (
+          view.source_ref,
+          @publication.seal_publication_contract(
+            if captured_source_metadata {
+              "declared_file_content_read"
+            } else {
+              "native_file_content_read"
+            },
+            body,
+            16384,
+            1024,
+            20,
+          ).unwrap(),
+        ),
+      )
     }
-    Some(
-      (
-        view.source_ref,
-        @publication.seal_publication_contract(
-          if captured_source_metadata {
-            "declared_file_content_read"
-          } else {
-            "native_file_content_read"
-          },
-          body,
-          16384,
-          1024,
-          20,
-        ).unwrap(),
-      ),
-    )
   } else {
     None
   }
   let (environment, _) = effect_model_plan_source(
     declaration=Some(declaration),
     lookup_policy=Some(policy["lookup_execution"]),
-    source_implementation=match native_profile {
-      Some((source, profile)) =>
-        Some((source, @publication.publication_contract_identity(profile)))
-      None => None
+    source_implementation=if declared_dependency_closure {
+      // The actual bound declaration already publishes this capability.
+      None
+    } else {
+      match native_profile {
+        Some((source, profile)) =>
+          Some((source, @publication.publication_contract_identity(profile)))
+        None => None
+      }
     },
   )
   let mut document =
@@ -470,15 +536,27 @@ fn original_composed_keyed_consumer(
       .unwrap()
     let profile = native_profile.unwrap().1
     [
-      @publication_host.issue_installed_client_composed_infer_plan_graph(
-        occurrence,
-        effect_model_plan_execution(occurrence),
-        @publication_host.client_standard_values_sequence_limits(),
-        1000000,
-        100000,
-        100,
-        keyed_native_read=Some((keyed, profile)),
-      ).unwrap(),
+      match
+        @publication_host.issue_installed_client_composed_infer_plan_graph(
+          occurrence,
+          effect_model_plan_execution(occurrence),
+          @publication_host.client_standard_values_sequence_limits(),
+          1000000,
+          100000,
+          100,
+          keyed_native_read=Some((keyed, profile)),
+        ) {
+        Ok(value) => value
+        Err(@publication_host.ForeignExecution) =>
+          fail("original physical-profile Graph ForeignExecution")
+        Err(@publication_host.UnsupportedProgram) =>
+          fail("original physical-profile Graph UnsupportedProgram")
+        Err(@publication_host.Encoding) =>
+          fail("original physical-profile Graph Encoding")
+        Err(@publication_host.Input(_)) =>
+          fail("original physical-profile Graph Input")
+        Err(_) => fail("original physical-profile Graph other typed issue")
+      },
     ]
   } else if following {
     @publication_host.prepared_client_effect_infer_occurrences(prepared)
@@ -1123,16 +1201,22 @@ fn original_composed_keyed_consumer(
 
   if captured_source_metadata {
     let limits = original_keyed_content_workspace().export_limits
-    let left_identity = @publication_host.prepare_client_keyed_native_left_identity(
-      lookup,
-      1,
-      limits.values,
-      limits.payload_wire,
-      limits.logical_wire,
-      limits.schema,
-      1000000,
-      100000,
-    )
+    let left_identity = if declared_activation_record {
+      @publication_host.prepare_client_keyed_captured_left_identity(
+        lookup, limits, 1000000, 100000,
+      )
+    } else {
+      @publication_host.prepare_client_keyed_native_left_identity(
+        lookup,
+        1,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        1000000,
+        100000,
+      )
+    }
     match left_identity {
       Ok(_) => ()
       Err(@publication_host.Assembly(reason)) =>
@@ -1156,7 +1240,27 @@ fn original_composed_keyed_consumer(
       Err(@publication_host.Physical(_)) => fail("left metadata: Physical")
       Err(_) => fail("left metadata: other typed refusal")
     }
-    let retention = original_composed_keyed_metadata_retention()
+    let retention = if declared_activation_record {
+      @publication_host.prepare_client_keyed_declared_file_retention(
+        lookup,
+        original_request,
+        "sha256:" + "1".repeat(64),
+        "2026-11-06T01:00:00.000Z",
+        "2026-11-06T02:00:00.000Z",
+        "2026-11-06T04:00:00.000Z",
+        "sha256:" + "3".repeat(64),
+        "sha256:" + "4".repeat(64),
+        16777216,
+      ).unwrap()
+    } else {
+      original_composed_keyed_metadata_retention()
+    }
+    if declared_dependency_closure {
+      @publication_host.bind_client_keyed_declared_file_physical_source(
+        lookup,
+        [declaration],
+      ).unwrap()
+    }
     let before = @resources.ledger_usage(ledger)
     // Both identities have the same schema and row contents, but only the
     // original captured Source identity may occupy its selected slot.
@@ -1554,6 +1658,11 @@ fn original_composed_keyed_consumer(
     )
     assert_eq(@resources.ledger_usage(ledger), before)
   }
+  let activation_at = if declared_activation_record {
+    "2026-11-05T00:00:01.000Z"
+  } else {
+    "2026-10-26T00:00:00.000Z"
+  }
   if pre_dispatch_plan && !left_plan_reentry {
     assert_true(
       @publication_host.client_keyed_lookup_native_transport(lookup) is None,
@@ -1569,7 +1678,11 @@ fn original_composed_keyed_consumer(
       guard parsed is Object(fields) else { fail("original profile body") }
       fields.remove("transport_cid")
       let undeclared = @publication.seal_publication_contract(
-        "native_file_content_read",
+        if captured_source_metadata {
+          "declared_file_content_read"
+        } else {
+          "native_file_content_read"
+        },
         parsed.stringify(),
         16384,
         1024,
@@ -1591,13 +1704,19 @@ fn original_composed_keyed_consumer(
         )
       }
     }
-    @publication_host.start_client_keyed_lookup_request_plan(
-      lookup,
-      native_read_profile=match native_profile {
-        Some((_, profile)) => Some(profile)
-        None => None
-      },
-    ).unwrap()
+    if declared_activation_record {
+      @publication_host.start_client_keyed_declared_file_request_plan(
+        lookup, activation_at, 0L, "declared-file-component-issuer",
+      ).unwrap()
+    } else {
+      @publication_host.start_client_keyed_lookup_request_plan(
+        lookup,
+        native_read_profile=match native_profile {
+          Some((_, profile)) => Some(profile)
+          None => None
+        },
+      ).unwrap()
+    }
   }
   let preparation = @publication_host.start_client_keyed_lookup_request(
     lookup, 0,
@@ -1704,6 +1823,11 @@ fn original_composed_keyed_consumer(
     request, keyed,
   ).unwrap()
   if native_activation {
+    let activation_issuer = if declared_activation_record {
+      "declared-file-component-issuer"
+    } else {
+      "native-component-issuer"
+    }
     let winner : Ref[@publication_host.ClientKeyedNativeActivation?] = Ref(None)
     let reentering = Ref(false)
     if activation_reentry {
@@ -1711,7 +1835,7 @@ fn original_composed_keyed_consumer(
         if !reentering.val && winner.val is None {
           reentering.val = true
           let prepared = @publication_host.prepare_client_keyed_native_activation(
-            lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
+            lookup, request, original_request, activation_issuer, activation_at,
             0L, 16384, 1024, 20,
           )
           reentering.val = false
@@ -1722,8 +1846,8 @@ fn original_composed_keyed_consumer(
       })
     }
     let outer = @publication_host.prepare_client_keyed_native_activation(
-      lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
-      0L, 16384, 1024, 20,
+      lookup, request, original_request, activation_issuer, activation_at, 0L, 16384,
+      1024, 20,
     )
     activation_source_live.val = None
     let activation = if activation_reentry {
@@ -1738,6 +1862,55 @@ fn original_composed_keyed_consumer(
     } else {
       outer.unwrap()
     }
+    if declared_activation_record {
+      let before = @resources.ledger_usage(ledger)
+      let wire = @publication_host.prepare_client_keyed_declared_file_activation_record(
+        activation,
+        original_request,
+        model.compiled,
+        model.definition,
+        model.graph,
+        16777216,
+      ).unwrap()
+      let after = @resources.ledger_usage(ledger)
+      assert_true(
+        after.reserved_retention_bytes - before.reserved_retention_bytes <
+        1048576L,
+      )
+      assert_true(
+        after.reserved_execution_bytes - before.reserved_execution_bytes <
+        1048576L,
+      )
+      assert_eq(after.attempts, before.attempts)
+      assert_eq(after.transferred_bytes, before.transferred_bytes)
+      guard @json.parse(wire) is Object(fields) else {
+        fail("original activation record")
+      }
+      assert_eq(fields.length(), 14)
+      assert_eq(
+        fields["version"],
+        Json::string("actql-declared-file-lookup-activation-original/0.1"),
+      )
+      assert_eq(
+        fields["activation"],
+        Json::string(
+          @publication.publication_contract_json(activation.activation),
+        ),
+      )
+      assert_eq(
+        fields["run_definition_cid"],
+        Json::string(
+          @publication.publication_contract_identity(model.definition),
+        ),
+      )
+      assert_eq(
+        fields["request_scope_cid"],
+        Json::string(
+          @publication_host.client_request_scope_cid(original_request),
+        ),
+      )
+      assert_false(wire.contains("actql-native-lookup-activation-original"))
+    }
     assert_eq((activation.batch_index, activation.batch_count), (0, 1))
     assert_true(
       @publication_host.client_keyed_native_activation_matches(
@@ -1751,8 +1924,8 @@ fn original_composed_keyed_consumer(
     let before = @publication_host.client_keyed_lookup_usage(left)
     assert_true(
       @publication_host.prepare_client_keyed_native_activation(
-        lookup, request, original_request, "native-component-issuer", "2026-10-26T00:00:00.000Z",
-        0L, 16384, 1024, 20,
+        lookup, request, original_request, activation_issuer, activation_at, 0L,
+        16384, 1024, 20,
       )
       is Err(_),
     )
@@ -1842,6 +2015,70 @@ fn original_composed_keyed_consumer(
     .to_int64(),
     0L,
   ).unwrap()
+  let raw = if declared_raw_page {
+    let scope = @publication_host.client_request_authority_scope_cid(
+      original_request,
+    )
+    let facts = @publication_host.client_keyed_acquisition_source_evidence_facts(
+      keyed,
+    ).unwrap()
+    let until = @publication.run_definition_lifetime(model.definition).unwrap().1
+    let binding = "{\"content_store_id\":\"local\",\"content_store_cid\":\"sha256:" +
+      "a".repeat(64) +
+      "\",\"workspace_scope_cid\":\"" +
+      scope +
+      "\",\"storage_scope\":\"workspace\",\"retention_class\":\"local-content\",\"expires_at\":\"" +
+      until +
+      "\",\"availability_evidence_cid\":\"sha256:" +
+      "b".repeat(64) +
+      "\",\"effective_data_policy_cid\":\"" +
+      facts.source_data_policy_cid +
+      "\",\"data_classification\":\"" +
+      facts.data_classification +
+      "\",\"issuer_contract_cid\":\"sha256:" +
+      "c".repeat(64) +
+      "\",\"capture_authority_cid\":\"" +
+      scope +
+      "\"}"
+    let raw = @publication_host.prepare_client_keyed_native_raw_response(
+      model.compiled,
+      model.definition,
+      request,
+      original_composed_keyed_metadata_retention(),
+      binding,
+      "sha256:" + @sha.hex(response),
+      response.length(),
+      activation_at,
+      0L,
+      {
+        max_bytes: 16777216,
+        max_nodes: 1024,
+        max_depth: 20,
+        max_text_units: 16777216,
+      },
+    ).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    @publication_host.prepare_client_keyed_declared_file_raw_store(request, raw).unwrap()
+    let after = @resources.ledger_usage(ledger)
+    assert_true(
+      after.reserved_retention_bytes > before.reserved_retention_bytes,
+    )
+    assert_true(
+      after.reserved_retention_bytes - before.reserved_retention_bytes <
+      1048576L,
+    )
+    assert_eq(after.attempts, before.attempts)
+    assert_eq(after.transferred_bytes, before.transferred_bytes)
+    assert_true(
+      @publication_host.prepare_client_keyed_declared_file_raw_store(
+        request, raw,
+      )
+      is Err(_),
+    )
+    Some(raw)
+  } else {
+    None
+  }
   @row_source_host.begin_keyed_row_run(child, reference_issuer=Some(issuer)).unwrap()
   if native_keyed {
     let before = @resources.ledger_usage(ledger)
@@ -1877,6 +2114,53 @@ fn original_composed_keyed_consumer(
   @row_source_host.finish_row_run(child).unwrap()
   let captured = @row_source_host.retain_keyed_row_run(child).unwrap()
   @publication_host.finish_client_keyed_request_io(request, 0L).unwrap()
+  if raw is Some(raw) {
+    let limits = original_keyed_content_workspace().export_limits
+    let page = @publication_host.prepare_client_keyed_native_captured_page(
+      request,
+      captured,
+      raw,
+      activation_at,
+      1,
+      limits.values,
+      limits.payload_wire,
+      limits.logical_wire,
+      limits.schema,
+      1000000,
+      100000,
+      16777216,
+      1024,
+      20,
+    ).unwrap()
+    let record = @publication_host.prepare_client_keyed_declared_file_page_record(
+      page,
+      request,
+      original_request,
+      model.compiled,
+      model.definition,
+      model.graph,
+      16777216,
+    ).unwrap()
+    guard @json.parse(record) is Object(fields) else {
+      fail("original page record")
+    }
+    assert_eq(fields.length(), 8)
+    assert_eq(
+      fields["version"],
+      Json::string("actql-declared-file-lookup-page-original/0.1"),
+    )
+    assert_eq(fields["page_value_wire"], Json::string(page.body))
+    assert_true(
+      @publication_host.client_keyed_native_captured_page_matches(
+        page,
+        request,
+        original_request,
+        model.compiled,
+        model.definition,
+        model.graph,
+      ),
+    )
+  }
   begin_client_original_keyed_lookup_response(keyed, lookup, request, captured).unwrap()
   for _ in 0..<10000 {
     if @publication_host.advance_client_keyed_lookup_input(lookup, 7).unwrap() {
@@ -1885,7 +2169,16 @@ fn original_composed_keyed_consumer(
   }
   body_lookup.val = Some(lookup)
   body_armed.val = keyed_body_reentry || keyed_body_stop
-  let right_result = if publication_early {
+  let right_result = if declared_dependency_closure {
+    @publication_host.finish_client_keyed_lookup_publication_input(
+      lookup,
+      16777216,
+      1024,
+      20,
+      retain_body=true,
+      native_completion=Some((activation_at, 0L)),
+    )
+  } else if publication_early {
     @publication_host.finish_client_keyed_lookup_publication_input(
       lookup,
       16384,
@@ -1928,7 +2221,34 @@ fn original_composed_keyed_consumer(
     assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
     return
   }
-  let right = right_result.unwrap()
+  let right = match right_result {
+    Ok(value) => value
+    Err(@publication_host.Assembly(reason)) =>
+      fail("right completion Assembly: " + reason)
+    Err(@publication_host.Identity(_)) => fail("right completion Identity")
+    Err(@publication_host.Physical(_)) => fail("right completion Physical")
+    Err(@publication_host.Derivation(_)) => fail("right completion Derivation")
+    Err(@publication_host.CompletedIdentity(_)) =>
+      fail("right completion CompletedIdentity")
+    Err(@publication_host.InputCapture(_)) =>
+      fail("right completion InputCapture")
+    Err(@publication_host.Dependency(@publication_host.Static(issue))) =>
+      fail("right completion dependency Static: " + @debug.to_string(issue))
+    Err(@publication_host.Dependency(@publication_host.Dependency(issue))) =>
+      fail("right completion dependency body: " + @debug.to_string(issue))
+    Err(@publication_host.Dependency(@publication_host.ConstructionRefused)) =>
+      fail("right completion dependency ConstructionRefused")
+    Err(@publication_host.Dependency(_)) =>
+      fail("right completion dependency ForeignInput")
+    Err(@publication_host.LookupLimit(reason)) =>
+      fail("right completion LookupLimit: " + reason)
+    Err(_) => fail("right completion other typed issue")
+  }
+  if declared_dependency_closure {
+    assert_true(
+      @publication_host.client_keyed_lookup_native_completion(lookup) is Some(_),
+    )
+  }
 
   if publication_identity {
     let keys = match
@@ -3428,6 +3748,18 @@ test "captured Source protocol borrows the original Whole metadata once before k
 }
 
 ///|
+test "declared-file original activation record binds the same Request and Model Plan before dispatch" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+  )
+}
+
+///|
 test "borrowed captured Source bodies survive completed lookup cleanup with their original consumer live" {
   original_composed_keyed_consumer(
     whole=true,
@@ -3445,5 +3777,33 @@ test "borrowed captured Source bodies survive failed metadata cleanup with their
     source_identity_bodies=true,
     borrowed_source_cleanup=true,
     borrowed_source_failure=true,
+  )
+}
+
+///|
+test "declared-file raw Store backing and original page record precede assembly without a new attempt" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    declared_raw_page=true,
+  )
+}
+
+///|
+test "declared-file completed lookup retains its full original dependency closure before Model" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    source_identity_bodies=true,
+    declared_raw_page=true,
+    declared_dependency_closure=true,
   )
 }

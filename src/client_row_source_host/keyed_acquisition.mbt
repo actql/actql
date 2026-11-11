@@ -690,3 +690,13 @@ pub fn keyed_row_capture_export_construction_capacity(
 ) -> @execution.ExecutionCapacity? {
   @execution.supplied_source_input_capture_capacity(capture.retention.rows)
 }
+
+///|
+/// Constructor DATA of this already admitted page. No rows, Source read or
+/// current permission escape, and no Result output limit replaces its shape.
+pub fn keyed_row_capture_dimensions(
+  capture : RowKeyedSourceCapture,
+) -> (Int, Int) {
+  (@execution.captured_row_count(capture.retention.rows),
+    @schema.field_count(@execution.captured_schema(capture.retention.rows)))
+}

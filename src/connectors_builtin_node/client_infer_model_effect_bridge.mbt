@@ -131,6 +131,26 @@ pub fn client_program_original_model_acquired_effect_lookup_barrier(
 }
 
 ///|
+#export_name("clientProgramOriginalModelAcquiredLookupDependencyBodies")
+pub fn client_program_original_model_acquired_lookup_dependency_bodies(
+  value : @publication_host.ClientEffectModelAcquiredEvidence,
+) -> Result[
+  Array[(String, String, String)],
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  @publication_host.client_effect_model_acquired_lookup_dependency_bodies(value).map(bodies => {
+      bodies.map(body => {
+        (
+          @publication.captured_effect_dependency_body_kind(body),
+          @publication.captured_effect_dependency_body_cid(body),
+          @publication.captured_effect_dependency_body_json(body),
+        )
+      })
+    },
+  )
+}
+
+///|
 #export_name("clientProgramOriginalModelEffectResultArtifact")
 pub fn client_program_original_model_effect_result_artifact(
   value : @infer_host.LocalModelObservation,

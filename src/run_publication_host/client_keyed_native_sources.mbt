@@ -31,6 +31,9 @@ priv struct ClientKeyedNativeSourceState {
   mut source_identity_custody : ClientKeyedSourceIdentityCustody
   mut request : ClientRequestIdentity?
   mut relation : ClientKeyedNativeLeftRelation?
+  mut retention_base : @publication.PublicationContract?
+  mut dependency_bodies : Array[@publication.CapturedEffectDependencyBody]?
+  mut physical_source : (String, String)?
 }
 
 ///|
@@ -585,7 +588,7 @@ fn keyed_lookup_source_metadata_state(
       let array = @shape.reference_array_retained_extent(1L, 0L).unwrap()
       let fixed = @execution.preparation_representation_cost({
         record_headers: 3L + array.record_headers,
-        reference_slots: 7L + array.reference_slots,
+        reference_slots: 10L + array.reference_slots,
         scalar_words: 3L + array.scalar_words,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
@@ -613,6 +616,9 @@ fn keyed_lookup_source_metadata_state(
         source_identity_custody: BorrowedOriginal,
         request: Some(request),
         relation: None,
+        retention_base: None,
+        dependency_bodies: None,
+        physical_source: None,
       }
       lookup.native_sources = Some(state)
       state

@@ -2204,11 +2204,11 @@ export async function createInstalledRowSource({moon, declaration, commands,
   };
   async function openKeyed({preparedProgram, preparedEffect, managedRun, keyedAcquisition,
     request, ledger, signal, preparedKeyed, chargeVerification, capturedResourcePath,
-    keyedContent,
+    keyedContent, lookupPublication, lookupOriginal,
     sourceAccess: access = sourceAccess}) {
     if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
     const state = {started: false, closeFailed: false, recovery: undefined};
-    let session;
+    let session, lookupActivation, lookupRaw;
     let originalKeyedRead, originalClosed = prepareKeyedSourceRead === undefined;
     const closeOriginal = async () => {
       if (originalClosed) return;
@@ -2311,6 +2311,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
       let sendIndex = 0;
       await readPages({resource, columns, requestWire, operation,
         signal, verifyRead,
+        ...(lookupPublication === undefined ? {} : {retainRawResponse: async bytes => {
+          // The installed driver already brackets this awaited hook with the
+          // SAME verifyRead/signal fences. Do not repeat its authorization I/O.
+          signal?.throwIfAborted();
+          if (lookupActivation === undefined || lookupRaw !== undefined) fail('ForeignOriginalKeyedRawResponse');
+          lookupRaw = await lookupPublication.retainRawResponse(lookupOriginal, request, lookupActivation, bytes);
+          signal?.throwIfAborted();
+        }}),
         rowRun: Object.freeze({acquisition, run, requestId: nonce, runInvocationCid, dispatchRequestCid,
           ...(originalKeyedRead === undefined ? {} : {originalKeyedRead})}),
         capturedResourcePath: capturedResourcePath === undefined ? undefined : async () => {
@@ -2349,6 +2357,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
           if (!(body instanceof Uint8Array)) fail('InvalidKeyedRequestObservation');
           await verifyRead();
           signal?.throwIfAborted();
+          if (lookupPublication !== undefined) {
+            if (lookupActivation !== undefined || sendIndex !== 0) fail('OriginalKeyedLookupAlreadyActivated');
+            // The SAME current activation is durably indexed before this
+            // attempt is consumed and before the driver can receive a grant.
+            lookupActivation = lookupPublication.activate(lookupOriginal, request);
+            await verifyRead();
+            signal?.throwIfAborted();
+          }
           checked(moon.clientProgramKeyedRequestObserveAttempt(request,
             BigInt(body.byteLength), observedMs()));
           if (deadline === undefined) {
@@ -2398,6 +2414,10 @@ export async function createInstalledRowSource({moon, declaration, commands,
       session.confirmTransportStopped();
       const capture = await session.capture({currentRead: verifyRead, signal});
       checked(moon.clientProgramKeyedRequestFinishIO(request, observedMs()));
+      if (lookupPublication !== undefined) {
+        lookupPublication.adopt(lookupOriginal, request, lookupActivation, capture, lookupRaw);
+        await verifyRead(); signal?.throwIfAborted();
+      }
       return Object.freeze({capture: Object.freeze({read: () => checked(
         moon.clientProgramKeyedRowCaptureRead(capture)), identity: () => checked(
         moon.clientProgramKeyedRowCaptureIdentity(capture))}),
@@ -2453,7 +2473,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // This assembles a right Relation input; it is not Source/task evidence.
   async function openKeyedLookup({preparedProgram, preparedEffect,
     keyedAcquisition, left, ledger, signal, preparedKeyed, originalCapture, originalCaptures, managedRun,
-    keyedContent,
+    keyedContent, publication,
     sourceAccess: access = sourceAccess, maxWork = 1000000, quantum = 64}) {
     if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
     keyedContent = selectedKeyedContent(keyedContent);
@@ -2521,7 +2541,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
     try {
       const publicationInput = preparedEffect !== undefined;
       const publicationDepth = (managedPageLimits ?? pageLimits)?.maxDepth ?? 32;
-      if (publicationInput) checked(moon.clientProgramKeyedLookupRequestPlanStart(lookup));
+      if (publicationInput) {
+        if (typeof publication?.initialize !== 'function' || typeof publication?.activate !== 'function' ||
+            typeof publication?.retainRawResponse !== 'function' || typeof publication?.adopt !== 'function' ||
+            typeof publication?.finishInput !== 'function') {
+          fail('OriginalKeyedLookupPublicationUnavailable');
+        }
+        publication.initialize(lookup);
+      }
       // Prepare each original request once, then dispatch those SAME originals.
       // No response or Model read can precede the closed typed key inventory.
       for (let phase = 0; phase < (publicationInput ? 2 : 1); phase++) {
@@ -2560,6 +2587,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
           try {
             acquired = await openKeyed({preparedProgram, preparedEffect,
               keyedContent, managedRun,
+              lookupPublication: publicationInput ? publication : undefined, lookupOriginal: lookup,
               keyedAcquisition, request, ledger, signal, preparedKeyed, sourceAccess: access,
               capturedResourcePath: async (verifyRead, activeSignal) => {
                 let locator;
@@ -2621,10 +2649,12 @@ export async function createInstalledRowSource({moon, declaration, commands,
         signal?.throwIfAborted();
       }
       signal?.throwIfAborted();
-      const read = checked(publicationInput
-        ? moon.clientProgramKeyedLookupPublicationInput(lookup,
-          limits.maxPageBytes, maxWork, publicationDepth)
-        : moon.clientProgramKeyedLookupRead(lookup));
+      const read = publicationInput && preparedEffect !== undefined
+        ? publication.finishInput(lookup)
+        : checked(publicationInput
+          ? moon.clientProgramKeyedLookupPublicationInput(lookup,
+            limits.maxPageBytes, maxWork, publicationDepth)
+          : moon.clientProgramKeyedLookupRead(lookup));
       return Object.freeze({capture: Object.freeze({
         read: () => closed ? fail('InstalledSourceClosed')
           : checked(moon.clientProgramKeyedLookupRead(lookup)),

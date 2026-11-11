@@ -177,6 +177,27 @@ function localPublicationPlan(options) {
   return buildLocalPublicationPlan(options).plan;
 }
 
+// The same installed Host retention clocks feed early input custody and
+// final publication. This DATA resolves no permission or additional lifetime.
+function localRetentionTimes(now, retainUntil) {
+  const at = Date.parse(now());
+  const availableAt = retainUntil === undefined ? at + 60 * 60 * 1000
+    : Math.max(at + 60 * 60 * 1000, Date.parse(retainUntil));
+  return Object.freeze({availableUntil: instant(availableAt),
+    deleteBy: instant(availableAt + 60 * 60 * 1000),
+    metadataDeleteBy: instant(Math.max(at + 7 * 24 * 60 * 60 * 1000,
+      availableAt + 2 * 60 * 60 * 1000))});
+}
+
+export function keyedInputRetentionSelection(acquired) {
+  const run = JSON.parse(acquired.runDefinition.wire);
+  return Object.freeze({...localRetentionTimes(acquired.now, run.valid_until),
+    expiresAt: run.valid_until,
+    retentionContractCid: retentionDependencies[0].cid,
+    metadataRetentionPolicyCid: retentionDependencies[1].cid,
+    clockContractCid: retentionDependencies[2].cid});
+}
+
 // Keep the retained input policy available to Effect evidence issuance
 // without extending the closed publication-plan JS bridge used by ordinary Runs.
 function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
@@ -185,13 +206,7 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
   dataPolicyCid, createdAt, now, resultCount, retainUntil,
   compiled, preparedProgram, effectCompilation, preparedEffect, moon,
   modelEvidence = [], outputLimits = localOutputLimits}) {
-  const at = Date.parse(now());
-  const availableAt = retainUntil === undefined ? at + 60 * 60 * 1000
-    : Math.max(at + 60 * 60 * 1000, Date.parse(retainUntil));
-  const availableUntil = instant(availableAt);
-  const deleteBy = instant(availableAt + 60 * 60 * 1000);
-  const metadataDeleteBy = instant(Math.max(at + 7 * 24 * 60 * 60 * 1000,
-    availableAt + 2 * 60 * 60 * 1000));
+  const {availableUntil, deleteBy, metadataDeleteBy} = localRetentionTimes(now, retainUntil);
   const retention = control.seal('result_retention_policy', JSON.stringify({
     version: 'actql-result-retention-policy/0.1',
     retention_contract_cid: retentionDependencies[0].cid,
