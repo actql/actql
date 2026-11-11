@@ -65,3 +65,7 @@ import {
 options(
   "native-stub": [ "local_journal_shim.c" ],
 )
+
+import {
+  "moonbitlang/core/json",
+} for "wbtest"

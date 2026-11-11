@@ -404,6 +404,53 @@ pub fn NativeLocalRunPolicyBinding::prepare_submission_policy(
 }
 
 ///|
+// Pure checked identity for pending lifetime selection, not Run admission.
+fn native_local_run_policy_preparation_identity(
+  preparation : NativeClientSubmittedPreparation,
+) -> Result[@host.ClientProgramIdentity, NativeClientRunJournalIssue] {
+  // Pending lifetime selection binds checked identity only. Execution shape,
+  // original managed Plan and current authority are checked at acceptance.
+  Ok(
+    match preparation.preparation {
+      Computation(prepared) => @host.prepared_client_identity(prepared)
+      EffectComputation(prepared) =>
+        @host.prepared_client_effect_identity(prepared)
+    },
+  )
+}
+
+///|
+// Preserve legacy Values acceptance. A Source caller must instead retain the
+// genuine live preparation-owned Run, its SAME Request and original compiler
+// artifact. These pure projections grant no Host/Read/physical start authority.
+fn native_local_run_policy_compilation_original(
+  prepared : @host.PreparedClientProgram,
+  request : @host.ClientRequestIdentity,
+  compiled : @host.ClientCompiledRun,
+  managed : @local.ClientInstalledManagedRun?,
+) -> Bool {
+  if @host.prepared_client_acquisition_count(prepared) == 0 {
+    return true
+  }
+  guard managed is Some(run) &&
+    @local.installed_managed_preparation_admission_original(
+      run, prepared, request,
+    )
+    is Some(_) &&
+    @local.installed_managed_capture_publication_geometry_original(
+      run, prepared, request,
+    )
+    is Some(_) &&
+    @local.installed_managed_run_compilation_original(run, prepared)
+    is Some(compilation) else {
+    return false
+  }
+  @host.client_compiled_run_matches_pure_compilation(
+    compiled, prepared, compilation,
+  )
+}
+
+///|
 fn NativeLocalRunPolicyBinding::prepare_submission_policy_with_operations(
   self : NativeLocalRunPolicyBinding,
   reference : NativeClientSubmissionReference,
@@ -429,20 +476,10 @@ fn NativeLocalRunPolicyBinding::prepare_submission_policy_with_operations(
     Ok(UnresolvedSubmissionHistory) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
   }
-  let identity = match preparation.preparation {
-    Computation(prepared) => {
-      if @host.prepared_client_acquisition_count(prepared) != 0 {
-        return Err(ChangedIntent)
-      }
-      @host.prepared_client_identity(prepared)
-    }
-    EffectComputation(prepared) =>
-      // Pending Retention binds this checked identity, not an execution
-      // profile. Source/Model/Effect supply and first Run/material acceptance
-      // remain with their original constructors and current authority checks.
-      // In particular the separate legacy Values acceptance guard stays closed
-      // for composed inputs; preparing a lifetime cannot bypass it.
-      @host.prepared_client_effect_identity(prepared)
+  let identity = match
+    native_local_run_policy_preparation_identity(preparation) {
+    Ok(identity) => identity
+    Err(issue) => return Err(issue)
   }
   if identity.program_definition_cid !=
     @host.client_request_program_cid(request) ||
@@ -560,6 +597,7 @@ fn NativeLocalRunPolicyBinding::accept_submitted_run_with_operations(
   now : Double,
   current : () -> Bool,
   operations? : NativeClientJournalOperationAccess? = None,
+  managed? : @local.ClientInstalledManagedRun? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
   match
     self.host.journal.authorize_submitted_run(
@@ -577,7 +615,9 @@ fn NativeLocalRunPolicyBinding::accept_submitted_run_with_operations(
   guard preparation.preparation is Computation(prepared) else {
     return Err(UnsupportedPreparation)
   }
-  if @host.prepared_client_acquisition_count(prepared) != 0 {
+  if !native_local_run_policy_compilation_original(
+      prepared, request, compiled, managed,
+    ) {
     return Err(UnsupportedPreparation)
   }
   match
