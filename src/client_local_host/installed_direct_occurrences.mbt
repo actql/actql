@@ -1,4 +1,25 @@
 ///|
+/// Immutable Pure Source occurrence from the existing admitted parent Plan.
+/// No new selection, current observation, read or resource grant is issued.
+pub fn installed_managed_source_occurrence(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  slot : Int,
+) -> Result[(Int, Int, Int), ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) &&
+    physical_equal(original, owner) &&
+    owner.ledger is Some(_) &&
+    physical_equal(owner.request, request) &&
+    owner.preparation is Some(PureManaged(_, actual)) &&
+    physical_equal(actual, prepared) &&
+    installed_managed_run_direct_occurrence(owner, slot) is Some(coordinate) else {
+    return Err(ForeignOriginal)
+  }
+  Ok(coordinate)
+}
+
+///|
 /// Select once during backed Plan construction, never while opening a read.
 fn installed_direct_occurrences_owned(
   owner : ClientLocalSequenceOwner,

@@ -160,7 +160,7 @@ test('whole input cannot select a bare, keyed or listing RowRun', () => {
 
 async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization, effectful = false} = {}) {
   const {types} = await import('node:util');
-  const {runtimeField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
+  const {runtimeField, runtimeOptionalField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
   const {checked} = await import('../host-common/runtime-result.mjs');
   // Capture this constructor's actual prepare and public close methods. A
   // later Credential/Site close in the same module is a different owner.
@@ -169,15 +169,24 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
   const closeStart = closeMethod.start, closeEnd = closeMethod.end;
   const read = {}, managedRun = {}, preparedProgram = {}, declaration = {};
   let retireCalls = 0, siteCloses = 0;
+  const metadataCalls = {wholeCensus: 0, slot: 0, current: 0};
   const moon = {
-    clientProgramDirectSourceCoordinates(actual) {
-      assert.equal(actual, preparedProgram); return ok([[0, 0, 0, 0]]);
+    clientProgramDirectSourceCoordinates() {
+      metadataCalls.wholeCensus++;assert.fail('A retained Pure Plan must not be enumerated at read preparation');
     },
-    clientProgramEffectDirectSourceCoordinates(actual) {
-      assert.equal(actual, preparedProgram);return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);
+    clientProgramEffectDirectSourceCoordinates() {
+      metadataCalls.wholeCensus++;assert.fail('A retained Effect Plan must not be enumerated at read preparation');
+    },
+    clientProgramInstalledManagedSourceOccurrence(actual, owner, request, slot) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(slot, 0);
+      metadataCalls.slot++;return ok({_0: 0, _1: 0, _2: 0});
+    },
+    clientProgramInstalledEffectManagedSourceOccurrence(actual, owner, request, slot) {
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(slot, 1);
+      metadataCalls.slot++;return ok({_0: 0, _1: 1, _2: 0});
     },
     clientProgramInstalledEffectManagedRunCheck(actual, owner) {
-      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);return ok();
+      assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);metadataCalls.current++;return ok();
     },
     clientProgramInstalledEffectManagedSourceInputKind(actual, owner, request, slot) {
       assert.equal(actual, managedRun);assert.equal(owner, preparedProgram);assert.equal(slot, 1);return ok('whole-input');
@@ -211,7 +220,7 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
       return ok();
     },
   };
-  const bindings = {moon, declaration, runtimeField, runtimeIsOk, runtimeIsBoxedSome, checked,
+  const bindings = {moon, declaration, runtimeField, runtimeOptionalField, runtimeIsOk, runtimeIsBoxedSome, checked,
     fail(code) {throw Object.assign(new Error(code), {code});},
     sourceAccess: {}, directReadIdentity: undefined, originalReader: {retire: () => true, receiver: {}},
     immutableTargets: undefined, physicalTargetGeneration: undefined,
@@ -228,13 +237,14 @@ async function failedPreparationFixture({pendingRetirement = false, validFacts =
   return {fixture, originalRead: read, pendingReads: bindings.preparingSourceReads, input: effectful
     ? {preparedEffect: preparedProgram, managedRun, occurrence: {stage: 0, input: 1, task: 1, computeTask: 0}}
     : {preparedProgram, managedRun},
-    retireCalls: () => retireCalls, siteCloses: () => siteCloses,
+    retireCalls: () => retireCalls, siteCloses: () => siteCloses, metadataCalls,
     allowRetirement() {pendingRetirement = false;}, retireOriginal() {checked(moon.clientProgramInstalledSourceReadRetire(read));}};
 }
 
 test('whole Effect preparation retains its second Source read on the first Compute task before a fallible observation', async () => {
   const f = await failedPreparationFixture({effectful: true, pendingRetirement: true});
   await assert.rejects(f.fixture.prepare(f.input), {code: 'InstalledSourceEvidenceFactsUnavailable'});
+  assert.deepEqual(f.metadataCalls, {wholeCensus: 0, slot: 1, current: 1});
   assert.equal(f.retireCalls(), 1);
   assert(f.pendingReads.has(f.originalRead));
   assert.throws(() => f.fixture.close(), error => error.cause === 'original-read-still-pending');

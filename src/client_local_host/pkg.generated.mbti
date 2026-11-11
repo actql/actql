@@ -491,6 +491,8 @@ pub fn installed_effect_managed_run_requirements(@run_publication_host.PreparedC
 
 pub fn installed_effect_managed_source_input_kind(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int) -> Result[String, ClientInstalledManagedRunIssue]
 
+pub fn installed_effect_managed_source_occurrence(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int) -> Result[(Int, Int, Int), ClientInstalledManagedRunIssue]
+
 pub fn installed_effect_managed_sources_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_mock_model_run_requirements(@run_publication_host.PreparedClientEffectComputation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
@@ -570,6 +572,8 @@ pub fn installed_managed_run_model_input_prefix(ClientInstalledManagedRun, @run_
 pub fn installed_managed_run_requirements(@run_publication_host.PreparedClientProgram, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_source_input_kind(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[String, ClientInstalledManagedRunIssue]
+
+pub fn installed_managed_source_occurrence(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Int) -> Result[(Int, Int, Int), ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_whole_source_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledWholeSourceCapacity, Int64, Int64) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
@@ -980,6 +984,8 @@ pub fn prepared_installed_effect_managed_source(ClientInstalledEffectManagedPlan
 pub fn prepared_installed_effect_managed_whole_source(ClientInstalledEffectManagedPlan, Int) -> Result[(@sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, ClientInstalledWholeSourceCapacity), ClientInstalledManagedRunIssue]
 
 pub fn prepared_installed_effect_model_sequence(ClientInstalledEffectManagedPlan, @run_publication_host.ClientInferPlanGraph) -> Result[@execution_relation.GeneratedSequence, ClientInstalledManagedRunIssue]
+
+pub fn prepared_installed_effect_source_occurrences(ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@run_publication_host.ClientDirectAcquisitionOccurrences?, ClientInstalledManagedRunIssue]
 
 pub fn prepared_installed_effect_source_sequence(ClientInstalledEffectManagedPlan, Int) -> Result[(Int, @execution_relation.GeneratedSequence), ClientInstalledManagedRunIssue]
 

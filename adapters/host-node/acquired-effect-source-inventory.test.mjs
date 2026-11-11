@@ -2,17 +2,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {selectAcquiredEffectPlanInputs, selectAcquiredEffectSources,
   prepareInstalledAcquiredEffectLedger} from './acquired-effect-sources.mjs';
+import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 
 // Actual inert Node selection with explicit checked Plan/Request/resource
 // ports. These observations do not execute a Source or prove Core funding.
 const ok = _0 => ({$tag: 1, _0});
-function fixture({coordinates = [[2, 1, 0, 4], [2, 3, 1, 4], [6, 0, 2, 9]], count = 3} = {}) {
-  const prepared = {}, request = {}, parent = {}, calls = [];
+function fixture({coordinates = [[2, 1, 0, 4], [2, 3, 1, 4], [6, 0, 2, 9]], count = 3,
+  prepareFailure} = {}) {
+  const prepared = {}, request = {}, parent = {}, plan = {}, calls = [];
+  const counters = {fullSelections: 0, planProjections: 0, preparations: 0};
   const declaration = {}, provider = {}, inputLimits = {};
   const adapter = Object.freeze({realizationKey: 'row-source-acquired',
     supportsRetainedRelationOutput: true,
     admitsSource: ref => ref === 'same-backend',
-    prepare() {assert.fail('Selection is not physical acquisition');},
+    prepare() {
+      counters.preparations++;
+      if (prepareFailure !== undefined) throw prepareFailure;
+      assert.fail('Selection is not physical acquisition');
+    },
     open() {assert.fail('Selection is not physical acquisition');},
     managedEffectPlanSelection() {
       return {declaration, provider, inputLimits, transferBytes: 7n, executionBytes: 11n};
@@ -22,7 +29,12 @@ function fixture({coordinates = [[2, 1, 0, 4], [2, 3, 1, 4], [6, 0, 2, 9]], coun
   const moon = {
     clientProgramEffectAcquisitionCount: () => count,
     clientProgramEffectDirectSourceCoordinates(actual) {
+      counters.fullSelections++;
       assert.strictEqual(actual, prepared);return ok(coordinates);
+    },
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+      assert.strictEqual(actual, plan);assert.strictEqual(owner, prepared);
+      assert.strictEqual(identity, request);counters.planProjections++;return ok(coordinates);
     },
     clientProgramSelectInstalledEffectSourceInput(actual, identity, stage, input) {
       assert.strictEqual(actual, prepared);assert.strictEqual(identity, request);
@@ -40,7 +52,7 @@ function fixture({coordinates = [[2, 1, 0, 4], [2, 3, 1, 4], [6, 0, 2, 9]], coun
       return ok({parent});
     },
   };
-  return {moon, prepared, request, parent, adapter, calls,
+  return {moon, prepared, request, parent, plan, adapter, calls, counters,
     options: {moon, preparedEffect: prepared, requestIdentity: request, sourceProfile: {sources: [adapter]}}};
 }
 
@@ -63,6 +75,52 @@ test('three mixed Source occurrences preserve repeated backing, exact ports and 
     ['select', 2, 1], ['select', 2, 3], ['select', 6, 0],
     ['select', 2, 1], ['select', 2, 3], ['select', 6, 0],
   ]);
+});
+
+test('real preplan/open flow projects retained Plan coordinates once and keeps mutable current checks', async () => {
+  const failure = new Error('OriginalSourcePreparationRefused');
+  const f = fixture({prepareFailure: failure});
+  selectAcquiredEffectPlanInputs(f.options);
+  const selection = selectAcquiredEffectSources({...f.options, managedPlan: f.plan});
+  let custody, current = 0;
+  f.moon.clientProgramEffectSerializationOccurrences = () => [];
+  f.moon.clientProgramInstalledEffectManagedOperationPlan = (parent, prepared, request) => {
+    assert.strictEqual(parent, f.parent);assert.strictEqual(prepared, f.prepared);
+    assert.strictEqual(request, f.request);return ok(f.plan);
+  };
+  f.moon.clientProgramInstalledEffectManagedHostOpen = () => assert.fail('No provider or Host entry');
+  await assert.rejects(openAcquiredEffectComputation({moon: f.moon,
+    acquired: {prepared: f.prepared, requestIdentity: f.request}, managedRun: f.parent,
+    sourceProfile: f.options.sourceProfile, sourceSelection: selection, sourceSelectionPlan: f.plan,
+    retainComputationOwner(value) {custody = value;}, assertUpdateSelectionCurrent() {current++;},
+  }), error => error === failure);
+  assert.deepEqual(f.counters, {fullSelections: 1, planProjections: 1, preparations: 1});
+  assert.ok(current > 0, 'immutable reuse does not remove mutable current fences');
+  await custody.close();assert.equal(await custody.cleanup(), true);
+
+  const currentFailure = new Error('CurrentOwnerChanged');
+  await assert.rejects(openAcquiredEffectComputation({moon: f.moon,
+    acquired: {prepared: f.prepared, requestIdentity: f.request}, managedRun: f.parent,
+    sourceProfile: f.options.sourceProfile, sourceSelection: selection, sourceSelectionPlan: f.plan,
+    retainComputationOwner() {}, assertUpdateSelectionCurrent() {throw currentFailure;},
+  }), error => error === currentFailure);
+  assert.deepEqual(f.counters, {fullSelections: 1, planProjections: 1, preparations: 1});
+});
+
+test('a retained installation selection cannot substitute another original Plan', async () => {
+  const f = fixture();
+  const selection = selectAcquiredEffectSources({...f.options, managedPlan: f.plan});
+  f.moon.clientProgramEffectSerializationOccurrences = () => [];
+  f.moon.clientProgramInstalledEffectManagedOperationPlan = () => ok({});
+  f.moon.clientProgramInstalledEffectManagedHostOpen = () => assert.fail('No Host entry');
+  let custody;
+  await assert.rejects(openAcquiredEffectComputation({moon: f.moon,
+    acquired: {prepared: f.prepared, requestIdentity: f.request}, managedRun: f.parent,
+    sourceProfile: f.options.sourceProfile, sourceSelection: selection, sourceSelectionPlan: f.plan,
+    retainComputationOwner(value) {custody = value;},
+  }), /ForeignInstalledEffectSourceSelection/);
+  assert.equal(f.counters.preparations, 0);
+  await custody.close();assert.equal(await custody.cleanup(), true);
 });
 
 test('each selected Source occurrence contributes its original capacity to the same managed parent', () => {

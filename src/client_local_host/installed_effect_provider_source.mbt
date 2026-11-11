@@ -1,4 +1,65 @@
 ///|
+/// Borrow the existing Plan's checked Direct inventory. This is immutable
+/// occurrence DATA, not a new selection, current observation or read grant.
+pub fn prepared_installed_effect_source_occurrences(
+  plan : ClientInstalledEffectManagedPlan,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[
+  @publication_host.ClientDirectAcquisitionOccurrences?,
+  ClientInstalledManagedRunIssue,
+] {
+  if !physical_equal(plan.prepared, prepared) ||
+    !physical_equal(plan.request, request) {
+    return Err(ForeignOriginal)
+  }
+  match plan.direct_occurrences {
+    Some(selected) => {
+      if !installed_direct_occurrences_match_owner(selected, Effect(prepared)) {
+        return Err(ForeignOriginal)
+      }
+      Ok(Some(selected))
+    }
+    None =>
+      if plan.transport_bytes.is_empty() &&
+        plan.transport_execution_bytes.is_empty() {
+        Ok(None)
+      } else {
+        Err(ForeignOriginal)
+      }
+  }
+}
+
+///|
+/// The same parent/Plan's exact Source slot, without a new whole-inventory
+/// walk. Existing current/read gates remain mandatory at the actual entry.
+pub fn installed_effect_managed_source_occurrence(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  slot : Int,
+) -> Result[(Int, Int, Int), ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) &&
+    physical_equal(original, owner) &&
+    owner.ledger is Some(_) &&
+    physical_equal(owner.request, request) &&
+    owner.preparation is Some(PlannedEffectManaged(_, plan)) else {
+    return Err(ForeignOriginal)
+  }
+  match prepared_installed_effect_source_occurrences(plan, prepared, request) {
+    Ok(Some(selected)) =>
+      match
+        @publication_host.client_direct_acquisition_occurrence_at(
+          selected, slot,
+        ) {
+        Some(coordinate) => Ok(coordinate)
+        None => Err(ForeignOriginal)
+      }
+    _ => Err(ForeignOriginal)
+  }
+}
+
+///|
 /// The same managed Plan selects the Source's declaration, requirement,
 /// acquisition and complete reader capacity before its original child starts.
 /// The returned tuple is DATA on that existing owner, not another Resource

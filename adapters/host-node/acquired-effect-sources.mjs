@@ -5,14 +5,17 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {prepareOriginalSourceQuery} from './original-query-preparation.mjs';
 
-function effectSourceInputs(moon, preparedEffect) {
-  const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
-  if (!Number.isSafeInteger(count) || count < 0) throw new TypeError('UnsupportedEffectSourceCount');
+function effectSourceInputs(moon, preparedEffect, managedPlan, requestIdentity) {
+  const planned = managedPlan !== undefined && requestIdentity !== undefined;
+  const count = planned ? undefined : moon.clientProgramEffectAcquisitionCount(preparedEffect);
+  if (!planned && (!Number.isSafeInteger(count) || count < 0)) throw new TypeError('UnsupportedEffectSourceCount');
   if (count === 0) return [];
-  const select = moon.clientProgramEffectDirectSourceCoordinates;
+  const select = planned ? moon.clientProgramInstalledEffectManagedPlanSourceCoordinates
+    : moon.clientProgramEffectDirectSourceCoordinates;
   if (typeof select !== 'function') throw new TypeError('InstalledEffectSourceCoordinatesUnavailable');
-  const coordinates = checked(Reflect.apply(select, moon, [preparedEffect]));
-  if (!Array.isArray(coordinates) || coordinates.length !== count) {
+  const coordinates = checked(Reflect.apply(select, moon,
+    planned ? [managedPlan, preparedEffect, requestIdentity] : [preparedEffect]));
+  if (!Array.isArray(coordinates) || !planned && coordinates.length !== count) {
     throw new TypeError('InvalidInstalledEffectSourceCoordinates');
   }
   const ports = new Set();
@@ -100,7 +103,7 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
 export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,
   registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan, managedRun,
   onUnsupportedSelection}) {
-  const coordinates = effectSourceInputs(moon, preparedEffect);
+  const coordinates = effectSourceInputs(moon, preparedEffect, managedPlan, requestIdentity);
   const count = coordinates.length;
   const selected = [];
   let firstRef;

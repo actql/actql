@@ -34,6 +34,9 @@ test('two whole Effect inputs retain distinct source slots on the same checked C
     clientProgramEffectAcquisitionCount: () => 2,
     clientProgramEffectDirectSourceCoordinates: actual => {assert.strictEqual(actual, prepared);
       return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);},
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+      assert.strictEqual(actual, plan); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok([[0, 0, 0, 0], [0, 1, 1, 0]]);},
     clientProgramSelectInstalledEffectSourceInput(actual, identity, stage, input) {
       assert.strictEqual(actual, prepared); assert.strictEqual(identity, request); assert.equal(stage, 0);
       calls.push(input); return ok(routes[input]);},
@@ -130,6 +133,9 @@ test('Effect managed native and row Sources borrow the same current Plan in eith
       admitsSource: ref => ref === requirements[index].ref, prepare() {}, open() {}}));
     const moon = {clientProgramEffectAcquisitionCount: () => 2,
     clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
+      clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+        assert.strictEqual(actual, plan); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+        return ok([[0, 0, 0, 0], [1, 0, 1, 1]]);},
       clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
         assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(input, 0);
         calls.push(`request-${task}`); return ok(task);
@@ -163,6 +169,9 @@ test('Effect managed native selection preserves original current and foreign ref
   let current = plan, requirement = {ref: 'source'}, nativeCalls = 0, refuseNative = false;
   const moon = {clientProgramEffectAcquisitionCount: () => 1,
     clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0]]}),
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+      assert.strictEqual(actual, plan); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok([[0, 0, 0, 0]]);},
     clientProgramSelectInstalledEffectSourceInput: () => ok({}),
     clientProgramSelectedSourceInputKind: () => 'query', clientProgramSelectedSourceInputRef: () => 'source',
     clientProgramQueryRequirementSourceRef: value => value.ref,
@@ -250,6 +259,9 @@ test('retained mixed Effect Sources select original Requests without a Row-only 
   });
   const moon = {clientProgramEffectAcquisitionCount: () => 2,
     clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1, _0: [[0, 0, 0, 0], [1, 0, 1, 1]]}),
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+      assert.strictEqual(actual, plan); assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok([[0, 0, 0, 0], [1, 0, 1, 1]]);},
     clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
       assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
       assert.equal(input, 0); calls.push(`select-${task}`); return ok(selections[task]);

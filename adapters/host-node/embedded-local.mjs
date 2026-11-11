@@ -4460,12 +4460,13 @@ async function openInstalledHost(originalInstallation, preparation) {
                       retainedModel = {record, token, view: targetResume.view};
                     }
                   }
+                  const sourceSelectionPlan = checked(moon.clientProgramInstalledEffectManagedOperationPlan(
+                    managedRun, facts.prepared, facts.identity));
                   const selectedSources = selectAcquiredEffectSources({moon,
                     preparedEffect: facts.prepared, sourceProfile,
                     registry, values, fragment, ordered,
                     queryTimePreparation: facts.queryTimePreparation, requestIdentity: facts.identity,
-                    managedPlan: checked(moon.clientProgramInstalledEffectManagedOperationPlan(
-                      managedRun, facts.prepared, facts.identity))});
+                    managedPlan: sourceSelectionPlan});
                   const sourceContinuation = acquiredEffectContinuation({
                     checkpoints: (selectedSources.length === 0 ||
                       selectedSources.every(({adapter}) => typeof adapter.retainedCapture === 'function'))
@@ -4490,6 +4491,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                   }
                   return await openAcquiredEffectComputation({moon,
                     owner: facts.owner, acquired: facts.preparedExecution, managedRun,
+                    sourceSelection: selectedSources, sourceSelectionPlan,
                     originalContent: managedEffect.contentOriginal,
                     originalModelComponent: managedEffect.modelComponent,
                     originalModelComponents: managedEffect.modelMembers === undefined ? undefined

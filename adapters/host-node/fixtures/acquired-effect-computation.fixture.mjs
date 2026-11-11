@@ -17,6 +17,10 @@ export const openAcquiredEffectComputation = options => {
   const defaults = {clientProgramEffectAcquisitionCount: () => 1,
     clientProgramEffectDirectSourceCoordinates: () => ({$tag: 1,
       _0: sourceRefs.map((_, index) => [index, 0, index, index])}),
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, owner, identity) {
+      assert.equal(actual, plan);assert.equal(owner, prepared);assert.equal(identity, request);
+      return {$tag: 1, _0: sourceRefs.map((_, index) => [index, 0, index, index])};
+    },
     clientProgramEffectSerializationOccurrences: () => [],
     clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('The original Plan already owns the checked requirement');},
     clientProgramQueryRequirementSourceRef: value => value,

@@ -23,7 +23,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
   assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan,
-  originalModelComponent, originalModelComponents, originalModelSelection, originalContent}) {
+  originalModelComponent, originalModelComponents, originalModelSelection, originalContent,
+  sourceSelection, sourceSelectionPlan}) {
   const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
@@ -286,10 +287,19 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         return account;
       }});
     }
-    const selectedSources = selectAcquiredEffectSources({moon,
+    // The immediate caller already selected these immutable installation
+    // inputs from this SAME original Plan. Current/authorization/read gates
+    // below remain live, including after Model and continuation awaits.
+    if (sourceSelection !== undefined && (sourceSelectionPlan !== operationPlan ||
+        !Array.isArray(sourceSelection) || !Object.isFrozen(sourceSelection) ||
+        sourceSelection.length !== count || sourceSelection.some(value =>
+          !Object.isFrozen(value) || !Object.isFrozen(value.occurrence)))) {
+      throw new TypeError('ForeignInstalledEffectSourceSelection');
+    }
+    const selectedSources = sourceSelection ?? (sourceFree ? [] : selectAcquiredEffectSources({moon,
       preparedEffect: acquired.prepared, sourceProfile, registry, values, fragment, ordered,
       queryTimePreparation: acquired.queryTimePreparation, requestIdentity: acquired.requestIdentity,
-      managedPlan: operationPlan, managedRun});
+      managedPlan: operationPlan, managedRun}));
     const wholeInputs = selectedSources.some(source => source.sourceKind === 'whole-input');
     const singleSourceAccess = sourceAccess ?? selectedSources[0]?.adapter.sourceAccess;
     if (infer !== undefined && !pluralModels) {

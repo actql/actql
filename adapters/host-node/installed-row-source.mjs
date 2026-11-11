@@ -6,7 +6,7 @@
 // supplies only its view specification, its physical target and its page
 // driver. No provider name or type appears here.
 import {invocationBindingsMatch} from '../host-common/owned-invocation-context.mjs';
-import {runtimeField, runtimeIsOk, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeOptionalField, runtimeIsOk, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {createHash, createPrivateKey, createPublicKey, randomUUID} from
   'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -2027,14 +2027,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
       if (managedRun === undefined || originalReader === undefined && prepareSourceRead === undefined ||
           typeof moon.clientProgramInstalledEffectManagedSourceRead !== 'function' ||
           typeof moon.clientProgramInstalledEffectManagedSourceInputKind !== 'function' ||
-          typeof moon.clientProgramEffectDirectSourceCoordinates !== 'function') {
+          typeof moon.clientProgramInstalledEffectManagedSourceOccurrence !== 'function') {
         fail('InstalledEffectPlanUnavailable');
       }
-      const coordinates = checked(moon.clientProgramEffectDirectSourceCoordinates(checkedOwner));
-      const selected = coordinates?.[occurrence.task];
-      if (!Array.isArray(selected) || selected.length !== 4 || selected[0] !== occurrence.stage ||
-          selected[1] !== occurrence.input || selected[2] !== occurrence.task ||
-          selected[3] !== (occurrence.computeTask ?? occurrence.task)) {
+      const selected = checked(moon.clientProgramInstalledEffectManagedSourceOccurrence(
+        managedRun, checkedOwner, requestIdentity, occurrence.task));
+      if (runtimeOptionalField(selected, 0) !== occurrence.stage ||
+          runtimeOptionalField(selected, 1) !== occurrence.input ||
+          runtimeOptionalField(selected, 2) !== (occurrence.computeTask ?? occurrence.task)) {
         fail('InstalledSourcePreparationMismatch');
       }
       // The admitted parent already owns this acquisition/capacity. Do not
@@ -2052,12 +2052,12 @@ export async function createInstalledRowSource({moon, declaration, commands,
           managedRun, checkedOwner, requestIdentity, declaration, occurrence.task))
         : checked(moon.clientProgramInstalledEffectManagedSourceRead(managedRun, declaration, occurrence.task));
     } else if (managedRun !== undefined && (originalReader !== undefined || prepareSourceRead !== undefined)) {
-      if (typeof moon.clientProgramDirectSourceCoordinates !== 'function') fail('InstalledSourcePlanUnavailable');
-      const coordinates = checked(moon.clientProgramDirectSourceCoordinates(checkedOwner));
-      const selected = coordinates?.[occurrence.task];
-      if (!Array.isArray(selected) || selected.length !== 4 || selected[0] !== occurrence.stage ||
-          selected[1] !== occurrence.input || selected[2] !== occurrence.task ||
-          selected[3] !== (occurrence.computeTask ?? occurrence.task)) {
+      if (typeof moon.clientProgramInstalledManagedSourceOccurrence !== 'function') fail('InstalledSourcePlanUnavailable');
+      const selected = checked(moon.clientProgramInstalledManagedSourceOccurrence(
+        managedRun, checkedOwner, requestIdentity, occurrence.task));
+      if (runtimeOptionalField(selected, 0) !== occurrence.stage ||
+          runtimeOptionalField(selected, 1) !== occurrence.input ||
+          runtimeOptionalField(selected, 2) !== (occurrence.computeTask ?? occurrence.task)) {
         fail('InstalledSourcePreparationMismatch');
       }
       if (typeof moon.clientProgramInstalledManagedCaptureSourceRead !== 'function') {
