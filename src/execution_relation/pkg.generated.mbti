@@ -980,6 +980,8 @@ pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Sch
 
 pub fn managed_output_values_scratch_released(ManagedOutputValues) -> Bool
 
+pub fn[T] managed_producer_bridge_import_usage(ManagedProducerBridge[T]) -> ValueUsage?
+
 pub fn[T] managed_producer_measurement_matches_inputs(ManagedProducerMeasurement, Array[ManagedProducerRead[T]]) -> Bool
 
 pub fn managed_producer_measurement_usage(ManagedProducerMeasurement) -> (Int, Int, Int)
