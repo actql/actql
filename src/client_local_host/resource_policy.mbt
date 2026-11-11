@@ -64,9 +64,10 @@ pub fn client_local_materialized_row_ceiling(
   if unit <= 0L {
     return None
   }
-  // Each retained output node also occupies the same Run's execution memory.
-  // This necessary bound selects no capacity and allocates no row storage.
-  let rows = Int64::min(limits.retained_bytes, limits.execution_bytes) / unit
+  // Preserve the retained-row dimension. Execution workspace is independently
+  // quoted by the selected constructor; it is not another retained-row cap.
+  // This bound selects no capacity and allocates no row storage.
+  let rows = limits.retained_bytes / unit
   if rows > 2147483647L {
     None
   } else {

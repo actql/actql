@@ -75,12 +75,12 @@ test "Request memory selection keeps nominal policy defaults counters and finite
 }
 
 ///|
-test "effective memory row ceiling follows both selected counters and refuses invalid or foreign policy" {
+test "effective memory row ceiling validates the selected pair without conflating workspace and retention" {
   let policy = client_local_resource_policy()
   for
     (retained, execution, rows) in [
       (67108864L, 134217728L, 262144),
-      (1073741824L, 67108864L, 262144),
+    (1073741824L, 67108864L, 4194304),
       (1073741824L, 2147483648L, 4194304),
       (2147483648L, 2147483648L, 8388608),
     ] {
