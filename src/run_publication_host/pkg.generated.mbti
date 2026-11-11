@@ -445,6 +445,10 @@ pub fn client_composed_keyed_lookup_matches_model_parent(ClientKeyedLookupInput,
 
 pub fn client_composed_keyed_lookup_prefix_work(ClientKeyedLookupInput, ClientInferOccurrence) -> Int64?
 
+pub fn client_composed_keyed_lookup_source_read_matches(ClientKeyedLookupInput, ClientInferOccurrence, Int, @execution_relation.ProducerRead) -> Bool
+
+pub fn client_composed_keyed_lookup_source_results(ClientKeyedLookupInput, ClientInferOccurrence) -> Array[(Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs)]?
+
 pub fn client_composed_keyed_lookup_sources(ClientKeyedLookupInput, ClientInferOccurrence) -> Array[@execution_query.CapturedInputSource]?
 
 pub fn client_composed_keyed_lookup_sources_match(ClientKeyedLookupInput, ClientInferOccurrence, Array[@execution_query.CapturedInputSource]) -> Bool

@@ -60,6 +60,7 @@ fn original_composed_keyed_consumer(
   native_keyed? : Bool = false,
   keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
   retained_input_root? : Bool = false,
+  shared_source_producers? : Bool = false,
   large_lookup_policy? : Bool = false,
   publication_identity? : Bool = false,
   publication_early? : Bool = false,
@@ -174,7 +175,30 @@ fn original_composed_keyed_consumer(
     }
     document = parsed.stringify()
   }
-  if whole {
+  if shared_source_producers {
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) else {
+      fail("distinct original Source stages")
+    }
+    for stage in stages[:2] {
+      guard stage is Object(unit) &&
+        unit["steps"] is Array(steps) &&
+        steps[0] is Object(first) else {
+        fail("original Source filter/projection")
+      }
+      // Keep the actual root calculation outside Query pushdown. The final
+      // projection drops this field, so equal rows still are not completion.
+      first["from"] = Json::string("normalized")
+      steps.insert(
+        0,
+        @json.parse(
+          "{\"derive\":{\"same_name\":{\"field\":\"name\"}},\"as\":\"normalized\"}",
+        ),
+      )
+    }
+    document = Json::object(fields).stringify()
+  }
+  if whole && !shared_source_producers {
     guard @json.parse(document) is Object(fields) &&
       fields["stages"] is Array(stages) &&
       stages[2] is Object(unit) &&
@@ -228,7 +252,7 @@ fn original_composed_keyed_consumer(
     consume(parent, input, prepared, profile)
     return
   }
-  if whole && !following {
+  if whole && !following && !shared_source_producers {
     let limits = @publication_host.client_standard_effect_computation_limits()
     assert_true(
       @publication_host.prepare_client_effect_computation(
@@ -287,7 +311,7 @@ fn original_composed_keyed_consumer(
   )
   let final_publication = @checked.unit_publication_at(
     checked_program,
-    if whole {
+    if whole && !shared_source_producers {
       0
     } else {
       2
@@ -365,10 +389,26 @@ fn original_composed_keyed_consumer(
     )
     .unwrap()
     .unwrap()
-  let prefix = if retained_input_root {
-    let installed = original_composed_keyed_installed_plan(
-      prepared, request, contracts, model, declaration,
+  let shared_plan = if shared_source_producers {
+    Some(
+      original_composed_keyed_installed_plan(
+        prepared,
+        request,
+        contracts,
+        model,
+        declaration,
+        whole_roots=true,
+      ),
     )
+  } else {
+    None
+  }
+  let prefix = if retained_input_root || shared_source_producers {
+    let installed = shared_plan.unwrap_or_else(() => {
+      original_composed_keyed_installed_plan(
+        prepared, request, contracts, model, declaration,
+      )
+    })
     let sequence = prepared_installed_effect_model_sequence(
       installed,
       model.graph,
@@ -415,9 +455,11 @@ fn original_composed_keyed_consumer(
     None => None
     Some((parent, input, _)) => {
       let construction = borrow_request_effect_plan_input(parent, input).unwrap()
-      let installed = original_composed_keyed_installed_plan(
-        prepared, request, contracts, model, declaration,
-      )
+      let installed = shared_plan.unwrap_or_else(() => {
+        original_composed_keyed_installed_plan(
+          prepared, request, contracts, model, declaration,
+        )
+      })
       let scope = prepare_request_effect_model_read_scope(
         parent, input, installed,
       ).unwrap()
@@ -507,23 +549,24 @@ fn original_composed_keyed_consumer(
   ] = Ref([])
   for task in 0..<2 {
     let run = if whole {
-      let selected = @publication_host.prepare_client_effect_source_acquisition(
-        prepared, 0, task,
-      ).unwrap()
-      let policy = installed_row_input_policy(2, 4096, 10000, 32, 2)
-      let acquisition = @row_source_host.prepare_row_input_acquisition(
-        selected,
-        @checked.source_identity(checked_program),
-        @execution.generated_prepared_sequence(prefix),
-        contracts.original.value.contracts,
-        declaration,
-        policy,
-      ).unwrap()
-      let capacity = installed_whole_source_capture_capacity(
-        selected,
-        acquisition,
-        None,
-      ).unwrap()
+      let capacity = if shared_source_producers {
+        shared_plan.unwrap().whole_sources[task].unwrap().1
+      } else {
+        let selected = @publication_host.prepare_client_effect_source_acquisition(
+          prepared, 0, task,
+        ).unwrap()
+        let policy = installed_row_input_policy(2, 4096, 10000, 32, 2)
+        let acquisition = @row_source_host.prepare_row_input_acquisition(
+          selected,
+          @checked.source_identity(checked_program),
+          @execution.generated_prepared_sequence(prefix),
+          contracts.original.value.contracts,
+          declaration,
+          policy,
+        ).unwrap()
+        installed_whole_source_capture_capacity(selected, acquisition, None).unwrap()
+      }
+      let acquisition = capacity.acquisition
       whole_capacities.push(capacity)
       @row_source_host.start_accounted_row_input_acquisition(
         acquisition,
@@ -657,7 +700,7 @@ fn original_composed_keyed_consumer(
         source,
         identity,
         capacity.original,
-        task=0,
+        task=if shared_source_producers { task } else { 0 },
       ).unwrap()
       let facts = @planning.source_acquisition_evidence_facts(capacity.original).unwrap()
       let observation = @row_source_host.issue_row_input_source_evidence(
@@ -716,17 +759,31 @@ fn original_composed_keyed_consumer(
         }
         selected.unwrap()
       })
-      start_client_original_composed_keyed_input_prefix(
-        scope,
-        model.compiled,
-        model.definition,
-        model.graph,
-        keyed,
-        selected,
-        prefix,
-        execution,
-        measurement,
-      )
+      if shared_source_producers {
+        start_installed_original_composed_keyed_input_prefix(
+          managed.unwrap().0,
+          scope,
+          model.compiled,
+          model.definition,
+          model.graph,
+          keyed,
+          selected,
+          execution,
+          measurement,
+        )
+      } else {
+        start_client_original_composed_keyed_input_prefix(
+          scope,
+          model.compiled,
+          model.definition,
+          model.graph,
+          keyed,
+          selected,
+          prefix,
+          execution,
+          measurement,
+        )
+      }
     } else {
       match managed {
         Some((owner, _)) =>
@@ -841,25 +898,30 @@ fn original_composed_keyed_consumer(
     )
   }
   let (_, row_inputs, sources) = selected_inputs.unwrap()
-  let _ = match
-    @publication_host.prepare_client_original_composed_keyed_inputs(
-      scope,
-      model.compiled,
-      model.definition,
-      model.graph,
-      keyed,
-      sources,
-      row_inputs,
-      left_sequence,
-      10000,
-      10000,
-    ) {
-    Ok(value) => value
-    Err(@publication_host.ForeignLeft) =>
-      fail("original two-input binding ownership")
-    Err(@publication_host.Capture(_)) =>
-      fail("original two-input Source binding")
-    Err(_) => fail("original two-input read construction")
+  let initial_bindings = @publication_host.prepare_client_original_composed_keyed_inputs(
+    scope,
+    model.compiled,
+    model.definition,
+    model.graph,
+    keyed,
+    sources,
+    row_inputs,
+    left_sequence,
+    10000,
+    10000,
+  )
+  if shared_source_producers {
+    // Raw captures do not stand in for their unexecuted Stage roots.
+    assert_true(initial_bindings is Err(@publication_host.Capture(_)))
+  } else {
+    let _ = match initial_bindings {
+      Ok(value) => value
+      Err(@publication_host.ForeignLeft) =>
+        fail("original two-input binding ownership")
+      Err(@publication_host.Capture(_)) =>
+        fail("original two-input Source binding")
+      Err(_) => fail("original two-input read construction")
+    }
   }
   let original = match start_prefix(captures) {
     Ok(value) => value
@@ -1560,12 +1622,69 @@ fn original_composed_keyed_consumer(
       sources,
       ledger,
       keyed=Some((task, step, right)),
+      source_results=if shared_source_producers {
+        @publication_host.client_composed_keyed_lookup_source_results(
+          lookup,
+          model._occurrence,
+        ).unwrap()
+      } else {
+        []
+      },
     ).unwrap()
     let dag = @strategy.captured_effect_run_dag(captured)
     assert_true(
       @strategy.captured_effect_run_matches_preparation(captured, dag, supplied),
     )
     assert_false(@strategy.captured_task_completed(dag, task))
+    if shared_source_producers {
+      assert_eq(@strategy.next_captured_task(dag), Some(task))
+      let proofs = @publication_host.client_composed_keyed_lookup_source_results(
+        lookup,
+        model._occurrence,
+      ).unwrap()
+      assert_eq(proofs.length(), 2)
+      for slot, (producer, sequence, bindings, proof) in proofs {
+        assert_true(@strategy.captured_task_completed(dag, producer))
+        let imported = @strategy.captured_task_output(
+          dag,
+          producer,
+          @lower.preparation_output_target(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(sequence),
+            ),
+          ).unwrap(),
+        ).unwrap()
+        let original = @execution.completed_segment_inputs_output(
+          proof, sequence, bindings,
+        ).unwrap()
+        assert_true(
+          @execution.completed_output_same_occurrence(original, imported),
+        )
+        let read = @strategy.captured_task_input(
+          dag,
+          task,
+          100000,
+          1000000,
+          input_index=slot,
+        ).unwrap()
+        assert_true(
+          @publication_host.client_composed_keyed_lookup_source_read_matches(
+            lookup,
+            model._occurrence,
+            slot,
+            read,
+          ),
+        )
+        assert_false(
+          @publication_host.client_composed_keyed_lookup_source_read_matches(
+            lookup,
+            model._occurrence,
+            1 - slot,
+            read,
+          ),
+        )
+      }
+    }
     @strategy.stop_captured_dag(dag)
     assert_true(@strategy.retire_captured_task_outputs(dag))
   }
@@ -1777,9 +1896,25 @@ fn original_composed_keyed_consumer(
       ),
     )
   }
+  let model_input_sequence = prefix
   let inputs = original.inputs.map(value => {
     @local.managed_provider_relation_input(value.2)
   })
+  if shared_source_producers {
+    for slot, (_, _, read) in original.inputs {
+      assert_true(
+        @publication_host.client_composed_keyed_lookup_source_read_matches(
+          lookup,
+          model._occurrence,
+          slot,
+          read,
+        ),
+      )
+      assert_false(
+        @query.captured_source_matches_segment_input(sources[slot], read),
+      )
+    }
+  }
   let keyed_current = Ref(true)
   let restricted_right = @execution.restrict_supplied_relation_read(right, () => {
     keyed_current.val
@@ -1802,7 +1937,7 @@ fn original_composed_keyed_consumer(
   assert_true(
     start_client_composed_infer_input(
       model._occurrence,
-      prefix,
+      model_input_sequence,
       foreign_inputs,
       execution,
       measurement,
@@ -1816,7 +1951,7 @@ fn original_composed_keyed_consumer(
   assert_true(
     start_client_composed_infer_input(
       model._occurrence,
-      prefix,
+      model_input_sequence,
       inputs,
       execution,
       measurement,
@@ -1827,19 +1962,68 @@ fn original_composed_keyed_consumer(
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   keyed_current.val = true
-  let input = start_client_composed_infer_input(
-    model._occurrence,
-    prefix,
-    if retained_input_root {
-      []
-    } else {
-      inputs
-    },
-    execution,
-    measurement,
-    mapping,
-    keyed=Some(lookup),
-  ).unwrap()
+  if shared_source_producers {
+    let (task, stage, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    assert_true(
+      physical_equal(
+        @publication_host.client_infer_occurrence_preparation(model._occurrence),
+        @execution.generated_sequence_owner(model_input_sequence),
+      ),
+      msg="same nominal Model prefix owner",
+    )
+    assert_true(
+      @publication_host.client_composed_keyed_lookup_sources(
+        lookup,
+        model._occurrence,
+      )
+      is Some(_),
+      msg="same complete composed Source closure",
+    )
+    assert_true(
+      @execution.generated_sequence_step_count(model_input_sequence) > step,
+    )
+    for index in 0..<step {
+      assert_eq(
+        @execution.generated_sequence_step_index_at(model_input_sequence, index),
+        Some(index),
+      )
+    }
+    assert_eq(
+      @publication_host.client_keyed_acquisition_coordinates(keyed).map(value => {
+        (value.1, value.0)
+      }),
+      Some((task, stage)),
+    )
+    assert_true(
+      @publication_host.prepare_client_keyed_lookup_join_inputs(
+        lookup, model_input_sequence,
+      )
+      is Ok(_),
+    )
+  }
+  let input = match
+    start_client_composed_infer_input(
+      model._occurrence,
+      model_input_sequence,
+      if retained_input_root {
+        []
+      } else {
+        inputs
+      },
+      execution,
+      measurement,
+      mapping,
+      keyed=Some(lookup),
+    ) {
+    Ok(value) => value
+    Err(UnsupportedProgram) =>
+      fail("actual Model input handoff: UnsupportedProgram")
+    Err(InvalidLimits) => fail("actual Model input handoff: InvalidLimits")
+    Err(Local(_)) => fail("actual Model input handoff: Local provider issue")
+    Err(_) => fail("actual Model input handoff: another typed input issue")
+  }
   assert_eq(@resources.ledger_usage(ledger), before)
   let mut rows = None
   for _ in 0..<10000 {
@@ -2083,12 +2267,47 @@ fn original_composed_keyed_consumer(
 
   assert_true(input.work >= work)
   // Only the two Direct reads and the keyed response are actual attempts.
-  // The completed assembly settled its unused attempt; the live prefix still
-  // retains its one unsent constructor reservation until cleanup.
+  // The completed assembly settled its unused attempt. The live prefix and
+  // each retained Root keep their unsent Compute reservations until cleanup;
+  // those reservations are not additional Source/provider attempts.
   assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
-  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 1)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_attempts,
+    1 + (if shared_source_producers { 2 } else { 0 }),
+  )
   assert_eq(@resources.quantity_usage(ledger), original_quantities)
-  if managed is Some((owner, _)) {
+  if shared_source_producers && managed is Some((owner, _)) {
+    let allowed = @publication_host.issue_client_effect_allowed_run(
+      model._compilation,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2027-01-01T00:00:00.000Z",
+    ).unwrap()
+    let bound = @publication_host.bind_client_effect_compiled_run(
+      prepared,
+      allowed,
+      model.definition,
+    ).unwrap()
+    let opened = open_installed_effect_managed_keyed_host(
+      owner, bound, sources, lookup,
+    ).unwrap()
+    // This fixture deliberately offers no physical Model/UPDATE provider.
+    // Configuration refuses while the actual parent retains the opened DAG;
+    // that refusal must not discard or replay its imported Root completions.
+    assert_true(opened is None)
+    let dag = owner.source_free_captured.unwrap()
+    let (task, _, _) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    assert_false(@strategy.captured_task_completed(dag, task))
+    assert_true(@strategy.captured_task_completed(dag, 0))
+    assert_true(@strategy.captured_task_completed(dag, 1))
+    // Opening the actual installed host imports the completed roots, not
+    // another execution of their providers or an empty-input substitute.
+    assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 3)
+    @strategy.stop_captured_dag(dag)
+    assert_true(@strategy.retire_captured_task_outputs(dag))
+  } else if managed is Some((owner, _)) {
     let allowed = @publication_host.issue_client_effect_allowed_run(
       model._compilation,
       "sha256:" + "a".repeat(64),
@@ -2250,6 +2469,25 @@ fn original_composed_keyed_consumer(
   assert_true(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
+  if shared_source_producers {
+    assert_true(
+      @publication_host.client_composed_keyed_lookup_source_results(
+        lookup,
+        model._occurrence,
+      )
+      is None,
+    )
+    for slot, (_, _, read) in original.inputs {
+      assert_false(
+        @publication_host.client_composed_keyed_lookup_source_read_matches(
+          lookup,
+          model._occurrence,
+          slot,
+          read,
+        ),
+      )
+    }
+  }
   if native_transport {
     assert_true(
       @publication_host.client_keyed_lookup_native_transport(lookup) is None,
@@ -2312,6 +2550,7 @@ fn original_composed_keyed_installed_plan(
   contracts : ClientInstalledSequenceContracts,
   model : ClientInstalledEffectModelDemand,
   declaration : @row_source_host.RowDeclaration,
+  whole_roots? : Bool = false,
 ) -> ClientInstalledEffectManagedPlan {
   // This component never starts its future UPDATE or physical Model provider.
   // Its actual selected construction member fails closed if invoked.
@@ -2328,7 +2567,7 @@ fn original_composed_keyed_installed_plan(
     [extent],
     [extent],
   ).unwrap()
-  prepare_installed_effect_managed_plan(
+  prepare_installed_effect_managed_plan_owned(
     prepared,
     request,
     [declaration, declaration],
@@ -2342,6 +2581,22 @@ fn original_composed_keyed_installed_plan(
     None,
     [operation],
     model=Some(model),
+    source_inputs=if whole_roots {
+      Some([
+        prepare_installed_effect_row_source_input(
+          declaration,
+          None,
+          input_limits=Some(installed_row_input_policy(2, 4096, 10000, 32, 2)),
+        ).unwrap(),
+        prepare_installed_effect_row_source_input(
+          declaration,
+          None,
+          input_limits=Some(installed_row_input_policy(2, 4096, 10000, 32, 2)),
+        ).unwrap(),
+      ])
+    } else {
+      None
+    },
     provider_factory=capacity => {
       [
         @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {

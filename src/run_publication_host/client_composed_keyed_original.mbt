@@ -29,6 +29,7 @@ struct ClientComposedKeyedProducer {
   keyed : ClientKeyedAcquisition
   source : @query.CapturedInputSource
   slot : Int
+  task : Int
   sequence : @execution.GeneratedSequence
   inputs : Array[(Int, Int, @execution.ProducerRead)]
   completed : @execution.CompletedSegmentInputs
@@ -170,6 +171,7 @@ pub fn retain_client_composed_keyed_producer(
     keyed,
     source,
     slot,
+    task,
     sequence,
     inputs: inputs.copy(),
     completed,
@@ -807,6 +809,109 @@ pub fn client_composed_keyed_lookup_sources(
     return None
   }
   Some(original.sources.copy())
+}
+
+///|
+/// Match the actual producer retained by this keyed lookup, not the raw
+/// acquisition before its checked filter/projection. Equal rows, target or
+/// logical identity cannot replace the original completed occurrence.
+pub fn client_composed_keyed_lookup_source_read_matches(
+  lookup : ClientKeyedLookupInput,
+  occurrence : ClientInferOccurrence,
+  slot : Int,
+  read : @execution.ProducerRead,
+) -> Bool {
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.left.composed is Some(original) &&
+    client_infer_occurrence_matches_plan(occurrence, original.plan) &&
+    original.sources.get(slot) is Some(source) else {
+    return false
+  }
+  let producers = original.producers.filter(producer => producer.slot == slot)
+  let matched = match producers.length() {
+    0 => @query.captured_source_matches_segment_input(source, read)
+    1 =>
+      client_composed_keyed_producer_output(
+        producers[0],
+        original.scope,
+        original.compiled,
+        original.definition,
+        original.plan,
+        original.keyed,
+        original.sources,
+      )
+      .map(output => {
+        @execution.producer_read_matches_completed_output(read, output)
+      })
+      .unwrap_or(false)
+    _ => false
+  }
+  // The enclosing ordered-vector entry already checked the complete lookup;
+  // its existing join receiver checks current again after these read callbacks.
+  // Do not repeat the whole Source/producer inventory for every input port.
+  matched
+}
+
+///|
+/// Borrow the SAME completed root proofs for the existing checked DAG. The
+/// prefix remains their execution/reservation/cleanup owner; this does not
+/// issue a completion, replay a Source or grant a consumer port.
+pub fn client_composed_keyed_lookup_source_results(
+  lookup : ClientKeyedLookupInput,
+  occurrence : ClientInferOccurrence,
+) -> Array[
+  (
+    Int,
+    @execution.GeneratedSequence,
+    Array[(Int, Int, @execution.ProducerRead)],
+    @execution.CompletedSegmentInputs,
+  ),
+]? {
+  guard !lookup.closed &&
+    lookup.left.composed is Some(original) &&
+    client_composed_keyed_lookup_sources_match(
+      lookup,
+      occurrence,
+      original.sources,
+    ) else {
+    return None
+  }
+  let results : Array[
+    (
+      Int,
+      @execution.GeneratedSequence,
+      Array[(Int, Int, @execution.ProducerRead)],
+      @execution.CompletedSegmentInputs,
+    ),
+  ] = []
+  for producer in original.producers {
+    guard !results.any(result => result.0 == producer.task) &&
+      client_composed_keyed_producer_output(
+        producer,
+        original.scope,
+        original.compiled,
+        original.definition,
+        original.plan,
+        original.keyed,
+        original.sources,
+      )
+      is Some(_) else {
+      return None
+    }
+    results.push(
+      (
+        producer.task,
+        producer.sequence,
+        producer.inputs.copy(),
+        producer.completed,
+      ),
+    )
+  }
+  if !client_composed_keyed_original_current(original) {
+    return None
+  }
+  Some(results)
 }
 
 ///|

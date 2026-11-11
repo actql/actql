@@ -169,6 +169,20 @@ fn open_installed_effect_managed_host_original(
         return Err(ForeignOriginal)
       }
     }
+    let source_results = match keyed {
+      None => []
+      Some(lookup) => {
+        guard plan.model is Some(model) &&
+          @publication_host.client_composed_keyed_lookup_source_results(
+            lookup,
+            model._occurrence,
+          )
+          is Some(results) else {
+          return Err(ForeignOriginal)
+        }
+        results
+      }
+    }
     let completed_keyed = match keyed {
       None => None
       Some(lookup) => {
@@ -200,6 +214,7 @@ fn open_installed_effect_managed_host_original(
       sources,
       ledger,
       keyed=completed_keyed,
+      source_results~,
     )
   } else if keyed is Some(lookup) {
     guard plan.model is Some(model) &&

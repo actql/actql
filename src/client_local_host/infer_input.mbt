@@ -279,14 +279,14 @@ pub fn start_client_composed_infer_input(
     (
       @execution.generated_sequence_step_count(sequence) != step &&
       !(keyed is Some(_) &&
-      inputs.is_empty() &&
       @execution.generated_sequence_step_count(sequence) > step)
     ) {
     return Err(UnsupportedProgram)
   }
-  // The installed keyed root can borrow the retained full sequence. Only its
-  // checked JOIN-to-Model range is selected below, once; later occurrences
-  // never enter this executor. Other entries still require an exact prefix.
+  // The installed keyed root can borrow the retained full sequence with its
+  // explicit producer vector. The original lookup and every supplied port are
+  // checked below before selecting the JOIN-to-Model range once. Other entries
+  // still require an exact prefix; later occurrences never enter this executor.
   for index in 0..<step {
     if @execution.generated_sequence_step_index_at(sequence, index) !=
       Some(index) {
@@ -323,22 +323,21 @@ pub fn start_client_composed_infer_input(
       Some(_) if inputs.is_empty() => true
       Some(sources) => {
         guard inputs.length() == sources.length() + 1 &&
-          @publication_host.client_composed_keyed_lookup_input_slot(
-            lookup, occurrence,
-          )
-          is Some(slot) &&
-          slot == sources.length() &&
           @publication_host.finish_client_keyed_lookup_input(lookup)
           is Ok(original) else {
           return Err(UnsupportedProgram)
         }
+        // This is the ordered managed-producer vector, not the pipeline's
+        // raw Source input ordinal. Imported Result ports may precede a
+        // keyed Source whose raw ordinal is zero. The join receiver below
+        // checks the SAME original right read at its actual operation port.
+        let slot = sources.length()
         let mut matched = true
         for index, input in inputs {
           match input {
             @local.RelationInput(read) if index < sources.length() =>
-              if !@query.captured_source_matches_segment_input(
-                  sources[index],
-                  read,
+              if !@publication_host.client_composed_keyed_lookup_source_read_matches(
+                  lookup, occurrence, index, read,
                 ) {
                 matched = false
               }

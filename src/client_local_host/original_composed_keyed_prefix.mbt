@@ -82,7 +82,8 @@ fn composed_keyed_root_control_bytes(
     29L * ports +
     2L * root_slots +
     4L * port_slots,
-    scalar_words: 16L + 14L * roots + 23L * ports + columns,
+    // Each retained producer also keeps its checked original task coordinate.
+    scalar_words: 16L + 15L * roots + 23L * ports + columns,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
