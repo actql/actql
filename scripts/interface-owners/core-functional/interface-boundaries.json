@@ -70464,7 +70464,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_compilation.mbt",
-      "sha256": "4892bdb85dcd5904c8f46626c5a98ee310f59343486b477edb0de1689068f2c1",
+      "sha256": "8a3a932e669aa6771ef86c674557d5753037e71ab5629f0f33249143ff4e0988",
       "operations": [
         {
           "name": "admit_client_effect_allowed_run",
@@ -70529,6 +70529,14 @@
         {
           "name": "client_effect_compilation_infer_originals",
           "declaration": "client_effect_compilation_infer_originals ( value : ClientEffectCompilation , ) - > Array [ ( ClientInferPlanGraph , ClientInferOccurrence ) ] ?"
+        },
+        {
+          "name": "client_effect_compilation_original_roots",
+          "declaration": "client_effect_compilation_original_roots ( owner : PreparedClientEffectComputation , max_nodes : Int , ) - > Result [ ( Array [ ( String , Int ) ] , Array [ ( String , @ stage_results . EffectPlanTerminal ) ] ) , ClientEffectCompilationIssue , ]"
+        },
+        {
+          "name": "client_effect_compilation_original_view",
+          "declaration": "client_effect_compilation_original_view ( owner : PreparedClientEffectComputation , infer : ClientInferPlanGraph ? , infers : Array [ ClientInferPlanGraph ] , ) - > Result [ PreparedClientProgram , ClientEffectCompilationIssue ]"
         },
         {
           "name": "client_effect_compilation_owner",
@@ -70609,7 +70617,9 @@
             "issue_client_effect_run_definition",
             "issue_prepared_client_effect_compilation",
             "bind_client_effect_model_read_scopes",
-            "client_effect_compilation_infer_originals"
+            "client_effect_compilation_infer_originals",
+            "client_effect_compilation_original_roots",
+            "client_effect_compilation_original_view"
           ],
           "exports": [],
           "attributes": {
