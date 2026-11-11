@@ -197,6 +197,8 @@ test "fixed Request control envelope preserves original upper bound through the 
   // The retained-wire tuple/Some and its Request field add 2H/2R/2W.
   // Native intake additionally retains its baseline tuple/Some, Request slot
   // and monotone byte scalar: 2H/2R/3W. Neither is domain payload storage.
+  // The explicit source-free work selection adds its Some/header, scalar
+  // and two references (1H/2R/1W =40 bytes), not payload capacity.
   // This fixed control belongs to the original parent before domain growth.
   assert_eq(
     10736L +
@@ -206,18 +208,21 @@ test "fixed Request control envelope preserves original upper bound through the 
     16L * 2L +
     8L * 2L +
     8L * 3L +
-    8L * 4L,
-    10904L,
+    8L * 4L +
+    16L +
+    8L * 2L +
+    8L,
+    10944L,
   )
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(10904L),
+    Some(10944L),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((15000L, 0L)),
+    Some((15040L, 0L)),
   )
   let growth = @resources.preparation_inventory_growth_entry_construction()
   assert_eq(
@@ -255,7 +260,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   ).unwrap()
   let reservation = owner.capacity
   let before = @resources.ledger_usage(owner.ledger)
-  assert_eq(before.reserved_retention_bytes, 15000L)
+  assert_eq(before.reserved_retention_bytes, 15040L)
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let small = @resources.ledger_usage(owner.ledger)
   reserve_request_snapshot(owner, input, 256L, 32L).unwrap()
@@ -272,7 +277,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((15000L, 0L)),
+    Some((15040L, 0L)),
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
