@@ -267,6 +267,47 @@ pub fn source_input_dag_matches_read_at(
 }
 
 ///|
+/// Retain cleanup custody for a Source whose exact producer completion was
+/// imported. Its execution read remains unavailable after completion; the
+/// original input and complete output provenance must still be live here.
+pub fn source_input_dag_retains_completed_read_at(
+  run : CapturedDAG,
+  read : @execution.SuppliedRelationRead,
+  task : Int,
+) -> Bool {
+  guard !run.stopped &&
+    run.graph.captured_prefix_value() == 0 &&
+    !run.graph.source_free_root_value() &&
+    task >= 0 &&
+    task < run.done.length() &&
+    run.done[task] &&
+    run.lifetimes[task].live &&
+    materialized_task_output(run, task) is Some(output) &&
+    @execution.supplied_relation_read_available(read) &&
+    run.supplied_reads[task].any(port => {
+      port
+      .map(actual => {
+        @execution.supplied_relation_read_same_binding(actual, read)
+      })
+      .unwrap_or(false)
+    }) &&
+    @execution.completed_output_available(output) else {
+    return false
+  }
+  // The same committed slot was admitted by completed_segment_inputs_output
+  // when imported, or by the ordinary completion input check when executed.
+  // Imported Source roots retain ProducerRead provenance from their original
+  // prefix; it must not be recast as a fresh SuppliedRelation execution.
+  // Original availability callbacks can retire this port reentrantly. This
+  // result is custody correspondence only, never renewed execution access.
+  !run.stopped &&
+  run.lifetimes[task].live &&
+  materialized_task_output(run, task)
+  .map(actual => physical_equal(actual, output))
+  .unwrap_or(false)
+}
+
+///|
 fn valid_source_free_root(graph : CheckedDAG) -> Bool {
   !(graph.owners_count() == 0) &&
   graph.input_counts_at(0).unwrap() == 0 &&

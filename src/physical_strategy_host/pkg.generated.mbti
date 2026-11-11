@@ -891,6 +891,8 @@ pub fn source_input_dag_matches_read(CapturedDAG, @execution_relation.SuppliedRe
 
 pub fn source_input_dag_matches_read_at(CapturedDAG, @execution_relation.SuppliedRelationRead, Int) -> Bool
 
+pub fn source_input_dag_retains_completed_read_at(CapturedDAG, @execution_relation.SuppliedRelationRead, Int) -> Bool
+
 pub fn source_inputs_dag_matches_original(@physical_strategy.CheckedDAG, @physical_strategy.CheckedDAG) -> Bool
 
 pub fn start_captured_any_result_borrow_export(CapturedAnyResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, converted_output? : @execution_relation.CompletedOutput) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]

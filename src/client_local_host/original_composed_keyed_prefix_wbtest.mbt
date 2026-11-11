@@ -1698,6 +1698,72 @@ fn original_composed_keyed_consumer(
       assert_eq(proofs.length(), 2)
       for slot, (producer, sequence, bindings, proof) in proofs {
         assert_true(@strategy.captured_task_completed(dag, producer))
+        // Importing the same completed root closes its execution read, not
+        // the original Source's separately retained cleanup responsibility.
+        assert_false(
+          @strategy.source_input_dag_matches_read_at(
+            dag,
+            @query.captured_source_original_input_read(sources[slot]).unwrap(),
+            producer,
+          ),
+        )
+        if restored {
+          assert_true(
+            retain_accounted_client_source_capture_input(
+              restorations[1 - slot],
+              dag,
+              producer,
+            )
+            is Err(BindingMismatch),
+          )
+          assert_true(
+            retain_accounted_client_source_capture_input(
+              restorations[slot],
+              dag,
+              task,
+            )
+            is Err(BindingMismatch),
+          )
+          retain_accounted_client_source_capture_input(
+            restorations[slot],
+            dag,
+            producer,
+          ).unwrap()
+          assert_true(
+            retain_accounted_client_source_capture_input(
+              restorations[slot],
+              dag,
+              producer,
+            )
+            is Err(BindingMismatch),
+          )
+        } else {
+          assert_true(
+            @row_source_host.check_row_input_compute_binding(
+              captures[slot],
+              dag,
+              producer,
+            )
+            is Ok(_),
+            msg="the same completed producer must retain its original Source custody",
+          )
+          assert_true(
+            @row_source_host.check_row_input_compute_binding(
+              captures[1 - slot],
+              dag,
+              producer,
+            )
+            is Err(_),
+          )
+          assert_true(
+            @row_source_host.check_row_input_compute_binding(
+              captures[slot],
+              dag,
+              task,
+            )
+            is Err(_),
+          )
+        }
         let imported = @strategy.captured_task_output(
           dag,
           producer,
@@ -1739,6 +1805,21 @@ fn original_composed_keyed_consumer(
       }
     }
     @strategy.stop_captured_dag(dag)
+    if shared_source_producers {
+      for task, capture in captures {
+        assert_false(
+          @strategy.source_input_dag_retains_completed_read_at(
+            dag,
+            @query.captured_source_original_input_read(sources[task]).unwrap(),
+            task,
+          ),
+        )
+        assert_true(
+          @row_source_host.check_row_input_compute_binding(capture, dag, task)
+          is Err(_),
+        )
+      }
+    }
     assert_true(@strategy.retire_captured_task_outputs(dag))
   }
 

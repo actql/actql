@@ -716,7 +716,14 @@ pub fn check_row_input_compute_binding(
     capture.observation is InputObservation(observation) &&
     capture.run.physical is Some(physical) &&
     physical_equal(physical.ledger, @strategy.captured_dag_ledger(dag)) &&
-    @strategy.source_input_dag_matches_read_at(dag, observation.read, task) else {
+    (
+      @strategy.source_input_dag_matches_read_at(dag, observation.read, task) ||
+      @strategy.source_input_dag_retains_completed_read_at(
+        dag,
+        observation.read,
+        task,
+      )
+    ) else {
     return Err(InvalidState)
   }
   Ok(())
