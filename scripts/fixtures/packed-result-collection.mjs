@@ -17,9 +17,15 @@ const report = {phase, pid: process.pid, cases: [], submits: 0,
 const save = (name, value) => writeFile(name, JSON.stringify(value, null, 2) + '\n', {mode: 0o600});
 const span = async (name, action) => {
   const value = {name, startedAt: new Date().toISOString()}; report.phases.push(value);
+  const started = process.hrtime.bigint(), cpu = process.cpuUsage();
   try {return await action();}
   catch (error) {report.firstFailedStep ??= name; throw error;}
-  finally {value.endedAt = new Date().toISOString();}
+  finally {
+    const used = process.cpuUsage(cpu);
+    Object.assign(value, {endedAt: new Date().toISOString(), wallNs: Number(process.hrtime.bigint() - started),
+      cpuUserUs: used.user, cpuSystemUs: used.system,
+      scope: 'Same collection child, inclusive operation interval; observation overhead included'});
+  }
 };
 function collectionProgram(count) {
   // Small Program, 100k small rows: no enormous VALUES text.

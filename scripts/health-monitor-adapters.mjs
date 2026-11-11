@@ -386,9 +386,16 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
             exitCode: observation.code, signal: observation.signal ?? null});
           const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
           record.summary = rows.at(-1);
+          record.operations = rows.filter(row => typeof row.step === 'string');
           // The command and its original outcome exist before fixture assertions.
           await writeFile(path, JSON.stringify(record, null, 2) + '\n');
           assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
+          for (const row of record.operations) {
+            const timing = row.timing;
+            assert(timing && ['wallNs', 'cpuUserUs', 'cpuSystemUs'].every(name =>
+              Number.isSafeInteger(timing[name]) && timing[name] >= 0));
+            assert(timing.wallNs > 0 && Date.parse(timing.endedAt) >= Date.parse(timing.startedAt));
+          }
           assert.equal(record.summary.status, 'passed'); assert.equal(record.summary.firstFailedStep, null);
           assert.deepEqual(record.summary.firstClose, {attempted: true, returned: true});
           const work = record.summary.workObservation;
@@ -431,7 +438,11 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           observation ??= error?.commandResult;
           // A nonzero child can still have reported its original primary and
           // first-close outcome. Preserve those DATA without replacing it.
-          try {record.summary = JSON.parse(observation.stdout.trim().split('\n').at(-1));} catch {}
+          try {
+            const rows = observation.stdout.trim().split('\n').map(line => JSON.parse(line));
+            record.operations = rows.filter(row => typeof row.step === 'string');
+            if (Object.hasOwn(rows.at(-1), 'firstClose')) record.summary = rows.at(-1);
+          } catch {}
           try {
             const partial = JSON.parse(await readFile(join(project, `${phase}.pending.json`), 'utf8'));
             assert.equal(partial.phase, phase);

@@ -22,6 +22,9 @@ const explicitWork = phase => ({complete: true,
   sourceAcquisitionStarts: phase === 'capture' ? 1 : 0,
   modelCallStarts: phase === 'capture' ? 2 : 0,
   effectReplacementReturns: phase === 'approve' ? 2 : 0});
+const explicitStep = (phase, step) => ({phase, step, status: 'passed', timing: {
+  startedAt: '2026-01-01T00:00:00.000Z', endedAt: '2026-01-01T00:00:00.001Z',
+  wallNs: 1000000, cpuUserUs: 0, cpuSystemUs: 0, scope: 'Explicit test port, not a runtime measurement'}});
 
 test('distinct Whole producer fixture retains both Model Units and all public Result readers', async () => {
   const files = twoModelWholeDealReviewFiles(), program = JSON.parse(files['deal-review.program.json']);
@@ -223,7 +226,7 @@ test('required README cases use three distinct project paths and original indepe
         assert((await readFile(join(options.cwd, 'actql.config.json'))).length > 0);
         assert((await readFile(join(options.cwd, 'mock/data.json'))).length > 0);
         return {pid: 10000 + commands.length, code: 0, signal: null, wallNs: 100,
-          stdout: [...Array.from({length: expected}, (_, n) => ({phase, step: `explicit-${n}`, status: 'passed'})),
+          stdout: [...Array.from({length: expected}, (_, n) => explicitStep(phase, `explicit-${n}`)),
             {phase, status: 'passed', firstFailedStep: null,
               workObservation: explicitWork(phase),
               firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
@@ -235,6 +238,8 @@ test('required README cases use three distinct project paths and original indepe
     for (const phase of ['capture', 'approve', 'recover']) {
       const actual = JSON.parse(await readFile(join(project, `${phase}.observation.json`), 'utf8'));
       assert.equal(actual.completed, true); assert.equal(actual.exitCode, 0);
+      assert.equal(actual.operations.length, {capture: 10, approve: 11, recover: 7}[phase]);
+      assert(actual.operations.every(value => value.timing.wallNs === 1000000));
       if (phase === 'capture') {
         assert.equal(actual.inputRemoval.completed, true);
         assert.deepEqual([...actual.inputRemoval.paths].sort(), [...originalInputs].sort());
@@ -258,7 +263,7 @@ test('required README preserves inputs and never starts Saved after an unreturne
       const phase = args[1]; phases.push(phase);
       return {pid: 10000 + phases.length, code: 0, signal: null, wallNs: 100,
         stdout: [...Array.from({length: phase === 'capture' ? 10 : 11}, (_, n) =>
-          ({phase, step: `explicit-${n}`, status: 'passed'})),
+          explicitStep(phase, `explicit-${n}`)),
         {phase, status: 'passed', firstFailedStep: null,
           firstClose: {attempted: true, returned: phase !== 'capture'}}].map(value => JSON.stringify(value)).join('\n')};
     }}), {code: 'ERR_ASSERTION'});
@@ -279,7 +284,7 @@ test('required README never deletes replaced authored inputs or enters dependent
       if (phase === 'capture') await writeFile(join(options.cwd, 'mock/churn-risk.v1.answers.yaml'), 'changed input');
       return {pid: 10000 + phases.length, code: 0, signal: null, wallNs: 100,
         stdout: [...Array.from({length: phase === 'capture' ? 10 : 11}, (_, n) =>
-          ({phase, step: `explicit-${n}`, status: 'passed'})),
+          explicitStep(phase, `explicit-${n}`)),
         {phase, status: 'passed', firstFailedStep: null,
           workObservation: explicitWork(phase),
           firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
@@ -293,7 +298,7 @@ test('required README never deletes replaced authored inputs or enters dependent
 });
 
 test('README aggregate refuses missing lost or amplified actual work observation', async t => {
-  for (const mode of ['missing', 'lost', 'source-restarted', 'model-restarted', 'write-repeated']) {
+  for (const mode of ['missing', 'lost', 'source-restarted', 'model-restarted', 'write-repeated', 'untimed']) {
     const {root, consumer} = await scratch(t), phases = [];
     await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
       counts: {coldSamples: 1}, onMetric() {},
@@ -306,12 +311,14 @@ test('README aggregate refuses missing lost or amplified actual work observation
         if (phase === 'approve' && mode === 'model-restarted') work.modelCallStarts = 1;
         if (phase === 'approve' && mode === 'write-repeated') work.effectReplacementReturns = 3;
         const expected = phase === 'capture' ? 10 : 11;
+        const operations = Array.from({length: expected}, (_, n) => explicitStep(phase, `explicit-${n}`));
+        if (phase === 'capture' && mode === 'untimed') delete operations[0].timing;
         return {pid: 123, code: 0, signal: null, wallNs: 10,
-          stdout: [...Array.from({length: expected}, (_, n) => ({phase, step: `explicit-${n}`, status: 'passed'})),
+          stdout: [...operations,
             {phase, status: 'passed', firstFailedStep: null, workObservation: work,
               firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
       }}), {code: 'ERR_ASSERTION'});
-    assert.deepEqual(phases, mode === 'missing' || mode === 'lost' ? ['capture'] : ['capture', 'approve']);
+    assert.deepEqual(phases, ['missing', 'lost', 'untimed'].includes(mode) ? ['capture'] : ['capture', 'approve']);
   }
 });
 
@@ -322,7 +329,7 @@ test('required README aggregate refuses the old capture count before dependent p
     async command(_executable, args) {
       const phase = args[1]; phases.push(phase);
       return {pid: 10000, code: 0, signal: null, wallNs: 100,
-        stdout: [...Array.from({length: 9}, (_, n) => ({phase, step: `old-${n}`, status: 'passed'})),
+        stdout: [...Array.from({length: 9}, (_, n) => explicitStep(phase, `old-${n}`)),
           {phase, status: 'passed', firstFailedStep: null}].map(value => JSON.stringify(value)).join('\n')};
     }}), {code: 'ERR_ASSERTION'});
   assert.deepEqual(phases, ['capture']);
@@ -446,6 +453,28 @@ test('collection full stream drains all 100k original rows and refuses truncatio
       assert.equal(delivered, 100000);
     } else await assert.rejects(drain(result, 100000), {code: 'ERR_ASSERTION'});
     assert.equal(opened, 1); assert.equal(closed, 1);
+  }
+});
+
+test('collection operation intervals retain actual monotonic and own-child CPU bounds on success and failure', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const declaration = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .filter(value => value.type === 'VariableDeclaration').flatMap(value => value.declarations)
+    .find(value => value.id.name === 'span'); assert(declaration);
+  const report = {phases: []};
+  const span = Function('report', 'process', `return (${source.slice(declaration.init.start, declaration.init.end)});`)(report, process);
+  const primary = new Error('OriginalPublicOperationFailed');
+  let called = 0;
+  assert.equal(await span('original-all', async () => {called++; return 100000;}), 100000);
+  await assert.rejects(span('original-Saved', async () => {called++; throw primary;}), error => error === primary);
+  assert.equal(called, 2); assert.equal(report.firstFailedStep, 'original-Saved');
+  assert.equal(report.phases.length, 2);
+  for (const timing of report.phases) {
+    assert(timing.wallNs > 0 && Number.isSafeInteger(timing.wallNs));
+    assert(Number.isSafeInteger(timing.cpuUserUs) && timing.cpuUserUs >= 0);
+    assert(Number.isSafeInteger(timing.cpuSystemUs) && timing.cpuSystemUs >= 0);
+    assert(Date.parse(timing.endedAt) >= Date.parse(timing.startedAt));
+    assert(timing.scope.includes('inclusive') && timing.scope.includes('overhead'));
   }
 });
 

@@ -60,15 +60,25 @@ function checkWorkflowWork(observed, selectedPhase, writes) {
   }
 }
 const workObservation = workflowWorkObservation();
+const stepDiagnosticFailures = [];
 async function step(name, operation) {
   activeStep = name;
+  const startedAt = new Date().toISOString(), started = process.hrtime.bigint(), cpu = process.cpuUsage();
+  let status = 'failed';
   try {
     const result = await operation();
-    console.log(JSON.stringify({phase, step: name, status: 'passed'}));
+    status = 'passed';
     return result;
   } catch (cause) {
     firstFailedStep ??= name;
     throw cause;
+  } finally {
+    const used = process.cpuUsage(cpu);
+    const timing = {startedAt, endedAt: new Date().toISOString(),
+      wallNs: Number(process.hrtime.bigint() - started), cpuUserUs: used.user, cpuSystemUs: used.system,
+      scope: 'Same workflow child, inclusive operation interval; observation overhead included'};
+    try {console.log(JSON.stringify({phase, step: name, status, timing}));}
+    catch (cause) {stepDiagnosticFailures.push({name: cause?.name, code: cause?.code});}
   }
 }
 // Read this exact call's retained SDK observation, never check or submit again.
@@ -380,7 +390,7 @@ try {
   } catch { /* Diagnostic getters cannot replace the original failure. */ }
 }
 let closeFailure, closeFailed = false, closeReturned = false;
-const diagnosticFailures = [];
+const diagnosticFailures = [...stepDiagnosticFailures];
 const pending = {phase, pid: process.pid, firstFailedStep: firstFailedStep ?? null,
   status: failed ? 'failed' : 'closing', code: primary?.code,
   workObservation: workObservation.snapshot(),

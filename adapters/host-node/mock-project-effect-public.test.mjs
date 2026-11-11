@@ -17,6 +17,34 @@ const main = ast.body.find(node => node.type === 'TryStatement');
 const branch = main.block.body.find(node => node.type === 'IfStatement');
 const captureBody = text.slice(branch.consequent.start, branch.consequent.end);
 
+test('workflow operation timers keep actual intervals and original failures even when logging fails', async () => {
+  const make = new Function('ports', `
+    const {console,process}=ports,phase='capture',stepDiagnosticFailures=ports.failures;
+    let activeStep,firstFailedStep;
+    ${declaration('step')}
+    return step;
+  `);
+  for (const fails of [false, true]) for (const logFails of [false, true]) {
+    const failures = [], rows = [], primary = new Error('OriginalOperationRefusal');
+    const step = make({process, failures, console: {log(line) {
+      rows.push(JSON.parse(line)); if (logFails) throw new Error('OriginalDiagnosticFailure');
+    }}});
+    let release, called = 0;
+    const waiting = new Promise(resolve => {release = resolve;});
+    const result = step('original public wait', async () => {called++; await waiting;
+      if (fails) throw primary;return 'original';});
+    const observed = fails ? assert.rejects(result, error => error === primary) : result;
+    assert.equal(rows.length, 0, 'A pending operation must not acquire a completed timer');
+    release(); await observed;
+    assert.equal(called, 1); assert.equal(rows.length, 1);
+    assert.equal(rows[0].status, fails ? 'failed' : 'passed');
+    assert.equal(rows[0].step, 'original public wait');
+    assert(rows[0].timing.wallNs > 0 && Number.isSafeInteger(rows[0].timing.wallNs));
+    for (const name of ['cpuUserUs', 'cpuSystemUs']) assert(Number.isSafeInteger(rows[0].timing[name]) && rows[0].timing[name] >= 0);
+    assert.equal(failures.length, logFails ? 1 : 0);
+  }
+});
+
 test('workflow actual observation counts Source Model and physical writes with loss-aware phase controls', async () => {
   const make = new Function('createHostObservationConnection',
     `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
@@ -74,7 +102,7 @@ function capture({saveFailure, state = {status: 'failed', terminal_error: {code:
     const {client,targetState,readFile,save,console}=ports;
     const phase='capture',twoModels=false,dealReview=false,handoffPath='fixture-handoff';
     const template='churn-risk-mock',variant='readme';
-    let activeStep,firstFailedStep,runObservation;
+    let activeStep,firstFailedStep,runObservation;const stepDiagnosticFailures=[];
     ${declaration('step')}
     ${declaration('publicRunObservation')}
     return async()=>{try ${captureBody} catch(cause) {
@@ -124,7 +152,7 @@ test('actual first close reports its return separately and never replaces the or
   const make = new Function('ports', `
     let {client,primary}=ports;const phase='capture',failed=true;
     const process={pid:123},writeFile=async()=>{};
-    const workObservation={snapshot:()=>({complete:false})};
+    const workObservation={snapshot:()=>({complete:false})};const stepDiagnosticFailures=[];
     let firstFailedStep='wait for original Checkpoint',checkDiagnostic,runObservation;
     const console={log:line=>ports.summary(JSON.parse(line))};
     return async()=>{${text.slice(start,end)}};
@@ -148,7 +176,7 @@ test('workflow persists the original primary before pending close even when diag
   const start = text.indexOf('let closeFailure, closeFailed');
   const make = new Function('ports', `
     const {client,primary,writeFile,process,console}=ports;const phase='capture',failed=true;
-    const workObservation={snapshot:()=>({complete:false})};
+    const workObservation={snapshot:()=>({complete:false})};const stepDiagnosticFailures=[];
     let firstFailedStep='wait for original Checkpoint',checkDiagnostic,runObservation;
     return async()=>{${text.slice(start)}};
   `);
@@ -185,7 +213,7 @@ test('actual cold recovery consumes the same Saved Result before status and pres
   const make = new Function('ports', 'assert', `
     const {execution,readFile,targetState,checkRows,console}=ports;
     const phase='recover',template='churn-risk-mock',variant='readme',wholeProducer=false,handoffPath='fixture-handoff';
-    let activeStep,firstFailedStep;
+    let activeStep,firstFailedStep;const stepDiagnosticFailures=[];
     ${declaration('step')}
     return async()=>${recoverBody};
   `);
