@@ -327,10 +327,46 @@ fn prepare_keyed_lookup_request_metadata(
   let slots = role_count.to_int64() * lookup.known.length().to_int64() +
     role_count.to_int64() +
     lookup.known.length().to_int64()
+  let metadata_bytes = if @acquisition.parameterized_keyed_request_field_count(
+      template,
+    ) ==
+    0 {
+    // The selected canonical file request has only correlation roles. Their
+    // contracts are already inside this admitted request-schema member; every
+    // actual typed value is already in the SAME retained full request wire.
+    // Bound those existing bytes/counts, not the policy output ceiling, and
+    // neither emit the Request again nor walk its Value/schema tree to quote.
+    let selected = @acquisition.selected_contract(
+      @acquisition.keyed_request_input(request),
+    )
+    let schema = @environment.reference_contract(
+      @environment.source_request_reference(selected),
+    )
+    let (schema_bytes, _) = @environment.member_usage(
+      @environment.contract_member(schema),
+    )
+    let mut bound = 4096L +
+      6L * schema_bytes.to_int64() +
+      128L * role_count.to_int64()
+    for (wire, _, _) in lookup.known {
+      guard @execution.checked_preparation_add_product(
+          bound, wire.length().to_int64(), 6L,
+        )
+        is Some(next) else {
+        return Err(Assembly("capacity_overflow"))
+      }
+      bound = next
+    }
+    Int64::min(bound, max_bytes.to_int64()).to_int()
+  } else {
+    // Preserve the existing static-Request constructor until its own retained
+    // static document supplies a corresponding measured construction demand.
+    max_bytes
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
-      max_bytes,
+      metadata_bytes,
       slots,
       // Retained EncodedDocument1H1R3W + Some1H1R1W. Text stays borrowed.
       extra_controls=if lookup.native_read_profile is Some(_) {

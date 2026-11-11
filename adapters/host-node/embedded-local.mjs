@@ -7990,7 +7990,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
         serializationGraph === undefined ? undefined :
           (parent, input, originalOccurrence, selected, originalExecution, contracts) =>
             control.prepareClientRequestSerializedInferGraph(parent, input, originalOccurrence,
-              selected, originalExecution, contracts));
+              selected, originalExecution, contracts),
+        record.managedSourceProfile?.fileReadDeclarations);
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
       const manager = sourceManaged ?? computeManaged;

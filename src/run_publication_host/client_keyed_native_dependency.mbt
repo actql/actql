@@ -58,7 +58,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
     return Err(ForeignInput)
   }
   if physical_source is Some((cid, _)) &&
-    @publication.native_file_read_profile_physical_source_contract_cid(profile) !=
+    @publication.file_read_profile_physical_source_contract_cid(profile) !=
     Some(cid) {
     return Err(ForeignInput)
   }
@@ -187,7 +187,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
         ("result_retention_policy", left.retention),
         ("native_file_lookup_transport", transport),
         ("native_file_lookup_batch_plan", batch),
-        ("native_file_content_read", profile),
+        (@publication.publication_contract_name(profile), profile),
       ] {
       contract(kind, value)
     }

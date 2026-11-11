@@ -12,10 +12,10 @@ const closed = properties => ({type: 'object', additionalProperties: false,
 
 // Implementation DATA for the existing Native file -> ContentRef reader.
 // This neither issues a request nor proves a physical attempt or byte custody.
-export function nativeFileReadProfileSchema() {
+function fileReadProfileSchema(implementation) {
   return {$schema: 'https://json-schema.org/draft/2020-12/schema',
-    $id: 'https://smooth.dev/schemas/actql-native-file-content-read-0.1.json',
-    ...closed({version: {const: 'actql-native-file-content-read/0.1'},
+    $id: `https://smooth.dev/schemas/actql-${implementation}-file-content-read-0.1.json`,
+    ...closed({version: {const: `actql-${implementation}-file-content-read/0.1`},
       source_view_contract_cid: cid, physical_source_view_contract_cid: cid,
       request_schema_cid: cid, response_schema_cid: cid,
       projection: closed({identity_field: text, name_field: text,
@@ -26,24 +26,33 @@ export function nativeFileReadProfileSchema() {
       transport_cid: cid})};
 }
 
-export function verifyNativeFileReadProfile(write = false) {
+export const nativeFileReadProfileSchema = () => fileReadProfileSchema('native');
+export const declaredFileReadProfileSchema = () => fileReadProfileSchema('declared');
+export const verifyNativeFileReadProfile = (write = false) => verifyFileReadProfile('native', write);
+export const verifyDeclaredFileReadProfile = (write = false) => verifyFileReadProfile('declared', write);
+
+function verifyFileReadProfile(implementation, write) {
+  const name = `${implementation}_file_content_read`;
+  const version = `actql-${implementation}-file-content-read/0.1`;
   const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
   const lookup = JSON.parse(readFileSync(lookupPath, 'utf8'));
-  const schema = nativeFileReadProfileSchema();
+  const schema = fileReadProfileSchema(implementation);
   const pin = machineCid(schema);
-  const binding = {path: registryPath, pointer: '/schemas/native_file_content_read',
+  const binding = {path: registryPath, pointer: `/schemas/${name}`,
     self_field: 'transport_cid', schema_cid: pin,
-    selection: 'Native declared-file keyed Content reader; same SourceView, physical provider and projection; not HTTP or query Source evidence'};
+    selection: implementation === 'native'
+      ? 'Native declared-file keyed Content reader; same SourceView, physical provider and projection; not HTTP or query Source evidence'
+      : 'Installed Node declared-file keyed Content reader; same SourceView, physical provider and projection; not Native or query Source evidence'};
   if (write) {
-    registry.schemas.native_file_content_read = schema;
-    registry.schema_cids.native_file_content_read = pin;
+    registry.schemas[name] = schema;
+    registry.schema_cids[name] = pin;
     const {registry_cid: _previous, ...body} = registry;
     registry.registry_cid = machineCid(body);
-    // Keep the existing HTTP binding byte-for-byte. Select the Native body
-    // explicitly by its version; an unknown implementation has no fallback.
+    // Keep existing bindings byte-for-byte. Select this implementation by its
+    // declared version; an unknown implementation has no fallback.
     lookup.external_contracts['checked-read-profile'].implementations = {
       ...lookup.external_contracts['checked-read-profile'].implementations,
-      'actql-native-file-content-read/0.1': binding,
+      [version]: binding,
     };
     writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n');
     writeFileSync(lookupPath, JSON.stringify(lookup, null, 2) + '\n');
@@ -51,7 +60,7 @@ export function verifyNativeFileReadProfile(write = false) {
     const family = JSON.parse(readFileSync(familyPath, 'utf8'));
     const owner = family.documents.find(item => item.document_id === 'artifacts');
     assert.ok(owner);
-    const pointer = '/schemas/native_file_content_read';
+    const pointer = `/schemas/${name}`;
     let reference = owner.machine_contracts.find(item =>
       item.path === registryPath && item.pointer === pointer);
     const previousPin = reference?.cid;
@@ -60,7 +69,7 @@ export function verifyNativeFileReadProfile(write = false) {
       version: 'actql-production-profile-schema-registry/0.1'});
     let text = readFileSync(owner.path, 'utf8');
     const marker = `../../../${registryPath}#${pointer} ${pin}`;
-    text = text.replace('NATIVE_FILE_READ_PROFILE_MACHINE_PIN', marker);
+    text = text.replace(`${implementation.toUpperCase()}_FILE_READ_PROFILE_MACHINE_PIN`, marker);
     if (previousPin) text = text.replace(
       `../../../${registryPath}#${pointer} ${previousPin}`, marker);
     writeFileSync(owner.path, text);
@@ -89,15 +98,16 @@ export function verifyNativeFileReadProfile(write = false) {
     }
     writeFileSync(familyPath, JSON.stringify(family, null, 2) + '\n');
   }
-  assert.deepEqual(registry.schemas.native_file_content_read, schema);
-  assert.equal(registry.schema_cids.native_file_content_read, pin);
+  assert.deepEqual(registry.schemas[name], schema);
+  assert.equal(registry.schema_cids[name], pin);
   const {registry_cid: registryCid, ...body} = registry;
   assert.equal(registryCid, machineCid(body));
   assert.deepEqual(lookup.external_contracts['checked-read-profile']
-    .implementations?.['actql-native-file-content-read/0.1'], binding);
+    .implementations?.[version], binding);
   return {schema, cid: pin};
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(JSON.stringify({native_file_read_profile:
-    verifyNativeFileReadProfile(process.argv.includes('--write')).cid}));
+    verifyNativeFileReadProfile(process.argv.includes('--write')).cid,
+    declared_file_read_profile: verifyDeclaredFileReadProfile(process.argv.includes('--write')).cid}));
 }

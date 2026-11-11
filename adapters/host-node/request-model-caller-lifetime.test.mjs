@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {types} from 'node:util';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
@@ -587,7 +588,7 @@ const graphMethodStart = managerSource.indexOf('    prepareModelGraph(');
 const graphMethodEnd = managerSource.indexOf('    prepareModelCompilation(', graphMethodStart);
 assert(graphMethodStart >= 0 && graphMethodEnd > graphMethodStart);
 function requestGraphFixture({serialized = true, missingPort = false, replaceAfter = false, refuse,
-  effectful = false, foreignEffectBorrow = false} = {}) {
+  effectful = false, foreignEffectBorrow = false, fileReadDeclarations, failFile = false} = {}) {
   const prepared = {}, request = {}, parent = {}, input = {}, holder = {}, occurrence = {}, execution = {};
   const component = serialized ? {} : undefined, graph = {}, admission = {}, calls = [];
   const state = {prepared, parent, holder, contentGraph: component,
@@ -610,6 +611,15 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
       assert.deepEqual(args, [parent, input, occurrence, execution, admission]);
       calls.push('original Model'); return {value: graph};
     },
+    clientProgramPrepareRequestDeclaredFileModelGraph(...args) {
+      assert.equal(this, moon); assert.equal(serialized, false); assert.equal(effectful, true);
+      assert.deepEqual(args.slice(0, 5), [parent, input, occurrence, execution, admission]);
+      assert.equal(args[5], fileReadDeclarations);
+      assert.equal(state.preparing, true);
+      calls.push('same original file declarations');
+      if (failFile) throw refuse;
+      return {value: graph};
+    },
     clientProgramPrepareRequestSerializedModelGraph(...args) {
       assert.equal(this, moon); assert.equal(serialized, true);
       assert.deepEqual(args, [parent, input, occurrence, component, execution, admission]);
@@ -624,14 +634,14 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
   if (missingPort) delete moon.clientProgramPrepareRequestSerializedModelGraph;
   state.context = {runtime: moon};
   const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
-  object = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation',
+  object = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
     () => {if (replaceAfter && state.modelGraph !== undefined) state.contentGraph = {};},
     value => {assert.equal(value, request); return producer;}, fail, originals,
-    (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;});
+    (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;}, types);
   const constructSerialized = missingPort ? undefined : (...args) =>
     Reflect.apply(moon.clientProgramPrepareRequestSerializedModelGraph, moon, args);
-  return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component, constructSerialized),
+  return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component, constructSerialized, fileReadDeclarations),
     foreign: () => object.prepareModelGraph(prepared, request, occurrence, execution, {}, constructSerialized)};
 }
 
@@ -1579,4 +1589,37 @@ test('multiple Model custody keeps the same original handler and dispatch borrow
   registry.finishHandler(request); assert.equal(holders.size, 0);
   dispatch.retire(); assert.equal(retired, 1);
   assert.throws(() => submission.preparedProgram, /Retired/);
+});
+
+
+test('declared-file Model Graph forwards the same installed declaration inventory without an Option ABI wrapper', () => {
+  const declarations = Object.freeze([Object.freeze({originalDeclaration: true})]);
+  const f = requestGraphFixture({serialized: false, effectful: true, fileReadDeclarations: declarations});
+  assert.equal(f.invoke(), f.graph);
+  assert.equal(f.state.modelGraph, f.graph);
+  assert.equal(f.state.preparing, false);
+  assert.deepEqual(f.calls, ['same original file declarations']);
+});
+
+test('declared-file Model Graph refuses mutable or proxy declaration inventories before any typed constructor', () => {
+  for (const declarations of [[], new Proxy(Object.freeze([]), {})]) {
+    const f = requestGraphFixture({serialized: false, effectful: true, fileReadDeclarations: declarations});
+    assert.throws(f.invoke, {code: 'ForeignInstalledSourceProducer'});
+    assert.deepEqual(f.calls, []);
+    assert.equal(f.state.modelGraph, undefined);
+  }
+});
+
+test('declared-file Model Graph keeps thrown undefined as its original sticky construction failure', () => {
+  const declarations = Object.freeze([{}]);
+  const f = requestGraphFixture({serialized: false, effectful: true,
+    fileReadDeclarations: declarations, failFile: true, refuse: undefined});
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let caught = false;
+    try { f.invoke(); } catch (cause) {caught = true;assert.equal(cause, undefined);}
+    assert.equal(caught, true);
+  }
+  assert.equal(f.state.preparationFailed, true);
+  assert.equal(f.state.modelGraph, undefined);
+  assert.deepEqual(f.calls, ['same original file declarations']);
 });

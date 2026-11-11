@@ -1318,7 +1318,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         return state.modelProviderBinding;
       });
     },
-    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph, constructSerialized) {
+    prepareModelGraph(prepared, request, occurrence, execution, serializationGraph, constructSerialized, fileReadDeclarations) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
@@ -1334,7 +1334,13 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
         fail('ForeignInstalledSourceProducer');
       }
-      const construct = serializationGraph === undefined ? moon.clientProgramPrepareRequestModelGraph
+      if (fileReadDeclarations !== undefined && (!Array.isArray(fileReadDeclarations) ||
+          types.isProxy(fileReadDeclarations) || !Object.isFrozen(fileReadDeclarations))) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const construct = serializationGraph === undefined
+        ? fileReadDeclarations === undefined ? moon.clientProgramPrepareRequestModelGraph
+          : moon.clientProgramPrepareRequestDeclaredFileModelGraph
         : moon.clientProgramPrepareRequestSerializedModelGraph;
       const issue = moon.clientProgramRequestProgramModuleIssueCode;
       if (typeof construct !== 'function' || typeof issue !== 'function' ||
@@ -1342,7 +1348,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       return constructRequestDomain(state, () => {
         const result = serializationGraph === undefined
           ? Reflect.apply(construct, moon,
-            [state.parent, producer.receipt, occurrence, execution, contracts.admission])
+            fileReadDeclarations === undefined
+              ? [state.parent, producer.receipt, occurrence, execution, contracts.admission]
+              : [state.parent, producer.receipt, occurrence, execution, contracts.admission, fileReadDeclarations])
           : constructSerialized(state.parent, producer.receipt, occurrence,
             serializationGraph, execution, contracts.admission);
         state.modelGraph = checkedRequestProgramPreparation(moon, result, issue);

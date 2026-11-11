@@ -2,7 +2,7 @@
 fn is_lookup_effect_dependency_kind(kind : String) -> Bool {
   [
     "lookup_evidence", "lookup_accounting", "acquisition_attempt_receipt", "lookup_barrier",
-    "native_file_content_read", "native_file_lookup_transport", "native_file_lookup_batch_plan",
+    "native_file_content_read", "declared_file_content_read", "native_file_lookup_transport", "native_file_lookup_batch_plan",
     "native_file_lookup_request", "native_file_lookup_call_slot", "native_file_lookup_activation",
     "native_file_lookup_raw_response", "native_file_lookup_attempt_event", "native_file_lookup_adoption",
   ].contains(kind)
@@ -59,7 +59,7 @@ fn admit_lookup_effect_dependency_body(
         ("effective_response_data_policy_cid", "data_policy"),
         ("effective_output_data_policy_cid", "data_policy"),
       ]
-    "native_file_content_read" =>
+    "native_file_content_read" | "declared_file_content_read" =>
       [
         ("source_view_contract_cid", "source_view_contract"),
         ("physical_source_view_contract_cid", "source_view_contract"),
@@ -69,7 +69,7 @@ fn admit_lookup_effect_dependency_body(
     "native_file_lookup_transport" =>
       [
         ("source_view_contract_cid", "source_view_contract"),
-        ("adapter_contract_cid", "native_file_content_read"),
+        ("adapter_contract_cid", "read_execution_profile"),
         ("request_schema_cid", "request_schema"),
         ("response_schema_cid", "carrier_schema"),
       ]

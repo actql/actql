@@ -25,7 +25,8 @@
     "control_token_contract": "sha256:9598f3a03a80d05513d05a5d57e6860b4cc7c82d3867c4e520825288eb084a5f",
     "control_token": "sha256:2a388b541a648dab8799ed93530d5a0b7fcca2c0cf84db69d18b5dca60bc9f3b",
     "inference_barrier": "sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd",
-    "native_file_content_read": "sha256:087884120840e8d5c74043dfd74af35ccb7b535d9a9e8c01d68a45f9afb76e08"
+    "native_file_content_read": "sha256:087884120840e8d5c74043dfd74af35ccb7b535d9a9e8c01d68a45f9afb76e08",
+    "declared_file_content_read": "sha256:3385e23c7a3046cffb522dea96c81722d3dba3ae688d9007b49e317386da7d0c"
   },
   "schemas": {
     "lookup_source": {
@@ -7476,7 +7477,108 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
+    },
+    "declared_file_content_read": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-declared-file-content-read-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "source_view_contract_cid",
+        "physical_source_view_contract_cid",
+        "request_schema_cid",
+        "response_schema_cid",
+        "projection",
+        "transport_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-declared-file-content-read/0.1"
+        },
+        "source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "physical_source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "projection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "identity_field",
+            "name_field",
+            "version_field",
+            "media_type_field",
+            "content_utf8_field",
+            "path_field",
+            "items_path",
+            "key_path"
+          ],
+          "properties": {
+            "identity_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "media_type_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content_utf8_field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path_field": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "items_path": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "key_path": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "transport_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
     }
   },
-  "registry_cid": "sha256:8214d513814201d771b8a9f945f0eef3ab40e8d2190f5ce7cdb4757911209674"
+  "registry_cid": "sha256:a2a36ed8b80fe14d535b2624426a8f032cedd3efd93ba5a334f74a92a4f8ad7b"
 }

@@ -85,7 +85,7 @@ pub fn prepare_client_keyed_native_captured_page(
     @values.timestamp_epoch_milliseconds(captured_at) is Some(captured_epoch) &&
     recorded_epoch >= captured_epoch &&
     state.native_read_profile is Some(profile) &&
-    @publication.native_file_read_profile_contract_bindings(profile)
+    @publication.file_read_profile_contract_bindings(profile)
     is Some((_, _, response_schema)) &&
     state.left.composed is Some(original) &&
     original.plan.keyed is Some(component) &&

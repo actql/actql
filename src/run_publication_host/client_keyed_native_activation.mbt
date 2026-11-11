@@ -98,7 +98,7 @@ pub fn prepare_client_keyed_native_activation(
     prepared_client_effect_request_scope(prepared, client_request) is Ok(_) &&
     physical_equal(original.keyed, state.left.acquisition) &&
     physical_equal(component.original.fragments.acquisition, original.keyed) &&
-    @publication.native_file_read_profile_contract_bindings(profile)
+    @publication.file_read_profile_contract_bindings(profile)
     is Some((source, schema, _)) &&
     @values.timestamp_epoch_milliseconds(recorded_at) is Some(epoch) else {
     return Err(Assembly("foreign_or_unavailable_native_activation"))

@@ -53,5 +53,6 @@ pub fn project_row_declaration(
     view_bodies: view_bodies.copy(),
     manifest_entry,
     manifest_entry_cid,
+    file_read_profiles: None,
   })
 }

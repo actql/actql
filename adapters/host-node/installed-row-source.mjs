@@ -2519,82 +2519,101 @@ export async function createInstalledRowSource({moon, declaration, commands,
     };
     const recovery = Object.freeze({close: stop, cleanup, cleanupPending: () => !closed});
     try {
-      for (let row = 0; row < rows; row++) {
-        signal?.throwIfAborted();
-        preparation = checked(moon.clientProgramKeyedLookupRequestStart(lookup, row));
-        let request;
-        while (request === undefined) {
+      const publicationInput = preparedEffect !== undefined;
+      const publicationDepth = (managedPageLimits ?? pageLimits)?.maxDepth ?? 32;
+      if (publicationInput) checked(moon.clientProgramKeyedLookupRequestPlanStart(lookup));
+      // Prepare each original request once, then dispatch those SAME originals.
+      // No response or Model read can precede the closed typed key inventory.
+      for (let phase = 0; phase < (publicationInput ? 2 : 1); phase++) {
+        for (let row = 0; row < rows; row++) {
           signal?.throwIfAborted();
-          for (let poll = 0; poll < quantum; poll++) {
-            let compilerTuple1 = moon.clientProgramKeyedLookupRequestAdvance(lookup, preparation);
-            const status = runtimeField(compilerTuple1, 0), value = runtimeField(compilerTuple1, 2), issue = runtimeField(compilerTuple1, 3);
-            compilerTuple1 = undefined;
-            if (status === 2) fail('InstalledKeyedRequestFailed', issue);
-            if (status === 1) { request = value; break; }
-          }
-          if (request === undefined) await yieldEventLoop();
-        }
-        preparation = undefined;
-        const index = checked(moon.clientProgramKeyedLookupFind(lookup, request));
-        if (index >= 0) {
-          await children[index].verifyRead();
-          signal?.throwIfAborted();
-          checked(moon.clientProgramKeyedLookupReuse(lookup, request, index));
-          continue;
-        }
-        let acquired;
-        try {
-          acquired = await openKeyed({preparedProgram, preparedEffect,
-            keyedContent, managedRun,
-            keyedAcquisition, request, ledger, signal, preparedKeyed, sourceAccess: access,
-            capturedResourcePath: async (verifyRead, activeSignal) => {
-              let locator;
-              if (originalCaptures !== undefined) {
-                if (!Array.isArray(originalCaptures) || originalCaptures.length !== 2) fail('InstalledFileLocatorUnavailable');
-                locator = checked(moon.clientProgramComposedKeyedFileLocatorStart(lookup, request,
-                  originalCaptures.map(capture => capture.source()),
-                  originalCaptures.map(capture => capture.originalRead?.())));
-              } else {
-                if (typeof originalCapture?.originalRead !== 'function') fail('InstalledFileLocatorUnavailable');
-                const read = originalCapture.originalRead();
-                if (read === undefined) fail('InstalledFileLocatorUnavailable');
-                locator = checked(moon.clientProgramKeyedFileLocatorStart(lookup, request,
-                  originalCapture.source(), read));
+          let request;
+          if (publicationInput && phase === 1) {
+            request = checked(moon.clientProgramKeyedLookupPlannedRequest(lookup, row));
+          } else {
+            preparation = checked(moon.clientProgramKeyedLookupRequestStart(lookup, row));
+            while (request === undefined) {
+              signal?.throwIfAborted();
+              for (let poll = 0; poll < quantum; poll++) {
+                let compilerTuple1 = moon.clientProgramKeyedLookupRequestAdvance(lookup, preparation);
+                const status = runtimeField(compilerTuple1, 0), value = runtimeField(compilerTuple1, 2), issue = runtimeField(compilerTuple1, 3);
+                compilerTuple1 = undefined;
+                if (status === 2) fail('InstalledKeyedRequestFailed', issue);
+                if (status === 1) { request = value; break; }
               }
-              try {
-                for (;;) {
-                  await verifyRead();
-                  activeSignal?.throwIfAborted();
-                  for (let poll = 0; poll < quantum; poll++) {
-                    const path = checked(moon.clientProgramKeyedFileLocatorAdvance(locator));
-                    if (path !== undefined) return path;
-                  }
-                  await yieldEventLoop();
+              if (request === undefined) await yieldEventLoop();
+            }
+            preparation = undefined;
+          }
+          if (publicationInput && phase === 0) {
+            checked(moon.clientProgramKeyedLookupRequestPlanRetain(lookup, request));
+            continue;
+          }
+          const index = checked(moon.clientProgramKeyedLookupFind(lookup, request));
+          if (index >= 0) {
+            await children[index].verifyRead();
+            signal?.throwIfAborted();
+            checked(moon.clientProgramKeyedLookupReuse(lookup, request, index));
+            continue;
+          }
+          let acquired;
+          try {
+            acquired = await openKeyed({preparedProgram, preparedEffect,
+              keyedContent, managedRun,
+              keyedAcquisition, request, ledger, signal, preparedKeyed, sourceAccess: access,
+              capturedResourcePath: async (verifyRead, activeSignal) => {
+                let locator;
+                if (originalCaptures !== undefined) {
+                  if (!Array.isArray(originalCaptures) || originalCaptures.length !== 2) fail('InstalledFileLocatorUnavailable');
+                  locator = checked(moon.clientProgramComposedKeyedFileLocatorStart(lookup, request,
+                    originalCaptures.map(capture => capture.source()),
+                    originalCaptures.map(capture => capture.originalRead?.())));
+                } else {
+                  if (typeof originalCapture?.originalRead !== 'function') fail('InstalledFileLocatorUnavailable');
+                  const read = originalCapture.originalRead();
+                  if (read === undefined) fail('InstalledFileLocatorUnavailable');
+                  locator = checked(moon.clientProgramKeyedFileLocatorStart(lookup, request,
+                    originalCapture.source(), read));
                 }
-              } finally {
-                moon.clientProgramKeyedFileLocatorCancel(locator);
-              }
-            },
-            chargeVerification: bytes => checked(
-              moon.clientProgramKeyedLookupChargeVerification(lookup, request, bytes))});
-          ioStarted = true;
-        } catch (error) {
-          const end = acquisitionOutcome(error);
-          if (end.outcome !== 'not_started') ioStarted = true;
-          if (end.outcome === 'unknown') {
-            pendingRecovery = end.recovery;
-            unownedUncertainty = end.recovery === undefined;
+                try {
+                  for (;;) {
+                    await verifyRead();
+                    activeSignal?.throwIfAborted();
+                    for (let poll = 0; poll < quantum; poll++) {
+                      const path = checked(moon.clientProgramKeyedFileLocatorAdvance(locator));
+                      if (path !== undefined) return path;
+                    }
+                    await yieldEventLoop();
+                  }
+                } finally {
+                  moon.clientProgramKeyedFileLocatorCancel(locator);
+                }
+              },
+              chargeVerification: bytes => checked(
+                moon.clientProgramKeyedLookupChargeVerification(lookup, request, bytes))});
+            ioStarted = true;
+          } catch (error) {
+            const end = acquisitionOutcome(error);
+            if (end.outcome !== 'not_started') ioStarted = true;
+            if (end.outcome === 'unknown') {
+              pendingRecovery = end.recovery;
+              unownedUncertainty = end.recovery === undefined;
+            }
+            throw error;
           }
-          throw error;
+          // Preserve the physical close handle before copying can fail.
+          children.push(acquired);
+          acquired.acceptLookup(lookup);
+          while (!checked(moon.clientProgramKeyedLookupAdvance(lookup, quantum))) {
+            signal?.throwIfAborted();
+            await acquired.verifyRead();
+            signal?.throwIfAborted();
+            await yieldEventLoop();
+          }
         }
-        // Preserve the physical close handle before copying can fail.
-        children.push(acquired);
-        acquired.acceptLookup(lookup);
-        while (!checked(moon.clientProgramKeyedLookupAdvance(lookup, quantum))) {
-          signal?.throwIfAborted();
-          await acquired.verifyRead();
-          signal?.throwIfAborted();
-          await yieldEventLoop();
+        if (publicationInput && phase === 0) {
+          checked(moon.clientProgramKeyedLookupRequestPlanFinish(lookup,
+            limits.maxPageBytes, maxWork, publicationDepth));
         }
       }
       for (const child of children) {
@@ -2602,7 +2621,10 @@ export async function createInstalledRowSource({moon, declaration, commands,
         signal?.throwIfAborted();
       }
       signal?.throwIfAborted();
-      const read = checked(moon.clientProgramKeyedLookupRead(lookup));
+      const read = checked(publicationInput
+        ? moon.clientProgramKeyedLookupPublicationInput(lookup,
+          limits.maxPageBytes, maxWork, publicationDepth)
+        : moon.clientProgramKeyedLookupRead(lookup));
       return Object.freeze({capture: Object.freeze({
         read: () => closed ? fail('InstalledSourceClosed')
           : checked(moon.clientProgramKeyedLookupRead(lookup)),

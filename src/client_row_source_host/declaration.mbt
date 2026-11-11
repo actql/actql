@@ -42,6 +42,7 @@ pub struct RowDeclaration {
   view_bodies : Array[String]
   manifest_entry : String
   manifest_entry_cid : String
+  priv file_read_profiles : Array[DeclaredFileReadProfile]?
 }
 
 ///|
@@ -547,6 +548,7 @@ fn generate_row_declaration_impl(
       view_bodies: members.map(entry_ => canonical_text(entry_.1, limits)),
       manifest_entry: canonical_text(entry, limits),
       manifest_entry_cid: canonical_cid(entry, limits),
+      file_read_profiles: None,
     })
   } catch {
     _ => Err(OutputLimit)
@@ -598,10 +600,18 @@ pub fn row_declaration_evidence_members(
     @encode.begin_object(capability)
     @encode.key(capability, "capability_contract_cids")
     @encode.begin_array(capability)
-    @encode.string_value(
-      capability,
-      @planning.query_evidence_contract_identity(),
-    )
+    let query = @planning.query_evidence_contract_identity()
+    let profile = row_declaration_file_read_profile(
+      declaration,
+      view.source_ref,
+    ).map(@publication.publication_contract_identity)
+    if profile is Some(cid) && cid < query {
+      @encode.string_value(capability, cid)
+    }
+    @encode.string_value(capability, query)
+    if profile is Some(cid) && cid > query {
+      @encode.string_value(capability, cid)
+    }
     @encode.end_array(capability)
     for
       (key, value) in [

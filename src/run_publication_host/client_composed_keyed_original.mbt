@@ -351,7 +351,7 @@ fn client_composed_keyed_source_coordinates(
 }
 
 ///|
-/// Immutable source identity for selecting an already-installed Native reader
+/// Immutable source identity for selecting an already-installed file reader
 /// before the Request constructs its checked acquisition/Plan holders.
 pub fn client_infer_occurrence_keyed_source_identity(
   occurrence : ClientInferOccurrence,

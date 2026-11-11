@@ -73,6 +73,7 @@ fn original_composed_keyed_consumer(
   keyed_body_stop? : Bool = false,
   direct_effect_evidence? : Bool = false,
   pre_dispatch_plan? : Bool = false,
+  request_metadata_policy? : Int = 16384,
   native_transport? : Bool = false,
   native_activation? : Bool = false,
   activation_reentry? : Bool = false,
@@ -1369,10 +1370,32 @@ fn original_composed_keyed_consumer(
     @publication_host.retain_client_keyed_lookup_planned_request(
       lookup, request,
     ).unwrap()
+    let before_metadata = @resources.ledger_usage(ledger)
     @publication_host.finish_client_keyed_lookup_request_plan(
-      lookup, 16384, 1024, 20,
+      lookup, request_metadata_policy, 1024, 20,
     ).unwrap()
     |> ignore
+    if request_metadata_policy > 16384 {
+      // This fixture has one actual retained Request. A larger accepted wire
+      // policy must not reserve that ceiling for its tiny key-set/static body.
+      // Both domains still include the real writer/parser/control overlap.
+      let after_metadata = @resources.ledger_usage(ledger)
+      assert_true(
+        after_metadata.reserved_retention_bytes -
+        before_metadata.reserved_retention_bytes <
+        1000000L,
+      )
+      assert_true(
+        after_metadata.reserved_execution_bytes -
+        before_metadata.reserved_execution_bytes <
+        1000000L,
+      )
+      assert_eq(after_metadata.attempts, before_metadata.attempts)
+      assert_eq(
+        after_metadata.transferred_bytes,
+        before_metadata.transferred_bytes,
+      )
+    }
     if native_activation {
       @publication_host.prepare_client_keyed_native_batch_plan(
         lookup, 16384, 1024, 20,
@@ -3036,6 +3059,16 @@ test "actual two Whole Sources prepare one canonical keyed publication input bef
     whole=true,
     publication_identity=true,
     publication_early=true,
+  )
+}
+
+///|
+test "canonical predispatch metadata funds retained Request bytes instead of the wire policy ceiling" {
+  original_composed_keyed_consumer(
+    whole=true,
+    publication_identity=true,
+    pre_dispatch_plan=true,
+    request_metadata_policy=16777216,
   )
 }
 
