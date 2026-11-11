@@ -347,8 +347,11 @@ export function requireNativeJournalCapacityRefusal(record) {
   const envelope = nativeLauncherEnvelope(record.stderr, 'required');
   const lines = envelope.native.trimEnd().split('\n');
   const diagnostics = lines.filter(line => line.startsWith('ACTQL_NATIVE_'));
-  assert.deepEqual(lines.filter(line => !line.startsWith('ACTQL_NATIVE_')),
-    ['actql-native-client: LocalSubmissionAcceptanceUnavailable']);
+  const publicLines = lines.filter(line => !line.startsWith('ACTQL_NATIVE_'));
+  assert.equal(publicLines.length, 1);
+  // Fresh submissions keep the CLI's original reconciliation IDs and warning;
+  // these are correlation data, not permission to retry or absence evidence.
+  assert.match(publicLines[0], /^actql-native-client: LocalSubmissionAcceptanceUnavailable originalSubmissionRequestId=sha256:[0-9a-f]{64} originalOperationAttemptId=cli-[0-9a-f]{64} \(reconcile with lookup-request; do not resend this operation\)$/u);
   const groups = nativeMockAcceptanceObservations(diagnostics.join('\n') + '\n');
   assert.equal(groups.length, 1); assert.equal(groups[0].events.length, 0);
   const values = prefix => diagnostics.filter(line => line.startsWith(prefix))
