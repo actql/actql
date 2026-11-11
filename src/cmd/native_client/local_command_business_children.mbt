@@ -443,7 +443,8 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(_) => business.active = false
     }
   }
-  if business.values_work is Some(_) || business.values_failure is Some(_) {
+  if business.values_work is Some(_) || business.values_failure is Some(_) ||
+    business.file_work is Some(_) || business.file_failure is Some(_) {
     guard self.host is Some(host) &&
       business.execution is Some(execution) &&
       business.operation is Some(_) &&
@@ -454,6 +455,14 @@ fn LocalCommandPreparationOriginal::close_business_children(
     match business.enter_children_cleanup(host) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
+    }
+    if business.file_work is Some(work) {
+      if !work.close() { return Err(CommandBusinessChildren) }
+      business.file_work = None
+    }
+    if business.file_failure is Some(failure) {
+      if !failure.close() { return Err(CommandBusinessChildren) }
+      business.file_failure = None
     }
     if business.values_work is Some(work) {
       if !work.close() {
@@ -499,6 +508,9 @@ fn LocalCommandPreparationOriginal::close_business_children(
         Ok(_) => business.request_body = None
       }
     }
+    // Source preparation DATA is retained by this same caller only until its
+    // logical children finish. Do not root it through physical C retirement.
+    business.file_capacity = None
     // Logical cleanup intentionally stays pending until this SAME Native
     // initializer has observed its separate physical retirement and report.
     // The Native close below still refuses any outstanding live reservation.
@@ -528,4 +540,64 @@ fn LocalCommandPreparationOriginal::close_business_children(
     }
   }
   self.close_business_store_roots()
+}
+
+///|
+// Prepare in the existing Read; retain the exact outcome before scope entry.
+fn LocalCommandBusinessPreparation::prepare_file_work_entry(
+  self : Self,
+  prepared : @run_host.PreparedClientProgram,
+  compiled : @run_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  request : @run_host.ClientRequestIdentity,
+) -> @local_host.NativeClientRelationFileWorkEntry raise ClientStop {
+  guard self.original.business is Some(business) &&
+    business.operation is Some(operation) &&
+    business.request_run is Some(managed) &&
+    business.file_capacity is Some(capacity) &&
+    self.file_source is Some((declaration, row)) &&
+    business.file_entry is None && business.file_failure is None else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  let outcome = self.host.prepare_original_whole_relation_file_work_entry(
+    operation, self.principal, self.connection, request, prepared, compiled,
+    definition, declaration._retained_declaration, managed, capacity,
+    row.provider, row._retained_selection, row.limits,
+  ).unwrap_or_else(() => stop("LocalSourceWorkEntryUnavailable"))
+  match outcome {
+    Ok(entry) => {
+      business.file_entry = Some(entry)
+      entry
+    }
+    Err(failure) => {
+      business.file_failure = Some(failure)
+      // A never-entered partial entry owns only Read-side construction.
+      // Failure is retained if its original cancellation cannot finish here.
+      if failure.close() { business.file_failure = None }
+      stop("LocalSourceWorkEntryUnavailable")
+    }
+  }
+}
+
+///|
+fn LocalCommandBusinessPreparation::open_file_work(
+  self : Self,
+  entry : @local_host.NativeClientRelationFileWorkEntry,
+  occurrence : String,
+) -> @local_host.NativeClientRelationFileWork raise ClientStop {
+  guard self.original.business is Some(business) &&
+    business.operation is Some(operation) &&
+    business.file_entry is Some(original) && physical_equal(original, entry) &&
+    business.file_work is None && business.file_failure is None else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
+  match self.host.open_original_whole_relation_file_source_work(
+    operation, entry, occurrence, 16, 100000, local_utc_now,
+  ) {
+    Ok(work) => { business.file_work = Some(work); work }
+    Err(failure) => {
+      business.file_failure = Some(failure)
+      stop("LocalOriginalSourceWorkUnavailable")
+    }
+  }
 }

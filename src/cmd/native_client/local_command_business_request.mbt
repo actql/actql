@@ -249,19 +249,53 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
         stop("LocalCompilerLimitsUnavailable")
       },
     )
-    @local_values.prepare_request_program_module_body(
-      parent,
-      input,
-      self.installed_contracts,
-      manifests=native_request_manifests,
-      compilation_limits=limits,
-      retained_output=false,
-      provider_factory=native_request_provider_factory,
-    ).unwrap_or_else(() => stop("LocalModulePreparationUnavailable"))
-    let run = @local_values.begin_request_program_managed_run(parent, request).unwrap_or_else(() => {
-        stop("LocalRequestRunUnavailable")
-      },
-    )
+    let run = match self.file_source {
+      Some((declaration, row)) => {
+        guard @local_host.native_client_submitted_preparation(self.preparation)
+          is Computation(prepared) &&
+          business.file_capacity is None else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        let capacity = prepare_local_native_whole_file_request_module(
+          parent,
+          input,
+          prepared,
+          request,
+          declaration._retained_declaration,
+          row,
+          self.installed_contracts,
+          self.assets,
+        )
+        business.file_capacity = Some(capacity)
+        if business.request_body is Some(holder) {
+          @local_host.return_native_client_submitted_request_body(holder).unwrap_or_else(() => {
+              stop("LocalRequestBodyReturnPending")
+            },
+          )
+          |> ignore
+          business.request_body = None
+        }
+        @local_values.begin_request_capture_managed_run(parent, request).unwrap_or_else(() => {
+            stop("LocalRequestRunUnavailable")
+          },
+        )
+      }
+      None => {
+        @local_values.prepare_request_program_module_body(
+          parent,
+          input,
+          self.installed_contracts,
+          manifests=native_request_manifests,
+          compilation_limits=limits,
+          retained_output=false,
+          provider_factory=native_request_provider_factory,
+        ).unwrap_or_else(() => stop("LocalModulePreparationUnavailable"))
+        @local_values.begin_request_program_managed_run(parent, request).unwrap_or_else(() => {
+            stop("LocalRequestRunUnavailable")
+          },
+        )
+      }
+    }
     // Retain the original Run before any scope/current return can fail.
     business.request_run = Some(run)
     business.request_parent = None
@@ -387,4 +421,68 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
     }
     first
   })
+}
+
+///|
+// Consume the SAME precompiled Request and nominal identity. Route selection
+// precedes its real constructor; a Query refusal can never become Whole.
+// Original provider/Plan/module construction must remain on this same backed
+// input. No second check/compiler, default limits, Node admission or Root exists.
+fn[I] prepare_local_native_whole_file_request_module(
+  parent : @local_values.ClientRequestPreparation[I],
+  input : I,
+  prepared : @run_host.PreparedClientProgram,
+  request : @run_host.ClientRequestIdentity,
+  declaration : @row_host.RowDeclaration,
+  row : LocalProjectMockRowBinding,
+  contracts : @local_values.ClientInstalledSequenceContracts,
+  assets : @run_host.ClientLocalProductAssets,
+) -> @local_values.ClientInstalledWholeSourceCapacity raise ClientStop {
+  let route = @local_values.select_installed_source_input(
+    prepared, request, 0, 0,
+  ).unwrap_or_else(() => stop("LocalSourceInputSelectionUnavailable"))
+  guard route is @sourceviews.WholeInputRoute(source) else {
+    stop("LocalSourceExecutionProfileNotSupported")
+  }
+  let page = row.limits.page
+  let capacity = @local_values.prepare_installed_whole_source_capacity(
+    prepared,
+    source,
+    declaration,
+    contracts,
+    @local_values.installed_row_input_policy(
+      page.max_rows,
+      page.max_bytes,
+      page.max_nodes,
+      page.max_depth,
+      page.max_rows,
+    ),
+    Some(row.provider.capacity()),
+  ).unwrap_or_else(() => stop("LocalSourceCapacityUnavailable"))
+  let plan = @local_values.prepare_installed_managed_whole_source_plan(
+    prepared,
+    request,
+    capacity,
+    page.max_bytes.to_int64(),
+    page.max_bytes.to_int64(),
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    retained_output=false,
+    provider_factory=native_request_provider_factory,
+  ).unwrap_or_else(() => stop("LocalSourcePlanUnavailable"))
+  let limits = @local_values.request_program_compilation_limits(parent, input).unwrap_or_else(() => {
+      stop("LocalCompilerLimitsUnavailable")
+    },
+  )
+  @local_values.prepare_request_capture_module_body(
+    parent,
+    input,
+    plan,
+    manifests=native_request_manifests,
+    compilation_limits=limits,
+    provider_factory=native_request_provider_factory,
+  ).unwrap_or_else(() => stop("LocalModulePreparationUnavailable"))
+  capacity
 }

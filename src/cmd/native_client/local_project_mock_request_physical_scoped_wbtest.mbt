@@ -1708,43 +1708,20 @@ fn native_pure_file_capture_plan(
     retained_output=false,
     provider_factory=native_request_provider_factory,
   ).native_file_route_value("compile original Source Program once")
-  let page = row.limits.page
-  let capacity = @local_values.prepare_installed_whole_source_capacity(
-    prepared,
-    source,
-    selected._retained_declaration,
-    contracts,
-    @local_values.installed_row_input_policy(
-      page.max_rows,
-      page.max_bytes,
-      page.max_nodes,
-      page.max_depth,
-      page.max_rows,
-    ),
-    Some(row.provider.capacity()),
-  ).native_file_route_value("retain actual complete Source capacity")
-  let transport = page.max_bytes.to_int64()
-  let plan = @local_values.prepare_installed_managed_whole_source_plan(
-    prepared,
-    request,
-    capacity,
-    transport,
-    transport,
-    contracts,
-    assets.values,
-    Some(assets.fragment),
-    assets.ordered,
-    retained_output=false,
-    provider_factory=native_request_provider_factory,
-  ).native_file_route_value("construct SAME Whole Plan")
-  @local_values.prepare_request_capture_module_body(
+  let transport = row.limits.page.max_bytes.to_int64()
+  // Exercise the actual CLI module constructor, preserving its SAME original
+  // parent/input/assets and the already compiled artifact above. This remains
+  // a physical Request component, not Journal/Source IO/normal acceptance.
+  let capacity = prepare_local_native_whole_file_request_module(
     facility.parent,
     facility.input,
-    plan,
-    manifests=native_request_manifests,
-    compilation_limits=limits,
-    provider_factory=native_request_provider_factory,
-  ).native_file_route_value("construct original captured module")
+    prepared,
+    request,
+    selected._retained_declaration,
+    row,
+    contracts,
+    assets,
+  )
   (capacity, selected._retained_declaration, transport, artifact)
 }
 

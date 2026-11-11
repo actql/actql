@@ -144,6 +144,25 @@ fn local_execute_original_publish_values(
     }
   }
   business.publication_pending = Some(pending)
+  local_commit_original_publication(
+    selection, settings, request, reference, business, operation, publisher,
+    pending, evidence_entries,
+  )
+}
+
+///|
+// The same original Journal/Store/Saved continuation for each selected Work.
+fn local_commit_original_publication(
+  selection : LocalCommandBusinessPreparation,
+  settings : LocalHostSettings,
+  request : @run_host.ClientRequestIdentity,
+  reference : @local_host.NativeClientSubmissionReference,
+  business : LocalCommandBusinessOriginal,
+  operation : @local_host.NativeLocalStoreOperation,
+  publisher : @local_host.NativeLocalPublisherBinding,
+  pending : @local_publication.NativePreparedCapturedRunPublication,
+  evidence_entries : Int,
+) -> String raise ClientStop {
   // The existing Journal fence owns the parent Read, while each Store method
   // owns its individual SQL exchange. No whole-publication Store flight.
   operation

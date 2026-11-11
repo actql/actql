@@ -41,6 +41,20 @@ fn LocalCommandBusinessOriginal::close_publication_children(
       }
     }
   }
+  if self.file_publication_failure is Some(CapturedPublication(PrepareCleanup(_, failures))) {
+    guard self.store is Some(store) && self.publication_results is Some(results) else {
+      return Err(CommandBusinessPublication)
+    }
+    for failure in failures {
+      if failure.result < 0 || failure.result >= results.length() {
+        return Err(CommandBusinessPublication)
+      }
+      match store.reclaim_payload(results[failure.result].material_generation_cid) {
+        Ok(_) => ()
+        Err(issue) => return Err(CommandBusinessStore(issue))
+      }
+    }
+  }
   // Only managed aliases retire here. Their actual Store/DB, Compute and
   // domain acknowledgements follow separately in the existing parent order.
   self.publication_pending = None
@@ -52,6 +66,7 @@ fn LocalCommandBusinessOriginal::close_publication_children(
   // past their domains after the original cancellation/reclamation or known
   // commit reply above. An unconfirmed commit never reaches this retirement.
   self.publication_failure = None
+  self.file_publication_failure = None
   self._retained_publication_commit_failure = None
   self._retained_publication_cleanup_failure = None
   self.publication_result = None

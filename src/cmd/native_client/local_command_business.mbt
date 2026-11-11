@@ -57,6 +57,11 @@ priv struct LocalCommandBusinessOriginal {
   ]?
   mut request_body : @local_host.NativeClientSubmittedRequestBody?
   mut request_run : @local_values.ClientInstalledManagedRun?
+  mut file_entry : @local_host.NativeClientRelationFileWorkEntry?
+  mut file_work : @local_host.NativeClientRelationFileWork?
+  mut file_failure : @local_host.NativeClientRelationFileWorkFailure?
+  mut file_publication_failure : @local_host.NativeClientSourcePublicationIssue?
+  mut file_capacity : @local_values.ClientInstalledWholeSourceCapacity?
   mut request_retiring : Bool
   mut operation : @local_host.NativeLocalStoreOperation?
   model_work : Array[@local_host.NativeClientMockModelWork]
@@ -395,6 +400,10 @@ fn LocalCommandPreparationOriginal::close_business_execution(
       Ok(_) => business.request_parent = None
     }
   }
+  if business.file_entry is Some(entry) {
+    if !entry.close_after_original_return() { return Err(CommandBusinessChildren) }
+    business.file_entry = None
+  }
   business.request_initial = None
   business.request_input = None
   business.request_intent = None
@@ -530,7 +539,15 @@ fn LocalCommandPreparationOriginal::close_business_operation(
     }
     match operation.close_checked() {
       Err(issue) => return Err(CommandStoreOperation(issue))
-      Ok(_) => business.operation = None
+      Ok(_) => {
+        business.operation = None
+        // Cut its same original metadata/payload aliases before the parent C
+        // return. A false result is still pending and is checked again only
+        // after actual execution and Request physical retirement below.
+        if business.file_entry is Some(entry) {
+          ignore(entry.close_after_original_return())
+        }
+      }
     }
   }
   Ok(())
