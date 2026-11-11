@@ -749,6 +749,34 @@ test('source-only evaluation tests have one early bounded CI owner', () => {
   }
 });
 
+test('three-Source packed approval publishes three distinct bound input names', async () => {
+  const {mockProjectFiles: original} = await import('./fixtures/hubspot-approval/mock-project.mjs');
+  const {mockProjectFiles: threeSource} = await import('./fixtures/hubspot-approval/three-source-mock-project.mjs');
+  const selection = {recordId: '9007199254740993', previousName: 'Before', nextName: 'After'};
+  const originalFiles = original(selection), selectedFiles = threeSource(selection);
+  const originalCatalog = JSON.parse(originalFiles['mock/catalog.json']);
+  const selectedCatalog = JSON.parse(selectedFiles['mock/catalog.json']);
+  const aliases = selectedCatalog.connections.hubspot.query_aliases;
+  assert.deepEqual(aliases, [
+    {name: 'hubspot.companies', resource: 'companies'},
+    {name: 'hubspot.companies_middle', resource: 'companies'},
+    {name: 'hubspot.companies_right', resource: 'companies'},
+  ]);
+  const program = readFileSync(new URL('./fixtures/hubspot-approval/three-source-update.aql', import.meta.url), 'utf8');
+  const relations = [...program.matchAll(/\b(?:FROM|JOIN)\s+(\S+)\s+AS\b/gu)].map(match => match[1]);
+  assert.deepEqual(relations, aliases.map(alias => alias.name));
+  assert.equal(new Set(relations).size, 3, 'SQL range aliases alone do not create separate published inputs');
+  // Only published-name DATA differs; all schema, backing data, write and
+  // approval policy, original identifiers and default fixture files remain.
+  selectedCatalog.connections.hubspot.query_aliases = originalCatalog.connections.hubspot.query_aliases;
+  assert.deepEqual(selectedCatalog, originalCatalog);
+  selectedFiles['mock/catalog.json'] = originalFiles['mock/catalog.json'];
+  assert.deepEqual(selectedFiles, originalFiles);
+  const runner = readFileSync(new URL('./test-packed-hubspot-source.mjs', import.meta.url), 'utf8');
+  assert(runner.includes("threeSourceMock && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'"));
+  assert(runner.includes("? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'"));
+});
+
 test('each Client group retains its acceptance commands exactly once', () => {
   const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     .scripts['check:distribution-client'].split(' && ');

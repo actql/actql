@@ -92,9 +92,11 @@ const inputs = [];
 for (const path of fixtureFiles) {
   // This is an independently authored consumer input, not a product overlay.
   // Every approval/Result/Saved/close helper remains the same original file.
-  const sourcePath = (wholeMock || threeSourceMock) && path === 'scripts/fixtures/hubspot-approval/update.aql'
-    ? threeSourceMock ? 'scripts/fixtures/hubspot-approval/three-source-update.aql'
-      : 'scripts/fixtures/hubspot-approval/whole-update.aql' : path;
+  const sourcePath = threeSourceMock && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'
+    ? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'
+    : (wholeMock || threeSourceMock) && path === 'scripts/fixtures/hubspot-approval/update.aql'
+      ? threeSourceMock ? 'scripts/fixtures/hubspot-approval/three-source-update.aql'
+        : 'scripts/fixtures/hubspot-approval/whole-update.aql' : path;
   const from = join(repository, sourcePath), to = join(application, path);
   await mkdir(dirname(to), {recursive: true}); await copyFile(from, to);
   const bytes = await readFile(from);
