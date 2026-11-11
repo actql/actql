@@ -54212,7 +54212,8 @@
         },
         {
           "operations": [
-            "validateValuesMaxRows"
+            "validateValuesMaxRows",
+            "validateSourceFreeMaxWork"
           ],
           "exports": [],
           "attributes": {
@@ -54326,6 +54327,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
                 "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "src/client_local_host/resource_policy.mbt",
+                "anchor": "fn client_local_source_free_max_work("
               }
             ],
             "extension": [
@@ -54362,6 +54367,10 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/request-program-module-body-callers.test.mjs",
+                "anchor": "test('selected source-free work context accepts finite own DATA and refuses accessors'"
               }
             ]
           }
@@ -59682,166 +59691,6 @@
               {
                 "path": "src/client_local_host/preparation_request_effect_original_js_wbtest.mbt",
                 "anchor": "Effect original envelope refuses one-byte-short retained backing without spending prepaid execution twice"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "validateSourceFreeMaxWork"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              },
-              {
-                "path": "docs/design/client-submission-identity.md",
-                "anchor": "### Original short-query continuation"
-              },
-              {
-                "path": "src/client_local_host/resource_policy.mbt",
-                "anchor": "fn client_local_source_free_max_work("
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              },
-              {
-                "path": "spec/contracts/actql-client-host.json",
-                "anchor": "\"readOnly\": {\"const\": true}"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_cid("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              },
-              {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              },
-              {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "pub fn client_submitted_intent_effect_compatible("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              },
-              {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "originalSubmittedIntent?.assertCurrent();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "fn valid_client_submitted_intent_limits("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              },
-              {
-                "path": "src/run_publication_host/client_submitted_intent.mbt",
-                "anchor": "let expected_fields = 3 +"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "validateSourceFreeMaxWork"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_program_test.mbt",
-                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
-              },
-              {
-                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
-                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               }
             ]
           }

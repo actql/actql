@@ -160,7 +160,7 @@ Host). The positive signed 32-bit value is captured as Host installation DATA
 and bound to the same Request before its original Plan and fragment requests
 are constructed. Omission keeps the Core default of 20,000,000. Each applicable
 fragment/sequence has its own cumulative counter; this is not a global Run or
-Host-lifetime quota, a compiler/check budget, or a change to physical memory
+Host-lifetime quota, a compiler/check budget, or a change to managed-memory
 admission. Acquired Source, Model and Effect work policies remain separate.
 A successful computation can still refuse a later copy under the independent
 512 MiB retained/workspace policy. Reopen with the same installation selection;
