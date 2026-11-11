@@ -413,6 +413,17 @@ the retained overlap of successive scan/writer projections; no child issues a
 second publication reservation. Pending preparation or Store work is not a
 physical cleanup acknowledgement.
 
+Each entered Model input may grow its retained input-body peak on the group's
+same original Read token. The group's existing per-child byte fields retain
+those peaks; only that child's positive delta is added to the shared token.
+Other children, spent work, the original descriptor and first admission
+snapshot remain intact. This does not increase the parent Ledger's limits or
+issue another reservation. The same group fence surrounds the original current
+callback and resize. A reentrant stop prevents the next constructor; a backing
+resize that already succeeded remains charged until the original children and
+their scopes complete cleanup. An unused, retired, handed-off or foreign child
+cannot use this continuation.
+
 
 First admission of the ordinary installed INFER graphs captures the
 Environment and serialized Parameter Values actually used by its preparation.

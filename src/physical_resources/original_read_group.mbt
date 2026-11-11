@@ -15,8 +15,10 @@ priv enum OriginalReadChildPhase {
 priv struct OriginalReadChild[T] {
   consumer : FundedReadConsumer[T]
   origin : T
-  retained_bytes : Int64
-  execution_bytes : Int64
+  // Existing child peaks, initially the declared input envelope. An entered
+  // child may grow them only together with this SAME shared Read token.
+  mut retained_bytes : Int64
+  mut execution_bytes : Int64
   mut phase : OriginalReadChildPhase
   // A capacity returned by a reentrant/refused handoff stays here until its
   // original cleanup; success transfers it to the existing Model startup.
@@ -154,10 +156,97 @@ fn[T] original_read_children_current(claim : FundedReadClaim[T]) -> Bool {
   // Keep the first snapshot untouched. Only this same original census/read
   // and its originally recorded producer transitions may remain live here.
   check_original_resources_mutable(claim.descriptor.ledger) is Ok(_) &&
+  original_read_children_snapshot_matches(claim)
+}
+
+///|
+// Callback-free half of the existing group current boundary. A live planned
+// child may have spent work or obtained its own recorded output; the original
+// descriptor and bootstrap snapshots must still match without refreshing them.
+fn[T] original_read_children_snapshot_matches(
+  claim : FundedReadClaim[T],
+) -> Bool {
+  claim.children is Some(_) &&
+  !(claim.phase is Reclaimed) &&
+  check_original_resources_mutable_current(claim.descriptor.ledger) is Ok(_) &&
   capacity_reservation_open(claim.read) &&
   capacity_reservation_open(claim.descriptor.bootstrap) &&
   original_reservation_snapshot(claim.read.reservation) == claim.read_state &&
   original_tokens_match(claim.descriptor, completed_outputs=true)
+}
+
+///|
+// The entered child's next absolute input/body peak adds only its own delta
+// to the original shared Read. Other children and earlier peaks stay charged.
+// No slot, Ledger, quantity allowance, first snapshot or cleanup owner is new.
+fn[T] grow_original_read_child_capacity(
+  claim : FundedReadClaim[T],
+  consumer : FundedReadConsumer[T],
+  origin : T,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, OriginalReadIssue] {
+  guard claim.children is Some(group) &&
+    original_read_child(claim, consumer) is Some(child) else {
+    return Err(SpentClaim)
+  }
+  if !physical_equal(child.origin, origin) {
+    return Err(ForeignOrigin)
+  }
+  if child.phase != Entered {
+    return Err(SpentClaim)
+  }
+  if group.busy {
+    return Err(CleanupPending)
+  }
+  if retained_bytes < child.retained_bytes ||
+    execution_bytes < child.execution_bytes {
+    return Err(Resource(InvalidCharge))
+  }
+  let token = claim.read.reservation
+  let retained_delta = retained_bytes - child.retained_bytes
+  let execution_delta = execution_bytes - child.execution_bytes
+  if retained_delta > 9223372036854775807L - token.retention ||
+    execution_delta > 9223372036854775807L - token.execution {
+    return Err(Resource(InvalidCharge))
+  }
+  let retained = token.retention + retained_delta
+  let execution = token.execution + execution_delta
+  group.busy = true
+  defer leave_original_read_children(group)
+  if !group.started || !original_read_children_snapshot_matches(claim) {
+    return Err(ChangedOriginalState)
+  }
+  // Fence the same group before its one external current callback. A stop
+  // during current wins before resize; no nested grow/handoff can enter.
+  let current_result = reservation_check(claim.descriptor.ledger, token)
+  if child.phase != Entered {
+    return Err(CleanupPending)
+  }
+  match current_result {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  if !original_read_children_snapshot_matches(claim) {
+    return Err(ChangedOriginalState)
+  }
+  let result = resize_capacity_reservation_current(
+    claim.descriptor.ledger,
+    claim.read,
+    retained,
+    execution,
+  )
+  if result is Ok(_) {
+    // An actual imported backing acquisition may itself reenter stop. Retain
+    // a successful resize before refusing its constructor, never refund it.
+    child.retained_bytes = retained_bytes
+    child.execution_bytes = execution_bytes
+    claim.read_state = original_reservation_snapshot(token)
+    if child.phase != Entered || !original_read_children_snapshot_matches(claim) {
+      return Err(CleanupPending)
+    }
+  }
+  result.map_err(issue => Resource(issue))
 }
 
 ///|
