@@ -4460,6 +4460,20 @@ function publicationControl(moon) {
       localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
       return value;
     },
+    issueCheckedWholeEffectSourceUnit(plan, prepared, request, slot, captured,
+      identity, capacity, input, observation, authorityScopeCid, retention, limits) {
+      issuanceLimits(limits, 'Whole Effect Source Unit');
+      if (!Number.isSafeInteger(slot) || slot < 0) {
+        throw new TypeError('Invalid acquired Effect Source slot');
+      }
+      const issued = checked(moon.clientProgramIssueInstalledWholeEffectSourceUnit(
+        plan, prepared, request, slot, captured, identity, capacity, input,
+        evidenceToken(observation), authorityScopeCid, token(retention),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const value = inspectAcquiredEffectEvidence(issued, retention, limits);
+      localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
+      return value;
+    },
     issueSourceFreeEffectEvidence(owner, unit, limits) {
       issuanceLimits(limits, 'Source-free Effect dependency');
       const invocation = checked(moon.clientProgramIssueSourceFreeLocalEffectInvocation(

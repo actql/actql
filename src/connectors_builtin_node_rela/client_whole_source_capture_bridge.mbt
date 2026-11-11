@@ -543,6 +543,54 @@ pub fn client_program_effect_whole_source_input_identity(
 }
 
 ///|
+/// Borrow the SAME admitted Plan's Direct inventory and whole-input recipe.
+/// The existing Core Source-Unit issuer checks provenance; this bridge neither
+/// selects another inventory nor treats a Model contribution as a whole Unit.
+#export_name("clientProgramIssueInstalledWholeEffectSourceUnit")
+pub fn client_program_issue_installed_whole_effect_source_unit(
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  slot : Int,
+  captured : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  input : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectAcquiredEvidence,
+  @publication_host.ClientEffectAcquiredEvidenceIssue,
+] {
+  let direct = match
+    @client_local_host.prepared_installed_effect_source_occurrences(
+      plan, prepared, request,
+    ) {
+    Ok(Some(value)) => value
+    _ => return Err(Invocation(ForeignCapturedInput))
+  }
+  guard @client_local_host.prepared_installed_effect_managed_whole_source(
+      plan, slot,
+    )
+    is Ok((original, _, selected)) &&
+    physical_equal(selected, capacity) &&
+    physical_equal(
+      original,
+      @client_local_host.installed_whole_source_original(capacity),
+    ) else {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  @publication_host.issue_client_whole_native_effect_source_unit(
+    prepared, direct, slot, captured, identity, original, input, observation, authority_scope_cid,
+    retention, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectManagedPlanWholeSource")
 pub fn client_program_installed_effect_managed_plan_whole_source(
   plan : @client_local_host.ClientInstalledEffectManagedPlan,

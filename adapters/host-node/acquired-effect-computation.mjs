@@ -450,7 +450,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
               sourceFree ? sourceFreeInferEffectPublicationPlan({acquired,
                 compiled, operation, issuance, modelEvidence}) :
               acquiredInferEffectPublicationPlan({acquired, sources: evidence,
-                compiled, operation, issuance, modelEvidence,
+                compiled, operation, issuance, modelEvidence, sourcePlan: operationPlan,
                 keyedSource: keyedFamily?.evidence ?? restoredKeyedSource,
                 captureStartedAt, captureCompletedAt, signal})});
         },
@@ -567,7 +567,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     // claim a Source-only Invocation for the same checked Template.
     let publicationPlan = infer === undefined && serializations.length === 0 ? multiple
       ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
-        captureStartedAt, captureCompletedAt})
+        captureStartedAt, captureCompletedAt, sourcePlan: operationPlan})
       : acquiredEffectPublicationPlan({acquired, ...evidence[0],
         captureStartedAt, captureCompletedAt}) : undefined;
     if (multiple && (pluralModels ? modelGroup !== undefined && !modelGroup.restored() :
