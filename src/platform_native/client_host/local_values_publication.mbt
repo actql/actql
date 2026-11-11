@@ -1,4 +1,30 @@
 ///|
+// Both fixed Work families read the exact retained policy once. This pure
+// interpretation creates no current observation, authority or new policy.
+fn original_work_publication_policy(
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  record : NativeClientRunRecord,
+  journal : NativeClientRunJournal,
+) -> Result[String, NativeClientRunJournalIssue] {
+  let expected = match run_policy_originals_wire(prepared, compiled~) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  guard record.publication_policy_originals is Some(original) else {
+    return Err(PublicationPolicy(@checked.MissingDependency))
+  }
+  if original != expected {
+    return Err(CustodyLost)
+  }
+  let bodies = match journal.publication_originals(original) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  Ok(@publication.captured_effect_dependency_body_cid(bodies[0]))
+}
+
+///|
 pub(all) enum NativeClientValuesPublicationIssue {
   Work(NativeClientValuesWorkIssue)
   Policy(NativeClientRunJournalIssue)
@@ -19,11 +45,6 @@ fn local_values_publication_policy(
     Ok(_) => ()
     Err(issue) => return Err(Work(issue))
   }
-  let expected = match
-    run_policy_originals_wire(work.prepared, compiled=work.compiled) {
-    Ok(value) => value
-    Err(issue) => return Err(Policy(issue))
-  }
   let lookup = match work.original_access {
     None =>
       work.start.journal
@@ -39,20 +60,20 @@ fn local_values_publication_policy(
     Ok(UnresolvedHistory) => return Err(Policy(CustodyLost))
     Err(issue) => return Err(issue)
   }
-  guard record.publication_policy_originals is Some(original) else {
-    return Err(Policy(PublicationPolicy(@checked.MissingDependency)))
-  }
-  if original != expected {
-    return Err(Policy(CustodyLost))
-  }
-  let bodies = match work.start.journal.publication_originals(original) {
-    Ok(value) => value
+  let policy = match
+    original_work_publication_policy(
+      work.prepared,
+      work.compiled,
+      record,
+      work.start.journal,
+    ) {
     Err(issue) => return Err(Policy(issue))
+    Ok(value) => value
   }
   work
   .require_current()
   .map_err(issue => NativeClientValuesPublicationIssue::Work(issue))
-  .map(_ => @publication.captured_effect_dependency_body_cid(bodies[0]))
+  .map(_ => policy)
 }
 
 ///|

@@ -151,6 +151,22 @@ replace that original. File listings retain their original ResourceRef issuer
 and monotonic clock. Both routes use the same Native capture holder, physical
 Ledger and child-first cleanup; neither route creates an auxiliary Run or Ledger.
 
+The Native whole-input command keeps its original Request compilation, Whole
+Plan, captured module and adopted Run. Its entry borrows the preparation's
+existing reservation; it neither allocates a second capacity token nor coerces
+the Program into a Query/source-free purpose. Logical Work cleanup drops the
+borrowed prepared binding before the original execution returns its physical
+context. Only that original parent can acknowledge/report physical retirement.
+
+Source publication identifies the complete captured input using its retained
+acquisition bounds, independently of a narrower aggregate Result. The original
+input CID and effective publication policy travel with the same sealed
+invocation; the caller does not parse their evidence wires again. Incremental
+identity/metadata construction grows the same preparation reservation before
+each constructor while its actual Source/output children coexist. Publication
+then uses the original captured Result pin and the existing Journal/Store/Saved
+continuation, preserving partial generations and ambiguous commits.
+
 The accounted listing constructor retains the acquisition's original
 configuration in its existing report holder before a response borrow can match
 the derived listing configuration. Row owns the additional H1/R2/W1 tariff in

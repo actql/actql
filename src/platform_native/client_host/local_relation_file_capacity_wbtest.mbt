@@ -150,7 +150,7 @@ test "relation entry Read constructor component is distinct from the reserved bu
 ///|
 test "relation entry authored minimum fixture and maximum constructor totals" {
   let (selection, limits) = relation_work_capacity_inputs()
-  assert_eq(relation_file_work_control_bytes().unwrap(), 47890L)
+  assert_eq(relation_file_work_control_bytes().unwrap(), 48234L)
   let minimum = {
     ..limits,
     page: { max_bytes: 1, max_nodes: 1, max_depth: 1, max_rows: 1, },
@@ -166,9 +166,9 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
   }
   for
     (selected, bounded, work_bytes, read_bytes) in [
-      (selection, minimum, 270557L, 29426L),
-      (selection, limits, 23124056L, 29426L),
-      (paths, maximal, 296458808L, 32850L),
+      (selection, minimum, 270901L, 29426L),
+      (selection, limits, 23124400L, 29426L),
+      (paths, maximal, 296459152L, 32850L),
     ] {
     let work = native_relation_file_work_control_capacity(selected, bounded).unwrap()
     let read = native_relation_file_entry_read_capacity(selected, bounded).unwrap()

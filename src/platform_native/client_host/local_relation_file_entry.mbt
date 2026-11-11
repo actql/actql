@@ -50,27 +50,16 @@ struct NativeClientRelationFileWorkEntry {
 }
 
 ///|
-/// Prepare only under this capture's already-current original Read callback.
-/// The installed coordinator includes the named Read constructor inventory in
-/// its consumer before admission. No business Ledger or caller Allow is taken.
-pub fn NativeLocalHostConnection::prepare_original_relation_file_work_entry(
+// Same original Read/cache/Host correspondence for both fixed File purposes.
+// Primitive observations only; no callback, allocation, recheck or grant.
+fn NativeLocalHostConnection::relation_file_original_read_matches(
   self : NativeLocalHostConnection,
   operation : NativeLocalStoreOperation,
-  principal : String,
-  connection : String,
   request : @host.ClientRequestIdentity,
   prepared : @host.PreparedClientProgram,
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
-  declaration : @rows.RowDeclaration,
-  requirement : @planning.QueryRequirement,
-  acquisition : @rows.RowAcquisition,
-  selection : @row_file.NativeRelationFileSelection,
-  limits : @row_file.NativeRelationFileLimits,
-) -> Result[
-  NativeClientRelationFileWorkEntry,
-  NativeClientRelationFileWorkFailure,
-]? {
+) -> Bool {
   let receiver = operation.receiver
   guard receiver.domain is StoreBusinessDomain(execution) &&
     receiver.ready &&
@@ -100,13 +89,45 @@ pub fn NativeLocalHostConnection::prepare_original_relation_file_work_entry(
       compiled,
       definition,
     ) else {
+    return false
+  }
+  original.host.matches_nonmodel_work_entry_read_scope(
+    original.pair,
+    original.read,
+    execution,
+  )
+}
+
+///|
+/// Prepare only under this capture's already-current original Read callback.
+/// The installed coordinator includes the named Read constructor inventory in
+/// its consumer before admission. No business Ledger or caller Allow is taken.
+pub fn NativeLocalHostConnection::prepare_original_relation_file_work_entry(
+  self : NativeLocalHostConnection,
+  operation : NativeLocalStoreOperation,
+  principal : String,
+  connection : String,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  declaration : @rows.RowDeclaration,
+  requirement : @planning.QueryRequirement,
+  acquisition : @rows.RowAcquisition,
+  selection : @row_file.NativeRelationFileSelection,
+  limits : @row_file.NativeRelationFileLimits,
+) -> Result[
+  NativeClientRelationFileWorkEntry,
+  NativeClientRelationFileWorkFailure,
+]? {
+  if !self.relation_file_original_read_matches(
+      operation, request, prepared, compiled, definition,
+    ) {
     return None
   }
-  if !original.host.matches_nonmodel_work_entry_read_scope(
-      original.pair,
-      original.read,
-      execution,
-    ) {
+  let receiver = operation.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) &&
+    receiver.original is Some(original) else {
     return None
   }
   let capacity = match
@@ -192,6 +213,152 @@ pub fn NativeLocalHostConnection::prepare_original_relation_file_work_entry(
 }
 
 ///|
+/// Same Request/Plan Whole Source entry. The original prepared body funds its
+/// complete fixed Work envelope; this cannot admit a second Run or Root.
+pub fn NativeLocalHostConnection::prepare_original_whole_relation_file_work_entry(
+  self : NativeLocalHostConnection,
+  operation : NativeLocalStoreOperation,
+  principal : String,
+  connection : String,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  declaration : @rows.RowDeclaration,
+  managed : @local.ClientInstalledManagedRun,
+  selected_source : @local.ClientInstalledWholeSourceCapacity,
+  provider : @row_file.NativeRelationFilePreparedProvider,
+  selection : @row_file.NativeRelationFileSelection,
+  limits : @row_file.NativeRelationFileLimits,
+) -> Result[
+  NativeClientRelationFileWorkEntry,
+  NativeClientRelationFileWorkFailure,
+]? {
+  if !self.relation_file_original_read_matches(
+      operation, request, prepared, compiled, definition,
+    ) {
+    return None
+  }
+  let receiver = operation.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) &&
+    receiver.original is Some(original) else {
+    return None
+  }
+  let source = @local.installed_whole_source_original(selected_source)
+  let acquisition = @local.installed_whole_source_acquisition(selected_source)
+  if !@host.client_source_acquisition_matches_program(prepared, 0, 0, source) ||
+    !@local.check_installed_whole_source_capacity(
+      selected_source,
+      acquisition,
+      provider.capacity(),
+    ) ||
+    !(@rows.check_row_input_acquisition_original(
+      acquisition, declaration, source,
+    )
+    is Ok(_)) {
+    return Some(Err(relation_file_work_failure(Configuration)))
+  }
+  guard @local.installed_managed_preparation_admission_original(
+      managed, prepared, request,
+    )
+    is Some(admission) else {
+    return Some(Err(relation_file_work_failure(OriginalRunNotCurrent)))
+  }
+  guard @local.installed_managed_capture_publication_geometry_original(
+      managed, prepared, request,
+    )
+    is Some((physical_graph, _, _, _)) else {
+    return Some(Err(relation_file_work_failure(OriginalRunNotCurrent)))
+  }
+  let capacity = match
+    native_relation_whole_file_work_control_capacity(
+      selection, limits, provider, physical_graph,
+    ) {
+    Some(value) => value
+    None => return Some(Err(relation_file_work_failure(Configuration)))
+  }
+  let acquired_entry = match
+    original.host.prepare_domain_nonmodel_prepared_work_entry(
+      original.pair,
+      original.read,
+      execution,
+      admission,
+      prepared,
+      @execution.execution_capacity_retained_bytes(capacity),
+      @execution.execution_capacity_execution_bytes(capacity),
+    ) {
+    None => return None
+    Some(Err(_)) => return Some(Err(relation_file_work_failure(Configuration)))
+    Some(Ok(value)) => value
+  }
+  let arena = match acquired_entry {
+    @arena.ReadyNonModelWorkEntry(value)
+    | @arena.PendingNonModelWorkEntry(value) => value
+  }
+  let ready = acquired_entry is @arena.ReadyNonModelWorkEntry(_) &&
+    receiver.ready &&
+    !receiver.closed &&
+    !receiver.closing &&
+    receiver.capture.read_callback_active &&
+    receiver.capture.read_facts_valid &&
+    receiver.primary is None &&
+    receiver.capture.read_operation_issue is None &&
+    !receiver.borrowed_read &&
+    !receiver.business_pending &&
+    receiver.phase == StoreRouteIdle &&
+    receiver.origin is None &&
+    !original.interrupted &&
+    original.store_operation is None &&
+    original.active_phase is Some(@arena.HostRead) &&
+    receiver.original is Some(retained) &&
+    physical_equal(retained, original) &&
+    receiver.capture.original_resources is Some(retained) &&
+    physical_equal(retained, original)
+  let access : NativeLocalRelationOriginalAccess = {
+    base: {
+      operation,
+      host: self,
+      principal,
+      connection,
+      request,
+      primary: None,
+    },
+    source: WholeRelationFile(
+      declaration, source, acquisition, managed, selected_source, provider,
+    ),
+  }
+  // Validate in the quote before making this private DATA snapshot. Strings
+  // and immutable limits are borrowed; path arrays are owned copies so later
+  // changes to the caller's selection cannot replace the funded input.
+  let selected : @row_file.NativeRelationFileSelection = {
+    ..selection,
+    items_path: selection.items_path.copy(),
+    key_path: selection.key_path.map(path => path.copy()),
+  }
+  let unavailable = Err(relation_file_work_failure(Configuration))
+  let entry : NativeClientRelationFileWorkEntry = {
+    access: Some(access),
+    original,
+    arena,
+    payload: Some((prepared, compiled, definition)),
+    capacity,
+    selection: selected,
+    limits,
+    unavailable,
+    unavailable_current: Err(OriginalRunNotCurrent),
+    unavailable_export: Err(OriginalRunNotCurrent),
+    ready,
+    used: false,
+    closed: false,
+  }
+  if ready {
+    Some(Ok(entry))
+  } else {
+    Some(Err(relation_file_work_failure(Configuration, entry=Some(entry))))
+  }
+}
+
+///|
 // No callbacks or constructors before the pre-owned arena token/scope proves
 // the domain for every later dynamic Result/current/failure constructor.
 fn NativeClientRelationFileWorkEntry::take_entered_ledger(
@@ -207,7 +374,8 @@ fn NativeClientRelationFileWorkEntry::take_entered_ledger(
   let receiver = operation.receiver
   if !physical_equal(operation, access.base.operation) ||
     !physical_equal(host, access.base.host) ||
-    !(access.source is RelationFile(_, _, _)) ||
+    !(access.source is RelationFile(_, _, _) ||
+    access.source is WholeRelationFile(_, _, _, _, _, _)) ||
     !relation_file_prepared_binding_current(
       host.journal,
       access.base.request,

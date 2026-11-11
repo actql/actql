@@ -246,6 +246,10 @@ fn relation_original_export_matches(
 // test setup. The constants independently expand original construction recipes;
 // no maximum quote is a resource grant or actual maximum-size Source execution.
 fn relation_original_verify_quote_vectors() -> Unit raise {
+  // Keep the independent original Query caller vectors aligned: its Read
+  // wrapper adds the private variant/clearable tuple (24+56 bytes), and its
+  // Work now retains the selector/control and six optional fields (288+56).
+  // Source decoding, maxima, account and physical partitions are unchanged.
   let selection = relation_original_selection("/fixture")
   let fixture_limits = relation_original_limits()
   for
@@ -260,8 +264,8 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
         1,
         0,
         222539L,
-        270557L,
-        29346L,
+        270901L,
+        29426L,
       ),
       (
         @rows.RowPageLimits::{
@@ -273,8 +277,8 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
         1,
         0,
         23076038L,
-        23124056L,
-        29346L,
+        23124400L,
+        29426L,
       ),
       (
         @rows.RowPageLimits::{
@@ -286,8 +290,8 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
         16,
         16,
         296410790L,
-        296458808L,
-        32770L,
+        296459152L,
+        32850L,
       ),
     ] {
     let selected = {
@@ -1215,15 +1219,15 @@ test "actual original Account Journal StoreOperation captures relation and execu
     3L * 24L +
     12256L
   assert_eq(source_preparation, 23076038L)
-  assert_eq(@execution.execution_capacity_retained_bytes(entry_read), 29346L)
-  assert_eq(read_addition, 23170330L)
+  assert_eq(@execution.execution_capacity_retained_bytes(entry_read), 29426L)
+  assert_eq(read_addition, 23170490L)
   assert_eq(outer_addition, 15170L)
   // The real no-VM domain contract requires R+E, not just E. These test-owned
   // physical partitions preserve the same 768 MiB backing and logical quotes.
   // The same compiled provider observes its control/context geometry; neither
   // observation grants capacity or substitutes for per-object construction.
   let read_payload = 113L * mib + 2L * read_addition
-  assert_eq(read_payload, 164829748L)
+  assert_eq(read_payload, 164830068L)
   let read_necessary = @bootstrap.execution_domain_necessary_bytes(
     160L * mib,
     read_payload,

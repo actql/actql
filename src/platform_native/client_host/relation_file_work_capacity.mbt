@@ -3,14 +3,21 @@
 // task/output geometry. H/R/S mean representation headers/reference slots/
 // scalar words. Borrowed original trees, strings and contracts are not copied.
 //
-// * Work H1/R12/S1; no Resident wrapper.
+// * Work H1/R18/S2; no Resident wrapper. Its six additional optional
+//   timing/publication/identity/basis/error references and grow latch add
+//   R6/S1 (56 bytes), even when unpopulated on the existing Query path.
 // * Existing Source-cut LedgerUsage H1/S13 retained beyond later mutable
 //   replacements and Source logical close. ledger_usage itself only borrows;
 //   this item funds the extended custody through Work physical retirement.
 // Access/base/source originals are Read-owned. The routing-refusal frontier
 // separately owns the terminal access-primary Some, so it is not counted twice.
 // * Failure carrier, three field options and ResultErr H5/R8/S4.
-// * Original declaration/requirement/acquisition projection tuple H1/R3.
+// * Three closed source/plan match tuples H3/R7.
+// * Funded Query selector H1/R5/S1 and retained Query plan H1/R1/S1.
+// * Pre-Source read-cleanup continuation/closure/Some H3/R5/S1.
+// * The selected result bridge's row/count pair H1/R1/S1.
+//   These replace the former declaration/requirement/acquisition tuple;
+//   the net fixed Query delta is H8/R16/S4 = 288 bytes.
 // * Work closure expressions H7/R11: unstarted2, rejected Source cleanup1,
 //   Source cleanup1, current2, live2, Common failure cleanup2, Work cleanup1.
 // * Row-access call closures H4/R4: current0, lookup1, claim1, start-current2.
@@ -62,7 +69,7 @@ fn relation_file_work_control_bytes() -> Int64? {
     record_headers: 1L +
     1L +
     5L +
-    1L +
+    3L +
     7L +
     4L +
     2L +
@@ -84,10 +91,11 @@ fn relation_file_work_control_bytes() -> Int64? {
     2L +
     2L +
     296L +
-    86L,
-    reference_slots: 12L +
+    86L +
+    6L,
+    reference_slots: 18L +
     8L +
-    3L +
+    7L +
     11L +
     4L +
     2L +
@@ -106,8 +114,9 @@ fn relation_file_work_control_bytes() -> Int64? {
     2L +
     2L +
     95L +
-    23L,
-    scalar_words: 1L +
+    23L +
+    12L,
+    scalar_words: 2L +
     13L +
     4L +
     2L +
@@ -128,7 +137,8 @@ fn relation_file_work_control_bytes() -> Int64? {
     2L +
     2L +
     500L +
-    149L,
+    149L +
+    4L,
     owned_utf16_units: 237L,
     owned_wire_bytes: 0L,
   })
@@ -166,4 +176,54 @@ pub fn native_relation_file_work_control_capacity(
     return None
   }
   @execution.execution_capacity(retained, executing)
+}
+
+///|
+/// Native wrapper/source/task-loop overlap for the existing whole-input Plan.
+/// Common module/DAG construction remains held by that same original Plan;
+/// this adds no replacement controller, maximum startup or new allowance.
+fn native_relation_whole_file_work_control_capacity(
+  selection : @row_file.NativeRelationFileSelection,
+  limits : @row_file.NativeRelationFileLimits,
+  provider : @row_file.NativeRelationFilePreparedProvider,
+  graph : @strategy.CheckedDAG,
+) -> @execution.ExecutionCapacity? {
+  guard @row_file.native_relation_file_caller_preparation_inventory(
+      selection,
+      limits,
+      prepared_provider=Some(provider),
+    )
+    is Some(source_units) &&
+    @execution.preparation_representation_cost(source_units) is Some(source) &&
+    relation_file_work_control_bytes() is Some(native) &&
+    @local.source_input_local_tasks_control_capacity(graph) is Some(common) &&
+    @execution.preparation_representation_cost({
+      // The fixed SourceRead record/managed tuple/options and return quadruple;
+      // selected-plan/cleanup closures and its immutable bridge geometry.
+      // Original current/ledger/metadata frontiers retain the Row/Native
+      // recipes above; graph/provider/module payloads retain the Core Plan.
+      record_headers: 1L + 2L + 8L + 2L + 3L + 2L,
+      reference_slots: 10L + 3L + 8L + 5L + 7L + 3L,
+      scalar_words: 1L + 1L + 8L + 1L + 3L + 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(wrappers) &&
+    @execution.checked_preparation_add_product(native, source, 1L) is Some(base) &&
+    @execution.checked_preparation_add_product(base, wrappers, 1L) is Some(base) &&
+    @execution.checked_preparation_add_product(
+      base,
+      @execution.execution_capacity_retained_bytes(common),
+      1L,
+    )
+    is Some(r) &&
+    @execution.checked_preparation_add_product(
+      base,
+      @execution.execution_capacity_execution_bytes(common),
+      1L,
+    )
+    is Some(e) else {
+    return None
+  }
+  @execution.execution_capacity(r, e)
 }
