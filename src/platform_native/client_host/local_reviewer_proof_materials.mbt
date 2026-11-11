@@ -247,15 +247,57 @@ pub fn NativeLocalReviewerProofMaterials::require_current(
   // The existing metadata Owner performs its own current RunRead before/after
   // the final original read. A same-Checkpoint callback observation cannot
   // hide an intervening cancellation or another control revision.
-  match
+  let now = (reviewer.now)()
+  let metadata = if self.key is InitialReviewerKey(key) &&
+    reviewer.approval_scope is SavedApproval(saved) &&
+    key.original.original_read is Some((capture, material)) {
+    if !physical_equal(saved.capture, capture) {
+      return Err(ProofUnavailable)
+    }
+    // The clock is an actual callback. Reobserve mutable physical originals
+    // before entering this SAME captured Read, never another capture or an
+    // unscoped metadata/adoption traversal. No cached Account outcome is passed.
+    match key.original.check_callback_current() {
+      Ok(_) => ()
+      Err(issue) => return Err(ProofKey(SigningCustody(issue)))
+    }
+    match
+      capture.with_current_adoption_material_in_original_read((
+        host,
+        current,
+        operations,
+      ) => {
+        if !physical_equal(host, reviewer.host) ||
+          !physical_equal(current, material) {
+          return Err(CustodyLost)
+        }
+        Ok(
+          host.lookup_submitted_checkpoint_metadata_with_operations(
+            reviewer.crypto,
+            reviewer.principal,
+            reviewer.connection,
+            reviewer.reference,
+            reviewer.request,
+            now,
+            operations=Some(operations),
+            capture=Some(capture),
+          ),
+        )
+      }) {
+      Ok(value) => value
+      Err(issue) => return Err(ProofKey(SigningCustody(issue)))
+    }
+  } else {
     reviewer.host.lookup_submitted_checkpoint_metadata(
       reviewer.crypto,
       reviewer.principal,
       reviewer.connection,
       reviewer.reference,
       reviewer.request,
-      (reviewer.now)(),
-    ) {
+      now,
+    )
+  }
+  match metadata {
     Ok(Some(value)) if value.revision == self.original.revision &&
       value.cancellation_requested == self.original.cancellation_requested &&
       value.state == self.original.state &&
