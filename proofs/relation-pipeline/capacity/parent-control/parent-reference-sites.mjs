@@ -87,8 +87,12 @@ function resultObserverBranch(ins,begin,end,sites,symbols) {
   const exit=ins[k+23].op.match(/^jmp ([0-9a-f]+)$/);assert(exit,'Missing Result error exit');
   const returned=ins.findIndex(i=>i.address===BigInt('0x'+exit[1]));
   assert(returned>end,'Result error path enters observer');equal(returned,'nop');equal(returned+1,'mov rax,r13');
-  for(const i of ins.slice(k-4,returned))assert(!/^[a-z]+ r13(?:d|w|b)?,/.test(i.op),
-    'Original observed Result replaced before return');
+  // Only the two checked tag/pair reads may mention the original Result
+  // register before its final return. Multi-output instructions can replace
+  // it in a second operand too, even after the observer's argument scope.
+  for(let at=k-4;at<returned;at++)if(at!==k&&at!==k+5)
+    assert(!/\br13(?:d|w|b)?\b/.test(ins[at].op),
+      'Original observed Result replaced before return');
   equal(end-6,'mov rdi,rbx');equal(end-5,'mov rsi,r12');
   return new Set([k+1,k+3,k+4,k+12,k+23]);
 }

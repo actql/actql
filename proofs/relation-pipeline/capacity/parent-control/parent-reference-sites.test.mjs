@@ -168,3 +168,11 @@ test('Result branch requires independently selected linked map and decref symbol
     assert.throws(()=>check(o,l,startup(),missing),/Unreviewed Result observer call/);
   }
 });
+
+test('Result return rejects exchanging its original alias after the observer',()=>{
+  for(const exchange of ['xchg rax,r13','xchg r13,rax','xchg eax,r13d']){
+    const code=resultBranchOps(),returned=code.findIndex(op=>op.label==='returned');
+    assert(returned>0);code.splice(returned,0,exchange);
+    assert.throws(()=>checkBranch(code),/Original observed Result/);
+  }
+});
