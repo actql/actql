@@ -207,6 +207,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
   let originalRead;
+  let originalInputBodyRead;
   let originalScope = originalPreparation?.scope;
   let metadataInstallation = originalPreparation?.metadataInstallation;
   let metadataNodeInstallation = originalPreparation?.nodeInstallation;
@@ -234,6 +235,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       throw new TypeError('InvalidInferOriginalPreparation');
     }
     originalRead = originalPreparation.read;
+    const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');
+    if (bodyRead !== undefined) {
+      if (!Object.hasOwn(bodyRead, 'value') || originalRead === undefined || bodyRead.value !== originalRead) {
+        throw new TypeError('ForeignInferOriginalInputBodyRead');
+      }
+      originalInputBodyRead = bodyRead.value;
+    }
     const publication = Object.getOwnPropertyDescriptor(originalPreparation, 'publicationCapacity');
     if (publication !== undefined) {
       if (!Object.hasOwn(publication, 'value') || typeof publication.value !== 'function') {
@@ -403,7 +411,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       composedInput.occurrence, graph, composedInput.prefix, composedInput.inputs,
       provider, originalConsumer, originalPreparation.readRetainedBytes,
       originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
-      originalPreparation.modelExecutionBytes, composedInput.sources)
+      originalPreparation.modelExecutionBytes, composedInput.sources, originalInputBodyRead)
     : originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')
     ? originalPreparation.control.startCheckedClientInferOriginalPreparation(
       originalPreparation.compiled, originalPreparation.runDefinition,
@@ -510,6 +518,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         cleanedOriginalReads.add(originalRead);
       }
       originalRead = undefined;
+      originalInputBodyRead = undefined;
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);

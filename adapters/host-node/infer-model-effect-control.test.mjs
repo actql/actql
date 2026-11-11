@@ -89,9 +89,23 @@ function fixture() {
     resultDataPolicy:{kind:'data_policy',cid:'policy',wire:'{}'},
   },{});
   const issued=control.bindIssuedClientInferInvocation(compiled,execution,run,issuance);
-  return {control,moon,limits,run,compiled,issued,scan,receipt,owner,inputs,exported,definition,calls,
+  return {control,moon,limits,run,compiled,issued,scan,receipt,owner,inputs,exported,definition,calls,rawCompiled,rawDefinition,
     capture:()=>control.captureCheckedClientInferModelObservation(issued,scan,receipt,limits)};
 }
+
+test('same original Effect input body Read crosses only its existing compiled Model bridge',()=>{
+  const f=fixture(),occurrence={},graph={},prefix={},inputs=[],provider={},consumer={},sources={},read={},active={};
+  const calls=[];
+  f.moon.clientProgramStartOriginalComposedInferExecution=(...args)=>{
+    assert.deepEqual(args,[occurrence,graph,prefix,inputs,provider,f.rawCompiled,f.rawDefinition,
+      consumer,7n,5n,11n,3n,sources,read]);calls.push('start');return {$tag:1,_0:active};
+  };
+  assert.strictEqual(f.control.startCheckedClientOriginalComposedInferExecution(f.compiled,f.run,
+    occurrence,graph,prefix,inputs,provider,consumer,7n,5n,11n,3n,sources,read),active);
+  assert.throws(()=>f.control.startCheckedClientOriginalComposedInferExecution({...f.compiled},f.run,
+    occurrence,graph,prefix,inputs,provider,consumer,7n,5n,11n,3n,sources,read),TypeError);
+  assert.deepEqual(calls,['start']);
+});
 
 test('same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion',()=>{
   const f=fixture(),model=f.capture();

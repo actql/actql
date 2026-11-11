@@ -4120,7 +4120,7 @@ function publicationControl(moon) {
     },
     startCheckedClientOriginalComposedInferExecution(compiled, definition,
       occurrence, graph, prefix, inputs, provider, consumer, readRetainedBytes,
-      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, sources) {
+      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, sources, inputBodyRead) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
         throw new TypeError('Foreign Client compiled Infer preparation');
@@ -4128,7 +4128,7 @@ function publicationControl(moon) {
       return checked(moon.clientProgramStartOriginalComposedInferExecution(
         occurrence, graph, prefix, inputs, provider, value, token(definition),
         consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
-        modelExecutionBytes, sources));
+        modelExecutionBytes, sources, inputBodyRead));
     },
     startCheckedClientOriginalRestoredComposedInferExecution(compiled, definition,
       occurrence, graph, prefix, provider, snapshot, custodyAvailable, savedScope,

@@ -179,7 +179,7 @@ test('stop retains the original borrower and cleanup release does not request a 
 // Actual adapter with explicit Common ports. This original ordinary composed
 // preparation has no legacy Node installation. The callback selects bounds;
 // only the existing same-Model Common reservation can issue its opaque borrow.
-function ordinaryFixture({select, reserveIssue}={}) {
+function ordinaryFixture({select, reserveIssue, inputBody=false}={}) {
   const active={},consumer={},borrow={},issued={},compiled={},runDefinition={},graph={};
   const calls=[];
   const ok=_0=>({$tag:1,_0});
@@ -191,7 +191,7 @@ function ordinaryFixture({select, reserveIssue}={}) {
       assert.deepEqual([r,w],[7n,5n]);calls.push('claim');return consumer;
     },
     startCheckedClientOriginalComposedInferExecution(c,d,occurrence,g,prefix,inputs,
-      provider,original,r,w,mr,mw,sources) {
+      provider,original,r,w,mr,mw,sources,inputBodyRead) {
       assert.strictEqual(c,compiled);assert.strictEqual(d,runDefinition);
       assert.strictEqual(g,graph);assert.strictEqual(original,consumer);
       assert.deepEqual([r,w,mr,mw],[7n,5n,1000n,500n]);
@@ -206,6 +206,7 @@ function ordinaryFixture({select, reserveIssue}={}) {
       if(!current)throw Object.assign(new Error('ForeignInstalledModelPreparation'),{code:'OriginalCurrentRefused'});
       return select===undefined?{retainedBytes:123n,workspaceBytes:456n}:select();
     }};
+  if(inputBody)preparation.inputBodyRead=preparation.read;
   const composedInput={occurrence:{},prefix:{},inputs:[],sources:[]};
   const moon={
     clientProgramReserveOriginalInferPublicationCapacity(owner,r,w) {
@@ -231,6 +232,24 @@ function ordinaryFixture({select, reserveIssue}={}) {
   return {options,preparation,calls,issued,
     current(value){current=value;},releaseComplete(value){releaseComplete=value;}};
 }
+
+test('original Effect input body Read is forwarded unchanged through the existing composed caller',()=>{
+  const f=ordinaryFixture({inputBody:true});
+  const start=f.options.originalPreparation.control.startCheckedClientOriginalComposedInferExecution;
+  f.options.originalPreparation.control.startCheckedClientOriginalComposedInferExecution=function(...args){
+    assert.strictEqual(args.at(-1),f.preparation.read);
+    return Reflect.apply(start,this,args);
+  };
+  const operation=openNodeInferOperation(f.options);
+  assert.deepEqual(f.calls,['claim','start']);
+  assert.equal(operation.cleanup(),true);
+});
+
+test('foreign Effect input body Read refuses before the original consumer claim',()=>{
+  const f=ordinaryFixture({inputBody:true});f.preparation.inputBodyRead={};
+  assert.throws(()=>openNodeInferOperation(f.options),/ForeignInferOriginalInputBodyRead/u);
+  assert.deepEqual(f.calls,[]);
+});
 
 test('ordinary original publication selects same-Run capacity without a legacy Node installation',()=>{
   const f=ordinaryFixture(),operation=openNodeInferOperation(f.options);

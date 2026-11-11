@@ -127459,7 +127459,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "b1900069222d7aa9d2335b2189aa62c68fe0132f896087bd9a4ae021dd8a507b",
+      "sha256": "92bc4f4758a19e9f165252a5030b063ba46f403a532f138f8868bda11182c2a5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -128120,6 +128120,10 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "test('Effect Model cold read retains exact failed issuance and refuses lost original current without a replacement'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "Effect Model publication requests its same original input body read without another preparation"
               }
             ]
           }

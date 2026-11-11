@@ -29152,7 +29152,8 @@
             "readExecutionBytes",
             "modelRetainedBytes",
             "modelExecutionBytes",
-            "sources"
+            "sources",
+            "inputBodyRead"
           ],
           "async": false
         },
@@ -31754,7 +31755,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "be8ff672a042daa07274f10ece14e823b87c86a42236e6cd1152c5423bdd888f"
+      "sha256": "6fb4c3135bbfba8ffb316a52de0b17722ce106c2fa25277b75d12980a69be753"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -69668,7 +69669,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fc4f226ed98589a8c83d55249fb54c127fb6cfa800a2ccddce6a0eae4d45763b"
+      "sha256": "43ce543d874df6deb58aabfb80e273a2999ec64ac45386cc9f46d6b25f5f1131"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
