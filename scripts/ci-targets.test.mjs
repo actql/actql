@@ -276,8 +276,16 @@ test('Native retained verification builds exactly its checked release module inv
 test('normal lint executes behavioral operation performance assessment tests', () => {
   const step = jobs.lint.steps.find(row =>
     row.name === 'Test ordinary operation performance assessment');
+  const policy = jobs.lint.steps.find(row =>
+    row.name === 'Test ordinary operation performance policy oracles');
   assert.ok(step);
-  assert.equal(step.run, 'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs scripts/native-approval-performance.test.mjs');
+  assert.ok(policy);
+  assert.equal(policy.run, 'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs');
+  assert.equal(policy.if, undefined);
+  assert.equal(step.run, 'node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
+  const files = [policy, step].flatMap(row => row.run.split(' ').slice(2));
+  assert.equal(files.length, 11);
+  assert.equal(new Set(files).size, 11, 'each full-suite file must execute exactly once');
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.
@@ -1265,7 +1273,10 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
     'node --test scripts/source-read-current-control.test.mjs',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
-    'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs']);
+    'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs',
+    'node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs scripts/packed-readme-ci.test.mjs',
+    'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs',
+    'node --test scripts/native-cli-default-numeric.test.mjs']);
   assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',
     'npm run check:local-resource-completion', 'npm run check:execution-authorization-vectors', 'git diff --exit-code']);
   for (const name of ['lint', 'spec']) {
