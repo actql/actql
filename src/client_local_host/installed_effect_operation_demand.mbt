@@ -1366,6 +1366,20 @@ fn prepare_installed_effect_managed_plan_owned(
     is Some(operation_control_capacity) else {
     return Err(Unsupported)
   }
+  // This SAME Run control token outlives completed task body/row reclamation.
+  // Keep its bounded successful-completion DATA in the fixed portion, not in
+  // per-task provider metadata or a transient simultaneous-inventory quote.
+  guard captured_task_completion_control_capacity(graph) is Some(completion) &&
+    @execution.add_execution_capacity(operation_control_capacity, completion)
+    is Some(operation_control_capacity) &&
+    @execution.checked_preparation_add_product(
+      operation_control_idle_execution,
+      @execution.execution_capacity_retained_bytes(completion),
+      1L,
+    )
+    is Some(operation_control_idle_execution) else {
+    return Err(Unsupported)
+  }
   let control_retained = @execution.execution_capacity_retained_bytes(
     operation_control_capacity,
   )

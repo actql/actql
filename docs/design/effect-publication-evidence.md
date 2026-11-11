@@ -77,6 +77,27 @@ Ledger. The original and converted output still have their independent current,
 managed-generation, publication and cleanup fences. Sharing an occurrence does
 not grant execution, Model ownership or export authority.
 
+For a computed Effect suffix, the original captured task owner seals bounded
+completion DATA only after the actual output and its exact admitted inputs pass
+completion validation and resource settlement. It retains the consumed unary
+producer coordinate and the original completion occurrence, without rows,
+execution callbacks, input bindings or physical holdings. Each suffix edge must
+match that successful completion in the same checked Run and Unit; static graph
+reachability, a done flag alone, equal values or equal CIDs do not supply it.
+The original Model and final Result still require their complete current,
+availability, receipt and export lifetime fences. Historical correspondence is
+neither currentness nor permission and cannot reopen a retired Result.
+
+Only Effect DAGs allocate these completion records. The existing original
+Effect control reservation funds their bounded per-task representation beyond
+individual body/output retirement. The static Plan and actual-row control paths
+compose that cost once each as exclusive alternatives, not as per-task provider
+workspace. Stopping the Run revokes new artifact issuance and drops this DATA
+before the original control token retires; pending physical cleanup retains its
+existing owner and is not inferred from the DATA. Pure task construction, the
+320-byte representation-copy quote, global tariffs and policy ceilings remain
+unchanged.
+
 The Core record retains twelve fields and six bounded vectors: five snapshots
 of actual Result contract references, plus declared Result names from the
 admitted manifest. Existing decoded contracts and admitted Set facts are retained

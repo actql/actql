@@ -944,7 +944,21 @@ fn open_checked_dag(
   let lifetimes = Array::makei(count, _ => TaskLifetime::{
     live: true,
     pins: 0,
+    completion: None,
   })
+  // These exact completions passed the existing retained-input admission.
+  // An initial producer has no executed predecessor edge in this Run.
+  for task, output in outputs {
+    if graph_program_has_effects(graph) &&
+      output is Some(Materialized(original)) {
+      lifetimes[task].completion = Some({
+        producer: None,
+        original: Some(
+          @execution.completed_output_original_occurrence(original),
+        ),
+      })
+    }
+  }
   let resources : Array[TaskRetention?] = Array::make(count, None)
   for task in 0..<graph.captured_prefix_value() {
     resources[task] = Some({
@@ -1957,6 +1971,10 @@ pub fn stop_captured_dag(run : CapturedDAG) -> Unit {
   }
   for index in 0..<run.inputs.length() {
     clear_captured_inputs(run, index)
+    // Stopped Runs cannot issue the Model/Effect export that consumes this
+    // historical DATA. Drop it before the original control owner retires;
+    // independent successful Result/physical cleanup owners are unchanged.
+    run.lifetimes[index].completion = None
     // Each supplied Read is restricted by a closure over this same DAG.
     // Stop already revoked that gate and cancelled the original execution;
     // remove only our cached borrow instead of keeping the reciprocal root.

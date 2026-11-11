@@ -551,7 +551,8 @@ pub fn captured_effect_local_result_export_matches_model_suffix(
         producer = edge.producer
       }
     }
-    if producer < model_task {
+    if producer < model_task ||
+      !captured_completed_edge_matches(run, consumer, producer) {
       return false
     }
     if producer == model_task {
@@ -568,7 +569,7 @@ pub fn captured_effect_local_result_export_matches_model_suffix(
       return inputs.live &&
         !run.stopped &&
         run.lifetimes[model_task].live &&
-        run.lifetimes[consumer].live &&
+        run.lifetimes[result.task].live &&
         captured_completed_task_has_original_input(run, consumer, original) &&
         captured_effect_local_result_export_derived_retained(value) &&
         captured_effect_local_result_export_retained(inputs, value)
@@ -587,6 +588,16 @@ fn captured_completed_task_has_original_input(
   task : Int,
   original : @execution.CompletedOutput,
 ) -> Bool {
+  if run.lifetimes[task].completion is Some(completed) {
+    guard completed.producer is Some(producer) &&
+      run.lifetimes[producer].completion is Some(parent) &&
+      parent.original is Some(occurrence) else {
+      return false
+    }
+    return @execution.completed_output_occurrence_matches_original(
+      occurrence, original,
+    )
+  }
   match run.outputs[task] {
     Some(Materialized(output)) =>
       @execution.completed_output_has_original_operation_input(

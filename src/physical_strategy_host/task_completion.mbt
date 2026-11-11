@@ -33,6 +33,7 @@ fn commit_task_output(
   reservation : @resources.Reservation,
   output_bytes : Int64,
   remaining_execution : Int64,
+  completion? : CapturedTaskCompletion? = None,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -65,6 +66,7 @@ fn commit_task_output(
     parents: task_parents(run, task),
   })
   run.outputs[task] = Some(output)
+  run.lifetimes[task].completion = completion
   run.done[task] = true
   clear_captured_inputs(run, task)
   run.generation += 1
@@ -123,6 +125,11 @@ fn commit_materialized_task_output(
     reservation,
     output_bytes,
     remaining_execution,
+    completion=prepare_captured_task_completion(
+      run.graph,
+      task,
+      Some(@execution.completed_output_original_occurrence(output)),
+    ),
   )
 }
 
@@ -241,6 +248,11 @@ pub fn[T] complete_managed_task_execution_with_inputs(
       execution.reservation,
       storage_bytes,
       task_output_remaining_scratch(execution),
+      completion=prepare_captured_task_completion(
+        run.graph,
+        task,
+        @execution.managed_completed_output_original_occurrence(output),
+      ),
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

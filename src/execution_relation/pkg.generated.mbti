@@ -548,6 +548,10 @@ pub fn completed_output_matches_serialization_sort(CompletedOutput, @lowering_re
 
 pub fn completed_output_matches_supplied_inputs(CompletedOutput, Array[SuppliedRelationRead]) -> Bool
 
+pub fn completed_output_occurrence_matches_original(CompletedOutputOccurrence, CompletedOutput) -> Bool
+
+pub fn completed_output_original_occurrence(CompletedOutput) -> CompletedOutputOccurrence
+
 pub fn completed_output_retained_material(CompletedOutput) -> RetainedOutputMaterial?
 
 pub fn completed_output_row_wire(CompletedOutput, Int, Int, Int, Int) -> Result[String, CompletedExportIssue]
@@ -893,6 +897,8 @@ pub fn[T] managed_completed_output_matches_managed_inputs(ManagedCompletedOutput
 pub fn[T] managed_completed_output_matches_material(ManagedCompletedOutput[T], ManagedRetainedOutput[T]) -> Bool
 
 pub fn[T] managed_completed_output_matches_port(ManagedCompletedOutput[T], @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
+pub fn[T] managed_completed_output_original_occurrence(ManagedCompletedOutput[T]) -> CompletedOutputOccurrence?
 
 pub fn[T] managed_completed_output_row_count(ManagedCompletedOutput[T]) -> Int
 
@@ -1992,6 +1998,8 @@ type CompletedOutputExportPreparation
 type CompletedOutputExportReceipt
 
 type CompletedOutputImport
+
+type CompletedOutputOccurrence
 
 pub(all) struct CompletedRelationExportMeasurement {
   row_count : Int

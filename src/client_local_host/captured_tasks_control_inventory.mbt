@@ -78,3 +78,25 @@ fn local_tasks_control_capacity(
   })
   bytes.bind(value => @execution.execution_capacity(value, value))
 }
+
+///|
+// SAME Effect control owner, retained beyond individual output/body retirement.
+// Per checked task: completion field; completion Some + record; producer Some;
+// occurrence Some + record. Original identity/target are borrowed DATA only.
+// No rows, callbacks, input binding, holding or owned text/wire are retained.
+fn captured_task_completion_control_capacity(
+  graph : @strategy.CheckedDAG,
+) -> @execution.ExecutionCapacity? {
+  let tasks = if @strategy.graph_program_has_effects(graph) {
+    @strategy.graph_task_count(graph).to_int64()
+  } else {
+    0L
+  }
+  @execution.preparation_representation_cost({
+    record_headers: 5L * tasks,
+    reference_slots: 7L * tasks,
+    scalar_words: 4L * tasks,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => @execution.execution_capacity(bytes, bytes))
+}
