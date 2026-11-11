@@ -30,7 +30,11 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current(
     Err(issue) => return Err(OriginalSigningProof(issue))
     Ok(value) => value
   }
-  self.initial_signing_current_after_original_scope(scope, subject, original_use~)
+  self.initial_signing_current_after_original_scope(
+    scope,
+    subject,
+    original_use~,
+  )
 }
 
 ///|
@@ -81,6 +85,7 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current_after_original_sco
       reviewer.connection,
       reviewer.request,
       ReadRunMaterials,
+      fresh_account=true,
       capture=match reviewer.approval_scope {
         SavedApproval(saved) => Some(saved.capture)
         ResidentApproval(_) => None
@@ -117,7 +122,7 @@ fn NativeLocalInitialSigningCurrent::require_locked(
   if !host.journal.transaction_active ||
     host.journal.fenced ||
     !physical_equal(host, self.key.original.host) ||
-    !self.authority.current_for(host.journal, reviewer.request) ||
+    !self.authority.current_signing_for(host.journal, reviewer.request) ||
     !self.key.installed.current() ||
     self.key.require_current() is Err(_) {
     return Err(AuthorizationDenied)
@@ -149,7 +154,7 @@ fn NativeLocalInitialSigningCurrent::require_locked(
     installed.reviewer.public_key_pem != registration.public_key_pem ||
     self.key.fields.authority_scope_cid != registration.authority_context_cid ||
     self.key.fields.account_configuration_cid != registration.policy_cid ||
-    !self.authority.current_for(host.journal, reviewer.request) ||
+    !self.authority.current_signing_for(host.journal, reviewer.request) ||
     !installed.current() ||
     self.key.finish_original_projection() is Err(_) {
     return Err(AuthorizationDenied)

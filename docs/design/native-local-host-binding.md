@@ -755,6 +755,13 @@ not discover a default actor or resource. The original initial control, paired
 Reviewer key, physical Host key generation and selected Host file remain bound
 to the same adopted Host.
 
+Within an initial signing operation, Submission scope and key checks may share
+the same captured Read's immutable adopted material. Signing RunRead evaluates
+the original Account again instead of consuming the ordinary Read's decision
+table. Reviewer Resolve and Host Sign remain independently evaluated. This
+private selection creates no persisted authority or clock sample; Epoch,
+cancellation, revision and physical signing/use fences retain their owners.
+
 Core exposes the complete immutable unsigned verified-wrapper wire from its
 already admitted Resolution. The Host admits the exact authenticated Reviewer
 candidate and evidence at one trusted first `verified_at`, then commits that

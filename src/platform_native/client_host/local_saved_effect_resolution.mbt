@@ -137,14 +137,17 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
         // Three initial scope constructors (approval, resolution, Host) also
         // hand off their existing scope/subject pair without a second read.
         // Fund those transient pair headers/references before any constructor.
+        // The Submission continuation adds one borrowed capture option and a
+        // closure slot; strict Account selection adds only transient scalars.
         record_headers: saved_effect_decision_emission_controls.record_headers +
         measurement.record_headers +
-        5L,
+        6L,
         reference_slots: saved_effect_decision_emission_controls.reference_slots +
         measurement.reference_slots +
-        10L,
+        12L,
         scalar_words: saved_effect_decision_emission_controls.scalar_words +
-        measurement.scalar_words,
+        measurement.scalar_words +
+        4L,
         owned_utf16_units: saved_effect_decision_emission_controls.owned_utf16_units +
         measurement.owned_utf16_units,
         owned_wire_bytes: saved_effect_decision_emission_controls.owned_wire_bytes,
