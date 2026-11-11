@@ -7,6 +7,7 @@ import {isAbsolute, join, resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {prepareHealthPackages, mockWorkflowMetrics, execute} from './health-monitor-adapters.mjs';
+import {packedEffectControlCases, runMockEffectControls} from './packed-mock-effect-controls.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
 export const packedReadmeCases = Object.freeze([
@@ -189,6 +190,8 @@ export async function runPackedReadmeWorkflows(root) {
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires verified unchanged normal packages'})),
+    controls: packedEffectControlCases.map(mode => ({mode, completed: false, status: 'unexecuted',
+      unexecutedReason: 'Requires verified unchanged normal packages and a fresh original capture'})),
     compositions: packedCompositionCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires verified unchanged normal packages and matching composition fixture'})),
     complete: false, performanceAcceptance: false,
@@ -204,8 +207,9 @@ export async function runPackedReadmeWorkflows(root) {
     } catch (error) {failures.push(error);}
     await runReadmeCases({prepared, root, repository, command, report, failures});
     await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
+    await runMockEffectControls({prepared, root, repository, command, records: report.controls, failures});
     report.complete = failures.length === 0 && report.collection.every(row => row.completed) &&
-      report.cases.every(row => row.completed) && report.compositions.every(row => row.completed);
+      report.cases.every(row => row.completed) && report.compositions.every(row => row.completed) && report.controls.every(row => row.completed);
   } catch (error) {failures.push(error);}
   finally {
     if (prepared) try {

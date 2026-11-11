@@ -1061,7 +1061,7 @@ jobs:
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/client-readme-input
-      - name: Test collection and all three original README workflows
+      - name: Test collection, original README workflows and Effect denial/cancel controls
         run: node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"
       - name: Preserve actual functional outcomes and failures
         if: always()
@@ -1075,6 +1075,8 @@ jobs:
             ${{ runner.temp }}/client-readme-packed/raw/*
             ${{ runner.temp }}/client-readme-packed/mock-project-*/*.observation.json
             ${{ runner.temp }}/client-readme-packed/mock-project-*/*.pending.json
+            ${{ runner.temp }}/client-readme-packed/mock-effect-control-*/*.observation.json
+            ${{ runner.temp }}/client-readme-packed/mock-effect-control-*/*.before-close.json
             ${{ runner.temp }}/client-readme-packed/collection/*.observation.json
             ${{ runner.temp }}/client-readme-packed/collection/*.pending.json
           if-no-files-found: error

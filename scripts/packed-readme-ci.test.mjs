@@ -9,6 +9,7 @@ import {parse as parseJavaScript} from 'acorn';
 import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets.mjs';
 import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases, packedCompositionCases} from './test-packed-readme-workflows.mjs';
+import {packedEffectControlCases, assertMockEffectControlOutcome} from './packed-mock-effect-controls.mjs';
 import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
@@ -259,6 +260,8 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   assert(output.with.path.includes('raw/*')); assert(output.with.path.includes('*.observation.json'));
   assert(output.with.path.includes('mock-project-*/*.pending.json'));
   assert(output.with.path.includes('collection/*.pending.json'));
+  assert(output.with.path.includes('mock-effect-control-*/*.observation.json'));
+  assert(output.with.path.includes('mock-effect-control-*/*.before-close.json'));
   assert.deepEqual(workflow.jobs.check.needs, gateJobs);
   const basic = workflow.jobs.lint.steps.map(step => step.run ?? '').join('\n');
   assert(basic.includes('adapters/host-node/client-result-collection-policy.test.mjs'));
@@ -270,7 +273,8 @@ test('required README gate selects actual SDK Host Core schema and packaging PR 
   const sha = 'a'.repeat(40);
   for (const path of ['packages/sdk/internal/result-read.mjs', 'adapters/host-node/embedded-local.mjs',
     'src/client_local_host/resource_policy.mbt', 'spec/contracts/actql-client-host.json',
-    'scripts/packed-client-packages.mjs']) {
+    'scripts/packed-client-packages.mjs', 'scripts/packed-mock-effect-controls.mjs',
+    'scripts/fixtures/mock-project-effect-cancel-public.mjs']) {
     const selection = selectTargets([path], {draft: false, event: 'pull_request'});
     assert.equal(gateJobRequired(selection, name), true, path);
     const results = Object.fromEntries(gateJobs.map(key => [key,
@@ -746,8 +750,9 @@ test('collection operation intervals retain actual monotonic and own-child CPU b
   }
 });
 
-async function runnerFunctions() {
-  const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
+async function runnerFunctions(relative = './test-packed-readme-workflows.mjs') {
+  const url = new URL(relative, import.meta.url);
+  const source = await readFile(url, 'utf8');
   const declarations = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
     .map(value => value.type === 'ExportNamedDeclaration' ? value.declaration : value)
     .filter(value => value?.type === 'FunctionDeclaration');
@@ -757,7 +762,7 @@ async function runnerFunctions() {
     // Retain the original module coordinate when compiling its actual function
     // with explicit test ports; Function itself has no import.meta binding.
     const body = source.slice(node.start, node.end).replaceAll('import.meta.url',
-      JSON.stringify(new URL('./test-packed-readme-workflows.mjs', import.meta.url).href));
+      JSON.stringify(url.href));
     return Function(...Object.keys(ports), `return (${body});`)(...Object.values(ports));
   };
 }
@@ -858,7 +863,9 @@ test('independent normal consumers continue after collection and variant failure
     process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/authored-normal-input'}, version: 'explicit-test',
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
     URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
-    packedReadmeCases, packedCompositionCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+    packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+    runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
+    nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async () => ({consumer, manifest: {}, manifestPath: '/authored-manifest'}),
     runCollectionConsumer: async ({report, cleanup}) => {
       report.collection.find(value => value.phase === 'capture').status = 'failed';
@@ -902,7 +909,9 @@ test('required mixed Model Whole is distinct from README three and cannot pass f
       process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/authored-original'}, version: 'explicit-test',
         platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
       URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
-      packedReadmeCases, packedCompositionCases, nodeBenchmarkFailure,
+      packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+      runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
+      nodeBenchmarkFailure,
       execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => prepared,
       runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true; row.status = 'passed';}),
       runReadmeCases: async options => {
@@ -964,7 +973,9 @@ test('failed shared package preparation records every dependent as unexecuted an
     process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/authored-normal-input'}, version: 'explicit-test',
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository, URL,
     checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
-    packedReadmeCases, packedCompositionCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+    packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+    runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
+    nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async options => {assert.equal(options.normalLifecycle, true); throw failure;},
     runCollectionConsumer: async () => assert.fail('No collection with failed shared input'),
     runReadmeCases: async () => assert.fail('No README with failed shared input'),
@@ -973,7 +984,7 @@ test('failed shared package preparation records every dependent as unexecuted an
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
   assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'capture', 'saved']);
   assert.equal(report.complete, false);
-  assert([...report.collection, ...report.cases, ...report.compositions].every(value =>
+  assert([...report.collection, ...report.cases, ...report.compositions, ...report.controls].every(value =>
     value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
   assert.equal(report.failures.length, 1);
 });
@@ -1127,4 +1138,136 @@ test('small original Model failure and preclose units run once in Draft lint wit
   assert(!/moon |npm (?:pack|run)|build-runtime/u.test(step.run));
   assert(gateJobs.includes('client-readme-packed'));
   assert.deepEqual(workflow.jobs.check.needs, gateJobs);
+});
+
+// Command-port evidence below checks driver selection and refusal of incomplete
+// outcomes. It does not stand in for installed constructors or normal controls.
+const explicitEffectControl = (mode, pid = 7000) => ({mode, pid, status: 'passed', originalRun: true,
+  targetUnchanged: true, firstClose: {attempted: true, returned: true}, aliveScopedFD: {before: 0, after: 0},
+  workObservation: {complete: true, sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0},
+  ...(mode === 'approve-deny' ? {runStatus: 'waiting_checkpoint',
+    refusal: {code: 'ExecutionAuthorizationDenied', action: 'deny', operation: 'sign'}}
+    : {cancellationKind: 'accepted', runStatus: 'cancelled', physicalStop: 'confirmed', resultAvailable: false})});
+
+test('normal Effect controls require original current refusals, zero actual writes and FIRST close', () => {
+  assert.deepEqual(packedEffectControlCases, ['approve-deny', 'paused-cancel']);
+  for (const mode of packedEffectControlCases) {
+    assertMockEffectControlOutcome(explicitEffectControl(mode), mode, 7000);
+    for (const mutate of [value => value.workObservation.complete = false,
+      value => value.workObservation.effectReplacementReturns++, value => value.workObservation.modelCallStarts++,
+      value => value.workObservation.sourceAcquisitionStarts++, value => value.targetUnchanged = false,
+      value => value.firstClose.returned = false, value => value.aliveScopedFD.after++,
+      value => value.originalRun = false, value => value.status = 'unknown', value => value.pid++]) {
+      const value = explicitEffectControl(mode); mutate(value);
+      assert.throws(() => assertMockEffectControlOutcome(value, mode, 7000));
+    }
+  }
+  const deny = explicitEffectControl('approve-deny'); deny.refusal.operation = 'write';
+  assert.throws(() => assertMockEffectControlOutcome(deny, deny.mode, deny.pid));
+});
+
+test('normal Effect driver selects each fresh two-Model capture and public control exactly once', async t => {
+  const {root, consumer} = await scratch(t), load = await runnerFunctions('./packed-mock-effect-controls.mjs');
+  const prepared = {consumer, manifest: {}, manifestPath: '/exact-unchanged-normal-input'}, calls = [];
+  const workflowSource = await readFile(join(repository, 'adapters/host-node/fixtures/mock-project-effect-public.mjs'), 'utf8');
+  const run = load('runControl', {assert, mkdir, writeFile, readFile, copyFile, symlink, readlink, unlink, join, dirname,
+    twoModelDealReviewFiles, packedEffectControlCases, assertMockEffectControlOutcome, process, nodeBenchmarkFailure,
+    verifyNodeBenchmarkPackages: async (...args) => assert.deepEqual(args, [prepared.manifest, prepared.manifestPath, consumer])});
+  for (const mode of packedEffectControlCases) {
+    const record = {mode, phases: []};
+    await run({prepared, root, repository, record, async command(_exe, args, options) {
+      assert.equal(options.timeout, 30000);
+      assert.equal(await readlink(join(options.cwd, 'node_modules')), join(consumer, 'node_modules'));
+      const capture = args[1] === 'capture'; calls.push([mode, capture ? 'capture' : 'control']);
+      assert.equal((await readFile(join(options.cwd, 'capture-original.mjs'), 'utf8')), workflowSource);
+      if (capture) {
+        assert.deepEqual(args.slice(1), ['capture', join(options.cwd, 'handoff.json'), 'deal-review-mock', 'two-models']);
+        assert.equal(JSON.parse(await readFile(join(options.cwd, 'model-tasks.json'), 'utf8')).tasks['model-task:deal-review-confirm.v1'],
+          './model-tasks/deal-review-confirm.v1.yaml');
+      } else assert.deepEqual(args.slice(1), [join(options.cwd, 'handoff.json'), mode]);
+      const rows = capture ? [...Array.from({length: 10}, (_, i) => explicitStep('capture', String(i))),
+        {phase: 'capture', status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
+          workObservation: explicitWork('capture', 'two-models')},
+        {phase: 'capture', event: 'after-first-close', pid: 7000, aliveScopedFD: {after: 0}}]
+        : [explicitEffectControl(mode)];
+      return {pid: 7000, code: 0, signal: null, stdout: rows.map(value => JSON.stringify(value)).join('\n')};
+    }});
+    assert(record.phases.every(phase => phase.completed));
+    await assert.rejects(readlink(join(root, `mock-effect-control-${mode}`, 'node_modules')), {code: 'ENOENT'});
+  }
+  assert.deepEqual(calls, packedEffectControlCases.flatMap(mode => [[mode, 'capture'], [mode, 'control']]));
+});
+
+test('normal Effect driver retains failed capture and does not dispatch its public action', async t => {
+  const {root, consumer} = await scratch(t), load = await runnerFunctions('./packed-mock-effect-controls.mjs');
+  const failure = new Error('Original captured Run failed'), record = {mode: 'paused-cancel', phases: []};
+  const run = load('runControl', {assert, mkdir, writeFile, readFile, copyFile, symlink, readlink, unlink, join, dirname,
+    twoModelDealReviewFiles, packedEffectControlCases, assertMockEffectControlOutcome, process, nodeBenchmarkFailure,
+    verifyNodeBenchmarkPackages: async () => {}});
+  let calls = 0;
+  await assert.rejects(run({prepared: {consumer}, root, repository, record, async command(_exe, args) {
+    calls++; assert.equal(args[1], 'capture'); throw failure;
+  }}), error => error === failure);
+  assert.equal(calls, 1); assert.equal(record.phases.length, 1); assert.equal(record.phases[0].completed, false);
+  await assert.rejects(readlink(join(root, 'mock-effect-control-paused-cancel', 'node_modules')), {code: 'ENOENT'});
+});
+
+test('required normal controls preserve original errors and cannot pass an unexecuted control', async t => {
+  const load = await runnerFunctions('./packed-mock-effect-controls.mjs'), failure = new Error('Original denial unknown');
+  const records = packedEffectControlCases.map(mode => ({mode, completed: false, status: 'unexecuted'})), failures = [];
+  const run = load('runMockEffectControls', {assert, packedEffectControlCases, nodeBenchmarkFailure,
+    runControl: async ({record}) => {if (record.mode === 'approve-deny') throw failure;}});
+  await run({records, failures});
+  assert.deepEqual(failures, [failure]); assert.deepEqual(records.map(value => value.status), ['failed', 'passed']);
+  assert.equal(records[0].completed, false);
+  const {root, consumer} = await scratch(t), output = join(root, 'out'), runner = await runnerFunctions();
+  const before = {clean: true, revision: 'a'.repeat(40)};
+  const execute = runner('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+    process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/normal-original'}, version: 'explicit-test'},
+    fileURLToPath: () => repository, URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40),
+    mkdir, join, writeFile, packedReadmeCases, packedCompositionCases, packedEffectControlCases, nodeBenchmarkFailure,
+    execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => ({consumer}),
+    runCollectionConsumer: async ({report}) => report.collection.forEach(row => row.completed = true),
+    runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
+    runMockEffectControls: async () => {}, verifyNodeBenchmarkPackages: async () => {}});
+  await assert.rejects(execute(output), {code: 'ERR_ASSERTION'});
+  const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
+  assert.equal(report.complete, false); assert(report.controls.every(value => !value.completed && value.status === 'unexecuted'));
+});
+
+test('normal Effect control timeout retains only the same child primary and never calls close an ACK', async t => {
+  const {root, consumer} = await scratch(t), load = await runnerFunctions('./packed-mock-effect-controls.mjs');
+  const final = {...explicitEffectControl('paused-cancel'), status: 'failed', primaryCode: 'OriginalCurrentRefusal',
+    firstClose: {attempted: true, returned: false}};
+  const failure = Object.assign(new Error('Original control timeout'),
+    {commandResult: {pid: 7000, code: 1, stdout: JSON.stringify(final)}});
+  for (const partialPid of [7000, 7001]) {
+    const parent = join(root, String(partialPid)); await mkdir(parent);
+    const record = {mode: 'paused-cancel', phases: []};
+    const run = load('runControl', {assert, mkdir, writeFile, readFile, copyFile, symlink, readlink, unlink, join, dirname,
+      twoModelDealReviewFiles, packedEffectControlCases, assertMockEffectControlOutcome, process, nodeBenchmarkFailure,
+      verifyNodeBenchmarkPackages: async () => {}});
+    await assert.rejects(run({prepared: {consumer}, root: parent, repository, record,
+      async command(_exe, args, options) {
+        if (args[1] !== 'capture') {
+          await writeFile(join(options.cwd, 'handoff.json.cancel.before-close.json'), JSON.stringify({
+            phase: 'cancel', pid: partialPid, failed: true, primaryCode: 'OriginalCurrentRefusal',
+            firstClose: {attempted: false, returned: false}}));
+          throw failure;
+        }
+        return {pid: 6000, code: 0, stdout: [...Array.from({length: 10}, (_, i) => explicitStep('capture', String(i))),
+          {phase: 'capture', status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
+            workObservation: explicitWork('capture', 'two-models')},
+          {phase: 'capture', event: 'after-first-close', pid: 6000, aliveScopedFD: {after: 0}}]
+          .map(value => JSON.stringify(value)).join('\n')};
+      }}), error => error === failure);
+    const result = record.phases[1]; assert.equal(result.completed, false);
+    assert.equal(result.actual.primaryCode, 'OriginalCurrentRefusal');
+    assert.equal(result.actual.firstClose.returned, false);
+    assert.equal(result.exitCode, 1);
+    if (partialPid === 7000) {
+      assert.equal(result.partialObservation.primaryCode, 'OriginalCurrentRefusal');
+      assert.deepEqual(result.partialObservation.firstClose, {attempted: false, returned: false});
+    } else assert.equal(result.partialObservation, undefined);
+  }
 });
