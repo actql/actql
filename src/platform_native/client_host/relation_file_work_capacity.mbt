@@ -209,6 +209,10 @@ fn native_relation_whole_file_work_control_capacity(
       owned_wire_bytes: 0L,
     })
     is Some(wrappers) &&
+    native_relation_whole_file_clock_capacity() is Some(clock) &&
+    @execution.checked_preparation_add_product(
+      native, @execution.execution_capacity_retained_bytes(clock), 1L,
+    ) is Some(native) &&
     @execution.checked_preparation_add_product(native, source, 1L) is Some(base) &&
     @execution.checked_preparation_add_product(base, wrappers, 1L) is Some(base) &&
     @execution.checked_preparation_add_product(
@@ -226,4 +230,23 @@ fn native_relation_whole_file_work_control_capacity(
     return None
   }
   @execution.execution_capacity(r, e)
+}
+
+///|
+// The fixed Native CLI UTC sampler (local_start/stdout_stub), called twice.
+// Each successful C sample writes exactly 24 ASCII bytes into Bytes(25).
+// Its pinned non-JS UTF8 decoder allocates Bytes(24) and UInt16[24], retagged
+// as the same String. Count its fallback too: at most 25 loop match tuples
+// and 24 rest views; the Native intrinsic can only remove those allocations.
+// Per sample: two byte buffers H2/B49, UTF16 H1/U24, four views H4/R4/S8,
+// loop tuples H25/R25/S25, rest views H24/R24/S48 = H56/R53/S81.
+// Two samples plus the callback/started Some/match/final pair/Some use
+// H117/R112/S164/U48/B98. No allocator or phase reuse is assumed. The existing
+// nonrecursive C call frames stay in the enclosing Native command stack basis.
+fn native_relation_whole_file_clock_capacity() -> @execution.ExecutionCapacity? {
+  guard @execution.preparation_representation_cost({
+    record_headers: 117L, reference_slots: 112L, scalar_words: 164L,
+    owned_utf16_units: 48L, owned_wire_bytes: 98L,
+  }) is Some(bytes) else { return None }
+  @execution.execution_capacity(bytes, bytes)
 }

@@ -1514,6 +1514,57 @@ fn native_pure_file_request_payload(
           "Native Whole Plan physical Ledger before Source: reservations=\{usage.live_reservations},R=\{usage.reserved_retention_bytes},E=\{usage.reserved_execution_bytes}",
         )
         if prepared_control {
+          let before_quote = @initial_resources.ledger_usage(physical)
+          let (physical_graph, _, _, _) = @local_values.installed_managed_capture_publication_geometry_original(
+            owner, prepared, request,
+          ).unwrap()
+          let selected = original.sources
+            .iter()
+            .find_first(source => {
+              physical_equal(source._retained_declaration, declaration)
+            })
+            .unwrap()
+          let resource = @row_host.row_input_acquisition_target_resource(
+            @local_values.installed_whole_source_acquisition(capacity),
+          )
+          let row = selected._retained_rows
+            .iter()
+            .find_first(row => row.view.resource == resource)
+            .unwrap()
+          assert_eq(row._retained_selection.items_path.length(), 3)
+          assert_eq(row._retained_selection.key_path.unwrap().length(), 3)
+          assert_eq(row.limits.page.max_bytes, 1048576)
+          // Keep the standalone diagnostic's 64 KiB refusal. This managed
+          // quote instead binds the actual original provider and Whole Plan.
+          assert_true(
+            @local_host.native_relation_file_entry_read_capacity(
+              row._retained_selection,
+              row.limits,
+            )
+            is None,
+          )
+          let quoted = @local_host.native_relation_whole_file_entry_read_capacity(
+            row._retained_selection,
+            row.limits,
+            row.provider,
+            physical_graph,
+          ).unwrap()
+          let tasks = @strategy.graph_task_count(physical_graph).to_int64()
+          let ports = @strategy.graph_data_count(physical_graph).to_int64()
+          let task_loop = (16L + 12L * tasks + 2L * ports) * 16L +
+            (32L + 16L * tasks + 4L * ports) * 8L +
+            (8L + 4L * tasks + ports) * 8L
+          // Independent 3+3-path vector: entry30146 + Work48234 + clock4274
+          // + prepared-provider119696 + fixed Whole wrappers704 + task loop.
+          assert_eq(
+            @execution.execution_capacity_retained_bytes(quoted),
+            203054L + task_loop,
+          )
+          assert_eq(
+            @execution.execution_capacity_execution_bytes(quoted),
+            203054L + task_loop,
+          )
+          assert_eq(@initial_resources.ledger_usage(physical), before_quote)
           let admission = @local_values.installed_managed_preparation_admission_original(
             owner, prepared, request,
           ).unwrap()

@@ -559,6 +559,22 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
     business.file_entry is None && business.file_failure is None else {
     stop("LocalBusinessOriginalUnavailable")
   }
+  guard self.original.host is Some(physical) &&
+    self.original.read is Some(read) &&
+    @local_values.installed_managed_capture_publication_geometry_original(
+      managed, prepared, request,
+    ) is Some((graph, _, _, _)) else { stop("LocalBusinessOriginalUnavailable") }
+  let read_capacity = @local_host.native_relation_whole_file_entry_read_capacity(
+    row._retained_selection, row.limits, row.provider, graph,
+  ).unwrap_or_else(() => stop("LocalSourceReadCapacityUnavailable"))
+  let r = @execution.execution_capacity_retained_bytes(read_capacity)
+  let e = @execution.execution_capacity_execution_bytes(read_capacity)
+  // The original consumer retains its finite base. Acquire actual backing on
+  // that SAME Read before entry/provider/selection constructors; this neither
+  // borrows the business debit nor increases either installed facility cap.
+  command_preparation_result(physical.prepare_domain_original_read_construction(
+    read, r, e, Int64::max(r, e),
+  ).map_err(issue => CommandRead(issue)), stage=Some("file-entry-read"))
   let outcome = self.host.prepare_original_whole_relation_file_work_entry(
     operation, self.principal, self.connection, request, prepared, compiled,
     definition, declaration._retained_declaration, managed, capacity,

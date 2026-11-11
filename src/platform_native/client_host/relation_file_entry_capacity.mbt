@@ -39,6 +39,13 @@ pub fn native_relation_file_entry_read_capacity(
   if !@row_file.native_relation_file_input_valid(selection, limits) {
     return None
   }
+  native_relation_file_entry_read_control_capacity(selection)
+}
+
+///|
+fn native_relation_file_entry_read_control_capacity(
+  selection : @row_file.NativeRelationFileSelection,
+) -> @execution.ExecutionCapacity? {
   let key_fields = match selection.key_path {
     None => 0L
     Some(path) => 14L + 3L * path.length().to_int64()
@@ -122,4 +129,32 @@ pub fn native_relation_file_entry_outer_capacity() -> @execution.ExecutionCapaci
     return None
   }
   @execution.execution_capacity(bytes, bytes)
+}
+
+///|
+/// Complete conservative original-Read envelope for the fixed Whole entry.
+/// Sum the existing entry and Whole caller frontiers without temporal reuse.
+/// Their distinct business reservation is still owned by the original body;
+/// this DATA is for the original Read's separately backed construction realm.
+pub fn native_relation_whole_file_entry_read_capacity(
+  selection : @row_file.NativeRelationFileSelection,
+  limits : @row_file.NativeRelationFileLimits,
+  provider : @row_file.NativeRelationFilePreparedProvider,
+  graph : @strategy.CheckedDAG,
+) -> @execution.ExecutionCapacity? {
+  // The prepared provider checks the actual admitted managed profile. Do not
+  // apply the standalone diagnostic reader's independent 64 KiB ceiling.
+  guard native_relation_whole_file_work_control_capacity(
+      selection, limits, provider, graph,
+    ) is Some(whole) &&
+    native_relation_file_entry_read_control_capacity(selection) is Some(entry) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_retained_bytes(entry),
+      @execution.execution_capacity_retained_bytes(whole), 1L,
+    ) is Some(r) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(entry),
+      @execution.execution_capacity_execution_bytes(whole), 1L,
+    ) is Some(e) else { return None }
+  @execution.execution_capacity(r, e)
 }

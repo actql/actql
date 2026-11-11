@@ -200,3 +200,18 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
     native_relation_file_entry_read_capacity(excessive, maximal) is None,
   )
 }
+
+///|
+test "Whole file UTC constructor covers both original samples without allocator reuse" {
+  let quoted = native_relation_whole_file_clock_capacity().unwrap()
+  // Independent two-sample vector, including byte/UTF16 payloads and carriers.
+  let one = 56L * 16L + 53L * 8L + 81L * 8L + 24L * 2L + 49L
+  let carriers = 5L * 16L + 6L * 8L + 2L * 8L
+  assert_eq(one, 2065L)
+  assert_eq(carriers, 144L)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(quoted),
+    2L * one + carriers,
+  )
+  assert_eq(@execution.execution_capacity_execution_bytes(quoted), 4274L)
+}
