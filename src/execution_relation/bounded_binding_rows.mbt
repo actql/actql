@@ -3173,26 +3173,59 @@ fn bounded_binding_rows_step(
             bounded_small_logical_row(state.output_names, state.output_row)
           }
           if state.output_logical is None && small {
+            guard state.output is Some(output) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            let measured = if state.preserve_presence ||
+              !state.output_requires_steps {
+              state.output_values
+            } else {
+              output.buffer.budget
+            }
+            let usage : ValueUsage = {
+              nodes: measured.nodes,
+              text_bytes: measured.text,
+              work: measured.work,
+            }
+            // Fund complete actual DATA while all producing roots still live,
+            // before the logical transfer and persistent storage constructor.
+            // Commit keeps its original current/admission check and same peak.
+            if !fund_output_retention(
+                output.buffer.budget,
+                usage.nodes,
+                usage.text_bytes,
+              ) ||
+              !output.buffer.open {
+              return fail_bounded_binding_rows(
+                Capture(CaptureLimit),
+                progress,
+                used,
+              )
+            }
             let result = if state.preserve_presence {
               if !reserve_slots(state.workspace, 1) {
                 return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
               }
-              let result = row_event_output(
+              let result = row_event_funded_output(
                 scope,
                 state.output_names,
                 Ref(state.presence_cells),
                 state.slot_roots,
                 root,
+                output.buffer.budget,
+                usage,
               )
               release_slots(state.workspace, 1)
               result
             } else {
-              row_event_output(
+              row_event_funded_output(
                 scope,
                 state.output_names,
                 state.output_row,
                 state.slot_roots,
                 root,
+                output.buffer.budget,
+                usage,
               )
             }
             if result is Err(issue) {

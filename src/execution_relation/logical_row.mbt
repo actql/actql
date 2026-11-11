@@ -121,3 +121,38 @@ fn retain_bounded_input_logical_row(
     workspace_bytes=Some(0L),
   )
 }
+
+///|
+// The bounded builder has already reserved this exact pending row's complete
+// DATA before root transfer or storage construction. Keep its semantic debit;
+// a logical receipt constructs no second row body. Foreign/unfunded budgets
+// retain the existing generic recipe rather than supplying a reuse proof.
+fn[T : RowValues] retain_funded_output_logical_row(
+  budget : LogicalBudget,
+  names : Array[String],
+  row : T,
+  output : ValueBudget,
+  usage : ValueUsage,
+) -> Result[LogicalRoot, LogicalBudgetIssue] {
+  let measured = match charge_logical_row(budget, names, row) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let workspace_bytes = if budget.growth is Some(original) &&
+    output.retention is Some(funded) &&
+    physical_equal(original, funded) &&
+    funded.retained_outputs is Some(_) &&
+    output_retention_required_bytes(usage.nodes, usage.text_bytes)
+    is Some(required) &&
+    required <= output.retention_funded {
+    Some(0L)
+  } else {
+    None
+  }
+  reserve_logical_root(
+    budget,
+    measured.wire_bytes.to_int64(),
+    None,
+    workspace_bytes~,
+  )
+}

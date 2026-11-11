@@ -1,5 +1,8 @@
 ///|
-fn collection_capture_execution_case(refuse : Bool) -> Unit raise {
+fn collection_capture_execution_case(
+  refuse : Bool,
+  finalization_quantum? : Int = 64,
+) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
     digits.push("SELECT " + n.to_string() + " AS n")
@@ -117,7 +120,7 @@ fn collection_capture_execution_case(refuse : Bool) -> Unit raise {
     () => true
   }
   let result = execute_source_free_local_tasks_guarded(
-    setup, 64, 100000, current,
+    setup, finalization_quantum, 100000, current,
   )
   if refuse {
     guard result is Err(failure) else {
@@ -197,6 +200,11 @@ test "ordinary collection 9999 executes under its original Local capture policy"
 ///|
 test "ordinary collection 9999 cannot borrow occupied execution allowance" {
   collection_capture_execution_case(true)
+}
+
+///|
+test "collection finalization keeps exact rows at the installed Node quantum" {
+  collection_capture_execution_case(false, finalization_quantum=32)
 }
 
 ///|

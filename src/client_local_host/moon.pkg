@@ -72,6 +72,7 @@ import {
 
 options(
   targets: {
+    "collection_request_finalization_js_wbtest.mbt": [ "js" ],
     "managed_import_reentry_js_wbtest.mbt": [ "js" ],
     "original_values_text_working_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_document_js_wbtest.mbt": [ "js" ],

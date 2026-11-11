@@ -237,6 +237,19 @@ fn working_row_workspace(
 // Existing output budgets supply complete cumulative usage before a row is
 // transferred into persistent storage. Each budget retains its funded peak;
 // all buffers compose on the same task attachment through original cleanup.
+fn output_retention_required_bytes(nodes : Int, text : Int) -> Int64? {
+  execution_capacity_inventory_add(0L, ValueNodeSlots, nodes.to_int64(), 1).bind(node_bytes => {
+      execution_capacity_inventory_add(
+        node_bytes,
+        DecodedTextBytes,
+        text.to_int64(),
+        1,
+      )
+    },
+  )
+}
+
+///|
 fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool {
   guard budget.retention is Some(growth) &&
     growth.retained_outputs is Some(total) else {
@@ -244,15 +257,7 @@ fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool 
   }
   guard !growth.failed &&
     !growth.busy &&
-    execution_capacity_inventory_add(0L, ValueNodeSlots, nodes.to_int64(), 1)
-    is Some(node_bytes) &&
-    execution_capacity_inventory_add(
-      node_bytes,
-      DecodedTextBytes,
-      text.to_int64(),
-      1,
-    )
-    is Some(required) &&
+    output_retention_required_bytes(nodes, text) is Some(required) &&
     required >= budget.retention_funded &&
     required - budget.retention_funded <= 9223372036854775807L - total else {
     growth.failed = true

@@ -1,10 +1,9 @@
 ///|
 // Match the ordinary Local service's selected row ceiling before compilation.
 // This changes fixture Environment DATA, not the existing Resource authority.
-fn collection_capacity_selected_prepared(
-  sql : String,
+fn collection_capacity_selected_environment(
   rows : Int,
-) -> @publication_host.PreparedClientProgram raise {
+) -> @checked.CheckEnvironment raise {
   let assets = @publication_host.client_local_product_assets()
   let parsed = @json.parse(assets.environment)
   guard parsed is Object(fields) &&
@@ -28,12 +27,21 @@ fn collection_capacity_selected_prepared(
     100000,
     100,
   )
-  let environment = @publication_host.admit_client_check_environment(
+  @publication_host.admit_client_check_environment(
     wire,
     cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
+}
+
+///|
+fn collection_capacity_selected_prepared(
+  sql : String,
+  rows : Int,
+) -> @publication_host.PreparedClientProgram raise {
+  let environment = collection_capacity_selected_environment(rows)
+  let cid = @checked.checking_environment_cid(environment)
   let original = @frontend.lower(
     sql,
     @frontend.Sql,

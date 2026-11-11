@@ -16,6 +16,26 @@ fn[T : RowValues] row_event_output(
 }
 
 ///|
+// Same semantic transfer after the bounded builder funds the original output
+// buffer. Producing roots remain live until this full output root is retained.
+fn[T : RowValues] row_event_funded_output(
+  scope : ExpressionRoots,
+  names : Array[String],
+  row : T,
+  slots : Array[ExpressionRootLease],
+  input : ExpressionRootLease,
+  output : ValueBudget,
+  usage : ValueUsage,
+) -> Result[Unit, RowIssue] {
+  let root = match
+    retain_funded_output_logical_row(scope.budget, names, row, output, usage) {
+    Ok(root) => root
+    Err(issue) => return Err(LogicalRows(issue))
+  }
+  row_event_retained_output(scope, root, slots, input)
+}
+
+///|
 /// The same transfer boundary after a bounded row measurement completes.
 fn row_event_retained_output(
   scope : ExpressionRoots,
