@@ -200,7 +200,14 @@ fn NativeClientRelationFileWork::publication_invocation_original(
   }
   let bounds = @rows.row_input_acquisition_limits(acquisition)
   guard @execution_query.captured_source_cell_identity_start_capacity(input)
-    is Some(initial) else {
+    is Some(initial) &&
+    @execution_query.captured_source_cell_identity_workspace_slots(
+      input,
+      bounds.retention,
+      bounds.wire,
+      bounds.wire,
+    )
+    is Some(workspace_slots) else {
     return Err(Configuration)
   }
   match self.grow_publication_identity(metadata, initial) {
@@ -221,7 +228,7 @@ fn NativeClientRelationFileWork::publication_invocation_original(
         max_depth: bounds.wire.max_depth,
       },
       bounds.retention.max_work,
-      bounds.retention.max_nodes,
+      workspace_slots,
       bounds.wire.max_bytes,
     ) {
     Err(issue) => return Err(CaptureIdentity(issue))

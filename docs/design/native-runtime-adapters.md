@@ -172,9 +172,15 @@ acquisition bounds, independently of a narrower aggregate Result. The original
 input CID and effective publication policy travel with the same sealed
 invocation; the caller does not parse their evidence wires again. Incremental
 identity/metadata construction grows the same preparation reservation before
-each constructor while its actual Source/output children coexist. Publication
-then uses the original captured Result pin and the existing Journal/Store/Saved
-continuation, preserving partial generations and ambiguous commits.
+each constructor while its actual Source/output children coexist. The caller
+uses the Core scanner's shared structural workspace count: its three writers
+and actual input-column metadata coexist with the existing bounded traversal
+frames. The value-node admission maximum is not this combined slot count.
+This immutable quote grants no capacity and changes no input or wire limit;
+the original per-transition construction quote still precedes physical growth.
+Publication then uses the original captured Result pin and the existing
+Journal/Store/Saved continuation, preserving partial generations and ambiguous
+commits.
 
 The accounted listing constructor retains the acquisition's original
 configuration in its existing report holder before a response borrow can match

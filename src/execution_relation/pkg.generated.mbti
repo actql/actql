@@ -596,6 +596,8 @@ pub fn completed_relation_identity_scan_start_construction_capacity(CompletedOut
 
 pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> Int64
 
+pub fn completed_relation_identity_scan_workspace_slots(CompletedOutput, ValueLimits, RowWireLimits, RowWireLimits) -> Int?
+
 pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
 pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
