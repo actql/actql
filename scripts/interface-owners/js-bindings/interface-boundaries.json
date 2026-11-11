@@ -31782,7 +31782,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2cf6a5dc9145e5277b2030760b60b2eddfc999b691c7ad587adc2d1c824f413e"
+      "sha256": "7e548512f9bc9f674208bbe16f882ab6825e2795ffabea60cfbc385213f4e9fd"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -157851,7 +157851,7 @@
   ],
   "counts": {
     "modules": 59,
-    "operations": 4536,
+    "operations": 4543,
     "exports": 621,
     "explicitContractGroups": 914
   }

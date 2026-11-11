@@ -41,9 +41,11 @@ function fixture() {
     },
     clientProgramOriginalModelObservationBody:()=>({_0:'model-cid',_1:'{"model":"original"}'}),
     clientProgramOriginalModelObservationCoordinates:()=>({_0:4,_1:2,_2:5}),
-    clientProgramOriginalModelObservationInputBodies:()=>[
+    // This exported Array Option is boxed by the actual pinned compiler.
+    // The tuple/body and String Options beside it remain unboxed.
+    clientProgramOriginalModelObservationInputBodies:()=>({$tag:1,_0:[
       {_0:'relation_value',_1:'input-cid',_2:'{"input":"original"}'},
-    ],
+    ]}),
     clientProgramInferModelIdentityBody(original,completed) {
       assert.strictEqual(original,scan);assert.strictEqual(completed,receipt);
       return '{"outcomes":"original"}';
@@ -105,6 +107,17 @@ test('same original Effect input body Read crosses only its existing compiled Mo
   assert.throws(()=>f.control.startCheckedClientOriginalComposedInferExecution({...f.compiled},f.run,
     occurrence,graph,prefix,inputs,provider,consumer,7n,5n,11n,3n,sources,read),TypeError);
   assert.deepEqual(calls,['start']);
+});
+
+test('original Model input dependency Array Option keeps its qualified boxed export layout',()=>{
+  const f=fixture();
+  const model=f.capture();
+  assert.equal(model.unit,2);
+  assert.deepEqual(model.bodies[1],{kind:'relation_value',cid:'input-cid',wire:'{"input":"original"}'});
+  for(const invalid of [{$tag:0},[],{$tag:1,_0:undefined}]) {
+    f.moon.clientProgramOriginalModelObservationInputBodies=()=>invalid;
+    assert.throws(f.capture,TypeError);
+  }
 });
 
 test('same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion',()=>{

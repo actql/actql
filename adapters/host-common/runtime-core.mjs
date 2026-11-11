@@ -4306,7 +4306,10 @@ function publicationControl(moon) {
       if (original === undefined) throw new TypeError('Foreign Model outcome receipt');
       const body = moon.clientProgramOriginalModelObservationBody(original);
       const coordinates = moon.clientProgramOriginalModelObservationCoordinates(original);
-      const inputs = moon.clientProgramOriginalModelObservationInputBodies(original);
+      // This exported Array Option is boxed by the pinned compiler. The
+      // adjacent tuple/String projections retain their own unboxed layouts.
+      const inputBodies = moon.clientProgramOriginalModelObservationInputBodies(original);
+      const inputs = runtimeIsBoxedSome(inputBodies) ? runtimeField(inputBodies, 0) : undefined;
       const outcomes = moon.clientProgramInferModelIdentityBody(scan, receipt);
       if (typeof runtimeOptionalField(body, 0) !== 'string' ||
           typeof runtimeOptionalField(body, 1) !== 'string' || coordinates === undefined ||
