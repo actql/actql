@@ -37,6 +37,9 @@ fn prepare_managed_output_scratch(
       }
       let next = Int64::max(proof_peak.val, bytes)
       let delta = next - proof_peak.val
+      if delta == 0L {
+        return true
+      }
       guard checked_preparation_add_product(growth.text, delta, 1L)
         is Some(text) &&
         grow_workspace(growth, growth.slots, growth.logical, text=Some(text)) else {

@@ -137,3 +137,51 @@ test "managed packed scratch facts refuse capacity before allocation and retain 
   }
   assert_true(managed_output_values_scratch_released(stream))
 }
+
+///|
+test "nested schema scratch keeps one actual reservation and mandatory first refusal" {
+  let owner = managed_nested_reference_owner()
+  let output = prepare_admitted_output(owner, Step(0), 1, stream_value_limits()).unwrap()
+  let pending_extents : Array[Int] = []
+  assert_eq(
+    managed_schema_reference_free(
+      output.buffer.schema,
+      100,
+      reserve=Some(count => {
+        pending_extents.push(count)
+        true
+      }),
+    ),
+    Some(false),
+  )
+  // The existing object/array/reference fixture visits three contracts while
+  // the actual pending stack's extent remains one throughout.
+  assert_eq(pending_extents, [1, 1, 1])
+  for refuse in [false, true] {
+    let calls = Ref(0)
+    let growth = {
+      ..working_growth_fixture(_ => {
+        calls.val += 1
+        if refuse {
+          Err(WorkspaceUnavailable)
+        } else {
+          Ok(())
+        }
+      }),
+      live_ceiling: 1048576L,
+      retained_outputs: Some(0L),
+    }
+    let budget = value_budget(stream_value_limits()).unwrap()
+    budget.retention = Some(growth)
+    assert_eq(
+      prepare_managed_output_scratch(budget, output.buffer.schema),
+      !refuse,
+    )
+    assert_eq(calls.val, 1)
+    assert_eq(growth.text, if refuse { 0L } else { 192L })
+    // The nested reference still requires the complete original path. Neither
+    // a funded proof stack nor its reuse establishes reference availability.
+    assert_true(budget.row_scratch_start is None)
+    assert_eq((budget.nodes, budget.text, budget.work), (0, 0, 0))
+  }
+}
