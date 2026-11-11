@@ -23,7 +23,11 @@ fn saved_model_imported_scope_matches(
   }
   client_infer_call_scope_matches(scope, compiled.owner, scope.input) &&
   client_infer_saved_call_scope_matches_originals(
-    saved, compiled, saved.definition, scope.plan.occurrence, scope.plan,
+    saved,
+    compiled,
+    saved.definition,
+    scope.plan.occurrence,
+    scope.plan,
   )
 }
 
@@ -36,7 +40,9 @@ fn saved_model_imported_observation_matches(
   input : @publication.RunEvidenceValue,
   source : @publication.RunEvidenceValue,
 ) -> Bool {
-  let (original, _, _, _) = @publication.model_source_observation_originals(saved)
+  let (original, _, _, _) = @publication.model_source_observation_originals(
+    saved,
+  )
   @publication.model_source_observation_matches_input(saved, input) &&
   @publication.run_evidence_value_identity(original) ==
   @publication.run_evidence_value_identity(source) &&
@@ -60,14 +66,18 @@ pub fn issue_restored_model_client_effect_imported_evidence(
   max_depth : Int,
   imports : ClientEffectImportedEvidence,
   original_sources : Array[ClientEffectAcquiredEvidence],
-) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue] {
+) -> Result[
+  ClientEffectModelAcquiredEvidence,
+  ClientEffectAcquiredEvidenceIssue,
+] {
   guard compiled.compilation is Effects(allowed) &&
     physical_equal(scope.plan.owner, compiled.owner) &&
     allowed.compilation.compiled.infers.any(original => {
       physical_equal(original, scope.plan)
     }) &&
     client_infer_occurrence_matches_effect(
-      scope.plan.occurrence, allowed.compilation.owner,
+      scope.plan.occurrence,
+      allowed.compilation.owner,
     ) &&
     scope.plan.keyed is None &&
     saved_model_imported_scope_matches(compiled, scope, saved) else {
@@ -76,7 +86,9 @@ pub fn issue_restored_model_client_effect_imported_evidence(
   let owner = allowed.compilation.owner
   let occurrence = scope.plan.occurrence
   let unit = occurrence.stage
-  let program = @checked.effect_program_static_checked_computation(owner.candidate)
+  let program = @checked.effect_program_static_checked_computation(
+    owner.candidate,
+  )
   guard @checked.unit_definition_cid(program, unit) is Some(definition) &&
     @checked.unit_used_values_cid(program, unit) is Some(values) &&
     @checked.unit_contracts_cid(program, unit) is Some(contracts) &&
@@ -88,11 +100,17 @@ pub fn issue_restored_model_client_effect_imported_evidence(
     imports.observations.length() == count &&
     original_sources.length() == count &&
     scope.named_sources.length() == count &&
-    @strategy.captured_effect_inputs_match_computation(imports.inputs, owner.graph) &&
+    @strategy.captured_effect_inputs_match_computation(
+      imports.inputs,
+      owner.graph,
+    ) &&
     @strategy.captured_effect_inputs_run_definition_cid(imports.inputs) ==
     Some(@publication.publication_contract_identity(saved.definition)) &&
     @publication.local_model_observation_matches_input(
-      model, definition, occurrence.step, scope.artifact,
+      model,
+      definition,
+      occurrence.step,
+      scope.artifact,
     ) else {
     return Err(Invocation(ForeignCapturedInput))
   }
@@ -101,18 +119,29 @@ pub fn issue_restored_model_client_effect_imported_evidence(
   for index in 0..<imports.observations.length() {
     let observed = imports.observations[index]
     let source = original_sources[index]
-    let producer = @strategy.captured_effect_result_import_producer(observed.captured)
-    let interface = @strategy.captured_effect_result_import_interface(observed.captured)
+    let producer = @strategy.captured_effect_result_import_producer(
+      observed.captured,
+    )
+    let interface = @strategy.captured_effect_result_import_interface(
+      observed.captured,
+    )
     let producer_stage = @strategy.captured_effect_local_result_stage(producer)
     guard observed.artifact.source is ResultSource(borrow, result_definition) &&
       physical_equal(observed.owner, owner) &&
       physical_equal(observed.inputs, imports.inputs) &&
-      client_effect_local_artifact_matches_inputs(observed.artifact, imports.inputs) &&
+      client_effect_local_artifact_matches_inputs(
+        observed.artifact,
+        imports.inputs,
+      ) &&
       @strategy.captured_effect_result_import_matches(
-        observed.captured, imports.inputs, unit, producer,
+        observed.captured,
+        imports.inputs,
+        unit,
+        producer,
       ) &&
       @strategy.captured_any_result_borrows_share_view(
-        borrow, @strategy.captured_effect_local_result_borrow(producer),
+        borrow,
+        @strategy.captured_effect_local_result_borrow(producer),
       ) &&
       client_effect_local_result_definition_matches(
         result_definition,
@@ -123,17 +152,23 @@ pub fn issue_restored_model_client_effect_imported_evidence(
       physical_equal(source.owner, owner) &&
       source.invocation.unit == producer_stage &&
       @strategy.captured_effect_inputs_acquired_source_matches(
-        imports.inputs, producer_stage, source.identity,
+        imports.inputs,
+        producer_stage,
+        source.identity,
       ) &&
       client_effect_local_manifest_matches(
-        observed.manifest, owner, observed.artifact.invocation,
+        observed.manifest,
+        owner,
+        observed.artifact.invocation,
         observed.manifest.artifacts,
       ) &&
       !seen.contains(interface.input_name) &&
       scope.named_sources.any(original => {
         original.0 == interface.input_name &&
         saved_model_imported_observation_matches(
-          original.1, source.input, source.observation,
+          original.1,
+          source.input,
+          source.observation,
         )
       }) else {
       return Err(Invocation(ForeignResultImport))
@@ -146,22 +181,35 @@ pub fn issue_restored_model_client_effect_imported_evidence(
   observations.sort_by(@canonical_value.compare_utf16)
   let invocation = match
     issue_client_effect_local_invocation_body(
-      owner, unit, definition, values, contracts,
-      @checked.checked_local_policy_cid(program), observations,
-      max_bytes, max_nodes, max_depth,
+      owner,
+      unit,
+      definition,
+      values,
+      contracts,
+      @checked.checked_local_policy_cid(program),
+      observations,
+      max_bytes,
+      max_nodes,
+      max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Invocation(issue))
   }
   let combined = match
     @publication.issue_combined_acquisition_scope(
-      [imports.scope], max_bytes, max_nodes, max_depth,
+      [imports.scope],
+      max_bytes,
+      max_nodes,
+      max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Relation(issue))
   }
   if !saved_model_imported_scope_matches(compiled, scope, saved) ||
-    !@strategy.captured_effect_inputs_match_computation(imports.inputs, owner.graph) {
+    !@strategy.captured_effect_inputs_match_computation(
+      imports.inputs,
+      owner.graph,
+    ) {
     return Err(Invocation(ForeignCapturedInput))
   }
   Ok({
