@@ -2120,10 +2120,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     prepareRead(prepared, declaration, originalRun, occurrence) {
       const run = runFor(prepared);
       const declared = bundle?.sources.findIndex(source => source.declaration === declaration);
-      const index = project ? occurrence?.task : declared;
+      // A declaration is an installed factory, not an acquisition occurrence.
+      // Several published names can borrow it in the same checked Run. Keep
+      // each caller's original slot instead of coalescing its physical child.
+      const index = project || occurrence !== undefined ? occurrence?.task : declared;
       const expectedRun = run.producer.preparation === undefined ? run.original : run.value;
       if (declared === undefined || declared < 0 || run.prepared !== prepared ||
           expectedRun === undefined || expectedRun !== originalRun ||
+          occurrence !== undefined && !['stage', 'input', 'task'].every(name =>
+            Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0) ||
           project && (!Number.isSafeInteger(index) || index < 0 || index >= 32 ||
             occurrence.stage !== index || occurrence.input !== 0) ||
           run.children.some(child => child.index === index)) fail('InstalledSourcePreparationMismatch');

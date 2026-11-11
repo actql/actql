@@ -112422,6 +112422,7 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#5",
             "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
             "prepareOrdinarySourceManagedInstallation"
           ],
@@ -112474,6 +112475,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request lookup within the existing producer owner"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const index = project || occurrence !== undefined ? occurrence?.task : declared;"
               }
             ],
             "ownership": [
@@ -112592,6 +112597,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
                 "anchor": "test('producer request index refuses synchronous Host close during the current callback'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "ordinary Mock published Source occurrences keep three children of the same declaration distinct"
               }
             ]
           }
@@ -117687,13 +117696,15 @@
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
           "parameters": [
-            "child"
+            "name"
           ],
           "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
-          "parameters": [],
+          "parameters": [
+            "child"
+          ],
           "async": false
         },
         {
@@ -117703,6 +117714,11 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#5",
           "parameters": [],
           "async": false
         },
@@ -117963,7 +117979,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "160101d9c15887359e329dd4b2a21885e99c3a4a0f4fb2e4a3ef70d2095f5540"
+      "sha256": "1e2ede65ba12566a6fefaa038efb3585791b021a7d484b9c373ff471af89f3ba"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
