@@ -78354,7 +78354,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "70e30773650630017faddbec9735781c361720fbde028eb4bec8b823019d5ca5",
+      "sha256": "7e13c5a807b84f6b20d1965b4a66eec75446a5de04c8b2533e01889fbe2d6e02",
       "exports": [],
       "operations": [
         {
