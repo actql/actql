@@ -26,7 +26,7 @@ const originalDeal = Object.freeze({
   '006Acme': {StageName: 'Proposal', NextStep: null},
   '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
 });
-let client, firstFailedStep, activeStep, primary, checkDiagnostic, failed = false;
+let client, firstFailedStep, activeStep, primary, checkDiagnostic, runObservation, failed = false;
 async function step(name, operation) {
   activeStep = name;
   try {
@@ -69,6 +69,32 @@ function submissionCheckDiagnostic(error) {
     return {available: true, ...(token(original.outcome) ? {outcome: original.outcome} : {}),
       ...(token(report?.verdict) ? {verdict: report.verdict} : {}), reasons, truncated: entries.length > 32};
   } catch {return {available: false};} // Diagnostics never replace the original refusal or close.
+}
+// Only the exact public response already returned to this call. Do not poll,
+// reconstruct a cause from status, or print private Run/Checkpoint identities,
+// messages, authored input, rows or Source material into the step report.
+function publicRunObservation(state) {
+  try {
+    if (!['preparing', 'running', 'waiting_checkpoint', 'resuming',
+      'needs_reconciliation', 'succeeded', 'failed', 'cancelled'].includes(state?.status)) {
+      return {available: false};
+    }
+    const code = state.terminal_error?.code;
+    const result = {available: true, status: state.status,
+      ...(typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_.-]{0,127}$/u.test(code)
+        ? {terminalCode: code} : {})};
+    if (['resolve_checkpoint', 'reconcile', 'read_result', 'refresh_availability',
+      'none', 'reconcile_run'].includes(state.next_action?.kind)) {
+      result.nextAction = state.next_action.kind;
+    }
+    if (['unknown', 'confirmed'].includes(state.control?.physical_stop)) {
+      result.physicalStop = state.control.physical_stop;
+    }
+    if (typeof state.control?.cancellation_requested === 'boolean') {
+      result.cancellationRequested = state.control.cancellation_requested;
+    }
+    return result;
+  } catch {return {available: false};}
 }
 const snapshot = info => ({dev: String(info.dev), ino: String(info.ino),
   size: String(info.size), mtimeNs: String(info.mtimeNs)});
@@ -183,8 +209,13 @@ try {
       readFile(twoModels ? 'deal-review.program.json' : dealReview ? 'deal-review.aql' : 'churn-risk.aql', 'utf8'));
     const execution = await step('README startSource', () =>
       client.startSource(source, {format: twoModels ? 'json' : 'aql', stopBefore: 'commit'}));
+    // This accepted reference must survive a failed wait/review/first close.
+    // The complete Checkpoint/review handoff below remains a separate file.
+    await step('retain original accepted reference before wait', () =>
+      save(handoffPath + '.started', {ref: execution.ref, template, variant}));
     const state = await step('wait for original Checkpoint', async () => {
       const state = await execution.wait();
+      runObservation = publicRunObservation(state);
       assert.equal(state.status, 'waiting_checkpoint');
       assert.ok(state.checkpoint);
       assert.equal(state.checkpoint.id, state.checkpoint.checkpoint_id);
@@ -288,15 +319,22 @@ try {
 } catch (cause) {
   failed = true; primary = cause; firstFailedStep ??= activeStep;
   checkDiagnostic = submissionCheckDiagnostic(cause);
+  try {
+    if (runObservation === undefined && cause?.observation !== undefined) {
+      runObservation = publicRunObservation(cause.observation);
+    }
+  } catch { /* Diagnostic getters cannot replace the original failure. */ }
 }
-let closeFailure, closeFailed = false;
+let closeFailure, closeFailed = false, closeReturned = false;
 if (client !== undefined) {
-  try {await client.close();}
+  try {await client.close(); closeReturned = true;}
   catch (cause) {closeFailure = cause; closeFailed = true; firstFailedStep ??= 'close';}
 }
 console.log(JSON.stringify({phase, firstFailedStep: firstFailedStep ?? null,
   status: failed || closeFailed ? 'failed' : 'passed',
   code: primary?.code, cleanupCode: closeFailure?.code,
+  firstClose: {attempted: client !== undefined, returned: closeReturned},
+  ...(runObservation === undefined ? {} : {runObservation}),
   ...(checkDiagnostic === undefined ? {} : {checkObservation: checkDiagnostic})}));
 if (failed) throw primary;
 if (closeFailed) throw closeFailure;

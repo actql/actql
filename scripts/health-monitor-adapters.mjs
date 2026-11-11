@@ -350,7 +350,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
     const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
     try {
-      for (const [phase, expected] of [['capture', 9], ['approve', 11], ['recover', 7]]) {
+      for (const [phase, expected] of [['capture', 10], ['approve', 11], ['recover', 7]]) {
         const args = [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
           ...(template === 'churn-risk-mock' ? [] : [template]),
           ...(variant === 'readme' ? [] : [variant])];

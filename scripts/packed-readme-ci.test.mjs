@@ -71,7 +71,7 @@ test('required README cases use three distinct project paths and original indepe
       counts: {coldSamples: 1}, ...selected, onMetric() {},
       async command(executable, args, options) {
         commands.push({executable, args, options});
-        const phase = args[1], expected = {capture: 9, approve: 11, recover: 7}[phase];
+        const phase = args[1], expected = {capture: 10, approve: 11, recover: 7}[phase];
         return {pid: 10000 + commands.length, code: 0, signal: null, wallNs: 100,
           stdout: [...Array.from({length: expected}, (_, n) => ({phase, step: `explicit-${n}`, status: 'passed'})),
             {phase, status: 'passed', firstFailedStep: null}].map(value => JSON.stringify(value)).join('\n')};
@@ -89,12 +89,31 @@ test('required README cases use three distinct project paths and original indepe
   assert.equal(new Set(commands.map(value => value.options.name)).size, 9);
 });
 
+test('required README aggregate refuses the old capture count before dependent phases', async t => {
+  const {root, consumer} = await scratch(t), phases = [];
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+    counts: {coldSamples: 1}, onMetric() {},
+    async command(_executable, args) {
+      const phase = args[1]; phases.push(phase);
+      return {pid: 10000, code: 0, signal: null, wallNs: 100,
+        stdout: [...Array.from({length: 9}, (_, n) => ({phase, step: `old-${n}`, status: 'passed'})),
+          {phase, status: 'passed', firstFailedStep: null}].map(value => JSON.stringify(value)).join('\n')};
+    }}), {code: 'ERR_ASSERTION'});
+  assert.deepEqual(phases, ['capture']);
+  const record = JSON.parse(await readFile(join(root,
+    'mock-project-churn-risk-mock-readme-0/capture.observation.json'), 'utf8'));
+  assert.equal(record.completed, false); assert.equal(record.exitCode, 0);
+  assert.equal(record.expectedAssertions, 10);
+});
+
 test('failed README command retains original exit primary and first-close failure before assertions', async t => {
   const {root, consumer} = await scratch(t);
   const primary = Object.assign(new Error('Original workflow refusal'), {commandResult: {
     pid: 10000, code: 1, signal: null, wallNs: 100,
     stdout: JSON.stringify({phase: 'capture', status: 'failed', firstFailedStep: 'wait',
-      code: 'OriginalRefusal', cleanupCode: 'ClientCleanupPending'})}});
+      code: 'OriginalRefusal', cleanupCode: 'ClientCleanupPending',
+      firstClose: {attempted: true, returned: false},
+      runObservation: {available: true, status: 'failed', terminalCode: 'OriginalRunRefusal'}})}});
   const observed = [];
   await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
     counts: {coldSamples: 1}, onMetric: value => observed.push(value), command: async () => {throw primary;}}),
@@ -103,6 +122,9 @@ test('failed README command retains original exit primary and first-close failur
     'mock-project-churn-risk-mock-readme-0/capture.observation.json'), 'utf8'));
   assert.equal(actual.completed, false); assert.equal(actual.exitCode, 1);
   assert.equal(actual.summary.code, 'OriginalRefusal'); assert.equal(actual.summary.cleanupCode, 'ClientCleanupPending');
+  assert.deepEqual(actual.summary.firstClose, {attempted: true, returned: false});
+  assert.deepEqual(actual.summary.runObservation,
+    {available: true, status: 'failed', terminalCode: 'OriginalRunRefusal'});
   assert.equal(observed[0].samples[0].verified, false);
   assert.equal(observed[0].samples[0].phases.length, 1);
 });
