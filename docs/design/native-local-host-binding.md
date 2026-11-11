@@ -563,6 +563,14 @@ the same slot. Legacy and cold control readers keep their complete raw SQL
 custody read. Clock sampling, revision CAS/COMMIT, key projection, revocation,
 independent roles and the one-shot signing/Unknown rules remain separate.
 
+The terminal saved-Reviewer registration fence follows both original-current
+checks, the original approval authority scope and both fresh Resolve checks.
+For the same initial original and captured Read only, it reuses that material
+while checking the actual Library, SQLite fence, DB generation and lifetime.
+It adds no clock callback or constructor and caches no authorization outcome.
+Configured/cold and Resident routes retain the full Host fence; a selected
+foreign or expired scoped Read refuses without a legacy fallback.
+
 This physical metadata seam is not default-signer selection, Account/Reviewer/
 Run authorization, first issue, use claim, signature or public approval. Those
 existing operational gates must independently bind the exact original purpose,

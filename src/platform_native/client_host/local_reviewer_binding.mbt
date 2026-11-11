@@ -121,6 +121,37 @@ fn NativeLocalInstalledEffectReviewer::current(
 }
 
 ///|
+// Terminal fence only, after the binding's independent current/resolve and
+// original approval-scope checks. No clock or user callback intervenes here.
+// Reuse the SAME saved Read's material, never its Account outcome.
+fn NativeLocalInstalledEffectReviewer::terminal_saved_host_current(
+  self : NativeLocalInstalledEffectReviewer,
+  host : NativeLocalHostConnection,
+  capture : NativeLocalJournalCapture,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if !physical_equal(self.host, host) {
+    return Err(CustodyLost)
+  }
+  if self.initial_original is Some(original) &&
+    original.original_read is Some((actual_capture, _)) {
+    if !physical_equal(original.host, host) ||
+      !physical_equal(actual_capture, capture) {
+      return Err(OriginalResourceScopePending)
+    }
+    // Actual entered Read/material/Library plus the unchanged SQLite fence,
+    // physical DB generation and original lifetime. Expired/foreign Some
+    // refuses; it never selects the full legacy path as a substitute.
+    match original.check_initial_control_read_scope(host) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    return original.check_host_current()
+  }
+  // Configured and cold/legacy registrations retain their complete fence.
+  host.check_binding()
+}
+
+///|
 /// Keep the verified current registration with the authentication. A caller
 /// cannot construct an approval from configuration or copy a public scope CID.
 struct NativeLocalAuthenticatedEffectReviewer {
@@ -350,9 +381,15 @@ fn NativeLocalEffectReviewerBinding::read_current(
       @host.client_request_authority_scope_cid(self.request) => value
     _ => return None
   }
-  if !self.original_current() ||
-    !self.installed.current() ||
-    self.host.check_binding() is Err(_) {
+  if !self.original_current() || !self.installed.current() {
+    return None
+  }
+  let terminal = match self.approval_scope {
+    SavedApproval(saved) =>
+      self.installed.terminal_saved_host_current(self.host, saved.capture)
+    ResidentApproval(_) => self.host.check_binding()
+  }
+  if terminal is Err(_) {
     return None
   }
   Some({
