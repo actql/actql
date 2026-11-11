@@ -119,6 +119,19 @@ The subsequent debit and any internal component mutations invoke no second
 external callback between validation and mutation. Copies, closed originals
 and another Ledger remain invalid.
 
+A handed-off Model Read observes its existing input lifetime rather than
+readmitting the whole Run. The same registered byte-only capacity reservation
+may grow through the existing checked preparation/publication entrance while
+its immutable body remains borrowed. Its original Ledger and opaque token must
+still match the inventory, its original minimum extents must remain covered,
+and all non-extent snapshot fields must stay unchanged. A serial only selects
+the inventory slot; equal serials or equal extents do not authenticate a
+replacement token. This continuation rule excludes regular attempt
+reservations, shrunk or closed capacity, changed charges/quantities, and
+uncertain or pending cleanup. The original bootstrap and Read snapshots,
+initial admission, current callbacks, Source/Model provenance and cleanup
+fences retain their existing checks.
+
 Private snapshots carry issuance cursors, pending allowance and live counters
 separately from spent totals. Backed-child DATA distinguishes current occupation
 from the actual last observed final census: a later domain-stop acknowledgement

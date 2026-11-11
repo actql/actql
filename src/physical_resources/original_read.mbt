@@ -334,7 +334,10 @@ fn[T] original_tokens_match(
     original_reservation_snapshot(token) == snapshot ||
     (
       completed_outputs &&
-      original_completed_output_matches(value.ledger, token, snapshot)
+      (
+        original_completed_output_matches(value.ledger, token, snapshot) ||
+        original_capacity_growth_matches(value.ledger, token, snapshot)
+      )
     )
   }) &&
   value.holdings.all(pair => {
@@ -345,6 +348,46 @@ fn[T] original_tokens_match(
     let (token, snapshot) = pair
     original_delegation_snapshot(token) == snapshot
   })
+}
+
+///|
+// A handed-off consumer still depends on the same live byte-only capacity,
+// not its earlier size. The original adopted preparation may extend that
+// reservation for publication without replacing its immutable body. Only
+// monotone extents may differ; every other original lifetime/charge field
+// stays exact. Initial descriptor/read admission never enters this branch.
+fn original_capacity_growth_matches(
+  ledger : Ledger,
+  token : Reservation,
+  before : OriginalReservationSnapshot,
+) -> Bool {
+  guard before.serial < 0 &&
+    token.serial == before.serial &&
+    before.open &&
+    !before.attempt_reserved &&
+    !before.attempt_started &&
+    !before.cleanup_pending &&
+    before.transfer == 0L &&
+    before.quantities is None &&
+    before.uncertain_quantities is None &&
+    before.completed_output is None &&
+    !token.attempt_reserved &&
+    !token.attempt_started &&
+    token.observed_quantities == before.observed_quantities &&
+    token.completed_output is None &&
+    original_capacity_token_covers(
+      ledger,
+      token,
+      before.retention,
+      before.execution,
+    ) &&
+    ledger.original_inventory is Some(inventory) &&
+    inventory.reservations.by_serial(before.serial) is Some(original) else {
+    return false
+  }
+  // Serial DATA locates the slot; only this actual opaque reservation proves
+  // identity. Equal fields on a replacement/foreign token cannot stand in.
+  physical_equal(original, token)
 }
 
 ///|
