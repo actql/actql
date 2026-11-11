@@ -32,6 +32,39 @@ const update = (target, from, to, options = {}) => target.updateChild({
   }, ...options,
 });
 
+test('Mock write observation counts only returned replacement before later fences and cannot alter the operation', async () => {
+  for (const mode of ['success', 'rename-refused', 'current-after-write', 'observer-throws', 'observer-rejects']) {
+    let observed = 0, renamed = 0, changed = false;
+    const failure = new Error(mode);
+    const f = await fixture({
+      assertCurrent() {if (changed && mode === 'current-after-write') throw failure;},
+      io: {...io, async rename(...args) {
+        if (mode === 'rename-refused') throw failure;
+        await rename(...args); renamed++;
+      }},
+      observeWrite() {
+        observed++; changed = true;
+        if (mode === 'observer-throws') throw failure;
+        if (mode === 'observer-rejects') return Promise.reject(failure);
+      },
+    });
+    const child = update(f.target, '"a":"old"', '"a":"new"');
+    if (mode === 'rename-refused' || mode === 'current-after-write') {
+      await assert.rejects(child.prepare(), error => error === failure);
+      await assert.rejects(child.prepare(), error => error === failure);
+    } else {
+      await child.prepare(); await child.prepare();
+    }
+    assert.equal(renamed, mode === 'rename-refused' ? 0 : 1);
+    assert.equal(observed, renamed, 'No retry, directory sync or cleanup becomes another write');
+    assert.equal(await readFile(f.dataPath, 'utf8'), mode === 'rename-refused'
+      ? original : original.replace('"a":"old"', '"a":"new"'));
+    assert.equal((await child.release()).pending, false);
+    assert.equal(observed, renamed);
+    await f.finish();
+  }
+});
+
 test('Mock file read owns its actual FD and original close until release', async () => {
   const f = await fixture();
   let authorized = 0;

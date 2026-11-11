@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 
 // Execute the fixture's actual capture branch with explicit SDK/filesystem
 // ports. This is no installed SDK, Model, business Run or close acceptance.
@@ -15,6 +16,42 @@ const observe = new Function(`${declaration('publicRunObservation')};return publ
 const main = ast.body.find(node => node.type === 'TryStatement');
 const branch = main.block.body.find(node => node.type === 'IfStatement');
 const captureBody = text.slice(branch.consequent.start, branch.consequent.end);
+
+test('workflow actual observation counts Source Model and physical writes with loss-aware phase controls', async () => {
+  const make = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const check = new Function('assert', `${declaration('checkWorkflowWork')};return checkWorkflowWork;`)(assert);
+  for (const phase of ['capture', 'approve', 'recover']) {
+    const work = make(), observer = installHostObservation(work.connection, {});
+    assert.equal(work.snapshot().complete, false, 'Pending delivery is not zero work');
+    if (phase === 'capture') {
+      observer.diagnostic('acquisition_started', {});
+      observer.diagnostic('model_call_entered', {}); observer.diagnostic('model_call_entered', {});
+    } else if (phase === 'approve') {
+      observer.diagnostic('effect_write_observed', {}); observer.diagnostic('effect_write_observed', {});
+    }
+    observer.diagnostic('effect_application_observed', {outcome: 'succeeded'});
+    await observer.close();
+    const actual = work.snapshot(); check(actual, phase, 2);
+    assert.equal(actual.sourceAcquisitionStarts, phase === 'capture' ? 1 : 0);
+    assert.equal(actual.modelCallStarts, phase === 'capture' ? 2 : 0);
+    assert.equal(actual.effectReplacementReturns, phase === 'approve' ? 2 : 0);
+    assert.throws(() => check({...actual, complete: false}, phase, 2));
+    assert.throws(() => check({...actual, effectReplacementReturns: 3}, phase, 2));
+    if (phase !== 'capture') {
+      assert.throws(() => check({...actual, sourceAcquisitionStarts: 1}, phase, 2));
+      assert.throws(() => check({...actual, modelCallStarts: 1}, phase, 2));
+    }
+  }
+  const limited = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(
+    options => createHostObservationConnection({...options, limits: {queueRecords: 1}}))();
+  const observer = installHostObservation(limited.connection, {});
+  for (let n = 0; n < 10; n++) observer.diagnostic('model_call_entered', {});
+  await observer.close();
+  assert.equal(limited.snapshot().complete, false);
+  assert(limited.snapshot().status.dropped > 0);
+});
 
 function capture({saveFailure, state = {status: 'failed', terminal_error: {code: 'OriginalSourceFailure'}}} = {}) {
   const events = [], originalRef = Object.freeze({run: 'fixture-private-original'});
@@ -87,6 +124,7 @@ test('actual first close reports its return separately and never replaces the or
   const make = new Function('ports', `
     let {client,primary}=ports;const phase='capture',failed=true;
     const process={pid:123},writeFile=async()=>{};
+    const workObservation={snapshot:()=>({complete:false})};
     let firstFailedStep='wait for original Checkpoint',checkDiagnostic,runObservation;
     const console={log:line=>ports.summary(JSON.parse(line))};
     return async()=>{${text.slice(start,end)}};
@@ -110,6 +148,7 @@ test('workflow persists the original primary before pending close even when diag
   const start = text.indexOf('let closeFailure, closeFailed');
   const make = new Function('ports', `
     const {client,primary,writeFile,process,console}=ports;const phase='capture',failed=true;
+    const workObservation={snapshot:()=>({complete:false})};
     let firstFailedStep='wait for original Checkpoint',checkDiagnostic,runObservation;
     return async()=>{${text.slice(start)}};
   `);

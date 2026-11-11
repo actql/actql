@@ -13,6 +13,12 @@ import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
 const repository = new URL('../', import.meta.url).pathname;
+// Explicit command-port outcomes only; actual installed counters are produced
+// by the fixture's configured Host observation, never by this test oracle.
+const explicitWork = phase => ({complete: true,
+  sourceAcquisitionStarts: phase === 'capture' ? 1 : 0,
+  modelCallStarts: phase === 'capture' ? 2 : 0,
+  effectReplacementReturns: phase === 'approve' ? 2 : 0});
 test('required README job reuses the exact single producer on Node 22 and 24 with failure retention', () => {
   assert(job); assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
   assert.equal(job.strategy['fail-fast'], false);
@@ -90,6 +96,7 @@ test('required README cases use three distinct project paths and original indepe
         return {pid: 10000 + commands.length, code: 0, signal: null, wallNs: 100,
           stdout: [...Array.from({length: expected}, (_, n) => ({phase, step: `explicit-${n}`, status: 'passed'})),
             {phase, status: 'passed', firstFailedStep: null,
+              workObservation: explicitWork(phase),
               firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
       }});
     assert.equal(metric.samples.length, 1); assert.equal(metric.samples[0].verified, true);
@@ -145,6 +152,7 @@ test('required README never deletes replaced authored inputs or enters dependent
         stdout: [...Array.from({length: phase === 'capture' ? 10 : 11}, (_, n) =>
           ({phase, step: `explicit-${n}`, status: 'passed'})),
         {phase, status: 'passed', firstFailedStep: null,
+          workObservation: explicitWork(phase),
           firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
     }}), {code: 'ERR_ASSERTION'});
   assert.deepEqual(phases, ['capture']);
@@ -153,6 +161,29 @@ test('required README never deletes replaced authored inputs or enters dependent
   assert((await readFile(join(project, 'churn-risk.aql'))).length > 0);
   const record = JSON.parse(await readFile(join(project, 'capture.observation.json'), 'utf8'));
   assert.equal(record.completed, false); assert.deepEqual(record.inputRemoval, {completed: false, paths: []});
+});
+
+test('README aggregate refuses missing lost or amplified actual work observation', async t => {
+  for (const mode of ['missing', 'lost', 'source-restarted', 'model-restarted', 'write-repeated']) {
+    const {root, consumer} = await scratch(t), phases = [];
+    await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+      counts: {coldSamples: 1}, onMetric() {},
+      async command(_executable, args) {
+        const phase = args[1]; phases.push(phase);
+        let work = explicitWork(phase);
+        if (phase === 'capture' && mode === 'missing') work = undefined;
+        if (phase === 'capture' && mode === 'lost') work.complete = false;
+        if (phase === 'approve' && mode === 'source-restarted') work.sourceAcquisitionStarts = 1;
+        if (phase === 'approve' && mode === 'model-restarted') work.modelCallStarts = 1;
+        if (phase === 'approve' && mode === 'write-repeated') work.effectReplacementReturns = 3;
+        const expected = phase === 'capture' ? 10 : 11;
+        return {pid: 123, code: 0, signal: null, wallNs: 10,
+          stdout: [...Array.from({length: expected}, (_, n) => ({phase, step: `explicit-${n}`, status: 'passed'})),
+            {phase, status: 'passed', firstFailedStep: null, workObservation: work,
+              firstClose: {attempted: true, returned: true}}].map(value => JSON.stringify(value)).join('\n')};
+      }}), {code: 'ERR_ASSERTION'});
+    assert.deepEqual(phases, mode === 'missing' || mode === 'lost' ? ['capture'] : ['capture', 'approve']);
+  }
 });
 
 test('required README aggregate refuses the old capture count before dependent phases', async t => {

@@ -181,6 +181,7 @@ const events = Object.freeze({
   model_call_replayed: ['recovery', 'attempt_replayed'],
   checkpoint_resolved: ['approval', 'checkpoint_resolved'],
   effect_application_observed: ['effect', 'application_observed'],
+  effect_write_observed: ['effect', 'write_observed'],
 });
 const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
   'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',

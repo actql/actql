@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {readFile, writeFile, stat} from 'node:fs/promises';
 import {connect} from '@actql/node';
 import {getSubmissionCheckObservation} from '@actql/sdk';
+import {createHostObservationConnection} from '@actql/local-node/observation';
 
 const [phase, handoffPath, template = 'churn-risk-mock', variant = 'readme'] = process.argv.slice(2);
 assert.ok(['capture', 'approve', 'recover'].includes(phase));
@@ -27,6 +28,38 @@ const originalDeal = Object.freeze({
   '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
 });
 let client, firstFailedStep, activeStep, primary, checkDiagnostic, runObservation, failed = false;
+function workflowWorkObservation() {
+  const counts = {sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0};
+  const connection = createHostObservationConnection({
+    include: ['source', 'infer', 'effect'], correlation: false, events: {level: 'diagnostic'},
+    deliver(record) {
+      if (record.operation === 'source' && record.event === 'attempt_started') counts.sourceAcquisitionStarts++;
+      if (record.operation === 'infer' && record.event === 'attempt_started') counts.modelCallStarts++;
+      if (record.operation === 'effect' && record.event === 'write_observed') counts.effectReplacementReturns++;
+    },
+  });
+  return {connection, snapshot() {
+    let status;
+    try {status = connection.status();} catch {return {...counts, complete: false, unavailable: true};}
+    return {...counts, scope: 'Actual starts and returned Mock replacements; not durability ACK', status,
+      complete: status !== undefined && status.closed === true && status.cleanupPending === false &&
+        ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed', 'limited', 'repeated',
+          'queued', 'active', 'activeSegments'].every(name => status[name] === 0) &&
+        status.loss !== undefined && Object.values(status.loss).every(value => value === 0)};
+  }};
+}
+function checkWorkflowWork(observed, selectedPhase, writes) {
+  assert.equal(observed.complete, true, 'Lost, pending or unavailable observation cannot prove zero work');
+  if (selectedPhase === 'capture') {
+    assert(observed.sourceAcquisitionStarts > 0); assert(observed.modelCallStarts > 0);
+    assert.equal(observed.effectReplacementReturns, 0);
+  } else {
+    assert.equal(observed.sourceAcquisitionStarts, 0, 'Completed Source must not be reacquired');
+    assert.equal(observed.modelCallStarts, 0, 'Completed Model calls must not restart');
+    assert.equal(observed.effectReplacementReturns, selectedPhase === 'approve' ? writes : 0);
+  }
+}
+const workObservation = workflowWorkObservation();
 async function step(name, operation) {
   activeStep = name;
   try {
@@ -202,7 +235,7 @@ function expectedBytes(before) {
 
 try {
   client = await step('connect', () => connect({mode: 'local',
-    installation: {directory: '.actql'}, profile: 'mock'}));
+    installation: {directory: '.actql', observation: workObservation.connection}, profile: 'mock'}));
   if (phase === 'capture') {
     const before = await step('read authored target before submission', targetState);
     const source = await step('read original README program', () =>
@@ -330,6 +363,7 @@ let closeFailure, closeFailed = false, closeReturned = false;
 const diagnosticFailures = [];
 const pending = {phase, pid: process.pid, firstFailedStep: firstFailedStep ?? null,
   status: failed ? 'failed' : 'closing', code: primary?.code,
+  workObservation: workObservation.snapshot(),
   firstClose: {attempted: client !== undefined, returned: false,
     state: client === undefined ? 'not-attempted' : 'pending'},
   ...(runObservation === undefined ? {} : {runObservation}),
@@ -350,14 +384,21 @@ pending.firstClose = {attempted: client !== undefined, returned: closeReturned,
 pending.firstFailedStep = firstFailedStep ?? null;
 pending.status = failed || closeFailed ? 'failed' : 'closed';
 pending.cleanupCode = closeFailure?.code;
+pending.workObservation = workObservation.snapshot();
+let workFailure;
+if (!failed && closeReturned) try {
+  checkWorkflowWork(pending.workObservation, phase, Object.keys(expected).length);
+} catch (cause) {workFailure = cause; firstFailedStep ??= 'observe actual Source Model and Effect work';}
 await persistCloseObservation();
 console.log(JSON.stringify({phase, firstFailedStep: firstFailedStep ?? null,
-  status: failed || closeFailed || diagnosticFailures.length ? 'failed' : 'passed',
+  status: failed || closeFailed || workFailure || diagnosticFailures.length ? 'failed' : 'passed',
   code: primary?.code, cleanupCode: closeFailure?.code,
+  workObservation: pending.workObservation, workObservationCode: workFailure?.code,
   ...(diagnosticFailures.length ? {diagnosticFailures} : {}),
   firstClose: {attempted: client !== undefined, returned: closeReturned},
   ...(runObservation === undefined ? {} : {runObservation}),
   ...(checkDiagnostic === undefined ? {} : {checkObservation: checkDiagnostic})}));
 if (failed) throw primary;
 if (closeFailed) throw closeFailure;
+if (workFailure) throw workFailure;
 if (diagnosticFailures.length) throw new Error('WorkflowDiagnosticsFailed');

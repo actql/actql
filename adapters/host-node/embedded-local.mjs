@@ -2060,7 +2060,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId}),
-        principalId, mockEffectResources, sourceProfile.mockWritableSource?.connectorBindings[0]);
+        principalId, mockEffectResources, sourceProfile.mockWritableSource?.connectorBindings[0],
+        () => diagnostic?.('effect_write_observed'));
       // Retain the actual factory result before a fallible observation/current
       // read, so the existing initialization carrier still owns its file child.
       mockEffectObservation = observeInstalledMockEffectResources(installedEffect);
@@ -8142,7 +8143,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return profile;
     },
     async installMockEffects(runtime, baseEnvironmentWire, authorizationFor, principalId, effectResources,
-      sourceBinding) {
+      sourceBinding, observeWrite) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
@@ -8155,7 +8156,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         throw clientOperationError('ForeignInstalledMockSourceBinding');
       }
       return installPreparedProjectMockEffects({moon, mockPreparation, baseEnvironmentWire,
-        authorizationFor, principalId, effectResources,
+        authorizationFor, principalId, effectResources, observeWrite,
         runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl),
         // Correspondence DATA from the actual same Host's Source factory.
         // The Mapping cannot redefine that physical installation identity;

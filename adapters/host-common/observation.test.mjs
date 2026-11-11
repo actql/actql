@@ -9,6 +9,28 @@ const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
+test('physical write diagnostics remain distinct from whole Effect application and Source Model starts', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['source', 'infer', 'effect'],
+    correlation: false, events: {level: 'diagnostic'},
+  }), {runId: () => assert.fail('No identity lookup for uncorrelated counters'),
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  observer.diagnostic('acquisition_started', {});
+  observer.diagnostic('model_call_entered', {});
+  observer.diagnostic('effect_write_observed', {});
+  observer.diagnostic('effect_write_observed', {});
+  observer.diagnostic('effect_application_observed', {outcome: 'succeeded'});
+  await observer.close();
+  assert.deepEqual(records.map(value => [value.operation, value.event]), [
+    ['source', 'attempt_started'], ['infer', 'attempt_started'],
+    ['effect', 'write_observed'], ['effect', 'write_observed'], ['effect', 'application_observed'],
+  ]);
+  assert.deepEqual(observer.status().loss, {});
+  assert.equal(observer.status().dropped, 0);
+  assert.equal(observer.status().queued, 0);
+});
+
 const selectedRows = (extra = {}) => ({ref, rowOwner: 'request-journal', selection: 'run-definition',
   rowKind: 'run', returnedRows: 1, unrelatedRows: 0, coverage: 'selected-returned', ...extra});
 

@@ -390,6 +390,15 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           assert.equal(rows.filter(row => row.step && row.status === 'passed').length, expected);
           assert.equal(record.summary.status, 'passed'); assert.equal(record.summary.firstFailedStep, null);
           assert.deepEqual(record.summary.firstClose, {attempted: true, returned: true});
+          const work = record.summary.workObservation;
+          assert.equal(work?.complete, true, 'Require actual lossless Source/Model/write observation');
+          if (phase === 'capture') {
+            assert(work.sourceAcquisitionStarts > 0); assert(work.modelCallStarts > 0);
+            assert.equal(work.effectReplacementReturns, 0);
+          } else {
+            assert.equal(work.sourceAcquisitionStarts, 0); assert.equal(work.modelCallStarts, 0);
+            assert.equal(work.effectReplacementReturns, phase === 'approve' ? 2 : 0);
+          }
           if (phase === 'capture') {
             // Only the authored inputs in this fresh private fixture may go.
             // The child has exited and its FIRST public close returned. Keep

@@ -49,7 +49,7 @@ const ports = Object.freeze({
 
 export async function installPreparedProjectMockEffects({moon, mockPreparation,
   baseEnvironmentWire, authorizationFor, principalId, runtimeBundleCid, bindingCid,
-  ledgerRoot, assertCurrent, effectResources, io}) {
+  ledgerRoot, assertCurrent, effectResources, io, observeWrite}) {
   if (typeof mockPreparation?.originalsForRuntime !== 'function' ||
       typeof authorizationFor !== 'function' || typeof assertCurrent !== 'function' ||
       typeof principalId !== 'string' || !cid(runtimeBundleCid) || !cid(bindingCid)) {
@@ -93,7 +93,7 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
   const authorization = await authorizationFor(catalogue.connection);
   current();
   const {driver, site, resourceObservation} = mockRowEffectDriver({bundle, original, spec, physical, mapping, bindingCid,
-    principalId, authorization, current, call, resources, io});
+    principalId, authorization, current, call, resources, io, observeWrite});
   try {
     const managedPlanRecipe = mockFileEffectPlanRecipe(moon, bundle, spec.permission, spec.observe_permission);
     const effect = await original.effectMember.load({moon,
@@ -161,7 +161,7 @@ export function observeInstalledMockEffectResources(effect) {
 // The generic Row Effect still admits the same Preview and durable row claim
 // before calling send, and persists the observed bytes before settlement.
 function mockRowEffectDriver({bundle, original, spec, physical, mapping, bindingCid, principalId,
-  authorization, current, call, resources, io}) {
+  authorization, current, call, resources, io, observeWrite}) {
   const maximum = targetLimits.maxFileBytes, work = targetLimits.maxWork;
   const catalogue = original.catalogue;
   const beforeFields = Object.keys(physical.schema);
@@ -170,7 +170,7 @@ function mockRowEffectDriver({bundle, original, spec, physical, mapping, binding
   const requests = new WeakMap(), descriptions = new WeakMap(), grants = new WeakMap();
   const retainedRuns = new WeakSet();
   const file = createMockFileTarget({dataPath: bundle.dataPath,
-    maxBytes: maximum, assertCurrent: current, ...(io === undefined ? {} : {io})});
+    maxBytes: maximum, assertCurrent: current, observeWrite, ...(io === undefined ? {} : {io})});
   function runCurrent(runOriginal) {
     current();
     if (runOriginal === null || typeof runOriginal !== 'object') fail('ForeignMockEffectRun');
