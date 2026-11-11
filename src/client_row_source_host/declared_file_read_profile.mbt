@@ -15,7 +15,7 @@ pub(all) struct DeclaredFileReadFields {
 ///|
 priv struct DeclaredFileReadProfile {
   source_ref : String
-  physical : RowDeclaration
+  physical_view : RowDeclaredView
   physical_resource : String
   fields : DeclaredFileReadFields
   contract : @publication.PublicationContract
@@ -287,7 +287,7 @@ pub fn bind_declared_file_read_profile(
   }
   let profile = {
     source_ref,
-    physical,
+    physical_view,
     physical_resource,
     fields: {
       ..fields,
@@ -353,9 +353,8 @@ pub fn row_declaration_file_read_profile_matches(
     true
   }
   profile.physical_resource == physical_resource &&
-  profile.physical.views.iter().find_first(view => view.resource == physical_resource) is Some(original_view) &&
   physical.views.iter().find_first(view => view.resource == physical_resource) is Some(view) &&
-  physical_equal(original_view, view) &&
+  physical_equal(profile.physical_view, view) &&
   original.identity == fields.identity &&
   original.name == fields.name &&
   original.version == fields.version &&

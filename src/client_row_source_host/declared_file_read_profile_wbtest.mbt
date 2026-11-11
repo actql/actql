@@ -207,3 +207,73 @@ test "declared-file profile refuses foreign role projection and duplicate instal
     is Err(_),
   )
 }
+
+///|
+test "declared-file binding rejects equal-CID view replacement in the original mutable declaration" {
+  let original = declared_file_profile_test_declaration()
+  let logical = original.views
+    .iter()
+    .find_first(view => view.resource == "contents")
+    .unwrap()
+  let mut index = -1
+  for i, view in original.views {
+    if view.resource == "records" {
+      index = i
+    }
+  }
+  assert_true(index >= 0)
+  let selected = original.views[index]
+  let fields = declared_file_profile_test_fields()
+  let bound = bind_declared_file_read_profile(
+    original,
+    logical.source_ref,
+    original,
+    "records",
+    fields,
+  ).unwrap()
+  assert_true(
+    row_declaration_file_read_profile_matches(
+      bound,
+      logical.source_ref,
+      original,
+      "records",
+      fields,
+    ),
+  )
+  let foreign = declared_file_profile_test_declaration()
+  let replacement = foreign.views
+    .iter()
+    .find_first(view => view.resource == "records")
+    .unwrap()
+  assert_eq(replacement.view_cid, selected.view_cid)
+  assert_false(physical_equal(selected, replacement))
+  original.views[index] = replacement
+  assert_false(
+    row_declaration_file_read_profile_matches(
+      bound,
+      logical.source_ref,
+      original,
+      "records",
+      fields,
+    ),
+  )
+  assert_false(
+    row_declaration_file_read_profile_matches(
+      bound,
+      logical.source_ref,
+      foreign,
+      "records",
+      fields,
+    ),
+  )
+  original.views[index] = selected
+  assert_true(
+    row_declaration_file_read_profile_matches(
+      bound,
+      logical.source_ref,
+      original,
+      "records",
+      fields,
+    ),
+  )
+}
