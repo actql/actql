@@ -1,6 +1,7 @@
 ///|
 // Genuine three-Direct checked graph and original keyed/Model ports. This
-// does not open Sources, execute a Model, reserve a Host or issue evidence.
+// does not open Sources, execute a Model, reserve a physical Host or issue
+// Source/Model observations. Compilation and Run binding remain typed DATA.
 test "three original Direct Sources prepare the complete keyed Model graph under the existing task bound" {
   let (declaration, wire) = original_keyed_declaration_environment(
     relation_versions=true,
