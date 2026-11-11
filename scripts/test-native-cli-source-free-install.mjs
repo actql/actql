@@ -36,42 +36,50 @@ export const nativeDefaultNumericQueries = Object.freeze([
   {name: 'parameters', sql: 'WITH x AS (SELECT @first AS n UNION ALL SELECT @second AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x', rows: [{total: 3, average: 1.5}], parameters: true},
 ]);
 
-export async function observeNativeDefaultNumericQueries({project, cli}) {
+export async function observeNativeDefaultNumericQueries({project, cli, queries = nativeDefaultNumericQueries}) {
+  assert(queries.length > 0 && queries.every(entry => nativeDefaultNumericQueries.includes(entry)));
+  const cases = join(project, 'numeric-cases');
+  await mkdir(cases, {mode: 0o700});
   const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
   const observations = [];
-  for (const entry of nativeDefaultNumericQueries) {
+  let currentProject;
+  for (const entry of queries) {
+    // Ordinary init retains its eight-record Journal limit. Independent cases
+    // get independent Hosts instead of increasing that product policy.
+    currentProject = join(cases, entry.name);
+    await cli(['init', currentProject], project);
     const file = `numeric-${entry.name}.sql`;
-    await writeFile(join(project, file), entry.sql, {flag: 'wx', mode: 0o600});
+    await writeFile(join(currentProject, file), entry.sql, {flag: 'wx', mode: 0o600});
     const parameters = entry.parameters ? ['--parameter-declarations-file', 'numeric-declarations.json',
       '--parameters-file', 'numeric-parameters.json'] : [];
     if (entry.parameters) {
-      await writeFile(join(project, 'numeric-declarations.json'), JSON.stringify({first: {type: 'number'}, second: {type: 'number'}}), {flag: 'wx'});
-      await writeFile(join(project, 'numeric-parameters.json'), '{"first":1,"second":2}', {flag: 'wx'});
+      await writeFile(join(currentProject, 'numeric-declarations.json'), JSON.stringify({first: {type: 'number'}, second: {type: 'number'}}), {flag: 'wx'});
+      await writeFile(join(currentProject, 'numeric-parameters.json'), '{"first":1,"second":2}', {flag: 'wx'});
     }
-    const checked = JSON.parse((await cli(['check', file, '--format', 'sql', '--json', ...parameters], project)).stdout);
+    const checked = JSON.parse((await cli(['check', file, '--format', 'sql', '--json', ...parameters], currentProject)).stdout);
     assert.equal(checked.outcome, 'completed', `${entry.name}: completed check required`);
     assert.equal(checked.report.verdict, 'verified', `${entry.name}: verified check required`);
     assert.equal(checked.report.runnable.verdict, 'yes', `${entry.name}: runnable check required`);
-    const state = JSON.parse((await cli(['run', file, '--format', 'sql', '--json', ...parameters], project)).stdout);
+    const state = JSON.parse((await cli(['run', file, '--format', 'sql', '--json', ...parameters], currentProject)).stdout);
     assert.equal(state.version, 'actql-run-state/0.1'); assert.equal(state.status, 'succeeded');
     assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
-    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout), entry.rows);
+    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
     // Every cli invocation is a separate process. Removing original inputs
     // makes a new prepare or reexecution unable to replace the saved Result.
-    await unlink(join(project, file));
+    await unlink(join(currentProject, file));
     if (entry.parameters) {
-      await unlink(join(project, 'numeric-declarations.json'));
-      await unlink(join(project, 'numeric-parameters.json'));
+      await unlink(join(currentProject, 'numeric-declarations.json'));
+      await unlink(join(currentProject, 'numeric-parameters.json'));
     }
-    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout), entry.rows);
+    assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
     observations.push({name: entry.name, checkRunnable: 'yes', rows: entry.rows, coldSavedWithoutProgram: true});
   }
   const invalid = 'numeric-invalid.sql';
-  await writeFile(join(project, invalid), "SELECT SUM('not a number') AS total", {flag: 'wx'});
-  const refusal = JSON.parse((await cli(['check', invalid, '--format', 'sql', '--json'], project, 1)).stdout);
+  await writeFile(join(currentProject, invalid), "SELECT SUM('not a number') AS total", {flag: 'wx'});
+  const refusal = JSON.parse((await cli(['check', invalid, '--format', 'sql', '--json'], currentProject, 1)).stdout);
   assert.equal(refusal.report.verdict, 'invalid'); assert.equal(refusal.report.runnable.verdict, 'no');
-  await unlink(join(project, invalid));
-  assert.deepEqual(rows((await cli(['sql', nativeDefaultNumericQueries[0].sql, '--format', 'jsonl'], project)).stdout), [{total: 3}]);
+  await unlink(join(currentProject, invalid));
+  assert.deepEqual(rows((await cli(['sql', nativeDefaultNumericQueries[0].sql, '--format', 'jsonl'], currentProject)).stdout), [{total: 3}]);
   return observations;
 }
 
@@ -81,7 +89,7 @@ export async function observeNativeFileSourceNumeric({root, cli}) {
   const program = join(project, 'numeric-source.sql');
   const source = join(project, 'mock/data.json');
   const original = await readFile(source);
-  await writeFile(program, 'SELECT SUM(CAST(active_users AS NUMBER)) AS total, AVG(CAST(active_users AS NUMBER)) AS average FROM snowflake.usage_30d', {flag: 'wx'});
+  await writeFile(program, "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d", {flag: 'wx'});
   const checked = JSON.parse((await cli(['check', 'numeric-source.sql', '--format', 'sql', '--json'], project)).stdout);
   assert.equal(checked.outcome, 'completed'); assert.equal(checked.report.verdict, 'verified');
   assert.equal(checked.report.runnable.verdict, 'yes');
