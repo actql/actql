@@ -361,7 +361,8 @@ export function requireNativeJournalCapacityRefusal(record) {
     'clock_failures', 'stack_overflows']) assert.equal(metadata[name], 0);
   assert.equal(metadata.overflow, false);
   const counters = new Map(values('ACTQL_NATIVE_COUNTER ').map(row => [row.tag, row.count]));
-  assert.equal(counters.get(8), 1, 'Exactly one original failed acceptance');
+  // Slot 8 also contains the returned Read inventory's retained peak. Keep
+  // that observation untouched; it cannot count Native failed acceptances.
   assert.equal(counters.get(10), 7, 'Original Journal failure required');
   assert.equal(counters.get(11), 5001, 'Original Journal CapacityExceeded required');
   assert([0, 2].includes(counters.get(14)), 'Transaction Unknown cannot qualify this refusal');
@@ -370,7 +371,9 @@ export function requireNativeJournalCapacityRefusal(record) {
     close.unmatched_end === 0, 'The original failed command must complete its first cleanup');
   return {pid: groups[0].pid, publicFailure: 'LocalSubmissionAcceptanceUnavailable',
     originalCause: 'Journal.CapacityExceeded', firstCommandCleanupObserved: true,
-    independentPhysicalAck: false};
+    independentPhysicalAck: false,
+    nativeFailedAcceptanceCount: {status: 'unavailable', counterTag: 8,
+      reason: 'shared-with-original-read-inventory'}};
 }
 
 export async function observeNativeJournalExhaustion({project, cli, assets, libraries,
