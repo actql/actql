@@ -1383,3 +1383,114 @@ test "Native README held keyed Model Effect restores its exact prepared-original
     effect_prepared_restore=true,
   )
 }
+
+///|
+// Exact authored numeric caller, on the existing Request and original Mock
+// declaration. This diagnoses route/graph selection only: no Source payload,
+// Journal, Account, Run admission or physical Start is supplied here.
+fn native_pure_file_request_payload(
+  facility : NativeMockReadmeRequestFacility,
+  original : LocalProjectMockDeclarations,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> String? raise {
+  facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  let document = "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d"
+  let intent = @run_host.prepare_client_submitted_intent(
+    local_project_mock_relation_wire({
+      "kind": "aql",
+      "input": { "text": Json::string(document), "format": "sql" },
+      "parameters": null,
+    }).unwrap(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let issue = match
+    @local_host.prepare_native_client_submitted_request_input(
+      facility.parent,
+      facility.input,
+      intent,
+      environment,
+      publication,
+      verify_request_value_policy=Some(subject => {
+        original.verify_static_request_policy(environment, subject)
+      }),
+    ) {
+    Err(issue) => Some(native_mock_readme_request_issue(issue))
+    Ok((preparation, borrow)) => {
+      let issue = match
+        @local_host.native_client_submitted_preparation(preparation) {
+        Computation(prepared) => {
+          assert_eq(@run_host.prepared_client_acquisition_count(prepared), 1)
+          assert_true(
+            @run_host.prepared_client_composed_infer_occurrences(prepared)
+            .unwrap()
+            .is_empty(),
+          )
+          let request = @run_host.prepare_source_free_client_request_identity(
+            prepared,
+            "sha256:" + "8".repeat(64),
+            "native-numeric-file-component",
+          ).unwrap()
+          let selected = @local_values.select_installed_source_input(
+            prepared, request, 0, 0,
+          ).unwrap()
+          let graph = @run_host.prepared_client_graph(prepared)
+          let route = match selected {
+            @sourceviews.QueryRoute(_) => "query"
+            @sourceviews.WholeInputRoute(_) => "whole-input"
+          }
+          println(
+            "Native numeric Source: tasks=" +
+            @strategy.graph_task_count(graph).to_string() +
+            ",captured=" +
+            @strategy.graph_captured_prefix(graph).to_string() +
+            ",route=" +
+            route,
+          )
+          None
+        }
+        EffectComputation(_) => Some("numeric File Source must remain Pure")
+      }
+      @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+      |> ignore
+      issue
+    }
+  }
+  ignore(@local_values.abort_request_preparation_after_cleanup(facility.parent))
+  facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+  issue
+}
+
+///|
+fn native_pure_file_request_in_metadata_read(
+  metadata : @initial_arena.InstalledArenaHost,
+  read : @initial_arena.InstalledArenaOriginalRead,
+  facility : NativeMockReadmeRequestFacility,
+) -> String? raise {
+  let original = native_project_mock_model_fixture("churn-risk")
+  original.prepare_source_declarations().unwrap()
+  let environment = original
+    .prepare_source_environment(explain_fixture_environment())
+    .unwrap()
+  let (publication, _) = original
+    .prepare_source_publication(environment)
+    .unwrap()
+  metadata.leave_domain_original_read(read).unwrap()
+  let issue = native_pure_file_request_payload(
+    facility, original, environment, publication,
+  )
+  facility.arena.close_domain_retained_execution(facility.physical).unwrap()
+  @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
+  facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
+  facility.arena.try_close().unwrap()
+  metadata.enter_domain_original_read(read).unwrap()
+  original.retire_originals().unwrap() |> ignore
+  issue
+}
+
+///|
+test "Native numeric File Source keeps its actual Pure Request and acquisition route" {
+  native_project_mock_model_backed_read(false, pure_file_source=true)
+}
