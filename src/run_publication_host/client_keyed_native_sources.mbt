@@ -1,8 +1,16 @@
 ///|
+// Private cleanup ownership only; never a caller-supplied permission or proof.
+priv enum ClientKeyedSourceIdentityCustody {
+  ScannedHere
+  BorrowedOriginal
+}
+
+///|
 /// Captured Source metadata on the existing left/lookup owner. No Request,
 /// Source, Account or cleanup owner is created by this borrowed original.
 pub struct ClientKeyedNativeSourceEvidence {
   identity : @query.CapturedSourceRelationIdentity
+  priv identity_custody : ClientKeyedSourceIdentityCustody
   logical : @publication.RunEvidenceValue
   observation : @publication.RunEvidenceValue
   relation : @publication.PublicationContract
@@ -20,6 +28,7 @@ priv struct ClientKeyedNativeSourceState {
   sources : Array[ClientKeyedNativeSourceEvidence]
   mut source_scan : @query.CapturedSourceCellIdentityScan?
   mut source_identity : @query.CapturedSourceRelationIdentity?
+  mut source_identity_custody : ClientKeyedSourceIdentityCustody
   mut request : ClientRequestIdentity?
   mut relation : ClientKeyedNativeLeftRelation?
 }
@@ -154,7 +163,7 @@ fn build_client_keyed_native_whole_source_evidence(
   let controls = @execution.preparation_representation_cost({
     record_headers: 25L,
     reference_slots: 39L + 16L * (index.to_int64() + 1L),
-    scalar_words: 25L,
+    scalar_words: 26L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -206,6 +215,7 @@ fn build_client_keyed_native_whole_source_evidence(
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }
+  state.source_identity_custody = ScannedHere
   state.source_identity = Some(identity)
   state.source_scan = None
   // Existing metadata codec grows the same reservation before any body is
@@ -309,6 +319,7 @@ fn build_client_keyed_native_whole_source_evidence(
   }
   let result = {
     identity,
+    identity_custody: ScannedHere,
     logical,
     observation,
     relation,
@@ -575,7 +586,7 @@ fn keyed_lookup_source_metadata_state(
       let fixed = @execution.preparation_representation_cost({
         record_headers: 3L + array.record_headers,
         reference_slots: 7L + array.reference_slots,
-        scalar_words: 2L + array.scalar_words,
+        scalar_words: 3L + array.scalar_words,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       }).unwrap()
@@ -599,6 +610,7 @@ fn keyed_lookup_source_metadata_state(
         sources: [],
         source_scan: None,
         source_identity: None,
+        source_identity_custody: BorrowedOriginal,
         request: Some(request),
         relation: None,
       }

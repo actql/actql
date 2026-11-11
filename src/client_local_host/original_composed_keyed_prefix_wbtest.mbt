@@ -76,6 +76,8 @@ fn original_composed_keyed_consumer(
   request_metadata_policy? : Int = 16384,
   native_transport? : Bool = false,
   captured_source_metadata? : Bool = false,
+  borrowed_source_cleanup? : Bool = false,
+  borrowed_source_failure? : Bool = false,
   native_activation? : Bool = false,
   activation_reentry? : Bool = false,
   left_identity_reentry? : Bool = false,
@@ -1174,6 +1176,66 @@ fn original_composed_keyed_consumer(
       is Err(_),
     )
     assert_eq(@resources.ledger_usage(ledger), before)
+    if borrowed_source_failure {
+      let capacity = whole_capacities[0]
+      let facts = @planning.source_acquisition_evidence_facts(capacity.original).unwrap()
+      let other_scope = @row_source_host.issue_row_input_source_evidence(
+        capacity.acquisition,
+        captures[0],
+        whole_identities[0],
+        whole_observations[0].0,
+        "sha256:" + "f".repeat(64),
+        facts.source_data_policy_cid,
+        "2026-11-05T00:00:01.000Z",
+      ).unwrap()
+      assert_true(
+        @publication_host.bind_client_keyed_whole_source_metadata(
+          lookup,
+          0,
+          whole_identities[0],
+          whole_observations[0].0,
+          other_scope,
+          original_request,
+          retention,
+          16777216,
+          1024,
+          20,
+        )
+        is Err(
+          @publication_host.Assembly("foreign_captured_source_observation")
+        ),
+      )
+      assert_true(
+        @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
+      )
+      for index, source in sources {
+        assert_true(
+          @query.captured_source_relation_dependency_bodies(
+            whole_identities[index],
+            source,
+          )
+          is Some(_),
+          msg="failed metadata cleanup must return only its borrowed alias",
+        )
+      }
+      assert_true(cleanup_client_serialization_prefix(original.prefix).unwrap())
+      for run in runs {
+        @row_source_host.close_accounted_row_run(run).unwrap()
+      }
+      assert_true(
+        @publication_host.finish_client_model_read_scope(
+          scope,
+          model.compiled,
+          model.definition,
+          model.graph,
+          true,
+        ).unwrap(),
+      )
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+      assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 2)
+      return
+    }
     for index in 0..<2 {
       let (logical, observation) = whole_observations[index]
       let result = @publication_host.bind_client_keyed_whole_source_metadata(
@@ -2969,7 +3031,7 @@ fn original_composed_keyed_consumer(
     )
   }
   assert_true(cleanup_client_infer_input(input).unwrap())
-  if source_identity_bodies {
+  if source_identity_bodies && !borrowed_source_cleanup {
     for identity in whole_identities {
       @query.clear_captured_source_relation_dependency_bodies(identity)
     }
@@ -3005,6 +3067,18 @@ fn original_composed_keyed_consumer(
   assert_true(
     @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000).unwrap(),
   )
+  if borrowed_source_cleanup {
+    for index, source in sources {
+      assert_true(
+        @query.captured_source_relation_dependency_bodies(
+          whole_identities[index],
+          source,
+        )
+        is Some(_),
+        msg="lookup cleanup must not clear a live captured Source original",
+      )
+    }
+  }
   if shared_source_producers {
     assert_true(
       @publication_host.client_composed_keyed_lookup_source_results(
@@ -3351,4 +3425,25 @@ fn original_composed_keyed_metadata_retention() -> @publication.PublicationContr
 ///|
 test "captured Source protocol borrows the original Whole metadata once before keyed Model input" {
   original_composed_keyed_consumer(whole=true, captured_source_metadata=true)
+}
+
+///|
+test "borrowed captured Source bodies survive completed lookup cleanup with their original consumer live" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    source_identity_bodies=true,
+    borrowed_source_cleanup=true,
+  )
+}
+
+///|
+test "borrowed captured Source bodies survive failed metadata cleanup with their original consumer live" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    source_identity_bodies=true,
+    borrowed_source_cleanup=true,
+    borrowed_source_failure=true,
+  )
 }

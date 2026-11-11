@@ -149,7 +149,7 @@ fn bind_client_keyed_captured_source_metadata(
   let controls = @execution.preparation_representation_cost({
     record_headers: 12L,
     reference_slots: 23L + 16L * (index.to_int64() + 1L),
-    scalar_words: 12L,
+    scalar_words: 13L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -187,6 +187,7 @@ fn bind_client_keyed_captured_source_metadata(
   // This Some and the new Source metadata are constructed only after the
   // same lookup has funded them. The original argument/capture stays borrowed
   // across growth; the identifying fence excludes reentrant slot creation.
+  state.source_identity_custody = BorrowedOriginal
   state.source_identity = Some(identity)
   match
     @publication.admit_completed_source_input_logical(
@@ -281,6 +282,7 @@ fn bind_client_keyed_captured_source_metadata(
   }
   let result = {
     identity,
+    identity_custody: BorrowedOriginal,
     logical,
     observation,
     relation,
