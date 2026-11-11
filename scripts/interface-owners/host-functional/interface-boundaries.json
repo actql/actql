@@ -17430,7 +17430,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a7b0c393813204abdf3724d4f11ae2733eeba81a1d91d167c1b894c31cc2bf85",
+      "sha256": "9b62fc9dd6d541e4f9b6384afde5a15358885773eda2fa9b6f2bfe2ded892b7a",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -17450,22 +17450,7 @@
         {
           "name": "effectSourceInputs/effectSourceInputs",
           "parameters": [
-            "value",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectSourceInputs/effectSourceInputs/effectSourceInputs",
-          "parameters": [
             "number"
-          ],
-          "async": false
-        },
-        {
-          "name": "effectSourceInputs/effectSourceInputs/effectSourceInputs#2",
-          "parameters": [
-            "previous"
           ],
           "async": false
         },
@@ -17639,9 +17624,7 @@
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#5",
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#6",
             "effectSourceInputs",
-            "effectSourceInputs/effectSourceInputs",
-            "effectSourceInputs/effectSourceInputs/effectSourceInputs",
-            "effectSourceInputs/effectSourceInputs/effectSourceInputs#2"
+            "effectSourceInputs/effectSourceInputs"
           ],
           "exports": [
             "prepareInstalledAcquiredEffectLedger",
@@ -17694,7 +17677,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "const owners = new Set();"
+                "anchor": "selected.push(Object.freeze({adapter, sourceKind: kind,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -17914,7 +17897,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/acquired-effect-sources.mjs",
-                "anchor": "const owners = new Set();"
+                "anchor": "selected.push(Object.freeze({adapter, sourceKind: kind,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -136099,7 +136082,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5181,
+    "operations": 5179,
     "exports": 1172,
     "explicitContractGroups": 542
   },

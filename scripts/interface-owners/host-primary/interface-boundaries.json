@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "937dcd65fb2a4d808e2ec6baf1425f4a6d32f576ccef85fdd4b5cfeb7e413474",
+      "sha256": "e8b16823e101a16b69cc97b924111fff19130d4bbe1d1fc4bbbf8c4bd5e5603d",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -24413,7 +24413,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "83b5afd78dc3c68f7fec209064f5405d5992dd685405ebec0ad03ed85582fee5",
+      "sha256": "d72babe6e852a8eb7cdb00e0275f3c0384cadcbce665b7b7831089a2587fc942",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -27126,7 +27126,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
-      "sha256": "8a80e628215e985f33f0185517d0850fac5299573a7bb41518ba625f39352c58",
+      "sha256": "6f5703f754d5327e1941daae18cf0f46c633179b42010976ff7072ee36c236eb",
       "exports": [
         "prepareAcquiredEffectKeyedPrefix"
       ],
