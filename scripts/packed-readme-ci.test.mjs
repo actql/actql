@@ -711,7 +711,8 @@ test('independent normal consumers continue after collection and variant failure
     packedReadmeCases, packedCompositionCases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async () => ({consumer, manifest: {}, manifestPath: '/authored-manifest'}),
     runCollectionConsumer: async ({report, cleanup}) => {
-      report.collection[0].status = 'failed'; cleanup.push(cleanupFailure); throw collectionFailure;
+      report.collection.find(value => value.phase === 'capture').status = 'failed';
+      cleanup.push(cleanupFailure); throw collectionFailure;
     }, runReadmeCases, verifyNodeBenchmarkPackages});
   await assert.rejects(run(output), error => {
     assert(error instanceof AggregateError); assert.equal(error.cause, collectionFailure);
@@ -722,8 +723,9 @@ test('independent normal consumers continue after collection and variant failure
   assert.equal(report.complete, false);
   assert.deepEqual(report.cases.map(value => value.status), ['failed', 'passed', 'passed']);
   assert.deepEqual(report.compositions.map(value => value.status), ['passed']);
-  assert.equal(report.collection[1].status, 'unexecuted');
-  assert.match(report.collection[1].unexecutedReason, /completed original 100000 Result/u);
+  const saved = report.collection.find(value => value.phase === 'saved');
+  assert.equal(saved.status, 'unexecuted');
+  assert.match(saved.unexecutedReason, /completed original 100000 Result/u);
   assert.equal(report.failures.length, 2); assert.equal(report.cleanup.length, 1);
 });
 

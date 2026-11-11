@@ -131,8 +131,13 @@ test('write attribution borrows the existing exact Mock original and keeps unrea
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   let callback;
+  const declarations = new Map();
   function visit(node) {
     if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier') {
+      assert(!declarations.has(node.id.name) || node.id.name !== 'observeMockEffectWrite');
+      declarations.set(node.id.name, node.init);
+    }
     if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
         node.callee.object.name === 'preparation' && node.callee.property.name === 'installMockEffects') {
       assert.equal(callback, undefined); callback = node.arguments.at(-1);
@@ -142,7 +147,12 @@ test('write attribution borrows the existing exact Mock original and keeps unrea
       else if (child && typeof child === 'object') visit(child);
     }
   }
-  visit(ast); assert.equal(callback?.type, 'ArrowFunctionExpression');
+  visit(ast);
+  if (callback?.type === 'Identifier') {
+    assert.equal(callback.name, 'observeMockEffectWrite');
+    callback = declarations.get(callback.name);
+  }
+  assert.equal(callback?.type, 'ArrowFunctionExpression');
   const original = Object.freeze({}), definition = Object.freeze({}), entries = new WeakMap();
   entries.set(original, {original, definition});
   const events = []; let calls = 0, unreadable = false;

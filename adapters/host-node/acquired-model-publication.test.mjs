@@ -276,8 +276,8 @@ test('Whole producer refusal preserves the exact checked cause and releases only
 
 test('two Whole contributions cannot be relabeled as separate complete evidence for one upstream Unit',async()=>{
   const f=fixture({inline:false,upstreamWhole:true});f.sources[1].captured.occurrence.stage=0;
-  await assert.rejects(f.invoke(),/DuplicateEffectProducerUnitEvidence/);
-  assert.deepEqual(f.events.filter(value=>value.startsWith('whole-unit-')),['whole-unit-0']);
+  await assert.rejects(f.invoke(),/CombinedEffectProducerUnitOriginalRequired/);
+  assert.deepEqual(f.events.filter(value=>value.startsWith('whole-unit-')),[]);
   assert.equal(f.events.filter(value=>value==='release-binding').length,1);
 });
 

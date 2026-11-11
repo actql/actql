@@ -21538,7 +21538,9 @@
         },
         {
           "name": "openInstalledHost/observeMockEffectWrite/observeMockEffectWrite",
-          "parameters": [],
+          "parameters": [
+            "original"
+          ],
           "async": false
         },
         {
@@ -23583,7 +23585,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "bfb5d3684fb35e6cb001e2d0b025cfe322e5fb9e3466c3cc12758a1cfe72075e"
+      "sha256": "06068ef12290590ed3a6e639de2dce2a6110f2c5dea84a979cf99fb044a061d6"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
