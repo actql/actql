@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "e8b16823e101a16b69cc97b924111fff19130d4bbe1d1fc4bbbf8c4bd5e5603d",
+      "sha256": "aeaeeb606bf48e019a5b4dd33bf49aa5ad4ea147cd3391378ccdf1106c9754f4",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -365,7 +365,9 @@
             "originalModelComponent",
             "originalModelComponents",
             "originalModelSelection",
-            "originalContent"
+            "originalContent",
+            "sourceSelection",
+            "sourceSelectionPlan"
           ],
           "async": true
         },
@@ -464,14 +466,14 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation",
           "parameters": [
-            "record"
+            "value"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#10",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -497,24 +499,31 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#14",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
           "parameters": [
-            "slot"
+            "record"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
           "parameters": [
-            "value",
-            "index"
+            "slot"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
           "parameters": [
-            "value"
+            "value",
+            "index"
           ],
           "async": false
         },
@@ -808,7 +817,8 @@
             "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
             "acquiredEffectModelGroup/retirePublication",
             "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
-            "openAcquiredEffectComputation/wholeInputs/wholeInputs"
+            "openAcquiredEffectComputation/wholeInputs/wholeInputs",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#13"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -1270,7 +1280,7 @@
         },
         {
           "operations": [
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#14",
             "selectRestoredKeyedSource",
             "selectRestoredKeyedSource/matching/matching"
           ],
@@ -23463,7 +23473,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "516c1e9be22a0cc75fe67b7a52fbdf0ccd154d84234137db818052d8d0afd953"
+      "sha256": "48fcf29839c595d0b9f9d36a0f85548db1965ffe9647225c0aa9d78bbb53dbfa"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -27314,7 +27324,7 @@
   ],
   "counts": {
     "modules": 16,
-    "operations": 959,
+    "operations": 960,
     "exports": 102,
     "explicitContractGroups": 101
   }

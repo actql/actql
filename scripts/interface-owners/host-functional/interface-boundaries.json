@@ -17430,7 +17430,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9b62fc9dd6d541e4f9b6384afde5a15358885773eda2fa9b6f2bfe2ded892b7a",
+      "sha256": "9c1c977b5bda6820f9a63cefdb385bbd691d834629a0b1885e83356c789b1130",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -17443,7 +17443,9 @@
           "name": "effectSourceInputs",
           "parameters": [
             "moon",
-            "preparedEffect"
+            "preparedEffect",
+            "managedPlan",
+            "requestIdentity"
           ],
           "async": false
         },

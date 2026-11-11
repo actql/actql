@@ -32320,7 +32320,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e8b16823e101a16b69cc97b924111fff19130d4bbe1d1fc4bbbf8c4bd5e5603d",
+      "sha256": "aeaeeb606bf48e019a5b4dd33bf49aa5ad4ea147cd3391378ccdf1106c9754f4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32679,7 +32679,9 @@
             "originalModelComponent",
             "originalModelComponents",
             "originalModelSelection",
-            "originalContent"
+            "originalContent",
+            "sourceSelection",
+            "sourceSelectionPlan"
           ],
           "async": true
         },
@@ -32778,14 +32780,14 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation",
           "parameters": [
-            "record"
+            "value"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#10",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -32811,24 +32813,31 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#14",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
           "parameters": [
-            "slot"
+            "record"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
           "parameters": [
-            "value",
-            "index"
+            "slot"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
           "parameters": [
-            "value"
+            "value",
+            "index"
           ],
           "async": false
         },
@@ -33119,7 +33128,8 @@
             "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
             "acquiredEffectModelGroup/retirePublication",
             "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
-            "openAcquiredEffectComputation/wholeInputs/wholeInputs"
+            "openAcquiredEffectComputation/wholeInputs/wholeInputs",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#13"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -33525,7 +33535,7 @@
         },
         {
           "operations": [
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#14",
             "selectRestoredKeyedSource",
             "selectRestoredKeyedSource/matching/matching"
           ],
@@ -64081,7 +64091,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "516c1e9be22a0cc75fe67b7a52fbdf0ccd154d84234137db818052d8d0afd953"
+      "sha256": "48fcf29839c595d0b9f9d36a0f85548db1965ffe9647225c0aa9d78bbb53dbfa"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -89522,7 +89532,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b197713798f4448e478790d326b2004333100355e636515532bcf9c3833653b2",
+      "sha256": "c511d4a745e3a6ea7f581fbaae434ae8e0765f77e1f3769e620cac740aab7f0d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -157530,7 +157540,7 @@
   ],
   "counts": {
     "modules": 58,
-    "operations": 4271,
+    "operations": 4272,
     "exports": 614,
     "explicitContractGroups": 904
   }
