@@ -389,3 +389,35 @@ test('ordinary published Model captured caller forwards its same required input 
 test('ordinary published Model group caller forwards each same required input body read', () => {
   publishedModelReadCaller({acquired: true, grouped: true});
 });
+
+// Actual Effect publication consumer; stop at its existing plan constructor.
+// Logical dependency identity is a set, while each acquired Source occurrence
+// and its admitted evidence remain distinct inputs to the original invocation.
+test('actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies', () => {
+  const logical = 'sha256:' + 'a'.repeat(64), stop = new Error('ReachedOriginalResultPlan');
+  const sources = [0, 1, 2].map(slot => ({captured: {identity: {slot}}, sourceEvidence: {slot}}));
+  const acquired = {prepared: {}, compilation: {}, admission: {}, definition: {},
+    runDefinition: {wire: '{"created_at":"2026-11-11T00:00:00.000Z"}'},
+    compiledPlan: {identity: 'original-plan'}};
+  let invocations = 0, plans = 0;
+  acquired.moon = {clientProgramEffectPublicationDataPolicyCid: () => 'original-policy',
+    clientProgramEffectDefinitionCid: () => 'original-definition',
+    clientProgramEffectCompilationResultNames: () => ['answer'],
+    clientProgramCapturedSourceLogicalCid(identity) {assert(sources.some(source => source.captured.identity === identity)); return logical;}};
+  acquired.control = {issueCheckedClientEffectMultiCapturedInvocation(prepared, compilation, admission, definition, actual) {
+    assert.strictEqual(prepared, acquired.prepared); assert.strictEqual(compilation, acquired.compilation);
+    assert.strictEqual(admission, acquired.admission); assert.strictEqual(definition, acquired.definition);
+    assert.strictEqual(actual, sources); invocations++;
+    return {observation: {}, invocation: {}};
+  }};
+  const run = composedSourceFunction('./local-values-plan.mjs', 'acquiredMultiEffectPublicationPlan', {
+    limits: {}, buildLocalPublicationPlan(facts) {
+      plans++; assert.deepEqual(facts.inputRelationCids, [logical]);
+      assert.equal(facts.sourceEvidence.length, 3);
+      for (const [index, original] of sources.entries()) assert.strictEqual(facts.sourceEvidence[index], original.sourceEvidence);
+      throw stop;
+    },
+  });
+  assert.throws(() => run({acquired, sources}), error => error === stop);
+  assert.deepEqual({invocations, plans}, {invocations: 1, plans: 1});
+});

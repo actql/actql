@@ -24474,7 +24474,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "0fefdbe8d0b73e1c9e2af96c34fd387d926eab0e0110eeca70e16e84708988fa",
+      "sha256": "b949028d475dc02e0ffa690a102fc16a43cfc578854e4c3832960a5fe03f613d",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -25413,6 +25413,10 @@
               {
                 "path": "adapters/host-node/infer-model-effect-control.test.mjs",
                 "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }
@@ -25485,6 +25489,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original query evaluation time"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }
@@ -25593,6 +25601,10 @@
               {
                 "path": "adapters/host-node/client-publication-plan-original.test.mjs",
                 "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }
@@ -25704,6 +25716,10 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }
@@ -25810,6 +25826,10 @@
               {
                 "path": "src/connectors_builtin_node/client_source_free_effect_content_wbtest.mbt",
                 "anchor": "test \"source-free Content Effect compiler requires"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }
@@ -25925,6 +25945,10 @@
               {
                 "path": "adapters/host-node/local-values-policy-original.test.mjs",
                 "anchor": "timed original downstream Values publication preserves first Run and full publication duties"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }
@@ -25993,6 +26017,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "timed invocation backing retains its original compiler"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }
@@ -26237,6 +26265,10 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }
@@ -26377,6 +26409,10 @@
               {
                 "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
                 "anchor": "test('Store lease rejects replacement of its exact opened anchor"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               }
             ]
           }

@@ -96963,7 +96963,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0fefdbe8d0b73e1c9e2af96c34fd387d926eab0e0110eeca70e16e84708988fa",
+      "sha256": "b949028d475dc02e0ffa690a102fc16a43cfc578854e4c3832960a5fe03f613d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

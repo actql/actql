@@ -527,9 +527,11 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     control, admission, runDefinition, invocation, observation,
     compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
-    inputRelationCids: [...sources.map(({captured}) =>
+    // Result derivation names a set of logical dependencies. Equal content
+    // does not merge the original Source occurrences or their evidence above.
+    inputRelationCids: [...new Set([...sources.map(({captured}) =>
       moon.clientProgramCapturedSourceLogicalCid(captured.identity)),
-      ...(keyedSource === undefined ? [] : [keyedSource.logicalRelationCid])],
+      ...(keyedSource === undefined ? [] : [keyedSource.logicalRelationCid])])],
     sourceEvidence, modelEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid, createdAt: run.created_at, now,
     resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
