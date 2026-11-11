@@ -20,7 +20,7 @@ pub fn invocation_binding_original_model_outcomes(
     original_local_model_observation_current(binding.output_use, issued) else {
     return None
   }
-  borrow_original_live_model_relations(
+  borrow_original_model_observation_relations(
     binding.output_use,
     issued.state.compiled,
     issued.state.definition,
@@ -190,6 +190,15 @@ fn original_local_model_observation_current(
     plan,
   ) &&
   observation_issuance_value(issued) is Some(_) &&
+  (
+    held.owner.saved_call_scope is None ||
+    restored_model_observation_scope_current(
+      held,
+      issued.state.compiled,
+      issued.state.definition,
+      plan,
+    )
+  ) &&
   !issued.reclaimed &&
   issued.accepted &&
   original_host_output_matches(
@@ -244,6 +253,77 @@ pub fn borrow_original_live_model_relations(
 }
 
 ///|
+// The original restored owner authenticates this SAME scope against the
+// compiled Run/occurrence/Plan. Fence callbacks with the caller's original
+// local completion checks; equal rows or a caller's Saved label grant none.
+fn restored_model_observation_scope_current(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> Bool {
+  guard held.owner.saved_call_scope is Some(saved) else { return false }
+  @publication_host.client_infer_saved_call_scope_matches_originals(
+    saved,
+    compiled,
+    definition,
+    held.owner.occurrence,
+    plan,
+  ) &&
+  held.owner.saved_call_scope is Some(current) &&
+  physical_equal(saved, current)
+}
+
+///|
+// A restored, still-live physical Model needs its original unfiltered
+// relations too. Keep the public live-only entrance unchanged; this private
+// observation projection adds the existing authenticated Saved scope fence.
+fn borrow_original_model_observation_relations(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> (@relation.CompletedOutput, @relation.CompletedOutput)? {
+  let active = held.owner
+  if active.saved_call_scope is None {
+    return borrow_original_live_model_relations(
+      held, compiled, definition, plan,
+    )
+  }
+  guard original_host_output_matches(held, compiled, definition, plan) &&
+    active.source is Physical(_) &&
+    active.call_scope is Some(scope) &&
+    active.output is Some(preparation) &&
+    @input.client_infer_completed_input(active.input) is Some(input) &&
+    @publication_host.client_infer_call_scope_matches(
+      scope,
+      active.occurrence.owner,
+      input,
+    ) &&
+    @model.complete_model_output(preparation) is Ok(outcomes) &&
+    restored_model_observation_scope_current(held, compiled, definition, plan) &&
+    original_host_output_matches(held, compiled, definition, plan) else {
+    return None
+  }
+  let current = () => {
+    original_host_output_matches(held, compiled, definition, plan) &&
+    @publication_host.client_infer_call_scope_matches(
+      scope,
+      active.occurrence.owner,
+      input,
+    ) &&
+    restored_model_observation_scope_current(held, compiled, definition, plan) &&
+    original_host_output_matches(held, compiled, definition, plan)
+  }
+  Some(
+    (
+      @relation.restrict_completed_output(input, current),
+      @relation.restrict_completed_output(outcomes, current),
+    ),
+  )
+}
+
+///|
 /// Issue only from exact complete export receipts of this Model's original
 /// input and unfiltered outcomes. The existing complete issuer retains all
 /// slot/audit/Run evidence outside the semantic preimage. The caller must back
@@ -260,7 +340,7 @@ pub fn issue_original_local_model_observation(
   guard original_local_model_observation_current(held, issued) &&
     held.owner.plan is Some(plan) &&
     held.owner.call_scope is Some(scope) &&
-    borrow_original_live_model_relations(
+    borrow_original_model_observation_relations(
       held,
       issued.state.compiled,
       issued.state.definition,
@@ -306,7 +386,7 @@ pub fn issue_original_local_model_observation_from_scope(
   guard original_local_model_observation_current(held, issued) &&
     held.owner.plan is Some(plan) &&
     held.owner.call_scope is Some(scope) &&
-    borrow_original_live_model_relations(
+    borrow_original_model_observation_relations(
       held,
       issued.state.compiled,
       issued.state.definition,

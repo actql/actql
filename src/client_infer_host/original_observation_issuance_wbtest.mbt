@@ -9,6 +9,8 @@ fn original_observation_test_start(
   spare_publication_slot? : Bool = false,
   input_body? : Bool = false,
   input_read_ceiling? : Int64? = None,
+  restored_input? : Bool = false,
+  restored_custody? : () -> Bool = () => true,
 ) -> (Execution, @resources.Ledger, @publication_host.ClientModelReadConsumer) {
   let prepared = fixture_prepared(source~)
   let plan = call_identity_plan(prepared)
@@ -59,7 +61,36 @@ fn original_observation_test_start(
   let consumer = @publication_host.claim_client_model_read_preparation(
     read, compiled, definition, plan, 7L, 5L,
   ).unwrap()
-  let active = if input_body {
+  let active = if restored_input {
+    let (occurrence, prefix) = original_composed_test_input(prepared)
+    let (saved, exported) = original_restored_composed_test_saved(
+      prepared, compiled, definition, occurrence, plan, restored_custody,
+    ) catch {
+      _ =>
+        abort(
+          "actual restored observation fixture must admit its original scope",
+        )
+    }
+    start_original_restored_composed(
+      occurrence,
+      plan,
+      prefix,
+      provider,
+      @input.client_infer_retained_input_export_binding(exported),
+      @input.client_infer_retained_input_export_descriptor(exported),
+      @input.client_infer_retained_input_export_rows(exported),
+      restored_custody,
+      saved,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+    ).unwrap()
+  } else if input_body {
     let (occurrence, prefix) = original_composed_test_input(prepared)
     start_original_composed(
       occurrence,
