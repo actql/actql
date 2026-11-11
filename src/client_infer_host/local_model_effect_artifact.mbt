@@ -14,21 +14,41 @@ pub fn issue_original_local_model_acquired_evidence(
   @publication_host.ClientEffectAcquiredEvidenceIssue,
 ] {
   guard original_local_model_observation_current(value.held, value.issued) &&
-    value.held.owner.call_scope is Some(scope) &&
-    value.held.owner.composed_sources is Some(sources) else {
+    value.held.owner.call_scope is Some(scope) else {
     return Err(Invocation(ForeignCapturedInput))
   }
-  let result = @publication_host.issue_single_model_client_effect_acquired_evidence(
-    value.issued.state.compiled,
-    scope,
-    value.body,
-    sources,
-    retention,
-    max_bytes,
-    max_nodes,
-    max_depth,
-    imports~,
-  )
+  let result = match
+    (
+      value.held.owner.saved_call_scope,
+      value.held.owner.composed_sources,
+      imports,
+    ) {
+    (Some(saved), None, Some(original)) =>
+      @publication_host.issue_restored_model_client_effect_imported_evidence(
+        value.issued.state.compiled,
+        scope,
+        saved,
+        value.body,
+        retention,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        original,
+      )
+    (None, Some(sources), _) =>
+      @publication_host.issue_single_model_client_effect_acquired_evidence(
+        value.issued.state.compiled,
+        scope,
+        value.body,
+        sources,
+        retention,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        imports~,
+      )
+    _ => Err(Invocation(ForeignCapturedInput))
+  }
   if !original_local_model_observation_current(value.held, value.issued) {
     return Err(Invocation(ForeignCapturedInput))
   }

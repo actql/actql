@@ -124,6 +124,16 @@ Omitting the optional Read preserves the existing body-free path. A foreign
 Read, insufficient capacity or cancellation cannot authorize body construction
 or Model dispatch, and the original cleanup owner remains responsible.
 
+Restored Model publication can borrow the same authenticated Saved scope and
+the enclosing computation's actual retained Result-import evidence. It checks
+the original compiled Run, Plan, input artifact, effective inputs and named
+observations, then each checked import's original owner, producer, interface,
+borrow and Manifest. The Model Invocation retains those import observations;
+their existing Relations and acquisition Scope keep the Source ancestry.
+Historical observations alone cannot create direct acquisition evidence, and
+this path neither admits live Sources into a Saved input nor reopens a Source.
+Current custody is checked again before returning the borrowed publication.
+
 For the existing separate-task plural Model form, the same Plan retains the
 complete ordered graph and Scope inventory. Cold restoration borrows a nonempty
 ordered subset of actual completed members; unsent members keep their existing
