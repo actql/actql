@@ -17,6 +17,10 @@ export type EmbeddedHostInstallation = Readonly<{
    * Positive signed 32-bit integer; the upper bound is the Core integer representation,
    * not an admitted workload size. Work, value, byte and resource admission still apply. */
   valuesMaxRows?: number;
+  /** Explicit positive signed-32-bit work limit for each source-free Local
+   * Compute fragment/sequence counter. Core supplies the default when omitted.
+   * This is not a global Run/Host quota, memory grant or compiler/check limit. */
+  sourceFreeMaxWork?: number;
   hostCapacityPolicy?: HostCapacityPolicy;
   hostLookupExecutionPolicy?: HostLookupExecutionPolicy;
   sourceProfilePath?: string;

@@ -1128,6 +1128,7 @@ pub fn client_program_prepare_request_program_module_body(
     @publication_host.ClientCompiledRun,
     @publication.PublicationContract,
   )?,
+  source_free_max_work : Int?,
 ) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
   let compilation_limits = match
     @client_local_host.request_program_compilation_limits(parent, input) {
@@ -1147,6 +1148,7 @@ pub fn client_program_prepare_request_program_module_body(
     retained_output~,
     provider_factory=installed_client_family_providers,
     invocation~,
+    source_free_max_work~,
   ).map_err(issue => Preparation(issue))
 }
 

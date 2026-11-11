@@ -81,6 +81,13 @@ budget is shared by the Values roots of a lowered sequence: 90 order rows
 plus 10 customer rows fit the default 100-row budget; 100 plus 10 do not.
 Separate output guards and work, cell, value and byte ceilings still apply.
 
+`installation: {sourceFreeMaxWork: 30000000}` explicitly selects finite
+source-free ordinary Local Compute work. Omission keeps the Core 20,000,000
+limit. The positive signed 32-bit value bounds each applicable cumulative
+fragment/sequence counter, not total Run/Host lifetime work. It does not increase
+compiler/check, acquired Source/Model/Effect budgets or the independent 512 MiB
+physical limits. A finite work selection is not sufficient workload admission.
+
 `installation: {valuesMaxRows: 2000}` selects the configurable **single-task**
 Values profile. The option accepts a positive signed 32-bit integer; this is a
 representation bound, not a workload admission guarantee or a separate 10,000-row

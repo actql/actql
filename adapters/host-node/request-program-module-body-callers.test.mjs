@@ -57,7 +57,7 @@ test('ModuleBody capability requires the new port and an own Boolean mode withou
 });
 
 test('funded caller passes the same installed mode to one original Request compiler and ModuleBody', async () => {
-  for (const mode of [false, true]) for (const valuesMaxRows of [undefined, 2]) {
+  for (const mode of [false, true]) for (const valuesMaxRows of [undefined, 2]) for (const sourceFreeMaxWork of [undefined, 30000000]) {
     const parent = {}, receipt = {}, environment = {}, preparedEnvironment = {}, admission = {}, holder = {}, prepared = {};
     const captured = {input: {}, parameters: {text: '日本語😀'}}, parametersCursor = {}, calls = [];
     let constructing = false;
@@ -74,7 +74,7 @@ test('funded caller passes the same installed mode to one original Request compi
       },
       clientProgramPrepareRequestProgramModuleBody(...args) {
         assert.strictEqual(this, moon);
-        assert.deepEqual(args, [parent, receipt, admission, mode]);
+        assert.deepEqual(args, [parent, receipt, admission, mode, undefined, sourceFreeMaxWork]);
         constructing = true; calls.push('body'); constructing = false;
       },
       clientProgramBorrowRequestProgramPlanInput(value, original) {
@@ -87,7 +87,7 @@ test('funded caller passes the same installed mode to one original Request compi
       },
     };
     const state = {parent, snapshot: captured, context: Object.freeze({runtime: moon, environment,
-      preparedEnvironment, retainedRelationOutput: mode, valuesMaxRows})};
+      preparedEnvironment, retainedRelationOutput: mode, valuesMaxRows, sourceFreeMaxWork})};
     const request = {};
     const producer = {receipt, request, kind: 'program', body: captured, preparation: state};
     const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
@@ -105,6 +105,12 @@ test('funded caller passes the same installed mode to one original Request compi
     }
     assert.deepEqual(calls, ['check', 'compiler', 'borrow', 'body', 'parameters']);
     assert.strictEqual(state.prepared, prepared);
+    // A valid but different counter limit cannot replace the captured input on
+    // the cached same Request, even when compilation is already complete.
+    const originalContext = state.context;
+    state.context = Object.freeze({...originalContext, sourceFreeMaxWork: 40000000});
+    await assert.rejects(read(request, environment), {code: 'ForeignInstalledSourceProducer'});
+    state.context = originalContext;
     state.context = context(moon, undefined);
     await assert.rejects(read(request, state.context.environment), {code: 'NodeLocalPreparationAdmissionUnavailable'});
     assert.deepEqual(calls, ['check', 'compiler', 'borrow', 'body', 'parameters']);
@@ -161,12 +167,15 @@ test('Host retains the actual output mode in its original preparation context an
   for (const mode of [false, true]) {
     const moon = {}, control = {}, environment = {}, preparedEnvironment = {};
     const installation = {initialControl: control, projectRuntime: moon,
-      retainedRelationOutput: mode, sequenceContractOriginal: {}};
+      retainedRelationOutput: mode, sourceFreeMaxWork: 30000000, sequenceContractOriginal: {}};
     const original = create(moon, installation, environment, {preparedEnvironment}, mode);
     assert.equal(Object.isFrozen(original), true);
     assert.strictEqual(original.retainedRelationOutput, mode);
     installation.closedValuesPreparationContext = original;
     assert.strictEqual(read({installation}), original);
+    installation.closedValuesPreparationContext = Object.freeze({...original, sourceFreeMaxWork: 40000000});
+    assert.throws(() => read({installation}), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+    installation.closedValuesPreparationContext = original;
     for (const invalid of [undefined, null, 0, 'false', !mode]) {
       installation.closedValuesPreparationContext = Object.freeze({...original, retainedRelationOutput: invalid});
       assert.throws(() => read({installation}), {code: 'NodeLocalPreparationAdmissionUnavailable'});
@@ -191,4 +200,19 @@ test('selected row context requires finite own DATA without observing accessors'
   assert.equal(getters, 0);
   const missing = ports(); delete missing.clientProgramRequestProgramModuleIssueCode;
   assert.equal(requestPreparationAvailable(context(missing, false)), false);
+});
+
+test('selected source-free work context accepts finite own DATA and refuses accessors', () => {
+  for (const sourceFreeMaxWork of [undefined, 1, 30000000, 2147483647]) {
+    assert.equal(requestPreparationAvailable(Object.freeze({
+      ...context(ports(), false), sourceFreeMaxWork})), true);
+  }
+  for (const sourceFreeMaxWork of [null, 0, -1, 1.5, 2147483648, Infinity, '30000000']) {
+    assert.equal(requestPreparationAvailable(Object.freeze({
+      ...context(ports(), false), sourceFreeMaxWork})), false);
+  }
+  let getters = 0;
+  assert.equal(requestPreparationAvailable(Object.freeze({...context(ports(), false),
+    get sourceFreeMaxWork() {getters++; return 30000000;}})), false);
+  assert.equal(getters, 0);
 });

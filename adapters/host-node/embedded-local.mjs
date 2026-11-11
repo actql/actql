@@ -514,6 +514,11 @@ export function readLocalPreparationContext(originals) {
       rows?.value !== installation.valuesMaxRows) {
     throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
   }
+  const work = Object.getOwnPropertyDescriptor(context, 'sourceFreeMaxWork');
+  if ((work !== undefined && !Object.hasOwn(work, 'value')) ||
+      work?.value !== installation.sourceFreeMaxWork) {
+    throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
+  }
   const mode = Object.getOwnPropertyDescriptor(context, 'retainedRelationOutput');
   if (mode === undefined || !Object.hasOwn(mode, 'value') || typeof mode.value !== 'boolean' ||
       mode.value !== installation.retainedRelationOutput) {
@@ -1329,6 +1334,8 @@ async function embeddedInstallationIdentity(root, installation, project, moon, p
       retainedRelationOutput: true} : {}),
     ...(installation?.valuesMaxRows === undefined ? {} : {
       valuesMaxRows: installation.valuesMaxRows}),
+    ...(installation?.sourceFreeMaxWork === undefined ? {} : {
+      sourceFreeMaxWork: installation.sourceFreeMaxWork}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -1369,6 +1376,14 @@ const REALIZATION_KEY = 'source-free-values';
 function validateValuesMaxRows(value) {
   if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
+  }
+}
+
+// Only the JS/Int representation boundary lives here. Core selects its
+// unchanged default and enforces the actual cumulative fragment counters.
+function validateSourceFreeMaxWork(value) {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
+    throw new TypeError('InvalidLocalSourceFreeWorkLimit');
   }
 }
 
@@ -1462,7 +1477,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   modelInstallation, registerModelProviders, project, projectProfile, projectRuntime,
   calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
-  retainedRelationOutput = false, valuesMaxRows, observation: observationConnection} = originalInstallation;
+  retainedRelationOutput = false, valuesMaxRows, sourceFreeMaxWork, observation: observationConnection} = originalInstallation;
   // This is the actual returned Host generation, not a CID/configuration
   // stand-in or another resource Owner. The installer covers native/process
   // domains as trusted implementation responsibility, NOT zero bytes or RSS.
@@ -1596,6 +1611,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   validateValuesMaxRows(valuesMaxRows);
+  validateSourceFreeMaxWork(sourceFreeMaxWork);
   validateSourceNamespace(sourceNamespace);
   validateSourceNamespace(sourceSelectorNamespace);
   if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
@@ -2216,7 +2232,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           originalInstallation.closedValuesPreparationContext = Object.freeze({runtime: moon,
             control: originalInstallation.initialControl, environment,
             preparedEnvironment: sourceEnvironmentOriginal.preparedEnvironment, retainedRelationOutput,
-            valuesMaxRows: originalInstallation.valuesMaxRows});
+            valuesMaxRows: originalInstallation.valuesMaxRows,
+            sourceFreeMaxWork: originalInstallation.sourceFreeMaxWork});
         }
       }
     }
@@ -8290,7 +8307,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       resolveEffectSecret, effectInstallation, modelInstallation, registerModelProviders,
       calendarArtifact, resultDataPolicy, inferEvidence, retainedRelationOutput,
       hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy,
-      valuesMaxRows, observation} = options;
+      valuesMaxRows, sourceFreeMaxWork, observation} = options;
     calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
     hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
     hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
@@ -8306,7 +8323,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       effectInstallation, modelInstallation, registerModelProviders, calendarArtifact,
       resultDataPolicy, inferEvidence,
       retainedRelationOutput: retainedRelationOutput === undefined ? false : retainedRelationOutput,
-      hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
+      hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, sourceFreeMaxWork, observation});
     record.installation = originalInstallation;
     moon = await import(runtimeUrl.href);
     record.runtime = moon;
@@ -8404,12 +8421,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
   }
   if (installation !== undefined) {
     const {hostCapacityPolicy: selected, hostLookupExecutionPolicy: lookupSelected,
-      calendarArtifact: suppliedCalendar, valuesMaxRows, ...rest} = installation;
+      calendarArtifact: suppliedCalendar, valuesMaxRows, sourceFreeMaxWork, ...rest} = installation;
     validateValuesMaxRows(valuesMaxRows);
+    validateSourceFreeMaxWork(sourceFreeMaxWork);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
     const hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(lookupSelected);
     const calendarArtifact = snapshotInstalledCalendar(suppliedCalendar);
-    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows};
+    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows, sourceFreeMaxWork};
     if (installation.effectProfilePaths !== undefined) {
       installation.effectProfilePaths = installedEffectPaths(installation);
     }
@@ -8453,7 +8471,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
     retainedRelationOutput: installation?.retainedRelationOutput === undefined
       ? false : installation.retainedRelationOutput,
     observation: installation?.observation,
-    valuesMaxRows: installation?.valuesMaxRows});
+    valuesMaxRows: installation?.valuesMaxRows,
+    sourceFreeMaxWork: installation?.sourceFreeMaxWork});
   record.installation = originalInstallation;
   if (selectedProfile.selected === 'mock') {
     const services = preparation.sourceInitializationServices(moon, root, userInfo().username);

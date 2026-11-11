@@ -9,9 +9,25 @@ test "collection original Request snapshot refuses occupied retention" {
 }
 
 ///|
+test "collection original Request publishes 9999 with explicit finite work" {
+  collection_request_publication_case(
+    9999,
+    false,
+    source_free_max_work=Some(30000000),
+  )
+}
+
+///|
+test "collection original Request default work refusal retains bounded cleanup" {
+  collection_request_publication_case(100000, false, expect_work_refusal=true)
+}
+
+///|
 fn collection_request_publication_case(
   count : Int,
   occupied : Bool,
+  source_free_max_work? : Int? = None,
+  expect_work_refusal? : Bool = false,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
@@ -74,8 +90,51 @@ fn collection_request_publication_case(
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     retained_output=false,
     provider_factory=_ => [],
+    source_free_max_work~,
   ).unwrap()
+  // A second module entrance cannot replace the first selected policy or
+  // construct another Plan on the same original Request.
+  assert_true(
+    prepare_request_program_module_body(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      retained_output=false,
+      provider_factory=_ => [],
+      source_free_max_work=Some(40000000),
+    )
+    is Err(Preparation(WrongPhase)),
+  )
   let plan = parent.program_source_free.unwrap()
+  assert_eq(
+    plan.capacity_plan.values.max_work,
+    source_free_max_work.unwrap_or(20000000),
+  )
+  assert_eq(
+    plan.capacity_plan.execution.rows.output_values.max_work,
+    plan.capacity_plan.values.max_work,
+  )
+  assert_eq(
+    plan.capacity_plan.execution.max_work,
+    plan.capacity_plan.values.max_work,
+  )
+  assert_eq(
+    parent.program_source_free_max_work,
+    Some(plan.capacity_plan.values.max_work),
+  )
+  let actual_requirements = @execution.generated_sequence_requirements(
+    plan.sequences[43],
+    10000,
+  ).unwrap()
+  let actual_fragment = @lower.sequence_requirements_fragment_for_step(
+    actual_requirements, 43,
+  ).unwrap()
+  assert_eq(
+    actual_fragment.logical.max_work,
+    plan.capacity_plan.values.max_work.to_int64(),
+  )
   println(
     "request-finalization-policy " +
     @debug.to_string(
@@ -152,8 +211,47 @@ fn collection_request_publication_case(
     }),
   )
   let output = match result {
-    Ok(value) => value
+    Ok(value) => {
+      assert_false(expect_work_refusal)
+      value
+    }
     Err(failure) => {
+      if expect_work_refusal {
+        assert_true(source_free_max_work is None)
+        assert_true(
+          local_values_execution_failure_issue(failure)
+          is Driver(
+            @local_driver.Configuration(
+              @connector.Execution(
+                @execution.Rows(
+                  43,
+                  @execution.LogicalRows(@execution.WorkLimit)
+                )
+              )
+            )
+          ),
+        )
+        let mut cleanup_polls = 0
+        let mut cleaned = false
+        for _ in 0..<100000 {
+          cleanup_polls += 1
+          if retry_local_values_execution_failure_cleanup(failure) {
+            cleaned = true
+            break
+          }
+        }
+        println(
+          "default-work-refusal cleanupPolls=" +
+          cleanup_polls.to_string() +
+          " complete=" +
+          cleaned.to_string(),
+        )
+        assert_true(cleaned)
+        @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+        retire_installed_managed_run(run).unwrap()
+        assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+        return
+      }
       let family = match local_values_execution_failure_issue(failure) {
         Driver(
           @local_driver.ManagedValues(

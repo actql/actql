@@ -70,6 +70,10 @@ export type HostInstallation = Readonly<{
   effectProfilePath?: string;
   effectProfilePaths?: EffectProfilePaths;
   hostCapacityPolicy?: HostCapacityPolicy;
+  /** Explicit positive signed-32-bit work limit for each source-free Local
+   * Compute fragment/sequence counter. Core supplies the default when omitted.
+   * This is not a global Run/Host quota, memory grant or compiler/check limit. */
+  sourceFreeMaxWork?: number;
   hostLookupExecutionPolicy?: HostLookupExecutionPolicy;
   resolveSourceSecret?: (...args: any[]) => any;
   resolveEffectSecret?: (...args: any[]) => any;

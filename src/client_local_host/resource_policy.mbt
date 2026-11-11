@@ -89,3 +89,15 @@ pub fn client_local_preparation_initial_limits(
     execution_bytes: policy.execution_bytes,
   })
 }
+
+///|
+// Installed source-free Compute work policy. This is a finite counter limit,
+// not physical backing, currentness, permission or a replacement Ledger.
+fn client_local_source_free_max_work(selected : Int?) -> Int? {
+  let work = selected.unwrap_or(20000000)
+  if work > 0 {
+    Some(work)
+  } else {
+    None
+  }
+}

@@ -19,3 +19,15 @@ test "Local materialized row default is a necessary bound from the original byte
   assert_false(physical_equal(policy, foreign))
   assert_true(client_local_materialized_row_ceiling(foreign) is None)
 }
+
+///|
+test "source-free work selection preserves the default and finite typed bounds" {
+  assert_eq(client_local_source_free_max_work(None), Some(20000000))
+  assert_eq(client_local_source_free_max_work(Some(30000000)), Some(30000000))
+  assert_eq(
+    client_local_source_free_max_work(Some(2147483647)),
+    Some(2147483647),
+  )
+  assert_true(client_local_source_free_max_work(Some(0)) is None)
+  assert_true(client_local_source_free_max_work(Some(-1)) is None)
+}

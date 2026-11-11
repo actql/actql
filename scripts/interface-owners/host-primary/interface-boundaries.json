@@ -17012,7 +17012,8 @@
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
             "validateValuesMaxRows",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
+            "validateSourceFreeMaxWork"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -23384,6 +23385,13 @@
           "async": false
         },
         {
+          "name": "validateSourceFreeMaxWork",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "validateSourceNamespace",
           "parameters": [
             "value"
@@ -23516,7 +23524,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "48fcf29839c595d0b9f9d36a0f85548db1965ffe9647225c0aa9d78bbb53dbfa"
+      "sha256": "e4d7fcb40b5bb40a16f73e606744cfc80993cc8d2ac46beb417b39383146e217"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

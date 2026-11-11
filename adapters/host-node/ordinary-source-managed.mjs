@@ -1006,6 +1006,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const state = producer?.preparation;
       if (state === undefined) return undefined;
       if (!requestPreparationAvailable(state.context)) fail('NodeLocalPreparationAdmissionUnavailable');
+      const sourceFreeMaxWork = Object.getOwnPropertyDescriptor(state.context, 'sourceFreeMaxWork')?.value;
+      if (Object.hasOwn(state, 'sourceFreeMaxWork')) {
+        if (state.sourceFreeMaxWork !== sourceFreeMaxWork) fail('ForeignInstalledSourceProducer');
+      } else state.sourceFreeMaxWork = sourceFreeMaxWork;
       if (state.context.environment !== environment || state.adopting || state.preparing ||
           state.parent === undefined ||
           originalVerifier !== undefined && typeof originalVerifier !== 'function' ||
@@ -1183,7 +1187,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             if (state.compilationFamily === 'pure' && count === 0 && !state.requiresQueryTime) {
               checkedRequestProgramPreparation(moon,
                 moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
-                  producer.receipt, contracts.admission, state.context.retainedRelationOutput),
+                  producer.receipt, contracts.admission, state.context.retainedRelationOutput, undefined,
+                  state.sourceFreeMaxWork),
                 moon.clientProgramRequestProgramModuleIssueCode);
             }
           } else fail('NodeManagedRunPlanUnavailable');
@@ -1496,7 +1501,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             const invocation = originalTimedInvocation(state, producer, prepared, constructInvocation, contracts);
             checkedRequestProgramPreparation(moon, Reflect.apply(module, moon,
               [state.parent, producer.receipt, contracts.admission,
-                state.context.retainedRelationOutput, invocation]), issue);
+                state.context.retainedRelationOutput, invocation, state.sourceFreeMaxWork]), issue);
             current();
             if (producer.finished || producer.preparation !== state || state.prepared !== prepared) {
               fail('ForeignInstalledSourceProducer');

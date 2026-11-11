@@ -69,3 +69,12 @@ void open({installation: {verifyRequestValuePolicy: () => admittedPolicyCid}});
 void connect({mode: 'local', installation: {verifyRequestValuePolicy: () => ({classification: 'public'})}});
 // @ts-expect-error A boolean Promise cannot acknowledge policy verification.
 void open({installation: {verifyRequestValuePolicy: async () => true}});
+
+// Finite source-free runtime work is a Host installation selection, distinct
+// from the normative capacity contract and compiler/check work.
+void open({installation: {sourceFreeMaxWork: 30000000}});
+void connect({mode: 'local', installation: {sourceFreeMaxWork: 30000000}});
+void openInstalledRemoteHttpHost({directory: '/tmp/typecheck-only',
+  authenticate: () => 'owner', sourceFreeMaxWork: 30000000});
+// @ts-expect-error Work selection is a numeric signed-Int boundary, not text.
+void open({installation: {sourceFreeMaxWork: '30000000'}});

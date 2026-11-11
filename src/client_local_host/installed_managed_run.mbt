@@ -386,6 +386,7 @@ fn source_free_installed_managed_preparation_owned(
   model? : @publication_host.ClientInferPlanGraph? = None,
   model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
   content? : ClientInstalledEffectContentPreparation? = None,
+  source_free_max_work? : Int? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -394,6 +395,10 @@ fn source_free_installed_managed_preparation_owned(
   ClientInstalledManagedSourceFreePreparation,
   ClientInstalledManagedRunIssue,
 ] {
+  guard client_local_source_free_max_work(source_free_max_work) is Some(_) else {
+    return Err(Unsupported)
+  }
+
   let graph = installed_managed_owner_graph(owner)
   if !installed_managed_owner_shape_supported(
       owner,
@@ -418,6 +423,7 @@ fn source_free_installed_managed_preparation_owned(
       fragment_body,
       ordered_body,
       query_time~,
+      source_free_max_work~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -451,6 +457,7 @@ fn source_free_installed_managed_preparation_owned(
     scalar_values=true,
     graph=Some(graph),
     content~,
+    source_free_max_work~,
   )
   // Preserve the failed required quote before entering provider construction.
   // Neither a genuine zero nor a graph-less calculator means quote failure.
@@ -499,6 +506,7 @@ pub fn prepare_installed_managed_source_free_with_contracts(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  source_free_max_work? : Int? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -516,6 +524,7 @@ pub fn prepare_installed_managed_source_free_with_contracts(
       ordered_body,
       false,
       query_time~,
+      source_free_max_work~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

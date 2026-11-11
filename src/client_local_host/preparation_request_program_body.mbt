@@ -504,6 +504,7 @@ pub fn[I] prepare_request_program_module_body(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  source_free_max_work? : Int? = None,
   invocation? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -521,6 +522,7 @@ pub fn[I] prepare_request_program_module_body(
     retained_output~,
     provider_factory~,
     invocation~,
+    source_free_max_work~,
   )
 }
 
@@ -654,6 +656,7 @@ fn[I] prepare_request_program_module_body_owned(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  source_free_max_work? : Int? = None,
   invocation? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -674,6 +677,20 @@ fn[I] prepare_request_program_module_body_owned(
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
+  }
+  let selected_work = match
+    client_local_source_free_max_work(source_free_max_work) {
+    Some(work) => work
+    None => return Err(Preparation(Policy))
+  }
+  if captured is None {
+    if owner.program_source_free_max_work is Some(original) &&
+      original != selected_work {
+      return Err(Preparation(ForeignOriginal))
+    }
+    owner.program_source_free_max_work = Some(selected_work)
+  } else if source_free_max_work is Some(_) {
+    return Err(Preparation(Policy))
   }
   owner.phase = Selecting
   preparation_module_call(
@@ -744,6 +761,7 @@ fn[I] prepare_request_program_module_body_owned(
                   retained_output~,
                   provider_factory~,
                   query_time~,
+                  source_free_max_work=Some(selected_work),
                 ) {
                 Err(issue) => return Err(Installed(issue))
                 Ok(value) => {

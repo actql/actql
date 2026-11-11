@@ -642,6 +642,7 @@ fn prepare_client_local_sequences_owned(
   fragment_body : String?,
   ordered_body : String?,
   task_count? : Int? = None,
+  source_free_max_work? : Int? = None,
   infer_prefix? : (Int, Int)? = None,
   infer_suffix? : (Int, Int)? = None,
   selected_task? : Int? = None,
@@ -922,7 +923,9 @@ fn prepare_client_local_sequences_owned(
           let (value_bytes, semantic_work) = if acquiring {
             (10000, 10000000L)
           } else {
-            let (values, _, measurement) = client_local_execution_limits()
+            let (values, _, measurement) = client_local_execution_limits(
+              source_free_max_work~,
+            )
             (
               Int::min(
                 client_local_import_limits_for_rows(

@@ -184,6 +184,7 @@ struct ClientRequestPreparation[I] {
   // One existing resident output slot for either ordinary or Model emission.
   // Its original sum is moved to the selected Plan, never a parallel cache.
   mut program_compilation : @publication_host.ClientRunCompilation?
+  mut program_source_free_max_work : Int?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_model_direct : @publication_host.ClientDirectAcquisitionOccurrences?
@@ -250,10 +251,12 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
 // Four scalar observations (4W) remain on this SAME Request through its typed
 // continuation. No new observer record, parent backreference or callback exists.
+// Explicit source-free work selection retains one Some/header, its scalar and
+// two references on the SAME Request (1H/2R/1W), including failed construction.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 233L,
-  reference_slots: 416L,
-  scalar_words: 481L,
+  record_headers: 234L,
+  reference_slots: 418L,
+  scalar_words: 482L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -408,6 +411,7 @@ fn[I] begin_request_preparation_original(
     program_artifact_inputs: None,
     program_domain_compilation_inputs: None,
     program_compilation: None,
+    program_source_free_max_work: None,
     program_source_free: None,
     program_captured: None,
     program_model_direct: None,
@@ -766,6 +770,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_artifact_inputs = None
   owner.program_compilation = None
   owner.program_domain_compilation_inputs = None
+  owner.program_source_free_max_work = None
   owner.program_source_free = None
   owner.program_captured = None
   owner.program_model_direct = None

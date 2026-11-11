@@ -154,6 +154,18 @@ owner in the installed runtime. Local does not load a second Run Host Core
 runtime or recompile the Program to compare CIDs. The separately distributed
 `@actql/run-host-core` keeps its standalone API and private handle custody.
 
+For source-free ordinary Local Compute, select
+`installation: {sourceFreeMaxWork: 30000000}` (or `sourceFreeMaxWork` on the HTTP
+Host). The positive signed 32-bit value is captured as Host installation DATA
+and bound to the same Request before its original Plan and fragment requests
+are constructed. Omission keeps the Core default of 20,000,000. Each applicable
+fragment/sequence has its own cumulative counter; this is not a global Run or
+Host-lifetime quota, a compiler/check budget, or a change to physical memory
+admission. Acquired Source, Model and Effect work policies remain separate.
+A successful computation can still refuse a later copy under the independent
+512 MiB retained/workspace policy. Reopen with the same installation selection;
+reading an original Saved Result does not resubmit or re-execute its Program.
+
 The source-free Values profile derives its row demand from the checked authored
 input and closed outputs. For a single-task Values Program a Host may explicitly
 select `installation: {valuesMaxRows: 121}` (or `valuesMaxRows` in the HTTP Host

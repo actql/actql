@@ -31,7 +31,12 @@ function exactRows(rows, count) {
 let client, failed = false, primary;
 const cleanup = [], programs = [];
 try {
-  client = await span('open', () => open({stateDir}));
+  // Explicit finite policy for this authored SQL's measured semantic work.
+  // Both capture and the same-original Saved process select the same Host input.
+  report.sourceFreeMaxWork = 30000000;
+  client = await span('open', () => open({stateDir, installation: {
+    sourceFreeMaxWork: report.sourceFreeMaxWork,
+  }}));
   if (phase === 'capture') {
     for (const count of counts) {
       const programPath = join(process.cwd(), `collection-${count}.sql`);

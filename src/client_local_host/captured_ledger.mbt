@@ -15,6 +15,7 @@ fn client_local_execution_limits(
   scalar_inventory? : ClientLocalSchemaProofInventory? = None,
   scalar_demand? : ClientLocalScalarDemand? = None,
   value_node_demand? : ClientLocalValueNodeDemand? = None,
+  source_free_max_work? : Int? = None,
 ) -> (
   @execution.ValueLimits,
   @execution.SequenceExecutionLimits,
@@ -39,7 +40,7 @@ fn client_local_execution_limits(
     max_nodes: scalar_nodes.unwrap_or(client_local_general_value_nodes()),
     max_text_bytes: 500000,
     max_depth: 100,
-    max_work: 20000000,
+    max_work: client_local_source_free_max_work(source_free_max_work).unwrap(),
   }
   let execution : @execution.SequenceExecutionLimits = {
     rows: {

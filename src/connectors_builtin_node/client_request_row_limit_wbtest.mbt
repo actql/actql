@@ -68,6 +68,7 @@ test "first Request Values ceiling stays on the same compiler original and actua
     contracts,
     false,
     None,
+    None,
   ).unwrap()
   assert_true(
     physical_equal(
@@ -101,6 +102,7 @@ test "selected Request one-row-short ceiling retains original typed Plan refusal
     receipt,
     contracts,
     false,
+    None,
     None,
   )
   assert_true(
@@ -140,6 +142,7 @@ test "module limit projection keeps actual foreign and retiring preparation fail
     contracts,
     false,
     None,
+    None,
   )
   assert_true(foreign is Err(Preparation(Preparation(ForeignOriginal))))
   assert_eq(client_program_request_program_module_issue_code(foreign), None)
@@ -148,6 +151,7 @@ test "module limit projection keeps actual foreign and retiring preparation fail
     receipt,
     contracts,
     false,
+    None,
     None,
   )
   assert_true(success is Ok(_))
@@ -158,6 +162,7 @@ test "module limit projection keeps actual foreign and retiring preparation fail
     receipt,
     contracts,
     false,
+    None,
     None,
   )
   assert_true(retiring is Err(Preparation(Preparation(WrongPhase))))
