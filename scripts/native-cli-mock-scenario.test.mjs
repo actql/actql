@@ -49,10 +49,35 @@ function journalCapacityRefusal({unknown = false, cause = 5001, closed = true} =
     return prefix + ' ' + JSON.stringify(value);
   }).join('\n') + '\n';
   return {code: 1, signal: null, stdout: '', stderr:
-    `actql-native-client: LocalSubmissionAcceptance${unknown ? 'Unknown' : 'Unavailable'}\n` +
+    `actql-native-client: LocalSubmissionAcceptance${unknown ? 'Unknown' : 'Unavailable'}` +
+    ` originalSubmissionRequestId=${observedCid('a')} originalOperationAttemptId=cli-${'b'.repeat(64)}` +
+    ' (reconcile with lookup-request; do not resend this operation)\n' +
     diagnostic + 'ACTQL_NATIVE_LAUNCHER_TIMINGS ' +
     JSON.stringify({units: 'nanoseconds', preparation: 1, child: 1, total: 2}) + '\n'};
 }
+
+test('Native Journal fresh refusal retains the original reconciliation context', () => {
+  const original = journalCapacityRefusal();
+  const observed = requireNativeJournalCapacityRefusal(original);
+  assert.equal(observed.originalCause, 'Journal.CapacityExceeded');
+  assert.equal(observed.firstCommandCleanupObserved, true);
+  assert.equal(observed.independentPhysicalAck, false);
+  assert(original.stderr.includes(`originalSubmissionRequestId=${observedCid('a')}`));
+  assert(original.stderr.includes(`originalOperationAttemptId=cli-${'b'.repeat(64)}`));
+});
+
+test('Native Journal fresh refusal rejects missing malformed or extra reconciliation context', () => {
+  const original = journalCapacityRefusal();
+  for (const stderr of [
+    original.stderr.replace(/ originalSubmissionRequestId=[^\n]+/u, ''),
+    original.stderr.replace(observedCid('a'), 'sha256:wrong'),
+    original.stderr.replace(`cli-${'b'.repeat(64)}`, 'cli-short'),
+    original.stderr.replace('do not resend this operation', 'resend this operation'),
+    original.stderr.replace(')\n', ') extra\n'),
+    'unexpected error\n' + original.stderr,
+  ]) assert.throws(() => requireNativeJournalCapacityRefusal({...original, stderr}),
+    {code: 'ERR_ASSERTION'});
+});
 
 async function journalFixture(t, fault) {
   const project = await mkdtemp(join(tmpdir(), 'native-journal-exhaustion-oracle-'));
