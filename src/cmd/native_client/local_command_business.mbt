@@ -401,7 +401,9 @@ fn LocalCommandPreparationOriginal::close_business_execution(
     }
   }
   if business.file_entry is Some(entry) {
-    if !entry.close_after_original_return() { return Err(CommandBusinessChildren) }
+    if !entry.close_after_original_return() {
+      return Err(CommandBusinessChildren)
+    }
     business.file_entry = None
   }
   business.request_initial = None

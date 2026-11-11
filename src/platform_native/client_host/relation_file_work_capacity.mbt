@@ -211,8 +211,11 @@ fn native_relation_whole_file_work_control_capacity(
     is Some(wrappers) &&
     native_relation_whole_file_clock_capacity() is Some(clock) &&
     @execution.checked_preparation_add_product(
-      native, @execution.execution_capacity_retained_bytes(clock), 1L,
-    ) is Some(native) &&
+      native,
+      @execution.execution_capacity_retained_bytes(clock),
+      1L,
+    )
+    is Some(native) &&
     @execution.checked_preparation_add_product(native, source, 1L) is Some(base) &&
     @execution.checked_preparation_add_product(base, wrappers, 1L) is Some(base) &&
     @execution.checked_preparation_add_product(
@@ -245,8 +248,14 @@ fn native_relation_whole_file_work_control_capacity(
 // nonrecursive C call frames stay in the enclosing Native command stack basis.
 fn native_relation_whole_file_clock_capacity() -> @execution.ExecutionCapacity? {
   guard @execution.preparation_representation_cost({
-    record_headers: 117L, reference_slots: 112L, scalar_words: 164L,
-    owned_utf16_units: 48L, owned_wire_bytes: 98L,
-  }) is Some(bytes) else { return None }
+      record_headers: 117L,
+      reference_slots: 112L,
+      scalar_words: 164L,
+      owned_utf16_units: 48L,
+      owned_wire_bytes: 98L,
+    })
+    is Some(bytes) else {
+    return None
+  }
   @execution.execution_capacity(bytes, bytes)
 }

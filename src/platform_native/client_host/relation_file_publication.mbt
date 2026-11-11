@@ -182,9 +182,14 @@ fn NativeClientRelationFileWork::publication_invocation_original(
   // The same original tuple/Some/Ok and final map closure: H4/R9/S2.
   // These borrow the actual input CID/policy strings; no wire is parsed again.
   guard @execution.preparation_representation_cost({
-      record_headers: 4L, reference_slots: 9L, scalar_words: 2L,
-      owned_utf16_units: 0L, owned_wire_bytes: 0L,
-    }) is Some(controls) && @host.client_protocol_metadata_construction_bytes(
+      record_headers: 4L,
+      reference_slots: 9L,
+      scalar_words: 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) &&
+    @host.client_protocol_metadata_construction_bytes(
       max_wire_bytes,
       max_nodes.to_int64(),
       copies=4,
@@ -306,8 +311,14 @@ fn NativeClientRelationFileWork::publication_invocation_original(
     Err(issue) => return Err(Preparation(issue))
     Ok(value) => value
   }
-  let original = (evidence, logical, observation, invocation,
-    @execution_query.captured_source_relation_logical_cid(identity), policy)
+  let original = (
+    evidence,
+    logical,
+    observation,
+    invocation,
+    @execution_query.captured_source_relation_logical_cid(identity),
+    policy,
+  )
   self.publication_original = Some(original)
   self.require_current().map(_ => original)
 }

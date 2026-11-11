@@ -443,8 +443,10 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(_) => business.active = false
     }
   }
-  if business.values_work is Some(_) || business.values_failure is Some(_) ||
-    business.file_work is Some(_) || business.file_failure is Some(_) {
+  if business.values_work is Some(_) ||
+    business.values_failure is Some(_) ||
+    business.file_work is Some(_) ||
+    business.file_failure is Some(_) {
     guard self.host is Some(host) &&
       business.execution is Some(execution) &&
       business.operation is Some(_) &&
@@ -457,11 +459,15 @@ fn LocalCommandPreparationOriginal::close_business_children(
       Ok(_) => ()
     }
     if business.file_work is Some(work) {
-      if !work.close() { return Err(CommandBusinessChildren) }
+      if !work.close() {
+        return Err(CommandBusinessChildren)
+      }
       business.file_work = None
     }
     if business.file_failure is Some(failure) {
-      if !failure.close() { return Err(CommandBusinessChildren) }
+      if !failure.close() {
+        return Err(CommandBusinessChildren)
+      }
       business.file_failure = None
     }
     if business.values_work is Some(work) {
@@ -556,30 +562,52 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
     business.request_run is Some(managed) &&
     business.file_capacity is Some(capacity) &&
     self.file_source is Some((declaration, row)) &&
-    business.file_entry is None && business.file_failure is None else {
+    business.file_entry is None &&
+    business.file_failure is None else {
     stop("LocalBusinessOriginalUnavailable")
   }
   guard self.original.host is Some(physical) &&
     self.original.read is Some(read) &&
     @local_values.installed_managed_capture_publication_geometry_original(
       managed, prepared, request,
-    ) is Some((graph, _, _, _)) else { stop("LocalBusinessOriginalUnavailable") }
+    )
+    is Some((graph, _, _, _)) else {
+    stop("LocalBusinessOriginalUnavailable")
+  }
   let read_capacity = @local_host.native_relation_whole_file_entry_read_capacity(
-    row._retained_selection, row.limits, row.provider, graph,
+    row._retained_selection,
+    row.limits,
+    row.provider,
+    graph,
   ).unwrap_or_else(() => stop("LocalSourceReadCapacityUnavailable"))
   let r = @execution.execution_capacity_retained_bytes(read_capacity)
   let e = @execution.execution_capacity_execution_bytes(read_capacity)
   // The original consumer retains its finite base. Acquire actual backing on
   // that SAME Read before entry/provider/selection constructors; this neither
   // borrows the business debit nor increases either installed facility cap.
-  command_preparation_result(physical.prepare_domain_original_read_construction(
-    read, r, e, Int64::max(r, e),
-  ).map_err(issue => CommandRead(issue)), stage=Some("file-entry-read"))
-  let outcome = self.host.prepare_original_whole_relation_file_work_entry(
-    operation, self.principal, self.connection, request, prepared, compiled,
-    definition, declaration._retained_declaration, managed, capacity,
-    row.provider, row._retained_selection, row.limits,
-  ).unwrap_or_else(() => stop("LocalSourceWorkEntryUnavailable"))
+  command_preparation_result(
+    physical
+    .prepare_domain_original_read_construction(read, r, e, Int64::max(r, e))
+    .map_err(issue => CommandRead(issue)),
+    stage=Some("file-entry-read"),
+  )
+  let outcome = self.host
+    .prepare_original_whole_relation_file_work_entry(
+      operation,
+      self.principal,
+      self.connection,
+      request,
+      prepared,
+      compiled,
+      definition,
+      declaration._retained_declaration,
+      managed,
+      capacity,
+      row.provider,
+      row._retained_selection,
+      row.limits,
+    )
+    .unwrap_or_else(() => stop("LocalSourceWorkEntryUnavailable"))
   match outcome {
     Ok(entry) => {
       business.file_entry = Some(entry)
@@ -589,7 +617,9 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
       business.file_failure = Some(failure)
       // A never-entered partial entry owns only Read-side construction.
       // Failure is retained if its original cancellation cannot finish here.
-      if failure.close() { business.file_failure = None }
+      if failure.close() {
+        business.file_failure = None
+      }
       stop("LocalSourceWorkEntryUnavailable")
     }
   }
@@ -603,14 +633,20 @@ fn LocalCommandBusinessPreparation::open_file_work(
 ) -> @local_host.NativeClientRelationFileWork raise ClientStop {
   guard self.original.business is Some(business) &&
     business.operation is Some(operation) &&
-    business.file_entry is Some(original) && physical_equal(original, entry) &&
-    business.file_work is None && business.file_failure is None else {
+    business.file_entry is Some(original) &&
+    physical_equal(original, entry) &&
+    business.file_work is None &&
+    business.file_failure is None else {
     stop("LocalBusinessOriginalUnavailable")
   }
-  match self.host.open_original_whole_relation_file_source_work(
-    operation, entry, occurrence, 16, 100000, local_utc_now,
-  ) {
-    Ok(work) => { business.file_work = Some(work); work }
+  match
+    self.host.open_original_whole_relation_file_source_work(
+      operation, entry, occurrence, 16, 100000, local_utc_now,
+    ) {
+    Ok(work) => {
+      business.file_work = Some(work)
+      work
+    }
     Err(failure) => {
       business.file_failure = Some(failure)
       stop("LocalOriginalSourceWorkUnavailable")

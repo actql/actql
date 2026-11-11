@@ -41,7 +41,8 @@ fn LocalCommandBusinessOriginal::close_publication_children(
       }
     }
   }
-  if self.file_publication_failure is Some(CapturedPublication(PrepareCleanup(_, failures))) {
+  if self.file_publication_failure
+    is Some(CapturedPublication(PrepareCleanup(_, failures))) {
     guard self.store is Some(store) && self.publication_results is Some(results) else {
       return Err(CommandBusinessPublication)
     }
@@ -49,7 +50,8 @@ fn LocalCommandBusinessOriginal::close_publication_children(
       if failure.result < 0 || failure.result >= results.length() {
         return Err(CommandBusinessPublication)
       }
-      match store.reclaim_payload(results[failure.result].material_generation_cid) {
+      match
+        store.reclaim_payload(results[failure.result].material_generation_cid) {
         Ok(_) => ()
         Err(issue) => return Err(CommandBusinessStore(issue))
       }

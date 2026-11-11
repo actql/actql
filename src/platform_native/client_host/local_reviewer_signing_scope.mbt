@@ -86,7 +86,9 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_scope(
   @credential.LocalSigningCredentialScope,
   NativeLocalReviewerProofMaterialsIssue,
 ] {
-  self.prepare_signing_scope_with_original_subject(attempt_id).map(value => value.0)
+  self
+  .prepare_signing_scope_with_original_subject(attempt_id)
+  .map(value => value.0)
 }
 
 ///|

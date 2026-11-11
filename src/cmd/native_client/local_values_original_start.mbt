@@ -145,8 +145,8 @@ fn local_execute_original_publish_values(
   }
   business.publication_pending = Some(pending)
   local_commit_original_publication(
-    selection, settings, request, reference, business, operation, publisher,
-    pending, evidence_entries,
+    selection, settings, request, reference, business, operation, publisher, pending,
+    evidence_entries,
   )
 }
 
