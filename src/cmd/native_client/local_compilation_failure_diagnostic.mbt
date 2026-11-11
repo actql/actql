@@ -30,7 +30,7 @@ fn local_compilation_preparation_tag(
       106L
     }
     Initial(_) => 100L
-    Capacity(cause) =>
+    Capacity(cause) | SnapshotCapacityExceeded(cause, _) =>
       match cause {
         ForeignOriginal => 201L
         WorkActive => 202L
