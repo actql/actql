@@ -19,6 +19,7 @@ test "installed invocation binding keeps original Model outcomes distinct from i
     let (active, ledger, _) = original_observation_test_start(
       source~,
       provider=original_funded_start_provider(calls),
+      input_body=true,
       restored_input~,
       restored_custody=() => {
         (reenter.val)()
@@ -177,6 +178,24 @@ test "installed invocation binding keeps original Model outcomes distinct from i
     let projected = issue_invocation_binding_original_model_observation(
       binding, receipt, 4096, 1024, 20,
     ).unwrap()
+    let input_scan = active.identity.unwrap()
+    let input_work = @relation.completed_relation_identity_scan_work(input_scan)
+    let input_bodies = original_local_model_observation_input_bodies(projected).unwrap()
+    assert_eq(
+      input_bodies[0],
+      (
+        "relation_value", "{\"sort\":\"relation\",\"value\":[{\"id\":\"a\",\"text\":\"hello\"}]}",
+      ),
+    )
+    assert_eq(
+      @relation.completed_relation_identity_scan_work(input_scan),
+      input_work,
+    )
+    assert_eq(
+      calls.val,
+      1,
+      msg="observation reuses the FIRST input scan, never the Model",
+    )
     let body = original_local_model_observation_body(projected).unwrap()
     assert_eq(
       @publication.captured_effect_dependency_body_kind(body),
@@ -197,6 +216,9 @@ test "installed invocation binding keeps original Model outcomes distinct from i
         is None,
       )
       assert_true(original_local_model_observation_body(projected) is None)
+      assert_true(
+        original_local_model_observation_input_bodies(projected) is None,
+      )
       current.val = true
       assert_true(original_local_model_observation_body(projected) is Some(_))
       reenter.val = () => {
@@ -214,6 +236,9 @@ test "installed invocation binding keeps original Model outcomes distinct from i
     }
     assert_true(invocation_binding_original_model_outcomes(binding) is None)
     assert_true(original_local_model_observation_body(projected) is None)
+    assert_true(
+      original_local_model_observation_input_bodies(projected) is None,
+    )
     assert_true(
       issue_invocation_binding_original_model_observation(
         binding, receipt, 4096, 1024, 20,

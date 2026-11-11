@@ -115,6 +115,15 @@ The Host retains the same Plan, Run, generated sequences, Source holdings and
 Effect dependency ports; it does not recompile or mark omitted ancestors as
 newly executed.
 
+When the installed original observation requires input dependency bodies, the
+restoring caller forwards the same checked `inputBodyRead` through its existing
+start boundary. As on the live path, the first identity scan retains those
+bodies only after the original Read/consumer/Run capacity check. Observation
+borrows that scan's actual receipt; it does not reopen input or scan it again.
+Omitting the optional Read preserves the existing body-free path. A foreign
+Read, insufficient capacity or cancellation cannot authorize body construction
+or Model dispatch, and the original cleanup owner remains responsible.
+
 For the existing separate-task plural Model form, the same Plan retains the
 complete ordered graph and Scope inventory. Cold restoration borrows a nonempty
 ordered subset of actual completed members; unsent members keep their existing

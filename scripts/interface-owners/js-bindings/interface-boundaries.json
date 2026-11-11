@@ -19093,6 +19093,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
               }
             ],
             "identity": [
@@ -19173,6 +19177,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
+                "anchor": "test \"original restored input body rejects a foreign checked Read before scan construction\""
               }
             ],
             "cancellation": [
@@ -19191,6 +19199,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
+                "anchor": "test \"original restored input body refuses capacity and cancellation before scanning or Model\""
               }
             ],
             "resources": [
@@ -19213,6 +19225,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body.mbt",
+                "anchor": "fn grow_original_infer_identity_body_capacity("
               }
             ],
             "extension": [
@@ -19269,6 +19285,14 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
                 "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed body Read refuses foreign DATA and accessors before claim'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "restoring caller forwards the same checked `inputBodyRead` through its existing"
               }
             ]
           }
@@ -29252,7 +29276,8 @@
             "readExecutionBytes",
             "modelRetainedBytes",
             "modelExecutionBytes",
-            "referenceIssuer"
+            "referenceIssuer",
+            "inputBodyRead"
           ],
           "async": false
         },
@@ -31782,7 +31807,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8bf08e90550274057d7dc37099b3d451da4d308773191798092070c3a7a94d46"
+      "sha256": "a4ab8c961ba78912486c054d738df4b46900dfeab9a7bb4b68c568da385323fb"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -67021,6 +67046,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
               }
             ],
             "identity": [
@@ -67149,6 +67178,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
+                "anchor": "test \"original restored input body rejects a foreign checked Read before scan construction\""
               }
             ],
             "cancellation": [
@@ -67179,6 +67212,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
+                "anchor": "test \"original restored input body refuses capacity and cancellation before scanning or Model\""
               }
             ],
             "resources": [
@@ -67209,6 +67246,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body.mbt",
+                "anchor": "fn grow_original_infer_identity_body_capacity("
               }
             ],
             "extension": [
@@ -67309,6 +67350,14 @@
               {
                 "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
                 "anchor": "original publication grows same borrower only for new simultaneous construction demand"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed body Read refuses foreign DATA and accessors before claim'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "restoring caller forwards the same checked `inputBodyRead` through its existing"
               }
             ]
           }
@@ -69771,7 +69820,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "43ce543d874df6deb58aabfb80e273a2999ec64ac45386cc9f46d6b25f5f1131"
+      "sha256": "6f6f920fe499a4de21713a73dda1592690a2c9bd00add91f68f4a92c3ce6158a"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",

@@ -404,7 +404,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       restoredInput.snapshot, () => restoredInput.token.available, restoredInput.savedScope,
       originalConsumer, originalPreparation.readRetainedBytes,
       originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
-      originalPreparation.modelExecutionBytes, restoredReferenceIssuer)
+      originalPreparation.modelExecutionBytes, restoredReferenceIssuer, originalInputBodyRead)
     : originalPreparation !== undefined && composedInput !== undefined
     ? originalPreparation.control.startCheckedClientOriginalComposedInferExecution(
       originalPreparation.compiled, originalPreparation.runDefinition,

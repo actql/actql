@@ -89,6 +89,7 @@ fn original_observation_test_start(
       5L,
       100L,
       5L,
+      input_body_read=if input_body { Some(read) } else { None },
     ).unwrap()
   } else if input_body {
     let (occurrence, prefix) = original_composed_test_input(prepared)
