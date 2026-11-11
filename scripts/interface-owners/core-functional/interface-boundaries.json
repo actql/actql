@@ -33239,7 +33239,7 @@
     },
     {
       "module": "src/client_local_host/client_sequence.mbt",
-      "sha256": "dda564079654e5060b13e5b4ac2af94604d6107689c980a3063295c1f2ddbe58",
+      "sha256": "1db9058d5efe0d0d7142ce1a35662411b235ebd92f7a34c97b432eccbefe0c54",
       "exports": [],
       "operations": [
         {
@@ -37186,7 +37186,7 @@
         },
         {
           "name": "prepare_installed_managed_source_free_with_contracts",
-          "declaration": "prepare_installed_managed_source_free_with_contracts ( prepared : @ publication_host . PreparedClientProgram , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
+          "declaration": "prepare_installed_managed_source_free_with_contracts ( prepared : @ publication_host . PreparedClientProgram , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , source_free_max_work ? : Int ?"
         },
         {
           "name": "prepared_installed_managed_publication_limits",
@@ -37213,7 +37213,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "eed678f29df8223287110f2e58c16ce06a7c97eba0c4ed246d4773d64891f5fe"
+      "sha256": "989c7b2bdc22303615fc28262a328b8639040cd2945405e358baae8af2d0781f"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -46652,7 +46652,7 @@
           }
         }
       ],
-      "sha256": "0c3bd672ddfe0eed7a854db31b10548275a2a0464af45134755d1a34cc6c3c38",
+      "sha256": "a17494cd1fb2cfe4628fa3283b2fb5ea7d598107b5874aaa9c18c991ad19c57d",
       "exports": [],
       "operations": [
         {
@@ -46701,11 +46701,11 @@
         },
         {
           "name": "[I]prepare_request_program_module_body",
-          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , source_free_max_work ? : Int ?"
         },
         {
           "name": "[I]prepare_request_program_module_body_owned",
-          "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+          "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , source_free_max_work ? : Int ?"
         },
         {
           "name": "[I]request_program_compilation_limits",
@@ -59073,7 +59073,7 @@
         },
         {
           "name": "client_program_prepare_request_program_module_body",
-          "declaration": "client_program_prepare_request_program_module_body ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
+          "declaration": "client_program_prepare_request_program_module_body ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , source_free_max_work : Int ? , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
         },
         {
           "name": "client_program_prepare_request_serialization_compilation",
@@ -59232,7 +59232,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "33b7f9fadb9ddb38efbb1ac704ebc49113bca92d999812da5bf2bb01a325ee91"
+      "sha256": "a61e135a7188a79ee0e1ca6240e39a685ef252716424f74a394ad7c90d3e20f9"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",

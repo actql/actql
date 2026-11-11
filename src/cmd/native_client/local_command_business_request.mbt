@@ -289,6 +289,7 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
           compilation_limits=limits,
           retained_output=false,
           provider_factory=native_request_provider_factory,
+          runtime_compilation_limits=Some(limits),
         ).unwrap_or_else(() => stop("LocalModulePreparationUnavailable"))
         @local_values.begin_request_program_managed_run(parent, request).unwrap_or_else(() => {
             stop("LocalRequestRunUnavailable")

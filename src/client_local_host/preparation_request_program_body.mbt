@@ -511,6 +511,7 @@ pub fn[I] prepare_request_program_module_body(
     @publication_host.ClientCompiledRun,
     @publication.PublicationContract,
   )? = None,
+  runtime_compilation_limits? : @publication_host.ClientPureCompilationLimits? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
   prepare_request_program_module_body_owned(
     owner,
@@ -523,6 +524,7 @@ pub fn[I] prepare_request_program_module_body(
     provider_factory~,
     invocation~,
     source_free_max_work~,
+    runtime_compilation_limits~,
   )
 }
 
@@ -663,6 +665,7 @@ fn[I] prepare_request_program_module_body_owned(
     @publication_host.ClientCompiledRun,
     @publication.PublicationContract,
   )? = None,
+  runtime_compilation_limits? : @publication_host.ClientPureCompilationLimits? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
   let prepared = match
     retain_request_program_module_inputs(
@@ -762,6 +765,7 @@ fn[I] prepare_request_program_module_body_owned(
                   provider_factory~,
                   query_time~,
                   source_free_max_work=Some(selected_work),
+                  compilation_limits=runtime_compilation_limits,
                 ) {
                 Err(issue) => return Err(Installed(issue))
                 Ok(value) => {

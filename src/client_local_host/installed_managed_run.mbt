@@ -391,6 +391,7 @@ fn source_free_installed_managed_preparation_owned(
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
   )? = None,
+  compilation_limits? : @publication_host.ClientPureCompilationLimits? = None,
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientInstalledManagedRunIssue,
@@ -424,6 +425,7 @@ fn source_free_installed_managed_preparation_owned(
       ordered_body,
       query_time~,
       source_free_max_work~,
+      compilation_limits~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -511,6 +513,7 @@ pub fn prepare_installed_managed_source_free_with_contracts(
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
   )? = None,
+  compilation_limits? : @publication_host.ClientPureCompilationLimits? = None,
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientInstalledManagedRunIssue,
@@ -525,6 +528,7 @@ pub fn prepare_installed_managed_source_free_with_contracts(
       false,
       query_time~,
       source_free_max_work~,
+      compilation_limits~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

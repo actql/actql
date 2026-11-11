@@ -171,3 +171,89 @@ test "module limit projection keeps actual foreign and retiring preparation fail
   assert_true(client_program_preparation_borrow_return(holder).unwrap())
   client_program_abort_request_preparation(parent).unwrap()
 }
+
+///|
+test "large Source actual Node module keeps its original Request codec and provider factory" {
+  let document = "SELECT [" + "0,".repeat(19999) + "0] AS cells"
+  let environment = keyed_source_environment()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let receipt = request_diagnostic_test_receipt()
+  let policy = client_local_resource_policy_original()
+  let original = request_diagnostic_test_original(
+    request_diagnostic_test_loader(request_diagnostic_test_url()),
+    receipt,
+    client_local_preparation_resource_limits(
+      policy,
+      Some(1073741824L),
+      Some(1073741824L),
+    ),
+  )
+  let initial = client_program_prepare_local_preparation_admission(
+    original, receipt,
+  ).unwrap()
+  let parent = client_program_begin_request_preparation(
+    initial, receipt, policy,
+  ).unwrap()
+  client_program_reserve_request_snapshot(
+    parent,
+    receipt,
+    document.length().to_int64() + 32L,
+    document.length().to_int64() + 32L,
+  ).unwrap()
+  client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      "{\"format\":\"sql\",\"text\":\"" + document + "\"}",
+    ),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    Some(
+      client_local_resource_policy_row_ceiling(
+        policy,
+        Some(1073741824L),
+        Some(1073741824L),
+      ),
+    ),
+  ).unwrap()
+  assert_eq(
+    client_program_finish_request_computation(
+      parent, receipt, environment, publication,
+    ).unwrap(),
+    "effect_free",
+  )
+  let holder = client_program_borrow_request_program_plan_input(parent, receipt).unwrap()
+  let prepared = client_program_preparation_borrow_read(holder).unwrap()
+  let before = @client_local_host.request_preparation_work_calls(parent)
+  assert_eq(before, (1L, 1L, 1L, 1L))
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = @client_local_host.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  client_program_prepare_request_program_module_body(
+    parent,
+    receipt,
+    contracts,
+    false,
+    None,
+    Some(30000000),
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      client_program_preparation_borrow_read(holder).unwrap(),
+      prepared,
+    ),
+  )
+  assert_eq(@client_local_host.request_preparation_work_calls(parent), before)
+  assert_true(client_program_preparation_borrow_return(holder) is Ok(false))
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+}

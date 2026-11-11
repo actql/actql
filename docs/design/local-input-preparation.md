@@ -6356,3 +6356,20 @@ equal-CID foreign response originals remain invalid; the existing conservative
 policy join and its complete dependency closure are unchanged. These reads do
 not grant a provider operation, create a Ledger, retain a new physical child,
 or weaken the original cleanup and retirement duties.
+
+### Installed module runtime codecs
+
+The default Node, RelA and Native request callers retain the compiler codec
+selected by the same Request checker. They forward that same immutable record
+into installed runtime-fragment and generated-sequence construction as well as
+the final compiler. Demand nodes, links and text and artifact bytes, nodes and
+depth use those original bounds; preparation work keeps the already selected
+finite source-free work counter. A later constructor does not silently restore
+the smaller legacy codec after checking the original Program.
+
+The optional runtime codec is separate from an explicitly supplied final compiler
+codec. Omitting it preserves the legacy runtime bounds and original factory-before-
+final-encoding refusal order. Supplying a smaller runtime codec still refuses
+before provider construction. Neither codec is Resource admission or a reservation:
+the existing Request owner still admits actual constructor demand before allocation,
+and a larger rejection ceiling does not preallocate its full extent.

@@ -1179,6 +1179,7 @@ pub fn client_program_prepare_request_program_module_body(
     provider_factory=installed_client_family_providers,
     invocation~,
     source_free_max_work~,
+    runtime_compilation_limits=Some(compilation_limits),
   ).map_err(issue => Preparation(issue))
 }
 

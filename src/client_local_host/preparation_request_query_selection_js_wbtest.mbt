@@ -374,3 +374,179 @@ test "selected large Source default sequence uses its same checked expression de
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "large Source module retains its actual generated capacity before factory" {
+  let document = "SELECT [" + "0,".repeat(19999) + "0] AS cells"
+  let limits = client_local_preparation_initial_limits(
+    client_local_resource_policy(),
+    retained_bytes=Some(1073741824L),
+    execution_bytes=Some(1073741824L),
+  ).unwrap()
+  let (parent, input) = native_driver_parent(
+    document,
+    initial_limits=Some(limits),
+  )
+  let (environment, publication) = request_query_publication_fixture()
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(document, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  finish_request_checked_computation(parent, input, environment, publication).unwrap()
+  |> ignore
+  let holder = borrow_request_program_plan_input(parent, input).unwrap()
+  let prepared = parent.compiled_program.unwrap()
+  let contracts = request_program_module_contracts()
+  let installed = contracts.original
+  let codec = request_program_compilation_limits(parent, input).unwrap()
+  println(
+    "D_ORIGINAL_MODULE_CODEC bytes=" +
+    codec.max_wire_bytes.to_string() +
+    " nodes=" +
+    codec.max_nodes.to_string() +
+    " depth=" +
+    codec.max_depth.to_string(),
+  )
+  let sequences = match
+    prepare_client_local_sequences_owned(
+      Pure(prepared),
+      contracts,
+      installed.values_body,
+      installed.fragment_body,
+      installed.ordered_body,
+      source_free_max_work=Some(30000000),
+      compilation_limits=Some(codec),
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+      match issue {
+        Unsupported =>
+          fail(
+            "exact prepare_client_local_sequences_owned typed Unsupported before capacity/factory",
+          )
+        _ => fail("different typed sequence issue")
+      }
+    }
+  }
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let task_count = @strategy.graph_task_count(graph)
+  let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
+  let plan = client_local_capacity_plan(
+    sequences,
+    max_rows,
+    scalar_values=true,
+    graph=Some(graph),
+    source_free_max_work=Some(30000000),
+  )
+  let details : Array[String] = []
+  for index, sequence in sequences {
+    if @execution.generated_sequence_capacity(
+        sequence,
+        plan.execution,
+        plan.measurement,
+      )
+      is None {
+      details.push("generated_sequence_capacity_none=" + index.to_string())
+    }
+  }
+  if @local.local_import_retention_capacity(plan.imports) is None {
+    details.push("local_import_retention_capacity_none")
+  }
+  if @local.local_export_retention_capacity(plan.exports) is None {
+    details.push("local_export_retention_capacity_none")
+  }
+  let inputs = Array::make(task_count, 0)
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    inputs[@strategy.data_edge_consumer(edge)] += 1
+  }
+  let capacity = client_local_sequence_capacity(
+    sequences,
+    task_count,
+    capacity_plan=Some(plan),
+    retained_inputs=Some(inputs),
+    max_rows~,
+    runtime_admission=true,
+  )
+  let message = "original nodes=" +
+    plan.values.max_nodes.to_string() +
+    " measure=" +
+    plan.measurement.max_nodes.to_string() +
+    " " +
+    details.join(",")
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  if capacity is None {
+    fail(message)
+  }
+}
+
+///|
+test "large Source module preserves explicit small codec refusal before its factory" {
+  for (nodes, bytes) in [(10000, 10000000), (1000000, 128)] {
+    let document = "SELECT [" + "0,".repeat(19999) + "0] AS cells"
+    let limits = client_local_preparation_initial_limits(
+      client_local_resource_policy(),
+      retained_bytes=Some(1073741824L),
+      execution_bytes=Some(1073741824L),
+    ).unwrap()
+    let (parent, input) = native_driver_parent(
+      document,
+      initial_limits=Some(limits),
+    )
+    let (environment, publication) = request_query_publication_fixture()
+    prepare_request_default_source_computation_check(
+      parent,
+      input,
+      request_document_test_source(document, "sql"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      None,
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap()
+    finish_request_checked_computation(parent, input, environment, publication).unwrap()
+    |> ignore
+    let holder = borrow_request_program_plan_input(parent, input).unwrap()
+    let prepared = parent.compiled_program.unwrap()
+    let original = request_program_compilation_limits(parent, input).unwrap()
+    let calls = Ref(0)
+    let result = prepare_request_program_module_body(
+      parent,
+      input,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=original,
+      runtime_compilation_limits=Some({
+        ..original,
+        max_nodes: nodes,
+        max_wire_bytes: bytes,
+      }),
+      retained_output=false,
+      provider_factory=_ => {
+        calls.val += 1
+        []
+      },
+      source_free_max_work=Some(30000000),
+    )
+    assert_true(result is Err(Installed(Unsupported)))
+    assert_eq(calls.val, 0)
+    assert_true(physical_equal(parent.compiled_program.unwrap(), prepared))
+    assert_eq(request_preparation_work_calls(parent), (1L, 1L, 1L, 1L))
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
