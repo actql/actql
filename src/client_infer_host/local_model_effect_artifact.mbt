@@ -9,6 +9,7 @@ pub fn issue_original_local_model_acquired_evidence(
   max_nodes : Int,
   max_depth : Int,
   imports? : @publication_host.ClientEffectImportedEvidence? = None,
+  source_originals? : Array[@publication_host.ClientEffectAcquiredEvidence] = [],
 ) -> Result[
   @publication_host.ClientEffectModelAcquiredEvidence,
   @publication_host.ClientEffectAcquiredEvidenceIssue,
@@ -34,6 +35,7 @@ pub fn issue_original_local_model_acquired_evidence(
         max_nodes,
         max_depth,
         original,
+        source_originals,
       )
     (None, Some(sources), _) =>
       @publication_host.issue_single_model_client_effect_acquired_evidence(

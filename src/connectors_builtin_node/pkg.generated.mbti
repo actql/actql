@@ -2966,7 +2966,7 @@ pub fn client_program_original_composed_keyed_prefix_execution(@client_local_hos
 
 pub fn client_program_original_mock_provider(@model_execution.ModelMockInstallation) -> Result[@model_execution.ModelProvider, @model_execution.ModelMockInstallationIssue]
 
-pub fn client_program_original_model_acquired_effect_evidence(@client_infer_host.LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int, @run_publication_host.ClientEffectImportedEvidence?) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+pub fn client_program_original_model_acquired_effect_evidence(@client_infer_host.LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int, @run_publication_host.ClientEffectImportedEvidence?, Array[@run_publication_host.ClientEffectAcquiredEvidence]) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_original_model_acquired_effect_evidence_issue_kind(Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]) -> String?
 

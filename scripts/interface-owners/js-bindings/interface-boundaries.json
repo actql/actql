@@ -18132,7 +18132,9 @@
             "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
             "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
             "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3"
+            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources"
           ],
           "exports": [],
           "attributes": {
@@ -18686,6 +18688,14 @@
               {
                 "path": "adapters/host-node/infer-model-effect-control.test.mjs",
                 "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "test('restored Model publication forwards the same Source witness through actual artifact and import control owners'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_saved_model_imports_wbtest.mbt",
+                "anchor": "test \"saved Model imported Source join rejects another actual capture with equal logical rows\""
               }
             ]
           }
@@ -27259,7 +27269,21 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
           "parameters": [
             "value"
           ],
@@ -31807,7 +31831,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a4ab8c961ba78912486c054d738df4b46900dfeab9a7bb4b68c568da385323fb"
+      "sha256": "04388af264c52555bd5d9096985d95c54289696441f1e6b55c64214cd6b864ad"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

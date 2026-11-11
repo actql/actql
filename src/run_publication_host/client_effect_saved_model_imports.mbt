@@ -28,6 +28,23 @@ fn saved_model_imported_scope_matches(
 }
 
 ///|
+// Only used after the actual imported producer has matched the nominal
+// acquired Source identity. Evidence equality alone does not establish that
+// ownership; this joins the authenticated Saved facts to that actual witness.
+fn saved_model_imported_observation_matches(
+  saved : @publication.ModelSourceObservation,
+  input : @publication.RunEvidenceValue,
+  source : @publication.RunEvidenceValue,
+) -> Bool {
+  let (original, _, _, _) = @publication.model_source_observation_originals(saved)
+  @publication.model_source_observation_matches_input(saved, input) &&
+  @publication.run_evidence_value_identity(original) ==
+  @publication.run_evidence_value_identity(source) &&
+  @publication.run_evidence_value_json(original) ==
+  @publication.run_evidence_value_json(source)
+}
+
+///|
 /// A restored Model Unit whose external inputs are actual retained Results.
 /// The imported owner supplies every checked producer, artifact and Scope;
 /// historical Source observations alone cannot manufacture direct evidence.
@@ -42,6 +59,7 @@ pub fn issue_restored_model_client_effect_imported_evidence(
   max_nodes : Int,
   max_depth : Int,
   imports : ClientEffectImportedEvidence,
+  original_sources : Array[ClientEffectAcquiredEvidence],
 ) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue] {
   guard compiled.compilation is Effects(allowed) &&
     physical_equal(scope.plan.owner, compiled.owner) &&
@@ -68,6 +86,7 @@ pub fn issue_restored_model_client_effect_imported_evidence(
     physical_equal(imports.owner, owner) &&
     client_effect_local_invocation_matches(imports.invocation, owner, unit) &&
     imports.observations.length() == count &&
+    original_sources.length() == count &&
     scope.named_sources.length() == count &&
     @strategy.captured_effect_inputs_match_computation(imports.inputs, owner.graph) &&
     @strategy.captured_effect_inputs_run_definition_cid(imports.inputs) ==
@@ -79,9 +98,12 @@ pub fn issue_restored_model_client_effect_imported_evidence(
   }
   let seen : Map[String, Bool] = Map([])
   let observations = [@publication.captured_effect_dependency_body_cid(model)]
-  for observed in imports.observations {
+  for index in 0..<imports.observations.length() {
+    let observed = imports.observations[index]
+    let source = original_sources[index]
     let producer = @strategy.captured_effect_result_import_producer(observed.captured)
     let interface = @strategy.captured_effect_result_import_interface(observed.captured)
+    let producer_stage = @strategy.captured_effect_local_result_stage(producer)
     guard observed.artifact.source is ResultSource(borrow, result_definition) &&
       physical_equal(observed.owner, owner) &&
       physical_equal(observed.inputs, imports.inputs) &&
@@ -95,15 +117,25 @@ pub fn issue_restored_model_client_effect_imported_evidence(
       client_effect_local_result_definition_matches(
         result_definition,
         owner,
-        @strategy.captured_effect_local_result_stage(producer),
+        producer_stage,
         interface.result_name,
+      ) &&
+      physical_equal(source.owner, owner) &&
+      source.invocation.unit == producer_stage &&
+      @strategy.captured_effect_inputs_acquired_source_matches(
+        imports.inputs, producer_stage, source.identity,
       ) &&
       client_effect_local_manifest_matches(
         observed.manifest, owner, observed.artifact.invocation,
         observed.manifest.artifacts,
       ) &&
       !seen.contains(interface.input_name) &&
-      scope.named_sources.any(original => original.0 == interface.input_name) else {
+      scope.named_sources.any(original => {
+        original.0 == interface.input_name &&
+        saved_model_imported_observation_matches(
+          original.1, source.input, source.observation,
+        )
+      }) else {
       return Err(Invocation(ForeignResultImport))
     }
     // The actual captured producer/interface/borrow determines this position.

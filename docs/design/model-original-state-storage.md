@@ -130,6 +130,11 @@ the original compiled Run, Plan, input artifact, effective inputs and named
 observations, then each checked import's original owner, producer, interface,
 borrow and Manifest. The Model Invocation retains those import observations;
 their existing Relations and acquisition Scope keep the Source ancestry.
+The producer Artifact also retains its actual acquired-Source witness through
+the import owner. The receiving helper matches that witness's Source identity
+to the real captured producer, then checks its logical input and Source
+evidence against the Saved observation. A shared input name, Run identity or
+equal logical rows alone cannot establish this correspondence.
 Historical observations alone cannot create direct acquisition evidence, and
 this path neither admits live Sources into a Saved input nor reopens a Source.
 Current custody is checked again before returning the borrowed publication.

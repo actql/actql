@@ -2012,6 +2012,8 @@ function publicationControl(moon) {
   const tablePreviewTokens = new WeakMap();
   const recoveredTablePreviewTokens = new WeakMap();
   const localEffectManifestTokens = new WeakMap();
+  const localEffectArtifactSources = new WeakMap();
+  const localEffectImportSources = new WeakMap();
   const localEffectDependencyTokens = new WeakMap();
   const localEffectImportTokens = new WeakMap();
   const inspectLocalEffectArtifact = issued => {
@@ -4348,7 +4350,7 @@ function publicationControl(moon) {
       }
       const result = moon.clientProgramOriginalModelAcquiredEffectEvidence(
         retained.original, token(retention), limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth, imported?.issued);
+        limits.maxDepth, imported?.issued, imported?.originalSources ?? []);
       let acquired;
       try { acquired = checked(result); }
       catch (cause) {
@@ -4561,6 +4563,8 @@ function publicationControl(moon) {
         wire: moon.clientProgramEffectResultImportObservationJson(issued),
       });
       localEffectImportTokens.set(value, issued);
+      const source = localEffectArtifactSources.get(artifact);
+      if (source !== undefined) localEffectImportSources.set(value, source);
       return value;
     },
     issueImportedEffectEvidence(owner, inputs, unit, observations, limits) {
@@ -4589,7 +4593,10 @@ function publicationControl(moon) {
             Object.freeze({kind: 'acquisition_relation', wire})),
         ]),
       });
-      localEffectDependencyTokens.set(value, {kind: 'imported', issued});
+      const sources = observations.map(value => localEffectImportSources.get(value));
+      localEffectDependencyTokens.set(value, {kind: 'imported', issued,
+        originalSources: sources.every(source => source !== undefined)
+          ? Object.freeze(sources) : undefined});
       return value;
     },
     issueDependentLocalEffectResultArtifact(owner, inputs, exported,
@@ -4621,7 +4628,11 @@ function publicationControl(moon) {
           owner, inputs, exported, owned.issued, definition, receipt,
           token(retention), ...exactContext,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
-      return inspectLocalEffectArtifact(checked(result));
+      const value = inspectLocalEffectArtifact(checked(result));
+      // Retain the same producer's nominal provenance with its existing
+      // Artifact. This is an alias, not a new Source read or cleanup owner.
+      if (owned.kind === 'acquired') localEffectArtifactSources.set(value, owned.issued);
+      return value;
     },
     bindCheckedClientEffectRun(checkedEffect, admission, runDefinition) {
       if (typeof moon.clientProgramBindEffectRun !== 'function') {

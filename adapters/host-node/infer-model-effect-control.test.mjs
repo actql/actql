@@ -189,3 +189,55 @@ test('successful Model publication never calls the optional failure projection',
   f.moon.clientProgramOriginalModelAcquiredEffectEvidenceIssueKind=()=>assert.fail('Success must not enter failure projection');
   assert(f.control.issueOriginalModelEffectEvidence(model,f.run,undefined,f.limits));
 });
+
+test('restored Model publication forwards the same Source witness through actual artifact and import control owners',()=>{
+  const f=fixture(),source={},sourceArtifact={},manifestToken={},importToken={},importsToken={},
+    sourceInvocation={},capture={},issue=Object.freeze({issue:'OriginalPublicationRefusal'});
+  const ok=_0=>({$tag:1,_0});
+  f.moon.clientProgramIssueInstalledWholeEffectSourceUnit=()=>ok(source);
+  f.moon.clientProgramAcquiredEffectInvocation=actual=>{
+    assert.strictEqual(actual,source);return sourceInvocation;
+  };
+  f.moon.clientProgramAcquiredEffectDependencyBodies=actual=>{
+    assert.strictEqual(actual,source);return [];
+  };
+  f.moon.clientProgramIssueAcquiredEffectLocalResultArtifact=(...args)=>{
+    assert.strictEqual(args[3],source);return ok(sourceArtifact);
+  };
+  f.moon.clientProgramIssueLocalEffectResultManifest=(owner,invocation,artifacts)=>{
+    assert.strictEqual(invocation,sourceInvocation);assert.deepEqual(artifacts,[sourceArtifact]);return ok(manifestToken);
+  };
+  f.moon.clientProgramLocalEffectResultManifestCid=()=> 'original-manifest';
+  f.moon.clientProgramLocalEffectResultManifestJson=()=> '{}';
+  f.moon.clientProgramIssueEffectResultImportObservation=(owner,inputs,actual,manifest,artifact)=>{
+    assert.strictEqual(actual,capture);assert.strictEqual(manifest,manifestToken);
+    assert.strictEqual(artifact,sourceArtifact);return ok(importToken);
+  };
+  f.moon.clientProgramEffectResultImportObservationJson=()=> '{}';
+  f.moon.clientProgramIssueImportedEffectEvidence=(owner,inputs,unit,observations)=>{
+    assert.deepEqual(observations,[importToken]);return ok(importsToken);
+  };
+  f.moon.clientProgramImportedEffectInvocation=()=> ({});
+  f.moon.clientProgramImportedEffectScopeJson=()=> '{"sources":["original-source"]}';
+  f.moon.clientProgramImportedEffectRelationBodies=()=> [];
+  const sourceDependency=f.control.issueCheckedWholeEffectSourceUnit({},f.owner,{},0,{}, {},{}, {},
+    f.issued.observation,'authority',f.run,f.limits);
+  const artifact=f.control.issueDependentLocalEffectResultArtifact(f.owner,f.inputs,f.exported,
+    sourceDependency,f.definition,f.receipt,f.run,{admission:f.compiled.admission,
+      runDefinition:f.run,runInvocation:f.issued.invocation,observation:f.issued.observation},f.limits);
+  const manifest=f.control.issueLocalEffectResultManifest(f.owner,sourceDependency.invocation,[artifact],f.limits);
+  assert.throws(()=>f.control.issueEffectResultImportObservation(f.owner,f.inputs,capture,manifest,
+    {...artifact},f.limits),TypeError);
+  const observed=f.control.issueEffectResultImportObservation(f.owner,f.inputs,capture,manifest,artifact,f.limits);
+  const imports=f.control.issueImportedEffectEvidence(f.owner,f.inputs,2,[observed],f.limits);
+  let calls=0;
+  f.moon.clientProgramOriginalModelAcquiredEffectEvidence=(original,retention,bytes,nodes,depth,
+    originalImports,originalSources)=>{
+    calls++;assert.strictEqual(originalImports,importsToken);
+    assert.deepEqual(originalSources,[source]);return {$tag:0,_0:issue};
+  };
+  const model=f.capture();
+  assert.throws(()=>f.control.issueOriginalModelEffectEvidence(model,f.run,imports,f.limits),
+    error=>error.code==='MoonBitHostFailure' && error.cause===issue);
+  assert.equal(calls,1);
+});

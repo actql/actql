@@ -52,6 +52,7 @@ pub fn client_program_original_model_acquired_effect_evidence(
   max_nodes : Int,
   max_depth : Int,
   imports : @publication_host.ClientEffectImportedEvidence?,
+  source_originals : Array[@publication_host.ClientEffectAcquiredEvidence],
 ) -> Result[
   @publication_host.ClientEffectModelAcquiredEvidence,
   @publication_host.ClientEffectAcquiredEvidenceIssue,
@@ -63,6 +64,7 @@ pub fn client_program_original_model_acquired_effect_evidence(
     max_nodes,
     max_depth,
     imports~,
+    source_originals~,
   )
 }
 

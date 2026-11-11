@@ -1909,7 +1909,7 @@ pub fn issue_prepared_client_values_plan_graph(PreparedClientProgram, @lowering_
 
 pub fn issue_prepared_source_free_client_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientBoundTemplateIssue]
 
-pub fn issue_restored_model_client_effect_imported_evidence(ClientCompiledRun, ClientInferCallScope, ClientInferSavedCallScope, @run_publication.CapturedEffectDependencyBody, @run_publication.PublicationContract, Int, Int, Int, ClientEffectImportedEvidence) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
+pub fn issue_restored_model_client_effect_imported_evidence(ClientCompiledRun, ClientInferCallScope, ClientInferSavedCallScope, @run_publication.CapturedEffectDependencyBody, @run_publication.PublicationContract, Int, Int, Int, ClientEffectImportedEvidence, Array[ClientEffectAcquiredEvidence]) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_single_model_client_effect_acquired_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int, imports? : ClientEffectImportedEvidence?) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
