@@ -8,6 +8,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
+import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
+  from './test-native-cli-source-free-install.mjs';
 
 test('installed Mock acceptance requires both complete same-cohort public templates without skips', async () => {
   assert.deepEqual(mockTemplates, ['deal-review-mock', 'churn-risk-mock']);
@@ -34,6 +36,108 @@ function observation(pid, events = []) {
     'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
 }
 const observedCid = digit => 'sha256:' + digit.repeat(64);
+
+function journalCapacityRefusal({unknown = false, cause = 5001, closed = true} = {}) {
+  const diagnostic = observation(1701).trimEnd().split('\n').map(line => {
+    const index = line.indexOf(' '), prefix = line.slice(0, index);
+    const value = JSON.parse(line.slice(index + 1));
+    if (prefix === 'ACTQL_NATIVE_COUNTER') value.count =
+      ({8: 1, 10: 7, 11: cause, 14: unknown ? 1 : 0})[value.tag] ?? 0;
+    if (prefix === 'ACTQL_NATIVE_PHASE' && value.tag === 5) {
+      value.begins = 1; value.ends = closed ? 1 : 0; value.active = closed ? 0 : 1;
+    }
+    return prefix + ' ' + JSON.stringify(value);
+  }).join('\n') + '\n';
+  return {code: 1, signal: null, stdout: '', stderr:
+    `actql-native-client: LocalSubmissionAcceptance${unknown ? 'Unknown' : 'Unavailable'}\n` +
+    diagnostic + 'ACTQL_NATIVE_LAUNCHER_TIMINGS ' +
+    JSON.stringify({units: 'nanoseconds', preparation: 1, child: 1, total: 2}) + '\n'};
+}
+
+async function journalFixture(t, fault) {
+  const project = await mkdtemp(join(tmpdir(), 'native-journal-exhaustion-oracle-'));
+  t.after(() => rm(project, {recursive: true, force: true}));
+  const hosts = new Map(), calls = [], environment = {ACTQL_NATIVE_TIMINGS: 'prior'};
+  const cli = async (args, cwd, expectedCode = 0) => {
+    const operation = args.slice(6);
+    assert.deepEqual(args.slice(0, 6), ['--mode', 'local', '--config-root', cwd,
+      '--config-file', 'operator.json']);
+    calls.push({cwd, args: operation});
+    if (operation[0] === 'adopt') {
+      assert(!hosts.has(cwd), 'Never replace a project or re-adopt after refusal');
+      const configuration = JSON.parse(await readFile(join(cwd, 'operator.json'), 'utf8'));
+      const local = configuration.native.local;
+      assert([1, 2].includes(local.journal_record_limit));
+      assert.equal(local.journal_snapshot_bytes, 8388608);
+      assert.equal(local.state_parent, cwd);
+      hosts.set(cwd, {limit: local.journal_record_limit, originals: new Map(), attempts: 0});
+      return {code: 0, signal: null, stdout: '{"kind":"local_host_adopted"}'};
+    }
+    const host = hosts.get(cwd); assert(host);
+    if (operation[0] === 'run') {
+      host.attempts++;
+      const document = JSON.parse(await readFile(join(cwd, operation[1]), 'utf8'));
+      if (host.originals.size === host.limit) {
+        assert.equal(expectedCode, 1);
+        assert.equal(host.attempts, host.limit + 1, 'Exactly one failed fresh submission');
+        assert.equal(environment.ACTQL_NATIVE_TIMINGS, '1');
+        assert.equal(environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS, '1');
+        return fault === 'missing' ? {code: 1, signal: null, stdout: '', stderr: ''}
+          : journalCapacityRefusal();
+      }
+      assert.equal(expectedCode, 0);
+      const runId = `${host.limit}-${host.originals.size}`;
+      host.originals.set(runId, {rows: document.stages[0].steps[0].values.rows, file: operation[1]});
+      return {code: 0, signal: null, stdout: JSON.stringify({status: 'succeeded', run_id: runId})};
+    }
+    assert.equal(operation[0], 'result');
+    assert.equal(expectedCode, 0); assert.equal(host.attempts, host.limit + 1);
+    const original = host.originals.get(operation[1]); assert(original);
+    await assert.rejects(readFile(join(cwd, original.file)), {code: 'ENOENT'});
+    return {code: 0, signal: null, stdout: (fault === 'saved' ? [{id: 999}] : original.rows)
+      .map(row => JSON.stringify(row)).join('\n') + '\n'};
+  };
+  return {project: join(project, 'cases'), cli, environment, hosts, calls,
+    assets: {environment: JSON.stringify({host_policy_profile: {capacity: {}}}),
+      'result-policy': '{"version":"explicit-test-policy"}',
+      registry: '{}', values: '{}', fragment: '{}', ordered: '{}'},
+    libraries: {sqlite: '/explicit-port-not-loaded-sqlite.dylib',
+      crypto: '/explicit-port-not-loaded-crypto.dylib'}, runtimeWire: '{}'};
+}
+
+test('Native Journal explicit limits precede adopt and all old Saved survive one failed fresh intent', async t => {
+  const fixture = await journalFixture(t), before = {...fixture.environment};
+  const observed = await observeNativeJournalExhaustion(fixture);
+  assert.deepEqual(observed.observations.map(row => row.limit), [1, 2]);
+  assert.deepEqual(observed.observations.map(row => row.acceptedSubmissions), [1, 2]);
+  assert(observed.observations.every(row => row.allOriginalSavedAfterRefusal));
+  assert.equal(fixture.hosts.size, 2);
+  assert.deepEqual([...fixture.hosts.values()].map(row => row.attempts), [2, 3]);
+  assert.deepEqual(fixture.environment, before);
+});
+
+test('Native Journal refusal oracle rejects Unknown foreign cause and unfinished first cleanup', () => {
+  assert.equal(requireNativeJournalCapacityRefusal(journalCapacityRefusal()).originalCause,
+    'Journal.CapacityExceeded');
+  for (const input of [{unknown: true}, {cause: 5002}, {closed: false}])
+    assert.throws(() => requireNativeJournalCapacityRefusal(journalCapacityRefusal(input)), {code: 'ERR_ASSERTION'});
+});
+
+test('Native Journal refuses changed old Saved without a new Host or repeated failed submission', async t => {
+  const fixture = await journalFixture(t, 'saved');
+  await assert.rejects(observeNativeJournalExhaustion(fixture), {code: 'ERR_ASSERTION'});
+  assert.equal(fixture.hosts.size, 1);
+  assert.equal([...fixture.hosts.values()][0].attempts, 2);
+});
+
+test('Native Journal missing observations fail without retry and restore original flags', async t => {
+  const fixture = await journalFixture(t, 'missing'), before = {...fixture.environment};
+  await assert.rejects(observeNativeJournalExhaustion(fixture), /timing trailer missing/u);
+  assert.equal(fixture.hosts.size, 1);
+  assert.equal([...fixture.hosts.values()][0].attempts, 2);
+  assert.deepEqual(fixture.environment, before);
+});
+
 function commandObservations(command, pid) {
   const events = [];
   for (let ordinal = 0; ordinal < 2; ordinal++) {

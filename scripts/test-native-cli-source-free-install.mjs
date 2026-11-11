@@ -252,8 +252,11 @@ export async function observeNativeNumericScale({project, cli, outputDirectory =
 // Explicit operator configuration through the existing Native adopt path. The
 // same installed assets/libraries remain originals; no product default changes
 // and no accepted Host is reconfigured. The actual Owners still decide admission.
-export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows}) {
+export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows,
+  journalRecordLimit = 8}) {
   assert(Number.isSafeInteger(maxRows) && maxRows > 0 && maxRows <= 100000);
+  // These are the explicit finite acceptance fixtures, not a product limit.
+  assert([1, 2, 8].includes(journalRecordLimit));
   assert(isAbsolute(project) && isAbsolute(libraries.sqlite) && isAbsolute(libraries.crypto));
   assert.equal(typeof runtimeWire, 'string'); JSON.parse(runtimeWire);
   const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
@@ -317,7 +320,7 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
       check_environment: {file: 'environment.json', evidence_bundle_cid: environment.evidence_bundle_cid},
       local: {account_id: principal, principal, connection, state_parent: project, state_name: 'host',
         managed_root: project, sqlite_library: libraries.sqlite, signature_library: libraries.crypto,
-        submission_ttl_ms: 86400000, journal_record_limit: 8, journal_snapshot_bytes: 8388608,
+        submission_ttl_ms: 86400000, journal_record_limit: journalRecordLimit, journal_snapshot_bytes: 8388608,
         installation_files: ['run.json', 'read.json', 'retention.json', 'store.json', 'runtime.json', 'profile.json', 'file-read.json'],
         run_file: 'run.json', read_file: 'read.json', run_policy_profile_file: 'profile.json'},
     }},
@@ -334,6 +337,91 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
   await writeFile(join(project, 'runtime.json'), runtimeWire, {flag: 'wx', mode: 0o600});
   return {configuration: ['--mode', 'local', '--config-root', project, '--config-file', 'operator.json'],
     environmentCid: environment.evidence_bundle_cid, maxRows};
+}
+
+// This reads the original closed typed diagnostic from this deliberately
+// exhausted fixture. A generic refusal, Unknown or process exit is insufficient.
+export function requireNativeJournalCapacityRefusal(record) {
+  assert.equal(record.code, 1); assert.equal(record.signal, null);
+  assert.equal(record.stdout, '');
+  const envelope = nativeLauncherEnvelope(record.stderr, 'required');
+  const lines = envelope.native.trimEnd().split('\n');
+  const diagnostics = lines.filter(line => line.startsWith('ACTQL_NATIVE_'));
+  assert.deepEqual(lines.filter(line => !line.startsWith('ACTQL_NATIVE_')),
+    ['actql-native-client: LocalSubmissionAcceptanceUnavailable']);
+  const groups = nativeMockAcceptanceObservations(diagnostics.join('\n') + '\n');
+  assert.equal(groups.length, 1); assert.equal(groups[0].events.length, 0);
+  const values = prefix => diagnostics.filter(line => line.startsWith(prefix))
+    .map(line => JSON.parse(line.slice(prefix.length)));
+  const metadata = values('ACTQL_NATIVE_TIMINGS ')[0];
+  for (const name of ['initializing_drops', 'invalid_tags', 'invalid_amounts',
+    'clock_failures', 'stack_overflows']) assert.equal(metadata[name], 0);
+  assert.equal(metadata.overflow, false);
+  const counters = new Map(values('ACTQL_NATIVE_COUNTER ').map(row => [row.tag, row.count]));
+  assert.equal(counters.get(8), 1, 'Exactly one original failed acceptance');
+  assert.equal(counters.get(10), 7, 'Original Journal failure required');
+  assert.equal(counters.get(11), 5001, 'Original Journal CapacityExceeded required');
+  assert([0, 2].includes(counters.get(14)), 'Transaction Unknown cannot qualify this refusal');
+  const close = values('ACTQL_NATIVE_PHASE ').find(row => row.tag === 5);
+  assert(close.begins > 0 && close.begins === close.ends && close.active === 0 &&
+    close.unmatched_end === 0, 'The original failed command must complete its first cleanup');
+  return {pid: groups[0].pid, publicFailure: 'LocalSubmissionAcceptanceUnavailable',
+    originalCause: 'Journal.CapacityExceeded', firstCommandCleanupObserved: true,
+    independentPhysicalAck: false};
+}
+
+export async function observeNativeJournalExhaustion({project, cli, assets, libraries,
+  runtimeWire, environment}) {
+  await mkdir(project, {mode: 0o700});
+  const observations = [];
+  for (const limit of [1, 2]) {
+    const root = join(project, `limit-${limit}`);
+    const selected = await prepareNativeNumericOperator({project: root, assets, libraries,
+      runtimeWire, maxRows: 16, journalRecordLimit: limit});
+    const operator = (args, code = 0) => cli([...selected.configuration, ...args], root, code);
+    assert.equal(JSON.parse((await operator(['adopt', '--initialize-signing', '--json'])).stdout).kind,
+      'local_host_adopted');
+    const retained = [];
+    for (let index = 0; index <= limit; index++) {
+      const file = `intent-${index}.json`, expected = [{id: index + 1}];
+      const document = {version: 'actql/0.1', id: `journal-${limit}-${index}`,
+        stages: [{id: 'main', inputs: {}, steps: [{as: 'values', values: {
+          schema: {id: {type: 'number', nullable: false}}, rows: expected,
+        }}], results: {rows: {from: 'values', fields: ['id']}}}],
+        results: {answer0: {from: {stage: 'main', result: 'rows'}}}};
+      await writeFile(join(root, file), JSON.stringify(document), {flag: 'wx', mode: 0o600});
+      if (index === limit) {
+        const flags = ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS'];
+        const previous = flags.map(key => [key, environment[key]]);
+        let refused;
+        try {
+          for (const key of flags) environment[key] = '1';
+          refused = requireNativeJournalCapacityRefusal(await operator(
+            ['run', file, '--format', 'json', '--json'], 1));
+        } finally {
+          for (const [key, value] of previous) {
+            if (value === undefined) delete environment[key]; else environment[key] = value;
+          }
+        }
+        observations.push({limit, acceptedSubmissions: retained.length,
+          failedFreshSubmissionAttempts: 1, refusal: refused});
+        continue;
+      }
+      const state = JSON.parse((await operator(['run', file, '--format', 'json', '--json'])).stdout);
+      assert.equal(state.status, 'succeeded');
+      assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+      assert(!retained.some(value => value.runId === state.run_id));
+      retained.push({runId: state.run_id, expected});
+      await unlink(join(root, file));
+    }
+    for (const {runId, expected} of retained) {
+      const result = await operator(['result', runId, '--result', 'answer0', '--format', 'jsonl']);
+      assert.deepEqual(result.stdout.trim().split('\n').map(line => JSON.parse(line)), expected);
+    }
+    observations.at(-1).allOriginalSavedAfterRefusal = true;
+  }
+  return {scope: 'explicit-finite-Journal-policy', observations,
+    historyDeletion: false, postAdoptionPolicyChange: false};
 }
 
 export async function observeNativeNumericOperatorScale({project, cli, assets, libraries, runtimeWire}) {
@@ -794,6 +882,9 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
       [item.role, join(platformRoot, item.path)]));
+    const journalExhaustion = await observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
+      cli, assets: numericAssets, libraries: numericLibraries, environment: env,
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
     const numericScale = await observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
       cli, assets: numericAssets, libraries: numericLibraries,
       runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
@@ -805,7 +896,8 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, fileSourceNumeric, numericScale, resourceShapes,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, fileSourceNumeric,
+      journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
