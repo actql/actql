@@ -17805,6 +17805,8 @@
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
             "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+            "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation",
+            "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation/value/value",
             "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
             "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
             "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
@@ -17912,8 +17914,6 @@
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
             "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence",
-            "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value",
-            "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value#2",
             "publicationControl/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments",
@@ -17958,6 +17958,10 @@
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
             "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/direct/direct",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#2",
             "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
             "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
@@ -18101,6 +18105,9 @@
             "publicationControl/init:tablePreviewLedgerBinding/init:tablePreviewLedgerBinding",
             "publicationControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
             "publicationControl/inspect/inspect",
+            "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
+            "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
+            "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence#2",
             "publicationControl/inspectAdmission/inspectAdmission",
             "publicationControl/inspectEffectSource/inspectEffectSource",
             "publicationControl/inspectEvidence/inspectEvidence",
@@ -18667,6 +18674,10 @@
               {
                 "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
                 "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
               }
             ]
           }
@@ -25581,6 +25592,23 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation",
+          "parameters": [
+            "issued",
+            "scan",
+            "receipt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation/value/value",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
           "parameters": [
             "captured"
@@ -26720,20 +26748,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value",
-          "parameters": [
-            "pair"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence/value/value#2",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
           "parameters": [
             "checkedEffect",
@@ -27202,6 +27216,37 @@
             "manifest",
             "grant",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
+          "parameters": [
+            "model",
+            "retention",
+            "imports",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/direct/direct",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#2",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -29309,6 +29354,29 @@
           "parameters": [
             "contract",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
+          "parameters": [
+            "issued",
+            "publicationRetention",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence#2",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -31626,7 +31694,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "973930487203ba35390e0a7973566df631feca497cf699d0539f9dc94f2f4852"
+      "sha256": "54f3e6bba859b915c53900783bb20e13dc5c845280dc950720c24a3b1ad5c72c"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -32252,7 +32320,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b721cfa805464f2209b42454fd30ed329614f9f9d70c7c119432c0e8cc222fdb",
+      "sha256": "937dcd65fb2a4d808e2ec6baf1425f4a6d32f576ccef85fdd4b5cfeb7e413474",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -39576,7 +39644,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f0bc70a0f60c584dbdf78b510a67764e1d063b7fef98f5fbb15e16961c113400",
+      "sha256": "fe4d8e8a21cb147913abd25e744eecd7cec29f82e916162a00db58ff0712a51d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -64013,12 +64081,12 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "aeb442a259f5e1ce2d79fe68b3fde8571faf57492844d2d0f22bb5f9d8e15825"
+      "sha256": "516c1e9be22a0cc75fe67b7a52fbdf0ccd154d84234137db818052d8d0afd953"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3300686911206f83dd72542e1c1e55c53a9ec64a6e301a6f66f8887d6dd296fb",
+      "sha256": "534a9d9f1d14fcff36c448b0994d0789670d6b0d22a82cf741648ce98e38d8a5",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -64183,7 +64251,9 @@
         },
         {
           "name": "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
-          "parameters": [],
+          "parameters": [
+            "preparePublication"
+          ],
           "async": true
         },
         {
@@ -66553,13 +66623,13 @@
             "openNodeInferOperation/drive",
             "openNodeInferOperation/observeOriginalRuntime",
             "openNodeInferOperation/openNodeInferOperation",
-            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/openNodeInferOperation#2",
             "openNodeInferOperation/openNodeInferOperation#3",
             "openNodeInferOperation/openNodeInferOperation#4",
             "openNodeInferOperation/openNodeInferOperation#5",
             "openNodeInferOperation/openNodeInferOperation#6",
             "openNodeInferOperation/openNodeInferOperation#7",
+            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparison/init:advanceOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparisonWithMatch/init:advanceOriginalCurrentStateComparisonWithMatch",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateDecode/init:advanceOriginalCurrentStateDecode",
@@ -66571,6 +66641,7 @@
             "openNodeInferOperation/operation/init:cancelOriginalCurrentStateWriter/init:cancelOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:completeOriginalJournalInvalidation/init:completeOriginalJournalInvalidation",
             "openNodeInferOperation/operation/init:finishOriginalCurrentStateWriter/init:finishOriginalCurrentStateWriter",
+            "openNodeInferOperation/operation/init:growOriginalPublicationCapacity/init:growOriginalPublicationCapacity",
             "openNodeInferOperation/operation/init:installSettlementCleanup/init:installSettlementCleanup",
             "openNodeInferOperation/operation/init:originalCurrentStateMatchCurrent/init:originalCurrentStateMatchCurrent",
             "openNodeInferOperation/operation/init:originalMetadataAcquisition/init:originalMetadataAcquisition",
@@ -66590,14 +66661,6 @@
             "openNodeInferOperation/operation/init:startOriginalCurrentStateComparison/init:startOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:startOriginalCurrentStateDecode/init:startOriginalCurrentStateDecode",
             "openNodeInferOperation/operation/operation",
-            "openNodeInferOperation/operation/operation/operation",
-            "openNodeInferOperation/operation/operation/operation#2",
-            "openNodeInferOperation/operation/operation/operation#3",
-            "openNodeInferOperation/operation/operation/operation#4",
-            "openNodeInferOperation/operation/operation/operation#5",
-            "openNodeInferOperation/operation/operation/owners/owners",
-            "openNodeInferOperation/operation/operation/saved/saved",
-            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/operation/operation#10",
             "openNodeInferOperation/operation/operation#11",
             "openNodeInferOperation/operation/operation#12",
@@ -66646,6 +66709,14 @@
             "openNodeInferOperation/operation/operation#7",
             "openNodeInferOperation/operation/operation#8",
             "openNodeInferOperation/operation/operation#9",
+            "openNodeInferOperation/operation/operation/operation",
+            "openNodeInferOperation/operation/operation/operation#2",
+            "openNodeInferOperation/operation/operation/operation#3",
+            "openNodeInferOperation/operation/operation/operation#4",
+            "openNodeInferOperation/operation/operation/operation#5",
+            "openNodeInferOperation/operation/operation/owners/owners",
+            "openNodeInferOperation/operation/operation/saved/saved",
+            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/prepare/prepare",
             "openNodeInferOperation/requestStop/requestStop",
             "openNodeInferOperation/retainRawCaptureBinder/retainRawCaptureBinder",
@@ -67002,6 +67073,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
                 "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
+              },
+              {
+                "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
+                "anchor": "original publication grows same borrower only for new simultaneous construction demand"
               }
             ]
           }
@@ -68717,6 +68792,14 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:growOriginalPublicationCapacity/init:growOriginalPublicationCapacity",
+          "parameters": [
+            "retained",
+            "execution"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:installSettlementCleanup/init:installSettlementCleanup",
           "parameters": [
             "callback"
@@ -69456,7 +69539,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "9cee1b64b7f3a77bdf5c8c696e68b2029110900c7aefc15c5f43bc25732495a6"
+      "sha256": "fc4f226ed98589a8c83d55249fb54c127fb6cfa800a2ccddce6a0eae4d45763b"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -96750,7 +96833,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7541355f2c2d0812db859afd0dc992eac91a40f1e39d6f5e24aab87b94214cb8",
+      "sha256": "83b5afd78dc3c68f7fec209064f5405d5992dd685405ebec0ad03ed85582fee5",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -96821,7 +96904,16 @@
             "modelEvidence",
             "captureStartedAt",
             "captureCompletedAt",
-            "keyedSource"
+            "keyedSource",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "acquiredInferEffectPublicationPlan/modelOriginal/modelOriginal",
+          "parameters": [
+            "scan",
+            "receipt"
           ],
           "async": false
         },
@@ -96854,16 +96946,9 @@
             "captureStartedAt",
             "captureCompletedAt",
             "issuedModel",
+            "modelOriginal",
             "modelEvidence",
             "keyedSource"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredMultiEffectPublicationPlan/acquiredEvidenceByUnit/acquiredEvidenceByUnit",
-          "parameters": [
-            "captured",
-            "unit"
           ],
           "async": false
         },
@@ -97801,7 +97886,8 @@
         },
         {
           "operations": [
-            "acquiredInferEffectPublicationPlan"
+            "acquiredInferEffectPublicationPlan",
+            "acquiredInferEffectPublicationPlan/modelOriginal/modelOriginal"
           ],
           "exports": [
             "acquiredInferEffectPublicationPlan"
@@ -97909,6 +97995,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
               }
             ]
           }
@@ -98030,7 +98120,6 @@
         {
           "operations": [
             "acquiredMultiEffectPublicationPlan",
-            "acquiredMultiEffectPublicationPlan/acquiredEvidenceByUnit/acquiredEvidenceByUnit",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#2",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#3",
@@ -101822,6 +101911,7 @@
         "../host-common/result-output-limits.mjs",
         "../host-common/runtime-result.mjs",
         "./host-result-service-recipe.cjs",
+        "./infer-effect-observation.mjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"

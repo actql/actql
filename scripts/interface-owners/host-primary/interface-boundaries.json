@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "b721cfa805464f2209b42454fd30ed329614f9f9d70c7c119432c0e8cc222fdb",
+      "sha256": "937dcd65fb2a4d808e2ec6baf1425f4a6d32f576ccef85fdd4b5cfeb7e413474",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -4741,7 +4741,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "f0bc70a0f60c584dbdf78b510a67764e1d063b7fef98f5fbb15e16961c113400",
+      "sha256": "fe4d8e8a21cb147913abd25e744eecd7cec29f82e916162a00db58ff0712a51d",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -23463,7 +23463,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "aeb442a259f5e1ce2d79fe68b3fde8571faf57492844d2d0f22bb5f9d8e15825"
+      "sha256": "516c1e9be22a0cc75fe67b7a52fbdf0ccd154d84234137db818052d8d0afd953"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -24413,7 +24413,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "7541355f2c2d0812db859afd0dc992eac91a40f1e39d6f5e24aab87b94214cb8",
+      "sha256": "83b5afd78dc3c68f7fec209064f5405d5992dd685405ebec0ad03ed85582fee5",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24482,7 +24482,16 @@
             "modelEvidence",
             "captureStartedAt",
             "captureCompletedAt",
-            "keyedSource"
+            "keyedSource",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "acquiredInferEffectPublicationPlan/modelOriginal/modelOriginal",
+          "parameters": [
+            "scan",
+            "receipt"
           ],
           "async": false
         },
@@ -24515,16 +24524,9 @@
             "captureStartedAt",
             "captureCompletedAt",
             "issuedModel",
+            "modelOriginal",
             "modelEvidence",
             "keyedSource"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredMultiEffectPublicationPlan/acquiredEvidenceByUnit/acquiredEvidenceByUnit",
-          "parameters": [
-            "captured",
-            "unit"
           ],
           "async": false
         },
@@ -25039,9 +25041,9 @@
             "acquiredEffectPublicationPlan",
             "acquiredEffectPublicationPlan/acquiredEffectPublicationPlan",
             "acquiredInferEffectPublicationPlan",
+            "acquiredInferEffectPublicationPlan/modelOriginal/modelOriginal",
             "acquiredKeyedTaskPublicationPlan",
             "acquiredMultiEffectPublicationPlan",
-            "acquiredMultiEffectPublicationPlan/acquiredEvidenceByUnit/acquiredEvidenceByUnit",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#2",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#3",
@@ -25334,6 +25336,10 @@
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
                 "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
               }
             ]
           }
@@ -26308,6 +26314,7 @@
         "../host-common/result-output-limits.mjs",
         "../host-common/runtime-result.mjs",
         "./host-result-service-recipe.cjs",
+        "./infer-effect-observation.mjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"

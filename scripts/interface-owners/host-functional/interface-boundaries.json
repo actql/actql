@@ -69198,12 +69198,13 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cbfce7282cedc7f12eae050f2e6f40a0ff044629e7c3efbc840f3722b9a28ef7",
+      "sha256": "e0e5ba5bf9f1e5c6ee20641319255c8066a017775beed9340ce2fd15e9549e04",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "localFilesLookupExecutionPolicy",
         "localResourceLookupExecutionPolicy",
+        "localResourceResultReadLimits",
         "selectInstalledHostEnvironment",
         "selectInstalledLocalMaterializationEnvironment",
         "snapshotHostCapacityPolicy",
@@ -69237,6 +69238,20 @@
             "moon",
             "original",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "localResourceResultReadLimits",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "localResourceResultReadLimits/localResourceResultReadLimits",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -69876,6 +69891,87 @@
               {
                 "path": "adapters/host-node/local-resource-lookup-policy.md",
                 "anchor": "## Verification"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "localResourceResultReadLimits",
+            "localResourceResultReadLimits/localResourceResultReadLimits"
+          ],
+          "exports": [
+            "localResourceResultReadLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "The materializing Local Task and SDK collection share one installed byte"
+              },
+              {
+                "path": "docs/reference/limits.md",
+                "anchor": "It does not impose a separate 10,000-row maximum."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "export function localResourceResultReadLimits(moon)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "const original = moon.clientLocalResourcePolicyOriginal();"
+              },
+              {
+                "path": "adapters/host-node/client-result-collection-policy.test.mjs",
+                "anchor": "collection negotiation borrows the same Task policy"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "no allocation or permission."
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "This synchronous immutable policy projection starts no I/O, await, reservation or retained operation."
+            },
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "fail('LocalResultReadPolicyProjection')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No asynchronous operation or resource is created; the existing Result reader retains cancellation and cleanup."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-host-policy.mjs",
+                "anchor": "const maxRetainedValueBytes = Number(limits[4]);"
+              },
+              {
+                "path": "docs/reference/limits.md",
+                "anchor": "necessary row ceilings from the same installed Local Task resource policy."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const resultReadLimits = localResourceResultReadLimits(moon);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-result-collection-policy.test.mjs",
+                "anchor": "collection preserves wire, per-row decoded and raw-before-validator byte protection"
+              },
+              {
+                "path": "adapters/host-node/client-result-collection-policy.test.mjs",
+                "anchor": "collection policy keeps early break and cancel on the same original reader"
               }
             ]
           }
