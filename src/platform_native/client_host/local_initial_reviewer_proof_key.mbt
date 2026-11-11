@@ -47,7 +47,7 @@ fn NativeLocalInitialReviewerSigningKey::finish_original_projection(
     bytes == original.exported else {
     return Err(SigningOriginalUnavailable)
   }
-  original.host.check_binding().map_err(issue => SigningCustody(issue))
+  original.check_host_current().map_err(issue => SigningCustody(issue))
 }
 
 ///|
@@ -66,10 +66,9 @@ fn NativeLocalInitialReviewerSigningKey::require_current(
     installed.reviewer.principal == self.fields.principal &&
     installed.reviewer.key_id == self.fields.key_id &&
     installed.reviewer.public_key_pem == original.public_key_pem &&
-    original.host.authority_scope_cid(
+    original.authority_scope_cid(
       installed.reviewer.principal,
       installed.reviewer.connection,
-      original.host.epoch.crypto,
     )
     is Ok(scope) &&
     scope == self.fields.authority_scope_cid &&
@@ -115,10 +114,9 @@ pub fn NativeLocalHostConnection::acquire_initial_reviewer_signing_key(
     Err(issue) => return Err(SigningCustody(issue))
   }
   let scope = match
-    self.authority_scope_cid(
+    original.authority_scope_cid(
       installed.reviewer.principal,
       installed.reviewer.connection,
-      self.epoch.crypto,
     ) {
     Ok(value) => value
     Err(issue) => return Err(SigningCustody(issue))

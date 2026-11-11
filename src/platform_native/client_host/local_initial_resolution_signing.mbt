@@ -349,6 +349,12 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
   // All fallible/current callbacks have finished. Check the actual claimed
   // Credential and its live expiry/revocation in a fresh original snapshot,
   // then enter the no-user-callback physical signer directly.
+  if retained_signature.val is None {
+    match self.key.original.check_callback_current() {
+      Err(issue) => return Err(OriginalSigningOriginal(issue))
+      Ok(_) => ()
+    }
+  }
   match host.journal.transaction(() => current.require_locked()) {
     Err(issue) => return Err(OriginalSigningJournal(issue))
     Ok(_) => ()
@@ -362,6 +368,10 @@ fn NativeLocalInitialResolutionSigning::sign_original_once(
           // Absence of a returned signature is not evidence of no signing.
           return Err(OriginalSigningPhysical(issue))
         Ok(value) => value
+      }
+      match self.key.original.check_callback_current() {
+        Err(issue) => return Err(OriginalSigningOriginal(issue))
+        Ok(_) => ()
       }
       let signature = match
         local_initial_resolution_signature_standard(transport) {

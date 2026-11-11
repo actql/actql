@@ -16,6 +16,13 @@ priv struct NativeLocalInitialSigningCapture {
 /// This is not a grant, default-signer selection, issue sample or signing use.
 struct NativeLocalInitialSigningOriginal {
   host : NativeLocalHostConnection
+  original_read : (
+    NativeLocalJournalCapture,
+    @host.ClientLocalAdoptedHostMaterial[
+      @sqlite.Database,
+      NativeLocalAdoptionIssue,
+    ],
+  )?
   control_body : Bytes
   projection : @filesystem.PrivateFileProjection
   exported : Bytes
@@ -450,15 +457,41 @@ pub fn NativeLocalAdoptionSession::open_journal_with_initial_signing_material(
 /// policy to repair it. The existing journal confirms its transaction first.
 pub fn NativeLocalHostConnection::restore_initial_signing_original(
   self : NativeLocalHostConnection,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[NativeLocalInitialSigningOriginal, NativeLocalAdoptionIssue] {
-  match self.check_binding() {
+  let original_read = match capture {
+    None => None
+    Some(capture) => {
+      if !capture.read_callback_active || !capture.read_facts_valid {
+        return Err(OriginalResourceScopePending)
+      }
+      let material = match
+        capture.with_current_adoption_material_in_original_read((
+          actual,
+          material,
+          _,
+        ) => {
+          if !physical_equal(actual, self) {
+            return Err(CustodyLost)
+          }
+          Ok(material)
+        }) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Some((capture, material))
+    }
+  }
+  match self.check_signing_original_read(original_read) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   let primary : Ref[NativeLocalAdoptionIssue?] = Ref(None)
   let original = self.journal.transaction(() => {
     try {
-      local_initial_signing_value(self.check_binding())
+      local_initial_signing_value(
+        self.check_signing_original_read(original_read),
+      )
       local_initial_signing_value(self.installation_custody()) |> ignore
       let row = local_initial_signing_value(
         self.database
@@ -479,9 +512,12 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
         .restore_private_file_projection(fields.exported)
         .map_err(issue => Filesystem(issue)),
       )
-      local_initial_signing_value(self.check_binding())
+      local_initial_signing_value(
+        self.check_signing_original_read(original_read),
+      )
       Ok({
         host: self,
+        original_read,
         control_body: row.body,
         projection,
         exported: fields.exported,
@@ -517,7 +553,7 @@ pub fn NativeLocalHostConnection::restore_initial_signing_original(
 pub fn NativeLocalInitialSigningOriginal::require_current(
   self : NativeLocalInitialSigningOriginal,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match self.host.check_binding() {
+  match self.check_host_current() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -556,7 +592,7 @@ fn NativeLocalInitialSigningOriginal::require_current_after_host_binding(
     Err(issue) => return Err(Filesystem(issue))
     Ok(_) => ()
   }
-  self.host.check_binding()
+  self.check_host_current()
 }
 
 ///|

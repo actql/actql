@@ -47,10 +47,23 @@ fn read_local_initial_host_signing_control(
 /// cannot create or adopt another key, even if a matching PEM is present now.
 pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
   self : NativeLocalHostConnection,
+  reviewer_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[NativeLocalInitialHostSigningOriginal, NativeLocalAdoptionIssue] {
-  let reviewer = match self.restore_initial_signing_original() {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let reviewer = match reviewer_original {
+    Some(original) => {
+      if !physical_equal(original.host, self) {
+        return Err(CustodyLost)
+      }
+      match original.require_current() {
+        Ok(_) => original
+        Err(issue) => return Err(issue)
+      }
+    }
+    None =>
+      match self.restore_initial_signing_original() {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
   }
   let fields = match
     read_local_initial_host_signing_control(self, reviewer.control_body) {
@@ -112,7 +125,7 @@ pub fn NativeLocalInitialHostSigningOriginal::require_current(
     Ok(_) => ()
     Err(issue) => return Err(Filesystem(issue))
   }
-  host.check_binding()
+  self.reviewer.check_host_current()
 }
 
 ///|

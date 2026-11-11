@@ -132,10 +132,14 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
         // twelve borrowed field tuples, Writer controls and two digest slots.
         // This emitter has eleven pairs and two shorter original operation IDs.
         // Two retained slots plus the acknowledged record option/map frame.
+        // One scoped signing tuple borrows the same capture and material;
+        // its option/tuple headers and references are retained before restore.
         record_headers: saved_effect_decision_emission_controls.record_headers +
-        measurement.record_headers,
+        measurement.record_headers +
+        2L,
         reference_slots: saved_effect_decision_emission_controls.reference_slots +
-        measurement.reference_slots,
+        measurement.reference_slots +
+        4L,
         scalar_words: saved_effect_decision_emission_controls.scalar_words +
         measurement.scalar_words,
         owned_utf16_units: saved_effect_decision_emission_controls.owned_utf16_units +
@@ -151,7 +155,8 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
     Some(value) => value
     None => return Err(SavedResolutionUnavailable)
   }
-  let initial = match host.restore_initial_signing_original() {
+  let initial = match
+    host.restore_initial_signing_original(capture=Some(self.capture)) {
     Ok(value) => value
     Err(issue) => return Err(SavedResolutionOriginal(issue))
   }

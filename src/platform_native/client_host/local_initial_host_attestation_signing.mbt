@@ -282,6 +282,12 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if retained_signature.val is None {
+    match preparation.account.original.reviewer.check_callback_current() {
+      Err(issue) => return Err(HostAttestationOriginal(issue))
+      Ok(_) => ()
+    }
+  }
   match host.journal.transaction(() => self.require_use_locked()) {
     Err(issue) => return Err(HostAttestationJournal(issue))
     Ok(_) => ()
@@ -292,6 +298,10 @@ pub fn NativeLocalInitialHostAttestationSigning::sign_once(
       let transport = match self.physical.sign_once() {
         Ok(value) => value
         Err(issue) => return Err(HostAttestationPhysical(issue))
+      }
+      match preparation.account.original.reviewer.check_callback_current() {
+        Err(issue) => return Err(HostAttestationOriginal(issue))
+        Ok(_) => ()
       }
       let signature = match
         local_initial_resolution_signature_standard(transport) {

@@ -56,7 +56,7 @@ pub fn NativeLocalHostConnection::install_initial_effect_reviewer(
     connection.is_empty() {
     return Err(ReviewerUnavailable)
   }
-  let bytes = match self.selected_configuration(host_configuration_file) {
+  let bytes = match original.selected_configuration(host_configuration_file) {
     Ok(value) => value
     Err(_) => return Err(ReviewerUnavailable)
   }

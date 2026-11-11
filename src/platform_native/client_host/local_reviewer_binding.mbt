@@ -77,9 +77,14 @@ pub fn NativeLocalHostConnection::install_effect_reviewer(
 fn NativeLocalInstalledEffectReviewer::current(
   self : NativeLocalInstalledEffectReviewer,
 ) -> Bool {
-  if !self.reviewer.enabled ||
-    !(self.host.selected_configuration(self.file) is Ok(bytes) &&
-    bytes == self.original_bytes) {
+  if !self.reviewer.enabled {
+    return false
+  }
+  let selected = match self.initial_original {
+    Some(original) => original.selected_configuration(self.file)
+    None => self.host.selected_configuration(self.file)
+  }
+  if !(selected is Ok(bytes) && bytes == self.original_bytes) {
     return false
   }
   match self.initial_original {
@@ -89,13 +94,17 @@ fn NativeLocalInstalledEffectReviewer::current(
         return false
       }
   }
-  self.host.authorize({
+  let tuple : @authorization.AccessTuple = {
     principal: self.reviewer.principal,
     connection: self.reviewer.connection,
     resource: "run",
     operation: "resolve",
-  })
-  is Ok(@authorization.Allow(_))
+  }
+  let outcome = match self.initial_original {
+    Some(original) => original.authorize(tuple)
+    None => self.host.authorize(tuple)
+  }
+  outcome is Ok(@authorization.Allow(_))
 }
 
 ///|
@@ -211,6 +220,11 @@ fn NativeLocalEffectReviewerBinding::original_current(
   self : NativeLocalEffectReviewerBinding,
 ) -> Bool {
   let now = (self.now)()
+  if self.installed.initial_original is Some(original) &&
+    original.original_read is Some(_) &&
+    original.check_callback_current() is Err(_) {
+    return false
+  }
   if self.approval_scope is SavedApproval(saved) {
     // The clock is a callback; enter the actual current Read only AFTER it.
     // The same typed query route retains invalidation and SQL return duties.

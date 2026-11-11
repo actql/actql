@@ -41,7 +41,7 @@ pub fn NativeLocalHostConnection::acquire_initial_host_signing_account(
     return Err(SigningUnavailable)
   }
   let authority_scope_cid = match
-    self.authority_scope_cid(principal, connection, self.epoch.crypto) {
+    original.reviewer.authority_scope_cid(principal, connection) {
     Ok(value) => value
     Err(_) => return Err(SigningUnavailable)
   }
@@ -62,18 +62,17 @@ pub fn NativeLocalHostConnection::acquire_initial_host_signing_account(
 pub fn NativeLocalInitialHostSigningAccount::require_current_account(
   self : NativeLocalInitialHostSigningAccount,
 ) -> Result[Unit, NativeLocalSigningAccountIssue] {
-  let host = self.original.reviewer.host
   guard self.installed.initial_original is Some(reviewer) &&
     reviewer.control_body == self.original.reviewer.control_body &&
     reviewer.exported == self.original.reviewer.exported &&
     self.installed.current() &&
     self.original.require_current() is Ok(_) &&
-    host.authority_scope_cid(self.principal, self.connection, host.epoch.crypto)
+    self.original.reviewer.authority_scope_cid(self.principal, self.connection)
     is Ok(scope) &&
     scope == self.authority_scope_cid else {
     return Err(SigningUnavailable)
   }
-  if !(host.authorize({
+  if !(self.original.reviewer.authorize({
       principal: self.principal,
       connection: self.connection,
       resource: self.resource,
@@ -84,7 +83,7 @@ pub fn NativeLocalInitialHostSigningAccount::require_current_account(
   }
   guard self.installed.current() &&
     self.original.require_current() is Ok(_) &&
-    host.authority_scope_cid(self.principal, self.connection, host.epoch.crypto)
+    self.original.reviewer.authority_scope_cid(self.principal, self.connection)
     is Ok(scope) &&
     scope == self.authority_scope_cid else {
     return Err(SigningUnavailable)
@@ -231,7 +230,17 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_account(
   NativeLocalInitialHostSigningAccount,
   NativeLocalSigningAccountIssue,
 ] {
-  let original = match self.restore_initial_host_signing_original() {
+  let reviewer_original = match installed.initial_original {
+    Some(original) =>
+      if original.original_read is Some(_) {
+        Some(original)
+      } else {
+        None
+      }
+    None => None
+  }
+  let original = match
+    self.restore_initial_host_signing_original(reviewer_original~) {
     Ok(value) => value
     Err(_) => return Err(SigningUnavailable)
   }
