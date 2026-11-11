@@ -91,18 +91,15 @@ fn NativeLocalInitialHostAttestationPreparation::require_current(
     // intervene; do not add another whole caller/clock traversal. Independent
     // Host Sign and the actual transaction/physical gates remain below.
     if !physical_equal(self.reviewer_current.materials.reviewer, binding) ||
-      self.reviewer_current.materials.registration !=
-      authenticated.registration {
+      self.reviewer_current.materials.registration != authenticated.registration {
       return Err(HostAttestationUnavailable)
     }
-  } else {
-    if binding.read_current(
-        authenticated.registration.selection,
-        authenticated.registration.key_id,
-      ) !=
-      Some(authenticated.registration) {
-      return Err(HostAttestationUnavailable)
-    }
+  } else if binding.read_current(
+      authenticated.registration.selection,
+      authenticated.registration.key_id,
+    ) !=
+    Some(authenticated.registration) {
+    return Err(HostAttestationUnavailable)
   }
   binding.host.journal
   .transaction(() => self.require_current_locked())
@@ -160,6 +157,19 @@ pub fn NativeLocalInitialHostAttestationPreparation::prepare_signing(
 fn NativeLocalInitialHostAttestationSigning::require_current(
   self : NativeLocalInitialHostAttestationSigning,
 ) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
+  match self.require_original_frame() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.preparation.require_current()
+}
+
+///|
+// Intrinsic receiver/lifetime checks only. The actual role/current/row checks
+// remain separate; a valid receiver alone cannot authorize any protected work.
+fn NativeLocalInitialHostAttestationSigning::require_original_frame(
+  self : NativeLocalInitialHostAttestationSigning,
+) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
   match self.physical.require_original_owner() {
     Err(issue) => return Err(HostAttestationPhysical(issue))
     Ok(_) => ()
@@ -171,7 +181,7 @@ fn NativeLocalInitialHostAttestationSigning::require_current(
     physical_equal(actual, self) else {
     return Err(HostAttestationUnavailable)
   }
-  self.preparation.require_current()
+  Ok(())
 }
 
 ///|
@@ -456,8 +466,30 @@ pub fn NativeLocalInitialHostAttestationSigning::admit_original_resolution(
   let host = binding.host
   let original = preparation.account.original
   let current = () => {
-    self.require_current() is Ok(_) &&
-    host.journal.transaction(() => self.require_use_locked()) is Ok(_)
+    if original.reviewer.original_read is Some(_) &&
+      binding.approval_scope is SavedApproval(_) {
+      // original_verified_resolution just completed this SAME material and
+      // retained subject. The verifier/commit callbacks must reobserve real
+      // physical originals and every mutable role/key/revision/cancel/use row,
+      // not restart the pure Scope/Submission/clock construction each time.
+      // original_current retains this actual clock and epoch expiry/watermark
+      // through the existing captured metadata Owner; a locked use alone does
+      // not replace that independent Submission lifetime check.
+      // No Account outcome is retained: require_use_locked evaluates Client
+      // RunRead, Reviewer resolve and independent Host Sign on every entry.
+      if self.require_original_frame() is Err(_) ||
+        !binding.original_current() ||
+        self.require_original_frame() is Err(_) {
+        return false
+      }
+      let checked = host.journal.transaction(() => self.require_use_locked())
+      // A physical/current/Account callback cannot retire this SAME receiver
+      // and leave its earlier successful mutable-row observation reusable.
+      checked is Ok(_) && self.require_original_frame() is Ok(_)
+    } else {
+      self.require_current() is Ok(_) &&
+      host.journal.transaction(() => self.require_use_locked()) is Ok(_)
+    }
   }
   if !current() {
     return Err(HostAttestationUnavailable)

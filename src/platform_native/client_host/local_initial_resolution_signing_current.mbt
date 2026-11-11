@@ -30,7 +30,41 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current(
     Err(issue) => return Err(OriginalSigningProof(issue))
     Ok(value) => value
   }
+  self.initial_signing_current_after_original_scope(scope, subject, original_use~)
+}
 
+///|
+// Closed constructor handoff only: these originals just came from this SAME
+// material's scope builder. Keep its actual subject instead of discarding it
+// and immediately traversing the same Scope/Submission/clock chain again.
+fn NativeLocalReviewerProofMaterials::prepare_initial_signing_current(
+  self : NativeLocalReviewerProofMaterials,
+  attempt_id : String,
+) -> Result[
+  NativeLocalInitialSigningCurrent,
+  NativeLocalInitialResolutionSigningIssue,
+] {
+  let (scope, subject) = match
+    self.prepare_signing_scope_with_original_subject(attempt_id) {
+    Err(issue) => return Err(OriginalSigningProof(issue))
+    Ok(value) => value
+  }
+  self.initial_signing_current_after_original_scope(scope, subject)
+}
+
+///|
+fn NativeLocalReviewerProofMaterials::initial_signing_current_after_original_scope(
+  self : NativeLocalReviewerProofMaterials,
+  scope : @credential.LocalSigningCredentialScope,
+  subject : NativeLocalOriginalEffectSigningSubjectRead,
+  original_use? : (
+    NativeLocalGrantOriginal,
+    @credential.LocalSigningCredentialUse,
+  )? = None,
+) -> Result[
+  NativeLocalInitialSigningCurrent,
+  NativeLocalInitialResolutionSigningIssue,
+] {
   if self.original.cancellation_requested &&
     self.proof.decision() == @checkpoint.Approved {
     return Err(OriginalSigningJournal(Checkpoint(NeedsOriginalContinuation)))

@@ -97,14 +97,11 @@ fn NativeLocalReviewerProofMaterials::prepare_initial_original_signing(
   NativeLocalInitialResolutionSigning,
   NativeLocalInitialResolutionSigningIssue,
 ] {
-  let scope = match self.prepare_signing_scope(attempt_id) {
-    Err(issue) => return Err(OriginalSigningProof(issue))
-    Ok(value) => value
-  }
-  let current = match self.initial_signing_current(scope) {
+  let current = match self.prepare_initial_signing_current(attempt_id) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  let scope = current.scope
   let host = self.reviewer.host
   if host.reviewer_signing_attempt is Some(previous) && !previous.closed {
     return Err(OriginalSigningUnavailable)

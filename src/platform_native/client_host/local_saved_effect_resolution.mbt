@@ -134,12 +134,15 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
         // Two retained slots plus the acknowledged record option/map frame.
         // One scoped signing tuple borrows the same capture and material;
         // its option/tuple headers and references are retained before restore.
+        // Three initial scope constructors (approval, resolution, Host) also
+        // hand off their existing scope/subject pair without a second read.
+        // Fund those transient pair headers/references before any constructor.
         record_headers: saved_effect_decision_emission_controls.record_headers +
         measurement.record_headers +
-        2L,
+        5L,
         reference_slots: saved_effect_decision_emission_controls.reference_slots +
         measurement.reference_slots +
-        4L,
+        10L,
         scalar_words: saved_effect_decision_emission_controls.scalar_words +
         measurement.scalar_words,
         owned_utf16_units: saved_effect_decision_emission_controls.owned_utf16_units +
