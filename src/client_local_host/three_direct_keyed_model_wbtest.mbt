@@ -100,6 +100,23 @@ test "three original Direct Sources prepare the complete keyed Model graph under
       occurrence, component,
     ),
   )
+  // Continue the original failed helper's remaining Model-demand handoff
+  // with this same compilation; do not check/compile the Program again.
+  let allowed = @publication_host.issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_effect_run_definition(
+    allowed, "Model-plan", "same-original", "2026-10-26T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let bound = @publication_host.client_effect_allowed_infer_run(allowed).unwrap()
+  let model = prepare_installed_effect_model_demand(
+    prepared, bound, compilation, definition, occurrence, component, effect_model_plan_limits,
+    500L, 700L, 20, 20, 20,
+  ).unwrap()
+  assert_true(physical_equal(model.graph, component))
   let bounded = { ..limits, program: { ..limits.program, max_tasks: 3, }, }
   assert_true(
     @publication_host.prepare_client_effect_computation(
