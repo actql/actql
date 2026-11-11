@@ -233,7 +233,8 @@ test('reviewed real prose and independent JS edits omit product jobs but retain 
     assert.equal(selectTargets([path]).profile, 'full', 'Missing original modification identity stays full');
     assert.equal(selectTargets([path, 'toolchain.json']).profile, 'full');
   }
-  const owned = workflow.jobs.lint.steps.find(step => step.name === 'Test ordinary operation performance assessment');
+  const owned = workflow.jobs.lint.steps.find(step => step.name === 'Test ordinary operation performance policy oracles');
+  assert.equal(owned.if, undefined, 'Small policy oracles must execute during Draft preparation too');
   for (const path of ['scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) assert(owned.run.includes(path));
 });
 
