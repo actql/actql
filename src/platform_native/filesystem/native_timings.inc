@@ -17,7 +17,7 @@
 
 #define ACTQL_TIMING_PHASES 39
 #define ACTQL_TIMING_STACK 32
-#define ACTQL_TIMING_COUNTERS 66
+#define ACTQL_TIMING_COUNTERS 70
 /* 0 unselected, 1 selecting, 2 disabled, 3 enabled. Never wait on another
  * thread or an inherited initialization. Missed diagnostic entries are named. */
 static _Atomic int actql_timing_selection;
@@ -103,6 +103,10 @@ static const char *actql_timing_counter_name(int tag) {
     case ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES: return "backing_explicit_zeroed_bytes";
     case ACTQL_NATIVE_COUNT_SIGNING_FULL_BOUNDARY: return "signing_full_boundary_calls";
     case ACTQL_NATIVE_COUNT_SIGNING_HELPER_REVALIDATION: return "signing_helper_revalidation_calls";
+    case ACTQL_NATIVE_COUNT_REQUEST_QUERY_PARSE: return "request_query_parse_calls";
+    case ACTQL_NATIVE_COUNT_REQUEST_QUERY_LOWER: return "request_query_lower_calls";
+    case ACTQL_NATIVE_COUNT_REQUEST_SEMANTIC_CHECK: return "request_semantic_check_calls";
+    case ACTQL_NATIVE_COUNT_REQUEST_PROGRAM_COMPILE: return "request_program_compile_calls";
     default: return "private_counter";
   }
 }
@@ -157,7 +161,7 @@ static void actql_timing_report(void) {
   } while (0)
   ACTQL_TIMING_APPEND("ACTQL_NATIVE_TIMINGS {\"pid\":%ld,\"origin\":\"first_hook\","
     "\"elapsed_ns\":%" PRIu64 ",\"clock_current\":%s,\"nested_inclusive\":true,"
-    "\"child_process_counters\":false,\"phase_slots\":39,\"counter_slots\":66,\"initializing_drops\":%" PRIu64 ","
+    "\"child_process_counters\":false,\"phase_slots\":39,\"counter_slots\":70,\"initializing_drops\":%" PRIu64 ","
     "\"invalid_tags\":%" PRIu64 ",\"invalid_amounts\":%" PRIu64 ",\"clock_failures\":%" PRIu64 ",\"overflow\":%s,"
     "\"stack_overflows\":%" PRIu64 ",\"parallel_observed\":%s}\n",
     (long)actql_timing_process, now >= actql_timing_origin ? now - actql_timing_origin : 0,

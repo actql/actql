@@ -124,7 +124,7 @@
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",
-      "sha256": "47193864bfdde7da05536b45370ad5e805d245c6966596c7ec39ce0de5f77a8b",
+      "sha256": "b8a81c795430ca7000d37ed1559e9c61c5449d8ca37570d4de5ce5d227611dad",
       "exports": [
         "nativeMockAcceptanceObservations",
         "projectInitArguments",

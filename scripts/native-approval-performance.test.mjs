@@ -53,7 +53,7 @@ test('Native approval call bounds retain mutable SQL while refusing helper ampli
 });
 
 test('Native approval counters refuse incomplete overflowed duplicated or signalled observations', () => {
-  const counters = Array.from({length: 66}, (_, tag) => ({tag, name: 'fixture', count: tag + 1}));
+  const counters = Array.from({length: 70}, (_, tag) => ({tag, name: 'fixture', count: tag + 1}));
   const metadata = {pid: 123, overflow: false, initializing_drops: 0, invalid_tags: 0, invalid_amounts: 0};
   const record = () => ({code: 0, signal: null, stderr: 'ACTQL_NATIVE_TIMINGS ' + JSON.stringify(metadata) + '\n' +
     counters.map(value => 'ACTQL_NATIVE_COUNTER ' + JSON.stringify(value) + '\n').join('')});

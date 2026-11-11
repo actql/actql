@@ -31,14 +31,14 @@ export function approvalCallCounts(record) {
       metadata.push(JSON.parse(line.slice('ACTQL_NATIVE_TIMINGS '.length)));
     } else if (line.startsWith('ACTQL_NATIVE_COUNTER ')) {
       const value = JSON.parse(line.slice('ACTQL_NATIVE_COUNTER '.length));
-      assert(Number.isInteger(value.tag) && value.tag >= 0 && value.tag < 66 &&
+      assert(Number.isInteger(value.tag) && value.tag >= 0 && value.tag < 70 &&
         Number.isSafeInteger(value.count) && value.count >= 0 && !counters.has(value.tag),
       'Missing, invalid or duplicate Native approval counter');
       counters.set(value.tag, value.count);
     }
   }
   assert.equal(metadata.length, 1, 'Approval requires one actual Native process');
-  assert.equal(counters.size, 66, 'Incomplete Native approval counter stream');
+  assert.equal(counters.size, 70, 'Incomplete Native approval counter stream');
   const meta = metadata[0];
   assert(Number.isSafeInteger(meta.pid) && meta.pid > 0, 'Actual Native PID missing');
   assert.equal(meta.overflow, false, 'Native counters overflowed');
