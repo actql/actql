@@ -443,4 +443,3 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
   self.close_export()
   prepared
 }
-
