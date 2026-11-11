@@ -353,7 +353,7 @@ pub fn NativeClientRelationFileWork::install_publication_service(
     self.start.request,
     self.definition,
     () => self.access.current(),
-    () => self.require_current(),
+    () => self.require_publication_current(),
     store,
     namespace_id,
     authorize,

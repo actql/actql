@@ -691,6 +691,26 @@ fn NativeClientRelationFileWork::require_current(
   if !self.entry.arena.matches_business_scope(false) {
     return self.entry.unavailable_current
   }
+  self.require_bound_source_current()
+}
+
+///|
+// Only the retained publication service uses this cut. Its Journal/Store
+// callbacks also run after the caller has returned the SAME business borrower
+// to its original Read. No execution, export or cleanup entry changes scope.
+fn NativeClientRelationFileWork::require_publication_current(
+  self : NativeClientRelationFileWork,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
+  if !self.entry.arena.matches_publication_scope() {
+    return self.entry.unavailable_current
+  }
+  self.require_bound_source_current()
+}
+
+///|
+fn NativeClientRelationFileWork::require_bound_source_current(
+  self : NativeClientRelationFileWork,
+) -> Result[Unit, NativeClientSourceWorkIssue] {
   if self.stopping ||
     !relation_file_prepared_binding_current(
       self.start.journal,

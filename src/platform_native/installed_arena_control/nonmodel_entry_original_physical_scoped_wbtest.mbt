@@ -130,6 +130,7 @@ fn nonmodel_physical_entry_case(
   windowed? : Bool = false,
   prepared_body? : Bool = false,
   prepared_refusal? : Bool = false,
+  publication? : Bool = false,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
@@ -368,6 +369,10 @@ fn nonmodel_physical_entry_case(
     nonmodel_windowed_original_work(host, pair, read, execution)
   } else if constructing {
     nonmodel_constructor_original_work(host, pair, read, execution)
+  } else if publication {
+    nonmodel_publication_original_work(
+      host, pair, read, execution, control_bytes,
+    )
   } else if claimed {
     nonmodel_eligible_original_work(host, pair, read, execution, control_bytes)
   } else {
@@ -466,6 +471,67 @@ test "eligible copied entry refuses while the same original takes once and physi
 ///|
 test "unclaimed original entry retires only after actual parent scope return" {
   nonmodel_physical_entry_case(false)
+}
+
+///|
+// Exercise real original scope transitions, not a Bool standing in for Read
+// custody. Only scalar observations leave the funded business scope.
+fn nonmodel_publication_original_work(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+  control_bytes : Int64,
+) -> Bool raise {
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  let entry = match
+    host.prepare_domain_nonmodel_work_entry(
+      pair, read, execution, control_bytes, control_bytes,
+    ) {
+    Some(Ok(ReadyNonModelWorkEntry(value))) => value
+    _ => fail("publication entry preparation refused")
+  }
+  let copy = { ..entry, }
+  let unclaimed_refused = !entry.matches_publication_scope()
+  host.leave_local_host_phase(pair).unwrap()
+  host.enter_domain_retained_execution(execution).unwrap()
+  let claimed = entry.take_entered_ledger(
+      execution, control_bytes, control_bytes,
+    )
+    is Some(_)
+  let business_current = entry.matches_publication_scope() &&
+    entry.matches_business_scope(false)
+  let copy_business_refused = !copy.matches_publication_scope()
+  host.leave_domain_retained_execution(execution).unwrap()
+  let unentered_refused = !entry.matches_publication_scope()
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  let original_read_current = entry.matches_publication_scope()
+  let execution_still_refused = !entry.matches_business_scope(false)
+  let copy_read_refused = !copy.matches_publication_scope()
+  host.leave_local_host_phase(pair).unwrap()
+  host.enter_domain_retained_execution(execution).unwrap()
+  let reentered_current = entry.matches_publication_scope()
+  let finished = entry.finish_business_cleanup()
+  host.leave_domain_retained_execution(execution).unwrap()
+  host.enter_local_host_phase(pair, HostRead).unwrap()
+  let finished_read_refused = !entry.matches_publication_scope()
+  host.leave_local_host_phase(pair).unwrap()
+  assert_true(entry.close_after_original_return())
+  assert_true(execution.physical_retired && execution.closed && entry.closed)
+  assert_false(entry.matches_publication_scope())
+  assert_eq(entry.usage().live_reservations, 0)
+  assert_true(unclaimed_refused && claimed && business_current)
+  assert_true(copy_business_refused && unentered_refused)
+  // This is the former service authorization refusal after the caller return.
+  assert_true(original_read_current)
+  assert_true(execution_still_refused && copy_read_refused)
+  assert_true(reentered_current && finished && finished_read_refused)
+  true
+}
+
+///|
+test "publication current follows SAME claimed original Read without enabling business work" {
+  nonmodel_physical_entry_case(true, publication=true)
 }
 
 ///|

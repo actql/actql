@@ -2010,6 +2010,16 @@ cannot revive it. The same pair retains the consuming view and never restores
 its spent available-read port. Scope leave does not retire managed aliases or
 acknowledge material, domain, Library or Host cleanup.
 
+A claimed relation-file Work keeps execution, output export and child cleanup
+inside its original business scope. Publication authorization also runs after
+that borrower returns to the same original Read, including its Store flight
+and Journal fence. Its separate entry projection accepts only the same live,
+claimed, unfinished entry in either of those actual scopes. It performs no
+entry, admission or current check. The Work still validates its original
+Prepared/compiled/Definition/Request binding and checks Source and Account
+currentness through the retained original Read access. A copied, unclaimed,
+finished, closed or unentered entry cannot use that publication projection.
+
 Each Read context may retain one managed-page search hint in its original
 backed context storage. It is only a placement candidate: under the existing
 context/capacity locks, allocation rechecks the exact context, process, live

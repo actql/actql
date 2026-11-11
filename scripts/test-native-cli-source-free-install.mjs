@@ -113,12 +113,12 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
   await mkdir(cases, {mode: 0o700});
   const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
   const observations = [];
-  let currentProject;
+  const retained = [];
+  const currentProject = join(cases, 'ordinary');
+  // Repeated admitted intents share one ordinary installation and its finite
+  // Journal policy. A fresh Host per query would conceal cumulative refusal.
+  await cli(['init', currentProject], project);
   for (const entry of queries) {
-    // Ordinary init retains its eight-record Journal limit. Independent cases
-    // get independent Hosts instead of increasing that product policy.
-    currentProject = join(cases, entry.name);
-    await cli(['init', currentProject], project);
     const file = `numeric-${entry.name}.sql`;
     await writeFile(join(currentProject, file), entry.sql, {flag: 'wx', mode: 0o600});
     const parameters = entry.parameters ? ['--parameter-declarations-file', 'numeric-declarations.json',
@@ -134,6 +134,7 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
     const state = JSON.parse((await cli(['run', file, '--format', 'sql', '--json', ...parameters], currentProject)).stdout);
     assert.equal(state.version, 'actql-run-state/0.1'); assert.equal(state.status, 'succeeded');
     assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+    assert(!retained.some(value => value.runId === state.run_id), 'Fresh submissions must have distinct original Runs');
     assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
     // Every cli invocation is a separate process. Removing original inputs
     // makes a new prepare or reexecution unable to replace the saved Result.
@@ -143,14 +144,23 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
       await unlink(join(currentProject, 'numeric-parameters.json'));
     }
     assert.deepEqual(rows((await cli(['result', state.run_id, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
+    retained.push({runId: state.run_id, entry});
     observations.push({name: entry.name, checkRunnable: 'yes', rows: entry.rows, coldSavedWithoutProgram: true});
   }
-  const invalid = 'numeric-invalid.sql';
-  await writeFile(join(currentProject, invalid), "SELECT SUM('not a number') AS total", {flag: 'wx'});
-  const refusal = JSON.parse((await cli(['check', invalid, '--format', 'sql', '--json'], currentProject, 1)).stdout);
-  assert.equal(refusal.report.verdict, 'invalid'); assert.equal(refusal.report.runnable.verdict, 'no');
-  await unlink(join(currentProject, invalid));
+  for (const [invalid, sql] of [['numeric-invalid.sql', "SELECT SUM('not a number') AS total"],
+    ['numeric-invalid-syntax.sql', 'SELECT )']]) {
+    await writeFile(join(currentProject, invalid), sql, {flag: 'wx'});
+    const refusal = JSON.parse((await cli(['check', invalid, '--format', 'sql', '--json'], currentProject, 1)).stdout);
+    assert.equal(refusal.report.verdict, 'invalid'); assert.equal(refusal.report.runnable.verdict, 'no');
+    await unlink(join(currentProject, invalid));
+  }
   assert.deepEqual(rows((await cli(['sql', nativeDefaultNumericQueries[0].sql, '--format', 'jsonl'], currentProject)).stdout), [{total: 3}]);
+  // Later successful submissions and rejected checks must not evict the oldest
+  // originals. These are Saved reads, never another run/sql or hidden Host.
+  for (const {runId, entry} of retained) {
+    assert.deepEqual(rows((await cli(['result', runId, '--format', 'jsonl'], currentProject)).stdout), entry.rows);
+    observations.find(value => value.name === entry.name).savedAfterLaterSubmissions = true;
+  }
   return observations;
 }
 
@@ -166,11 +176,14 @@ export async function observeNativeFileSourceNumeric({root, cli}) {
   assert.equal(checked.report.runnable.verdict, 'yes');
   const state = JSON.parse((await cli(['run', 'numeric-source.sql', '--format', 'sql', '--json'], project)).stdout);
   assert.equal(state.status, 'succeeded'); assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+  const resultRows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  assert.deepEqual(resultRows((await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout), [{total: 16, average: 8}]);
   assert.deepEqual(await readFile(source), original, 'The read-only aggregate must not change its file Source');
   await unlink(program); await unlink(source);
-  const rows = (await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout.trim().split('\n').map(line => JSON.parse(line));
+  const rows = resultRows((await cli(['result', state.run_id, '--format', 'jsonl'], project)).stdout);
   assert.deepEqual(rows, [{total: 16, average: 8}]);
-  return {checkRunnable: 'yes', rows, coldSavedWithoutProgramOrSource: true};
+  return {checkRunnable: 'yes', rows, completeResultBeforeInputRemoval: true,
+    coldSavedWithoutProgramOrSource: true};
 }
 
 // Read the actual delivered file, including its last row. A count, preview or

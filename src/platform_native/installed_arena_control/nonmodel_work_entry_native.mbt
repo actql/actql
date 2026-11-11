@@ -603,6 +603,31 @@ pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(
 }
 
 ///|
+/// Publication observes this same claimed entry; execution and constructors
+/// retain their separate business-only gate. This grants no current or entry.
+pub fn InstalledArenaNonModelWorkEntry::matches_publication_scope(
+  self : InstalledArenaNonModelWorkEntry,
+) -> Bool {
+  self.matches_business_scope(false) ||
+  (
+    self.is_original() &&
+    !self.closed &&
+    !self.settled &&
+    !self.growing &&
+    self.claimed &&
+    !self.finished &&
+    self.host.nonmodel_entry_scopes_match(
+      self.pair,
+      self.read,
+      self.execution,
+      false,
+      false,
+    ) &&
+    self.capacity_original_matches()
+  )
+}
+
+///|
 /// Record only completion of this borrower's logical children. It does not
 /// settle capacity, leave a scope or acknowledge a C context. A prepared-body
 /// view drops its heavy original binding here before parent retirement.
