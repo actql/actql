@@ -406,6 +406,9 @@ test "complete original observation keeps compiler order when the second Model o
   let identity = @resources.begin_original_ledger_inventory(
     ledger, bootstrap, 64, 64, 0,
   ).unwrap()
+  // Real byte-only parent capacity, registered BEFORE the original Read
+  // descriptor/child scopes. This is not an attempt or a replacement token.
+  let parent_window = @resources.reserve_capacity(ledger, 13L, 17L).unwrap()
   let scopes = @publication_host.bind_client_model_read_scopes(
     compiled,
     definition,
@@ -498,6 +501,25 @@ test "complete original observation keeps compiler order when the second Model o
   }
   assert_eq(calls[0].val + calls[1].val, 2)
   let ordered = [owners[0].unwrap(), owners[1].unwrap()]
+  // Join the ordinary sequence: both Model inputs already grew on the same
+  // Read, then the original parent window grows before publication uses its
+  // retained descriptor. Its first snapshot remains the original minimum.
+  let before_window = @resources.ledger_usage(ledger)
+  let quantities = @resources.quantity_usage(ledger)
+  @resources.grow_capacity_reservation(ledger, parent_window, 29L, 31L).unwrap()
+  let after_window = @resources.ledger_usage(ledger)
+  assert_eq(
+    after_window.reserved_retention_bytes,
+    before_window.reserved_retention_bytes + 16L,
+  )
+  assert_eq(
+    after_window.reserved_execution_bytes,
+    before_window.reserved_execution_bytes + 14L,
+  )
+  assert_eq(after_window.live_reservations, before_window.live_reservations)
+  assert_eq(after_window.attempts, before_window.attempts)
+  assert_eq(after_window.planning_work, before_window.planning_work)
+  assert_eq(@resources.quantity_usage(ledger), quantities)
   // Actual flat metadata still needs 16*4096 +2*128 +1*256 =66048.
   // Start with fixed bytes, then exercise the same parent growth below.
   let publication = reserve_original_infer_publication_capacity(
@@ -591,6 +613,7 @@ test "complete original observation keeps compiler order when the second Model o
     assert_true(cleanup(ordered[index]).unwrap())
     @publication_host.settle_client_model_read(reads[index], true).unwrap()
   }
+  @resources.settle_capacity(ledger, parent_window).unwrap()
   assert_false(
     @publication_host.finish_client_model_read_scope(
       scopes[0],
