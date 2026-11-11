@@ -137,6 +137,35 @@ pub fn[P] reserve_prepared_run_native_work_capacity(
 }
 
 ///|
+/// Continue the same fixed Native Work's body debit before its next quoted
+/// constructor while original Source/output children coexist. The existing
+/// running-phase latch/current/resize engine is unchanged. No child token,
+/// slot maximum, attempt, holding, grant or cleanup owner is replaced.
+pub fn[P] grow_prepared_run_native_work_capacity(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  retained_peak : Int64,
+  execution_peak : Int64,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  let holder = match prepared_run_native_body(value, prepared, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  (holder.reserve_phase_original)(
+    prepared,
+    retained_peak,
+    execution_peak,
+    NativeWork,
+  ).map_err(issue => {
+    match issue {
+      Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
+      _ => Unavailable
+    }
+  })
+}
+
+///|
 pub fn[P] release_prepared_run_holder(
   value : PreparedRunAdmission[P],
 ) -> Result[Bool, ImportedChildLedgerIssue] {

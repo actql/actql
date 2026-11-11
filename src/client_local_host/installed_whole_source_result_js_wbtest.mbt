@@ -6,6 +6,7 @@ fn whole_source_result_publication_fixture(
   selected_result? : Bool = false,
   filtered_root? : Bool = false,
   filtered_rows? : Bool = false,
+  native_geometry? : Bool = false,
 ) -> Unit raise {
   let declaration = pure_provider_declaration()
   let document = if filtered_rows {
@@ -174,9 +175,90 @@ fn whole_source_result_publication_fixture(
     }
   }
   let owner = begin_request_capture_managed_run(parent, request).unwrap()
-  let (read, original, acquisition, _) = begin_installed_managed_whole_source_read(
-    owner, prepared, request, declaration,
-  ).unwrap()
+  if native_geometry {
+    let before = @resources.ledger_usage(owner.ledger.unwrap())
+    let (physical, rows, entries, evidence_entries) = installed_managed_capture_publication_geometry_original(
+      owner, prepared, request,
+    ).unwrap()
+    assert_true(physical_equal(physical, plan.graph))
+    assert_true(physical_equal(rows, plan.capacity_plan.imports.row))
+    assert_eq(entries, plan.capacity_plan.execution.rows.metadata_entries)
+    assert_eq(
+      evidence_entries,
+      plan.capacity_plan.execution.rows.retained_entries,
+    )
+    assert_eq(@strategy.graph_captured_prefix(physical), 0)
+    assert_eq(@resources.ledger_usage(owner.ledger.unwrap()), before)
+    assert_true(
+      installed_managed_capture_publication_geometry_original(
+        { ..owner, },
+        prepared,
+        request,
+      )
+      is None,
+    )
+    let foreign = @publication_host.prepare_source_free_client_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "foreign-native-geometry",
+    ).unwrap()
+    assert_true(
+      installed_managed_capture_publication_geometry_original(
+        owner, prepared, foreign,
+      )
+      is None,
+    )
+    assert_eq(
+      @row_source_host.row_input_acquisition_target_resource(source.acquisition),
+      "records",
+    )
+    let tasks = @strategy.graph_task_count(physical).to_int64()
+    let ports = @strategy.graph_data_count(physical).to_int64()
+    // Independent fixed task-loop vector; no new Resource or runtime grant.
+    let expected = (16L + 12L * tasks + 2L * ports) * 16L +
+      (32L + 16L * tasks + 4L * ports) * 8L +
+      (8L + 4L * tasks + ports) * 8L
+    let controller = source_input_local_tasks_control_capacity(physical).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(controller),
+      expected,
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(controller),
+      expected,
+    )
+    assert_true(retained_effect_local_tasks_control_capacity(physical) is None)
+  }
+  let (read, original, acquisition, _) = if native_geometry {
+    assert_true(
+      begin_installed_managed_whole_source_read_on_ledger(
+        owner,
+        prepared,
+        request,
+        declaration,
+        source,
+        owner.ledger.unwrap(),
+        4095L,
+        4096L,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(owner.reads[0] is None)
+    begin_installed_managed_whole_source_read_on_ledger(
+      owner,
+      prepared,
+      request,
+      declaration,
+      source,
+      owner.ledger.unwrap(),
+      4096L,
+      4096L,
+    ).unwrap()
+  } else {
+    begin_installed_managed_whole_source_read(
+      owner, prepared, request, declaration,
+    ).unwrap()
+  }
   assert_true(physical_equal(original, source.original))
   assert_true(physical_equal(acquisition, source.acquisition))
   let stopped = Ref(false)
@@ -559,4 +641,9 @@ test "root Source preserves its actual filter and Result while acquiring the com
     selected_result=true,
     filtered_rows=true,
   )
+}
+
+///|
+test "Native Whole bridge borrows its SAME physical Plan geometry and task-loop inventory" {
+  whole_source_result_publication_fixture(false, native_geometry=true)
 }

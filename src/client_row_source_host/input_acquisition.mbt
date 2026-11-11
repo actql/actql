@@ -333,6 +333,16 @@ pub fn row_input_acquisition_target(
 }
 
 ///|
+/// Borrow the original declared resource without copying its column inventory.
+/// This is immutable DATA; the caller still checks the original acquisition and
+/// performs its Account/current observation at the actual read boundary.
+pub fn row_input_acquisition_target_resource(
+  value : RowInputAcquisition,
+) -> String {
+  value.preparation.view.resource
+}
+
+///|
 pub fn row_input_acquisition_facts(
   value : RowInputAcquisition,
 ) -> @planning.QuerySourceEvidenceFacts {

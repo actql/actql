@@ -506,3 +506,50 @@ test "initialized Native Request rejects an already installed Source bootstrap" 
   cleanup_backed_initialization_admission(initial).unwrap()
   assert_eq(ledger_usage(parent), before_parent)
 }
+
+///|
+test "Native publication growth preserves the same body while its original children coexist" {
+  let (access, input, admission, body, ledger, frame, retirement, holder) = backed_prepared_operation_fixture()
+  reserve_prepared_run_native_work_capacity(admission, body, ledger, 6L, 2L).unwrap()
+  let child = reserve_capacity(ledger, 0L, 0L).unwrap()
+  let before = ledger_usage(ledger)
+  let original_current = frame.origin.current
+  let calls = Ref(0)
+  frame.origin.current = nonce => {
+    calls.val += 1
+    original_current(nonce)
+  }
+  grow_prepared_run_native_work_capacity(admission, body, ledger, 6L, 4L).unwrap()
+  assert_eq(calls.val, 1)
+  let after = ledger_usage(ledger)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.reserved_attempts, before.reserved_attempts)
+  assert_eq(after.transferred_bytes, before.transferred_bytes)
+  assert_eq(after.reserved_retention_bytes, 6L)
+  assert_eq(after.reserved_execution_bytes, 4L)
+  assert_true(
+    grow_prepared_run_native_work_capacity(admission, Ref(4), ledger, 6L, 4L)
+    is Err(_),
+  )
+  let foreign = create_ledger(ledger_limits(ledger)).unwrap()
+  assert_true(
+    grow_prepared_run_native_work_capacity(admission, body, foreign, 6L, 4L)
+    is Err(_),
+  )
+  assert_eq(calls.val, 1)
+  assert_eq(ledger_usage(ledger), after)
+  settle_capacity(ledger, child).unwrap()
+  frame.origin.current = original_current
+  assert_false(retire_transferred_preparation(retirement).unwrap())
+  assert_true(
+    grow_prepared_run_native_work_capacity(admission, body, ledger, 6L, 4L)
+    is Err(_),
+  )
+  assert_false(return_preparation_body_borrow(holder).unwrap())
+  release_prepared_run_holder(admission).unwrap() |> ignore
+  assert_true(retire_transferred_preparation(retirement).unwrap())
+  report_imported_child_ledger(frame).unwrap()
+  retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
+  cleanup_prepared_run_admission(admission).unwrap()
+}

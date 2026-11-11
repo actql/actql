@@ -407,6 +407,8 @@ pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Sch
 
 pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])
 
+pub fn row_input_acquisition_target_resource(RowInputAcquisition) -> String
+
 pub fn row_input_capture_identity(RowInputAcquisition) -> Array[String]?
 
 pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?
