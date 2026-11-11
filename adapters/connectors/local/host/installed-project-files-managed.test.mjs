@@ -163,6 +163,11 @@ async function rowFixture({pending = false, empty = true, readFailure, recoveryG
     clientProgramDirectSourceCoordinates(checked) {
       assert.strictEqual(checked, owner); return ok([[0, 0, 0, 0]]);
     },
+    clientProgramInstalledManagedSourceOccurrence(run, checked, intent, task) {
+      assert.strictEqual(run, parent); assert.strictEqual(checked, owner);
+      assert.strictEqual(intent, request); assert.equal(task, occurrence.task);
+      return ok({_0: occurrence.stage, _1: occurrence.input, _2: occurrence.task});
+    },
     clientProgramInstalledManagedSourceInputKind(run, checked, intent) {
       assert.strictEqual(run, parent); assert.strictEqual(checked, owner);
       assert.strictEqual(intent, request); return ok('query');
@@ -405,6 +410,7 @@ test('timed original Local wrapper forwards the same Host invocation constructor
 async function effectSourceFixture({pending = false, changedAfterRead = false} = {}) {
   const owner = {}, request = {}, parent = {}, declaration = {}, read = {};
   const requirement = {}, acquisition = {}, capacity = {}, calls = [];
+  const occurrence = Object.freeze({stage: 0, input: 0, task: 0});
   let valid = true, closeAllowed = !pending;
   const scopeCid = 'sha256:' + 'a'.repeat(64), contextCid = 'sha256:' + 'b'.repeat(64);
   const declared = {views: [{resource: 'files', source_ref: 'local:files',
@@ -427,6 +433,12 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
     clientProgramInstalledSourceReadAttachAcquisition: () => assert.fail('No replacement acquisition'),
     clientProgramEffectDirectSourceCoordinates(checkedOwner) {
       assert.strictEqual(checkedOwner, owner); return ok([[0, 0, 0, 0]]);
+    },
+    clientProgramInstalledEffectManagedSourceOccurrence(run, checkedOwner, intent, task) {
+      assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
+      if (intent !== request) throw new Error('OriginalEffectRequestMismatch');
+      assert.equal(task, occurrence.task);
+      return ok({_0: occurrence.stage, _1: occurrence.input, _2: occurrence.task});
     },
     clientProgramInstalledEffectManagedSourceInputKind(run, checkedOwner, intent, index) {
       assert.strictEqual(run, parent); assert.strictEqual(checkedOwner, owner);
@@ -465,7 +477,7 @@ async function effectSourceFixture({pending = false, changedAfterRead = false} =
       authorize: async () => ({action: 'dispatch'})}),
     prepareManagedRun: () => assert.fail('Already adopted Effect must not issue a Pure Run')});
   const prepare = (intent = request, managedRun = parent) => profile.sources[0].prepare({
-    preparedEffect: owner, requestIdentity: intent, managedRun, occurrence: {stage: 0, input: 0, task: 0}});
+    preparedEffect: owner, requestIdentity: intent, managedRun, occurrence});
   return {profile, calls, prepare, allowClose() {closeAllowed = true;}};
 }
 
