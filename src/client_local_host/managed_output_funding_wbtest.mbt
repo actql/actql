@@ -144,9 +144,19 @@ test "small actual output completes on tight original retention despite large de
   // Two earlier output buffers and the final two-row scratch use 3168 bytes.
   // The existing reference-free finalizer also retains 3528 metadata bytes:
   // twelve growing arrays plus its column/finish/row/receipt controls (width1).
-  // This is a fixed fixture allowance from the original representation tariff,
-  // not a claim about physical heap use or a larger product quota.
-  let actual = 3168L + 3528L
+  // Full-copy occurrence tuples and publication-bridge aliases add the same
+  // bounded 6H/24R/4W control representation before the next row reservation.
+  // Derive its fixture allowance from the unchanged common tariffs. This is
+  // constructor overhead, not declared-row payload or a larger product quota.
+  let original_projection_controls = @execution.preparation_representation_cost({
+      record_headers: 6L,
+      reference_slots: 24L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+  ).unwrap()
+  let actual = 3168L + 3528L + original_projection_controls
   assert_true(
     startup + actual < value.requirements.maximum_limits().retained_bytes,
   )
