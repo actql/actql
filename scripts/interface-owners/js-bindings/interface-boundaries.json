@@ -32380,7 +32380,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e09861c76778a7d6c058cc938a70665d61134cda4af31b04bdb5356e7f152c84",
+      "sha256": "05917cde55285c57d4e3481dda5e461c3f364e00761502d2455e773028d1d2e5",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -33013,6 +33013,11 @@
           "async": true
         },
         {
+          "name": "openAcquiredEffectComputation/retireUnenteredCompute/retireUnenteredCompute",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openAcquiredEffectComputation/wholeInputs/wholeInputs",
           "parameters": [
             "source"
@@ -33195,6 +33200,7 @@
             "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
             "acquiredEffectModelGroup/retirePublication",
             "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+            "openAcquiredEffectComputation/retireUnenteredCompute/retireUnenteredCompute",
             "openAcquiredEffectComputation/wholeInputs/wholeInputs",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
             "openAcquiredEffectComputation/retainPreflightCleanup/retainPreflightCleanup"
@@ -33265,6 +33271,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Captured Compute retirement before entry"
               }
             ],
             "synchronization": [
@@ -33301,6 +33311,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Captured Compute retirement before entry"
               }
             ],
             "cancellation": [
@@ -33319,6 +33333,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Captured Compute retirement before entry"
               }
             ],
             "resources": [
@@ -33337,6 +33355,10 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Captured Compute retirement before entry"
               }
             ],
             "extension": [
@@ -33377,6 +33399,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "test('acquired Model Source rechecks current after evidence preparation before transferring the original'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-before-compute-custody.test.mjs",
+                "anchor": "a pre-Compute binding failure retires the same parent before its first Source close"
               }
             ]
           }

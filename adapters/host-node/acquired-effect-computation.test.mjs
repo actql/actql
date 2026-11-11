@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import './acquired-effect-unknown-primary.test.mjs';
 import './effect-preflight-custody.test.mjs';
+import './acquired-effect-before-compute-custody.test.mjs';
 import './acquired-model-publication.test.mjs';
 import './acquired-direct-publication.test.mjs';
 import {readFileSync} from 'node:fs';
@@ -494,7 +495,9 @@ function acquiredCleanupFixture({dagRetired = true, physicalReady = true, keyedR
     .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openAcquiredEffectComputation');
   const custody = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(item => item.id.name === 'custody'));
-  assert.ok(custody);
+  const beforeEntry = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(item => item.id.name === 'retireUnenteredCompute'));
+  assert.ok(custody && beforeEntry);
   const events = [], checkedHost = {};
   const moon = {clientProgramRefreshAcquiredEffectCleanup(value) {
     assert.strictEqual(value, checkedHost); events.push('dag-retirement'); return dagRetired;
@@ -506,9 +509,11 @@ function acquiredCleanupFixture({dagRetired = true, physicalReady = true, keyedR
   const value = new Function('moon', 'checkedHost', 'execution', 'keyedCleanup', `
     let pending=true,closed=true,settled=true,unresolved=false;
     let recovery,contentFamily,contentFamilyCleanup,contentRecovery,sourceContinuation,modelToken,restoredModelOutput,modelGroup;
-    const restoredModelHostAttempted=false;
+    let restoredModelHostAttempted=false;
+    let hostOpenAttempted=true,computeEntered=true;
     const captures=[]; let originalPreparationRetained=false;
     const cleanupInfer=async()=>true; const observeUsage=()=>{};
+    ${source.slice(beforeEntry.start, beforeEntry.end)}
     ${source.slice(custody.start, custody.end)}
     return custody;
   `)(moon, checkedHost, physical, keyed);
@@ -607,6 +612,8 @@ function persistedModelScratchFixture({retire = true, release = true,
     source.slice(node.start, node.end).includes('(await inferCapture.persist()).plan'));
   const custody = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'custody'));
+  const beforeEntry = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'retireUnenteredCompute'));
   const close = custody.declarations[0].init.arguments[0].properties.find(value => value.key.name === 'close');
   assert.ok(cleanup && persisted && close);
   const events = [], diagnostics = [], plan = {}, content = {live: true};
@@ -644,6 +651,8 @@ function persistedModelScratchFixture({retire = true, release = true,
     const originalPreparation={},component={},restoredModelOutput=${heldOutput ? '{}' : 'undefined'};
     let publicationPlan,modelGroup;
     const faultInjection=async()=>{events.push('capture-committed');};
+    let hostOpenAttempted=true,computeEntered=true,restoredModelHostAttempted=false,unresolved=false;
+    ${source.slice(beforeEntry.start, beforeEntry.end)}
     const helper=Object.freeze({${source.slice(close.start, close.end)}});
     let closed=false;
     const settled=true,contentFamilyCleanup=undefined,contentFamily=undefined,contentRecovery=undefined;
@@ -922,7 +931,9 @@ function restoredHostCallerFixture({hostFailure, waiting = false} = {}) {
   assert.equal(source.slice(cold.test.start, cold.test.end), 'restoredModel');
   const custody = main.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'custody'));
-  assert.ok(cold && custody);
+  const beforeEntry = main.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'retireUnenteredCompute'));
+  assert.ok(cold && custody && beforeEntry);
   const pin = {}, compiled = {}, definition = {}, managedRun = {}, owner = {}, graph = {}, host = {};
   const capture = {}, settlement = {}, events = [];
   let complete = false, started = 0, retired = false, constructorCalls = 0;
@@ -963,9 +974,11 @@ function restoredHostCallerFixture({hostFailure, waiting = false} = {}) {
   const invoke = new Function(...Object.keys(context), `
     const restoredModel=true;
     let restoredModelOutput,restoredModelHostAttempted=false,checkedHost;
+    let hostOpenAttempted=false,computeEntered=false;
     let closed=false,settled=false,unresolved=false,pending=true;
     let recovery,contentFamily,contentFamilyCleanup,contentRecovery,keyedCleanup,sourceContinuation,modelToken,modelGroup;
     let originalPreparationRetained=false;
+    ${source.slice(beforeEntry.start, beforeEntry.end)}
     ${source.slice(custody.start, custody.end)}
     return {custody, async run() {try {${source.slice(cold.start, cold.end)}
       return checkedHost;} finally {settled=true;}}};

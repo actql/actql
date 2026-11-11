@@ -54,6 +54,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   // This output pin is retained on the already-published computation custody
   // before Host construction. Even a throwing/absent Host retains this duty.
   let restoredModelOutput, restoredModelHostAttempted = false;
+  let hostOpenAttempted = false, computeEntered = false;
   const diagnostic = diagnosticObserver(observe);
   const observeUsage = (name, facts = {}) => {
     const usage = ledger === undefined ? checkedHost === undefined ? undefined
@@ -157,9 +158,20 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     return ((inferCapture === undefined && inferOperation === undefined) || inferReleased) &&
       (!includeContinuation || modelContinuation === undefined || modelReleased);
   };
+  const retireUnenteredCompute = () => {
+    if (!hostOpenAttempted || computeEntered) return true;
+    // The original parent owns even a partially constructed DAG. Ask that
+    // owner to stop and retire it before closing Source or prefix backing.
+    if (checked(moon.clientProgramRetireInstalledEffectCapturedConsumers(managedRun)) !== true) return false;
+    hostOpenAttempted = false;
+    restoredModelHostAttempted = false;
+    unresolved = false;
+    return true;
+  };
   const custody = Object.freeze({
     async close() {
       closed = true;
+      if (!retireUnenteredCompute()) return;
       // A physical owner's cleanup, not another Compute call, recovers a
       // failed close. Retain the captured source until consumers are gone.
       let failure, failed = false;
@@ -176,7 +188,9 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     },
     async cleanup() {
       if (!pending) return true;
-      if (!closed || !settled || unresolved && restoredModelOutput === undefined && !modelGroup?.hasOutputPins()) return false;
+      if (!closed || !settled) return false;
+      if (!retireUnenteredCompute()) return false;
+      if (unresolved && restoredModelOutput === undefined && !modelGroup?.hasOutputPins()) return false;
       const physical = execution ?? recovery;
       let physicalRetired = false;
       if (restoredModelOutput !== undefined) {
@@ -646,6 +660,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       current();
       if (decision?.status === 'waiting_checkpoint') return Object.freeze({...decision, cleanupOwner: custody});
       restoredModelHostAttempted = true;
+      hostOpenAttempted = true;
       checkedHost = modelGroup.openRestoredHost(managedRun, owner, captures);
     } else if (restoredModel) {
       const operation = component.startRestored();
@@ -668,11 +683,13 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       if (restoredModelOutput === undefined) throw new Error('RestoredModelOutputUnavailable');
       current();
       restoredModelHostAttempted = true;
+      hostOpenAttempted = true;
       checkedHost = acquired.control.openCheckedClientInstalledRestoredModelEffectHost(
         modelPlan.compiled, modelPlan.runDefinition, managedRun, owner,
         captures.map(value => value.capture.source()), restoredModelOutput,
         (originalModelSelection ?? infer).graph);
     } else {
+      hostOpenAttempted = true;
       checkedHost = checked(keyedFamily === undefined
         ? moon.clientProgramInstalledEffectManagedHostOpen(managedRun, owner, captures.map(value => value.capture.source()))
         : moon.clientProgramInstalledEffectManagedKeyedHostOpen(managedRun,
@@ -708,6 +725,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         throw new Error('PhysicalPauseOwnerMissing');
       });
     current();
+    computeEntered = true;
     execution = await runCapturedEffectComputation(checkedHost,
       {...configurations,
         authorization: multiple ? undefined : singleSourceAccess?.authorization}, signal,

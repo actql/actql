@@ -117,7 +117,9 @@ function cleanupFixture({stopUnknown = false, sitePending = false, handoff = tru
     modelGroup,contentFamilyCleanup,contentFamily,contentRecovery,restoredModelOutput,keyedCleanup,
     originalPreparation,originalPreparationRetained=false,restoredModelHostAttempted=false;
     let checkedHost=setup,unresolved=true,pending=true,settled=false,closed=false;
+    let hostOpenAttempted=true,computeEntered=true;
     const managedRun={},configurations={},multiple=false,singleSourceAccess=undefined,signal=undefined;
+    ${variable(acquired, 'retireUnenteredCompute')}
     ${variable(acquired, 'custody')}
     ${variable(acquired, 'retainPreflightCleanup')}
     return {custody, async start() {try {${acquired.text.slice(assignment.start, assignment.end)}
