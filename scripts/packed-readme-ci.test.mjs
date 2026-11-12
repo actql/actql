@@ -1127,7 +1127,9 @@ test('required Native counter stays case-scoped and nonzero through the original
   assert(command.includes('expectedTests: 1'));
   assert(gateJobs.includes('native')); assert(workflow.jobs.check.needs.includes('native'));
   assert.equal(workflow.jobs.native.env?.ACTQL_NATIVE_TIMINGS, undefined);
-  assert(workflow.jobs.native.steps.every(step => step.env?.ACTQL_NATIVE_TIMINGS === undefined));
+  for (const name of ['native-preparation', 'native-http', 'native-consumers',
+    'native-macos-preparation', 'native-http-macos', 'native-macos-consumers'])
+    assert(workflow.jobs[name].steps.every(step => step.env?.ACTQL_NATIVE_TIMINGS === undefined));
 });
 
 
