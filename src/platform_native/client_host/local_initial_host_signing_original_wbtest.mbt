@@ -238,9 +238,10 @@ test "same-call Host control admission reads each authenticated role packet once
     let before = native_timing_counter_value(1)
     assert_true(before >= 0L)
     let fields = read_local_initial_host_signing_control(host, control).unwrap()
-    // Each of the two authenticated packets reads original epoch custody with
-    // two exact scans and one read. This counts SQL prepares, not HMAC calls.
-    assert_eq(native_timing_counter_value(1) - before, 6L)
+    // Each authenticated packet retains two epoch scans and its exact record
+    // read. The original Database reuses the statement for record reads, so
+    // only the two scans prepare SQL again. This does not count HMAC calls.
+    assert_eq(native_timing_counter_value(1) - before, 4L)
     assert_eq(fields.public_key.cid(), original.public_key.cid())
     assert_eq(fields.exported, original.exported)
   }
@@ -266,9 +267,10 @@ test "same-call Host subject admission retains the third authenticated packet" {
     let (fields, actual_subject) = read_local_initial_host_signing_control_with_subject(
       host, control,
     ).unwrap()
-    // Reviewer, Host and subject each require the same three epoch queries.
+    // Reviewer, Host and subject each prepare two epoch scans while their
+    // exact record reads reuse the original Database statement.
     // Repeating this invocation proves that no result is cached across calls.
-    assert_eq(native_timing_counter_value(1) - before, 9L)
+    assert_eq(native_timing_counter_value(1) - before, 6L)
     assert_eq(actual_subject, Some(subject))
     assert_eq(fields.public_key.cid(), original.public_key.cid())
     assert_eq(fields.exported, original.exported)
