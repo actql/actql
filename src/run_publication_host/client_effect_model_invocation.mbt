@@ -61,7 +61,13 @@ fn issue_model_effect_local_invocation(
     return Err(MissingUnit)
   }
   if !model_effect_imports_match(owner, scope, occurrence, imports) {
-    return Err(if imports is None { IncompleteResultImports } else { ForeignResultImport })
+    return Err(
+      if imports is None {
+        IncompleteResultImports
+      } else {
+        ForeignResultImport
+      },
+    )
   }
   if !@publication.local_model_observation_matches_input(
       model,
@@ -78,14 +84,20 @@ fn issue_model_effect_local_invocation(
     }
   }
   for source in client_infer_call_scope_source_observations(scope) {
-    if imports is Some((original, sources)) && sources.inputs.any(input => {
-      physical_equal(input.observation, source) && model_effect_imported_source(original, input)
-    }) { continue }
+    if imports is Some((original, sources)) &&
+      sources.inputs.any(input => {
+        physical_equal(input.observation, source) &&
+        model_effect_imported_source(original, input)
+      }) {
+      continue
+    }
     if imports is Some((original, sources)) &&
       client_infer_occurrence_coordinates(sources.occurrence) !=
-        client_infer_occurrence_coordinates(occurrence) &&
+      client_infer_occurrence_coordinates(occurrence) &&
       sources.keyed.map(entry => physical_equal(entry.2, source)) == Some(true) &&
-      model_effect_imported_keyed(original, sources) { continue }
+      model_effect_imported_keyed(original, sources) {
+      continue
+    }
     let (evidence, _, _, _) = @publication.model_source_observation_originals(
       source,
     )
@@ -156,18 +168,19 @@ fn model_effect_imports_match(
       observed.captured,
     )
     guard @strategy.captured_effect_result_import_matches(
-        observed.captured,
-        original.inputs,
-        occurrence.stage,
-        producer,
-      ) else {
+      observed.captured,
+      original.inputs,
+      occurrence.stage,
+      producer,
+    ) else {
       return false
     }
   }
   for input in sources.inputs {
     if !scope.named_sources.any(entry => {
         entry.0 == input.name && physical_equal(entry.1, input.observation)
-      }) || !(model_effect_imported_source(original, input) ||
+      }) ||
+      !(model_effect_imported_source(original, input) ||
       model_effect_inline_source(program, occurrence.stage, input.original)) {
       return false
     }

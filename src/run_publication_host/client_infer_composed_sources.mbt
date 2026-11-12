@@ -492,12 +492,15 @@ fn client_infer_composed_source_origin_matches(
 ) -> Bool {
   client_infer_occurrence_matches(original, occurrence.owner) &&
   client_infer_occurrence_matches(occurrence, occurrence.owner) &&
-  (client_infer_occurrence_coordinates(original) ==
+  (
+    client_infer_occurrence_coordinates(original) ==
     client_infer_occurrence_coordinates(occurrence) ||
     client_infer_composed_source_origin(occurrence).map(source => {
       client_infer_occurrence_coordinates(source) ==
       client_infer_occurrence_coordinates(original)
-    }) == Some(true))
+    }) ==
+    Some(true)
+  )
 }
 
 ///|
