@@ -2302,6 +2302,8 @@ pub fn client_program_keyed_lookup_join_start(@client_local_host.ClientKeyedJoin
 
 pub fn client_program_keyed_lookup_join_work(@local.ManagedProviderExecution) -> Result[Int64, @local.ManagedProviderWorkIssue]
 
+pub fn client_program_keyed_lookup_next_planned_row(@run_publication_host.ClientKeyedLookupInput) -> Result[Int, @run_publication_host.ClientKeyedRequestIssue]
+
 pub fn client_program_keyed_lookup_observation_originals(@run_publication_host.ClientKeyedLookupObservation) -> (@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String)?
 
 pub fn client_program_keyed_lookup_observation_wires(@run_publication_host.ClientKeyedLookupObservation) -> (String, String)?

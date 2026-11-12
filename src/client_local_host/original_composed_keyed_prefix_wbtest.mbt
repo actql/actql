@@ -78,6 +78,7 @@ fn original_composed_keyed_consumer(
   captured_source_metadata? : Bool = false,
   identity_wire_nodes? : (Int, Int)? = None,
   declared_activation_record? : Bool = false,
+  installed_capture_plan_finish? : Bool = false,
   declared_raw_page? : Bool = false,
   declared_dependency_closure? : Bool = false,
   borrowed_source_cleanup? : Bool = false,
@@ -1749,10 +1750,16 @@ fn original_composed_keyed_consumer(
       lookup, request,
     ).unwrap()
     let before_metadata = @resources.ledger_usage(ledger)
-    @publication_host.finish_client_keyed_lookup_request_plan(
-      lookup, request_metadata_policy, 1024, 20,
-    ).unwrap()
-    |> ignore
+    if installed_capture_plan_finish {
+      @publication_host.finish_client_keyed_capture_request_plan(
+        lookup, request_metadata_policy, 1024, 20,
+      ).unwrap()
+    } else {
+      @publication_host.finish_client_keyed_lookup_request_plan(
+        lookup, request_metadata_policy, 1024, 20,
+      ).unwrap()
+      |> ignore
+    }
     if request_metadata_policy > 16384 {
       // This fixture has one actual retained Request. A larger accepted wire
       // policy must not reserve that ceiling for its tiny key-set/static body.
@@ -1774,7 +1781,7 @@ fn original_composed_keyed_consumer(
         before_metadata.transferred_bytes,
       )
     }
-    if native_activation {
+    if native_activation && !installed_capture_plan_finish {
       @publication_host.prepare_client_keyed_native_batch_plan(
         lookup, 16384, 1024, 20,
       ).unwrap()
@@ -3825,5 +3832,40 @@ test "original captured keyed left identity selects the existing scan workspace 
     captured_source_metadata=true,
     declared_activation_record=true,
     identity_wire_nodes=Some((1000000, 1000003)),
+  )
+}
+
+///|
+test "installed declared-file capture closes its original batch plan before activation" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    installed_capture_plan_finish=true,
+  )
+}
+
+///|
+test "installed ordinary Source-only plan finish retains its original non-native path" {
+  original_composed_keyed_consumer(
+    pre_dispatch_plan=true,
+    installed_capture_plan_finish=true,
+  )
+}
+
+///|
+test "installed captured batch metadata backs actual keys rather than a larger wire ceiling" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    installed_capture_plan_finish=true,
+    request_metadata_policy=16777216,
   )
 }

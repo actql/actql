@@ -722,9 +722,22 @@ pub fn client_program_keyed_lookup_request_plan_finish(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, @publication_host.ClientKeyedRequestIssue] {
-  @publication_host.finish_client_keyed_lookup_request_plan(
+  @publication_host.finish_client_keyed_capture_request_plan(
     lookup, max_bytes, max_nodes, max_depth,
-  ).map(_ => ())
+  )
+}
+
+///|
+/// Borrow the original row already selected by the SAME frozen schedule.
+/// This projects control DATA only; Source permission still precedes IO.
+#export_name("clientProgramKeyedLookupNextPlannedRow")
+pub fn client_program_keyed_lookup_next_planned_row(
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[Int, @publication_host.ClientKeyedRequestIssue] {
+  match @publication_host.client_keyed_lookup_next_planned_row(lookup) {
+    Some(row) => Ok(row)
+    None => Err(@publication_host.Assembly("unavailable_planned_request"))
+  }
 }
 
 ///|

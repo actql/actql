@@ -7,11 +7,11 @@ import {runtimeTupleFromFields} from '../host-common/compiler-binding.generated.
 // Explicit Core/physical ports exercise the actual installed adapter. They do
 // not supply a nominal Common admission or qualify an installed filesystem Run.
 const ok = value => ({$tag: 1, _0: value});
-async function fixture({failCurrent = false, failReader = false, transport, effect = false, failPlan = false} = {}) {
+async function fixture({failCurrent = false, failReader = false, transport, effect = false, failPlan = false, selectedRows} = {}) {
   const preparedProgram = effect ? undefined : {}, preparedEffect = effect ? {} : undefined;
   const keyedAcquisition = {}, request = {}, declaration = {}, ledger = {}, managedRun = {};
   const duplicate = {}, originalRequests = [request, duplicate], lookup = {};
-  let planned = 0, planReady = false, responseRetained = false;
+  let planned = 0, planReady = false, responseRetained = false, accepted = 0, physicalRequest = request;
   const planFailure = new Error('original-request-plan');
   const original = {}, acquisition = {}, run = {}, capture = {}, calls = [];
   const expectedTransfer = Object.getOwnPropertyDescriptor(transport ?? {}, 'transferBytes')?.value ?? 2048n;
@@ -96,22 +96,27 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
       calls.push('plan-finish'); if (failPlan) throw planFailure;
       planReady = true; return ok(undefined);
     },
+    clientProgramKeyedLookupNextPlannedRow(value) {
+      assert.strictEqual(value, lookup); assert.equal(planReady, true);
+      const row = selectedRows === undefined ? accepted : selectedRows[accepted];
+      assert(Number.isSafeInteger(row)); calls.push(`next-original-row-${row}`); return ok(row);
+    },
     clientProgramKeyedLookupPlannedRequest(value, row) {
       assert.strictEqual(value, lookup); assert.equal(planReady, true);
       calls.push(`borrow-request-${row}`); return ok(originalRequests[row]);
     },
     clientProgramKeyedLookupFind(value, original) {
       assert.strictEqual(value, lookup);
-      return ok(original === duplicate && responseRetained ? 0 : -1);
+      return ok(selectedRows === undefined && original === duplicate && responseRetained ? 0 : -1);
     },
     clientProgramKeyedLookupAcceptCapture(value, selected, original, actual) {
-      assert.strictEqual(value, lookup); assert.strictEqual(original, request);
-      assert.strictEqual(actual, capture); responseRetained = true; return ok(undefined);
+      assert.strictEqual(value, lookup); assert.strictEqual(original, physicalRequest);
+      assert.strictEqual(actual, capture); responseRetained = true; accepted++; return ok(undefined);
     },
     clientProgramKeyedLookupAdvance: () => ok(true),
     clientProgramKeyedLookupReuse(value, original, index) {
       assert.strictEqual(value, lookup); assert.strictEqual(original, duplicate); assert.equal(index, 0);
-      calls.push('reuse-original-response'); return ok(undefined);
+      calls.push('reuse-original-response'); accepted++; return ok(undefined);
     },
     clientProgramKeyedLookupPublicationInput(value) {
       assert.strictEqual(value, lookup); assert.equal(responseRetained, true);
@@ -140,7 +145,10 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     originalKeyedTransport: transport,
     prepareKeyedSourceRead(args) {
       assert.strictEqual(args.checkedOwner, preparedEffect ?? preparedProgram); assert.strictEqual(args.keyedAcquisition, keyedAcquisition);
-      assert.strictEqual(args.request, request); assert.strictEqual(args.declaration, declaration);
+      if (selectedRows === undefined) assert.strictEqual(args.request, request);
+      else assert(originalRequests.includes(args.request));
+      physicalRequest = args.request;
+      assert.strictEqual(args.declaration, declaration);
       calls.push('prepare-original'); return original;
     },
     async closeKeyedSourceRead(value) {
@@ -163,16 +171,16 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
   const publication = {
     initialize(value) {assert.strictEqual(value, lookup); calls.push('plan-start');},
     activate(value, selected) {
-      assert.strictEqual(value, lookup); assert.strictEqual(selected, request);
+      assert.strictEqual(value, lookup); assert.strictEqual(selected, physicalRequest);
       calls.push('journal-activation'); return {activation, record:activationRecord};
     },
     async retainRawResponse(value, selected, attempt, bytes) {
-      assert.strictEqual(value, lookup); assert.strictEqual(selected, request);
+      assert.strictEqual(value, lookup); assert.strictEqual(selected, physicalRequest);
       assert.strictEqual(attempt.activation, activation); assert.strictEqual(attempt.record, activationRecord);
       assert.deepEqual(bytes, new Uint8Array([2,3])); calls.push('raw-store'); return rawOriginal;
     },
     adopt(value, selected, attempt, actualCapture, raw) {
-      assert.strictEqual(value, lookup); assert.strictEqual(selected, request);
+      assert.strictEqual(value, lookup); assert.strictEqual(selected, physicalRequest);
       assert.strictEqual(attempt.activation, activation); assert.strictEqual(actualCapture, capture);
       assert.strictEqual(raw, rawOriginal); calls.push('journal-page');
     },
@@ -268,4 +276,20 @@ test('canonical Effect request metadata failure retains its primary and dispatch
   assert.equal(f.calls.includes('grant'), false);
   assert.equal(f.calls.includes('start'), false);
   assert.equal(f.calls.filter(name => name === 'lookup-cleanup').length, 1);
+});
+
+
+test('canonical Effect lookup borrows the original row selected by Core rather than loop position', async () => {
+  // Explicit scheduling/Core/physical ports exercise only the real adapter's
+  // forwarding. This does not issue a genuine canonical Common schedule.
+  const f = await fixture({effect: true, selectedRows: [1, 0]});
+  const acquired = await f.openLookup();
+  assert.deepEqual(f.calls.filter(name => name.startsWith('borrow-request-')),
+    ['borrow-request-1', 'borrow-request-0']);
+  assert.deepEqual(f.calls.filter(name => name.startsWith('prepare-request-')),
+    ['prepare-request-0', 'prepare-request-1']);
+  assert.equal(f.calls.filter(name => name === 'grant').length, 2);
+  assert.equal(f.calls.filter(name => name === 'journal-activation').length, 2);
+  assert.equal(f.calls.filter(name => name === 'reuse-original-response').length, 0);
+  await acquired.close();
 });

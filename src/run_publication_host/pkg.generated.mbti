@@ -1627,6 +1627,8 @@ pub fn fail_client_keyed_request_io(ClientKeyedRequest) -> Unit
 
 pub fn find_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest) -> Result[Int, ClientKeyedRequestIssue]
 
+pub fn finish_client_keyed_capture_request_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[Unit, ClientKeyedRequestIssue]
+
 pub fn finish_client_keyed_lookup_input(ClientKeyedLookupInput) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
 pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int, retain_body? : Bool, native_completion? : (String, Int64)?) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]

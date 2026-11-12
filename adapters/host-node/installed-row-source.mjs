@@ -2556,7 +2556,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
           signal?.throwIfAborted();
           let request;
           if (publicationInput && phase === 1) {
-            request = checked(moon.clientProgramKeyedLookupPlannedRequest(lookup, row));
+            const originalRow = checked(moon.clientProgramKeyedLookupNextPlannedRow(lookup));
+            request = checked(moon.clientProgramKeyedLookupPlannedRequest(lookup, originalRow));
           } else {
             preparation = checked(moon.clientProgramKeyedLookupRequestStart(lookup, row));
             while (request === undefined) {
