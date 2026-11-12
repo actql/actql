@@ -56,7 +56,8 @@ fn grow_workspace(
   if slot_peak == growth.slot_peak &&
     logical_peak == growth.logical_peak &&
     text_peak == growth.text_peak &&
-    growth.retained_outputs == Some(retained) &&
+    growth.retained_outputs is Some(original_retained) &&
+    original_retained == retained &&
     growth.used <= growth.funded &&
     (growth.reserve_retained is None || retained <= growth.retained_funded) {
     // The same metered output total and workspace peaks already own this exact
