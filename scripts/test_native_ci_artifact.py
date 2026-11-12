@@ -6,6 +6,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('native_ci_artifact', Path(__file__).with_name('native-ci-artifact.py'))
 artifact = importlib.util.module_from_spec(spec)
@@ -13,6 +14,19 @@ spec.loader.exec_module(artifact)
 
 
 class NativeSoftwareTransfer(unittest.TestCase):
+    def test_context_requires_actual_nonempty_hosted_image(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            (repository / 'toolchain.json').write_bytes(b'original toolchain pin')
+            environment = {'GITHUB_SHA': 'a' * 40, 'GITHUB_RUN_ID': '12', 'GITHUB_RUN_ATTEMPT': '2'}
+            with patch.object(artifact.subprocess, 'check_output', side_effect=lambda args, **_: 'a' * 40 + '\n' if args[1] == 'rev-parse' else ''):
+                for image in [None, '', ' ', '\t', ' exact-image', 'exact-image\n']:
+                    candidate = {**environment, **({'ImageVersion': image} if image is not None else {})}
+                    with self.subTest(image=image), self.assertRaisesRegex(ValueError, 'runner image required'):
+                        artifact.context(repository, candidate)
+                selected = artifact.context(repository, {**environment, 'ImageVersion': 'exact-image'})
+                self.assertEqual(selected['image'], 'exact-image')
+
     def fixture(self, directory):
         parent = Path(directory)
         preparation = parent / 'native-scoped-preparation'
