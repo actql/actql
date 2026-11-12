@@ -7869,7 +7869,7 @@
     {
       "module": "adapters/host-common/managed-failure.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1b1f23b9a0b5fea54842627497dbebaf16cb145f62d1aeeb97910d9644296662",
+      "sha256": "5fdd9967d49ae9a390fd60dc6317e2647903679e2ad716df889cf228e0df6a14",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -7900,6 +7900,13 @@
           "parameters": [
             "handle",
             "required"
+          ],
+          "async": false
+        },
+        {
+          "name": "localCleanupContinuation",
+          "parameters": [
+            "operations"
           ],
           "async": false
         },
@@ -8015,7 +8022,24 @@
         {
           "name": "settleFailedManagedOperations/handle/init:retry/init:retry",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry",
+          "parameters": [],
           "async": true
+        },
+        {
+          "name": "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry/init:retry",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "settleFailedManagedOperations/observeAdditionalClosed/observeAdditionalClosed",
@@ -8033,6 +8057,11 @@
           "name": "settleFailedManagedOperations/refresh/refresh",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "settleFailedManagedOperations/retryOnce/retryOnce",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "settleFailedManagedOperations/settle/settle",
@@ -8070,6 +8099,7 @@
             "beginManagedFailureProgress",
             "beginManagedFailureProgress/beginManagedFailureProgress",
             "cleanupState/cleanupState",
+            "localCleanupContinuation",
             "managedProgress/managedProgress",
             "member/member",
             "ownedFailure",
@@ -8086,9 +8116,13 @@
             "settleFailedManagedOperations/closeAdditional/closeAdditional",
             "settleFailedManagedOperations/drive/drive",
             "settleFailedManagedOperations/handle/init:retry/init:retry",
+            "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry",
+            "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry#2",
+            "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry/init:retry",
             "settleFailedManagedOperations/observeAdditionalClosed/observeAdditionalClosed",
             "settleFailedManagedOperations/record/record",
             "settleFailedManagedOperations/refresh/refresh",
+            "settleFailedManagedOperations/retryOnce/retryOnce",
             "settleFailedManagedOperations/settle/settle",
             "settleFailedManagedOperations/status/status",
             "settleFailedManagedOperations/status/status/extra/extra",
