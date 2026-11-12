@@ -276,3 +276,26 @@ test('finite read statement keeps exact row admission and private selected ABI b
     assert(source.includes(`!ACTQL_LOAD(library, ${port}, "sqlite3_${port}")`));
   }
 });
+
+test('closed Reviewer snapshot reuses only its admitted original record without another read-only transaction', () => {
+  const source = readFileSync(new URL('../src/platform_native/client_host/local_reviewer_proof_materials.mbt', import.meta.url), 'utf8');
+  const start = source.indexOf('fn local_reviewer_proof_snapshot(');
+  const entry = source.slice(start, source.indexOf('\n///|', start));
+  const transactions = (active, admitted, same) => active && admitted && same &&
+    entry.includes('return local_reviewer_proof_snapshot_from_admitted_record(') ? 0
+      : [...entry.matchAll(/journal\.transaction\(/gu)].length;
+  assert.equal(transactions(true, true, true), 0,
+    'The existing closed operation must not begin and commit another transaction just to project its admitted record');
+  for (const facts of [[false, true, true], [true, false, true], [true, true, false]])
+    assert.equal(transactions(...facts), 1, 'Cold, invalidated and foreign paths retain their complete owned transaction');
+  assert.match(entry, /journal\.check_transaction_context\(\)/u);
+  const after = entry.slice(entry.indexOf('journal.check_transaction_context()'));
+  for (const condition of ['journal.operation_active', '!journal.fenced', '!journal.transaction_active',
+    '!journal.publication_read_locked', 'journal.operation_record is Some(record)']) assert(after.includes(condition));
+  assert.match(after, /@host\.client_request_identity_relation\(record\.request, request\) ==\n      @host\.SameRequest/u);
+  const project = source.indexOf('fn local_reviewer_proof_snapshot_from_admitted_record(');
+  const body = source.indexOf('  if @host.client_request_identity_relation', project);
+  assert.equal(createHash('sha256').update(source.slice(body, source.indexOf('\n///|', body))).digest('hex'),
+    '9336a0966131f03eb5edf76e766cc825c8e735408983ed055395a79c6aed3f13',
+    'All original Request/definition/checkpoint/kind/Run/status/cancellation/Unknown facts remain exact');
+});

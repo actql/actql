@@ -39,6 +39,28 @@ fn local_reviewer_proof_snapshot(
   expected_run : String,
   expected_checkpoint : String,
 ) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
+  if journal.operation_active && journal.operation_record is Some(_) {
+    match journal.check_transaction_context() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    // Re-select only after the physical fence. An invalidated slot must take
+    // the full read transaction below, never a new unsnapshotted record read.
+    if journal.operation_active &&
+      !journal.fenced &&
+      !journal.transaction_active &&
+      !journal.publication_read_locked &&
+      journal.operation_record is Some(record) &&
+      @host.client_request_identity_relation(record.request, request) ==
+      @host.SameRequest {
+      return local_reviewer_proof_snapshot_from_admitted_record(
+        record, request, expected_run, expected_checkpoint,
+      ).map_err(issue => {
+        journal.invalidate_operation_record()
+        issue
+      })
+    }
+  }
   journal.transaction(() => {
     local_reviewer_proof_snapshot_locked(
       journal, request, expected_run, expected_checkpoint,
@@ -64,6 +86,20 @@ fn local_reviewer_proof_snapshot_locked(
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
   }
+  local_reviewer_proof_snapshot_from_admitted_record(
+    record, request, expected_run, expected_checkpoint,
+  )
+}
+
+///|
+// Pure projection of the same admitted record. Roles/current were observed
+// by the caller; this neither reads SQL nor issues a grant or a commit ACK.
+fn local_reviewer_proof_snapshot_from_admitted_record(
+  record : NativeClientRunRecord,
+  request : @host.ClientRequestIdentity,
+  expected_run : String,
+  expected_checkpoint : String,
+) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
   if @host.client_request_identity_relation(record.request, request) !=
     @host.SameRequest ||
     @publication.publication_contract_identity(record.definition) !=
