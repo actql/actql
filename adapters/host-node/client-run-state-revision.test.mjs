@@ -136,7 +136,7 @@ test('Effect cancellation callers share one actual Journal admission for unchang
   function visit(node) {
     if (node === null || typeof node !== 'object') return;
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
-        ['openEffectTargetReads', 'executeEffectComputation'].includes(node.declarations[0].id.name)) {
+        ['prepareMockModelInputs', 'openEffectTargetReads', 'executeEffectComputation'].includes(node.declarations[0].id.name)) {
       declarations.set(node.declarations[0].id.name, source.slice(node.start, node.end));
     }
     for (const child of Object.values(node)) {
@@ -145,7 +145,7 @@ test('Effect cancellation callers share one actual Journal admission for unchang
     }
   }
   visit(ast);
-  assert.equal(declarations.size, 2);
+  assert.equal(declarations.size, 3);
   const prepared = Object.freeze({}), requestIdentity = Object.freeze({});
   const managed = Object.freeze({value: Object.freeze({})}), plan = Object.freeze({});
   // Journal storage and contract admission are real; execution/compilation
@@ -164,6 +164,7 @@ test('Effect cancellation callers share one actual Journal admission for unchang
       assert.strictEqual(actualRequest, requestIdentity);
       return managed;
     }},
+    mockModels: {prepareAnswersForRuntime() {assert.fail('This cancellation fixture has no physical Mock Model input');}},
     checkpoints: {}, installedEffect: undefined,
     dispatchOwner: {track(actual, options) {
       assert.strictEqual(actual, ref);
@@ -182,7 +183,8 @@ test('Effect cancellation callers share one actual Journal admission for unchang
     effectSubmissions: new WeakMap(), modelController: undefined,
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
-  const execute = compileFunction(`${declarations.get('openEffectTargetReads')}\n` +
+  const execute = compileFunction(`${declarations.get('prepareMockModelInputs')}\n` +
+    `${declarations.get('openEffectTargetReads')}\n` +
     `${declarations.get('executeEffectComputation')}\nreturn executeEffectComputation;`,
   Object.keys(ports))(...Object.values(ports));
   const facts = Object.freeze({ref, prepared, identity: requestIdentity, compilation: {}, preparedExecution: {},

@@ -1147,20 +1147,22 @@ function originalFacadeGraphFixture() {
   assert.deepEqual(selected, {task: 0, step: 2, wire: '{}'});
   const state = {prepared, parent, holder, contentGraph: selected, compilationFamily: 'model', context: {runtime: moon}};
   const producer = {preparation: state, receipt: input};
+  const fileReadDeclarations = Object.freeze([]);
+  const record = {managedSourceProfile: {fileReadDeclarations}};
   const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
   const fail = code => {throw Object.assign(new Error(code), {code});};
-  const manager = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation',
+  const manager = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
     () => {}, value => {assert.strictEqual(value, request); return producer;}, fail, originals,
-    (runtime, result) => {assert.strictEqual(runtime, moon); return result.value;});
+    (runtime, result) => {assert.strictEqual(runtime, moon); return result.value;}, types);
   host = Function('moon', 'sourceManaged', 'computeManaged', 'originals', 'clientOperationError',
     'assertSourceManagedInstallationCurrent', 'assertManagedComputeInstallationCurrent',
-    'originalSourceManagedHostRequest', 'runtimeCore',
+    'originalSourceManagedHostRequest', 'runtimeCore', 'record',
     'return ({' + hostSource.slice(requestGraphHostStart, requestGraphHostEnd).trim().replace(/,$/u, '') + '});')(
     moon, manager, undefined, originals, code => Object.assign(new Error(code), {code}),
     () => {}, () => {}, () => request, runtime => {
       assert.strictEqual(runtime, moon); return {publicationControl: control};
-    });
+    }, record);
   return {invoke: () => host.prepareManagedModelGraph(moon, prepared, occurrence, execution, selected),
     calls, state, modelGraph, control, parent, input, occurrence, selected, execution, admission};
 }
@@ -1495,6 +1497,8 @@ test('Model consumers retain the original funded Request manager when both insta
   visit(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
   assert.equal(methods.size, names.length);
   const moon = {}, prepared = {}, request = {}, originals = {};
+  const fileReadDeclarations = Object.freeze([]);
+  const record = {managedSourceProfile: {fileReadDeclarations}};
   const selected = {}, currentFailure = new Error('original manager is no longer current');
   const implementations = names.map(name => hostSource.slice(methods.get(name).start, methods.get(name).end));
   for (const sourcePresent of [true, false]) {
@@ -1503,8 +1507,9 @@ test('Model consumers retain the original funded Request manager when both insta
     const original = sourcePresent ? source : compute;
     for (const method of ['prepareModelMaterials', 'prepareModelBinding',
       'prepareModelGraph', 'prepareModelCompilation']) {
-      original[method] = (actual, parent) => {
+      original[method] = (actual, parent, ...args) => {
         assert.strictEqual(actual, prepared); assert.strictEqual(parent, request);
+        if (method === 'prepareModelGraph') assert.strictEqual(args.at(-1), fileReadDeclarations);
         calls.push(method); return selected;
       };
       if (sourcePresent) compute[method] = () => assert.fail('Foreign manager cannot borrow this Request');
@@ -1516,12 +1521,12 @@ test('Model consumers retain the original funded Request manager when both insta
     };
     const host = Function('moon', 'sourceManaged', 'computeManaged', 'originals',
       'clientOperationError', 'assertSourceManagedInstallationCurrent',
-      'assertManagedComputeInstallationCurrent', 'originalSourceManagedHostRequest', 'runtimeCore',
+      'assertManagedComputeInstallationCurrent', 'originalSourceManagedHostRequest', 'runtimeCore', 'record',
       'return ({' + implementations.join(',') + '});')(
       moon, sourcePresent ? source : undefined, compute, originals,
       code => Object.assign(new Error(code), {code}), current, current,
       (actual, value) => {assert.strictEqual(actual, originals); assert.strictEqual(value, prepared); return request;},
-      () => ({publicationControl: {}}));
+      () => ({publicationControl: {}}), record);
     for (const name of names) assert.strictEqual(host[name](moon, prepared), selected);
     assert.equal(calls.length, names.length);
     refuseCurrent = true;

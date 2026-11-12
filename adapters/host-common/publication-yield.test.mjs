@@ -5,6 +5,7 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
 import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
+import {checkedLocalManagedAdvance} from '../local-node/managed-advance-diagnostic.mjs';
 
 // Execute the two actual private loops with explicit Common ports. These
 // counters establish scheduling and cleanup, not installed Host acceptance.
@@ -143,8 +144,8 @@ function localLoops({immediate=true,onYield}={}) {
     counts.yields++;
     return setImmediate(() => {onYield?.();callback();});
   } : undefined;
-  const managed = new Function('setTimeout','setImmediate',managedLocalSource +
-    ';return {runManagedExecution,runManagedFinalization};')(timer,turn);
+  const managed = new Function('setTimeout','setImmediate','checkedLocalManagedAdvance',managedLocalSource +
+    ';return {runManagedExecution,runManagedFinalization};')(timer,turn,checkedLocalManagedAdvance);
   const snapshot = new Function('setTimeout','setImmediate',snapshotLocalSource +
     ';return prepareLocalSnapshot;')(timer,turn);
   return {...managed,prepareSnapshot:snapshot,counts};
