@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {prepareNativeResidentHttpComponent,prepareNativeResidentSite,prepareNativeRuntimeBundle,prepareNativeRuntimeBundleLibraries}
   from './native-runtime-bundle-fixture.mjs';
 import {originalDescriptor} from './native-preparation-originals.mjs';
+import {prepareNativeResidentPortableRuntime} from './native-resident-portable-preparation.mjs';
 
 const args=process.argv.slice(2),options={};
 for(let i=0;i<args.length;i+=2) {
@@ -80,6 +81,9 @@ const sharedOpenSSL=process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE??
 const httpReceipt=selection==='bundle'?undefined:
   timedPreparation('http_component',()=>
     prepareNativeResidentHttpComponent(repository,join(destination,'http'),{seconds,tlsArchive:sharedOpenSSL,tlsJobs:httpJobs}));
+const portableReceipt = selection === 'all' ? join(destination, 'portable-runtime.json') : undefined;
+if (portableReceipt !== undefined) timedPreparation('portable_runtime', () =>
+  prepareNativeResidentPortableRuntime(repository, portableReceipt));
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
 writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target,moon_home:moonHome,
@@ -88,5 +92,6 @@ writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target
   {flag:'wx',mode:0o600});
 if(process.env.GITHUB_ENV!==undefined)appendFileSync(process.env.GITHUB_ENV,
   'ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION='+destination+'\n'+
+  (portableReceipt===undefined?'':'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION='+portableReceipt+'\n')+
   (httpReceipt===undefined?'':'ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT='+httpReceipt+'\n'));
 console.log(JSON.stringify({source,target,preparation:destination,entries:Object.keys(entries)}));
