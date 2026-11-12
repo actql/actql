@@ -168,3 +168,13 @@ or reentrant cleanup keeps the pending preparation and prevents later issuance.
 After consumers stop, cleanup cancels the original bridges/exports, returns the
 Unit pins and severs the resolved Promise/cache aliases. These local returns do
 not acknowledge physical stop, Store cleanup or publication.
+
+
+Preconsumer Source Artifact construction receives the publication definition
+holder retained by the original Model Plan and resolves its existing token.
+A Journal wire read may admit a contract with the same CID, but that separately
+constructed value does not replace the Plan's bound original. Journal start and
+currentness checks keep their existing admissions; the Artifact caller does not
+reissue a definition or weaken the Core original-equality guard. Its own typed
+Artifact Result supplies a bounded diagnostic at the Artifact boundary, distinct
+from the earlier export Result and without traversing private error payloads.

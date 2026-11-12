@@ -4846,14 +4846,35 @@ function publicationControl(moon) {
         retained.exports.push(exported); current();
         const receipt = checked(moon.clientProgramEffectModelUnitExportReceipt(exported));
         retained.receipts.push(receipt); current();
-        const issued = owned.kind === 'combined_source'
-          ? checked(moon.clientProgramPrepareInstalledEffectModelSourceUnitArtifact(
+        // The Plan retained this original public holder/token. A separate
+        // Journal wire admission has the same CID but is not that original.
+        const artifactResult = owned.kind === 'combined_source'
+          ? moon.clientProgramPrepareInstalledEffectModelSourceUnitArtifact(
             managedRun, plan, request, retained.pins, exported, owned.issued, receipt,
-            admissionToken(admission), definition, limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
-          : checked(moon.clientProgramPrepareInstalledEffectModelUnitArtifact(
+            admissionToken(admission), token(definition), limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+          : moon.clientProgramPrepareInstalledEffectModelUnitArtifact(
             managedRun, plan, request, prepared,
             owned.original, retained.pins, exported, receipt, admissionToken(admission),
-            limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
+        let issued;
+        try {issued = checked(artifactResult);}
+        catch (cause) {
+          try {
+            const kind = moon.clientProgramEffectModelUnitResultArtifactIssueKind?.(artifactResult);
+            const coordinates = consumerOccurrence === undefined ? undefined
+              : moon.clientProgramInferOccurrenceCoordinates(consumerOccurrence);
+            const task = runtimeField(coordinates, 0), unit = runtimeField(coordinates, 1),
+              step = runtimeField(coordinates, 2);
+            if (typeof kind === 'string' && [task, unit, step].every(value =>
+                Number.isSafeInteger(value) && value >= 0 && value <= 2147483647)) {
+              Object.defineProperty(cause, 'primaryDiagnostic', {
+                value: Object.freeze({code: 'MoonBitHostFailure',
+                  phase: 'original_effect_source_unit_artifact', kind, task, unit, step}),
+              });
+            }
+          } catch { /* Optional DATA cannot replace the original artifact failure. */ }
+          throw cause;
+        }
         const artifact = inspectLocalEffectArtifact(issued);
         const name = moon.clientProgramEffectModelUnitResultName(retained.pins, index);
         if (typeof name !== 'string') throw new TypeError('OriginalEffectUnitResultUnavailable');

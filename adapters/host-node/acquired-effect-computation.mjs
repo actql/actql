@@ -1332,7 +1332,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
                   earlyIdentityExecution += entry.results.identityExecutionBytes;
                 }
                 await acquired.control.prepareOriginalEffectSourceUnitResults(managedRun, sourcePlan, acquired.requestIdentity,
-                  moon.clientProgramLocalEffectHostRun(host), entry.value, acquired.admission, acquired.definition,
+                  moon.clientProgramLocalEffectHostRun(host), entry.value, acquired.admission, plan.runDefinition,
                   localContractLimits, entry.results, publicationCurrent, acquired.prepared, child.selection.occurrence, physicalSource, signal, publicationRetained);
               } catch (cause) {
                 entry.resultFailed = true; entry.resultFailure = cause; throw cause;
