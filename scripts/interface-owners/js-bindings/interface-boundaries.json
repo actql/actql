@@ -32912,7 +32912,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7a015d0b8f1c136fe00aff6c989792537e745338adaf489e0503ef50131aa07c",
+      "sha256": "4b359a02cb270bc6602313be7224ab67c3b3a1ca8228eccc2be95bfd461d2366",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -33290,7 +33290,15 @@
         {
           "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding",
           "parameters": [
-            "bundle"
+            "bundle",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding/failure/failure",
+          "parameters": [
+            "code"
           ],
           "async": false
         },
@@ -33942,6 +33950,7 @@
             "acquiredEffectModelGroup/persistPublication/persistPublication",
             "acquiredEffectModelGroup/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding",
+            "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding/failure/failure",
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
@@ -65991,7 +66000,7 @@
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5efba938b780198303fa50aaeb7e8f1d8ae735a773dda858dc61f3ed8118c38b",
+      "sha256": "2ba13b945d11cd266665916376f35539d7e2c9ffb137fda686ef846f6a7a79b9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -66059,7 +66068,8 @@
             "retainCopy",
             "partial",
             "copyFunding",
-            "current"
+            "current",
+            "programDefinitionCid"
           ],
           "async": true
         },
@@ -67939,6 +67949,7 @@
             "openNodeInferOperation/operation/operation#48",
             "openNodeInferOperation/operation/operation#49",
             "openNodeInferOperation/operation/operation#5",
+            "openNodeInferOperation/operation/operation#50",
             "openNodeInferOperation/operation/operation#6",
             "openNodeInferOperation/operation/operation#7",
             "openNodeInferOperation/operation/operation#8",
@@ -70315,7 +70326,6 @@
         {
           "name": "openNodeInferOperation/operation/operation#18",
           "parameters": [
-            "prepared",
             "slot"
           ],
           "async": false
@@ -70323,9 +70333,8 @@
         {
           "name": "openNodeInferOperation/operation/operation#19",
           "parameters": [
-            "control",
-            "compiled",
-            "runDefinition"
+            "prepared",
+            "slot"
           ],
           "async": false
         },
@@ -70337,6 +70346,15 @@
         {
           "name": "openNodeInferOperation/operation/operation#20",
           "parameters": [
+            "control",
+            "compiled",
+            "runDefinition"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#21",
+          "parameters": [
             "read",
             "retainedBytes",
             "executionBytes"
@@ -70344,40 +70362,40 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#21",
+          "name": "openNodeInferOperation/operation/operation#22",
           "parameters": [
             "decoder"
           ],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#22",
+          "name": "openNodeInferOperation/operation/operation#23",
           "parameters": [
             "document"
           ],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#23",
+          "name": "openNodeInferOperation/operation/operation#24",
           "parameters": [
             "comparison"
           ],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#24",
+          "name": "openNodeInferOperation/operation/operation#25",
           "parameters": [
             "matched"
           ],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#25",
+          "name": "openNodeInferOperation/operation/operation#26",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#26",
+          "name": "openNodeInferOperation/operation/operation#27",
           "parameters": [
             "control",
             "compiled",
@@ -70387,21 +70405,13 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#27",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "openNodeInferOperation/operation/operation#28",
           "parameters": [],
           "async": false
         },
         {
           "name": "openNodeInferOperation/operation/operation#29",
-          "parameters": [
-            "preparedCallSet",
-            "binding"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -70412,17 +70422,15 @@
         {
           "name": "openNodeInferOperation/operation/operation#30",
           "parameters": [
-            "preparedCallSet"
+            "preparedCallSet",
+            "binding"
           ],
           "async": false
         },
         {
           "name": "openNodeInferOperation/operation/operation#31",
           "parameters": [
-            "control",
-            "plan",
-            "preparedCallSet",
-            "originals"
+            "preparedCallSet"
           ],
           "async": false
         },
@@ -70432,21 +70440,12 @@
             "control",
             "plan",
             "preparedCallSet",
-            "scope",
-            "observation"
+            "originals"
           ],
           "async": false
         },
         {
           "name": "openNodeInferOperation/operation/operation#33",
-          "parameters": [
-            "entry",
-            "preparedCallSet"
-          ],
-          "async": false
-        },
-        {
-          "name": "openNodeInferOperation/operation/operation#34",
           "parameters": [
             "control",
             "plan",
@@ -70457,10 +70456,21 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/operation#34",
+          "parameters": [
+            "entry",
+            "preparedCallSet"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/operation#35",
           "parameters": [
+            "control",
+            "plan",
             "preparedCallSet",
-            "observe"
+            "scope",
+            "observation"
           ],
           "async": false
         },
@@ -70468,11 +70478,7 @@
           "name": "openNodeInferOperation/operation/operation#36",
           "parameters": [
             "preparedCallSet",
-            "slot",
-            "record",
-            "proof",
-            "bundle",
-            "attachmentAdmission"
+            "observe"
           ],
           "async": false
         },
@@ -70481,8 +70487,10 @@
           "parameters": [
             "preparedCallSet",
             "slot",
-            "attempt",
-            "authority"
+            "record",
+            "proof",
+            "bundle",
+            "attachmentAdmission"
           ],
           "async": false
         },
@@ -70499,8 +70507,10 @@
         {
           "name": "openNodeInferOperation/operation/operation#39",
           "parameters": [
-            "token",
-            "response"
+            "preparedCallSet",
+            "slot",
+            "attempt",
+            "authority"
           ],
           "async": false
         },
@@ -70512,7 +70522,8 @@
         {
           "name": "openNodeInferOperation/operation/operation#40",
           "parameters": [
-            "settlement"
+            "token",
+            "response"
           ],
           "async": false
         },
@@ -70526,7 +70537,7 @@
         {
           "name": "openNodeInferOperation/operation/operation#42",
           "parameters": [
-            "slot"
+            "settlement"
           ],
           "async": false
         },
@@ -70547,6 +70558,13 @@
         {
           "name": "openNodeInferOperation/operation/operation#45",
           "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#46",
+          "parameters": [
             "control",
             "compiled",
             "runDefinition",
@@ -70557,12 +70575,12 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#46",
+          "name": "openNodeInferOperation/operation/operation#47",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#47",
+          "name": "openNodeInferOperation/operation/operation#48",
           "parameters": [
             "ledger",
             "maxSlots",
@@ -70573,7 +70591,7 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#48",
+          "name": "openNodeInferOperation/operation/operation#49",
           "parameters": [
             "control",
             "compiled",
@@ -70583,18 +70601,18 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation#49",
+          "name": "openNodeInferOperation/operation/operation#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation#50",
           "parameters": [
             "binding",
             "result",
             "consume",
             "resultSignal"
           ],
-          "async": false
-        },
-        {
-          "name": "openNodeInferOperation/operation/operation#5",
-          "parameters": [],
           "async": false
         },
         {
@@ -70814,7 +70832,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ed3903a8eb7c8635856b7cfe582b08a38e6a36ec61db0da6ee88c37b9632aaa1"
+      "sha256": "505743f5ca43cd088c2b1c63b2185df3f928d9aba1cf4101756c2c1e55d37b46"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",

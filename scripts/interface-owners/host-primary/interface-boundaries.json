@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "7a015d0b8f1c136fe00aff6c989792537e745338adaf489e0503ef50131aa07c",
+      "sha256": "4b359a02cb270bc6602313be7224ab67c3b3a1ca8228eccc2be95bfd461d2366",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -384,7 +384,15 @@
         {
           "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding",
           "parameters": [
-            "bundle"
+            "bundle",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding/failure/failure",
+          "parameters": [
+            "code"
           ],
           "async": false
         },
@@ -1039,6 +1047,7 @@
             "acquiredEffectModelGroup/persistPublication/persistPublication",
             "acquiredEffectModelGroup/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding",
+            "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding/failure/failure",
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
