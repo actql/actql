@@ -87,7 +87,7 @@ test('managed advance retains exact value capture work cause step limit receiver
   const result={},cleanupHandle={},primary=Object.assign(new Error('original'),{code:'MoonBitHostFailure',cleanupHandle});
   let projects=0,checks=0;
   const moon={strategyModule_local_ManagedAdvanceControlWorkLimit(){return undefined;},
-    strategyModule_local_ManagedAdvanceCaptureWork(value){assert.strictEqual(this,moon);assert.strictEqual(value,result);projects++;return [41,100000];}};
+    strategyModule_local_ManagedAdvanceCaptureWork(value){assert.strictEqual(this,moon);assert.strictEqual(value,result);projects++;return Object.assign(Object.create({$tag:1}),{_0:[41,100000]});}};
   assert.throws(()=>checkedLocalManagedAdvance(moon,result,value=>{checks++;assert.strictEqual(value,result);throw primary;},41),error=>error===primary);
   assert.equal(checks,1);assert.equal(projects,1);assert.strictEqual(primary.cleanupHandle,cleanupHandle);
   assert.deepEqual(primary.primaryDiagnostic,{code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000});
@@ -99,13 +99,56 @@ test('managed advance retains exact value capture work cause step limit receiver
 test('managed advance capture diagnostic refuses generic malformed and foreign vectors without replacing original failure', () => {
   for(const capture of [undefined,null,[],[41],[41,100000,0],[-1,100000],[41,-1],[41,NaN],[41,'100000'],[2147483648,100000]]){
     const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
-    assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return capture;}},{},()=>{throw original;},41),error=>error===original);
+    assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return Object.assign(Object.create({$tag:1}),{_0:capture});}},{},()=>{throw original;},41),error=>error===original);
     assert.equal(original.primaryDiagnostic,undefined);
   }
   const accessor=Object.defineProperty([41,100000],'0',{get(){assert.fail('do not invoke capture vector accessors');}});
   const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
-  assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return accessor;}},{},()=>{throw original;},41),error=>error===original);
+  assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return Object.assign(Object.create({$tag:1}),{_0:accessor});}},{},()=>{throw original;},41),error=>error===original);
   assert.equal(original.primaryDiagnostic,undefined);
   const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000};
   for(const changed of [{...data,workLimit:-1},{...data,step:-1},{...data,unit:0},{...data,controlWorkLimit:100000}])assert.equal(snapshot(Object.assign(new Error('original'),{primaryDiagnostic:changed})).primaryDiagnostic,undefined);
+});
+
+
+test('capture work getter uses the actual pinned boxed Option and refuses an unboxed replacement', () => {
+  // Exact boxed Some/None layout is witnessed at the original 7d1 export;
+  // these are compiler DATA fixtures, not issued request or resource values.
+  const boxed=Object.assign(Object.create({$tag:1}),{_0:[41,100000]});
+  for(const [returned,expected]of [[boxed,true],[Object.create({$tag:0}),false],[[41,100000],false]]){
+    const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
+    let calls=0;const moon={strategyModule_local_ManagedAdvanceCaptureWork(result){assert.strictEqual(this,moon);assert.strictEqual(result,boxed);calls++;return returned;}};
+    assert.throws(()=>checkedLocalManagedAdvance(moon,boxed,()=>{throw original;},41),error=>error===original);
+    assert.equal(calls,1);
+    if(expected)assert.deepEqual(original.primaryDiagnostic,{code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000});
+    else assert.equal(original.primaryDiagnostic,undefined);
+  }
+});
+
+
+test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only', () => {
+  const source=readFileSync(new URL('../host-common/managed-failure.mjs',import.meta.url),'utf8');
+  const body=parse(source,{ecmaVersion:'latest',sourceType:'module'}).body;
+  const memberNode=body.flatMap(value=>value.type==='VariableDeclaration'?value.declarations:[]).find(value=>value.id.name==='member');
+  const factory=body.find(value=>value.type==='FunctionDeclaration'&&value.id.name==='ownedFailure');
+  const member=Function('return ('+source.slice(memberNode.init.start,memberNode.init.end)+');')();
+  const owned=Function('member','return ('+source.slice(factory.start,factory.end)+');')(member);
+  const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'}),result={};
+  assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return Object.assign(Object.create({$tag:1}),{_0:[41,100000]});}},result,()=>{throw original;},41),error=>error===original);
+  const wrapper=owned(original,'ManagedExecutionFailed'),cleanupHandle={original:'same-cleanup'};
+  wrapper.cleanupHandle=cleanupHandle;
+  assert.notStrictEqual(wrapper,original);assert.strictEqual(wrapper.primaryFailure,original);assert.strictEqual(wrapper.cause,original);
+  assert.deepEqual(snapshot(wrapper).primaryDiagnostic,original.primaryDiagnostic);
+  assert.strictEqual(wrapper.cleanupHandle,cleanupHandle);assert.equal(wrapper.code,original.code);assert.deepEqual(wrapper.cleanupErrors,[]);
+});
+
+test('managed failure diagnostic wrapper lookup never traverses getters cause chains or recursive primary slots', () => {
+  const data=Object.freeze({code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000});
+  const original=Object.defineProperty(new Error('original'),'primaryDiagnostic',{value:data});
+  const self={};self.primaryFailure=self;
+  for(const value of [self,{cause:original},{primaryFailure:{primaryFailure:original}},
+    Object.defineProperty({},'primaryFailure',{get(){assert.fail('no primary getter');}}),
+    {primaryFailure:Object.defineProperty({},'primaryDiagnostic',{get(){assert.fail('no diagnostic getter');}})},
+    Object.defineProperty({primaryFailure:original},'primaryDiagnostic',{get(){assert.fail('no outer getter or fallback');}})])assert.equal(snapshot(value).primaryDiagnostic,undefined);
+  assert.equal(snapshot({primaryFailure:undefined}).primaryDiagnostic,undefined);
 });

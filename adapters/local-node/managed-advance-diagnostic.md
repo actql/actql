@@ -21,12 +21,21 @@ completions, missing getters and unclassified causes produce no diagnosis.
 The separate Capture getter accepts only the SAME failed advance's
 `Configuration(Execution(Capture(step, CaptureWorkLimit(limit))))` and returns
 the fixed `[step, limit]` DATA vector. It does not classify `CaptureLimit`.
+The actual pinned Node export returns that vector inside boxed `Some`;
+`runtimeIsBoxedSome` and `runtimeField` from the existing generated compiler
+binding read it. A raw array is not an alternative ABI or fallback. The
+control-work `Int?` projection retains its separate original unboxed layout.
 
 ## Identity
 
 The original Result, namespace receiver, checked exception and Task ordinal
 stay unchanged. The existing dispatch owner binds the fixed DATA to its SAME
 original Run reference. No request, tag, CID or authority is issued here.
+An existing cleanup wrapper can retain the original exception in its own
+`primaryFailure` DATA slot. When the wrapper has no own `primaryDiagnostic`,
+the existing dispatch snapshot reads that one original slot's own diagnostic
+and applies the same closed-field validation. It does not walk `cause`, deeper
+wrappers or getters, and never unwraps execution or cleanup ownership.
 
 ## Ownership
 

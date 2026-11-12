@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {checkWorkersArtifact, conformanceModules, hostModules,
   finiteConformanceModules, finiteRuntimeModules} from './artifact.mjs';
 import {build} from 'esbuild';
+import {parse as parseJavaScript} from 'acorn';
 import {mkdtempSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -342,15 +343,25 @@ test('shared Ledger review keeps Node paths siblings and hidden dependencies rej
   }
 });
 
-test('managed advance diagnostic has one exact import-free pure Workers classification', async () => {
+test('managed advance diagnostic has one exact reviewed pure Workers closure', async () => {
   const root = new URL('../../', import.meta.url);
   const module = 'adapters/local-node/managed-advance-diagnostic.mjs';
+  const binding = 'adapters/host-common/compiler-binding.generated.mjs';
   const source = readFileSync(new URL(module, root), 'utf8');
-  checkPureRuntime(source);
+  const imports = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .filter(node => node.type === 'ImportDeclaration');
+  assert.equal(imports.length, 1);
+  assert.equal(imports[0].source.value, '../host-common/compiler-binding.generated.mjs');
+  assert.deepEqual(imports[0].specifiers.map(node => [node.imported.name, node.local.name]),
+    [['runtimeIsBoxedSome', 'runtimeIsBoxedSome'], ['runtimeField', 'runtimeField']]);
+  checkPureRuntime(source.slice(0, imports[0].start) + source.slice(imports[0].end));
+  checkPureRuntime(readFileSync(new URL(binding, root), 'utf8'));
   const result = await build({absWorkingDir: fileURLToPath(root), entryPoints: [module],
     bundle: true, platform: 'browser', format: 'esm', metafile: true, write: false});
-  assert.deepEqual(Object.keys(result.metafile.inputs), [module]);
-  assert.deepEqual(result.metafile.inputs[module].imports, []);
+  assert.deepEqual(Object.keys(result.metafile.inputs).sort(), [module, binding].sort());
+  assert.deepEqual(result.metafile.inputs[module].imports.map(value => [value.path, value.kind]),
+    [[binding, 'import-statement']]);
+  assert.deepEqual(result.metafile.inputs[binding].imports, []);
   checkPureRuntime(result.outputFiles[0].text);
   for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
     assert.equal(modules.filter(path => path === module).length, 1);

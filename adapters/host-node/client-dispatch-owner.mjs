@@ -16,8 +16,9 @@ import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 
 // Diagnostics must not become a second owner of execution/cleanup capabilities.
-// Read only inert own data; accessors and arbitrary thrown objects are not
-// invoked, traversed or retained by the returned diagnostic receipt.
+// Read only inert own data, including one existing primaryFailure diagnostic
+// slot. Accessors and error/cause chains are not invoked or traversed, and the
+// returned receipt retains no thrown object or cleanup capability.
 const dispatchFailureFields = Object.freeze(['primaryFailure', 'closeFailure',
   'cleanupFailure', 'finishFailure', 'releaseFailure', 'preparationRetirementFailure']);
 function dispatchFailureSnapshot(error) {
@@ -31,7 +32,13 @@ function dispatchFailureSnapshot(error) {
   };
   let primaryDiagnostic;
   try {
-    const field = Object.getOwnPropertyDescriptor(error, 'primaryDiagnostic');
+    let field = Object.getOwnPropertyDescriptor(error, 'primaryDiagnostic');
+    if (field === undefined) {
+      const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+      if (primary !== undefined && Object.hasOwn(primary, 'value') && primary.value !== error) {
+        field = Object.getOwnPropertyDescriptor(primary.value, 'primaryDiagnostic');
+      }
+    }
     if (field !== undefined && Object.hasOwn(field, 'value')) {
       const data = {};
       let validOrdinals = true;

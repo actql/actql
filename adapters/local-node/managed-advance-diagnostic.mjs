@@ -1,5 +1,7 @@
 // Optional DATA on the SAME failed advance; never a new error, execution or
 // cleanup owner. Only the original Core getter can select the closed reason.
+import {runtimeIsBoxedSome, runtimeField} from '../host-common/compiler-binding.generated.mjs';
+
 export function checkedLocalManagedAdvance(moon, result, checked, task) {
   try {return checked(result);}
   catch (error) {
@@ -18,7 +20,8 @@ export function checkedLocalManagedAdvance(moon, result, checked, task) {
           Object.getOwnPropertyDescriptor(error, 'code')?.value === 'MoonBitHostFailure') {
         const projectCapture = moon.strategyModule_local_ManagedAdvanceCaptureWork;
         if (typeof projectCapture === 'function') {
-          const capture = Reflect.apply(projectCapture, moon, [result]);
+          const captureOption = Reflect.apply(projectCapture, moon, [result]);
+          const capture = runtimeIsBoxedSome(captureOption) ? runtimeField(captureOption, 0) : undefined;
           if (Array.isArray(capture) && capture.length === 2) {
             const step = Object.getOwnPropertyDescriptor(capture, '0')?.value;
             const workLimit = Object.getOwnPropertyDescriptor(capture, '1')?.value;

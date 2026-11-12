@@ -78,8 +78,9 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // issues no Resource or permission, and performs no physical operation.
 // The canonical Ledger field vectors are an import-free frozen Core projection.
 // Reviewing this exact shared leaf admits no Node adapter, I/O or resource issuer.
-// Managed advance diagnostics are import-free: the supplied checked/Core callbacks
-// retain the original failure and optionally project inert bounded diagnostic DATA.
+// Managed advance diagnostics import only the reviewed compiler binding to read
+// the actual boxed Option. Supplied checked/Core callbacks retain the original
+// failure and optionally project inert bounded diagnostic DATA.
 // This exact leaf adds no Node builtin, environment probe, I/O or authority.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',

@@ -88547,7 +88547,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "91eca339bc5dfdaebaae93af2f92c7577bc8b053329ff3271689b404598b03f8",
+      "sha256": "12ad9e4b15253534969ea7c89c81393e0f44934f5a4ecd273ac688a9bc9f36f3",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -88563,7 +88563,9 @@
           "async": false
         }
       ],
-      "imports": [],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "observation-presentation",
@@ -88654,6 +88656,14 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('capture work getter uses the actual pinned boxed Option and refuses an unboxed replacement'"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
               }
             ]
           }

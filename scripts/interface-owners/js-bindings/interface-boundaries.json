@@ -37926,6 +37926,14 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('capture work getter uses the actual pinned boxed Option and refuses an unboxed replacement'"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
               }
             ]
           }
@@ -39410,7 +39418,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "96f44d6236edc96561e71cf4bb4d7b87025bcf6f30d10222b673f069ea335f70",
+      "sha256": "6849c80e91b020e409882586d13c1978b0d154b7adfa42f0701f24db3b70fdff",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
