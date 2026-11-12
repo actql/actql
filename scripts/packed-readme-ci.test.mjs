@@ -733,17 +733,33 @@ test('collection full stream drains all 100k original rows and refuses truncatio
 
 test('collection operation intervals retain actual monotonic and own-child CPU bounds on success and failure', async () => {
   const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
-  const declaration = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .filter(value => value.type === 'VariableDeclaration').flatMap(value => value.declarations)
-    .find(value => value.id.name === 'span'); assert(declaration);
-  const report = {phases: []};
-  const span = Function('report', 'process', `return (${source.slice(declaration.init.start, declaration.init.end)});`)(report, process);
+  const declarations = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .filter(value => value.type === 'VariableDeclaration').flatMap(value => value.declarations);
+  const load = (name, ports) => {
+    const declaration = declarations.find(value => value.id.name === name); assert(declaration);
+    return Function(...Object.keys(ports), `return (${source.slice(declaration.init.start, declaration.init.end)});`)
+      (...Object.values(ports));
+  };
+  const report = {pid: process.pid, complete: false, firstClose: 'unobserved', phases: []}, records = [];
+  const progress = load('progress', {report, process, started: process.hrtime.bigint(), phase: 'capture',
+    async save(path, value) {records.push({path, value: structuredClone(value)});}});
+  const span = load('span', {report, process, progress});
   const primary = new Error('OriginalPublicOperationFailed');
   let called = 0;
   assert.equal(await span('original-all', async () => {called++; return 100000;}), 100000);
   await assert.rejects(span('original-Saved', async () => {called++; throw primary;}), error => error === primary);
   assert.equal(called, 2); assert.equal(report.firstFailedStep, 'original-Saved');
   assert.equal(report.phases.length, 2);
+  assert.deepEqual(records.map(({path, value}) => [path, value.event, value.step]), [
+    ['capture.progress.json', 'start', 'original-all'], ['capture.progress.json', 'end', 'original-all'],
+    ['capture.progress.json', 'start', 'original-Saved'], ['capture.progress.json', 'end', 'original-Saved'],
+  ]);
+  assert.equal(records[0].value.phases[0].endedAt, undefined);
+  assert.equal(records[1].value.phases[0].complete, true);
+  assert.equal(records[2].value.phases[1].endedAt, undefined);
+  assert.equal(records[3].value.phases[1].complete, false);
+  assert(records.every(({value}) => value.complete === false && value.firstClose === 'unobserved'));
+  assert.equal(report.diagnosticErrors, undefined);
   for (const timing of report.phases) {
     assert(timing.wallNs > 0 && Number.isSafeInteger(timing.wallNs));
     assert(Number.isSafeInteger(timing.cpuUserUs) && timing.cpuUserUs >= 0);
