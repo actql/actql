@@ -47,6 +47,13 @@ test('HTTP remains independent while all other consumers retain the same physica
     const site = workload.steps.findIndex(step => step.id === 'native-runtime-test');
     const join = workload.steps.findIndex(step => step.id === 'native-background');
     assert(preparation < start && start < effect && effect < site && site < join);
+    if (family === 'native') {
+      const retained = workload.steps.findIndex(step => step.name === 'Verify registered Native retained product path');
+      assert(retained > join, 'The long retained compiler cannot hold the global Moon lock during npm prepack');
+      assert.equal(workload.steps[retained].if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+      assert(!background[family].flatMap(group => group.steps).some(step =>
+        step.name === 'Verify registered Native retained product path'));
+    }
     assert.equal(workload.steps[start].if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
     assert(workload.steps[join].if.includes("steps.native-background-start.outcome == 'success'"));
     assert(workload.steps[join].run.includes('steps.native-background-start.outputs.directory'));

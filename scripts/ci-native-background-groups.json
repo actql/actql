@@ -102,15 +102,6 @@
           }
         }
       ]
-    },
-    {
-      "name": "retained-product",
-      "steps": [
-        {
-          "name": "Verify registered Native retained product path",
-          "run": "moon build --target js --release src/benchmark_obligations src/connectors/duckdb/host_node \\\n  src/connectors_builtin_node src/physical_strategy_example src/physical_task_manifest_example \\\n  src/process_host_bridge src/retained_host_bridge\nmoon build src/cmd/native_retained_case_probe --target native --release\nnode benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100\nnode benchmarks/retained-results/native-case-probe.mjs fixed-join-count-shrinking-intermediate/narrow/1000\nnode benchmarks/retained-results/native-estimate-calibration.mjs \\\n  native-acquisition-full-validation-low-selectivity/narrow/1000 \\\n  native-acquisition-full-validation-low-selectivity/narrow/100 \\\n  \"$RUNNER_TEMP/native-retained-calibration.json\"\nACTQL_NATIVE_CALIBRATION_PROFILE=\"$RUNNER_TEMP/native-retained-calibration.json\" \\\n  node scripts/test-native-direct-pair.mjs\n"
-        }
-      ]
     }
   ],
   "native-macos": [

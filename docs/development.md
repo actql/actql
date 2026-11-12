@@ -1200,6 +1200,8 @@ Two background slots run the other independently owned cases; final join checks
 the complete original inventory, preserves failures and forwards original packed
 artifact outputs. HTTP integration remains an independent job with its original
 stock-library fixture. Both workload and HTTP results are strict dependencies.
+The original retained-product command runs after the background join: its long
+global Moon build must not hold the build lock during bounded npm prepack.
 
 No Native preparation is transplanted across runners: existing descriptors bind
 physical compiler aliases and generated toolchain inputs. A mismatched original
