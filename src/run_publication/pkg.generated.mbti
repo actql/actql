@@ -516,6 +516,10 @@ pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> I
 
 pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
 
+pub fn file_read_profile_contract_bindings(PublicationContract) -> (String, String, String)?
+
+pub fn file_read_profile_physical_source_contract_cid(PublicationContract) -> String?
+
 pub fn finish_content_bytes(ContentByteEncoder) -> Result[ContentByteCompletion, ContentSerializationIssue]
 
 pub fn finish_durable_result_row_frames(DurableResultRowFrames) -> Result[DurableResultRowFrameSummary, DurableResultRowFrameIssue]
@@ -603,6 +607,8 @@ pub fn issue_effect_table_input_artifact(PublicationContract, PublicationContrac
 pub fn issue_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], Int, Int, Int) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue]
+
+pub fn issue_file_lookup_transport(PublicationContract, @encode_core.EncodedDocument, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn issue_generated_content_reference(GeneratedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 

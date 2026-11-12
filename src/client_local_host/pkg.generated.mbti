@@ -911,7 +911,7 @@ pub fn[I] prepare_request_model_compilation(ClientRequestPreparation[I], I, @run
 
 pub fn[I] prepare_request_model_contract_materials(ClientRequestPreparation[I], I, Int, (Int) -> String, Int) -> Result[Unit, ClientRequestProgramPlanIssue]
 
-pub fn[I] prepare_request_model_graph(ClientRequestPreparation[I], I, @run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract, ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits, serialization? : @run_publication_host.ClientSerializationPlanGraph?, caller_material? : @execution_relation.PreparationRepresentationUnits?, keyed_native_profile? : @run_publication.PublicationContract?) -> Result[@run_publication_host.ClientInferPlanGraph, ClientRequestProgramPlanIssue]
+pub fn[I] prepare_request_model_graph(ClientRequestPreparation[I], I, @run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract, ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits, serialization? : @run_publication_host.ClientSerializationPlanGraph?, caller_material? : @execution_relation.PreparationRepresentationUnits?, keyed_native_profile? : @run_publication.PublicationContract?, keyed_file_declarations? : Array[@client_row_source_host.RowDeclaration]?) -> Result[@run_publication_host.ClientInferPlanGraph, ClientRequestProgramPlanIssue]
 
 pub fn[I] prepare_request_model_provider_binding(ClientRequestPreparation[I], I, String, String, String, String) -> Result[@run_publication.RunEvidenceValue, ClientRequestProgramPlanIssue]
 
