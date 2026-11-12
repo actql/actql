@@ -138,6 +138,11 @@ test('preparation uses the normal verified source copier and preserves compiler/
     const result = spawnSync(selectedCompiler, ['-o', input.output, '-O2', input.source],
       {cwd: f.repository, env: prepared.environment, encoding: 'utf8', timeout: 5000});
     assert.equal(result.status, 7, result.stderr);
+    const timing = JSON.parse(result.stderr.split('\n').find(line => line.startsWith('ACTQL_NATIVE_CI_PHASE '))
+      .slice('ACTQL_NATIVE_CI_PHASE '.length));
+    assert.deepEqual({...timing, milliseconds: 0}, {phase: 'scoped-c-compiler', profile: 'runtime-values',
+      operation: 'link', milliseconds: 0, succeeded: false});
+    assert(Number.isSafeInteger(timing.milliseconds) && timing.milliseconds >= 0);
     const observed = JSON.parse(result.stdout);
     assert.equal(observed.original, 'same-original');
     assert.equal(observed.role, expected, 'explicit package compilers do not replace Moon PATH compilers');
@@ -156,6 +161,7 @@ test('preparation uses the normal verified source copier and preserves compiler/
   const reviewResult = spawnSync(review.environment.CC, ['-o',reviewInput.output,'-O2',reviewInput.source],
     {cwd:f.repository,env:review.environment,encoding:'utf8',timeout:5000});
   assert.equal(reviewResult.status, 7, reviewResult.stderr);
+  assert(reviewResult.stderr.includes('"profile":"scoped-review-values"'));
   const reviewArgs = JSON.parse(reviewResult.stdout).args;
   assert(reviewArgs.includes('-DACTQL_SCOPED_READ_ALLOCATOR'));
   assert(!reviewArgs.includes('-DACTQL_RUNTIME_MANAGED_VALUES=1'));

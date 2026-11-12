@@ -1,6 +1,6 @@
 // One owned Native fixture namespace per invocation, including local CI reruns.
 // A caller-supplied root is a parent, never a directory we adopt or remove.
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {mkdirSync, realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -48,6 +48,8 @@ const full = !['focused', 'reporting'].includes(classifyMoon('test', args).class
 const executionPackages = full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
   ? (await import('./ci-moon-tests.mjs')).nativeMoonPackages() : undefined;
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
+const scopedJobs = process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS ?? '1';
+if (!['1', '2'].includes(scopedJobs)) throw new Error('One or two original scoped allocation profiles required');
 if (partition && !full) throw new Error('Native Core partitions require the complete original selection');
 // Select the test-only compiler once before either original checkpoint
 // producer. Changing its executable PATH before the full child invalidates the
@@ -251,10 +253,10 @@ if (full) {
     // Local keeps ordinary copied Moon values on the runtime. The explicitly
     // scoped Arena and file-capture diagnostics exercise Read-owned managed aliases.
     // Their existing allocation profiles must never share a compiled target.
-    for (const profile of ['runtime-values', 'scoped-review-values']) {
+    const runScopedProfile = async profile => {
       const tests = selection.profiles.scoped.tests.filter(test =>
         nativeCoreScopedAllocationProfile(test.source) === profile);
-      if (tests.length === 0) continue;
+      if (tests.length === 0) return {status: 0};
       const profileNamespace = join(scopedScratch.path, profile);
       mkdirSync(profileNamespace, {mode: 0o700});
       // Start from the original PATH, not the ordinary test-only compiler shim.
@@ -301,7 +303,9 @@ if (full) {
           '--target-dir', scoped.targetDirectory];
         const timeout = scopedDeadline - Date.now();
         if (timeout <= 0) throw new Error('Selected Native Core deadline exhausted');
-        checkChild(spawnSync(process.execPath, ['--input-type=module', '-e',
+        const result = await new Promise(resolve => {
+          let error;
+          const child = spawn(process.execPath, ['--input-type=module', '-e',
           "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
           "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
           ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
@@ -312,14 +316,30 @@ if (full) {
           ...nativeCoreScopedTestEnvironment(test),
           ACTQL_TEST_NATIVE_IMPORT_QUOTE:
             test.source === 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt' &&
-            test.index === 10 ? '1' : undefined}}));
+            test.index === 10 ? '1' : undefined}});
+          child.once('error', value => { error = value; });
+          child.once('close', (status, signal) => resolve({status, signal, error}));
+        });
+        if (result.error || result.status !== 0) return result;
       }
-    }
+      return {status: 0};
+    };
+    const profiles = ['runtime-values', 'scoped-review-values'];
+    if (scopedJobs === '2') {
+      // Both compiler target trees already exist independently. Share the
+      // original prerequisites and deadline; join every child before failure
+      // propagation or any scratch-lifetime confirmation.
+      const outcomes = await Promise.allSettled(profiles.map(runScopedProfile));
+      for (const outcome of outcomes) {
+        if (outcome.status === 'rejected') throw outcome.reason;
+        checkChild(outcome.value);
+      }
+    } else for (const profile of profiles) checkChild(await runScopedProfile(profile));
     scopedScratch.passed();
   }
 } else {
   checkChild(spawnSync('moon', ['test', '--target', 'native', ...args],
     {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler}}));
 }
-// spawnSync has reaped every child; within-run database reopen is unchanged.
+// Every selected child has closed; within-run database reopen is unchanged.
 scratch.passed();

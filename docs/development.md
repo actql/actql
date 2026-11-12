@@ -1219,6 +1219,18 @@ case identities, unchanged driver inputs, nonempty partitions and no overlapping
 ordinary drivers before C generation. Portable targets are not multiplied.
 The original two-part local interface remains supported.
 
+The hosted scoped job runs its two existing allocation profiles concurrently
+on the same runner (`ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS=2`). Checkpoint,
+component and relation preparation still occur once, before both loops, and
+each profile keeps its original separate compiler target and per-case files.
+The original shared deadline and nonzero case checks remain. A failed profile
+stops its own later cases; the other profile finishes within that deadline
+before the original failure propagates or scratch cleanup is confirmed.
+Local execution defaults to one serial profile at a time.
+The existing scoped compiler wrapper records each original C compile/link/query
+interval separately. These intervals exclude Moon lowering and test execution;
+their sum is compiler activity, not elapsed job time when profiles overlap.
+
 The ordinary Native child measures `--build-only` and subsequent execution
 separately in the same build tree, with identical arguments and environment.
 Both phases share the original absolute timeout. Execution still uses the

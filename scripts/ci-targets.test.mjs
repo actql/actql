@@ -669,6 +669,8 @@ test('Native Core matrix owns four ordinary and three physical partitions withou
   const command = core.steps.find(step => step.name === 'Test common core');
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_PARTITION,
     "${{ matrix.target == 'native' && matrix.partition || '' }}");
+  assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,
+    "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}");
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
   assert(artifact.with.name.includes('${{ strategy.job-index }}'));
   assert(!artifact.with.name.includes('${{ matrix.partition }}'), 'Partition slashes are invalid artifact names');
