@@ -65,6 +65,8 @@ function originalControlWorkRefusal(observations, ref, terminal, selectedWorkLim
   assert.equal(original.code, 'CapturedRunExecutionFailed');
   assert.equal(original.primaryCode, 'MoonBitHostFailure');
   const data = original.primaryDiagnostic;
+  assert(data !== undefined && data !== null && typeof data === 'object',
+    'OriginalControlWorkDiagnosticUnavailable');
   assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task']);
   assert.equal(data.code, 'MoonBitHostFailure');
   assert.equal(data.phase, 'local_managed_advance');
@@ -239,7 +241,10 @@ try {
     await save('work-ref-before-wait.json', run.ref);
     report.currentRunResult = {kind: 'run', ref: run.ref, purpose: 'work-refusal', complete: false};
     const terminal = await span('wait-work-refusal', () => run.wait());
-    report.workRefusal = originalControlWorkRefusal(workObservations, run.ref, terminal, report.sourceFreeMaxWork);
+    report.workRunTerminal = {status: terminal.status, result_available: terminal.result_available};
+    report.workDiagnosticAvailable = workObservations[0]?.primaryDiagnostic !== undefined;
+    report.workRefusal = await span('verify-work-refusal', async () =>
+      originalControlWorkRefusal(workObservations, run.ref, terminal, report.sourceFreeMaxWork));
     assert.equal(capacityObservations.length, 0, 'Do not relabel memory refusal as control work');
     report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
     report.previousSaved = await readPreviousSavedResult(client, previous, report, span);

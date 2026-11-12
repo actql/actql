@@ -1485,3 +1485,30 @@ test('collection CI always retains bounded progress and original pre-wait refere
   assert(upload.with.path.includes('/collection/*.progress.json'));
   assert(upload.with.path.includes('/collection/*ref-before-wait*.json'));
 });
+
+
+test('normal resource unavailable work diagnostic retains original failure and refuses recovery without TypeError', async () => {
+  const {workProject,run,createPrevious} = await collectionBudgetPorts();
+  const ref={original:'same-failed-work'},terminal={status:'failed',result_available:false};
+  const event={ref,code:'CapturedRunExecutionFailed',primaryCode:'MoonBitHostFailure'};
+  for(const diagnostic of [undefined,null])assert.throws(()=>workProject([{...event,primaryDiagnostic:diagnostic}],ref,terminal,100000),
+    error=>error.code==='ERR_ASSERTION' && /OriginalControlWorkDiagnosticUnavailable/u.test(error.message));
+  const report={phase:'work-recovery',cases:[],submits:0},work=[];
+  let installation,starts=0;
+  const client={async startSource(){
+    starts++;
+    if(starts===1)return {ref:{original:'prior'},async wait(){return {status:'succeeded',next_action:{results:['prior']}};},
+      result(){return {async all(){return [{n:41}];}};}};
+    assert.equal(starts,2,'No later query is allowed without the original typed cause');
+    return {ref,async wait(){installation.authorization.observe('dispatch_failed',event);return terminal;}};
+  }};
+  await assert.rejects(run({assert,report,phase:'work-recovery',stateDir:'/fresh-diagnostic',
+    capacityObservations:[],workObservations:work,originalControlWorkRefusal:workProject,
+    collectionProgram:()=> 'same-original-program',createPreviousSavedResult:createPrevious,
+    span:async(_name,action)=>action(),save:async()=>{},async open(options){installation=options.installation;return client;}}),
+    error=>error.code==='ERR_ASSERTION' && /OriginalControlWorkDiagnosticUnavailable/u.test(error.message));
+  assert.deepEqual(report.workRunTerminal,terminal);
+  assert.equal(report.workDiagnosticAvailable,false);
+  assert.equal(report.previousSavedCreated,true);assert.equal(report.submits,2);assert.equal(starts,2);
+  assert.strictEqual(work[0],event);assert.equal(report.workRefusal,undefined);assert.equal(report.resourceRecovery,undefined);
+});
