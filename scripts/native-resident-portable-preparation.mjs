@@ -10,7 +10,8 @@ import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 import {verifyWorkspacePackageLinks} from './verify-local-source-runtime.mjs';
 
-const names = ['coordinator-core', 'run-host-core', ...(process.platform === 'linux' ? ['transfer-core'] : [])];
+// Effect computation uses the retained transfer owner on both Native platforms.
+const names = ['coordinator-core', 'run-host-core', 'transfer-core'];
 const coreArgs = ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'];
 const ownerArgs = ['scripts/build-runtime-packages.mjs', ...names];
 
