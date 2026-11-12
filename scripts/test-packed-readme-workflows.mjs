@@ -126,6 +126,24 @@ export async function runCollectionPhase({collection, command, record, capturePi
     } catch (diagnosticError) {
       record.partialObservationUnavailable = nodeBenchmarkFailure(diagnosticError);
     }
+    // A killed child may never enter finally and write its pending receipt.
+    // Retain only its own bounded last progress, separately from final outcome
+    // and close evidence. Neither a completed span nor progress grants a pass.
+    try {
+      const text = await readFile(join(collection, `${phase}.progress.json`), 'utf8');
+      assert(text.length <= 131072);
+      const progress = JSON.parse(text);
+      assert.equal(progress.phase, phase);
+      assert(Number.isSafeInteger(observed?.pid) && observed.pid > 0);
+      assert.equal(progress.pid, observed.pid);
+      assert(['start', 'end', 'complete'].includes(progress.event));
+      assert(Number.isSafeInteger(progress.elapsedNs) && progress.elapsedNs >= 0);
+      assert(typeof progress.complete === 'boolean');
+      assert(Array.isArray(progress.phases) && progress.phases.length <= 64);
+      record.progressObservation = progress;
+    } catch (diagnosticError) {
+      record.progressObservationUnavailable = nodeBenchmarkFailure(diagnosticError);
+    }
     throw error;
   } finally {
     Object.assign(record, {pid: observed?.pid ?? null, wallNs: observed?.wallNs ?? null,

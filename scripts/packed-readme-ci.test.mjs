@@ -835,6 +835,43 @@ test('collection timeout retains only its actual child pending primary and never
   }
 });
 
+test('collection timeout retains bounded same-child last progress separately from its final outcome', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  const original = {phase: 'capture', pid: 123, event: 'start', step: 'submit-oversized-row',
+    elapsedNs: 118000000000, complete: false, firstClose: 'unobserved',
+    currentRunResult: {kind: 'source', purpose: 'oversized-row'},
+    phases: [{name: 'all-100000', complete: true}, {name: 'submit-oversized-row'}]};
+  for (const mode of ['exact', 'foreign-pid', 'foreign-phase', 'unknown-child', 'invalid-event',
+    'invalid-elapsed', 'long-history', 'too-large', 'completed-progress']) {
+    const progress = structuredClone(original);
+    if (mode === 'foreign-pid') progress.pid++;
+    if (mode === 'foreign-phase') progress.phase = 'saved';
+    if (mode === 'invalid-event') progress.event = 'invented';
+    if (mode === 'invalid-elapsed') progress.elapsedNs = -1;
+    if (mode === 'long-history') progress.phases = new Array(65).fill({name: 'step'});
+    if (mode === 'too-large') progress.step = 'x'.repeat(131073);
+    if (mode === 'completed-progress') Object.assign(progress, {event: 'complete', step: null,
+      complete: true, firstClose: 'returned'});
+    await writeFile(join(root, 'capture.progress.json'), JSON.stringify(progress));
+    const failure = Object.assign(new Error('Whole child timeout'), {commandResult:
+      {pid: mode === 'unknown-child' ? null : 123, code: null, signal: 'SIGTERM', stdout: ''}});
+    const record = {phase: 'capture'}; let commands = 0;
+    await assert.rejects(run({collection: root, record, async command(_exe, _args, options) {
+      commands++; assert.equal(options.timeout, 120000); throw failure;
+    }}), error => error === failure);
+    assert.equal(commands, 1); assert.equal(record.status, 'failed'); assert.notEqual(record.completed, true);
+    assert.equal(record.partialObservation, undefined);
+    assert(record.partialObservationUnavailable);
+    if (mode === 'exact' || mode === 'completed-progress') {
+      assert.deepEqual(record.progressObservation, progress);
+      assert.equal(record.firstClose, undefined, 'Progress is not a final close acknowledgement');
+    } else {
+      assert.equal(record.progressObservation, undefined); assert(record.progressObservationUnavailable);
+    }
+  }
+});
+
 test('README timeout retains the same child primary while close is still unconfirmed', async t => {
   for (const pid of [123, 456]) {
     const {root, consumer} = await scratch(t);
@@ -1452,6 +1489,8 @@ test('collection progress persists START and original ref before a blocked wait 
   assert.equal(progress.event, 'start'); assert.equal(progress.step, 'wait-9999');
   assert.equal(progress.complete, false); assert.equal(progress.firstClose, 'unobserved');
   assert.equal(progress.pid, 12000); assert(progress.elapsedNs >= 0);
+  assert.equal(progress.submits, 1); assert.equal(progress.sourceFreeMaxWork, 30000000);
+  assert.deepEqual(progress.requestMemory, {retainedBytes: 1073741824, executionBytes: 1073741824});
   assert.deepEqual(progress.currentRunResult, {kind: 'run', ref, count: 9999, complete: false});
   assert(progress.phases.length <= 64);
   assert.equal(progress.phases.at(-1).endedAt, undefined);

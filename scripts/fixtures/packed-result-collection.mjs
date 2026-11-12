@@ -22,6 +22,8 @@ const progress = async (event, current) => {
     await save(`${phase}.progress.json`, {phase, pid: report.pid, event,
       step: current?.name ?? null, elapsedNs: Number(process.hrtime.bigint() - started),
       complete: report.complete, firstClose: report.firstClose,
+      submits: report.submits, sourceFreeMaxWork: report.sourceFreeMaxWork ?? null,
+      requestMemory: report.requestMemory ?? null,
       currentRunResult: report.currentRunResult ?? null,
       phases: report.phases.slice(-64)});
   } catch (error) {
