@@ -97417,7 +97417,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "93b515c1d64c0d5dea79f9f7611e969ac5f9e5d2bb76f281633376f515d2718c",
+      "sha256": "ebf7bc159272f432fddce531514d24716321c28833f09a3cf32846961b6482d4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -97752,7 +97752,8 @@
             "preparedEffect",
             "moon",
             "modelEvidence",
-            "outputLimits"
+            "outputLimits",
+            "retentionSelection"
           ],
           "async": false
         },
@@ -97845,6 +97846,11 @@
             "queryTime",
             "identity"
           ],
+          "async": false
+        },
+        {
+          "name": "effectPublicationAdmission/selectRetention/selectRetention",
+          "parameters": [],
           "async": false
         },
         {
@@ -99835,7 +99841,8 @@
         },
         {
           "operations": [
-            "effectPublicationAdmission"
+            "effectPublicationAdmission",
+            "effectPublicationAdmission/selectRetention/selectRetention"
           ],
           "exports": [],
           "attributes": {
@@ -99941,6 +99948,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
               }
             ]
           }

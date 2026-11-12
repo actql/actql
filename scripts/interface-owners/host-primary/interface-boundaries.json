@@ -24668,7 +24668,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "93b515c1d64c0d5dea79f9f7611e969ac5f9e5d2bb76f281633376f515d2718c",
+      "sha256": "ebf7bc159272f432fddce531514d24716321c28833f09a3cf32846961b6482d4",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -25001,7 +25001,8 @@
             "preparedEffect",
             "moon",
             "modelEvidence",
-            "outputLimits"
+            "outputLimits",
+            "retentionSelection"
           ],
           "async": false
         },
@@ -25094,6 +25095,11 @@
             "queryTime",
             "identity"
           ],
+          "async": false
+        },
+        {
+          "name": "effectPublicationAdmission/selectRetention/selectRetention",
+          "parameters": [],
           "async": false
         },
         {
@@ -25442,7 +25448,8 @@
             "acquiredMultiEffectPublicationPlan/modelContribution/modelContribution",
             "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
             "keyedInputRetentionSelection",
-            "localRetentionTimes"
+            "localRetentionTimes",
+            "effectPublicationAdmission/selectRetention/selectRetention"
           ],
           "exports": [
             "acquiredEffectPublicationAdmission",
@@ -25711,6 +25718,10 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              },
+              {
+                "path": "adapters/host-node/local-values-retention-original.test.mjs",
+                "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
               }
             ]
           }
