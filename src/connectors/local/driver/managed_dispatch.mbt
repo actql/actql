@@ -1795,7 +1795,8 @@ pub fn[T] start_local_managed_dispatch(
           return Err(Configuration(InvalidLimits))
         }
         match poll {
-          Err(issue) => Err(Configuration(issue))
+          Err(issue) =>
+            Err(local_managed_provider_failure(issue, setup.execution.max_work))
           Ok(@local.Continue(progress~, work~)) =>
             if progress < 0L || work <= 0L || work > quantum.to_int64() {
               Err(Configuration(InvalidLimits))
@@ -1892,7 +1893,7 @@ pub fn[T] start_local_managed_dispatch(
             @strategy.fail_task_execution(setup.run, execution, Compute(issue))
             |> ignore
             execution_finished.val = true
-            Err(Configuration(issue))
+            Err(local_managed_provider_failure(issue, setup.execution.max_work))
           }
           Ok(@local.Stopped(progress~, work~)) => {
             if progress < 0L || work < 0L || work > quantum.to_int64() {

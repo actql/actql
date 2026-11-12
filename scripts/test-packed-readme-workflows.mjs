@@ -87,9 +87,10 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert.deepEqual(actual.cases, [{expectedRefusal: 'request_snapshot', complete: true}]);
       } else {
         const data = actual.workRefusal;
-        assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'task', 'verified']);
+        assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task', 'verified']);
         assert.equal(data.verified, true); assert.equal(data.code, 'MoonBitHostFailure');
         assert.equal(data.phase, 'local_managed_advance'); assert.equal(data.kind, 'control_work');
+        assert.equal(data.controlWorkLimit, actual.sourceFreeMaxWork);
         assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
         assert.deepEqual(actual.cases, [{expectedRefusal: 'control_work', complete: true}]);
       }

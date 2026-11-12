@@ -1,11 +1,24 @@
 ///|
+/// Project the already-retained immutable limit only for this original
+/// provider's closed work failure. No new counter or allowance is created.
+fn local_managed_provider_failure(
+  issue : @connector.FixedComputeIssue,
+  initial_work_limit : Int,
+) -> LocalDispatchIssue {
+  match issue {
+    @connector.ControlWorkLimit => ControlWorkLimit(initial_work_limit)
+    _ => Configuration(issue)
+  }
+}
+
+///|
 /// Inert diagnosis of one closed original failure. Exhausted slice quantum is
 /// not a failure; physical ExecutionLimit is memory and must stay unclassified.
-pub fn local_managed_advance_failure_kind(
+pub fn local_managed_advance_control_work_limit(
   issue : LocalDispatchIssue,
-) -> String? {
+) -> Int? {
   match issue {
-    Configuration(@connector.ControlWorkLimit) => Some("control_work")
+    ControlWorkLimit(limit) if limit >= 0 => Some(limit)
     _ => None
   }
 }

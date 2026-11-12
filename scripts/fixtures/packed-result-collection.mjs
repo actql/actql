@@ -56,7 +56,7 @@ function oversizedRowProgram() {
 function memoryRecoveryProgram() {
   return '/*' + 'x'.repeat(8 * 1024 * 1024) + '*/ SELECT 7 AS n';
 }
-function originalControlWorkRefusal(observations, ref, terminal) {
+function originalControlWorkRefusal(observations, ref, terminal, selectedWorkLimit) {
   assert.equal(terminal.status, 'failed');
   assert.equal(terminal.result_available, false);
   assert.equal(observations.length, 1);
@@ -65,10 +65,11 @@ function originalControlWorkRefusal(observations, ref, terminal) {
   assert.equal(original.code, 'CapturedRunExecutionFailed');
   assert.equal(original.primaryCode, 'MoonBitHostFailure');
   const data = original.primaryDiagnostic;
-  assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'task']);
+  assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task']);
   assert.equal(data.code, 'MoonBitHostFailure');
   assert.equal(data.phase, 'local_managed_advance');
   assert.equal(data.kind, 'control_work');
+  assert.equal(data.controlWorkLimit, selectedWorkLimit);
   assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
   return {...data, verified: true};
 }
@@ -238,7 +239,7 @@ try {
     await save('work-ref-before-wait.json', run.ref);
     report.currentRunResult = {kind: 'run', ref: run.ref, purpose: 'work-refusal', complete: false};
     const terminal = await span('wait-work-refusal', () => run.wait());
-    report.workRefusal = originalControlWorkRefusal(workObservations, run.ref, terminal);
+    report.workRefusal = originalControlWorkRefusal(workObservations, run.ref, terminal, report.sourceFreeMaxWork);
     assert.equal(capacityObservations.length, 0, 'Do not relabel memory refusal as control work');
     report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
     report.previousSaved = await readPreviousSavedResult(client, previous, report, span);

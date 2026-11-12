@@ -53439,7 +53439,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "e6c85cb6a3019ad0292a2047348f2066a36fad7ea4894de5e4ef000adb041733",
+      "sha256": "d929256179a54bcd1da272a5f301e6ffecbb4e95b652c02ef1bfe631434c8879",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -53622,6 +53622,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "captured unavailable originals receive no missing-copy credit or provider start"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -54082,6 +54090,14 @@
               {
                 "path": "src/connectors/local/relation_chain_lifetime_wbtest.mbt",
                 "anchor": "test \"intermediate cleanup false and error preserve child custody until parent retry\""
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
               }
             ]
           }
@@ -88531,7 +88547,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "68edd7bbf4ef945dba7801c53d28bbbd847a46ed59d36187e1378fde1a89b8f2",
+      "sha256": "92667b6dc9df0a32e6428905e9b409acd08b3fc1563785323d08074d504dc2f2",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -88646,12 +88662,16 @@
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "c391916e59dbb7793231312325a88e8cede490c03bb1380cd9852f5795bf9746",
+      "sha256": "a401f6c46457596523d980ea1832aab65df2b4fbf697684cdc5a112cd797f836",
       "exports": [],
       "operations": [
         {
-          "name": "local_managed_advance_failure_kind",
-          "declaration": "local_managed_advance_failure_kind ( issue : LocalDispatchIssue , ) - > String ?"
+          "name": "local_managed_advance_control_work_limit",
+          "declaration": "local_managed_advance_control_work_limit ( issue : LocalDispatchIssue , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_provider_failure",
+          "declaration": "local_managed_provider_failure ( issue : @ connector . FixedComputeIssue , initial_work_limit : Int , ) - > LocalDispatchIssue"
         }
       ],
       "role": "common-semantics",
@@ -88662,7 +88682,8 @@
         {
           "operations": [
             "<module>",
-            "local_managed_advance_failure_kind"
+            "local_managed_advance_control_work_limit",
+            "local_managed_provider_failure"
           ],
           "exports": [],
           "attributes": {
@@ -88679,7 +88700,7 @@
               },
               {
                 "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-                "anchor": "pub fn local_managed_advance_failure_kind("
+                "anchor": "pub fn local_managed_advance_control_work_limit("
               }
             ],
             "identity": [
@@ -88748,12 +88769,12 @@
     },
     {
       "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-      "sha256": "24396ee78c3d1f99932f8d94f4b328bfb114aba65cfbc52df5fa052e25df9a81",
+      "sha256": "b328ddfea9e394e24953a0b124776c31d71d42f9f23c2bcf70557b26b9ef95e8",
       "exports": [],
       "operations": [
         {
-          "name": "local_managed_advance_failure_kind",
-          "declaration": "local_managed_advance_failure_kind ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+          "name": "local_managed_advance_control_work_limit",
+          "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
         }
       ],
       "role": "common-semantics",
@@ -88764,7 +88785,7 @@
         {
           "operations": [
             "<module>",
-            "local_managed_advance_failure_kind"
+            "local_managed_advance_control_work_limit"
           ],
           "exports": [],
           "attributes": {
@@ -88781,7 +88802,7 @@
               },
               {
                 "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-                "anchor": "#export_name(\"strategyModule_local_ManagedAdvanceFailureKind\")"
+                "anchor": "#export_name(\"strategyModule_local_ManagedAdvanceControlWorkLimit\")"
               }
             ],
             "identity": [
@@ -88850,12 +88871,12 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
-      "sha256": "24396ee78c3d1f99932f8d94f4b328bfb114aba65cfbc52df5fa052e25df9a81",
+      "sha256": "b328ddfea9e394e24953a0b124776c31d71d42f9f23c2bcf70557b26b9ef95e8",
       "exports": [],
       "operations": [
         {
-          "name": "local_managed_advance_failure_kind",
-          "declaration": "local_managed_advance_failure_kind ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+          "name": "local_managed_advance_control_work_limit",
+          "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
         }
       ],
       "role": "common-semantics",
@@ -88866,7 +88887,7 @@
         {
           "operations": [
             "<module>",
-            "local_managed_advance_failure_kind"
+            "local_managed_advance_control_work_limit"
           ],
           "exports": [],
           "attributes": {
@@ -88883,7 +88904,7 @@
               },
               {
                 "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
-                "anchor": "#export_name(\"strategyModule_local_ManagedAdvanceFailureKind\")"
+                "anchor": "#export_name(\"strategyModule_local_ManagedAdvanceControlWorkLimit\")"
               }
             ],
             "identity": [

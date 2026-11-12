@@ -1283,17 +1283,18 @@ test('normal Effect control timeout retains only the same child primary and neve
 test('normal resource work evidence refuses generic unpublished memory row and foreign-run causes', async () => {
   const {workProject} = await collectionBudgetPorts(), ref = {original: 'same-run'};
   const terminal = {status: 'failed', result_available: false};
-  const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3};
+  const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000};
   const event = {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data};
-  assert.deepEqual(workProject([event], ref, terminal), {...data, verified: true});
+  assert.deepEqual(workProject([event], ref, terminal, 100000), {...data, verified: true});
   for (const events of [[], [event, event], [{...event, ref: {original: 'foreign'}}],
     [{...event, primaryCode: 'ClientHostFailure'}], [{...event, primaryDiagnostic: undefined}],
     ...['execution', 'retention', 'row', 'workspace'].map(kind => [{...event, primaryDiagnostic: {...data, kind}}]),
     [{...event, primaryDiagnostic: {...data, unit: 0}}], [{...event, primaryDiagnostic: {...data, task: -1}}]]) {
-    assert.throws(() => workProject(events, ref, terminal));
+    assert.throws(() => workProject(events, ref, terminal, 100000));
   }
-  assert.throws(() => workProject([event], ref, {...terminal, status: 'succeeded'}));
-  assert.throws(() => workProject([event], ref, {...terminal, result_available: true}));
+  assert.throws(() => workProject([event], ref, {...terminal, status: 'succeeded'}, 100000));
+  assert.throws(() => workProject([event], ref, {...terminal, result_available: true}, 100000));
+  assert.throws(() => workProject([event], ref, terminal, 99999));
 });
 
 test('normal resource fixture reuses the SAME finite-policy Host for a later independently fitting Result', async () => {
@@ -1322,7 +1323,7 @@ test('normal resource fixture reuses the SAME finite-policy Host for a later ind
         return {ref: failedRef, async wait() {
           selected.authorization.observe('dispatch_failed', {ref: failedRef, code: 'CapturedRunExecutionFailed',
             primaryCode: 'MoonBitHostFailure', primaryDiagnostic: {code: 'MoonBitHostFailure',
-              phase: 'local_managed_advance', kind: 'control_work', task: 3}});
+              phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000}});
           events.push('refused'); return {status: 'failed', result_available: false};
         }};
       }
@@ -1371,7 +1372,7 @@ test('normal resource parent rejects missing recovery wrong policies misclassifi
   const {root} = await scratch(t), load = await runnerFunctions();
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   for (const phase of ['memory-recovery', 'work-recovery']) for (const mode of [
-    'exact', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup']) {
+    'exact', 'wrong-owner-limit', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup']) {
     const bytes = phase === 'memory-recovery' ? 268435456 : 1073741824;
     const actual = {phase, pid: 12345, complete: true, firstClose: 'returned', cleanup: [],
       aliveScopedFD: {before: 0, after: 0}, submits: 3,
@@ -1383,7 +1384,8 @@ test('normal resource parent rejects missing recovery wrong policies misclassifi
       memoryRefusal: {verified: true, phase: 'request_snapshot', classification: 'resource_limit', outcome: 'pre_send_capture',
         dimension: 'retention', requiredRetentionBytes: '536870912', requiredExecutionBytes: '536870912',
         availableRetentionBytes: '268435456', availableExecutionBytes: '268435456'},
-      workRefusal: {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, verified: true}};
+      workRefusal: {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000, verified: true}};
+    if (mode === 'wrong-owner-limit') {actual.workRefusal.controlWorkLimit--; actual.memoryRefusal.dimension = 'control_work';}
     if (mode === 'missing-recovery') delete actual.resourceRecovery;
     if (mode === 'wrong-rows') actual.resourceRecovery.rows = [{n: 8}];
     if (mode === 'missing-prior') delete actual.previousSaved;

@@ -11,7 +11,9 @@ no acceptance rule, public error, dispatch, stop or cleanup decision.
 
 `checkedLocalManagedAdvance` checks the SAME original `operations.advance`
 Result once. Only its typed Core getter may project `control_work` from the
-closed `Configuration(ControlWorkLimit)` constructor. Successful yields and
+closed `ControlWorkLimit(initialWorkLimit)` constructor. The already-retained
+immutable execution limit supplies that scalar only when the provider reports
+its original `ControlWorkLimit`; no new state counter or allowance is added. Successful yields and
 completions, missing getters and all other causes produce no diagnosis.
 
 ## Identity
@@ -24,7 +26,8 @@ original Run reference. No request, tag, CID or authority is issued here.
 
 The existing execution and failure-settlement owners retain every physical
 child and cleanup duty. The optional frozen `primaryDiagnostic` has only
-constant code, phase and kind strings plus the bounded original Task ordinal.
+constant code, phase and kind strings, the bounded original Task ordinal and
+the original initial control-work limit.
 It is attached to the original error without replacing its cleanup carrier.
 
 ## Synchronization

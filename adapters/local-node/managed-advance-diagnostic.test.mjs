@@ -13,36 +13,36 @@ test('managed advance keeps the exact checked result receiver primary and cleanu
   const result = {}, cleanupHandle = {};
   const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure', cleanupHandle});
   let projects = 0, checks = 0;
-  const moon = {strategyModule_local_ManagedAdvanceFailureKind(value) {
-    assert.strictEqual(this, moon); assert.strictEqual(value, result); projects++; return 'control_work';
+  const moon = {strategyModule_local_ManagedAdvanceControlWorkLimit(value) {
+    assert.strictEqual(this, moon); assert.strictEqual(value, result); projects++; return 100000;
   }};
   assert.throws(() => checkedLocalManagedAdvance(moon, result, value => {
     checks++; assert.strictEqual(value, result); throw primary;
   }, 7), error => error === primary);
   assert.equal(checks, 1); assert.equal(projects, 1);
   assert.strictEqual(primary.cleanupHandle, cleanupHandle);
-  assert.deepEqual(primary.primaryDiagnostic, {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 7});
+  assert.deepEqual(primary.primaryDiagnostic, {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 7, controlWorkLimit: 100000});
   assert(Object.isFrozen(primary.primaryDiagnostic));
   assert.deepEqual(snapshot(primary).primaryDiagnostic, primary.primaryDiagnostic);
 });
 
 test('managed advance success does not invoke a failure projector or create diagnostic DATA', () => {
   const result = {}, value = {};
-  assert.strictEqual(checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceFailureKind() {
+  assert.strictEqual(checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceControlWorkLimit() {
     assert.fail('successful yield or completion is not work refusal');
   }}, result, original => {assert.strictEqual(original, result); return value;}, 0), value);
 });
 
 test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons', () => {
-  for (const kind of [undefined, 'execution', 'ExecutionLimit', 'retention', 'row', 'workspace', 'control_work.extra']) {
+  for (const kind of [undefined, -1, 1.5, 2147483648, NaN, 'control_work', 'execution', 'ExecutionLimit', 'retention', 'row', 'workspace', 'control_work.extra']) {
     const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
-    assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceFailureKind() {return kind;}},
+    assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceControlWorkLimit() {return kind;}},
       {}, () => {throw primary;}, 0), error => error === primary);
     assert.equal(primary.primaryDiagnostic, undefined);
   }
   for (const task of [undefined, -1, 1.5, 2147483648]) {
     const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
-    assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceFailureKind() {return 'control_work';}},
+    assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceControlWorkLimit() {return 100000;}},
       {}, () => {throw primary;}, task), error => error === primary);
     assert.equal(primary.primaryDiagnostic, undefined);
   }
@@ -51,8 +51,8 @@ test('managed advance refuses unclassified physical row workspace and foreign di
 test('managed advance optional missing throwing or frozen diagnostics preserve every original thrown value', () => {
   for (const primary of [undefined, null, 7, new Error('untyped'),
     Object.freeze(Object.assign(new Error('frozen'), {code: 'MoonBitHostFailure'}))]) {
-    for (const moon of [{}, {strategyModule_local_ManagedAdvanceFailureKind() {throw new Error('optional');}},
-      {strategyModule_local_ManagedAdvanceFailureKind() {return 'control_work';}}]) {
+    for (const moon of [{}, {strategyModule_local_ManagedAdvanceControlWorkLimit() {throw new Error('optional');}},
+      {strategyModule_local_ManagedAdvanceControlWorkLimit() {return 100000;}}]) {
       let threw = false;
       try {checkedLocalManagedAdvance(moon, {}, () => {throw primary;}, 0);}
       catch (error) {threw = true; assert.strictEqual(error, primary);}
@@ -64,14 +64,14 @@ test('managed advance optional missing throwing or frozen diagnostics preserve e
 test('managed advance never invokes an original thrown code accessor', () => {
   let reads = 0;
   const original = Object.defineProperty(new Error('original'), 'code', {get() {reads++; return 'MoonBitHostFailure';}});
-  assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceFailureKind() {return 'control_work';}},
+  assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceControlWorkLimit() {return 100000;}},
     {}, () => {throw original;}, 0), error => error === original);
   assert.equal(reads, 0); assert.equal(original.primaryDiagnostic, undefined);
 });
 
 test('dispatch snapshot refuses misleading local-work DATA and retains the existing full Model diagnostic', () => {
-  const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 0};
-  for (const foreign of [{...data, kind: 'execution'}, {...data, task: -1}, {...data, task: undefined},
+  const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 0, controlWorkLimit: 100000};
+  for (const foreign of [{...data, kind: 'execution'}, {...data, controlWorkLimit: undefined}, {...data, controlWorkLimit: -1}, {...data, task: -1}, {...data, task: undefined},
     {...data, unit: 0}, {...data, unit: undefined}, {...data, step: 0}, {...data, code: 'Foreign'}]) {
     assert.equal(snapshot(Object.assign(new Error('original'), {primaryDiagnostic: foreign})).primaryDiagnostic, undefined);
   }
