@@ -11,7 +11,7 @@ import {runLocalCheck} from './local-checks-guard.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const sourceUrl = new URL('./test-native-resident-site.mjs', import.meta.url).href;
-const sourceSha = '04d451edbc6041f6452d7f0ae424ae355a9fee7cda7a6512fa804900ca00d890';
+const sourceSha = '94024d12359295efbc927b77666304ed5d13f05fa6bf3482f557cfeb39169f63';
 const conditions = new Set(['debugger-unavailable', 'permission-denied',
   'debugger-platform-unsupported', 'trace-unavailable', 'registers-unavailable',
   'no-stack', 'stage-not-observed', 'report-unavailable']);
