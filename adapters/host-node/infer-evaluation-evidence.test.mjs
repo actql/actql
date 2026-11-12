@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {configureInferEvidence, projectInferEvidence, withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 
 function fixture({authorize = () => true, capture = async () => ({status: 'complete', references: {}}), releaseFails = false, maxBytes = 4096,
@@ -37,6 +39,31 @@ function preparedFixture(options) {
   f.facts.operation.preparedPhysicalRequest = () => ({_0: {}, _1: original, _2: '{"unknown":true}'});
   return {...f, original};
 }
+
+test('fresh Effect omission skips only optional provider input preservation and retains the mandatory snapshot', async () => {
+  const source = readFileSync(new URL('./installed-model-continuation.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  let configuration;
+  const visit = value => {
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'CallExpression' && value.callee.name === 'withPreparedInferEvidence') {
+      configuration = value.arguments[0].properties.find(property => property.key.name === 'configuration').value;
+    }
+    for (const child of Object.values(value)) {
+      if (Array.isArray(child)) child.forEach(visit); else visit(child);
+    }
+  };
+  visit(ast); assert(configuration);
+  const select = Function('preserveEvidenceInputs', 'inferEvidence', `return (${source.slice(configuration.start, configuration.end)});`);
+  const original = {}, snapshot = {version: 'actql-installed-model-input/0.1', rows: [['same original']]};
+  assert.strictEqual(select(true, original), original);
+  assert.equal(select(false, original), undefined);
+  let retained = 0;
+  assert.strictEqual(await withPreparedInferEvidence({configuration: select(false, original),
+    selected: {step: 0}, moon: {clientProgramInferTargetName: () => 'original'},
+    consume(optional) {assert.equal(optional, undefined); retained++; return snapshot;}}), snapshot);
+  assert.equal(retained, 1);
+});
 
 function partialFixture(options = {}) {
   const f = fixture(options);
@@ -225,6 +252,62 @@ test('optional projection reserves before serialization and returns copy capacit
   assert.deepEqual(f.trace, ['reserved', 'serialize', 'copy handed to sink', 'release']);
   assert.equal(f.manifests[0].manifest.status, 'complete');
   assert.equal(f.retained[0].cleanupPending(), false);
+});
+
+test('Effect projection uses original funding before decode and never allocates a destination-sized Ledger', async () => {
+  let settle, entered;
+  const gate = new Promise(resolve => {settle = resolve;});
+  const started = new Promise(resolve => {entered = resolve;});
+  const f = fixture({capture: async () => {entered(); await gate; return {status: 'complete'};}});
+  f.facts.moon.clientProgramReserveInferEvidenceCopy = () => assert.fail('No independent Ledger for this Effect copy');
+  f.facts.moon.clientProgramReleaseInferEvidenceCopy = () => assert.fail('Do not settle a foreign/absent reservation');
+  const flight = projectInferEvidence({...f.facts, copyFunding(bundle) {
+    assert.equal(bundle.count, 1); assert.equal(bundle.cid, 'bundle');
+    f.trace.push('original funding');
+  }});
+  await started;
+  assert.deepEqual(f.trace, ['original funding', 'serialize', 'copy handed to sink']);
+  assert.equal(f.retained[0].cleanupPending(), true);
+  assert.equal(await f.retained[0].close(), false, 'A pending Sink cannot acknowledge retirement');
+  settle(); await flight;
+  assert.equal(f.retained[0].cleanupPending(), false);
+  assert.equal(await f.retained[0].cleanup(), true);
+  assert.equal(f.manifests[0].manifest.status, 'complete');
+});
+
+test('original Effect funding refusal records incomplete without serializing or acquiring another copy', async () => {
+  const f = fixture();
+  const failure = Object.assign(new Error('OriginalFundingRefused'), {code: 'OriginalFundingRefused'});
+  await projectInferEvidence({...f.facts, copyFunding() {throw failure;}});
+  assert.deepEqual(f.trace, []);
+  assert.equal(f.retained.length, 0);
+  assert.deepEqual(f.manifests[0].manifest, {status: 'incomplete', reason: 'OriginalFundingRefused'});
+});
+
+test('Effect external authorization and Sink returns recheck original current before any later capture', async () => {
+  for (const boundary of ['authorize', 'sink']) {
+    let closed = false, captures = 0;
+    const f = fixture({authorize: async () => {if (boundary === 'authorize') closed = true; return true;},
+      capture: async () => {captures++; closed = true; return {status: 'complete'};}});
+    f.facts.moon.clientProgramReserveInferEvidenceCopy = () => assert.fail('No independent copy Ledger');
+    const first = f.facts.captureOwner.evaluationBundle();
+    const records = JSON.parse(first.wire).captures;
+    records.push({...records[0], model_call_slot_cid: 'slot-2',
+      evidence: {...records[0].evidence, model_call_slot_cid: 'slot-2'}});
+    f.facts.captureOwner.evaluationBundle = () => ({...first, count: 2, wire: JSON.stringify({captures: records}),
+      calls: [...first.calls, {...first.calls[0], slotCid: 'slot-2'}]});
+    f.facts.continuation.entry = slot => ({slotCid: slot === 0 ? 'slot' : 'slot-2', attemptCid: 'attempt-' + slot});
+    await projectInferEvidence({...f.facts, copyFunding() {}, current() {if (closed) throw new Error('OriginalClosed');}});
+    assert.equal(captures, boundary === 'authorize' ? 0 : 1);
+    assert.equal(f.retained[0].cleanupPending(), false);
+    const manifest = f.manifests[0].manifest;
+    assert.equal(manifest.status, 'incomplete'); assert.equal(manifest.items.length, 2);
+    assert.deepEqual(manifest.items.map(item => item.status), boundary === 'authorize'
+      ? ['incomplete', 'incomplete'] : ['complete', 'incomplete']);
+    assert.equal(manifest.items[1].reason, 'RequiredEvidenceUnavailable');
+    assert.equal(manifest.items[1].modelCallSlotCid, 'slot-2');
+    assert.equal(f.trace.includes('reserved'), false);
+  }
 });
 
 test('typed output preserves distinct decomposed/composed and CR/LF data member names', async () => {

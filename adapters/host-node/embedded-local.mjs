@@ -4570,7 +4570,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                     store, principalId, contentRun: runContent, faultInjection: authorization?.faultInjection,
                     observe: (event, detail) => diagnostic(event,
                       {...detail, ref: facts.ref}), sourceContinuation,
-                    modelController, submission: effectSubmissions.get(facts.prepared),
+                    modelController, inferEvidence: evidenceConfiguration,
+                    submission: effectSubmissions.get(facts.prepared),
                     existingModel: retainedModel?.record,
                     modelClaim: modelResume?.parentResume === undefined ? modelResume?.claim : undefined,
                     parentResume, modelJournalPort: nextJournal});

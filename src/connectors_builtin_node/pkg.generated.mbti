@@ -1104,6 +1104,8 @@ pub fn client_program_effect_member_descriptor(@run_publication_host.PreparedCli
 
 pub fn client_program_effect_member_descriptor_issue_code(@run_publication_host.ClientEffectMemberDescriptorIssue) -> String
 
+pub fn client_program_effect_model_evidence_copy_capacity(Int, Int, Int, @encode_core.EncodingConstructionGeometry, Int, Int) -> Result[(Int64, Int64), @model_execution.ModelExecutionIssue]
+
 pub fn client_program_effect_model_unit_export_receipt(@physical_strategy_host.CapturedEffectLocalResultExport) -> Result[@execution_relation.CompletedRelationExportReceipt, @execution_relation.CompletedExportIssue]
 
 pub fn client_program_effect_model_unit_result_count(@physical_strategy_host.CapturedEffectLocalUnitInputs) -> Int
@@ -1443,6 +1445,8 @@ pub fn client_program_infer_capture_call_count(@model_execution.VerifiedModelCap
 pub fn client_program_infer_capture_export_identity(@model_execution.ModelCaptureExport) -> String?
 
 pub fn client_program_infer_capture_export_response_pending(@model_execution.ModelCaptureExport) -> Bool
+
+pub fn client_program_infer_capture_export_wire_usage(@model_execution.ModelCaptureExport) -> Result[(Int, Int, Int), @model_execution.ModelExecutionIssue]
 
 pub fn client_program_infer_capture_outcome(@model_execution.VerifiedModelCapture, Int) -> String?
 
@@ -2929,6 +2933,8 @@ pub fn client_program_model_request_input(@model_execution.ModelRequest, String)
 pub fn client_program_model_request_input_frame(@model_execution.ModelRequest) -> String?
 
 pub fn client_program_model_request_input_frame_bounded(@model_execution.ModelRequest, Int) -> String?
+
+pub fn client_program_model_request_input_frame_geometry(@model_execution.ModelRequest, Int) -> Result[@encode_core.EncodingConstructionGeometry, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_model_request_preflight(() -> (Bool, @model_execution.ModelPhysicalRequestPlan?), () -> Bool) -> @model_execution.ModelRequestPreflight
 

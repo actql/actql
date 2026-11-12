@@ -133,6 +133,8 @@ pub fn model_capture_export_identity(ModelCaptureExport) -> String?
 
 pub fn model_capture_export_response_pending(ModelCaptureExport) -> Bool
 
+pub fn model_capture_export_wire_usage(ModelCaptureExport) -> (Int, Int, Int)?
+
 pub fn model_cleanup_progress(ModelExecution) -> Int
 
 pub fn model_content_admission_current(ModelContentAdmission) -> Bool

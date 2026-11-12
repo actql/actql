@@ -370,7 +370,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   }
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
     declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort,
-    sourceContinuation, retainEvidenceCopy, originalPreparation}, ownership) {
+    sourceContinuation, retainEvidenceCopy, originalPreparation, preserveEvidenceInputs = true}, ownership) {
     let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
     const rawBinding = rawSelection === undefined ? undefined :
       {attempted: false, complete: false, issue: undefined,
@@ -467,7 +467,10 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         ...(contentGeneration === undefined ? {} : {contentGeneration}),
         ...(capturedContent === undefined ? {} : {capturedContent, capturedContentBinding})};
       let bodyWire = canonicalJson(snapshot);
-      const receipt = await withPreparedInferEvidence({configuration: inferEvidence,
+      // Fresh Effect projection consumes its still-live completed requests.
+      // It needs no optional providerInputs copy in the retained snapshot; the
+      // mandatory original fixed-input snapshot and its receipt stay exact.
+      const receipt = await withPreparedInferEvidence({configuration: preserveEvidenceInputs ? inferEvidence : undefined,
         moon, control, plan, selected, preparedCallSet, operation, authorityScopeCid,
         retainCopy: retainEvidenceCopy,
         consume(providerInputs) {

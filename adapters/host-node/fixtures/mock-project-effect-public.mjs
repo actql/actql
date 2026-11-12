@@ -30,6 +30,98 @@ const originalDeal = Object.freeze({
   '006Acme': {StageName: 'Proposal', NextStep: null},
   '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
 });
+// A bounded consumer of the existing optional Evidence handoff. It neither
+// invokes a Model nor reads the Journal. Raw input stays inside this fixture;
+// only the completed comparison/count is reported after the first public close.
+function joinedModelInputEvidence(selectedVariant) {
+  assert(['two-models-joined-inputs', 'two-models-joined-whole'].includes(selectedVariant));
+  const originals = {
+    '006Acme': {StageName: 'Proposal', NextStep: null, fileVersion: 'mock-revision-acme-1',
+      notes: 'Acme renewal meeting: move the deal to Negotiation. Send revised pricing by Friday.\n',
+      confirmation: {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}},
+    '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review', fileVersion: 'mock-revision-globex-1',
+      notes: 'Globex expansion meeting: the deal is Closed Lost for this year. Revisit next fiscal year.\n',
+      confirmation: {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}},
+  };
+  const destination = 'local:packed-joined-model-inputs';
+  const inputs = new Map(), manifests = new Map();
+  let failure;
+  const checked = operation => {
+    try {return operation();} catch (cause) {failure ??= cause; throw cause;}
+  };
+  const subjectMatches = (left, right) => left.runDefinitionCid === right.runDefinitionCid &&
+    left.authorityScopeCid === right.authorityScopeCid;
+  const configuration = {
+    target: 'assessment', destination, maxBytes: 262144,
+    authorize(binding) {
+      return binding.destination === destination && binding.target === 'assessment' && binding.purpose === 'capture' &&
+        C.test(binding.subject?.runDefinitionCid) && C.test(binding.subject?.authorityScopeCid) &&
+        JSON.parse(binding.policy.wire).unknown_provenance === true;
+    },
+    sink: {
+      async capture({subject, target, original, attemptCid, wires}) {
+        return checked(() => {
+          assert.equal(target, 'assessment');
+          assert(C.test(subject.runDefinitionCid) && C.test(subject.authorityScopeCid));
+          assert(C.test(attemptCid));
+          assert.equal(typeof wires.typedInput, 'string');
+          assert(Buffer.byteLength(wires.typedInput) <= 65536);
+          const input = JSON.parse(wires.typedInput);
+          for (const [field, actual] of [['model_call_slot_cid', original.modelCallSlotCid],
+            ['semantic_request_cid', original.semanticRequestCid], ['model_task_contract_cid', original.modelTaskCid]]) {
+            assert(C.test(actual)); assert.equal(input[field], actual);
+          }
+          assert.equal(input.key.length, 1);
+          const key = input.key[0]; assert(Object.hasOwn(originals, key));
+          const expected = originals[key], role = Object.hasOwn(input.inputs, 'StageName') ? 'review' : 'confirm';
+          assert.deepEqual(input.inputs, role === 'confirm' ? expected.confirmation : {
+            StageName: expected.StageName, NextStep: expected.NextStep,
+            ...(selectedVariant === 'two-models-joined-inputs'
+              ? {fileVersion: expected.fileVersion} : {notes: expected.notes}),
+          });
+          const identity = role + '/' + key;
+          assert(!inputs.has(identity), 'One original input comparison per Model call');
+          assert(inputs.size < 4);
+          assert(![...inputs.values()].some(value => value.slot === original.modelCallSlotCid));
+          inputs.set(identity, {subject, role, slot: original.modelCallSlotCid,
+            task: original.modelTaskCid, attempt: attemptCid});
+          return {status: 'complete'}; // Consumed here, no durable Evidence reference claimed.
+        });
+      },
+      async record({subject, target, manifest}) {
+        return checked(() => {
+          assert.equal(target, 'assessment'); assert.equal(manifest.status, 'complete');
+          assert(subjectMatches(subject, manifest.subject));
+          assert(C.test(manifest.modelTaskCid));
+          assert(!manifests.has(manifest.modelTaskCid));
+          assert(manifests.size < 2); assert.equal(manifest.items.length, 2);
+          const calls = [...inputs.values()].filter(value => value.task === manifest.modelTaskCid);
+          assert.equal(calls.length, 2);
+          assert.equal(new Set(manifest.items.map(value => value.modelCallSlotCid)).size, 2);
+          for (const item of manifest.items) {
+            assert.equal(item.status, 'complete');
+            assert(calls.some(value => value.slot === item.modelCallSlotCid && value.attempt === item.attemptCid &&
+              subjectMatches(value.subject, subject)));
+          }
+          manifests.set(manifest.modelTaskCid, subject);
+        });
+      },
+    },
+  };
+  return {configuration,
+    verify(ref) {
+      if (failure !== undefined) throw failure;
+      assert.equal(inputs.size, 4); assert.equal(manifests.size, 2);
+      for (const role of ['review', 'confirm']) for (const key of Object.keys(originals)) {
+        const value = inputs.get(role + '/' + key); assert(value);
+        assert(subjectMatches(value.subject, ref));
+        assert(subjectMatches(manifests.get(value.task), ref));
+      }
+      assert.notEqual(inputs.get('review/006Acme').task, inputs.get('confirm/006Acme').task);
+      return {complete: true, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2};
+    }};
+}
+const modelInputs = phase === 'capture' && joinedWholeProducer ? joinedModelInputEvidence(variant) : undefined;
 let client, firstFailedStep, activeStep, primary, checkDiagnostic, runObservation, failed = false;
 function checkWorkflowWork(observed, selectedPhase, writes, modelTasks = 1) {
   assert.equal(observed.complete, true, 'Lost, pending or unavailable observation cannot prove zero work');
@@ -288,7 +380,8 @@ function expectedBytes(before) {
 
 try {
   client = await step('connect', () => connect({mode: 'local',
-    installation: {directory: '.actql', observation: workObservation.connection}, profile: 'mock'}));
+    installation: {directory: '.actql', observation: workObservation.connection,
+      ...(modelInputs === undefined ? {} : {inferEvidence: modelInputs.configuration})}, profile: 'mock'}));
   if (phase === 'capture') {
     const before = await step('read authored target before submission', targetState);
     const source = await step('read original README program', () =>
@@ -444,15 +537,20 @@ pending.firstFailedStep = firstFailedStep ?? null;
 pending.status = failed || closeFailed ? 'failed' : 'closed';
 pending.cleanupCode = closeFailure?.code;
 pending.workObservation = workObservation.snapshot();
-let workFailure;
+let workFailure, modelInputObservation;
 if (!failed && closeReturned) try {
   checkWorkflowWork(pending.workObservation, phase, Object.keys(expected).length, twoModels ? 2 : 1);
+  if (modelInputs !== undefined) {
+    const original = JSON.parse(await readFile(handoffPath + '.started', 'utf8'));
+    modelInputObservation = modelInputs.verify(original.ref);
+  }
 } catch (cause) {workFailure = cause; firstFailedStep ??= 'observe actual Source Model and Effect work';}
 await persistCloseObservation();
 console.log(JSON.stringify({phase, firstFailedStep: firstFailedStep ?? null,
   status: failed || closeFailed || workFailure || diagnosticFailures.length ? 'failed' : 'passed',
   code: primary?.code, cleanupCode: closeFailure?.code,
   workObservation: pending.workObservation, workObservationCode: workFailure?.code,
+  ...(modelInputObservation === undefined ? {} : {modelInputObservation}),
   ...(diagnosticFailures.length ? {diagnosticFailures} : {}),
   firstClose: {attempted: client !== undefined, returned: closeReturned},
   ...(runObservation === undefined ? {} : {runObservation}),

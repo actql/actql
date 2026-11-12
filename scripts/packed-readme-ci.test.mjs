@@ -2066,6 +2066,8 @@ for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
           stdout: [...Array.from({length: {capture: 10, approve: 11, recover: 7}[phase]},
             (_, index) => explicitStep(phase, `explicit-${index}`)),
             {phase, status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
+              ...(phase === 'capture' ? {modelInputObservation:
+                {complete: true, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2}} : {}),
               workObservation: explicitWork(phase, variant)}].map(value => JSON.stringify(value)).join('\n')};
       }});
     assert.deepEqual(phases, ['capture', 'approve', 'recover']);
@@ -2093,6 +2095,8 @@ for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
             stdout: [...Array.from({length: {capture: 10, approve: 11, recover: 7}[current]},
               (_, index) => explicitStep(current, `explicit-${index}`)),
               {phase: current, status: 'passed', firstFailedStep: null, workObservation: work,
+                ...(current === 'capture' ? {modelInputObservation:
+                  {complete: true, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2}} : {}),
                 firstClose: {attempted: true, returned: current !== phase || failure !== 'close'}}]
               .map(value => JSON.stringify(value)).join('\n')};
         }}), {code: 'ERR_ASSERTION'});
@@ -2104,3 +2108,91 @@ for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
     }
   });
 }
+
+test('joined input oracle consumes bounded original typed input and refuses swapped columns slots and subjects', async () => {
+  const source = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
+  const node = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(value => value.id?.name === 'joinedModelInputEvidence');
+  const make = Function('assert', 'C', 'Buffer', `return (${source.slice(node.start, node.end)});`)(
+    assert, /^sha256:[0-9a-f]{64}$/u, Buffer);
+  const cid = digit => 'sha256:' + digit.repeat(64);
+  const subject = {runDefinitionCid: cid('1'), authorityScopeCid: cid('2')};
+  const expected = [
+    {key: '006Acme', StageName: 'Proposal', NextStep: null, fileVersion: 'mock-revision-acme-1',
+      notes: 'Acme renewal meeting: move the deal to Negotiation. Send revised pricing by Friday.\n',
+      confirmation: {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}},
+    {key: '006Globex', StageName: 'Negotiation', NextStep: 'Legal review', fileVersion: 'mock-revision-globex-1',
+      notes: 'Globex expansion meeting: the deal is Closed Lost for this year. Revisit next fiscal year.\n',
+      confirmation: {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}},
+  ];
+  // Explicit Evidence delivery ports exercise the actual fixture consumer.
+  // They are not an installed Model execution or normal package acceptance.
+  const deliveries = variant => ['review', 'confirm'].flatMap((role, group) => expected.map((row, index) => {
+    const original = {modelCallSlotCid: cid(String(3 + group * 2 + index)),
+      semanticRequestCid: cid('7'), modelTaskCid: cid(group ? '9' : '8')};
+    return {subject, target: 'assessment', attemptCid: cid('a'), original,
+      wires: {typedInput: JSON.stringify({model_task_contract_cid: original.modelTaskCid,
+        model_call_slot_cid: original.modelCallSlotCid, semantic_request_cid: original.semanticRequestCid,
+        key: [row.key], inputs: role === 'confirm' ? row.confirmation : {
+          StageName: row.StageName, NextStep: row.NextStep,
+          ...(variant === 'two-models-joined-inputs' ? {fileVersion: row.fileVersion} : {notes: row.notes}),
+        }})}};
+  }));
+  for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
+    const values = deliveries(variant), positive = make(variant);
+    const authorized = {subject, target: 'assessment', purpose: 'capture',
+      destination: 'local:packed-joined-model-inputs', policy: {wire: '{"unknown_provenance":true}'}};
+    assert.equal(positive.configuration.authorize(authorized), true);
+    assert.equal(positive.configuration.authorize({...authorized, destination: 'foreign'}), false);
+    assert.equal(positive.configuration.authorize({...authorized, policy: {wire: '{"unknown_provenance":false}'}}), false);
+    for (const value of values) assert.deepEqual(await positive.configuration.sink.capture(value), {status: 'complete'});
+    for (const group of [values.slice(0, 2), values.slice(2)]) {
+      await positive.configuration.sink.record({subject, target: 'assessment', manifest: {
+        status: 'complete', subject, modelTaskCid: group[0].original.modelTaskCid,
+        items: group.map(value => ({status: 'complete', modelCallSlotCid: value.original.modelCallSlotCid,
+          attemptCid: value.attemptCid})),
+      }});
+    }
+    assert.deepEqual(positive.verify(subject), {complete: true, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2});
+    assert.throws(() => positive.verify({...subject, runDefinitionCid: cid('f')}));
+    assert.throws(() => make(variant).verify(subject), 'A missing optional delivery is not success');
+    for (const mode of ['left-column', 'right-column', 'key', 'slot']) {
+      const oracle = make(variant), value = structuredClone(values[0]);
+      const input = JSON.parse(value.wires.typedInput);
+      if (mode === 'left-column') input.inputs.StageName = 'foreign';
+      if (mode === 'right-column') input.inputs[variant === 'two-models-joined-inputs' ? 'fileVersion' : 'notes'] = 'foreign';
+      if (mode === 'key') input.key = ['foreign'];
+      if (mode === 'slot') input.model_call_slot_cid = cid('f');
+      value.wires.typedInput = JSON.stringify(input);
+      let primary;
+      await assert.rejects(oracle.configuration.sink.capture(value), error => {primary = error; return error.code === 'ERR_ASSERTION';});
+      assert.throws(() => oracle.verify(subject), error => error === primary);
+    }
+    const duplicate = make(variant);
+    await duplicate.configuration.sink.capture(values[0]);
+    await assert.rejects(duplicate.configuration.sink.capture(values[0]), {code: 'ERR_ASSERTION'});
+    await assert.rejects(make(variant).configuration.sink.record({subject, target: 'assessment',
+      manifest: {status: 'incomplete'}}), {code: 'ERR_ASSERTION'});
+  }
+});
+
+test('joined composition cannot replace actual typed input comparison by successful work counts', async t => {
+  for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
+    for (const observation of [undefined, {complete: false, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2},
+      {complete: true, modelCalls: 4, joinedInputs: 1, confirmationInputs: 3}]) {
+      const {root, consumer} = await scratch(t), phases = [];
+      await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+        counts: {coldSamples: 1}, template: 'deal-review-mock', variant, onMetric() {},
+        async command(_executable, args) {
+          phases.push(args[1]);
+          return {pid: 23001, code: 0, signal: null, wallNs: 100,
+            stdout: [...Array.from({length: 10}, (_, index) => explicitStep('capture', `explicit-${index}`)),
+              {phase: 'capture', status: 'passed', firstFailedStep: null,
+                firstClose: {attempted: true, returned: true}, workObservation: explicitWork('capture', variant),
+                ...(observation === undefined ? {} : {modelInputObservation: observation})}]
+              .map(value => JSON.stringify(value)).join('\n')};
+        }}), {code: 'ERR_ASSERTION'});
+      assert.deepEqual(phases, ['capture']);
+    }
+  }
+});

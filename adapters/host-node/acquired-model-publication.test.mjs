@@ -30,9 +30,9 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 // Actual group custody with explicit nominal publication/Store ports. The
 // deferred preparation is not an installed Model, Core ABI or physical ACK.
 function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding, retireCapture,
-  store, holdingFactory, originalNames = false} = {}) {
-  const events = [], contexts = [], preparedOptions = [], controller = new AbortController();
-  const sourcePlan = {}, plan = {compiled: {}, runDefinition: {}}, issuance = {};
+  store, holdingFactory, originalNames = false, inferEvidence, project} = {}) {
+  const events = [], contexts = [], preparedOptions = [], funding = [], controller = new AbortController();
+  const sourcePlan = {}, preparedProgram = {}, plan = {compiled: {}, runDefinition: {}}, issuance = {};
   const publication = {binding: {}, observation: {name: 'observation', wire: '{}', identity: 'observation'},
     invocation: {name: 'invocation', wire: '{}', identity: 'invocation'}, plan: {}};
   if (originalNames) {
@@ -45,6 +45,8 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   const components = selections.map((selection, index) => ({bindOriginal(context) {contexts[index] = context;}}));
   const originalPreparation = {components: selections.map((selection, index) => ({selection, component: components[index]}))};
   const operations = selections.map((_, index) => ({index, physicalStopped: () => true,
+    evaluationRequest: () => ({_0: {index}, _1: '{}', _2: '{}'}),
+    growOriginalPublicationCapacity(retained, execution) {funding.push({owner: index, retained, execution});},
     releaseOriginalPublicationCapacity() {events.push('release-capacity'); return true;}}));
   const acquired = {compilation: {}, prepared: {}, control: {runDefinitionRunId: () => 'component',
     admitComposedInferSources: () => ({}), composedInferSourcesFor: () => undefined,
@@ -60,7 +62,27 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   }, clientProgramCancelInferObservationIssuance: () => false,
   clientProgramEffectComposedModelKeyedAcquisition: () => ({$tag: 1, _0: undefined})};
   moon.clientProgramCleanupInferObservationIssuance = () => ({$tag: 1, _0: true});
+  moon.clientProgramModelRequestInputFrameGeometry = (request, maximum) => {
+    assert.equal(maximum, 65536);
+    return {$tag: 1, _0: {request}};
+  };
+  moon.clientProgramEffectModelEvidenceCopyCapacity = (bytes, nodes, depth, shape, text, calls) => {
+    assert.equal(bytes, 15); assert.equal(nodes, 2); assert.equal(depth, 1);
+    assert.equal(text, 6); assert.equal(calls, 1);
+    return {$tag: 1, _0: {_0: shape.request.index === 0 ? 100n : 50n,
+      _1: shape.request.index === 0 ? 200n : 80n}};
+  };
   const ports = {runtimeField, checked,
+    async projectInferEvidence(facts) {
+      events.push('evidence-' + facts.operation.index);
+      assert.strictEqual(facts.configuration, inferEvidence);
+      assert.strictEqual(facts.preparedProgram, preparedProgram);
+      assert.strictEqual(facts.plan, plan);
+      assert.strictEqual(facts.control, acquired.control);
+      assert.strictEqual(facts.selected, selections[facts.operation.index]);
+      assert.equal(typeof facts.current, 'function'); facts.current();
+      await project?.(facts);
+    },
     startCompleteInferObservation({operations: originals}) {
       assert.deepEqual(originals, operations); return issuance;
     }, openNodeInferCaptureCustody({operation}) {
@@ -81,13 +103,14 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
     }};
   const create = new Function(...Object.keys(ports), `return (${groupText.slice(groupNode.start, groupNode.end)});`)(...Object.values(ports));
   const group = create({moon, acquired, infer: {components: selections}, originalModelComponents: components,
+    preparedProgram, inferEvidence,
     originalModelSelection: {components: selections}, originalPreparation, plan, sourcePlan,
     signal: controller.signal, modelController: {}, faultInjection, store,
     current() {if (!current) throw new Error('OriginalCurrentLost');}});
   group.bind({captures: [{}], evidence: [{}], captureStartedAt: 'start', captureCompletedAt: 'end'});
   for (const [index, context] of contexts.entries()) context.retainOperation(operations[index]);
   for (const context of contexts) assert.equal(context.retainCompleted(), true);
-  return {group, events, contexts, publication, preparedOptions, sourcePlan, signal: controller.signal, operations, cancel: () => controller.abort(new Error('OriginalCancelled')),
+  return {group, events, contexts, publication, preparedOptions, funding, sourcePlan, signal: controller.signal, operations, cancel: () => controller.abort(new Error('OriginalCancelled')),
     revoke() {current = false;}};
 }
 
@@ -109,6 +132,105 @@ test('plural publication shares the pending preparation and commits only resolve
   await f.group.retirePublication(); await f.group.retirePublication();
   assert.equal(f.group.hasOutputPins(), false);
   assert.equal(f.events.filter(value => value === 'release-binding').length, 1);
+});
+
+test('plural configured Evidence projects each original child once before publication under the shared phase', async () => {
+  const gate = deferred(), entered = deferred(), originals = [];
+  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+    originals.push(facts);
+    if (facts.operation.index === 0) {entered.resolve(); await gate.promise;}
+  }});
+  const first = f.group.persist(), second = f.group.persist();
+  await entered.promise;
+  assert.equal(originals.length, 1);
+  assert.equal(f.events.includes('prepare'), false);
+  gate.resolve();
+  assert.deepEqual(await Promise.all([first, second]), [f.publication.plan, f.publication.plan]);
+  assert.equal(originals.length, 2);
+  for (const [index, original] of originals.entries()) {
+    assert.strictEqual(original.operation, f.operations[index]);
+    assert(original.captureOwner);
+    assert(f.events.indexOf('capture-' + index) < f.events.indexOf('evidence-' + index));
+    assert(f.events.indexOf('evidence-' + index) < f.events.indexOf('prepare'));
+  }
+  await f.group.persist();
+  assert.equal(originals.length, 2, 'Reentry must not export completed Model input again');
+  assert.equal(await f.group.retirePublication(), true);
+});
+
+test('plural copy demands reuse one original publication window from actual bundle and input observations', async () => {
+  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+    facts.copyFunding({wire: '{"captures":[]}', count: 1, calls: [{callWire: '{}'}],
+      usage: {_0: 15, _1: 2, _2: 1}});
+  }});
+  await f.group.persist();
+  assert.deepEqual(f.funding, [
+    {owner: 0, retained: 100n, execution: 200n},
+    {owner: 0, retained: 50n, execution: 80n},
+  ], 'The same original high-water owner receives per-phase demand, never cumulative ended copies');
+  assert.equal(await f.group.retirePublication(), true);
+});
+
+test('plural pending Evidence copy reports Pending without awaiting itself and keeps its original child', async () => {
+  const gate = deferred(), entered = deferred();
+  let copying = true, copies = 0;
+  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+    copies++;
+    facts.retainCopy({cleanupPending: () => copying,
+      async close() {assert.equal(copying, false); return true;}, async cleanup() {assert.equal(copying, false); return true;}});
+    entered.resolve();
+    try {await gate.promise;} finally {copying = false;}
+  }});
+  const outcome = f.group.persist().then(value => ({value}), error => ({error}));
+  await entered.promise; f.cancel();
+  assert.equal(await f.group.retirePublication(), false);
+  assert.equal(f.group.cleanupPending(), true);
+  assert.equal(f.events.includes('release-capacity'), false);
+  gate.resolve();
+  assert.match((await outcome).error.message, /OriginalCancelled/);
+  assert.equal(await f.group.retirePublication(), true);
+  assert.equal(copies, 1, 'Cancellation must not project the later child');
+  assert.equal(f.events.includes('prepare'), false);
+});
+
+test('plural sink can reenter first close without circularly awaiting its own projection', async () => {
+  const close = deferred(); let f, projects = 0;
+  f = publicationGroupFixture({inferEvidence: {}, async project() {
+    projects++;
+    const retired = await f.group.retirePublication();
+    close.resolve(retired);
+    assert.equal(retired, false);
+  }});
+  const result = f.group.persist().then(value => ({value}), error => ({error}));
+  assert.equal(await close.promise, false);
+  assert.match((await result).error.message, /Retired/);
+  assert.equal(projects, 1);
+  assert.equal(f.events.includes('prepare'), false, 'A delayed Sink return cannot publish after close requested retirement');
+  assert.equal(await f.group.retirePublication(), true);
+});
+
+test('plural failed Evidence copy cleanup retains the original phase and primary for one owner retry', async () => {
+  for (const mode of ['false', 'throw']) {
+    const primary = new Error('OriginalProjectionFailure'), cleanupFailure = new Error('OriginalCopyCleanupFailure');
+    let pending = true, allow = false, closes = 0, retries = 0, projections = 0;
+    const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+      projections++;
+      facts.retainCopy({cleanupPending: () => pending, async close() {
+        closes++; if (mode === 'throw') throw cleanupFailure; return false;
+      }, async cleanup() {retries++; if (allow) pending = false; return !pending;}});
+      throw primary;
+    }});
+    await assert.rejects(f.group.persist(), error => error === primary);
+    if (mode === 'throw') await assert.rejects(f.group.retirePublication(), error => error === cleanupFailure);
+    else assert.equal(await f.group.retirePublication(), false);
+    assert.equal(f.group.cleanupPending(), true);
+    assert.equal(f.events.includes('release-capacity'), false);
+    await assert.rejects(f.group.persist(), error => error === primary);
+    assert.equal(projections, 1);
+    allow = true;
+    assert.equal(await f.group.retirePublication(), true);
+    assert.equal(closes, 1); assert.equal(retries, 1);
+  }
 });
 
 test('plural cleanup waits for pending preparation and prevents publication after retirement', async () => {
@@ -366,9 +488,11 @@ test('Whole producer refusal preserves the exact checked cause and releases only
   assert.equal(f.events.filter(value=>value.startsWith('source-unit-')).length,0);
 });
 
-test('two Whole contributions cannot be relabeled as separate complete evidence for one upstream Unit',async()=>{
+test('two Whole contributions without original Unit custody cannot become separate complete upstream evidence',async()=>{
   const f=fixture({inline:false,upstreamWhole:true});f.sources[1].captured.occurrence.stage=0;
-  await assert.rejects(f.invoke(),/CombinedEffectProducerUnitOriginalRequired/);
+  // The current combined-Unit entry first requires the original managed Run;
+  // two individual Source contributions cannot substitute for that custody.
+  await assert.rejects(f.invoke(),error=>error instanceof TypeError && error.message==='WholeEffectProducerUnitOriginalRequired');
   assert.deepEqual(f.events.filter(value=>value.startsWith('whole-unit-')),[]);
   assert.equal(f.events.filter(value=>value==='release-binding').length,1);
 });

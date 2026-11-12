@@ -411,6 +411,10 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
             assert.equal(work.sourceAcquisitionStarts, 2);
             assert.equal(work.modelCallStarts, variant === 'readme' ? 2 : 4);
             assert.equal(work.effectReplacementReturns, 0);
+            if (['two-models-joined-inputs', 'two-models-joined-whole'].includes(variant)) {
+              assert.deepEqual(record.summary.modelInputObservation,
+                {complete: true, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2});
+            }
           } else {
             assert.equal(work.sourceAcquisitionStarts, 0); assert.equal(work.modelCallStarts, 0);
             assert.equal(work.effectReplacementReturns, phase === 'approve' ? 2 : 0);

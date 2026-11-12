@@ -16,11 +16,12 @@ import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
 import {prepareAcquiredEffectKeyedPrefix} from './acquired-effect-keyed-prefix.mjs';
+import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired, managedRun,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
-  observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
+  observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController, inferEvidence,
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
   assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan,
   originalModelComponent, originalModelComponents, originalModelSelection, originalContent,
@@ -352,6 +353,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     }
     if (pluralModels) {
       modelGroup = acquiredEffectModelGroup({moon, acquired, infer, originalModelComponents,
+        preparedProgram: owner, inferEvidence,
         originalModelSelection, originalPreparation, plan: modelPlan, store, principalId, signal, now,
         modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
         sourceContinuation, faultInjection, current, sourcePlan: operationPlan, managedRun, originalHost: () => checkedHost});
@@ -914,6 +916,7 @@ function selectRestoredKeyedSource(moon, originals, direct) {
 // only retains their original journal/capture duties and seals one complete Run
 // observation, using the same publication borrow as the Program group caller.
 function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponents,
+  preparedProgram, inferEvidence,
   originalModelSelection, originalPreparation, plan, store, principalId, signal, now,
   modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
   sourceContinuation, faultInjection, current, sourcePlan, managedRun, originalHost}) {
@@ -936,6 +939,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   });
   let issuance, issuanceComplete = false, publicationOwner, publication, holding;
   let publicationPreparation, publicationFailure, publicationFailed = false;
+  let projectionPending = false;
   let retirementRequested = false, publicationRetirement, releasingOutputs = false;
   const publicationBindings = [];
   let captures, evidence, captureStartedAt, captureCompletedAt, keyedFamily, restoredHost, restoredKeyed, sourceUnitsOriginal;
@@ -975,7 +979,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   const unitPinsPending = () => sourceUnitsOriginal !== undefined && [...sourceUnitsOriginal.byUnit.values()]
     .some(entry => entry.resultPreparing || entry.results?.pins !== undefined ||
       entry.results?.modelScan !== undefined || entry.results?.modelOriginal !== undefined);
-  const pending = () => unitPinsPending() || children.some(child => child.capture !== undefined && !child.captureReleased ||
+  const pending = () => projectionPending || unitPinsPending() || children.some(child => child.copy?.cleanupPending() || child.capture !== undefined && !child.captureReleased ||
     child.continuation !== undefined && !child.continuationReleased || child.output !== undefined);
   const publicationCurrent = () => {
     same();
@@ -986,6 +990,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     // Retirement shares the original pending preparation. It cannot treat a
     // Promise as a binding, detach it, or publish after that preparation settles.
     retirementRequested = true;
+    // A Sink can reenter first close from its own pending callback. It cannot
+    // wait on itself: retain this original phase/copy and report Pending.
+    if (projectionPending) return false;
     publicationRetirement ??= Promise.resolve().then(async () => {
       if (publicationPreparation !== undefined) {
         try {await publicationPreparation;} catch { /* The persist caller retains its primary failure. */ }
@@ -995,6 +1002,14 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       // after cancellation/failure. Abort awaits its actual in-flight work,
       // confirms an already committed original, and retains pending cleanup.
       if (holding !== undefined) {await holding.abort(); holding = undefined;}
+      for (const child of children) if (child.copy !== undefined) {
+        if (child.copy.cleanupPending()) {
+          const retry = child.copyCloseAttempted === true; child.copyCloseAttempted = true;
+          const result = await (retry ? child.copy.cleanup() : child.copy.close());
+          if (result === false || child.copy.cleanupPending()) return false;
+        }
+        child.copy = undefined;
+      }
       while (publicationBindings.length > 0) {
         if (moon.clientProgramReleaseInferInvocationBinding(publicationBindings[0]) !== true) return false;
         publicationBindings.shift();
@@ -1028,6 +1043,53 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       publicationCurrent();
       if (!issuanceComplete || issuance === undefined) throw new Error('InstalledComposedInferOriginalObservationUnavailable');
       for (const child of children) {await child.capture.persist(); publicationCurrent();}
+      // Optional projection consumes these SAME Store-confirmed originals
+      // before any child, issuance or publication capacity is retired. The
+      // original shared phase prevents a second projection on persist reentry;
+      // restored Models remain lookup-only and never export their inputs again.
+      if (inferEvidence !== undefined) for (const child of children) {
+        if (child.record !== undefined) continue;
+        publicationCurrent();
+        projectionPending = true;
+        try {
+          await projectInferEvidence({configuration: inferEvidence, moon, control: acquired.control,
+            preparedProgram, plan, selected: child.selection, operation: child.operation,
+            captureOwner: child.capture, continuation: child.continuation,
+            current: publicationCurrent,
+            authorityScopeCid: acquired.authorityScopeCid,
+            copyFunding(bundle) {
+              publicationCurrent();
+              const usage = bundle.usage;
+              if (usage === undefined || !Number.isSafeInteger(bundle.count) || bundle.count < 1 || bundle.count > 128 ||
+                  runtimeField(usage, 0) !== Buffer.byteLength(bundle.wire)) {
+                throw new Error('RequiredEvidenceUnavailable');
+              }
+              let retained = 0n, execution = 0n;
+              for (let slot = 0; slot < bundle.count; slot++) {
+                const physical = child.operation.evaluationRequest(slot);
+                if (physical === undefined) throw new Error('RequiredEvidenceUnavailable');
+                const shape = checked(moon.clientProgramModelRequestInputFrameGeometry(runtimeField(physical, 0), 65536));
+                const text = bundle.calls[slot].callWire.length + runtimeField(physical, 1).length + runtimeField(physical, 2).length;
+                if (!Number.isSafeInteger(text) || text > 2147483647) throw new Error('EvaluationBudgetExceeded');
+                const capacity = checked(moon.clientProgramEffectModelEvidenceCopyCapacity(
+                  runtimeField(usage, 0), runtimeField(usage, 1), runtimeField(usage, 2), shape, text, bundle.count));
+                const r = runtimeField(capacity, 0), e = runtimeField(capacity, 1);
+                retained = r > retained ? r : retained; execution = e > execution ? e : execution;
+              }
+              // Still-live Unit metadata remains in the base. Sequential
+              // copies reuse this original owner's high-water window, not a
+              // retained sum of ended scratch. No consumed work is refunded.
+              publicationOwner.growOriginalPublicationCapacity(
+                earlyIdentityRetained + retained, earlyIdentityExecution + execution);
+              publicationCurrent();
+            },
+            retainCopy(copy) {
+              if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained');
+              child.copy = copy;
+            }});
+        } finally {projectionPending = false;}
+        publicationCurrent();
+      }
       publication = await acquiredInferEffectPublicationPlan({
         acquired, sources: evidence, compiled: plan.compiled,
         operation: children[0].operation, operations: children.map(child => child.operation), issuance,
@@ -1101,6 +1163,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       if (preparedCallSet === undefined) throw new Error('ModelPausePreparedOwnerMissing');
       const sourceClosure = await sourceContinuation?.retainAll(); same();
       child.continuation = await modelController.open({operation: child.operation, preparedCallSet,
+        preserveEvidenceInputs: false,
         plan, selected: child.authorizationSelection, principalId, submission, signal,
         declaredResults: moon.clientProgramEffectCompilationResultNames(acquired.compilation),
         originalPreparation: child.originalPreparation, existing: child.record, inputToken: child.token,

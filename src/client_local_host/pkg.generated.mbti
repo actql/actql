@@ -290,6 +290,8 @@ pub fn client_effect_family_ledger_limits(@run_publication_host.PreparedClientEf
 
 pub fn client_effect_local_ledger_limits(@run_publication_host.PreparedClientEffectComputation, ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.LedgerLimits?
 
+pub fn client_effect_model_evidence_copy_capacity(Int, Int, Int, @encode_core.EncodingConstructionGeometry, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
 
 pub fn client_infer_completed_result_artifact_input(ClientInferInputExecution, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalManifest) -> Result[@run_publication_host.ClientInferResultArtifactInput, @run_publication_host.ClientInferCallScopeIssue]

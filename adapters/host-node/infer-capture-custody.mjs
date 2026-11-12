@@ -456,7 +456,10 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         calls.push(Object.freeze({slotCid: moon.strategyRunEvidenceIdentity(call),
           callWire: moon.strategyRunEvidenceJson(call), outcome}));
       }
+      const usage = typeof moon.clientProgramInferCaptureExportWireUsage === 'function'
+        ? checked(moon.clientProgramInferCaptureExportWireUsage(exporter)) : undefined;
       return Object.freeze({wire, cid: moon.clientProgramInferCaptureExportIdentity(exporter), count,
+        ...(usage === undefined ? {} : {usage}),
         calls: Object.freeze(calls)});
     },
     configureModelJournal({observe, entry}) {

@@ -118,17 +118,24 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
 }
 
 export async function projectInferEvidence({configuration, moon, control, preparedProgram,
-  plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainCopy, partial = false}) {
+  plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainCopy, partial = false,
+  copyFunding, current}) {
   if (configuration === undefined) return;
   const configured = configurations.get(configuration);
   if (configured === undefined) throw new TypeError('ForeignInferEvidenceConfiguration');
   const subject = Object.freeze({runDefinitionCid: plan.runDefinition.identity, authorityScopeCid});
   let manifest, copy, copying = true, target;
+  let currentUnavailable = false;
+  const checkOriginalCurrent = () => {
+    try {current?.();} catch (cause) {currentUnavailable = true; throw cause;}
+  };
   const releaseCopy = () => {
     if (copy === undefined) return true;
     if (copying) return false;
-    const released = moon.clientProgramReleaseInferEvidenceCopy(runtimeField(copy, 0), runtimeField(copy, 1));
-    if (!runtimeIsOkRequired(released)) return false;
+    if (copyFunding === undefined) {
+      const released = moon.clientProgramReleaseInferEvidenceCopy(runtimeField(copy, 0), runtimeField(copy, 1));
+      if (!runtimeIsOkRequired(released)) return false;
+    }
     copy = undefined; configured.pending = false; return true;
   };
   try {
@@ -144,9 +151,21 @@ export async function projectInferEvidence({configuration, moon, control, prepar
     } else {
       if (configured.pending || bundle !== undefined && (bundle.wire.length > configured.maxBytes ||
           Buffer.byteLength(bundle.wire) > configured.maxBytes)) throw Object.assign(new Error('EvaluationBudgetExceeded'), {code: 'EvaluationBudgetExceeded'});
-      const reserved = moon.clientProgramReserveInferEvidenceCopy(configured.maxBytes);
-      if (!runtimeIsOkRequired(reserved)) throw Object.assign(new Error('EvaluationBudgetExceeded'), {code: 'EvaluationBudgetExceeded'});
-      copy = runtimeField(reserved, 0); configured.pending = true;
+      if (copyFunding === undefined) {
+        const reserved = moon.clientProgramReserveInferEvidenceCopy(configured.maxBytes);
+        if (!runtimeIsOkRequired(reserved)) throw Object.assign(new Error('EvaluationBudgetExceeded'), {code: 'EvaluationBudgetExceeded'});
+        copy = runtimeField(reserved, 0); configured.pending = true;
+      } else {
+        // The Effect child owns its actual Model publication funding already.
+        // Reuse one bounded window, not a policy-sized new Ledger. Mark this
+        // same flight before the original current callback can reenter it.
+        configured.pending = true;
+        try {
+          if (partial || bundle === undefined) throw new Error('RequiredEvidenceUnavailable');
+          copyFunding(bundle);
+          copy = Object.freeze({});
+        } catch (cause) {configured.pending = false; throw cause;}
+      }
       retainCopy({cleanupPending: () => copy !== undefined,
         close: async () => releaseCopy(), cleanup: async () => releaseCopy()});
       const records = bundle === undefined ? [] : JSON.parse(bundle.wire).captures;
@@ -167,13 +186,22 @@ export async function projectInferEvidence({configuration, moon, control, prepar
         const entry = call.entry ?? continuation?.entry(slot);
         const identity = {modelCallSlotCid: call.slotCid, attemptCid: entry?.attemptCid};
         let record = bySlot.get(call.slotCid), originalBundle = bundle;
-        const physical = operation.evaluationRequest(slot);
+        if (currentUnavailable) {
+          items.push(Object.freeze({...identity, ...missing('RequiredEvidenceUnavailable')}));
+          continue;
+        }
+        // Existing Effect-free callers retain their original eager lookup.
+        // Only this Effect boundary defers lookup until its supplied current
+        // fence succeeds; it must not inspect a later call after close.
+        let physical = current === undefined ? operation.evaluationRequest(slot) : undefined;
         if (policy === undefined || typeof call.callWire !== 'string' ||
             entry !== undefined && entry.slotCid !== call.slotCid) {
           items.push(Object.freeze({...identity, ...missing('RequiredEvidenceUnavailable')}));
           continue;
         }
         try {
+          checkOriginalCurrent();
+          if (current !== undefined) physical = operation.evaluationRequest(slot);
           const callBody = JSON.parse(call.callWire);
           if (partial) {
             const authorized = await configured.authorize({subject, attemptCid: entry?.attemptCid,
@@ -181,6 +209,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
                 modelCallSlotCid: call.slotCid, semanticRequestCid: callBody.fixed_request_cid,
                 modelTaskCid: callBody.model_task_cid}, policy, target,
               destination: configured.destination, purpose: 'capture'});
+            checkOriginalCurrent();
             if (authorized !== true) throw Object.assign(new Error('EvidenceReadDenied'), {code: 'EvidenceReadDenied'});
             identity.inputKeyCid = callBody.input_key_cid;
             identity.callState = call.state;
@@ -230,17 +259,25 @@ export async function projectInferEvidence({configuration, moon, control, prepar
             (typeof wire === 'string' ? Buffer.byteLength(wire) : configured.maxBytes + 1), 0);
           if (bytes > configured.maxBytes - copiedBytes) {
             items.push(Object.freeze({...identity, ...missing('EvaluationBudgetExceeded')}));
-          } else if (await configured.authorize(binding) !== true) {
-            items.push(Object.freeze({...identity, ...missing('EvidenceReadDenied')}));
           } else {
+            const authorized = await configured.authorize(binding);
+            checkOriginalCurrent();
+            if (authorized !== true) {
+              items.push(Object.freeze({...identity, ...missing('EvidenceReadDenied')}));
+              continue;
+            }
             // Charge the entire handoff before copying, including failed sink
             // attempts. A later item cannot consume the same copy budget again.
             copiedBytes += bytes;
             const captured = await configured.sink.capture({...binding, wires});
             items.push(Object.freeze({...captured, ...identity}));
+            // Keep the returned original receipt, even when this Sink closed
+            // its Host. The next call must not start after that boundary.
+            try {checkOriginalCurrent();} catch { /* The original group retains its current failure. */ }
           }
         } catch (error) {
-          items.push(Object.freeze({...identity, ...missing(error.code ?? 'EvidenceSinkFailure')}));
+          items.push(Object.freeze({...identity, ...missing(currentUnavailable
+            ? 'RequiredEvidenceUnavailable' : error.code ?? 'EvidenceSinkFailure')}));
         }
       }
       const unavailable = items.find(item => item.status !== 'complete');
