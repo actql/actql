@@ -55,7 +55,9 @@ export function validatePerformancePackageProducer({repository, sourceSha, runId
 }
 
 export function validatePerformanceProcessPackageProducer(options) {
-  const {repository, sourceSha, runId, artifactId, artifact, run, jobs, producerJob, adapter} = options;
+  const {repository, sourceSha, runId, artifactId, artifact, run, jobs, producerJob, adapter,
+    nativeApproval = false} = options;
+  assert.equal(typeof nativeApproval, 'boolean');
   assert(['native', 'python'].includes(adapter));
   assert.match(repository, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u);
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
@@ -65,7 +67,14 @@ export function validatePerformanceProcessPackageProducer(options) {
   assert.equal(run.repository.full_name, repository);
   assert.equal(run.head_sha, sourceSha);
   assert.equal(run.path.split('@')[0], '.github/workflows/ci.yml');
-  assert.equal(run.status, 'completed'); assert(positiveId(run.run_attempt));
+  if (nativeApproval) {
+    assert(positiveId(run.repository.id));
+    assert.equal(artifact.workflow_run.repository_id, run.repository.id);
+    assert.equal(artifact.workflow_run.head_repository_id, run.repository.id);
+    assert.equal(adapter, 'native'); assert.equal(producerJob, 'native-cli-linux-local');
+    assert(['completed', 'in_progress'].includes(run.status));
+  } else assert.equal(run.status, 'completed');
+  assert(positiveId(run.run_attempt));
   assert.equal(String(artifact.id), String(artifactId)); assert.equal(artifact.expired, false);
   assert.equal(String(artifact.workflow_run.id), String(runId));
   assert.equal(artifact.workflow_run.head_sha, sourceSha);
@@ -73,9 +82,52 @@ export function validatePerformanceProcessPackageProducer(options) {
   assert.equal(selected.length, 1, 'Exactly one selected normal package job is required');
   assert.equal(selected[0].status, 'completed'); assert.equal(selected[0].conclusion, 'success');
   assert.equal(selected[0].head_sha, sourceSha);
-  return {repository, sourceSha, adapter, runId: String(runId), artifactId: String(artifactId),
+  if (nativeApproval) {
+    assert(positiveId(selected[0].id));
+    assert.equal(String(selected[0].run_id), String(runId));
+    assert.equal(selected[0].run_attempt, run.run_attempt);
+    assert.equal(artifact.name, `native-cli-linux-local-${runId}-${run.run_attempt}`);
+    assert.match(artifact.digest, /^sha256:[a-f0-9]{64}$/u);
+  }
+  return {repository, ...(nativeApproval ? {eventHeadSha: sourceSha,
+    artifactDigest: artifact.digest, sourceRunStatus: run.status,
+    sourceRunConclusion: run.conclusion} : {sourceSha}), adapter,
+    runId: String(runId), artifactId: String(artifactId),
     attempt: run.run_attempt, producerJobId: selected[0].id, artifactName: artifact.name,
-    qualification: 'Original same-run artifact and selected package job only; installed payload and performance checks remain required.'};
+    qualification: nativeApproval
+      ? 'Successful original Native package job only; final source-run CI acceptance remains separate.'
+      : 'Original same-run artifact and selected package job only; installed payload and performance checks remain required.'};
+}
+
+export function validateNativeApprovalSource(options) {
+  const {sourceSha: eventHeadSha, manifest, manifestSha256, run, headCommit, sourceCommit} = options;
+  const producer = validatePerformanceProcessPackageProducer({...options, nativeApproval: true});
+  assert.match(manifest.sourceSha, /^[a-f0-9]{40}$/u);
+  assert.match(manifestSha256, /^[a-f0-9]{64}$/u);
+  assert.equal(headCommit.sha, eventHeadSha);
+  assert.equal(sourceCommit.sha, manifest.sourceSha);
+  assert.match(headCommit.tree.sha, /^[a-f0-9]{40}$/u);
+  assert.equal(sourceCommit.tree.sha, headCommit.tree.sha, 'Built source differs from the reviewed head tree');
+  let relation = 'same-head';
+  if (manifest.sourceSha !== eventHeadSha) {
+    assert.equal(run.event, 'pull_request', 'Only the original PR merge may differ from its event head');
+    assert.equal(run.pull_requests.length, 1);
+    const pr = run.pull_requests[0];
+    assert(positiveId(pr.number)); assert.equal(pr.head.sha, eventHeadSha);
+    assert.match(pr.base.sha, /^[a-f0-9]{40}$/u);
+    assert.equal(pr.head.repo.id, run.repository.id);
+    assert.equal(pr.base.repo.id, run.repository.id);
+    assert.deepEqual(sourceCommit.parents.map(parent => parent.sha), [pr.base.sha, eventHeadSha],
+      'Built source does not have the original PR base/head parents');
+    const reference = run.referenced_workflows.filter(value =>
+      value.path === `${options.repository}/.github/workflows/performance-matrix.yml@${manifest.sourceSha}`);
+    assert.equal(reference.length, 1, 'Built source is not the original recorded PR workflow source');
+    assert.equal(reference[0].sha, manifest.sourceSha);
+    assert.equal(reference[0].ref, `refs/pull/${pr.number}/merge`);
+    relation = 'pull-request-merge';
+  }
+  return {...producer, sourceSha: manifest.sourceSha, sourceTreeSha: sourceCommit.tree.sha,
+    sourceParents: sourceCommit.parents.map(parent => parent.sha), manifestSha256, relation};
 }
 
 export async function inspectPerformancePackageProducer(options, fetchMetadata = fetch) {
@@ -102,6 +154,18 @@ export async function inspectPerformancePackageProducer(options, fetchMetadata =
     if (jobs.length >= result.total_count) { complete = true; break; }
   }
   assert(complete, 'Incomplete producer job inventory');
+  if (options.nativeApproval && options.nativePackages !== undefined) {
+    validatePerformanceProcessPackageProducer({...options, run, artifact, jobs});
+    const bytes = await readFile(join(options.nativePackages, 'release.json'));
+    assert(bytes.length <= 8 * 1024 ** 2, 'Native release manifest exceeds bounded input');
+    const {admitNativeReleaseManifest} = await import('./native-cli-release.mjs');
+    const manifest = admitNativeReleaseManifest(JSON.parse(bytes));
+    const headCommit = await get(`git/commits/${options.sourceSha}`);
+    const sourceCommit = manifest.sourceSha === options.sourceSha ? headCommit
+      : await get(`git/commits/${manifest.sourceSha}`);
+    return validateNativeApprovalSource({...options, run, artifact, jobs, manifest,
+      manifestSha256: hash(bytes), headCommit, sourceCommit});
+  }
   return (options.adapter === undefined ? validatePerformancePackageProducer
     : validatePerformanceProcessPackageProducer)({...options, run, artifact, jobs});
 }
@@ -303,14 +367,19 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const [command, ...args] = process.argv.slice(2);
-    if (command === 'inspect-producer' || command === 'inspect-process-producer') {
-      assert.equal(args.length, 0);
+    if (['inspect-producer', 'inspect-process-producer', 'inspect-native-approval-producer',
+      'inspect-native-approval-source'].includes(command)) {
+      const nativeApproval = command.startsWith('inspect-native-approval-');
+      assert.equal(args.length, command === 'inspect-native-approval-source' ? 1 : 0);
       if (command === 'inspect-process-producer') {
         assert(['native', 'python'].includes(process.env.PACKAGE_ADAPTER), 'Exact process adapter is required');
       }
       console.log(JSON.stringify(await inspectPerformancePackageProducer({repository: process.env.GITHUB_REPOSITORY,
-        sourceSha: process.env.GITHUB_SHA, runId: process.env.PACKAGE_RUN_ID,
+        sourceSha: nativeApproval ? process.env.PACKAGE_EVENT_HEAD_SHA : process.env.GITHUB_SHA,
+        runId: process.env.PACKAGE_RUN_ID,
         artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN,
+        ...(nativeApproval ? {adapter: 'native', producerJob: process.env.PACKAGE_PRODUCER_JOB,
+          nativeApproval: true, ...(args.length ? {nativePackages: resolve(args[0])} : {})} : {}),
         ...(command === 'inspect-process-producer' ? {adapter: process.env.PACKAGE_ADAPTER,
           producerJob: process.env.PACKAGE_PRODUCER_JOB} : {})})));
     } else if (command === 'prepare-native') {
