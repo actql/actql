@@ -195,6 +195,31 @@ pub fn prepare_client_effect_direct_sources_publication(
 }
 
 ///|
+// Early Unit input coverage belongs to the original checked Direct census.
+// A later correlated read is still required by its own Model/Content owner;
+// it cannot prevent publication of an already completed upstream Unit.
+// Final Run observation deliberately keeps the complete Source-only guard.
+fn client_direct_source_input_coverage(
+  prepared : PreparedClientProgram,
+  occurrences : ClientDirectAcquisitionOccurrences,
+  count : Int,
+  preconsumer : Bool,
+) -> Bool {
+  if !preconsumer {
+    return client_direct_observations_cover_sources(prepared, count)
+  }
+  let original = match occurrences.program {
+    DirectPure(owner) => physical_equal(owner, prepared)
+    DirectEffect(owner) =>
+      physical_equal(client_effect_program_view(owner).graph, prepared.graph)
+  }
+  original &&
+  count > 0 &&
+  client_direct_acquisition_occurrence_count(occurrences) == count &&
+  occurrences.coordinates.length() == count
+}
+
+///|
 /// Validate each original Source once for either a Source-only Run or a Unit
 /// preceding Models. Final Run observation issuance remains a separate step.
 fn prepare_client_direct_source_inputs(
@@ -210,6 +235,7 @@ fn prepare_client_direct_source_inputs(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preconsumer? : Bool = false,
 ) -> Result[ClientDirectSourceInputs, @publication.RunEvidenceValueIssue] {
   if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return Err(@publication.RunEvidenceInvalidLimits)
@@ -221,7 +247,9 @@ fn prepare_client_direct_source_inputs(
     originals.length() != count ||
     sources.length() != count ||
     inputs.length() != count ||
-    !client_direct_observations_cover_sources(prepared, count) {
+    !client_direct_source_input_coverage(
+      prepared, occurrences, count, preconsumer,
+    ) {
     return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
   }
   if client_direct_acquisition_occurrence_count(occurrences) != count {
@@ -372,6 +400,7 @@ pub fn prepare_client_effect_source_unit_inputs(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    preconsumer=true,
   ).map(source => {
     owner: prepared,
     source,

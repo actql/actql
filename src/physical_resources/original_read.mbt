@@ -324,11 +324,24 @@ fn[T] issue_original_ledger_descriptor_from_slots(
 fn[T] original_tokens_match(
   value : OriginalLedgerDescriptor[T],
   completed_outputs? : Bool = false,
+  bootstrap_growth? : Bool = false,
 ) -> Bool {
   value.ledger.original_inventory is Some(inventory) &&
   !inventory.closing &&
-  original_reservation_snapshot(value.bootstrap.reservation) ==
-  value.bootstrap_state &&
+  (
+    original_reservation_snapshot(value.bootstrap.reservation) ==
+    value.bootstrap_state ||
+    (
+      completed_outputs &&
+      bootstrap_growth &&
+      original_capacity_growth_matches(
+        value.ledger,
+        value.bootstrap.reservation,
+        value.bootstrap_state,
+        original_bootstrap=true,
+      )
+    )
+  ) &&
   value.reservations.all(pair => {
     let (token, snapshot) = pair
     original_reservation_snapshot(token) == snapshot ||
@@ -360,6 +373,7 @@ fn original_capacity_growth_matches(
   ledger : Ledger,
   token : Reservation,
   before : OriginalReservationSnapshot,
+  original_bootstrap? : Bool = false,
 ) -> Bool {
   guard before.serial < 0 &&
     token.serial == before.serial &&
@@ -381,13 +395,20 @@ fn original_capacity_growth_matches(
       before.retention,
       before.execution,
     ) &&
-    ledger.original_inventory is Some(inventory) &&
-    inventory.reservations.by_serial(before.serial) is Some(original) else {
+    ledger.original_inventory is Some(inventory) else {
     return false
   }
   // Serial DATA locates the slot; only this actual opaque reservation proves
   // identity. Equal fields on a replacement/foreign token cannot stand in.
-  physical_equal(original, token)
+  if original_bootstrap {
+    // Bootstrap is held separately from ordinary reservation slots. Only the
+    // original census's actual token can supply this started-group growth.
+    before.serial == -1 &&
+    physical_equal(inventory.bootstrap.reservation, token)
+  } else {
+    inventory.reservations.by_serial(before.serial) is Some(original) &&
+    physical_equal(original, token)
+  }
 }
 
 ///|

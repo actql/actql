@@ -503,3 +503,77 @@ test "closed original read first declaration refuses duplicate foreign order and
   settle_funded_read_consumer(children[1], true).unwrap()
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
 }
+
+///|
+// Same Resource owner/tokens and actual resize. No provider execution, new
+// allowance or physical callback adequacy is claimed by these finite bounds.
+test "later declared Model child keeps the same funded bootstrap growth without refreshing its snapshot" {
+  let (ledger, _, claim, origins, children) = original_read_group_fixture()
+  let bootstrap = claim.descriptor.bootstrap
+  let first_snapshot = claim.descriptor.bootstrap_state
+  let admitted = claim.admitted
+  enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+  let (_, first) = handoff_funded_read_consumer_capacity(
+    children[0],
+    origins[0],
+    7L,
+    5L,
+  ).unwrap()
+  charge_planning(ledger, 1).unwrap()
+  // The existing preparation owner, not generic public grow, owns bootstrap.
+  resize_capacity_reservation(ledger, bootstrap, 4L, 2L).unwrap()
+  assert_true(funded_read_consumer_available(children[1], origins[1], 7L, 5L))
+  assert_true(claim.descriptor.bootstrap_state == first_snapshot)
+  assert_true(claim.admitted == admitted)
+  assert_false(funded_read_snapshot_matches(claim, origins[0]))
+  assert_false(original_tokens_match(claim.descriptor, completed_outputs=true))
+  assert_eq(ledger_usage(ledger).planning_work, 1)
+  enter_funded_read_consumer(children[1], origins[1], 7L, 5L).unwrap()
+  let (_, second) = handoff_funded_read_consumer_capacity(
+    children[1],
+    origins[1],
+    7L,
+    5L,
+  ).unwrap()
+  settle_capacity(ledger, first).unwrap()
+  settle_capacity(ledger, second).unwrap()
+  settle_funded_read_consumer(children[0], true).unwrap()
+  settle_funded_read_consumer(children[1], true).unwrap()
+  assert_true(finish_funded_read_inventory(claim, origins[0], true).unwrap())
+}
+
+///|
+test "Model child bootstrap growth preserves initial shrink and closing-inventory refusal" {
+  for phase in 0..<3 {
+    let (ledger, _, claim, origins, children) = original_read_group_fixture()
+    let bootstrap = claim.descriptor.bootstrap
+    if phase != 0 {
+      enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+    }
+    if phase == 2 {
+      // Only the original inventory may retire its bootstrap. An ordinary
+      // capacity caller cannot bypass that live shared Read responsibility.
+      assert_true(settle_capacity(ledger, bootstrap) is Err(_))
+      assert_true(capacity_reservation_open(bootstrap))
+      assert_false(finish_original_ledger_inventory(ledger, false).unwrap())
+    } else {
+      resize_capacity_reservation(
+        ledger,
+        bootstrap,
+        if phase == 0 {
+          4L
+        } else {
+          2L
+        },
+        2L,
+      ).unwrap()
+    }
+    assert_false(
+      funded_read_consumer_available(children[1], origins[1], 7L, 5L),
+    )
+    assert_true(
+      enter_funded_read_consumer(children[1], origins[1], 7L, 5L)
+      is Err(ChangedOriginalState),
+    )
+  }
+}

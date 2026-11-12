@@ -162,7 +162,8 @@ fn[T] original_read_children_current(claim : FundedReadClaim[T]) -> Bool {
 ///|
 // Callback-free half of the existing group current boundary. A live planned
 // child may have spent work or obtained its own recorded output; the original
-// descriptor and bootstrap snapshots must still match without refreshing them.
+// descriptor stays fixed; only recorded same-bootstrap growth can differ
+// after the group starts. No snapshot is refreshed.
 fn[T] original_read_children_snapshot_matches(
   claim : FundedReadClaim[T],
 ) -> Bool {
@@ -172,7 +173,14 @@ fn[T] original_read_children_snapshot_matches(
   capacity_reservation_open(claim.read) &&
   capacity_reservation_open(claim.descriptor.bootstrap) &&
   original_reservation_snapshot(claim.read.reservation) == claim.read_state &&
-  original_tokens_match(claim.descriptor, completed_outputs=true)
+  // Later declared children retain the original snapshot, while the SAME
+  // preparation may have backed an intervening semantic body by monotone
+  // growth of its recorded bootstrap. Initial/singular admission stays exact.
+  original_tokens_match(
+    claim.descriptor,
+    completed_outputs=true,
+    bootstrap_growth=claim.children is Some(group) && group.started,
+  )
 }
 
 ///|
