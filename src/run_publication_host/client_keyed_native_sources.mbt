@@ -223,13 +223,35 @@ fn build_client_keyed_native_whole_source_evidence(
   state.source_scan = None
   // Existing metadata codec grows the same reservation before any body is
   // encoded. Keep completed identity/body backing alive beside these outputs.
+  let order_fields = @acquisition.parameterized_request_field_count(
+    @acquisition.source_acquisition_request(original),
+  )
+  guard @execution.preparation_array_representation(
+      if order_fields > 1 {
+        1L
+      } else {
+        0L
+      },
+      if order_fields > 1 {
+        order_fields.to_int64()
+      } else {
+        0L
+      },
+      true,
+    )
+    is Some(ordering) &&
+    @execution.preparation_representation_cost(ordering) is Some(ordering_bytes) &&
+    @execution.checked_preparation_add_product(controls, ordering_bytes, 1L)
+    is Some(document_controls) else {
+    return Err(Assembly("capacity_overflow"))
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
       max_bytes,
       7L,
       copies=7,
-      extra_controls=controls,
+      extra_controls=document_controls,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -272,7 +294,7 @@ fn build_client_keyed_native_whole_source_evidence(
     Err(issue) => return Err(SourceObservation(issue))
   }
   let request_document = match
-    @acquisition.parameterized_request_document(
+    @acquisition.parameterized_request_canonical_document(
       @acquisition.source_acquisition_request(original),
       max_bytes,
       max_nodes,

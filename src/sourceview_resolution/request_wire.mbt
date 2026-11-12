@@ -33,6 +33,19 @@ pub fn parameterized_request_document(
 }
 
 ///|
+/// Canonical publication preimage of the SAME typed bound Request. Transport
+/// spelling and original field/binding indices remain unchanged. The caller
+/// funds one temporary field-reference array when there is more than one field.
+pub fn parameterized_request_canonical_document(
+  request : ParameterizedRequest,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodedDocument, RequestWireIssue] {
+  canonical_request_fields_document(request.fields, max_bytes, max_nodes, max_depth)
+}
+
+///|
 /// The keyed template's actual static fields, excluding its correlation roles.
 /// The same checked field writer is used by ordinary requests; no key tuple,
 /// request value, Host binding or capability is fabricated for this projection.
@@ -56,10 +69,23 @@ pub fn parameterized_keyed_static_request_document(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@encode.EncodedDocument, RequestWireIssue] {
-  let fields = request.fields.copy()
-  fields.sort_by((a, b) => {
-    @unicode.compare_utf16(a.field.slot.field_name, b.field.slot.field_name)
-  })
+  canonical_request_fields_document(request.fields, max_bytes, max_nodes, max_depth)
+}
+
+///|
+fn canonical_request_fields_document(
+  original : Array[ParameterizedRequestField],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodedDocument, RequestWireIssue] {
+  let fields = if original.length() < 2 { original } else {
+    let fields = original.copy()
+    fields.sort_by((a, b) => {
+      @unicode.compare_utf16(a.field.slot.field_name, b.field.slot.field_name)
+    })
+    fields
+  }
   bound_request_fields_document(fields, max_bytes, max_nodes, max_depth)
 }
 

@@ -80,6 +80,8 @@ fn original_composed_keyed_consumer(
   declared_activation_record? : Bool = false,
   installed_capture_plan_finish? : Bool = false,
   declared_raw_page? : Bool = false,
+  canonical_source_request? : Bool = false,
+  source_metadata_wire_bytes? : Int = 16777216,
   installed_page_identity? : Bool = false,
   declared_dependency_closure? : Bool = false,
   borrowed_source_cleanup? : Bool = false,
@@ -99,6 +101,7 @@ fn original_composed_keyed_consumer(
   let publication_early = publication_early || pre_dispatch_plan
   let (unbound_declaration, keyed_environment) = original_keyed_declaration_environment(
     relation_versions=true,
+    file_request_fields=canonical_source_request,
   )
   let declaration = if declared_dependency_closure {
     let physical = @row_source_host.generate_row_declaration(
@@ -329,6 +332,26 @@ fn original_composed_keyed_consumer(
     }
     fields["stages"] = Json::array(retained)
     document = Json::object(fields).stringify()
+  }
+  if canonical_source_request {
+    guard @json.parse(document) is Object(program) &&
+      program["stages"] is Array(stages) &&
+      stages[0] is Object(stage) &&
+      stage["inputs"] is Object(inputs) else {
+      fail("original noncanonical Source Request")
+    }
+    for name in ["a", "b"] {
+      guard inputs[name] is Object(input) else {
+        fail("original independent Source")
+      }
+      input["request"] = @json.parse("{\"paths\":null,\"glob\":null}")
+    }
+    document = Json::object(program)
+      .stringify()
+      .replace(
+        old="\"request\":{\"glob\":null,\"paths\":null}",
+        new="\"request\":{\"paths\":null,\"glob\":null}",
+      )
   }
   let shared = prepare_parent is Some(_)
   let request_parent = match prepare_parent {
@@ -1362,7 +1385,7 @@ fn original_composed_keyed_consumer(
         observation,
         original_request,
         retention,
-        16777216,
+        source_metadata_wire_bytes,
         1024,
         20,
       )
@@ -1383,7 +1406,14 @@ fn original_composed_keyed_consumer(
       assert_true(physical_equal(bound.identity, whole_identities[index]))
       assert_true(physical_equal(bound.logical, logical))
       assert_true(physical_equal(bound.observation, observation))
-      assert_eq(@encode.document_text(bound.request), "{}")
+      assert_eq(
+        @encode.document_text(bound.request),
+        if canonical_source_request {
+          "{\"glob\":null,\"paths\":null}"
+        } else {
+          "{}"
+        },
+      )
       let previous = @resources.ledger_usage(ledger)
       assert_true(
         @publication_host.bind_client_keyed_whole_source_metadata(
@@ -3912,5 +3942,25 @@ test "installed declared page identity retains its original selected wire geomet
     source_identity_bodies=true,
     installed_page_identity=true,
     declared_dependency_closure=true,
+  )
+}
+
+///|
+test "installed noncanonical Source Request completes the owned keyed dependency closure before Model" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    installed_capture_plan_finish=true,
+    declared_raw_page=true,
+    source_identity_bodies=true,
+    installed_page_identity=true,
+    identity_wire_nodes=Some((1000000, 1000003)),
+    declared_dependency_closure=true,
+    canonical_source_request=true,
+    source_metadata_wire_bytes=1000000,
   )
 }
