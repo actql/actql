@@ -148,3 +148,67 @@ pub fn client_program_composed_keyed_file_locator_start(
     lookup, request, sources, reads,
   )
 }
+
+///|
+#export_name("clientProgramInstalledEffectManagedDeferredKeyedHostOpen")
+pub fn client_program_installed_effect_managed_deferred_keyed_host_open(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  sources : Array[@query.CapturedInputSource],
+) -> Result[
+  ClientLocalEffectHost?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.open_installed_effect_managed_deferred_keyed_host(
+    owner, bound, sources,
+  ).map(value => {
+    value.map(tuple => {
+      let (host, run, sequences) = tuple
+      { host, run, prepared: bound, sequences, }
+    })
+  })
+}
+
+///|
+#export_name("clientProgramStartInstalledOriginalComposedKeyedHostPrefix")
+pub fn client_program_start_installed_original_composed_keyed_host_prefix(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@client_row_source_host.RowCapturedInput],
+  host : ClientLocalEffectHost,
+) -> Result[
+  @client_local_host.ClientOriginalComposedKeyedPrefix,
+  @client_local_host.ClientSerializationPrefixIssue,
+] {
+  let limits = @infer_host.standard_limits()
+  @client_local_host.start_installed_original_composed_keyed_host_prefix(
+    owner,
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    rows,
+    host.run,
+    limits.input,
+    limits.measurement,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedKeyedHostBind")
+pub fn client_program_installed_effect_managed_keyed_host_bind(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  host : ClientLocalEffectHost,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.bind_installed_effect_managed_keyed_host(
+    owner,
+    host.run,
+    lookup,
+  )
+}

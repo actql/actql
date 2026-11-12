@@ -4,7 +4,7 @@ import {checkedLocalManagedAdvance} from './managed-advance-diagnostic.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {readLocalRetainedInput} from './retained-input.mjs';
 import {localComputeFaultInjection, localRetainedStore,
-  localSnapshotStore, localExecutionPauseHandler} from './retained-store.mjs';
+  localSnapshotStore, localExecutionPauseHandler, localExecutionBeforePrepare} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
 import {closeCompletedLocalManagedOutput, closeCompletedLocalManagedOutputAsync, continueLocalManagedFailureCleanup, refreshCompletedLocalManagedScratch} from './managed-output-custody.mjs';
 import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
@@ -147,11 +147,23 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
   const createSnapshotLease = localSnapshotStore(configuration);
   const faultInjection = localComputeFaultInjection(configuration);
   const handlePause = localExecutionPauseHandler(configuration);
+  const beforePrepare = localExecutionBeforePrepare(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
   let nextMaterial = 1;
   return Object.freeze({
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
+    async beforeNext() {
+      if (beforePrepare === undefined) return;
+      const task = moon.strategyHostNextTask(setup);
+      if (task >= 0 && beforePrepare !== undefined) {
+        // The existing Host beforeNext boundary precedes candidate planning
+        // and input selection/dispatch. It may attach its actual completed keyed read;
+        // it cannot replace the selected task or replay a producer.
+        await beforePrepare(task);
+        if (moon.strategyHostNextTask(setup) !== task) throw new Error('LocalTaskChangedDuringPreparation');
+      }
+    },
     async prepareNext(outputs) {
       // Row-only output uses the configured Store. A typed Carrier path keeps
       // its exact managed generations, including formal Relation views.

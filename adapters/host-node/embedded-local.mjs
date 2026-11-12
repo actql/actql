@@ -4563,9 +4563,9 @@ async function openInstalledHost(originalInstallation, preparation) {
                         () => preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity)),
                     }),
                     computeConfigurations: {local: localSnapshotConfiguration},
-                    withComputePauseHandler: (configurations, handlePause) => ({
+                    withComputePauseHandler: (configurations, handlePause, beforePrepare) => ({
                       ...configurations,
-                      local: withLocalExecutionPauseHandler(configurations.local, handlePause),
+                      local: withLocalExecutionPauseHandler(configurations.local, handlePause, beforePrepare),
                     }),
                     store, principalId, contentRun: runContent, faultInjection: authorization?.faultInjection,
                     observe: (event, detail) => diagnostic(event,

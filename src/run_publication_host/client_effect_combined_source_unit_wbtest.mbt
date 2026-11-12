@@ -174,6 +174,7 @@ fn combined_source_unit_completed_fixture(
   model_scope_imports? : Bool = false,
   model_scope_backing? : Bool = false,
   two_result_ports? : Bool = false,
+  host_prefix_inputs? : Bool = false,
 ) -> Unit raise {
   let document =
     #|{"version":"actql/0.1","id":"combined-source-unit","stages":[{"id":"joined","inputs":{"left_rows":{"connector":"crm/main","resource":"r"},"right_rows":{"connector":"crm/right","resource":"r"}},"from":"left_rows","steps":[{"join":{"with":"right_rows","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":4,"select":{"value":"left.id"}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"joined":{"from":{"stage":"joined","result":"out"}}}}
@@ -826,6 +827,79 @@ fn combined_source_unit_completed_fixture(
         10000,
         20000,
       ).unwrap()
+      if host_prefix_inputs {
+        let original = @strategy.captured_task_input(
+          @strategy.captured_effect_run_dag(run),
+          occurrence.task,
+          10000,
+          20000,
+        ).unwrap()
+        let input_slots : Array[(Int, Int, @execution.ProducerRead)] = []
+        for position in 0..<@execution.generated_sequence_step_count(prefix) {
+          let step = @execution.generated_sequence_step_index_at(
+            prefix, position,
+          ).unwrap()
+          let node = @lower.node_at(
+            @lower.bound_preparation(occurrence.preparation),
+            step,
+          ).unwrap()
+          for port in 0..<@lower.node_input_count(node) {
+            if @lower.node_input_target(node, port) is Some(@pipeline.Input(0)) {
+              input_slots.push((step, port, original))
+            }
+          }
+        }
+        assert_eq(captures.length(), 2)
+        assert_eq(input_slots.length(), 1)
+        assert_true(
+          client_composed_keyed_host_inputs_match(
+            run,
+            infers[0],
+            ledger,
+            captures,
+            [left.2, right.2],
+            input_slots,
+          ),
+        )
+        assert_false(
+          client_composed_keyed_host_inputs_match(
+            run,
+            infers[0],
+            ledger,
+            [captures[1], captures[0]],
+            [left.2, right.2],
+            input_slots,
+          ),
+        )
+        let foreign = @resources.create_ledger({
+          planning_work: 100000,
+          attempts: 10,
+          holdings: 10,
+          transfer_bytes: 10000000L,
+          retained_bytes: 10000000L,
+          execution_bytes: 10000000L,
+        }).unwrap()
+        assert_false(
+          client_composed_keyed_host_inputs_match(
+            run,
+            infers[0],
+            foreign,
+            captures,
+            [left.2, right.2],
+            input_slots,
+          ),
+        )
+        assert_false(
+          client_composed_keyed_host_inputs_match(
+            run,
+            infers[0],
+            ledger,
+            captures,
+            [left.2, right.2],
+            [],
+          ),
+        )
+      }
       let other_read = if two_result_ports {
         let original = @execution.bind_completed_input(
           occurrence.preparation,
@@ -1962,5 +2036,14 @@ test "original two Result ports refuse duplicate missing replacement and reentra
     early_unit=true,
     consumer_model=true,
     two_result_ports=true,
+  )
+}
+
+///|
+test "same Host keyed prefix borrows one actual joined Result with both original Source inputs" {
+  combined_source_unit_completed_fixture(
+    early_unit=true,
+    consumer_model=true,
+    host_prefix_inputs=true,
   )
 }

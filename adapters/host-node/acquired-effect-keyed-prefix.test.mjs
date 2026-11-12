@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
+import {localStrategyContribution} from '../local-node/strategy-bundle.mjs';
+import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {prepareAcquiredEffectKeyedPrefix} from './acquired-effect-keyed-prefix.mjs';
 import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
 
@@ -129,7 +133,10 @@ function fixture({rawProtocol = false} = {}) {
     events.push('journal'); return activationRecord;
   }};
   const options = {moon, acquired: {prepared, requestIdentity:request, authorityScopeCid:'authority', control,
-      compilation, runDefinition: definition, now}, requestJournal, runRef,
+      compilation, runDefinition: definition, now,
+      selectRetention: () => ({availableUntil: '2027-01-01T00:00:00.000Z',
+        deleteBy: '2027-01-02T00:00:00.000Z', metadataDeleteBy: '2027-01-03T00:00:00.000Z',
+        expiresAt: '2027-01-01T00:00:00.000Z'})}, requestJournal, runRef,
     sources: captures.map(captured => ({captured, sourceEvidence: {}})),
     store, managedRun, infer: {graph}, selected, originalPreparation:{scope}, plan:{compiled, runDefinition:definition},
     captures, sourceProfile:adapter, ledger, now: () => '2026-11-05T00:00:00.000Z',
@@ -241,4 +248,118 @@ test('retirement during original raw Store await prevents page adoption and Mode
   assert.equal(f.events.includes('journal-page'),false);
   assert.equal(f.events.includes('lookup-completion'),false);
   assert.equal(f.counts().acquired,0);
+});
+
+
+test('same Host continuation selects original completed Result prefix without the raw-capture prefix entrance', async () => {
+  const f = fixture(), host = {}, old = f.options.acquired.control.startInstalledOriginalComposedKeyedPrefix;
+  let hostCalls = 0;
+  f.options.acquired.control.startInstalledOriginalComposedKeyedPrefix = () => {throw new Error('raw prefix reentry');};
+  f.options.acquired.control.startInstalledOriginalComposedKeyedHostPrefix = (...args) => {
+    assert.strictEqual(args.at(-1), host); hostCalls++;
+    return old(...args.slice(0, -1));
+  };
+  const result = await prepareAcquiredEffectKeyedPrefix({...f.options, originalHost: host});
+  assert.strictEqual(result.lookup, f.original);
+  assert.equal(hostCalls, 1);
+  assert.equal(await f.duty().cleanup(), true);
+});
+
+function sameHostContinuation({failure, lostCurrent = false} = {}) {
+  const text = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  let node;
+  const walk = value => {
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'FunctionDeclaration' && value.id?.name === 'beforeModelPrepare') node = value;
+    for (const item of Object.values(value)) {
+      if (Array.isArray(item)) item.forEach(walk);
+      else if (item && typeof item === 'object') walk(item);
+    }
+  };
+  walk(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(node);
+  let settle, pending = new Promise(resolve => {settle = resolve;}), calls = 0, binds = 0, adopts = 0;
+  let current = true;
+  const host = {}, run = {}, member = {selection: {graph: {}}, originalSelection: {}, originalPreparation: {}};
+  const original = {lookup: {}}, acquired = {}, controller = new AbortController();
+  const ports = {deferredKeyedMember: member, moon: {
+    clientProgramInferPlanBoundary: graph => {assert.strictEqual(graph, member.selection.graph); return {_0: 4};},
+    clientProgramInstalledEffectManagedKeyedHostBind(actualRun, actualHost, lookup) {
+      assert.strictEqual(actualRun, run); assert.strictEqual(actualHost, host); assert.strictEqual(lookup, original.lookup);
+      binds++; return ok(undefined);
+    }}, current() {controller.signal.throwIfAborted(); if (!current) throw new Error('same original retired');},
+    runtimeField: (value, index) => value[`_${index}`], checked: value => {
+      assert.equal(value.$tag, 1); return value._0;
+    }, async prepareAcquiredEffectKeyedPrefix(options) {
+      calls++; assert.strictEqual(options.originalHost, host); assert.strictEqual(options.acquired, acquired);
+      options.retain({pending: true}); await pending;
+      if (failure) throw failure.value;
+      return original;
+    }, managedRun: run, modelPlan: {}, captures: [], evidence: [], requestJournal: {}, runRef: {},
+    sourceProfile: {}, ledger: {}, contentRun: {}, store: {}, principalId: 'explicit', signal: controller.signal,
+    now: () => 'original time', checkedHost: host, acquired,
+    modelGroup: {bindKeyedFamily(value) {assert.strictEqual(value, original); adopts++;}}};
+  const create = new Function(...Object.keys(ports), `let keyedAttempted = false, keyedPreparation,
+    keyedCleanup, keyedFamily, captureCompletedAt; ${text.slice(node.start, node.end)};
+    return {beforeModelPrepare, retained: () => keyedCleanup};`);
+  const actual = create(...Object.values(ports));
+  return {...actual, settle() {if (lostCurrent) current = false; settle();}, controller,
+    counts: () => ({calls, binds, adopts})};
+}
+
+test('same Host pre-Model await shares one pending original and never starts it for another task', async () => {
+  const f = sameHostContinuation();
+  await f.beforeModelPrepare(3); assert.deepEqual(f.counts(), {calls: 0, binds: 0, adopts: 0});
+  const first = f.beforeModelPrepare(4), second = f.beforeModelPrepare(4);
+  await Promise.resolve(); assert(f.retained()); assert.deepEqual(f.counts(), {calls: 1, binds: 0, adopts: 0});
+  f.settle(); await Promise.all([first, second]); await f.beforeModelPrepare(4);
+  assert.deepEqual(f.counts(), {calls: 1, binds: 1, adopts: 1});
+});
+
+test('same Host pre-Model current loss and original undefined failure cannot bind or retry', async () => {
+  for (const options of [{lostCurrent: true}, {failure: {value: undefined}}]) {
+    const f = sameHostContinuation(options), first = f.beforeModelPrepare(4);
+    await Promise.resolve(); assert(f.retained()); f.settle();
+    for (const pending of [first, f.beforeModelPrepare(4)]) {
+      let rejected = false;
+      try {await pending;} catch (error) {
+        rejected = true;
+        if (options.failure) assert.strictEqual(error, undefined);
+        else assert.match(error.message, /retired/);
+      }
+      assert(rejected);
+    }
+    assert.deepEqual(f.counts(), {calls: 1, binds: 0, adopts: 0});
+  }
+});
+
+test('actual Local input selection awaits original Host continuation before dispatch and refuses task replacement', async () => {
+  for (const replace of [false, true]) {
+    let resume, task = 4, dispatched = 0;
+    const pending = new Promise(resolve => {resume = resolve;});
+    const setup = {}, configuration = withLocalExecutionPauseHandler(undefined, () => {}, async actual => {
+      assert.equal(actual, 4); await pending; if (replace) task = 5;
+    });
+    const entry = localStrategyContribution({
+      strategyModule_local_Registration: () => ({}), strategyHostRegistrationSelectionKey: () => 'local',
+      strategyHostNextTask: () => task, strategyHostManagedProducers: () => [], strategyHostManagedInputCount: () => 0,
+      strategyModule_local_ManagedDispatch() {dispatched++; return ok({});},
+      strategyModule_local_ManagedCapacity: () => [0n, 0n], strategyModule_local_ManagedDuration: () => 0n,
+      strategyHostReleasableManagedProducers: () => [],
+    }, setup, value => value._0, configuration);
+    const result = entry.beforeNext().then(() => entry.prepareNext(new Map()));
+    await Promise.resolve(); assert.equal(dispatched, 0); resume();
+    if (replace) await assert.rejects(result, /LocalTaskChangedDuringPreparation/);
+    else assert.equal((await result).task, 4);
+    assert.equal(dispatched, replace ? 0 : 1);
+  }
+});
+
+
+test('same Host pending original cancellation cannot publish the later Model input', async () => {
+  const f = sameHostContinuation(), original = new Error('original cancellation');
+  const pending = f.beforeModelPrepare(4); await Promise.resolve(); assert(f.retained());
+  f.controller.abort(original); f.settle();
+  await assert.rejects(pending, error => error === original);
+  await assert.rejects(f.beforeModelPrepare(4), error => error === original);
+  assert.deepEqual(f.counts(), {calls: 1, binds: 0, adopts: 0});
 });

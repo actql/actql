@@ -3455,6 +3455,17 @@ function publicationControl(moon) {
         scope, value, token(definition), graph, keyed,
         captures.map(value => value.capture.originalRowCapture())));
     },
+    startInstalledOriginalComposedKeyedHostPrefix(managedRun, compiled, definition, graph, scope, keyed, captures, host) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' || host === undefined ||
+          captures.some(value => value.inputKind !== 'whole-input' ||
+            typeof value.capture.originalCapturedInput !== 'function')) {
+        throw new TypeError('Foreign original keyed Host prefix');
+      }
+      return checked(moon.clientProgramStartInstalledOriginalComposedKeyedHostPrefix(
+        managedRun, scope, value, token(definition), graph, keyed,
+        captures.map(value => value.capture.originalCapturedInput()), host));
+    },
     prepareKeyedLookupSourceMetadata(lookup, request, captures, sources,
       retentionSelection, outputLimits, maxWork, limits, fileReadDeclarations) {
       limits = captureContractLimits(limits, 'keyed Source metadata');

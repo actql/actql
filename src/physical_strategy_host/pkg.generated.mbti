@@ -63,6 +63,8 @@ pub fn bind_captured_effect_command_key_workspace(CapturedEffectCommandKeyValida
 
 pub fn bind_captured_effect_command_target(CapturedEffectInputs, Int, @check_environment.StoreCommandBinding, @value_admission.CheckedValue, Int) -> Result[CapturedEffectCommandTarget, CapturedEffectProposalIssue]
 
+pub fn bind_captured_effect_completed_keyed_input(CapturedEffectRunDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> Result[Unit, RunIssue]
+
 pub fn[T] bind_captured_effect_local_result_managed_export(CapturedEffectInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
 
 pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectInputs, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
@@ -186,6 +188,8 @@ pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String
 pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn captured_effect_inputs_shared_capacity_current(CapturedEffectInputs, @physical_resources.SharedCapacity) -> Bool
+
+pub fn captured_effect_keyed_prefix_input_matches(CapturedEffectRunDAG, Int, Int, Int, @execution_relation.ProducerRead) -> Bool
 
 pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEffectLocalResult?
 
@@ -655,7 +659,7 @@ pub fn open_source_input_dag(@physical_strategy.CheckedDAG, @execution_query.Cap
 
 pub fn open_source_inputs_dag(@physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
 
-pub fn open_source_inputs_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, keyed? : (Int, Int, @execution_relation.SuppliedRelationRead)?, models? : Array[(Int, Int, @execution_relation.CompletedOutput)], source_results? : Array[(Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs)]) -> Result[CapturedEffectRunDAG, RunIssue]
+pub fn open_source_inputs_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.CheckedDAG, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, keyed? : (Int, Int, @execution_relation.SuppliedRelationRead)?, models? : Array[(Int, Int, @execution_relation.CompletedOutput)], deferred_keyed? : (Int, Int)?, source_results? : Array[(Int, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs)]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn operational_candidate_positions(PolicyCandidateSet) -> Result[Array[Int], SearchIssue]
 

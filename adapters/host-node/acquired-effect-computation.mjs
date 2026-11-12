@@ -51,6 +51,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   let ledger;
   let contentFamily, contentFamilyCleanup, contentPlan, contentRecovery, restoredModelInput;
   let keyedFamily, keyedCleanup, restoredKeyedSource;
+  let deferredKeyedMember, keyedPreparation, keyedAttempted = false;
   // This output pin is retained on the already-published computation custody
   // before Host construction. Even a throwing/absent Host retains this duty.
   let restoredModelOutput, restoredModelHostAttempted = false;
@@ -596,7 +597,13 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     if (multiple && (pluralModels ? modelGroup !== undefined && !modelGroup.restored() :
         originalModelComponent !== undefined && modelToken === undefined && infer !== undefined)) {
       const member = pluralModels ? modelGroup.keyedMember() : undefined;
-      keyedFamily = pluralModels && member === undefined ? undefined : await prepareAcquiredEffectKeyedPrefix({moon, acquired, managedRun, infer: member?.selection ?? infer,
+      const keyedTask = member === undefined ? undefined
+        : runtimeField(moon.clientProgramInferPlanBoundary(member.selection.graph), 0);
+      deferredKeyedMember = member !== undefined && captures.every((value, index) =>
+        value.inputKind === 'whole-input' &&
+        (sources[index].occurrence.computeTask ?? sources[index].occurrence.task) !== keyedTask) &&
+        moon.clientProgramInferOccurrenceResultImports(member.selection.occurrence).length > 0 ? member : undefined;
+      keyedFamily = pluralModels && member === undefined || deferredKeyedMember !== undefined ? undefined : await prepareAcquiredEffectKeyedPrefix({moon, acquired, managedRun, infer: member?.selection ?? infer,
         selected: member?.originalSelection ?? originalModelSelection,
         originalPreparation: member?.originalPreparation ?? originalPreparation, plan: modelPlan, captures, sources: evidence, requestJournal, runRef,
         sourceProfile, ledger, contentRun, store, principalId, signal, now, current,
@@ -699,8 +706,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         (originalModelSelection ?? infer).graph);
     } else {
       hostOpenAttempted = true;
-      checkedHost = checked(keyedFamily === undefined
-        ? moon.clientProgramInstalledEffectManagedHostOpen(managedRun, owner, captures.map(value => value.capture.source()))
+      checkedHost = checked(deferredKeyedMember !== undefined
+        ? moon.clientProgramInstalledEffectManagedDeferredKeyedHostOpen(managedRun, owner,
+          captures.map(value => value.capture.source()))
+        : keyedFamily === undefined ? moon.clientProgramInstalledEffectManagedHostOpen(managedRun, owner, captures.map(value => value.capture.source()))
         : moon.clientProgramInstalledEffectManagedKeyedHostOpen(managedRun,
           owner, captures.map(value => value.capture.source()), keyedFamily.lookup));
     }
@@ -719,6 +728,34 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     if ((component !== undefined || modelGroup !== undefined || contentFamily !== undefined) && typeof withComputePauseHandler !== 'function') {
       throw new TypeError('PhysicalPauseConfigurationMissing');
     }
+    async function beforeModelPrepare(task) {
+      if (deferredKeyedMember === undefined || task !== runtimeField(
+          moon.clientProgramInferPlanBoundary(deferredKeyedMember.selection.graph), 0)) return;
+      if (!keyedAttempted) {
+        keyedAttempted = true;
+        keyedPreparation = Promise.resolve().then(async () => {
+          current();
+          const member = deferredKeyedMember;
+          keyedFamily = await prepareAcquiredEffectKeyedPrefix({moon, acquired, managedRun,
+            infer: member.selection, selected: member.originalSelection,
+            originalPreparation: member.originalPreparation, plan: modelPlan, captures, sources: evidence,
+            requestJournal, runRef, sourceProfile, ledger, contentRun, store, principalId, signal, now,
+            current, originalHost: checkedHost,
+            retain(child) {
+              if (keyedCleanup !== undefined) throw new Error('InstalledComposedKeyedAlreadyRetained');
+              keyedCleanup = child;
+            }});
+          current();
+          if (keyedFamily === undefined) throw new Error('OriginalKeyedHostInputUnavailable');
+          checked(moon.clientProgramInstalledEffectManagedKeyedHostBind(managedRun, checkedHost, keyedFamily.lookup));
+          current();
+          captureCompletedAt = now();
+          modelGroup.bindKeyedFamily(keyedFamily, captureCompletedAt);
+        });
+      }
+      await keyedPreparation;
+      current();
+    }
     const configurations = component === undefined && modelGroup === undefined && contentFamily === undefined ? computeConfigurations
       : withComputePauseHandler(computeConfigurations, async boundary => {
         current();
@@ -732,7 +769,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         if (modelGroup !== undefined) return modelGroup.handlePause(boundary);
         if (component !== undefined) return handleModelPause(boundary);
         throw new Error('PhysicalPauseOwnerMissing');
-      });
+      }, beforeModelPrepare);
     current();
     computeEntered = true;
     execution = await runCapturedEffectComputation(checkedHost,
@@ -1158,24 +1195,35 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
               restoredKeyed.logicalRelationCid !== original.logicalRelationCid)) throw new Error('RestoredModelSourceOriginalsUnavailable');
           restoredKeyed = original;
         }
-        const ownsKeyed = keyedFamily !== undefined && checked(
-          moon.clientProgramEffectComposedModelKeyedAcquisition(acquired.prepared, child.selection.graph)) !== undefined;
-        let sources;
-        if (child.restoredInput === undefined && captures.length !== 0 && context.contentFamily === undefined) {
-          const inherited = sourceClosures.filter(original =>
-            acquired.control.composedInferSourcesFor(child.selection.occurrence, original) === original);
-          if (inherited.length > 1) throw new Error('ForeignInstalledEffectModelSources');
-          sources = inherited[0] ?? acquired.control.admitComposedInferSources(
-            child.selection.occurrence, captures, sourceEvidence, acquired.authorityScopeCid,
-            captureStartedAt, captureCompletedAt, ownsKeyed ? keyedFamily.observation : undefined);
-          if (!sourceClosures.includes(sources)) sourceClosures.push(sources);
-        }
-        child.component.bindOriginal({moon, selected: child.selection, sources, control: acquired.control, plan,
+        const selectedKeyed = checked(moon.clientProgramEffectComposedModelKeyedAcquisition(
+          acquired.prepared, child.selection.graph)) !== undefined;
+        let sourceContext;
+        const prepareSourceContext = () => {
+          publicationCurrent();
+          if (sourceContext !== undefined) return sourceContext;
+          const ownsKeyed = keyedFamily !== undefined && selectedKeyed;
+          if (selectedKeyed && child.restoredInput === undefined && keyedFamily === undefined) {
+            throw new Error('OriginalKeyedHostInputUnavailable');
+          }
+          let sources;
+          if (child.restoredInput === undefined && captures.length !== 0 && context.contentFamily === undefined) {
+            const inherited = sourceClosures.filter(original =>
+              acquired.control.composedInferSourcesFor(child.selection.occurrence, original) === original);
+            if (inherited.length > 1) throw new Error('ForeignInstalledEffectModelSources');
+            sources = inherited[0] ?? acquired.control.admitComposedInferSources(
+              child.selection.occurrence, captures, sourceEvidence, acquired.authorityScopeCid,
+              captureStartedAt, captureCompletedAt, ownsKeyed ? keyedFamily.observation : undefined);
+            if (!sourceClosures.includes(sources)) sourceClosures.push(sources);
+          }
+          publicationCurrent();
+          sourceContext = {sources, capturedInput: ownsKeyed ? keyedFamily.capturedInput : undefined};
+          return sourceContext;
+        };
+        child.component.bindOriginal({moon, selected: child.selection, prepareSourceContext, control: acquired.control, plan,
           originalPreparation: child.originalPreparation, assertRuntimeCurrent: child.originalPreparation.assertRuntimeCurrent,
           principalId, signal, now, durableCalls: true, restoredInput: child.restoredInput,
           ...(context.contentFamily === undefined ? {} : {generatedInput: {
             generation: () => context.contentFamily.generation(), recovery: () => context.contentFamily.recovery()}}),
-          capturedInput: ownsKeyed ? keyedFamily.capturedInput : undefined,
           prepareOriginalResults() {
             publicationCurrent();
             if (sourceUnitsOriginal === undefined) return undefined;
@@ -1239,6 +1287,12 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
                 : [...sourceEvidence, (keyedFamily?.evidence ?? restoredKeyed).source], faultInjection, durableCalls: true, captureOnly: true});
           }, retainCompleted: () => retainCompleted(child)});
       }
+    },
+    bindKeyedFamily(original, completedAt) {
+      same();
+      if (original === undefined || keyedFamily !== undefined) throw new Error('OriginalKeyedHostInputAlreadyBound');
+      keyedFamily = original;
+      captureCompletedAt = completedAt;
     },
     handlePause,
     async restore() {

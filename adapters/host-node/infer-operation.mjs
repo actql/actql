@@ -1309,7 +1309,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let deferredRead = prepareRead !== undefined;
   let readAttempted = false;
   let operation;
-  let prepareOriginalResults;
+  let prepareOriginalResults, prepareSourceContext;
   let failure;
   let failureRecorded = false;
   const recordFailure = cause => {
@@ -1361,6 +1361,11 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           const segments = prepareInputSegments();
           computePrefix = runtimeField(segments, 0);
           computeSuffix = runtimeField(segments, 1);
+        }
+        if (prepareSourceContext !== undefined) {
+          const context = prepareSourceContext();
+          sources = context.sources; capturedInput = context.capturedInput;
+          prepareSourceContext = undefined;
         }
         const resultArtifacts = restoredInput === undefined ? prepareOriginalResults?.(inputs) : undefined;
         operation = openNodeInferOperation({moon, graph: selected.graph,
@@ -1442,6 +1447,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       sources = read('sources'); control = read('control'); plan = read('plan');
       principalId = read('principalId'); now = read('now'); signal = read('signal');
       retainOperation = read('retainOperation'); retainCompleted = read('retainCompleted');
+      prepareSourceContext = read('prepareSourceContext');
+      if (prepareSourceContext !== undefined && typeof prepareSourceContext !== 'function') throw new TypeError('InvalidComposedInferSourceContext');
       prepareOriginalResults = read('prepareOriginalResults');
       if (prepareOriginalResults !== undefined && typeof prepareOriginalResults !== 'function') {
         throw new TypeError('InvalidComposedInferOriginalResults');

@@ -112,3 +112,26 @@ overlap before admission. The getters supply no backing, and releasing immutable
 evidence references is not physical retirement. Resource children, pending
 callbacks, actual Store outputs and failed cleanup keep their existing owners
 and duties; consumed work, Unknown and no-resend history are not refunded.
+
+
+## Keyed input after an original producer Unit
+
+A keyed Model consumer with imported Results enters through the same checked
+Effect Host. Its upstream Source Units execute normally before the Local
+preparation callback awaits the existing keyed prefix and physical lookup. That
+callback runs before managed input selection and dispatch, retains the original
+partial cleanup owner before awaiting, and shares one pending attempt. A failed
+or cancelled attempt cannot bind an input or start a replacement lookup.
+
+The prefix borrows the actual predecessor Result reads from that DAG. Its
+completed-segment proof retains those exact inputs even when two independent
+Sources contributed to one Result port. The original Source acquisition handles
+remain in their checked order, and retain custody independently of the completed
+Source task's retired execution access. Source count is not Result-port count.
+
+The existing same-parent reservation funds prefix control and provider overlap
+before input-vector construction. A constructor failure before provider entry
+retains its pending-start cleanup; no absent handle is treated as a physical
+acknowledgement. Only the completed original lookup can add its checked supplied
+read to this still-unselected Model task. The same DAG, Plan, Scope and prior
+outputs continue; no Source task, compiler or Model invocation is repeated.

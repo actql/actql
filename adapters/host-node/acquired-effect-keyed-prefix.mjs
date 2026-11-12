@@ -12,7 +12,7 @@ import {keyedInputRetentionSelection, localOutputLimits, localContractLimits} fr
 
 export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedRun,
   infer, selected, originalPreparation, plan, captures, sources, sourceProfile, ledger,
-  contentRun, store, principalId, signal, now, current, retain, requestJournal, runRef}) {
+  contentRun, store, principalId, signal, now, current, retain, requestJournal, runRef, originalHost}) {
   const acquisition = checked(moon.clientProgramEffectComposedModelKeyedAcquisition(
     acquired.prepared, infer.graph));
   if (acquisition === undefined) return undefined;
@@ -55,8 +55,11 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
   const adapter = installedSourceFor(sourceProfile, facts[0]);
   const access = adapter.sourceAccess;
   const capacity = adapter.keyedLedgerCapacity(acquisition);
-  prefix = acquired.control.startInstalledOriginalComposedKeyedPrefix(managedRun,
-    plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures);
+  prefix = originalHost === undefined
+    ? acquired.control.startInstalledOriginalComposedKeyedPrefix(managedRun,
+      plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures)
+    : acquired.control.startInstalledOriginalComposedKeyedHostPrefix(managedRun,
+      plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures, originalHost);
   execution = moon.clientProgramOriginalComposedKeyedPrefixExecution(prefix);
   current();
   for (;;) {
