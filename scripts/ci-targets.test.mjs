@@ -297,6 +297,42 @@ test('finite SQLite regressions have portable lint and required prepared macOS N
   assert(jobs.lint.steps.some(row => row.run?.includes('scripts/native-approval-performance.test.mjs')));
 });
 
+test('macOS HTTP retains its original command under shared preparation and a mandatory joined outcome', t => {
+  const workload = nativeWorkload('native-macos');
+  assert.equal(workload['runs-on'], 'macos-15');
+  const runtime = nativeGroups['native-macos'].find(group => group.name === 'runtime');
+  const index = runtime.steps.findIndex(step => step.id === 'native-http');
+  assert(index > runtime.steps.findIndex(step => step.name === 'Test native macOS retained task file ownership'));
+  const http = runtime.steps[index];
+  assert.equal(http.name, 'Test Node-free native storage publication and control');
+  assert.equal(http.run, 'node scripts/test-native-http-client.mjs\n');
+  assert.equal(http.timeoutMinutes, 115);
+  assert.deepEqual(http.env, {ACTQL_TEST_SCRATCH_ROOT: '${{ runner.temp }}/native-tests/native-http'});
+  assert.equal(nativeCases('native-macos').filter(step => step.id === 'native-http').length, 1);
+  assert.equal(workload.outputs['native-http-result'], '${{ steps.native-background.outputs.native-http-result }}');
+  const gate = jobs['native-http-macos'];
+  assert.deepEqual(gate.needs, ['select-targets', 'preflight', 'native-macos-workloads']);
+  assert.equal(gate['runs-on'], 'ubuntu-24.04');
+  assert.match(gate.if, /always\(\)/u);
+  assert.equal(gate['timeout-minutes'], 5);
+  assert.equal(gate['continue-on-error'], undefined);
+  assert.equal(gate.steps.length, 1, 'No second compiler/toolchain/component producer is selected');
+  const selected = gate.steps[0];
+  assert.equal(selected.env.WORKLOAD_RESULT, '${{ needs.native-macos-workloads.result }}');
+  assert.equal(selected.env.HTTP_RESULT, '${{ needs.native-macos-workloads.outputs.native-http-result }}');
+  for (const workloadResult of ['success', 'failure', 'cancelled', 'skipped', ''])
+    for (const httpResult of ['success', 'failure', 'unexecuted', 'skipped', '']) {
+      const result = spawnSync('bash', ['-eo', 'pipefail', '-c', selected.run], {
+        encoding: 'utf8', timeout: 5000,
+        env: {...process.env, WORKLOAD_RESULT: workloadResult, HTTP_RESULT: httpResult},
+      });
+      assert.equal(result.error, undefined); assert.equal(result.signal, null);
+      assert.equal(result.status, workloadResult === 'success' && httpResult === 'success' ? 0 : 1);
+    }
+  assert(jobs['native-macos'].needs.includes('native-http-macos'));
+  assert(jobs['native-macos'].needs.includes('native-macos-workloads'));
+});
+
 test('Native retained verification builds exactly its checked release module inventory', () => {
   const step = nativeCases('native').find(step => step.name === 'Verify registered Native retained product path');
   assert(step);

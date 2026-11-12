@@ -55,6 +55,19 @@ test('an original failed command never cancels its later case or another group a
   assert.equal(result.result.groups[0].cases[0].code, 7);
 });
 
+test('joined Native HTTP outcome comes from its original complete child rather than a selected label', async t => {
+  for (const code of [0, 7]) {
+    const f = fixture(t);
+    const directory = f.start([{name: 'runtime', steps: [
+      f.step('http', `process.exitCode=${code};`, {id: 'native-http'}),
+    ]}]);
+    const result = await waitNativeGroups(directory, {report() {}});
+    assert.equal(result.status, code === 0 ? 0 : 1);
+    assert.equal(result.outputs['native-http-result'], code === 0 ? 'success' : 'failure');
+    assert.equal(result.result.groups[0].cases[0].code, code);
+  }
+});
+
 test('the original deadline marks later commands unexecuted instead of accepting a partial group', async t => {
   const f = fixture(t);
   const directory = f.start([{name: 'runtime', steps: [
