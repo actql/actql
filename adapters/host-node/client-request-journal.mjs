@@ -2258,21 +2258,9 @@ export function openClientRequestJournal(directory, {
   const selectRef = selectedRequestStatement(database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE namespace_id = ? AND authority_scope_cid = ? AND
       run_definition_cid = ?`), 'run-definition', true, true);
-  // Fixed statement originals of the same Journal, not per-key native
-  // statement accumulation. The existing facility owns their complete lifetime.
-  const keyedLookupPrior = database.prepare(`SELECT 1 AS present FROM client_keyed_lookup_originals
-    WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ? AND call_slot_cid = ?`);
-  const keyedLookupBatch = database.prepare(`SELECT COUNT(*) AS n,
-    COUNT(CASE WHEN page_wire IS NULL THEN 1 END) AS pending FROM client_keyed_lookup_originals
-    WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ? AND batch_plan_cid = ?`);
-  const keyedLookupInsert = database.prepare(`INSERT INTO client_keyed_lookup_originals
-    (namespace_id, authority_scope_cid, run_definition_cid, batch_plan_cid,
-      call_slot_cid, batch_index, batch_count, activation_wire, page_wire)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`);
-  const keyedLookupAdopt = database.prepare(`UPDATE client_keyed_lookup_originals
-    SET page_wire = ? WHERE namespace_id = ? AND authority_scope_cid = ? AND
-      run_definition_cid = ? AND batch_plan_cid = ? AND call_slot_cid = ? AND
-      batch_index = ? AND batch_count = ? AND activation_wire = ? AND page_wire IS NULL`);
+  // Prepare each keyed statement only when this Journal first needs it.
+  // Retain that same original for its connection lifetime, not per key.
+  let keyedLookupPrior, keyedLookupBatch, keyedLookupInsert, keyedLookupAdopt;
   const sourceOperations = clientSourceOperationStorage(database, {ensureOpen,
     transact, limits: sourceOperationLimits,
     readRun: ref => selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)});
@@ -3959,16 +3947,22 @@ export function openClientRequestJournal(directory, {
             fail('ClientRunPhysicalStartDenied');
           }
           current();
-          const prior = keyedLookupPrior.get(ref.namespaceId, ref.authorityScopeCid,
+          const prior = (keyedLookupPrior ??= database.prepare(`SELECT 1 AS present FROM client_keyed_lookup_originals
+    WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ? AND call_slot_cid = ?`)).get(ref.namespaceId, ref.authorityScopeCid,
             ref.runDefinitionCid, record.slotCid);
           if (prior !== undefined) fail('ClientKeyedLookupActivationUnresolved');
-          const batch = keyedLookupBatch.get(ref.namespaceId, ref.authorityScopeCid,
+          const batch = (keyedLookupBatch ??= database.prepare(`SELECT COUNT(*) AS n,
+    COUNT(CASE WHEN page_wire IS NULL THEN 1 END) AS pending FROM client_keyed_lookup_originals
+    WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ? AND batch_plan_cid = ?`)).get(ref.namespaceId, ref.authorityScopeCid,
             ref.runDefinitionCid, record.batchCid);
           if (!Number.isSafeInteger(batch.n) || batch.n !== record.batchIndex) {
             fail('ClientRequestJournalCorrupt');
           }
           if (batch.pending !== 0) fail('ClientKeyedLookupActivationUnresolved');
-          keyedLookupInsert.run(ref.namespaceId, ref.authorityScopeCid,
+          (keyedLookupInsert ??= database.prepare(`INSERT INTO client_keyed_lookup_originals
+    (namespace_id, authority_scope_cid, run_definition_cid, batch_plan_cid,
+      call_slot_cid, batch_index, batch_count, activation_wire, page_wire)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)`)).run(ref.namespaceId, ref.authorityScopeCid,
             ref.runDefinitionCid, record.batchCid, record.slotCid,
             record.batchIndex, record.batchCount, record.wire);
           current();
@@ -4018,7 +4012,10 @@ export function openClientRequestJournal(directory, {
               row.physical_start_reserved !== 1 || row.pre_dispatch_failure_confirmed !== 0 ||
               row.cancellation_requested !== 0) fail('ClientRunPhysicalStartDenied');
           current();
-          if (keyedLookupAdopt.run(record.wire, ref.namespaceId, ref.authorityScopeCid,
+          if ((keyedLookupAdopt ??= database.prepare(`UPDATE client_keyed_lookup_originals
+    SET page_wire = ? WHERE namespace_id = ? AND authority_scope_cid = ? AND
+      run_definition_cid = ? AND batch_plan_cid = ? AND call_slot_cid = ? AND
+      batch_index = ? AND batch_count = ? AND activation_wire = ? AND page_wire IS NULL`)).run(record.wire, ref.namespaceId, ref.authorityScopeCid,
             ref.runDefinitionCid, record.batchCid, record.slotCid, record.batchIndex,
             activationRecord.batchCount, activationRecord.wire).changes !== 1) {
             fail('ClientKeyedLookupPageUnresolved');

@@ -76,8 +76,18 @@ function fixture(t, {start = true, afterRecord} = {}) {
 }
 
 test('original keyed activation commits before caller dispatch and cold duplicate cannot authorize another attempt', t => {
+  const prepare = DatabaseSync.prototype.prepare;
+  const statements = [];
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    if (/\b(?:FROM|INTO|UPDATE) client_keyed_lookup_originals\b/u.test(sql)) statements.push(sql);
+    return Reflect.apply(prepare, this, [sql]);
+  });
   const f = fixture(t);
+  assert.equal(statements.length, 0, 'Unselected keyed work does not prepare native statements');
   assert.strictEqual(f.persist(), f.record);
+  assert.equal(statements.length, 3, 'Only the original activation statements are prepared');
+  assert.throws(() => f.persist(), {code: 'ClientKeyedLookupActivationUnresolved'});
+  assert.equal(statements.length, 3, 'A duplicate retains the same native statement originals');
   assert.deepEqual(f.stored().map(row => ({...row})), [{activation_wire: f.record.wire,
     page_wire: null, batch_index: 0, batch_count: 2}]);
   f.reopen();
