@@ -35,3 +35,37 @@ test "managed advance diagnoses only the original control-work constructor" {
     assert_eq(local_managed_advance_control_work_limit(issue), None)
   }
 }
+
+///|
+test "managed advance preserves the original Capture step and selected work allowance without classifying generic bounds" {
+  let original = Configuration(
+    @connector.Execution(
+      @execution.Capture(41, @execution.CaptureWorkLimit(100000)),
+    ),
+  )
+  assert_eq(local_managed_advance_capture_work(original), Some([41, 100000]))
+  assert_eq(local_managed_advance_control_work_limit(original), None)
+  for
+    issue in [
+      Configuration(
+        @connector.Execution(@execution.Capture(41, @execution.CaptureLimit)),
+      ),
+      Configuration(
+        @connector.Execution(
+          @execution.Capture(-1, @execution.CaptureWorkLimit(100000)),
+        ),
+      ),
+      Configuration(
+        @connector.Execution(
+          @execution.Capture(41, @execution.CaptureWorkLimit(-1)),
+        ),
+      ),
+      Execution(@strategy.Physical(@resources.ExecutionLimit)),
+      Configuration(
+        @connector.Execution(@execution.Rows(41, @execution.RowLimit)),
+      ),
+      ControlWorkLimit(100000),
+    ] {
+    assert_eq(local_managed_advance_capture_work(issue), None)
+  }
+}

@@ -27,6 +27,8 @@ pub(all) enum CaptureIssue {
   InputValue(Int, @admitted.Issue)
   ClosedCapture
   ForeignCheckedValue(Int, Int)
+  // Only a typed scalar length refusal whose strictly smaller bound is work.
+  CaptureWorkLimit(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -98,17 +100,26 @@ fn charge_node(b : ValueBudget, depth : Int) -> Bool {
 
 ///|
 fn charge_text(b : ValueBudget, text : String) -> Bool {
-  let available = Int::min(
-    b.limits.max_text_bytes - b.text,
-    remaining_value_work(b),
-  )
+  charge_text_issue(b, text) is None
+}
+
+///|
+/// Preserve the original single UTF-8 admission and successful debit. A work
+/// diagnosis is available only when that original LimitExceeded selected the
+/// strictly smaller work allowance. Ties, malformed input and text stay generic.
+fn charge_text_issue(b : ValueBudget, text : String) -> CaptureIssue? {
+  let text_remaining = b.limits.max_text_bytes - b.text
+  let work_remaining = remaining_value_work(b)
+  let available = Int::min(text_remaining, work_remaining)
   match @scalar.admit_utf8_length(text, available) {
     Ok(size) => {
       b.text += size
       b.work += size
-      true
+      None
     }
-    Err(_) => false
+    Err(@scalar.LimitExceeded) if work_remaining < text_remaining =>
+      Some(CaptureWorkLimit(b.limits.max_work))
+    Err(_) => Some(CaptureLimit)
   }
 }
 

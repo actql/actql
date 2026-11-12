@@ -3018,7 +3018,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4092,7 +4092,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6601,7 +6601,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -33092,7 +33092,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -34662,7 +34662,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -34900,7 +34900,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -36316,7 +36316,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -36604,7 +36604,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -38592,7 +38592,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -48137,7 +48137,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48233,7 +48233,7 @@
       "sha256": "b23029703c7b693dabddff6c743ac56aec41e3caadf2e00cd40b23702b3d5fd7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48537,7 +48537,7 @@
       "sha256": "b0ee315db4a6b98f045dfee9d15d7ca13d283ae073aa9597f9e9cf7639faa8a9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -51927,7 +51927,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -52061,7 +52061,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -52318,7 +52318,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -52416,7 +52416,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -52784,7 +52784,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -53045,7 +53045,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -53218,7 +53218,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -53331,7 +53331,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -54561,7 +54561,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -55192,7 +55192,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -57926,7 +57926,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -64050,7 +64050,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -86332,7 +86332,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -86785,7 +86785,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -88547,7 +88547,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "92667b6dc9df0a32e6428905e9b409acd08b3fc1563785323d08074d504dc2f2",
+      "sha256": "91eca339bc5dfdaebaae93af2f92c7577bc8b053329ff3271689b404598b03f8",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -88662,9 +88662,13 @@
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "a401f6c46457596523d980ea1832aab65df2b4fbf697684cdc5a112cd797f836",
+      "sha256": "bbb8e0c30c2d25d9bfcf515c9031d7c5a37f4c1c24e76e6ed28cf6f8401703d9",
       "exports": [],
       "operations": [
+        {
+          "name": "local_managed_advance_capture_work",
+          "declaration": "local_managed_advance_capture_work ( issue : LocalDispatchIssue , ) - > Array [ Int ] ?"
+        },
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( issue : LocalDispatchIssue , ) - > Int ?"
@@ -88682,6 +88686,7 @@
         {
           "operations": [
             "<module>",
+            "local_managed_advance_capture_work",
             "local_managed_advance_control_work_limit",
             "local_managed_provider_failure"
           ],
@@ -88701,6 +88706,10 @@
               {
                 "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
                 "anchor": "pub fn local_managed_advance_control_work_limit("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "pub fn local_managed_advance_capture_work("
               }
             ],
             "identity": [
@@ -88769,9 +88778,13 @@
     },
     {
       "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-      "sha256": "b328ddfea9e394e24953a0b124776c31d71d42f9f23c2bcf70557b26b9ef95e8",
+      "sha256": "a9173ee403646286108dea9a7df2bccad69f35bc22f2b0d217ebb7fb7ad324fd",
       "exports": [],
       "operations": [
+        {
+          "name": "local_managed_advance_capture_work",
+          "declaration": "local_managed_advance_capture_work ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Array [ Int ] ?"
+        },
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
@@ -88785,6 +88798,7 @@
         {
           "operations": [
             "<module>",
+            "local_managed_advance_capture_work",
             "local_managed_advance_control_work_limit"
           ],
           "exports": [],
@@ -88803,6 +88817,10 @@
               {
                 "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
                 "anchor": "#export_name(\"strategyModule_local_ManagedAdvanceControlWorkLimit\")"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "pub fn local_managed_advance_capture_work("
               }
             ],
             "identity": [
@@ -88871,9 +88889,13 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
-      "sha256": "b328ddfea9e394e24953a0b124776c31d71d42f9f23c2bcf70557b26b9ef95e8",
+      "sha256": "a9173ee403646286108dea9a7df2bccad69f35bc22f2b0d217ebb7fb7ad324fd",
       "exports": [],
       "operations": [
+        {
+          "name": "local_managed_advance_capture_work",
+          "declaration": "local_managed_advance_capture_work ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Array [ Int ] ?"
+        },
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
@@ -88887,6 +88909,7 @@
         {
           "operations": [
             "<module>",
+            "local_managed_advance_capture_work",
             "local_managed_advance_control_work_limit"
           ],
           "exports": [],
@@ -88905,6 +88928,10 @@
               {
                 "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
                 "anchor": "#export_name(\"strategyModule_local_ManagedAdvanceControlWorkLimit\")"
+              },
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "pub fn local_managed_advance_capture_work("
               }
             ],
             "identity": [
@@ -88965,6 +88992,271 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_relation/value_budget.mbt",
+      "sha256": "c37576e30cb1fce4421850f17a12c4d3552de04f9ceac1d4595254a089aaf161",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_stepped_measure_result",
+          "declaration": "advance_stepped_measure_result ( cursor : SteppedValueMeasure , budget : ValueBudget , ) - > SteppedMeasurePoll"
+        },
+        {
+          "name": "charge_external_value_work",
+          "declaration": "charge_external_value_work ( b : ValueBudget , units : Int ) - > Bool"
+        },
+        {
+          "name": "charge_node",
+          "declaration": "charge_node ( b : ValueBudget , depth : Int ) - > Bool"
+        },
+        {
+          "name": "charge_text",
+          "declaration": "charge_text ( b : ValueBudget , text : String ) - > Bool"
+        },
+        {
+          "name": "charge_text_issue",
+          "declaration": "charge_text_issue ( b : ValueBudget , text : String ) - > CaptureIssue ?"
+        },
+        {
+          "name": "clear_stepped_measure",
+          "declaration": "clear_stepped_measure ( cursor : SteppedValueMeasure ) - > Unit"
+        },
+        {
+          "name": "measure",
+          "declaration": "measure ( value : @ admitted . Value , depth : Int , b : ValueBudget ) - > Bool"
+        },
+        {
+          "name": "push_stepped_measure",
+          "declaration": "push_stepped_measure ( cursor : SteppedValueMeasure , frame : SteppedMeasureFrame , ) - > Bool"
+        },
+        {
+          "name": "remaining_value_work",
+          "declaration": "remaining_value_work ( b : ValueBudget ) - > Int"
+        },
+        {
+          "name": "start_stepped_measure_result",
+          "declaration": "start_stepped_measure_result ( value : Value , workspace : RowWorkspace , ) - > SteppedValueMeasure ?"
+        },
+        {
+          "name": "step_bounded_text_measure",
+          "declaration": "step_bounded_text_measure ( text : String , position : Int , charge : ( Int ) - > Bool , ) - > Int ?"
+        },
+        {
+          "name": "step_stepped_measure_text",
+          "declaration": "step_stepped_measure_text ( cursor : SteppedValueMeasure , text : String , position : Int , budget : ValueBudget , ) - > Bool"
+        },
+        {
+          "name": "step_stepped_measure_text_start",
+          "declaration": "step_stepped_measure_text_start ( cursor : SteppedValueMeasure , text : String , budget : ValueBudget , ) - > Bool"
+        },
+        {
+          "name": "value_budget",
+          "declaration": "value_budget ( limits : ValueLimits ) - > Result [ ValueBudget , CaptureIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing bounded value admission and Local execution failure owners; diagnostic DATA adds no authority or cleanup acknowledgement",
+      "referenceQualification": "Exact original scalar charge and typed value-capture work source/component correspondence only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_stepped_measure_result",
+            "charge_external_value_work",
+            "charge_node",
+            "charge_text",
+            "charge_text_issue",
+            "clear_stepped_measure",
+            "measure",
+            "push_stepped_measure",
+            "remaining_value_work",
+            "start_stepped_measure_result",
+            "step_bounded_text_measure",
+            "step_stepped_measure_text",
+            "step_stepped_measure_text_start",
+            "value_budget"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/value_capture_work_wbtest.mbt",
+                "anchor": "test \"capture text keeps one exact debit and distinguishes only the strictly smaller work refusal\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_relation/bounded_output_row_charge.mbt",
+      "sha256": "d2d8c2e2fc6b1aef63fd4235ec38821f153851209096bf1068a474374062eda7",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_bounded_output_row_charge",
+          "declaration": "advance_bounded_output_row_charge ( cursor : BoundedOutputRowCharge , ) - > Result [ Bool , BoundedOutputRowChargeIssue ]"
+        },
+        {
+          "name": "cleanup_bounded_output_row_charge",
+          "declaration": "cleanup_bounded_output_row_charge ( cursor : BoundedOutputRowCharge ) - > Unit"
+        },
+        {
+          "name": "start_bounded_buffer_row_charge",
+          "declaration": "start_bounded_buffer_row_charge ( buffer : AdmittedRowBuffer , cells : Array [ @ admitted . Value ] , workspace : RowWorkspace , presence_cells ? : Array [ @ admitted . Value ? ] ?"
+        },
+        {
+          "name": "start_bounded_output_row_charge",
+          "declaration": "start_bounded_output_row_charge ( output : AdmittedOutput , cells : Array [ @ admitted . Value ] , workspace : RowWorkspace , presence_cells ? : Array [ @ admitted . Value ? ] ?"
+        },
+        {
+          "name": "start_ordered_output_value_recheck",
+          "declaration": "start_ordered_output_value_recheck ( value : Value , contract : @ contract . Contract , limits : @ admitted . Limits , ) - > @ admitted . RecheckCursor ?"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing bounded value admission and Local execution failure owners; diagnostic DATA adds no authority or cleanup acknowledgement",
+      "referenceQualification": "Exact original scalar charge and typed value-capture work source/component correspondence only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_bounded_output_row_charge",
+            "cleanup_bounded_output_row_charge",
+            "start_bounded_buffer_row_charge",
+            "start_bounded_output_row_charge",
+            "start_ordered_output_value_recheck"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/value_capture_work_wbtest.mbt",
+                "anchor": "test \"capture text keeps one exact debit and distinguishes only the strictly smaller work refusal\""
               }
             ]
           }

@@ -54,6 +54,8 @@ pub fn local_dispatch_rejection(LocalDispatchModule, Int) -> String?
 
 pub fn local_dispatch_work_slots() -> Int
 
+pub fn local_managed_advance_capture_work(LocalDispatchIssue) -> Array[Int]?
+
 pub fn local_managed_advance_control_work_limit(LocalDispatchIssue) -> Int?
 
 pub fn[T] local_managed_captured_relation_input() -> LocalManagedAvailableOutput[T]

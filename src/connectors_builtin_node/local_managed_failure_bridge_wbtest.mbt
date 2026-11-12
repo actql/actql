@@ -37,3 +37,41 @@ test "managed advance bridge retains only the typed failed-result work cause" {
     None,
   )
 }
+
+///|
+test "managed advance Capture bridge keeps the SAME Result typed step and allowance only" {
+  assert_eq(
+    local_managed_advance_capture_work(
+      Err(
+        @local_driver.Configuration(
+          @connector.Execution(
+            @execution.Capture(41, @execution.CaptureWorkLimit(100000)),
+          ),
+        ),
+      ),
+    ),
+    Some([41, 100000]),
+  )
+  assert_eq(
+    local_managed_advance_capture_work(
+      Err(
+        @local_driver.Configuration(
+          @connector.Execution(@execution.Capture(41, @execution.CaptureLimit)),
+        ),
+      ),
+    ),
+    None,
+  )
+  assert_eq(
+    local_managed_advance_capture_work(
+      Ok({
+        complete: false,
+        waiting: false,
+        settlement: None,
+        progress: 1L,
+        work: 1L,
+      }),
+    ),
+    None,
+  )
+}

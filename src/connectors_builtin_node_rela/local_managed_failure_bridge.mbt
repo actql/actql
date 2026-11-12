@@ -13,3 +13,18 @@ pub fn local_managed_advance_control_work_limit(
     _ => None
   }
 }
+
+///|
+/// Project only this SAME original failed advance's typed Capture work cause.
+#export_name("strategyModule_local_ManagedAdvanceCaptureWork")
+pub fn local_managed_advance_capture_work(
+  result : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+) -> Array[Int]? {
+  match result {
+    Err(issue) => @local_driver.local_managed_advance_capture_work(issue)
+    _ => None
+  }
+}

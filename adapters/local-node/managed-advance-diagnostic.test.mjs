@@ -81,3 +81,31 @@ test('dispatch snapshot refuses misleading local-work DATA and retains the exist
     kind: 'original_sources.missing', task: 1, unit: 2, step: 3};
   assert.deepEqual(snapshot(Object.assign(new Error('original'), {primaryDiagnostic: model})).primaryDiagnostic, model);
 });
+
+
+test('managed advance retains exact value capture work cause step limit receiver and original error', () => {
+  const result={},cleanupHandle={},primary=Object.assign(new Error('original'),{code:'MoonBitHostFailure',cleanupHandle});
+  let projects=0,checks=0;
+  const moon={strategyModule_local_ManagedAdvanceControlWorkLimit(){return undefined;},
+    strategyModule_local_ManagedAdvanceCaptureWork(value){assert.strictEqual(this,moon);assert.strictEqual(value,result);projects++;return [41,100000];}};
+  assert.throws(()=>checkedLocalManagedAdvance(moon,result,value=>{checks++;assert.strictEqual(value,result);throw primary;},41),error=>error===primary);
+  assert.equal(checks,1);assert.equal(projects,1);assert.strictEqual(primary.cleanupHandle,cleanupHandle);
+  assert.deepEqual(primary.primaryDiagnostic,{code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000});
+  assert(Object.isFrozen(primary.primaryDiagnostic));
+  assert.deepEqual(snapshot(primary).primaryDiagnostic,primary.primaryDiagnostic);
+});
+
+
+test('managed advance capture diagnostic refuses generic malformed and foreign vectors without replacing original failure', () => {
+  for(const capture of [undefined,null,[],[41],[41,100000,0],[-1,100000],[41,-1],[41,NaN],[41,'100000'],[2147483648,100000]]){
+    const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
+    assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return capture;}},{},()=>{throw original;},41),error=>error===original);
+    assert.equal(original.primaryDiagnostic,undefined);
+  }
+  const accessor=Object.defineProperty([41,100000],'0',{get(){assert.fail('do not invoke capture vector accessors');}});
+  const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
+  assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return accessor;}},{},()=>{throw original;},41),error=>error===original);
+  assert.equal(original.primaryDiagnostic,undefined);
+  const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000};
+  for(const changed of [{...data,workLimit:-1},{...data,step:-1},{...data,unit:0},{...data,controlWorkLimit:100000}])assert.equal(snapshot(Object.assign(new Error('original'),{primaryDiagnostic:changed})).primaryDiagnostic,undefined);
+});

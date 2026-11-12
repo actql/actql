@@ -67,12 +67,18 @@ function originalControlWorkRefusal(observations, ref, terminal, selectedWorkLim
   const data = original.primaryDiagnostic;
   assert(data !== undefined && data !== null && typeof data === 'object',
     'OriginalControlWorkDiagnosticUnavailable');
-  assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task']);
   assert.equal(data.code, 'MoonBitHostFailure');
   assert.equal(data.phase, 'local_managed_advance');
-  assert.equal(data.kind, 'control_work');
-  assert.equal(data.controlWorkLimit, selectedWorkLimit);
   assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
+  if (data.kind === 'control_work') {
+    assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task']);
+    assert.equal(data.controlWorkLimit, selectedWorkLimit);
+  } else {
+    assert.equal(data.kind, 'value_capture_work');
+    assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'step', 'task', 'workLimit']);
+    assert(Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647);
+    assert.equal(data.workLimit, selectedWorkLimit);
+  }
   return {...data, verified: true};
 }
 async function sameHostSmallResult(client, report, span, save) {
@@ -248,7 +254,7 @@ try {
     assert.equal(capacityObservations.length, 0, 'Do not relabel memory refusal as control work');
     report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
     report.previousSaved = await readPreviousSavedResult(client, previous, report, span);
-    report.cases.push({expectedRefusal: 'control_work', complete: true});
+    report.cases.push({expectedRefusal: report.workRefusal.kind, complete: true});
   } else if (phase === 'capture') {
     for (const count of counts) {
       const programPath = join(process.cwd(), `collection-${count}.sql`);

@@ -22,3 +22,19 @@ pub fn local_managed_advance_control_work_limit(
     _ => None
   }
 }
+
+///|
+/// The original value-capture work allowance and Capture step are distinct
+/// from the provider control counter. No generic CaptureLimit is classified.
+pub fn local_managed_advance_capture_work(
+  issue : LocalDispatchIssue,
+) -> Array[Int]? {
+  match issue {
+    Configuration(
+      @connector.Execution(
+        @execution.Capture(step, @execution.CaptureWorkLimit(limit))
+      )
+    ) if step >= 0 && limit >= 0 => Some([step, limit])
+    _ => None
+  }
+}

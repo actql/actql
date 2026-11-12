@@ -1928,6 +1928,7 @@ pub(all) enum CaptureIssue {
   InputValue(Int, @value_admission.Issue)
   ClosedCapture
   ForeignCheckedValue(Int, Int)
+  CaptureWorkLimit(Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum CaptureOrigin {

@@ -14,6 +14,23 @@ export function checkedLocalManagedAdvance(moon, result, checked, task) {
           })});
         }
       }
+      if (!Object.hasOwn(error, 'primaryDiagnostic') && Number.isSafeInteger(task) && task >= 0 && task <= 2147483647 &&
+          Object.getOwnPropertyDescriptor(error, 'code')?.value === 'MoonBitHostFailure') {
+        const projectCapture = moon.strategyModule_local_ManagedAdvanceCaptureWork;
+        if (typeof projectCapture === 'function') {
+          const capture = Reflect.apply(projectCapture, moon, [result]);
+          if (Array.isArray(capture) && capture.length === 2) {
+            const step = Object.getOwnPropertyDescriptor(capture, '0')?.value;
+            const workLimit = Object.getOwnPropertyDescriptor(capture, '1')?.value;
+            if (Number.isSafeInteger(step) && step >= 0 && step <= 2147483647 &&
+                Number.isSafeInteger(workLimit) && workLimit >= 0 && workLimit <= 2147483647) {
+              Object.defineProperty(error, 'primaryDiagnostic', {value: Object.freeze({
+                code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'value_capture_work', task, step, workLimit,
+              })});
+            }
+          }
+        }
+      }
     } catch { /* Optional diagnosis cannot replace the original failure. */ }
     throw error;
   }

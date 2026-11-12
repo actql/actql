@@ -49,11 +49,19 @@ function dispatchFailureSnapshot(error) {
         !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
         workLimit !== undefined && Object.hasOwn(workLimit, 'value') &&
         Number.isSafeInteger(workLimit.value) && workLimit.value >= 0 && workLimit.value <= 2147483647;
+      const valueLimit = Object.getOwnPropertyDescriptor(field.value, 'workLimit');
+      const valueWork = data.phase === 'local_managed_advance' && data.kind === 'value_capture_work' &&
+        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+        Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
+        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
+        valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
+        Number.isSafeInteger(valueLimit.value) && valueLimit.value >= 0 && valueLimit.value <= 2147483647;
       if (data.code === 'MoonBitHostFailure' &&
-          (data.phase === 'original_model_acquired_effect_evidence' && validOrdinals || localWork) &&
+          (data.phase === 'original_model_acquired_effect_evidence' && validOrdinals || localWork || valueWork) &&
           typeof data.kind === 'string' && data.kind.length <= 96 &&
           /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {
         if (localWork) data.controlWorkLimit = workLimit.value;
+        if (valueWork) data.workLimit = valueLimit.value;
         primaryDiagnostic = Object.freeze(data);
       }
     }

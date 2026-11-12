@@ -1,4 +1,4 @@
-# Local managed control-work diagnosis
+# Local managed work diagnosis
 
 ## Responsibility
 
@@ -6,6 +6,9 @@ The existing Local managed execution owns each cumulative control counter.
 Cross Join distinguishes failure of that counter from row, workspace and
 physical memory bounds at the original failed charge. This diagnosis changes
 no acceptance rule, public error, dispatch, stop or cleanup decision.
+The existing value-capture owner separately preserves a failed short-name
+UTF-8 charge when its strictly smaller bound was the original work allowance.
+`value_capture_work` is distinct from the provider's `control_work` counter.
 
 ## Inputs and outputs
 
@@ -14,7 +17,10 @@ Result once. Only its typed Core getter may project `control_work` from the
 closed `ControlWorkLimit(initialWorkLimit)` constructor. The already-retained
 immutable execution limit supplies that scalar only when the provider reports
 its original `ControlWorkLimit`; no new state counter or allowance is added. Successful yields and
-completions, missing getters and all other causes produce no diagnosis.
+completions, missing getters and unclassified causes produce no diagnosis.
+The separate Capture getter accepts only the SAME failed advance's
+`Configuration(Execution(Capture(step, CaptureWorkLimit(limit))))` and returns
+the fixed `[step, limit]` DATA vector. It does not classify `CaptureLimit`.
 
 ## Identity
 
@@ -28,6 +34,8 @@ The existing execution and failure-settlement owners retain every physical
 child and cleanup duty. The optional frozen `primaryDiagnostic` has only
 constant code, phase and kind strings, the bounded original Task ordinal and
 the original initial control-work limit.
+Value-capture diagnosis instead retains its original Capture step and the
+immutable `ValueBudget.limits.max_work`, with no new counter or cleanup owner.
 It is attached to the original error without replacing its cleanup carrier.
 
 ## Synchronization
@@ -36,6 +44,12 @@ The persistent `ControlBudget.remaining` starts from the selected execution
 work limit and spans repeated polls. The poll quantum only yields to the Host;
 exhausting a slice is successful progress, never `ControlWorkLimit`. Existing
 row, then work, then workspace checks keep their original order and debits.
+`charge_text_issue` performs the original single `admit_utf8_length` call with
+`min(text_remaining, work_remaining)` and the same successful text/work debit.
+`charge_text` remains its boolean projection. Only the bounded output's short
+name charge preserves the detailed issue; other boolean callers keep their
+existing rejection behavior. No second measurement, retry or Unicode repair
+occurs.
 
 ## Failure
 
@@ -45,6 +59,10 @@ unclassified causes stay distinct. The adapter neither guesses from numeric
 compiler tags nor classifies a generic unpublished Result. An optional getter,
 property definition or diagnostic failure never replaces any thrown value,
 including `undefined`; it does not invoke a thrown code accessor.
+Capture work is selected only from that original scalar `LimitExceeded` when
+`work_remaining < text_remaining`. Ties, text limits, malformed Unicode and
+invalid limits stay generic. Node, depth, row and workspace failures are not
+reclassified. All existing Capture constructors retain their original tags.
 
 ## Cancellation
 
@@ -78,3 +96,10 @@ same Result/receiver, original exceptions/cleanup, absent or failing optional
 inspection, and the existing full Model diagnostic. These are component and
 source checks; ordinary installed resource-refusal/recovery and performance
 observations remain separate.
+The new scalar test covers strict work/text ordering, ties, malformed UTF-16,
+successful UTF-8 debit and prior work. The actual Request component executes
+the original collection SQL with work 100000 and 1GiB, retains the exact typed
+Capture work cause at step 41 before the same owner's cleanup, then verifies
+the original holder/Run retirement and zero live reservations. Its normal
+installed refusal, later query and prior Saved read still require the matching
+immutable distribution; component checks do not establish that acceptance.

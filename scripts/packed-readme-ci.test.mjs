@@ -1512,3 +1512,37 @@ test('normal resource unavailable work diagnostic retains original failure and r
   assert.equal(report.previousSavedCreated,true);assert.equal(report.submits,2);assert.equal(starts,2);
   assert.strictEqual(work[0],event);assert.equal(report.workRefusal,undefined);assert.equal(report.resourceRecovery,undefined);
 });
+
+
+test('normal resource original value capture work evidence remains distinct from control and generic CaptureLimit', async () => {
+  const {workProject}=await collectionBudgetPorts(),ref={original:'same-run'};
+  const terminal={status:'failed',result_available:false};
+  const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000};
+  const event={ref,code:'CapturedRunExecutionFailed',primaryCode:'MoonBitHostFailure',primaryDiagnostic:data};
+  assert.deepEqual(workProject([event],ref,terminal,100000),{...data,verified:true});
+  for(const changed of [{...data,kind:'capture'},{...data,kind:'CaptureLimit'},{...data,workLimit:99999},
+    {...data,step:-1},{...data,controlWorkLimit:100000},{...data,unit:0}])assert.throws(()=>workProject([{...event,primaryDiagnostic:changed}],ref,terminal,100000));
+});
+
+
+test('normal resource parent preserves exact value capture work evidence through same Host recovery and prior Saved', async t => {
+  const {root}=await scratch(t),load=await runnerFunctions();
+  const run=load('runCollectionPhase',{readFile,join,assert,process,nodeBenchmarkFailure});
+  for(const mode of ['exact','wrong-limit','missing-step','generic-capture','foreign-control']){
+    const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000,verified:true};
+    if(mode==='wrong-limit')data.workLimit--;
+    if(mode==='missing-step')delete data.step;
+    if(mode==='generic-capture')data.kind='capture';
+    if(mode==='foreign-control')data.controlWorkLimit=100000;
+    const actual={phase:'work-recovery',pid:12345,complete:true,firstClose:'returned',cleanup:[],
+      aliveScopedFD:{before:0,after:0},submits:3,previousSavedCreated:true,
+      previousSaved:{complete:true,rows:[{n:41}],submits:0},sourceFreeMaxWork:100000,
+      requestMemory:{retainedBytes:1073741824,executionBytes:1073741824},
+      resourceRecovery:{complete:true,rows:[{n:7}],submits:1},
+      cases:[{expectedRefusal:'value_capture_work',complete:true}],workRefusal:data};
+    const record={phase:'work-recovery',completed:false};
+    const promise=run({collection:root,record,async command(){return {pid:12345,code:0,stdout:JSON.stringify(actual)};}});
+    if(mode==='exact'){await promise;assert.equal(record.completed,true);}
+    else{await assert.rejects(promise);assert.equal(record.completed,false);}
+  }
+});

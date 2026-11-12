@@ -100,6 +100,7 @@ fn collection_request_publication_case(
   observed? : Array[@resources.LedgerUsage]? = None,
   actual_request_profile? : Bool = false,
   giant_elements? : Int? = None,
+  diagnostic_failure? : Ref[LocalValuesExecutionIssue?]? = None,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
@@ -353,6 +354,21 @@ fn collection_request_publication_case(
       value
     }
     Err(failure) => {
+      if diagnostic_failure is Some(original) {
+        original.val = Some(local_values_execution_failure_issue(failure))
+        let mut cleaned = false
+        for _ in 0..<100000 {
+          if retry_local_values_execution_failure_cleanup(failure) {
+            cleaned = true
+            break
+          }
+        }
+        assert_true(cleaned)
+        @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+        retire_installed_managed_run(run).unwrap()
+        assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+        return
+      }
       if expect_work_refusal {
         assert_true(source_free_max_work is None)
         assert_true(
@@ -1273,4 +1289,38 @@ test "actual default Request giant scalar array executes before SDK row-retentio
     actual_request_profile=true,
     giant_elements=Some(20000),
   )
+}
+
+///|
+test "selected 100000 collection retains exact original Capture work cause and cleanup" {
+  let limits = client_local_preparation_initial_limits(
+    client_local_resource_policy(),
+    retained_bytes=Some(1073741824L),
+    execution_bytes=Some(1073741824L),
+  ).unwrap()
+  let original : Ref[LocalValuesExecutionIssue?] = Ref(None)
+  collection_request_publication_case(
+    100000,
+    false,
+    source_free_max_work=Some(100000),
+    initial_limits=Some(limits),
+    actual_request_profile=true,
+    diagnostic_failure=Some(original),
+  )
+  guard original.val is Some(Driver(issue)) else {
+    fail("original typed Driver failure missing")
+  }
+  assert_true(
+    issue
+    is @local_driver.Configuration(
+      @connector.Execution(
+        @execution.Capture(41, @execution.CaptureWorkLimit(100000))
+      )
+    ),
+  )
+  assert_eq(
+    @local_driver.local_managed_advance_capture_work(issue),
+    Some([41, 100000]),
+  )
+  assert_eq(@local_driver.local_managed_advance_control_work_limit(issue), None)
 }

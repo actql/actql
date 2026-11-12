@@ -87,12 +87,19 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert.deepEqual(actual.cases, [{expectedRefusal: 'request_snapshot', complete: true}]);
       } else {
         const data = actual.workRefusal;
-        assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task', 'verified']);
         assert.equal(data.verified, true); assert.equal(data.code, 'MoonBitHostFailure');
-        assert.equal(data.phase, 'local_managed_advance'); assert.equal(data.kind, 'control_work');
-        assert.equal(data.controlWorkLimit, actual.sourceFreeMaxWork);
+        assert.equal(data.phase, 'local_managed_advance');
         assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
-        assert.deepEqual(actual.cases, [{expectedRefusal: 'control_work', complete: true}]);
+        if (data.kind === 'control_work') {
+          assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task', 'verified']);
+          assert.equal(data.controlWorkLimit, actual.sourceFreeMaxWork);
+        } else {
+          assert.equal(data.kind, 'value_capture_work');
+          assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'step', 'task', 'verified', 'workLimit']);
+          assert(Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647);
+          assert.equal(data.workLimit, actual.sourceFreeMaxWork);
+        }
+        assert.deepEqual(actual.cases, [{expectedRefusal: data.kind, complete: true}]);
       }
     } else if (phase === 'capture') {
       assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
