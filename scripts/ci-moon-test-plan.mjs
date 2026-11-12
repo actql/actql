@@ -32,7 +32,7 @@ export function nonMoonRequirements(paths) {
     .map(({name, jobs}) => ({name, jobs:[...jobs]}));
   if (paths.some(path => snapshotFiles.includes(path) || snapshotDirectories.some(root =>
     path === root || path.startsWith(root + '/')))) owners.push({name:'proof snapshot',
-    jobs:['session-evidence', 'pipeline-evidence']});
+    jobs:['session-evidence', 'session-controls', 'pipeline-evidence']});
   return owners;
 }
 
@@ -139,7 +139,7 @@ export function validateMoonTestPlan(plan) {
   assert(plan.files.join('\0').length <= 128 * 1024);
   assert.deepEqual(plan.portableTargets, ['js', 'wasm']);
   assert.equal(plan.native, 'compiler-owned-existing-profiles');
-  assert.deepEqual(plan.supplemental, [{name:'proof snapshot', jobs:['session-evidence', 'pipeline-evidence']}]);
+  assert.deepEqual(plan.supplemental, [{name:'proof snapshot', jobs:['session-evidence', 'session-controls', 'pipeline-evidence']}]);
   return plan;
 }
 

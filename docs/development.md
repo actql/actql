@@ -1236,6 +1236,13 @@ Mac TLS/HTTP component build. Existing time windows, compiler flags, cleanup and
 deployment settings stay intact. Local measurements do not establish CI speedup;
 runtime resource limits and the component lifetime profile are unchanged.
 
+Session input/origin rejection tests run in the independent `session-controls`
+job, with the same pinned toolchain, Lean and complete test-file inventory.
+Every selected file must report executed tests, with no failure, cancellation,
+skip or todo. The `session-evidence` collector, mutation/final campaigns and
+artifact identities remain unchanged. Both jobs are required for deep proof
+coverage; local `run session-evidence` retains both sequences serially.
+
 ### Full integration and release evidence
 
 Every main push selects full runtime coverage, including all three Core

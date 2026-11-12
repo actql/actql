@@ -4,7 +4,7 @@
 import {posix} from 'node:path';
 
 export const heavyJobs = Object.freeze([
-  'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence',
+  'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls',
   'client-packages', 'client-readme-packed', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
   'client-distribution-callers', 'client-distribution-mutations',
   'client-distribution-packed', 'client-distribution-native',

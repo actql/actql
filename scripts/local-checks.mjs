@@ -54,6 +54,16 @@ function commands(name, target, raw = false) {
     fail(`Unknown job: ${name}`);
   }
   const scratch = join(root, '_build', 'local-checks', name);
+  let steps = job.steps;
+  if (name === 'session-evidence' && !raw && workflow.jobs['session-controls']) {
+    // Preserve the original complete local route without a second setup or
+    // collector. Hosted jobs run controls independently on another runner.
+    const controls = workflow.jobs['session-controls'].steps.filter(step =>
+      typeof step.run === 'string' && !preparation(step));
+    const index = steps.findIndex(step => step.run === 'node proofs/ci-evidence/collect.mjs init');
+    if (index < 0 || controls.length !== 1) fail('Incomplete local Session controls composition');
+    steps = [...steps.slice(0, index), ...controls, ...steps.slice(index)];
+  }
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
     .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false')
@@ -85,7 +95,7 @@ function commands(name, target, raw = false) {
     }
     return [key, resolve(value)];
   };
-  return job.steps.filter(step => typeof step.run === 'string' &&
+  return steps.filter(step => typeof step.run === 'string' &&
     !preparation(step)).map(step => ({
     name: step.name ?? step.run.split('\n')[0],
     run: resolve(step.run),
