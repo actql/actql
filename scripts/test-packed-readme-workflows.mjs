@@ -25,7 +25,7 @@ export const packedCompositionCases = Object.freeze([
 // SAME completed original Result. This helper installs nothing and submits no
 // replacement Run. Its caller owns software/fixture correspondence and alias cleanup.
 export async function runCollectionPhase({collection, command, record, capturePid}) {
-  assert(['budget', 'memory-recovery', 'work-recovery', 'capture', 'saved'].includes(record.phase));
+  assert(['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved'].includes(record.phase));
   if (record.phase === 'saved') assert(Number.isSafeInteger(capturePid) && capturePid > 0);
   const members = ['scripts/fixtures/packed-result-collection.mjs'];
   const {phase} = record;
@@ -41,7 +41,8 @@ export async function runCollectionPhase({collection, command, record, capturePi
     assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
     if (phase === 'saved') assert.notEqual(actual.pid, capturePid);
     assert.equal(actual.sourceFreeMaxWork, phase === 'work-recovery' ? 100000 : 30000000);
-    const memory = phase === 'budget' ? 32768 : phase === 'memory-recovery' ? 268435456 : 1073741824;
+    const memory = phase === 'budget' ? 32768 : phase === 'memory-recovery' ? 268435456
+      : phase === 'accepted-memory-recovery' ? 536870912 : 1073741824;
     assert.deepEqual(actual.requestMemory, {retainedBytes: memory, executionBytes: memory});
     assert(actual.complete); assert.equal(actual.firstClose, 'returned');
     assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
@@ -85,6 +86,37 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert(actual.memoryRefusal.dimension === 'retention' ? amounts[0] > amounts[2]
           : actual.memoryRefusal.dimension === 'execution' && amounts[0] <= amounts[2] && amounts[1] > amounts[3]);
         assert.deepEqual(actual.cases, [{expectedRefusal: 'request_snapshot', complete: true}]);
+      } else if (phase === 'accepted-memory-recovery') {
+        assert.equal(actual.firstCloseCalls, 1);
+        assert.equal(actual.originalRefRecordedBeforeWait, true);
+        assert(actual.acceptedComputeRef !== null && typeof actual.acceptedComputeRef === 'object');
+        assert.equal(actual.acceptedComputeTerminal?.physical_stop, 'confirmed');
+        assert.deepEqual(actual.capacityObservations, []);
+        if (actual.acceptedComputeTerminal.status === 'succeeded') {
+          assert.equal(actual.acceptedComputeTerminal.result_available, true);
+          assert.deepEqual(actual.workObservations, []);
+          assert.equal(actual.acceptedMemoryRefusal, undefined);
+          assert.deepEqual(actual.cases, [{count: 100000, disposition: 'succeeded', rows: 100000, complete: true}]);
+        } else {
+          assert.equal(actual.acceptedComputeTerminal.status, 'failed');
+          assert.equal(actual.acceptedComputeTerminal.result_available, false);
+          const data = actual.acceptedMemoryRefusal;
+          assert.equal(data?.verified, true);
+          assert.deepEqual(Object.keys(data).sort(), ['code', 'dimension', 'kind', 'phase', 'task', 'verified']);
+          assert.equal(data.code, 'MoonBitHostFailure');
+          assert.equal(data.phase, 'local_managed_advance');
+          assert.equal(data.kind, 'resource');
+          assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
+          assert(['retained_bytes', 'execution_bytes'].includes(data.dimension));
+          assert.equal(actual.workObservations.length, 1);
+          const original = actual.workObservations[0];
+          assert.deepEqual(original.ref, actual.acceptedComputeRef);
+          assert.equal(original.code, 'CapturedRunExecutionFailed');
+          assert.equal(original.primaryCode, 'MoonBitHostFailure');
+          const {verified, ...diagnostic} = data;
+          assert.deepEqual(original.primaryDiagnostic, diagnostic);
+          assert.deepEqual(actual.cases, [{count: 100000, disposition: 'resource_refused', complete: true}]);
+        }
       } else {
         const data = actual.workRefusal;
         assert.equal(data.verified, true); assert.equal(data.code, 'MoonBitHostFailure');
@@ -240,7 +272,7 @@ export async function runPackedReadmeWorkflows(root) {
   const raw = join(root, 'raw'); await mkdir(raw);
   const report = {source, node: process.version, platform: process.platform,
     architecture: process.arch, requiredCases: packedReadmeCases, requiredCompositions: packedCompositionCases,
-    collection: ['budget', 'memory-recovery', 'work-recovery', 'capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
+    collection: ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires verified unchanged normal packages'})),

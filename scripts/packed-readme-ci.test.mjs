@@ -261,6 +261,8 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   assert(output.with.path.includes('raw/*')); assert(output.with.path.includes('*.observation.json'));
   assert(output.with.path.includes('mock-project-*/*.pending.json'));
   assert(output.with.path.includes('collection/*.pending.json'));
+  assert(output.with.path.includes('collection/*.progress.json'));
+  assert(output.with.path.includes('collection/*ref-before-wait*.json'));
   assert(output.with.path.includes('mock-effect-control-*/*.observation.json'));
   assert(output.with.path.includes('mock-effect-control-*/*.before-close.json'));
   assert.deepEqual(workflow.jobs.check.needs, gateJobs);
@@ -476,11 +478,12 @@ async function collectionBudgetPorts() {
   // substitute Core, Ledger, installed acceptance, or successful budget run.
   return {project: load('originalBudgetRefusal'), program: load('collectionProgram'), budgetProgram: load('oversizedRowProgram'),
     memoryProgram: load('memoryRecoveryProgram'), workProject: load('originalControlWorkRefusal'),
+    memoryProject: load('originalAcceptedMemoryRefusal'), exact: load('exactRows'),
     recovery: load('sameHostSmallResult'), createPrevious: load('createPreviousSavedResult'), readPrevious: load('readPreviousSavedResult'),
     run: Function('ports', `return (async () => {
       const {assert,report,span,open,phase,stateDir,capacityObservations,
         originalBudgetRefusal,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
-        collectionProgram,oversizedRowProgram,memoryRecoveryProgram,originalControlWorkRefusal,
+        collectionProgram,oversizedRowProgram,memoryRecoveryProgram,originalControlWorkRefusal,originalAcceptedMemoryRefusal,exactRows,
         sameHostSmallResult,createPreviousSavedResult,readPreviousSavedResult,workObservations,save}=ports;
       let client; ${source.slice(body.start, body.end)}; return client;
     })();`)};
@@ -1058,7 +1061,7 @@ test('failed shared package preparation records every dependent as unexecuted an
     verifyNodeBenchmarkPackages: async () => assert.fail('No successful prepared input')});
   await assert.rejects(run(output), error => error === failure);
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
-  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'memory-recovery', 'work-recovery', 'capture', 'saved']);
+  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved']);
   assert.equal(report.complete, false);
   assert([...report.collection, ...report.cases, ...report.compositions, ...report.controls].every(value =>
     value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
@@ -1789,4 +1792,156 @@ test('capture FD wrapper observes after rejection and rethrows the same original
   }
   const diagnostic = new Error('Descriptor failure after successful original');
   await assert.rejects(observe(async () => {}, async () => {throw diagnostic;}, () => {}), error => error === diagnostic);
+});
+
+test('accepted Compute memory oracle requires same original typed dimension and confirmed stop', async () => {
+  const {memoryProject} = await collectionBudgetPorts();
+  const ref = {original: 'accepted-compute'};
+  const terminal = {status: 'failed', result_available: false, control: {physical_stop: 'confirmed'}};
+  const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes'};
+  const event = {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data};
+  assert.deepEqual(memoryProject([event], ref, terminal), {...data, verified: true});
+  for (const changed of [undefined, {...data, dimension: 'memory'}, {...data, task: -1},
+    {...data, phase: 'request_snapshot'}, {...data, kind: 'control_work'}, {...data, unit: 0}]) {
+    assert.throws(() => memoryProject([{...event, primaryDiagnostic: changed}], ref, terminal));
+  }
+  assert.throws(() => memoryProject([{...event, ref: {original: 'foreign'}}], ref, terminal));
+  assert.throws(() => memoryProject([event, event], ref, terminal));
+  assert.throws(() => memoryProject([event], ref, {...terminal, status: 'needs_reconciliation'}));
+  assert.throws(() => memoryProject([event], ref, {...terminal, control: {physical_stop: 'unknown'}}));
+});
+
+test('accepted Compute fixed512 fixture checks refusal recovery and every legitimately successful row', async () => {
+  const {run, program, recovery, createPrevious, readPrevious, memoryProject, exact} = await collectionBudgetPorts();
+  for (const mode of ['refused', 'succeeded', 'wrong-row', 'unknown', 'generic']) {
+    const report = {phase: 'accepted-memory-recovery', cases: [], submits: 0}, work = [], saved = new Map();
+    let starts = 0, opens = 0, attached = 0, selected;
+    const ref = {original: 'accepted-compute'}, previousRef = {original: 'previous-Saved'};
+    const result = n => ({ref: n === 41 ? previousRef : {original: 'small'},
+      async wait() {return {status: 'succeeded', next_action: {results: ['answer']}};},
+      result() {return {async all() {return [{n}];}};}});
+    const client = {async startSource(document) {
+      starts++;
+      if (starts === 1) {assert.equal(document, 'SELECT 41 AS n'); return result(41);}
+      if (starts === 3) {assert.equal(document, 'SELECT 7 AS n'); return result(7);}
+      assert.equal(starts, 2); assert.equal(document, program(100000));
+      return {ref, async wait() {
+        assert.deepEqual(saved.get('accepted-memory-ref-before-wait.json'), ref);
+        if (mode === 'succeeded' || mode === 'wrong-row') return {status: 'succeeded', result_available: true,
+          control: {physical_stop: 'confirmed'}, next_action: {results: ['answer']}};
+        selected.authorization.observe('dispatch_failed', {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure',
+          ...(mode === 'generic' ? {} : {primaryDiagnostic: {code: 'MoonBitHostFailure', phase: 'local_managed_advance',
+            kind: 'resource', task: 44, dimension: 'retained_bytes'}})});
+        return {status: mode === 'unknown' ? 'needs_reconciliation' : 'failed', result_available: false,
+          control: {physical_stop: mode === 'unknown' ? 'unknown' : 'confirmed'}};
+      }, result() {return {async all() {
+        const rows = Array.from({length: 100000}, () => ({n: 0}));
+        if (mode === 'wrong-row') rows[99999].n = 1;
+        return rows;
+      }};}};
+    }, async attach(original) {
+      attached++; assert.deepEqual(original, previousRef);
+      return {result() {return {async all() {return [{n: 41}];}};}, async status() {return {status: 'succeeded'};}};
+    }};
+    const checking = run({assert, report, phase: report.phase, stateDir: '/fresh-accepted-memory',
+      capacityObservations: [], workObservations: work, originalAcceptedMemoryRefusal: memoryProject,
+      collectionProgram: program, exactRows: exact, sameHostSmallResult: recovery,
+      createPreviousSavedResult: createPrevious, readPreviousSavedResult: readPrevious,
+      span: async (_name, action) => action(), save: async (name, value) => saved.set(name, value),
+      async open(options) {opens++; selected = options.installation;
+        assert.equal(selected.sourceFreeMaxWork, 30000000);
+        assert.deepEqual(selected.requestMemory, {retainedBytes: 536870912, executionBytes: 536870912}); return client;}});
+    if (mode === 'refused' || mode === 'succeeded') {
+      assert.equal(await checking, client);
+      assert.equal(starts, 3); assert.equal(attached, 1); assert.equal(report.submits, 3);
+      assert.deepEqual(report.resourceRecovery, {complete: true, rows: [{n: 7}], submits: 1});
+      assert.deepEqual(report.previousSaved, {complete: true, rows: [{n: 41}], submits: 0});
+      assert.equal(report.cases[0].disposition, mode === 'refused' ? 'resource_refused' : 'succeeded');
+      if (mode === 'succeeded') assert.equal(report.cases[0].rows, 100000);
+    } else {
+      await assert.rejects(checking); assert.equal(starts, 2); assert.equal(attached, 0);
+      assert.equal(report.resourceRecovery, undefined);
+    }
+    assert.equal(opens, 1);
+  }
+});
+
+test('accepted Compute child saves original ref and progress before a blocked wait and closes once', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const first = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(value => value.type !== 'ImportDeclaration');
+  const invoke = Function('ports', `return (async () => {
+    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
+      observeRecordApprovalDescriptors,process,console}=ports;
+    ${source.slice(first.start)}
+  })();`);
+  const entered = Promise.withResolvers(), waiting = Promise.withResolvers(), stored = new Map();
+  const ref = {original: 'accepted-before-wait'}, primary = new Error('Original wait failure');
+  let starts = 0, closes = 0;
+  const running = invoke({assert, join,
+    process: {argv: ['node', 'fixture', 'accepted-memory-recovery', '/fresh/handoff.json'], pid: 12000,
+      cwd: () => '/fresh', hrtime: process.hrtime, cpuUsage: process.cpuUsage},
+    console: {log() {}}, setTimeout: async () => {}, unlink: () => assert.fail('No prior state removal'),
+    getSubmissionOutcome: () => undefined, getSubmissionInput: () => undefined, getSubmissionAttempt: () => undefined,
+    observeRecordApprovalDescriptors: async () => ({openPaths: []}),
+    async readFile(path) {return stored.get(path);}, async writeFile(path, wire) {stored.set(path, wire);},
+    async open() {return {async startSource() {
+      starts++;
+      if (starts === 1) return {ref: {original: 'seed'}, async wait() {return {status: 'succeeded', next_action: {results: ['prior']}};},
+        result() {return {async all() {return [{n: 41}];}};}};
+      return {ref, async wait() {entered.resolve(); return waiting.promise;}};
+    }, async close() {closes++;}};}});
+  const rejected = assert.rejects(running, error => error === primary);
+  await entered.promise;
+  const progress = JSON.parse(stored.get('accepted-memory-recovery.progress.json'));
+  assert.equal(progress.event, 'start'); assert.equal(progress.step, 'wait-accepted-memory');
+  assert.equal(progress.complete, false); assert.equal(progress.firstClose, 'unobserved');
+  assert.deepEqual(progress.currentRunResult.ref, ref);
+  assert.deepEqual(JSON.parse(stored.get('accepted-memory-ref-before-wait.json')), ref);
+  assert.equal(starts, 2); assert.equal(closes, 0);
+  waiting.reject(primary); await rejected;
+  const final = JSON.parse(stored.get('accepted-memory-recovery.observation.json'));
+  assert.equal(final.complete, false); assert.equal(final.firstClose, 'returned');
+  assert.equal(final.firstCloseCalls, 1); assert.equal(closes, 1);
+});
+
+test('required accepted Compute parent rejects generic Unknown incomplete recovery and close evidence', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  for (const mode of ['exact', 'success', 'generic', 'unknown', 'stop-unknown', 'wrong-dimension', 'foreign-ref',
+    'missing-recovery', 'missing-Saved', 'wrong-memory', 'wrong-work', 'missing-ref', 'two-closes', 'pending-close', 'open-fd', 'short-success']) {
+    const ref = {original: 'accepted'}, data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes'};
+    const actual = {phase: 'accepted-memory-recovery', pid: 12345, complete: true, firstClose: 'returned', firstCloseCalls: 1,
+      cleanup: [], aliveScopedFD: {before: 0, after: 0}, submits: 3, sourceFreeMaxWork: 30000000,
+      requestMemory: {retainedBytes: 536870912, executionBytes: 536870912},
+      previousSavedCreated: true, previousSaved: {complete: true, rows: [{n: 41}], submits: 0},
+      resourceRecovery: {complete: true, rows: [{n: 7}], submits: 1}, originalRefRecordedBeforeWait: true,
+      acceptedComputeRef: ref, acceptedComputeTerminal: {status: 'failed', result_available: false, physical_stop: 'confirmed'},
+      capacityObservations: [], workObservations: [{ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data}],
+      acceptedMemoryRefusal: {...data, verified: true}, cases: [{count: 100000, disposition: 'resource_refused', complete: true}]};
+    if (mode === 'generic') delete actual.acceptedMemoryRefusal;
+    if (mode === 'unknown') actual.acceptedComputeTerminal.status = 'needs_reconciliation';
+    if (mode === 'stop-unknown') actual.acceptedComputeTerminal.physical_stop = 'unknown';
+    if (mode === 'wrong-dimension') actual.acceptedMemoryRefusal.dimension = 'memory';
+    if (mode === 'foreign-ref') actual.workObservations[0].ref = {original: 'foreign'};
+    if (mode === 'missing-recovery') delete actual.resourceRecovery;
+    if (mode === 'missing-Saved') delete actual.previousSaved;
+    if (mode === 'wrong-memory') actual.requestMemory.retainedBytes *= 2;
+    if (mode === 'wrong-work') actual.sourceFreeMaxWork++;
+    if (mode === 'missing-ref') actual.originalRefRecordedBeforeWait = false;
+    if (mode === 'two-closes') actual.firstCloseCalls = 2;
+    if (mode === 'pending-close') actual.firstClose = 'pending';
+    if (mode === 'open-fd') actual.aliveScopedFD.after = 1;
+    if (mode === 'success' || mode === 'short-success') {
+      actual.acceptedComputeTerminal = {status: 'succeeded', result_available: true, physical_stop: 'confirmed'};
+      actual.workObservations = []; delete actual.acceptedMemoryRefusal;
+      actual.cases = [{count: 100000, disposition: 'succeeded', rows: mode === 'success' ? 100000 : 99999, complete: true}];
+    }
+    const record = {phase: actual.phase, completed: false};
+    const promise = run({collection: root, record, async command(_executable, args, options) {
+      assert.equal(args[1], 'accepted-memory-recovery'); assert.equal(options.timeout, 120000);
+      return {pid: 12345, code: 0, stdout: JSON.stringify(actual)};
+    }});
+    if (mode === 'exact' || mode === 'success') {await promise; assert.equal(record.completed, true);}
+    else {await assert.rejects(promise); assert.equal(record.completed, false);}
+  }
 });
