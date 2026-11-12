@@ -897,7 +897,7 @@ test('packed Native Graph compiler setup retains exact cc and ar selection', () 
   assert.equal(query['continue-on-error'], undefined);
   assert.equal(query.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
   assert.equal(query.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');
-  assert(setup.run.startsWith('sudo apt-get update\nsudo apt-get install --yes clang-19\n'));
+  assert(setup.run.startsWith('bash scripts/ci-install-linux-clang.sh\n'));
   const directory = mkdtempSync(join(tmpdir(), 'actql-packed-compiler-control-'));
   try {
     const cc = join(directory, 'selected-clang-19');
