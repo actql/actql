@@ -3,6 +3,7 @@
 // expected output is supplied by declaration generation.
 fn client_keyed_plan_test_inputs(
   plural? : Bool = false,
+  declared? : Bool = false,
 ) -> (
   ClientInferOccurrence,
   ClientKeyedAcquisition,
@@ -53,25 +54,45 @@ fn client_keyed_plan_test_inputs(
     declaration,
     view.source_ref,
   ).unwrap()
-  let profile = @publication.seal_publication_contract(
-    "native_file_content_read",
-    "{\"physical_source_view_contract_cid\":\"" +
-    (if plural {
-      declaration.views.filter(view => view.resource == "files")[0].view_cid
-    } else {
-      "sha256:" + "b".repeat(64)
-    }) +
-    "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"id\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
-    request +
-    "\",\"response_schema_cid\":\"" +
-    response +
-    "\",\"source_view_contract_cid\":\"" +
-    view.view_cid +
-    "\",\"version\":\"actql-native-file-content-read/0.1\"}",
-    16384,
-    1024,
-    20,
-  ).unwrap()
+  let profile = if declared {
+    let bound = @row_host.bind_declared_file_read_profile(
+      declaration,
+      view.source_ref,
+      declaration,
+      "files",
+      {
+        identity: "id",
+        name: "id",
+        version: "version",
+        media_type: "mime",
+        content_utf8: "text",
+        path: None,
+        items_path: ["items"],
+        key_path: ["id"],
+      },
+    ).unwrap()
+    @row_host.row_declaration_file_read_profile(bound, view.source_ref).unwrap()
+  } else {
+    @publication.seal_publication_contract(
+      "native_file_content_read",
+      "{\"physical_source_view_contract_cid\":\"" +
+      (if plural {
+        declaration.views.filter(view => view.resource == "files")[0].view_cid
+      } else {
+        "sha256:" + "b".repeat(64)
+      }) +
+      "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"id\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
+      request +
+      "\",\"response_schema_cid\":\"" +
+      response +
+      "\",\"source_view_contract_cid\":\"" +
+      view.view_cid +
+      "\",\"version\":\"actql-native-file-content-read/0.1\"}",
+      16384,
+      1024,
+      20,
+    ).unwrap()
+  }
   let (base, _) = client_infer_prefix_test_environment()
   guard @json.parse(base) is Object(fields) else { fail("Model environment") }
   fields.remove("evidence_bundle_cid")

@@ -105,7 +105,11 @@ an unrestorable bundle. Other compositions retain their distinct original-materi
 paths; this is not a language restriction or permission to discard them.
 
 A keyed entry additionally retains its original `native_read_profile` contract
-JSON. Projection reissues the graph with the same retained acquisition/profile
+JSON paired with its closed `native_read_profile_kind`. Only the original
+`native_file_content_read` or `declared_file_content_read` kind is admitted;
+missing halves, unknown kinds and kind/wire mismatches refuse. Node declared-file
+profiles are never read through the distinct Native contract entrance. Projection
+reissues the graph with the same retained acquisition/profile
 and still compares the complete original wire. Restoration admits the bounded
 contract and reconstructs the exact checked stage/input/join before the existing
 issuer checks Source/schema/catalog correspondence. A profile cannot move to a

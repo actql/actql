@@ -2,12 +2,17 @@
 // Same compiler-material seam as the public two-Model fixture: the first
 // original has a real keyed file/Content profile; the second consumes its
 // completed rows. No Source IO, Provider, Run/state/key or authority double.
-fn plural_keyed_original_materials_fixture() -> (
+fn plural_keyed_original_materials_fixture(
+  declared? : Bool = false,
+) -> (
   PreparedClientProgram,
   Array[ClientInferOccurrence],
   Array[ClientInferPlanGraph],
 ) raise {
-  let (first, keyed, profile) = client_keyed_plan_test_inputs(plural=true)
+  let (first, keyed, profile) = client_keyed_plan_test_inputs(
+    plural=true,
+    declared~,
+  )
   let prepared = first.owner
   let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
   assert_eq(occurrences.length(), 2)
@@ -61,7 +66,10 @@ fn plural_keyed_inventory_profile(
     fail("original inventory object")
   }
   match profile {
-    None => fields.remove("native_read_profile") |> ignore
+    None => {
+      fields.remove("native_read_profile") |> ignore
+      fields.remove("native_read_profile_kind") |> ignore
+    }
     Some(value) => fields["native_read_profile"] = value
   }
   Json::array(entries).stringify()
@@ -190,4 +198,101 @@ test "legacy plural entries neither invent native profiles nor preserve a remove
     @publication.publication_contract_identity(original_plan) !=
     @publication.publication_contract_identity(removed_plan),
   )
+}
+
+///|
+test "plural Node original materials preserve the actual declared-file contract kind" {
+  let (prepared, occurrences, graphs) = plural_keyed_original_materials_fixture(
+    declared=true,
+  )
+  let profile = client_infer_plan_native_keyed_read_profile(graphs[0]).unwrap()
+  assert_eq(
+    @publication.publication_contract_name(profile),
+    "declared_file_content_read",
+  )
+  assert_true(
+    @publication.admit_publication_contract(
+      "native_file_content_read",
+      @publication.publication_contract_json(profile),
+      100000,
+      10000,
+      100,
+    )
+    is Err(_),
+  )
+  let bounds = run_materials_limits()
+  let wire = encode_client_infer_original_inventory(occurrences, graphs, bounds).unwrap()
+  let restored = match
+    read_plural_client_infer_run_graphs(prepared, wire, bounds) {
+    Ok(value) => value
+    Err(_) => fail("NodeDeclaredProfileRestoreRejected")
+  }
+  assert_eq(restored.length(), 2)
+  for index in 0..<2 {
+    assert_eq(restored[index].graph.wire, graphs[index].graph.wire)
+  }
+  let original = client_infer_plan_native_keyed_read_profile(restored[0]).unwrap()
+  assert_eq(
+    @publication.publication_contract_name(original),
+    "declared_file_content_read",
+  )
+  assert_eq(
+    @publication.publication_contract_identity(original),
+    @publication.publication_contract_identity(profile),
+  )
+}
+
+///|
+fn plural_keyed_inventory_field(
+  wire : String,
+  field : String,
+  value : Json?,
+) -> String raise {
+  guard @json.parse(wire) is Array(entries) && entries[0] is Object(fields) else {
+    fail("original inventory kind pair")
+  }
+  match value {
+    None => fields.remove(field) |> ignore
+    Some(value) => fields[field] = value
+  }
+  Json::array(entries).stringify()
+}
+
+///|
+test "plural file profile kind is closed paired and never a Native fallback for Node" {
+  for declared in [false, true] {
+    let (prepared, occurrences, graphs) = plural_keyed_original_materials_fixture(
+      declared~,
+    )
+    let bounds = run_materials_limits()
+    let wire = encode_client_infer_original_inventory(
+      occurrences, graphs, bounds,
+    ).unwrap()
+    let wrong_kind = if declared {
+      "native_file_content_read"
+    } else {
+      "declared_file_content_read"
+    }
+    for
+      (field, value) in [
+        ("native_read_profile_kind", None),
+        ("native_read_profile", None),
+        ("native_read_profile_kind", Some(Json::null())),
+        ("native_read_profile_kind", Some(Json::number(1))),
+        (
+          "native_read_profile_kind",
+          Some(Json::string("unknown_file_content_read")),
+        ),
+        ("native_read_profile_kind", Some(Json::string(wrong_kind))),
+      ] {
+      assert_true(
+        read_plural_client_infer_run_graphs(
+          prepared,
+          plural_keyed_inventory_field(wire, field, value),
+          bounds,
+        )
+        is Err(_),
+      )
+    }
+  }
 }
