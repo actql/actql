@@ -127,7 +127,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   group.bind({captures: unitPreparation === undefined ? [{}] : [{}, {}], evidence: unitPreparation === undefined ? [{}] : [{}, {}], captureStartedAt: 'start', captureCompletedAt: 'end'});
   for (const [index, context] of contexts.entries()) context.retainOperation(operations[index]);
   for (const context of contexts) assert.equal(context.retainCompleted(), true);
-  return {group, events, contexts, publication, preparedOptions, funding, sourcePlan, signal: controller.signal, operations, cancel: () => controller.abort(new Error('OriginalCancelled')),
+  return {group, moon, events, contexts, publication, preparedOptions, funding, sourcePlan, signal: controller.signal, operations, cancel: () => controller.abort(new Error('OriginalCancelled')),
     revoke() {current = false;}};
 }
 
@@ -825,4 +825,40 @@ test('plural Source artifact preparation forwards the original Model Plan defini
   await f.group.prepareNext(0, () => {});
   assert.equal(f.events.filter(value => value === 'prepare-unit').length, 1);
   assert.equal(f.contexts[0].prepareOriginalResults().length, 1);
+});
+
+test('plural typed-input funding measures same logical originals without physical prompt or new Ledger', async () => {
+  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+    facts.copyFunding({wire: '{"captures":[]}', count: 1, calls: [{callWire: '{}'}],
+      usage: {_0: 15, _1: 2, _2: 1}}, 'typed-input');
+  }});
+  for (const operation of f.operations) {
+    operation.evaluationRequest = () => assert.fail('No physical Mock evidence exists');
+    operation.evaluationInput = slot => {
+      assert.equal(slot, 0);return {request: {index: operation.index}, callWire: '{}'};
+    };
+  }
+  // The existing pure quote receives the actual call wire only for this mode.
+  // This explicit port checks demand plumbing, not Core arithmetic or runtime.
+  f.moon.clientProgramEffectModelEvidenceCopyCapacity = (bytes, nodes, depth, shape, text, calls) => {
+    assert.deepEqual([bytes, nodes, depth, text, calls], [15, 2, 1, 2, 1]);
+    return {$tag: 1, _0: {_0: BigInt(10 + shape.request.index), _1: 20n}};
+  };
+  await f.group.persist();
+  assert.deepEqual(f.funding, [{owner: 0, retained: 10n, execution: 20n}, {owner: 0, retained: 11n, execution: 20n}]);
+  assert.equal(await f.group.retirePublication(), true);
+});
+
+test('plural typed-input funding preserves exact missing-original error codes', async () => {
+  for (const mode of ['missing-usage', 'missing-original']) {
+    const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+      assert.throws(() => facts.copyFunding({wire: '{"captures":[]}', count: 1,
+        calls: [{callWire: '{}'}], ...(mode === 'missing-usage' ? {} : {usage: {_0: 15, _1: 2, _2: 1}})},
+      'typed-input'), {code: 'RequiredEvidenceUnavailable'});
+    }});
+    for (const operation of f.operations) operation.evaluationInput = () => undefined;
+    await f.group.persist();
+    assert.deepEqual(f.funding, []);
+    assert.equal(await f.group.retirePublication(), true);
+  }
 });

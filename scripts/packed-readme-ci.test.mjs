@@ -2029,6 +2029,29 @@ test('required accepted Compute parent rejects generic Unknown incomplete recove
   }
 });
 
+// Independent literal physical rows, not product output or a product CID helper.
+// Relation rows use canonical field order; fixture-file-source binds that row CID
+// with the unchanged declared revision (docs/guides/mock-models.md).
+function independentJoinedFixtureVersions() {
+  const vectors = [
+    {rowWire: "{\"content_utf8\":\"Acme renewal meeting: move the deal to Negotiation. Send revised pricing by Friday.\\n\",\"id\":\"file-acme-notes\",\"media_type\":\"text/plain\",\"name\":\"Acme Corp - Renewal\",\"version\":\"mock-revision-acme-1\"}",
+      rowVersion: "sha256:91697fa09f0c0a712c03520fb44e54d4053723db0124c561aafa4846103d9a9a",
+      versionWire: "{\"declared_version\":\"mock-revision-acme-1\",\"row_version_cid\":\"sha256:91697fa09f0c0a712c03520fb44e54d4053723db0124c561aafa4846103d9a9a\"}",
+      declared: "mock-revision-acme-1", version: "sha256:3fdf0d901072bf1f3660dc0dfdbf5f6161cec18c459fdac7fed8b4c47d0fdd4e"},
+    {rowWire: "{\"content_utf8\":\"Globex expansion meeting: the deal is Closed Lost for this year. Revisit next fiscal year.\\n\",\"id\":\"file-globex-notes\",\"media_type\":\"text/plain\",\"name\":\"Globex - Expansion\",\"version\":\"mock-revision-globex-1\"}",
+      rowVersion: "sha256:80dbf4f97480f4475705cf7568a5dde292506b2eff2fbb11efcdcad70e20c084",
+      versionWire: "{\"declared_version\":\"mock-revision-globex-1\",\"row_version_cid\":\"sha256:80dbf4f97480f4475705cf7568a5dde292506b2eff2fbb11efcdcad70e20c084\"}",
+      declared: "mock-revision-globex-1", version: "sha256:ee260c4ffcd3129c8950438225a62d46fa6078f63464ba4aed6f0d034f7ebdb2"},
+  ];
+  const cid = wire => 'sha256:' + createHash('sha256').update(wire, 'utf8').digest('hex');
+  return vectors.map(vector => {
+    assert.equal(cid(vector.rowWire), vector.rowVersion);
+    assert.equal(JSON.stringify({declared_version: vector.declared, row_version_cid: vector.rowVersion}), vector.versionWire);
+    assert.equal(cid(vector.versionWire), vector.version);
+    return vector.version;
+  });
+}
+
 test('joined Whole composition has one genuine six-field Result and preserves both Source inputs for Model binding', async () => {
   const files = twoModelJoinedWholeDealReviewFiles();
   const program = JSON.parse(files['deal-review.program.json']);
@@ -2057,14 +2080,15 @@ test('joined Whole composition has one genuine six-field Result and preserves bo
     authority_scope_cid: 'sha256:' + 'b'.repeat(64), boundary_cid: 'sha256:' + 'a'.repeat(64),
     identity_cid: 'sha256:' + createHash('sha256').update(JSON.stringify({collection: 'files', identity,
       scope: 'sha256:' + 'a'.repeat(64)})).digest('hex')});
+  const versions = independentJoinedFixtureVersions();
   const rows = [
     {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null,
-      resource: resource('file-acme-notes'), version: 'mock-revision-acme-1'},
+      resource: resource('file-acme-notes'), version: versions[0]},
     {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review',
-      resource: resource('file-globex-notes'), version: 'mock-revision-globex-1'},
+      resource: resource('file-globex-notes'), version: versions[1]},
   ];
   check(rows);
-  for (const change of [row => ({...row, version: 'wrong'}), row => ({...row, StageName: 'wrong'}),
+  for (const change of [row => ({...row, version: 'wrong'}), row => ({...row, version: 'mock-revision-acme-1'}), row => ({...row, StageName: 'wrong'}),
     row => ({...row, resource: rows[1].resource}), row => ({...row, resource: 'synthetic'})]) {
     assert.throws(() => check([change(rows[0]), rows[1]]));
   }
@@ -2164,11 +2188,12 @@ test('joined input oracle consumes bounded original typed input and refuses swap
     assert, /^sha256:[0-9a-f]{64}$/u, Buffer);
   const cid = digit => 'sha256:' + digit.repeat(64);
   const subject = {runDefinitionCid: cid('1'), authorityScopeCid: cid('2')};
+  const versions = independentJoinedFixtureVersions();
   const expected = [
-    {key: '006Acme', StageName: 'Proposal', NextStep: null, fileVersion: 'mock-revision-acme-1',
+    {key: '006Acme', StageName: 'Proposal', NextStep: null, fileVersion: versions[0],
       notes: 'Acme renewal meeting: move the deal to Negotiation. Send revised pricing by Friday.\n',
       confirmation: {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}},
-    {key: '006Globex', StageName: 'Negotiation', NextStep: 'Legal review', fileVersion: 'mock-revision-globex-1',
+    {key: '006Globex', StageName: 'Negotiation', NextStep: 'Legal review', fileVersion: versions[1],
       notes: 'Globex expansion meeting: the deal is Closed Lost for this year. Revisit next fiscal year.\n',
       confirmation: {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}},
   ];
@@ -2177,7 +2202,7 @@ test('joined input oracle consumes bounded original typed input and refuses swap
   const deliveries = variant => ['review', 'confirm'].flatMap((role, group) => expected.map((row, index) => {
     const original = {modelCallSlotCid: cid(String(3 + group * 2 + index)),
       semanticRequestCid: cid('7'), modelTaskCid: cid(group ? '9' : '8')};
-    return {subject, target: 'assessment', attemptCid: cid('a'), original,
+    return {kind: 'typed-input', subject, target: 'assessment', attemptCid: cid('a'), original,
       wires: {typedInput: JSON.stringify({model_task_contract_cid: original.modelTaskCid,
         model_call_slot_cid: original.modelCallSlotCid, semantic_request_cid: original.semanticRequestCid,
         key: [row.key], inputs: role === 'confirm' ? row.confirmation : {
@@ -2187,7 +2212,7 @@ test('joined input oracle consumes bounded original typed input and refuses swap
   }));
   for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
     const values = deliveries(variant), positive = make(variant);
-    const authorized = {subject, target: 'assessment', purpose: 'capture',
+    const authorized = {kind: 'typed-input', subject, target: 'assessment', purpose: 'capture',
       destination: 'local:packed-joined-model-inputs', policy: {wire: '{"unknown_provenance":true}'}};
     assert.equal(positive.configuration.authorize(authorized), true);
     assert.equal(positive.configuration.authorize({...authorized, destination: 'foreign'}), false);
@@ -2195,7 +2220,7 @@ test('joined input oracle consumes bounded original typed input and refuses swap
     for (const value of values) assert.deepEqual(await positive.configuration.sink.capture(value), {status: 'complete'});
     for (const group of [values.slice(0, 2), values.slice(2)]) {
       await positive.configuration.sink.record({subject, target: 'assessment', manifest: {
-        status: 'complete', subject, modelTaskCid: group[0].original.modelTaskCid,
+        kind: 'typed-input', status: 'complete', subject, modelTaskCid: group[0].original.modelTaskCid,
         items: group.map(value => ({status: 'complete', modelCallSlotCid: value.original.modelCallSlotCid,
           attemptCid: value.attemptCid})),
       }});
@@ -2203,11 +2228,12 @@ test('joined input oracle consumes bounded original typed input and refuses swap
     assert.deepEqual(positive.verify(subject), {complete: true, modelCalls: 4, joinedInputs: 2, confirmationInputs: 2});
     assert.throws(() => positive.verify({...subject, runDefinitionCid: cid('f')}));
     assert.throws(() => make(variant).verify(subject), 'A missing optional delivery is not success');
-    for (const mode of ['left-column', 'right-column', 'key', 'slot']) {
+    for (const mode of ['left-column', 'right-column', 'key', 'slot', ...(variant === 'two-models-joined-inputs' ? ['raw-revision'] : [])]) {
       const oracle = make(variant), value = structuredClone(values[0]);
       const input = JSON.parse(value.wires.typedInput);
       if (mode === 'left-column') input.inputs.StageName = 'foreign';
       if (mode === 'right-column') input.inputs[variant === 'two-models-joined-inputs' ? 'fileVersion' : 'notes'] = 'foreign';
+      if (mode === 'raw-revision') input.inputs.fileVersion = 'mock-revision-acme-1';
       if (mode === 'key') input.key = ['foreign'];
       if (mode === 'slot') input.model_call_slot_cid = cid('f');
       value.wires.typedInput = JSON.stringify(input);

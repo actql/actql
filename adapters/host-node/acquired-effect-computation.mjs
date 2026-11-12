@@ -1064,20 +1064,29 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
             captureOwner: child.capture, continuation: child.continuation,
             current: publicationCurrent,
             authorityScopeCid: acquired.authorityScopeCid,
-            copyFunding(bundle) {
+            copyFunding(bundle, kind) {
               publicationCurrent();
+              const failure = code => {
+                const error = new Error(code);
+                if (kind === 'typed-input') error.code = code;
+                return error;
+              };
               const usage = bundle.usage;
               if (usage === undefined || !Number.isSafeInteger(bundle.count) || bundle.count < 1 || bundle.count > 128 ||
                   runtimeField(usage, 0) !== Buffer.byteLength(bundle.wire)) {
-                throw new Error('RequiredEvidenceUnavailable');
+                throw failure('RequiredEvidenceUnavailable');
               }
               let retained = 0n, execution = 0n;
               for (let slot = 0; slot < bundle.count; slot++) {
-                const physical = child.operation.evaluationRequest(slot);
-                if (physical === undefined) throw new Error('RequiredEvidenceUnavailable');
-                const shape = checked(moon.clientProgramModelRequestInputFrameGeometry(runtimeField(physical, 0), 65536));
-                const text = bundle.calls[slot].callWire.length + runtimeField(physical, 1).length + runtimeField(physical, 2).length;
-                if (!Number.isSafeInteger(text) || text > 2147483647) throw new Error('EvaluationBudgetExceeded');
+                const logical = kind === 'typed-input' ? child.operation.evaluationInput(slot) : undefined;
+                const physical = kind === 'typed-input' ? undefined : child.operation.evaluationRequest(slot);
+                if (kind === 'typed-input' ? logical === undefined || logical.callWire !== bundle.calls[slot].callWire
+                  : physical === undefined) throw failure('RequiredEvidenceUnavailable');
+                const request = kind === 'typed-input' ? logical.request : runtimeField(physical, 0);
+                const shape = checked(moon.clientProgramModelRequestInputFrameGeometry(request, 65536));
+                const text = bundle.calls[slot].callWire.length + (kind === 'typed-input' ? 0
+                  : runtimeField(physical, 1).length + runtimeField(physical, 2).length);
+                if (!Number.isSafeInteger(text) || text > 2147483647) throw failure('EvaluationBudgetExceeded');
                 const capacity = checked(moon.clientProgramEffectModelEvidenceCopyCapacity(
                   runtimeField(usage, 0), runtimeField(usage, 1), runtimeField(usage, 2), shape, text, bundle.count));
                 const r = runtimeField(capacity, 0), e = runtimeField(capacity, 1);
