@@ -203,16 +203,54 @@ fn graph_keyed_model_plan_input(
       continue
     }
     let step = @acquisition.keyed_join_step(binding.join)
-    guard physical_equal(subject.owner, identity) &&
+    let left = @acquisition.keyed_join_left(binding.join)
+    let left_complete = match left {
+      @pipeline.Step(upstream) =>
+        upstream >= 0 &&
+        upstream < step &&
+        @lower.node_at(prepared, upstream) is Some(_)
+      @pipeline.Input(input) => {
+        // A genuine imported Result needs no preceding operation. Its ONE
+        // checked input port must still point to the exact producer/edge;
+        // two Source ancestors do not create two consumer input ports.
+        let incoming = graph.data.filter(edge => {
+          edge.consumer == consumer && edge.input == input
+        })
+        match
+          (
+            @pipeline.input_at(pipeline, input),
+            @pipeline.input_producer(pipeline, input),
+            @checked.unit_input_completeness(graph.program, stage, input),
+          ) {
+          (Some((name, _)), Some(producer), Some(completeness)) =>
+            match completeness.binding {
+              @checked.Imported(interface, original) =>
+                physical_equal(original, producer) &&
+                interface.input_name == name &&
+                incoming.length() == 1 &&
+                incoming[0].target == @pipeline.producer_target(producer) &&
+                graph.owners
+                .get(incoming[0].producer)
+                .map(owner => {
+                  physical_equal(
+                    @pipeline.producer_pipeline(producer),
+                    @lower.pipeline(@lower.bound_preparation(owner)),
+                  )
+                })
+                .unwrap_or(false)
+              _ => false
+            }
+          _ => false
+        }
+      }
+    }
+    guard left_complete &&
+      physical_equal(subject.owner, identity) &&
       binding.stage == stage &&
       subject.input == @acquisition.keyed_join_input(binding.join) &&
       step < model_step &&
-      @acquisition.keyed_join_left(binding.join) is @pipeline.Step(upstream) &&
-      upstream >= 0 &&
-      upstream < step &&
-      @lower.node_at(prepared, upstream) is Some(_) &&
       @lower.node_at(prepared, step) is Some(join) &&
-      @lower.node_input_target(join, 0) == Some(@pipeline.Step(upstream)) &&
+      @lower.node_input_target(join, 0) == Some(left) &&
       @pipeline.lookup(
         pipeline,
         @acquisition.declaration(subject.source).input_name,
