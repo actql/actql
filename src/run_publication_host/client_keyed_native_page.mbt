@@ -68,6 +68,50 @@ pub fn prepare_client_keyed_native_captured_page(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientKeyedNativeCapturedPage, ClientKeyedRequestIssue] {
+  prepare_client_keyed_captured_page_owned(
+    request, capture, raw, recorded_at, max_rows, values, payload_wire,
+    logical_wire, schema, max_work, Some(workspace), max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Installed captured pages use the same completed output and selected writer
+/// limits. The explicit Native entrance retains its original workspace bound.
+pub fn prepare_client_keyed_captured_page(
+  request : ClientKeyedRequest,
+  capture : @row_host.RowKeyedSourceCapture,
+  raw : ClientKeyedNativeRawResponse,
+  recorded_at : String,
+  limits : PublicationOutputExportLimits,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientKeyedNativeCapturedPage, ClientKeyedRequestIssue] {
+  prepare_client_keyed_captured_page_owned(
+    request, capture, raw, recorded_at, limits.max_rows, limits.values,
+    limits.payload_wire, limits.logical_wire, limits.schema, max_work, None,
+    max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn prepare_client_keyed_captured_page_owned(
+  request : ClientKeyedRequest,
+  capture : @row_host.RowKeyedSourceCapture,
+  raw : ClientKeyedNativeRawResponse,
+  recorded_at : String,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema : @execution.RelationSchemaIdentityLimits,
+  max_work : Int,
+  workspace : Int?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientKeyedNativeCapturedPage, ClientKeyedRequestIssue] {
   guard request.assembly_accounting is Some(state) &&
     state.planned_requests is Some(requests) &&
     requests.get(request.row) is Some((same, slot)) &&
@@ -147,7 +191,7 @@ fn build_client_keyed_native_captured_page(
   logical_wire : @execution.RowWireLimits,
   schema : @execution.RelationSchemaIdentityLimits,
   max_work : Int,
-  workspace : Int,
+  workspace : Int?,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -237,6 +281,19 @@ fn build_client_keyed_native_captured_page(
   match keyed_lookup_body_grow(state, basis_r, basis_e, controls, Some(start)) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  // Structural workspace slots are not a preallocated byte buffer. Keep the
+  // actual parent start/next growth and all selected wire/value limits intact.
+  let workspace = match workspace {
+    Some(selected) => selected
+    None => {
+      guard @execution.completed_relation_identity_scan_workspace_slots(
+          output, values, payload_wire, logical_wire,
+        ) is Some(slots) else {
+        return Err(Assembly("native_page_workspace_geometry"))
+      }
+      slots
+    }
   }
   let scan = match
     @execution.start_completed_relation_identity_scan(

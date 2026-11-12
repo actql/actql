@@ -293,21 +293,8 @@ pub fn client_program_keyed_lookup_prepare_captured_page(
   @publication_host.ClientKeyedNativeCapturedPage,
   @publication_host.ClientKeyedRequestIssue,
 ] {
-  @publication_host.prepare_client_keyed_native_captured_page(
-    request,
-    capture,
-    raw,
-    recorded_at,
-    limits.max_rows,
-    limits.values,
-    limits.payload_wire,
-    limits.logical_wire,
-    limits.schema,
-    max_work,
-    client_installed_source_identity_workspace_slots,
-    max_bytes,
-    max_nodes,
-    max_depth,
+  @publication_host.prepare_client_keyed_captured_page(
+    request, capture, raw, recorded_at, limits, max_work, max_bytes, max_nodes, max_depth,
   )
 }
 

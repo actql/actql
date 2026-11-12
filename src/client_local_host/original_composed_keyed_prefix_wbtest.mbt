@@ -80,6 +80,7 @@ fn original_composed_keyed_consumer(
   declared_activation_record? : Bool = false,
   installed_capture_plan_finish? : Bool = false,
   declared_raw_page? : Bool = false,
+  installed_page_identity? : Bool = false,
   declared_dependency_closure? : Bool = false,
   borrowed_source_cleanup? : Bool = false,
   borrowed_source_failure? : Bool = false,
@@ -2132,23 +2133,50 @@ fn original_composed_keyed_consumer(
   let captured = @row_source_host.retain_keyed_row_run(child).unwrap()
   @publication_host.finish_client_keyed_request_io(request, 0L).unwrap()
   if raw is Some(raw) {
-    let limits = original_keyed_content_workspace().export_limits
-    let page = @publication_host.prepare_client_keyed_native_captured_page(
-      request,
-      captured,
-      raw,
-      activation_at,
-      1,
-      limits.values,
-      limits.payload_wire,
-      limits.logical_wire,
-      limits.schema,
-      1000000,
-      100000,
-      16777216,
-      1024,
-      20,
-    ).unwrap()
+    let original_limits = original_keyed_content_workspace().export_limits
+    let limits = if installed_page_identity {
+      {
+        ..original_limits,
+        payload_wire: { ..original_limits.payload_wire, max_nodes: 1000000, },
+        logical_wire: { ..original_limits.logical_wire, max_nodes: 1000003, },
+      }
+    } else {
+      original_limits
+    }
+    let page = if installed_page_identity {
+      @publication_host.prepare_client_keyed_captured_page(
+        request, captured, raw, activation_at, limits, 1000000, 16777216, 1024, 20,
+      )
+    } else {
+      @publication_host.prepare_client_keyed_native_captured_page(
+        request,
+        captured,
+        raw,
+        activation_at,
+        1,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        1000000,
+        100000,
+        16777216,
+        1024,
+        20,
+      )
+    }
+    let page = match page {
+      Ok(value) => value
+      Err(
+        @publication_host.CompletedIdentity(
+          @execution.Admission(@execution.CaptureLimit)
+        )
+      ) =>
+        fail(
+          "original installed page scan rejects its selected writer geometry as CaptureLimit",
+        )
+      Err(_) => fail("original installed page must prepare before assembly")
+    }
     let record = @publication_host.prepare_client_keyed_declared_file_page_record(
       page,
       request,
@@ -3867,5 +3895,22 @@ test "installed captured batch metadata backs actual keys rather than a larger w
     declared_activation_record=true,
     installed_capture_plan_finish=true,
     request_metadata_policy=16777216,
+  )
+}
+
+///|
+test "installed declared page identity retains its original selected wire geometry before assembly" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    pre_dispatch_plan=true,
+    native_transport=true,
+    native_activation=true,
+    declared_activation_record=true,
+    installed_capture_plan_finish=true,
+    declared_raw_page=true,
+    source_identity_bodies=true,
+    installed_page_identity=true,
+    declared_dependency_closure=true,
   )
 }

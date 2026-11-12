@@ -2093,6 +2093,8 @@ pub fn prepare_client_keyed_capture_left_read(ClientKeyedAcquisition, @execution
 
 pub fn prepare_client_keyed_captured_left_identity(ClientKeyedLookupInput, PublicationOutputExportLimits, Int) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue]
 
+pub fn prepare_client_keyed_captured_page(ClientKeyedRequest, @client_row_source_host.RowKeyedSourceCapture, ClientKeyedNativeRawResponse, String, PublicationOutputExportLimits, Int, Int, Int, Int) -> Result[ClientKeyedNativeCapturedPage, ClientKeyedRequestIssue]
+
 pub fn prepare_client_keyed_declared_file_activation_record(ClientKeyedNativeActivation, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int) -> Result[String, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_declared_file_page_record(ClientKeyedNativeCapturedPage, ClientKeyedRequest, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int) -> Result[String, ClientKeyedRequestIssue]
