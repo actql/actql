@@ -266,6 +266,8 @@ pub fn bounded_append_cleanup_pending(BoundedAppendExecution) -> Bool
 
 pub fn bounded_asof_join_cleanup_pending(BoundedAsOfJoinExecution) -> Bool
 
+pub fn bounded_binding_rows_cleanup_continuation(BoundedBindingRowsExecution) -> Int64
+
 pub fn bounded_binding_rows_cleanup_pending(BoundedBindingRowsExecution) -> Bool
 
 pub fn bounded_cross_join_cleanup_continuation(BoundedCrossJoinExecution) -> Int64

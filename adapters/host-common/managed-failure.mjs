@@ -48,6 +48,14 @@ function ownedFailure(reason, fallbackCode) {
   }
   failure.code = code;
   failure.primaryFailure = primary;
+  // Keep immutable diagnostic DATA through this existing ownership wrapper.
+  // The receiving public codec validates fields; never invoke an accessor.
+  try {
+    const diagnostic = Object.getOwnPropertyDescriptor(reason, 'primaryDiagnostic');
+    if (diagnostic !== undefined && Object.hasOwn(diagnostic, 'value')) {
+      failure.primaryDiagnostic = diagnostic.value;
+    }
+  } catch { /* A primitive or unavailable diagnostic leaves the original intact. */ }
   failure.cleanupErrors = Object.freeze(
     Array.isArray(member(reason, 'cleanupErrors'))
       ? [...member(reason, 'cleanupErrors')]
@@ -252,9 +260,9 @@ export function settleFailedManagedOperations(
     const state = cleanupState(upstream, upstreamRequired);
     const extra = additional.map(cleanup =>
       cleanupState(cleanup.handle, cleanup.handle != null));
-    let pending = true;
+    let pending = true, selected;
     const statusErrors = [];
-    try { pending = action() !== FAILURE_FINISHED; }
+    try { selected = action(); pending = selected !== FAILURE_FINISHED; }
     catch (error) { statusErrors.push(error); }
     return Object.freeze({
       pending,
@@ -264,6 +272,15 @@ export function settleFailedManagedOperations(
         ...cleanupErrors,
         ...statusErrors,
       ]),
+      ...(pending && Number.isInteger(selected) && selected >= 0 && selected < FAILURE_FINISHED
+        ? {cleanupDiagnostic: Object.freeze({
+          owner: typeof operations.cleanup_local_continuation === 'function' ? 'local_managed' : 'managed_operations',
+          phase: ['close_additional', 'close_operations', 'await_stop', 'settle_operations', 'refresh_cleanup'][selected],
+          continuation: (() => {
+            const cursor = localCleanupContinuation(operations);
+            return cursor === undefined ? 'unavailable' : cursor < 0n ? 'blocked' : 'runnable';
+          })(),
+        })} : {}),
     });
   };
   const retryOnce = async () => {
@@ -306,13 +323,16 @@ export function settleFailedManagedOperations(
         }
         failure.cleanupErrors = state.errors;
         failure.cleanupPending = state.pending;
+        failure.cleanupDiagnostic = state.cleanupDiagnostic;
         return state;
       }).finally(() => { retryFlight = undefined; });
       return retryFlight;
     },
   });
-  failure.cleanupErrors = status().errors;
-  failure.cleanupPending = status().pending;
+  const initial = status();
+  failure.cleanupErrors = initial.errors;
+  failure.cleanupPending = initial.pending;
+  failure.cleanupDiagnostic = initial.cleanupDiagnostic;
   failure.cleanupHandle = handle;
   return failure;
 }

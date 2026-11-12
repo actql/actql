@@ -37,6 +37,33 @@ test "managed advance diagnoses only the original control-work constructor" {
 }
 
 ///|
+test "managed resource diagnostic projects only exact physical quota causes" {
+  assert_eq(
+    local_managed_failure_resource_dimension(
+      Execution(@strategy.Physical(@resources.RetentionLimit)),
+    ),
+    Some("retained_bytes"),
+  )
+  assert_eq(
+    local_managed_failure_resource_dimension(
+      Execution(@strategy.Physical(@resources.ExecutionLimit)),
+    ),
+    Some("execution_bytes"),
+  )
+  for
+    issue in [
+      Execution(@strategy.Physical(@resources.ForeignOwner)),
+      Execution(@strategy.Physical(@resources.InvalidCharge)),
+      Execution(@strategy.Stopped),
+      Configuration(@connector.InvalidLimits),
+      Configuration(@connector.Execution(@execution.InputLimit)),
+      ControlWorkLimit(100000),
+    ] {
+    assert_eq(local_managed_failure_resource_dimension(issue), None)
+  }
+}
+
+///|
 test "managed advance preserves the original Capture step and selected work allowance without classifying generic bounds" {
   let original = Configuration(
     @connector.Execution(

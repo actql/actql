@@ -227,7 +227,12 @@ fn selected_binding_rows_execution(
         }
       },
     ),
-  )
+  ).map(owner => {
+    owner.cleanup_continuation = Some(() => {
+      @execution.bounded_binding_rows_cleanup_continuation(active)
+    })
+    owner
+  })
 }
 
 ///|

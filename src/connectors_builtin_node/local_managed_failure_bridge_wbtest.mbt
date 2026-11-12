@@ -39,6 +39,36 @@ test "managed advance bridge retains only the typed failed-result work cause" {
 }
 
 ///|
+test "managed resource bridge retains the original failed-result dimension" {
+  assert_eq(
+    local_managed_advance_resource_dimension(
+      Err(
+        @local_driver.Execution(@strategy.Physical(@resources.RetentionLimit)),
+      ),
+    ),
+    Some("retained_bytes"),
+  )
+  assert_eq(
+    local_managed_advance_resource_dimension(
+      Err(@local_driver.Execution(@strategy.Physical(@resources.ForeignOwner))),
+    ),
+    None,
+  )
+  assert_eq(
+    local_managed_advance_resource_dimension(
+      Ok({
+        complete: false,
+        waiting: false,
+        settlement: None,
+        progress: 1L,
+        work: 1L,
+      }),
+    ),
+    None,
+  )
+}
+
+///|
 test "managed advance Capture bridge keeps the SAME Result typed step and allowance only" {
   assert_eq(
     local_managed_advance_capture_work(

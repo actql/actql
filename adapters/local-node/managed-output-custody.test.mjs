@@ -349,6 +349,9 @@ test('original failure retry drains finite scratch after its borrowed reader ret
   await continueLocalManagedFailureCleanup(failure, operations);
   assert.equal(retired, 0n, 'the borrowed reader blocks automatic retirement');
   assert.equal(originalHandle.status().pending, true);
+  assert.deepEqual(failure.cleanupDiagnostic, {
+    owner: 'local_managed', phase: 'refresh_cleanup', continuation: 'blocked',
+  });
   readerOpen = false;
   setTimeout(() => { yielded = true; }, 0);
   const retry = originalHandle.retry();
@@ -359,6 +362,7 @@ test('original failure retry drains finite scratch after its borrowed reader ret
   assert.equal(yielded, true);
   assert.equal(failure.primaryFailure, primary);
   assert.equal(failure.cleanupHandle, originalHandle);
+  assert.equal(failure.cleanupDiagnostic, undefined);
   await originalHandle.retry();
   assert.equal(retired, 640n, 'completed cleanup cannot refund or release twice');
 });

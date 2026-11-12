@@ -9,6 +9,48 @@ const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const node = tree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'dispatchFailureSnapshot');
 const snapshot = Function(`return (${source.slice(node.start, node.end)});`)();
 
+test('managed advance resource diagnosis comes only from the original typed projector', () => {
+  for (const dimension of ['retained_bytes', 'execution_bytes', undefined, 'memory', 5]) {
+    const result = {}, primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+    const moon = {strategyModule_local_ManagedAdvanceResourceDimension(value) {
+      assert.equal(this, moon); assert.equal(value, result); return dimension;
+    }};
+    assert.throws(() => checkedLocalManagedAdvance(moon, result, () => {throw primary;}, 44), error => error === primary);
+    if (typeof dimension === 'string' && dimension.endsWith('_bytes')) {
+      assert.deepEqual(snapshot(primary).primaryDiagnostic, {
+        code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension,
+      });
+    } else assert.equal(snapshot(primary).primaryDiagnostic, undefined);
+  }
+});
+
+test('pending cleanup diagnostics retain only closed inert owner and phase DATA', () => {
+  const data = {owner: 'local_managed', phase: 'refresh_cleanup', continuation: 'blocked'};
+  const original = Object.assign(new Error('original'), {cleanupDiagnostic: data});
+  assert.deepEqual(snapshot({primaryFailure: original}).cleanupDiagnostic, data);
+  assert.equal(snapshot({cleanupDiagnostic: {...data, phase: 'arbitrary_private_state'}}).cleanupDiagnostic, undefined);
+  assert.equal(snapshot({cleanupDiagnostic: {...data, owner: 'foreign_owner'}}).cleanupDiagnostic, undefined);
+  assert.equal(snapshot({cleanupDiagnostic: {...data, get continuation() {assert.fail('no getter');}}}).cleanupDiagnostic, undefined);
+});
+
+test('the existing Site failure wrapper preserves original resource DATA without traversing causes', () => {
+  const text = readFileSync(new URL('../host-common/strategy.mjs', import.meta.url), 'utf8');
+  const body = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body;
+  const declaration = body.find(value => value.type === 'ExportNamedDeclaration' && value.declaration?.id?.name === 'StrategyHostError').declaration;
+  const memberNode = body.flatMap(value => value.type === 'VariableDeclaration' ? value.declarations : []).find(value => value.id.name === 'failureMember');
+  const factory = body.find(value => value.type === 'FunctionDeclaration' && value.id.name === 'ownedStrategyFailure');
+  const ErrorClass = Function('return (' + text.slice(declaration.start, declaration.end) + ');')();
+  const member = Function('return (' + text.slice(memberNode.init.start, memberNode.init.end) + ');')();
+  const wrap = Function('StrategyHostError', 'failureMember', 'return (' + text.slice(factory.start, factory.end) + ');')(ErrorClass, member);
+  const diagnostic = Object.freeze({code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes'});
+  const original = Object.assign(new Error('original'), {primaryDiagnostic: diagnostic});
+  const middle = wrap(original, 'StrategyExecutionFailed');
+  const outer = wrap(middle, 'StrategyExecutionFailed');
+  assert.equal(outer.primaryFailure, middle);
+  assert.equal(outer.primaryDiagnostic, diagnostic);
+  assert.deepEqual(snapshot(outer).primaryDiagnostic, diagnostic);
+});
+
 test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA', () => {
   const result = {}, cleanupHandle = {};
   const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure', cleanupHandle});

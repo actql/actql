@@ -4484,6 +4484,8 @@ pub fn local_managed_advance_capture_work(Result[@actql/actql/connectors/local/d
 
 pub fn local_managed_advance_control_work_limit(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> Int?
 
+pub fn local_managed_advance_resource_dimension(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> String?
+
 pub fn local_managed_capacity(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
 
 pub fn local_managed_captured_relation_input() -> @actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]

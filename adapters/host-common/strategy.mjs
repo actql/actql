@@ -75,6 +75,12 @@ function ownedStrategyFailure(reason, fallbackCode) {
   if (typeof name === 'string') failure.name = name;
   failure.cause = reason;
   failure.primaryFailure = reason;
+  try {
+    const diagnostic = Object.getOwnPropertyDescriptor(reason, 'primaryDiagnostic');
+    if (diagnostic !== undefined && Object.hasOwn(diagnostic, 'value')) {
+      failure.primaryDiagnostic = diagnostic.value;
+    }
+  } catch { /* Optional DATA cannot replace the original thrown value. */ }
   const errors = failureMember(reason, 'cleanupErrors');
   failure.cleanupErrors = Object.freeze(
     Array.isArray(errors) ? [...errors] : [],

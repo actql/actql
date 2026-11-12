@@ -68,6 +68,8 @@ pub fn[T] local_managed_dispatch_site_capacity(LocalManagedDispatchConfiguration
 
 pub fn[T] local_managed_dispatch_uses_provider(LocalManagedDispatchConfiguration[T]) -> Bool
 
+pub fn local_managed_failure_resource_dimension(LocalDispatchIssue) -> String?
+
 pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
 
 pub fn[T] local_managed_supplied_relation_input() -> LocalManagedAvailableOutput[T]

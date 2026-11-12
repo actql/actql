@@ -6,8 +6,18 @@ export function checkedLocalManagedAdvance(moon, result, checked, task) {
   try {return checked(result);}
   catch (error) {
     try {
+      const resource = moon.strategyModule_local_ManagedAdvanceResourceDimension;
+      if (typeof resource === 'function' && Number.isSafeInteger(task) && task >= 0 && task <= 2147483647 &&
+          Object.getOwnPropertyDescriptor(error, 'code')?.value === 'MoonBitHostFailure') {
+        const dimension = Reflect.apply(resource, moon, [result]);
+        if (dimension === 'retained_bytes' || dimension === 'execution_bytes') {
+          Object.defineProperty(error, 'primaryDiagnostic', {value: Object.freeze({
+            code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task, dimension,
+          })});
+        }
+      }
       const project = moon.strategyModule_local_ManagedAdvanceControlWorkLimit;
-      if (typeof project === 'function' && Number.isSafeInteger(task) && task >= 0 && task <= 2147483647 &&
+      if (!Object.hasOwn(error, 'primaryDiagnostic') && typeof project === 'function' && Number.isSafeInteger(task) && task >= 0 && task <= 2147483647 &&
           Object.getOwnPropertyDescriptor(error, 'code')?.value === 'MoonBitHostFailure') {
         const controlWorkLimit = Reflect.apply(project, moon, [result]);
         if (Number.isSafeInteger(controlWorkLimit) && controlWorkLimit >= 0 && controlWorkLimit <= 2147483647) {

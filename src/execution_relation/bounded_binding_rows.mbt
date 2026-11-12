@@ -653,6 +653,7 @@ priv struct BoundedBindingRowsState {
   mut input_logical : SteppedLogicalRow[BoundedBindingRow]?
   mut output_logical : BindingLogicalOutput?
   mut output : AdmittedOutput?
+  mut reclamation_steps : Int64
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
@@ -861,7 +862,12 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     state.predicate_execution = None
   }
   if state.output is Some(output) {
-    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+    let (released, removed) = reclaim_bounded_admitted_output_counted(
+      output,
+      state.accepted.val,
+    )
+    state.reclamation_steps += removed.to_int64()
+    if !released {
       return false
     }
     state.output = None
@@ -4299,6 +4305,7 @@ fn start_bounded_binding_rows_with_input(
     input_logical: None,
     output_logical: None,
     output: Some(output),
+    reclamation_steps: 0L,
     rows,
     live,
     accepted,
@@ -4386,4 +4393,24 @@ pub fn bounded_binding_rows_cleanup_pending(
   value : BoundedBindingRowsExecution,
 ) -> Bool {
   @bounded.cleanup_pending(value.session)
+}
+
+///|
+/// Observe only this stopped, unpublished buffer's actual reference removals.
+/// Borrowed readers and unfinished stop/cleanup do not become release ACKs.
+pub fn bounded_binding_rows_cleanup_continuation(
+  value : BoundedBindingRowsExecution,
+) -> Int64 {
+  if !@bounded.session_stopped(value.session) ||
+    value.accepted.val ||
+    !@bounded.cleanup_pending(value.session) {
+    return -1L
+  }
+  guard value.state.output is Some(output) &&
+    !output.buffer.open &&
+    output.buffer.reclaiming &&
+    !output.buffer.reading else {
+    return -1L
+  }
+  value.state.reclamation_steps
 }

@@ -63,19 +63,44 @@ function dispatchFailureSnapshot(error) {
         !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
         valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
         Number.isSafeInteger(valueLimit.value) && valueLimit.value >= 0 && valueLimit.value <= 2147483647;
+      const dimension = Object.getOwnPropertyDescriptor(field.value, 'dimension');
+      const resource = data.phase === 'local_managed_advance' && data.kind === 'resource' &&
+        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
+        !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
+        dimension !== undefined && Object.hasOwn(dimension, 'value') &&
+        (dimension.value === 'retained_bytes' || dimension.value === 'execution_bytes');
       if (data.code === 'MoonBitHostFailure' &&
-          (data.phase === 'original_model_acquired_effect_evidence' && validOrdinals || localWork || valueWork) &&
+          (data.phase === 'original_model_acquired_effect_evidence' && validOrdinals || localWork || valueWork || resource) &&
           typeof data.kind === 'string' && data.kind.length <= 96 &&
           /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {
         if (localWork) data.controlWorkLimit = workLimit.value;
         if (valueWork) data.workLimit = valueLimit.value;
+        if (resource) data.dimension = dimension.value;
         primaryDiagnostic = Object.freeze(data);
       }
     }
   } catch { /* Optional inert DATA cannot mask execution or cleanup. */ }
+  let cleanupDiagnostic;
+  try {
+    const original = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+    const field = Object.getOwnPropertyDescriptor(error, 'cleanupDiagnostic') ??
+      (original !== undefined && Object.hasOwn(original, 'value') && original.value != null
+        ? Object.getOwnPropertyDescriptor(original.value, 'cleanupDiagnostic') : undefined);
+    if (field !== undefined && Object.hasOwn(field, 'value')) {
+      const read = key => Object.getOwnPropertyDescriptor(field.value, key)?.value;
+      const owner = read('owner'), phase = read('phase'), continuation = read('continuation');
+      if (['local_managed', 'managed_operations'].includes(owner) &&
+          ['close_additional', 'close_operations', 'await_stop', 'settle_operations', 'refresh_cleanup'].includes(phase) &&
+          ['runnable', 'blocked', 'unavailable'].includes(continuation)) {
+        cleanupDiagnostic = Object.freeze({owner, phase, continuation});
+      }
+    }
+  } catch { /* Optional cleanup DATA does not observe or retry an owner. */ }
   return Object.freeze({name: text('name') ?? 'Error', code: text('code'),
     message: typeof error === 'string' ? error : text('message'),
-    ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic})});
+    ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic}),
+    ...(cleanupDiagnostic === undefined ? {} : {cleanupDiagnostic})});
 }
 
 // Only diagnostic custody moves here. An Unknown result keeps its outcome,
@@ -1330,6 +1355,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
           primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
+          cleanupDiagnostic: dispatchFailureSnapshot(primaryFailure)?.cleanupDiagnostic,
           issueTag: runtimeTag(primaryFailure?.cause),
           nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
       } catch { /* Optional diagnostics cannot interrupt cleanup. */ }

@@ -28,3 +28,17 @@ pub fn local_managed_advance_capture_work(
     _ => None
   }
 }
+
+///|
+#export_name("strategyModule_local_ManagedAdvanceResourceDimension")
+pub fn local_managed_advance_resource_dimension(
+  result : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+) -> String? {
+  match result {
+    Err(issue) => @local_driver.local_managed_failure_resource_dimension(issue)
+    _ => None
+  }
+}

@@ -38,3 +38,18 @@ pub fn local_managed_advance_capture_work(
     _ => None
   }
 }
+
+///|
+/// Project only the exact original physical quota constructor, never a
+/// generic configuration, row, capture, current or cleanup refusal.
+pub fn local_managed_failure_resource_dimension(
+  issue : LocalDispatchIssue,
+) -> String? {
+  match issue {
+    Execution(@strategy.Physical(@resources.RetentionLimit)) =>
+      Some("retained_bytes")
+    Execution(@strategy.Physical(@resources.ExecutionLimit)) =>
+      Some("execution_bytes")
+    _ => None
+  }
+}
