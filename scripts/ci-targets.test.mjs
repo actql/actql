@@ -45,7 +45,7 @@ function nativeScratchSourceFixture(t) {
 
 test('Linux Native scratch output leaves Source clean for delayed bundle admission', t => {
   const f = nativeScratchSourceFixture(t);
-  const step = jobs.native.steps.find(row => row.name === 'Test Node-free native storage publication and control');
+  const step = jobs['native-http'].steps.find(row => row.name === 'Test Node-free native storage publication and control');
   const scratch = step.env.ACTQL_TEST_SCRATCH_ROOT
     .replaceAll('${{ github.workspace }}', f.repository)
     .replaceAll('${{ runner.temp }}', f.runner);
@@ -84,13 +84,13 @@ test('Linux Native profile compilers retain their commands and existing stack pr
   writeFileSync(join(root, 'node'), readFileSync(npm));
   chmodSync(join(root, 'node'), 0o755);
   for (const [job, name, command] of [
-    ['native', 'Test Node-free native storage publication and control', 'scripts/test-native-http-client.mjs'],
+    ['native-http', 'Test Node-free native storage publication and control', 'scripts/test-native-http-client.mjs'],
     ['native-separated-network', 'Verify native direct and outbound-only Store profiles', 'check:native-separated-network'],
   ]) {
     assert.equal(jobs[job]['runs-on'], 'ubuntu-24.04');
     const step = jobs[job].steps.find(row => row.name === name);
     assert.ok(step);
-    assert.equal(step.if, job === 'native' ? "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}" : undefined);
+    assert.equal(step.if, undefined, 'HTTP has independent prerequisites and no unrelated preparation wait');
     assert.equal(step['continue-on-error'], undefined);
     assert.match(step.run, /ulimit -S -s 65536\s+?(?:node |npm run )/u);
     // Observe exact shell ordering and child inheritance without starting a
@@ -106,7 +106,7 @@ test('Linux Native profile compilers retain their commands and existing stack pr
       assert.equal(result.error, undefined);
       assert.equal(result.signal, null);
       assert.equal(result.status, status, result.stderr);
-      assert.equal(result.stdout.trim(), `65536:${job === 'native' ? command : `run ${command}`}`);
+      assert.equal(result.stdout.trim(), `65536:${job === 'native-http' ? command : `run ${command}`}`);
     }
   }
 });
@@ -227,12 +227,13 @@ test('Native consumers keep all original commands and collect independent failur
     'exit "$ACTQL_FIXTURE_EXIT"\n');
   chmodSync(join(root, 'node'), 0o755);
   for (const name of ['native', 'native-macos']) {
-    const steps = jobs[name].steps.filter(step => step.id?.startsWith('native-') &&
-      step.id !== 'native-preparation');
+    const steps = [jobs[name === 'native' ? 'native-http' : 'native-http-macos'].steps.find(step => step.id === 'native-http'),
+      ...jobs[name].steps.filter(step => step.id?.startsWith('native-') && step.id !== 'native-preparation')];
     assert.deepEqual(steps.map(step => step.run.trim().split('\n').at(-1)), expected);
     assert.equal(new Set(steps.map(step => step.env.ACTQL_TEST_SCRATCH_ROOT)).size, expected.length);
     const results = steps.map((step, index) => {
-      assert.equal(step.if, condition);
+      assert.equal(step.id === 'native-http' ? step.if : step.if.replace(/matrix.group == '[^']+' && /u, ''),
+        step.id === 'native-http' ? undefined : condition);
       assert.equal(step['continue-on-error'], undefined, 'a failed case must still fail the job');
       return spawnSync('bash', ['-eo', 'pipefail', '-c',
         (name === 'native' ? 'ulimit() { test \"$*\" = \"-S -s 65536\"; }\n' : '') + step.run], {
@@ -243,12 +244,13 @@ test('Native consumers keep all original commands and collect independent failur
     });
     assert.equal(results[0].status, 7, results[0].stderr);
     assert(results.slice(1).every(result => result.status === 0));
-    assert(jobs[name].steps.find(step => step.id === 'native-preparation').run
-      .includes('prepare-native-runtime-bundle-fixture.mjs'));
+    assert(jobs[name].steps.find(step => step.id === 'native-preparation').run.includes('native-ci-artifact.py restore'));
+    assert(jobs[name + '-preparation'].steps.find(step => step.id === 'native-preparation').run.includes('prepare-native-runtime-bundle-fixture.mjs'));
   }
   assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, expected.length * 2);
   for (const id of ['packed-materials', 'packed-redelivery', 'packed-output-report'])
-    assert.equal(jobs.native.steps.find(step => step.id === id).if, condition);
+    assert.equal(jobs.native.steps.find(step => step.id === id).if,
+      condition.replace('!cancelled()', "matrix.group == 'resident-product' && !cancelled()"));
 });
 
 test('finite SQLite regressions have portable lint and required prepared macOS Native owners', () => {
@@ -258,7 +260,7 @@ test('finite SQLite regressions have portable lint and required prepared macOS N
   const step = jobs['native-macos'].steps.find(row =>
     row.name === 'Test finite original SQLite statement and selected API custody');
   assert.ok(step);
-  assert.equal(step.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+  assert.equal(step.if, "${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}");
   assert.equal(step['continue-on-error'], undefined);
   assert.equal(step['timeout-minutes'], 5);
   assert.equal(step.run, 'node scripts/test-native-sqlite-read-statement.mjs');
@@ -299,7 +301,7 @@ test('Native retained verification builds exactly its checked release module inv
   assert.equal(new Set(targets).size, targets.length);
   const commands = step.run.replace(/\\\n\s*/gu, ' ').trim().split('\n').map(line => line.trim().replace(/\s+/gu, ' '));
   assert.deepEqual(commands[0].split(/\s+/u), ['moon', 'build', '--target', 'js', '--release', ...targets]);
-  assert.equal(step.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+  assert.equal(step.if, "${{ matrix.group == 'retained-product' && !cancelled() && steps.native-preparation.outcome == 'success' }}");
   assert.deepEqual(commands.slice(1), [
     'moon build src/cmd/native_retained_case_probe --target native --release',
     'node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100',
@@ -527,7 +529,7 @@ test('manual normal dispatch retains all full-family obligations, separate from 
   results['main-performance'] = {result: 'skipped'};
   results['health-quick'] = {result: 'skipped'};
   results['focused-tests'] = {result: 'skipped'};
-  results['native-macos'] = {result: 'skipped'};
+  for (const name of ['native-macos', 'native-macos-preparation', 'native-http-macos']) results[name] = {result: 'skipped'};
   verifyGate({sourceRevision: 'a'.repeat(40), selection}, results, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)});
   for (const status of ['failure', 'skipped', undefined]) {
     assert.throws(() => verifyGate({sourceRevision: 'a'.repeat(40), selection},
@@ -551,7 +553,7 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
   ['native-separated-network', 'bundle', 2, 900, 25],
 ]) {
   test(`Native preparation outer budgets retain every producer and consumer window (${name})`, () => {
-    const job = jobs[name];
+    const job = jobs[name === 'native-separated-network' ? name : name + '-preparation'];
     assert.equal(job['runs-on'], name === 'native-macos' ? 'macos-15' : 'ubuntu-24.04');
     const preparation = job.steps.find(step =>
       step.name === 'Prepare exact-source scoped Native commands and components once');
@@ -570,8 +572,12 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
     const producerSeconds = producerCount * 900 + (entries === 'all' ? residentSeconds - 900 : 0);
     const preparationMinutes = Math.ceil((producerSeconds + producerCount * 30 + 180) / 300) * 5;
     assert.equal(preparation['timeout-minutes'], preparationMinutes);
-    assert.equal(job['timeout-minutes'], preparationMinutes + remainingMinutes,
-      'the existing non-preparation window survives the outer scheduling correction');
+    if (name === 'native-separated-network') assert.equal(job['timeout-minutes'], preparationMinutes + remainingMinutes);
+    else {
+      assert.equal(job['timeout-minutes'], 75, 'Compilation and archive transfer keep finite independent envelopes');
+      assert.equal(jobs[name]['timeout-minutes'], preparationMinutes + remainingMinutes, 'Original consumer windows remain unchanged');
+      assert(jobs[name].needs.includes(name + '-preparation'));
+    }
   });
 }
 
@@ -585,12 +591,12 @@ test('ordinary Read activation regressions run on the selected Native toolchain'
   assert.ok(setup >= 0 && setup < process && process < index);
   assert.equal(steps[index].run, 'python3 -B scripts/test_native_read_activation.py');
   assert.equal(steps[index]['timeout-minutes'], 3);
-  assert.equal(steps[index].if, undefined);
+  assert.equal(steps[index].if, "matrix.group == 'runtime'");
   assert.equal(steps[index]['continue-on-error'], undefined);
   assert.equal(steps[index].env, undefined, 'inherit the original selected compiler and MoonBit');
   const retained = steps.find(step => step.name ===
     'Retain Linux x64 process-provider original controls');
-  assert.equal(retained.if, 'always()');
+  assert.equal(retained.if, "matrix.group == 'runtime' && always()");
   assert.deepEqual(retained.with.path.trim().split('\n'),
     ['_build/linux-x64-owned-process/', '_build/native-read-activation/',
       '_build/native-prepared-controls/', '_build/native-working-origin/']);
@@ -607,12 +613,12 @@ for (const [name, driver, output] of [
     const index = steps.findIndex(step => step.run === `python3 -B scripts/${driver}`);
     assert.ok(setup >= 0 && setup < read && read < index);
     assert.equal(steps[index]['timeout-minutes'], 3);
-    assert.equal(steps[index].if, undefined);
+    assert.equal(steps[index].if, "matrix.group == 'runtime'");
     assert.equal(steps[index]['continue-on-error'], undefined);
     assert.equal(steps[index].env, undefined, 'inherit selected compiler and MoonBit');
     const retained = steps.find(step => step.name ===
       'Retain Linux x64 process-provider original controls');
-    assert.equal(retained.if, 'always()');
+    assert.equal(retained.if, "matrix.group == 'runtime' && always()");
     assert.ok(retained.with.path.trim().split('\n').includes(output));
   });
 }
@@ -626,7 +632,8 @@ test('whole-family scheduling retains the core matrix and complete selected proo
       {matrix: {target}}, {timeout: 100}), target === 'native' ? 90 : 30);
   }
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
-  assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight', 'native-macos-preparation']);
+  assert.deepEqual(jobs['native-http-macos'].needs, ['select-targets', 'preflight']);
   assert.equal(jobs['native-macos']['timeout-minutes'], 115);
   assert.equal(jobs.native['timeout-minutes'], 110);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);

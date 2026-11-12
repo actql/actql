@@ -4,7 +4,7 @@
 import {posix} from 'node:path';
 
 export const heavyJobs = Object.freeze([
-  'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence',
+  'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native', 'native-http', 'session-evidence',
   'client-packages', 'client-readme-packed', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
   'client-distribution-callers', 'client-distribution-mutations',
   'client-distribution-packed', 'client-distribution-native',
@@ -15,6 +15,8 @@ export const heavyJobs = Object.freeze([
 // override. The underlying proof campaigns remain ordinary heavy work; this
 // registry does not classify or intercept their raw commands.
 export const ciOnlyPipelineJobs = Object.freeze({
+  'native-preparation': 'seals software against actual Actions source/run/attempt provenance',
+  'native-macos-preparation': 'seals macOS software against actual Actions source/run/attempt provenance',
   'client-supported-versions': 'requires exact same-run normal tarballs and the selected compatibility interpreter',
   'main-performance': 'requires exact same-run normal Client package artifact provenance',
   'pipeline-mutations': 'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal',

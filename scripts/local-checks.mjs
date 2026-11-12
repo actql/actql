@@ -21,6 +21,7 @@ const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'),
 // Jobs whose environment a developer machine does not provide.
 const ciOnly = new Map([
   ['native-macos', 'runs on macOS arm64 runners'],
+  ['native-http-macos', 'runs on macOS arm64 runners'],
   ['native-separated-network', 'needs root network namespaces'],
   ['performance-matrix', 'registered performance runs'],
   ['check', 'aggregates the other jobs'],
@@ -54,6 +55,24 @@ function commands(name, target, raw = false) {
     fail(`Unknown job: ${name}`);
   }
   const scratch = join(root, '_build', 'local-checks', name);
+  let steps = job.steps;
+  if (name === 'native' && !raw && workflow.jobs['native-preparation']) {
+    // Keep the existing complete local Native route. Hosted consumers restore
+    // an Actions-bound archive; a local invocation instead prepares the same
+    // original software once, then runs all original commands serially.
+    const download = steps.findIndex(step => step.name === 'Download the exact Native software producer artifact');
+    const restore = steps.findIndex(step => step.id === 'native-preparation');
+    const prepare = workflow.jobs['native-preparation'].steps.find(step => step.id === 'native-preparation');
+    const http = workflow.jobs['native-http']?.steps.find(step => step.id === 'native-http');
+    if (download < 0 || restore <= download || !prepare || !http)
+      fail('Incomplete local Native composition; retain all original consumers');
+    const environment = {
+      ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION: join(scratch, 'native-scoped-preparation'),
+      ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT: join(scratch, 'native-scoped-preparation/http/component/build.json'),
+    };
+    steps = [...steps.slice(0, download), prepare, http,
+      ...steps.slice(restore + 1).map(step => ({...step, env: {...environment, ...step.env}}))];
+  }
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
     .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false')
@@ -85,7 +104,7 @@ function commands(name, target, raw = false) {
     }
     return [key, resolve(value)];
   };
-  return job.steps.filter(step => typeof step.run === 'string' &&
+  return steps.filter(step => typeof step.run === 'string' &&
     !preparation(step)).map(step => ({
     name: step.name ?? step.run.split('\n')[0],
     run: resolve(step.run),

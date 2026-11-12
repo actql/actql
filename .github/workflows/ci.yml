@@ -285,6 +285,9 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk
           python3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py
+      - name: Test same-run Native software transfer refusals
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: python3 -B -m unittest scripts/test_native_ci_artifact.py
       - name: Test normal Python wheel acceptance harness guards
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_ci_python_wheels.py
@@ -293,7 +296,7 @@ jobs:
         run: python3 -B scripts/test_native_compiler_diagnostics.py
       - name: Test CI lane coverage and bounded Native phase measurement
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/ci-balanced-lanes.test.mjs scripts/native-core-measured-tests.test.mjs
+        run: node --test scripts/ci-balanced-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/native-core-measured-tests.test.mjs
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
@@ -2037,11 +2040,13 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   # Native storage, publication and control, and the Native retained path.
-  native:
+  native-preparation:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 110
+    timeout-minutes: 75
+    outputs:
+      artifact-id: ${{ steps.native-software.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2051,39 +2056,6 @@ jobs:
           python: 'true'
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
-      - name: Test scoped bundle producer source and image metadata refusals
-        run: python3 -B -m unittest scripts/test_linux_component_headers.py scripts/test_native_crypto_component.py scripts/test_native_remote_scoped_runtime.py scripts/test_native_resident_http_preparation.py scripts/test_python_scoped_read_source.py scripts/test_python_sqlite_component_source.py scripts/test_linux_process_sqlite_component.py
-      - name: Test immutable Native package-version C mechanism
-        run: node --test scripts/native-cli-version-native.test.mjs
-      - name: Test selected Linux x64 process-provider ABI and original physical custody
-        timeout-minutes: 5
-        run: python3 -B scripts/test_native_linux_x64_owned_process.py
-      - name: Test original Read slab activation custody on selected Linux x64
-        timeout-minutes: 3
-        run: python3 -B scripts/test_native_read_activation.py
-      - name: Test original prepared constructor cohorts on selected Linux x64
-        timeout-minutes: 3
-        run: python3 -B scripts/test_native_prepared_controls.py
-      - name: Test original working carrier custody on selected Linux x64
-        timeout-minutes: 3
-        run: python3 -B scripts/test_native_working_origin.py
-      - name: Retain Linux x64 process-provider original controls
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: linux-x64-owned-process-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            _build/linux-x64-owned-process/
-            _build/native-read-activation/
-            _build/native-prepared-controls/
-            _build/native-working-origin/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Test original Native bootstrap inventory FFI and domain lifetime
-        timeout-minutes: 5
-        run: >-
-          node scripts/local-checks.mjs test moon --timeout-seconds 240 --
-          --target native src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt
       - name: Select the original pinned Noble static Crypto inputs
         timeout-minutes: 5
         run: |
@@ -2108,17 +2080,127 @@ jobs:
             ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
           if-no-files-found: warn
           retention-days: 14
+      - name: Seal the exact same-run Native software preparation
+        run: python3 -B scripts/native-ci-artifact.py seal --artifact "${{ runner.temp }}/native-prepared-artifact"
+      - name: Upload immutable Native software for independent consumers
+        id: native-software
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-prepared-linux-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-prepared-artifact/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+  native-http:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Select the original pinned Noble static Crypto inputs
+        timeout-minutes: 5
+        run: |
+          openssl_development="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].package; p.name+"="+p.version')"
+          openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
+          sudo apt-get update
+          sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv
+      # 4 sequential producers retain 900s each plus 30s caller allowance.
+      # The enclosing window also retains metadata and cleanup time.
       - name: Test Node-free native storage publication and control
         id: native-http
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
         run: |
           ulimit -S -s 65536
           node scripts/test-native-http-client.mjs
+  native:
+    needs: [select-targets, preflight, native-preparation]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    name: native (${{ matrix.group }})
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [runtime, resident-main, resident-controls, resident-product, retained-product]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Select the original pinned Noble static Crypto inputs
+        timeout-minutes: 5
+        run: |
+          openssl_development="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].package; p.name+"="+p.version')"
+          openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
+          sudo apt-get update
+          sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv
+      # 4 sequential producers retain 900s each plus 30s caller allowance.
+      # The enclosing window also retains metadata and cleanup time.
+      - name: Test scoped bundle producer source and image metadata refusals
+        if: matrix.group == 'runtime'
+        run: python3 -B -m unittest scripts/test_linux_component_headers.py scripts/test_native_crypto_component.py scripts/test_native_remote_scoped_runtime.py scripts/test_native_resident_http_preparation.py scripts/test_python_scoped_read_source.py scripts/test_python_sqlite_component_source.py scripts/test_linux_process_sqlite_component.py
+      - name: Test immutable Native package-version C mechanism
+        if: matrix.group == 'runtime'
+        run: node --test scripts/native-cli-version-native.test.mjs
+      - name: Test selected Linux x64 process-provider ABI and original physical custody
+        if: matrix.group == 'runtime'
+        timeout-minutes: 5
+        run: python3 -B scripts/test_native_linux_x64_owned_process.py
+      - name: Test original Read slab activation custody on selected Linux x64
+        if: matrix.group == 'runtime'
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_read_activation.py
+      - name: Test original prepared constructor cohorts on selected Linux x64
+        if: matrix.group == 'runtime'
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_prepared_controls.py
+      - name: Test original working carrier custody on selected Linux x64
+        if: matrix.group == 'runtime'
+        timeout-minutes: 3
+        run: python3 -B scripts/test_native_working_origin.py
+      - name: Retain Linux x64 process-provider original controls
+        if: matrix.group == 'runtime' && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-x64-owned-process-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            _build/linux-x64-owned-process/
+            _build/native-read-activation/
+            _build/native-prepared-controls/
+            _build/native-working-origin/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Test original Native bootstrap inventory FFI and domain lifetime
+        if: matrix.group == 'runtime'
+        timeout-minutes: 5
+        run: >-
+          node scripts/local-checks.mjs test moon --timeout-seconds 240 --
+          --target native src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt
+      - name: Download the exact Native software producer artifact
+        uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.native-preparation.outputs.artifact-id }}
+          client-environment: 'false'
+          path: ${{ runner.temp }}/native-prepared-artifact
+      - name: Restore and bind the exact Native software preparation
+        id: native-preparation
+        run: python3 -B scripts/native-ci-artifact.py restore --artifact "${{ runner.temp }}/native-prepared-artifact"
       - name: Test Native Salesforce Effect preview
         id: native-preview
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-preview
         run: |
@@ -2126,7 +2208,7 @@ jobs:
           node scripts/test-native-salesforce-effect-preview.mjs
       - name: Test Native runtime bundle CLI
         id: native-bundle-cli
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-bundle-cli
         run: |
@@ -2134,7 +2216,7 @@ jobs:
           node scripts/test-native-runtime-bundle-cli.mjs
       - name: Test Native publication Store lock
         id: native-publication-lock
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-publication-lock
         run: |
@@ -2142,7 +2224,7 @@ jobs:
           node scripts/test-native-publication-store-lock.mjs
       - name: Test Native remote runtime
         id: native-remote
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-remote
         run: |
@@ -2150,14 +2232,14 @@ jobs:
           node scripts/test-native-remote-runtime.mjs
       - name: Test Native Resident Effect computation
         id: native-effect
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-effect
         run: |
           ulimit -S -s 65536
           node scripts/test-native-resident-site.mjs --effect-computation-only
       - name: Retain original Native Effect failure observer summary
-        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-effect.outcome == 'failure' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-effect-original-linux-${{ github.run_id }}-${{ github.run_attempt }}
@@ -2167,14 +2249,14 @@ jobs:
       # Retain the original failure-only evidence before the longer independent Native groups.
       - name: Install debugger only for failed Linux Effect consumer diagnosis
         id: failure-debugger
-        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-effect.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 5
         # The required Crypto step already refreshed these package indexes.
         # Debugger availability must not block the original Native tests.
         run: sudo apt-get install --yes --no-install-recommends gdb
       - name: Diagnose only failed Linux Effect consumer functions
-        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-effect.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 6
         env:
@@ -2183,7 +2265,7 @@ jobs:
           ulimit -S -s 65536
           node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
       - name: Retain only sanitized Linux Effect function availability
-        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-effect.outcome == 'failure' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
@@ -2192,7 +2274,7 @@ jobs:
           retention-days: 14
       - name: Test Native Resident Site
         id: native-runtime-test
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-runtime-test
         run: |
@@ -2200,7 +2282,7 @@ jobs:
           node scripts/test-native-resident-site.mjs
       - name: Test Native Resident Source
         id: native-source
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-controls' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-source
         run: |
@@ -2208,7 +2290,7 @@ jobs:
           node scripts/test-native-resident-site.mjs --source-only
       - name: Test Native observation replay
         id: native-observation
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-controls' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-observation
         run: |
@@ -2216,7 +2298,7 @@ jobs:
           node scripts/test-native-resident-site.mjs --observation-replay-only
       - name: Test Native release recovery
         id: native-release
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-controls' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-release
         run: |
@@ -2224,7 +2306,7 @@ jobs:
           node scripts/test-native-resident-site.mjs --release-recovery-only
       - name: Test Native cancellation
         id: native-cancel
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-controls' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-cancel
         run: |
@@ -2233,14 +2315,14 @@ jobs:
       # A failed Effect was already sampled before Site; otherwise preserve the original Site trigger.
       - name: Install debugger only for failed Linux Effect consumer diagnosis (Site fallback)
         id: site-failure-debugger
-        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 5
         # The required Crypto step already refreshed these package indexes.
         # Debugger availability must not block the original Native tests.
         run: sudo apt-get install --yes --no-install-recommends gdb
       - name: Diagnose only failed Linux Effect consumer functions (Site fallback)
-        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         continue-on-error: true
         timeout-minutes: 6
         env:
@@ -2249,7 +2331,7 @@ jobs:
           ulimit -S -s 65536
           node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
       - name: Retain only sanitized Linux Effect function availability (Site fallback)
-        if: ${{ !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-effect.outcome != 'failure' && steps.native-runtime-test.outcome == 'failure' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
@@ -2257,43 +2339,43 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Test public packed Run materials against native resident Site
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-product' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         id: packed-materials
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-materials
         run: node scripts/test-packed-resident-materials.mjs
       - name: Retain packed resident materials evidence
-        if: always() && steps.packed-materials.outputs.evidence-directory != ''
+        if: matrix.group == 'resident-product' && always() && steps.packed-materials.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-materials.outputs.evidence-directory }}
           name: packed-resident-materials-${{ github.sha }}
       - name: Test packed exact dispatch recovery against native resident Site
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-product' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         id: packed-redelivery
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-redelivery
         run: node scripts/test-packed-resident-materials.mjs --redelivery-only
       - name: Test packed Output report custody and ACK crash boundaries
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-product' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         id: packed-output-report
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-output-report
         run: node scripts/test-packed-resident-materials.mjs --output-report-only
       - name: Retain packed Output report evidence
-        if: always() && steps.packed-output-report.outputs.evidence-directory != ''
+        if: matrix.group == 'resident-product' && always() && steps.packed-output-report.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-output-report.outputs.evidence-directory }}
           name: packed-output-report-${{ github.sha }}
       - name: Retain packed exact redelivery evidence
-        if: always() && steps.packed-redelivery.outputs.evidence-directory != ''
+        if: matrix.group == 'resident-product' && always() && steps.packed-redelivery.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-redelivery.outputs.evidence-directory }}
           name: packed-resident-redelivery-${{ github.sha }}
       - name: Verify registered Native retained product path
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'retained-product' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         # Keep every module checked by release-artifacts.mjs, without building unrelated entries.
         run: |
           moon build --target js --release src/benchmark_obligations src/connectors/duckdb/host_node \
@@ -2308,13 +2390,9 @@ jobs:
             "$RUNNER_TEMP/native-retained-calibration.json"
           ACTQL_NATIVE_CALIBRATION_PROFILE="$RUNNER_TEMP/native-retained-calibration.json" \
             node scripts/test-native-direct-pair.mjs
-  # The single result: every required job succeeded. A failure, a
-  # cancellation or an unexpected skip fails it; it runs even when a
-  # dependency failed. The macOS job may be skipped only where it is not
-  # scheduled (see its condition).
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
+    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, native-preparation, native-http, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, native-macos-preparation, native-http-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -2411,14 +2489,16 @@ jobs:
         run: git diff --exit-code
   # Ready PRs keep macOS for target/runtime-sensitive or unknown
   # inputs. The selector records why a portable PR omits this job.
-  native-macos:
+  native-macos-preparation:
     needs: [select-targets, preflight]
     if: >-
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-15
-    # Preserve the complete campaign plus selected source/component preparation.
-    timeout-minutes: 115
+    # Original compilation windows plus immutable software packaging.
+    timeout-minutes: 75
+    outputs:
+      artifact-id: ${{ steps.native-software.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2444,8 +2524,6 @@ jobs:
           python-version: '3.12'
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
-      - name: Test macOS local execution ownership and cancellation
-        run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Ensure the original curl signature verifier tools are available
         timeout-minutes: 5
         run: |
@@ -2472,62 +2550,177 @@ jobs:
             ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
           if-no-files-found: warn
           retention-days: 14
-      - name: Verify native macOS arm64 profile
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+      - name: Seal the exact same-run Native software preparation
+        run: python3 -B scripts/native-ci-artifact.py seal --artifact "${{ runner.temp }}/native-prepared-artifact"
+      - name: Upload immutable Native software for independent consumers
+        id: native-software
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-prepared-macos-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-prepared-artifact/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 7
+  native-http-macos:
+    needs: [select-targets, preflight]
+    if: >-
+      ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+        needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
+    runs-on: macos-15
+    # Each independent group retains the original consumer timeout.
+    timeout-minutes: 115
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            adapters/connectors/duckdb/node/package-lock.json
+      - run: npm ci
+      - name: Install pinned native DuckDB transport
+        run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
+      - name: Install pinned MoonBit
         run: |
-          test "$(uname -m)" = arm64
-          moon version --all
-      - name: Test finite original SQLite statement and selected API custody
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Ensure the original curl signature verifier tools are available
         timeout-minutes: 5
-        run: node scripts/test-native-sqlite-read-statement.mjs
-      - name: Test native macOS retained task file ownership
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        run: npm run check:native-retained-task-file
+        run: |
+          if ! command -v gpg >/dev/null || ! command -v gpgv >/dev/null; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install gnupg
+          fi
+          command -v gpg
+          command -v gpgv
+      # The cold Resident production -O2 compile reached the 15-minute bound.
+      # Only it receives 1200s; the other 3 producers retain 900s each.
+      # Keep each 30s caller allowance plus metadata and cleanup time.
       - name: Test Node-free native storage publication and control
         id: native-http
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
         run: |
           node scripts/test-native-http-client.mjs
+  native-macos:
+    needs: [select-targets, preflight, native-macos-preparation]
+    if: >-
+      ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+        needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
+    runs-on: macos-15
+    # Each independent group retains the original consumer timeout.
+    timeout-minutes: 115
+    name: native-macos (${{ matrix.group }})
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [runtime, resident-main, resident-controls]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            adapters/connectors/duckdb/node/package-lock.json
+      - run: npm ci
+      - name: Install pinned native DuckDB transport
+        run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
+      - name: Install pinned MoonBit
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Ensure the original curl signature verifier tools are available
+        timeout-minutes: 5
+        run: |
+          if ! command -v gpg >/dev/null || ! command -v gpgv >/dev/null; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install gnupg
+          fi
+          command -v gpg
+          command -v gpgv
+      # The cold Resident production -O2 compile reached the 15-minute bound.
+      # Only it receives 1200s; the other 3 producers retain 900s each.
+      # Keep each 30s caller allowance plus metadata and cleanup time.
+      - name: Test macOS local execution ownership and cancellation
+        if: matrix.group == 'runtime'
+        run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
+      - name: Download the exact Native software producer artifact
+        uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.native-macos-preparation.outputs.artifact-id }}
+          client-environment: 'false'
+          path: ${{ runner.temp }}/native-prepared-artifact
+      - name: Restore and bind the exact Native software preparation
+        id: native-preparation
+        run: python3 -B scripts/native-ci-artifact.py restore --artifact "${{ runner.temp }}/native-prepared-artifact"
+      - name: Verify native macOS arm64 profile
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
+        run: |
+          test "$(uname -m)" = arm64
+          moon version --all
+      - name: Test finite original SQLite statement and selected API custody
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
+        timeout-minutes: 5
+        run: node scripts/test-native-sqlite-read-statement.mjs
+      - name: Test native macOS retained task file ownership
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
+        run: npm run check:native-retained-task-file
       - name: Test Native Salesforce Effect preview
         id: native-preview
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-preview
         run: |
           node scripts/test-native-salesforce-effect-preview.mjs
       - name: Test Native runtime bundle CLI
         id: native-bundle-cli
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-bundle-cli
         run: |
           node scripts/test-native-runtime-bundle-cli.mjs
       - name: Test Native publication Store lock
         id: native-publication-lock
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-publication-lock
         run: |
           node scripts/test-native-publication-store-lock.mjs
       - name: Test Native remote runtime
         id: native-remote
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'runtime' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-remote
         run: |
           node scripts/test-native-remote-runtime.mjs
       - name: Test Native Resident Effect computation
         id: native-effect
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-effect
         run: |
           node scripts/test-native-resident-site.mjs --effect-computation-only
       - name: Retain original Native Effect failure observer summary
-        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-effect.outcome == 'failure' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: native-effect-original-macos-${{ github.run_id }}-${{ github.run_attempt }}
@@ -2536,35 +2729,35 @@ jobs:
           retention-days: 14
       - name: Test Native Resident Site
         id: native-runtime-test
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-main' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-runtime-test
         run: |
           node scripts/test-native-resident-site.mjs
       - name: Test Native Resident Source
         id: native-source
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-controls' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-source
         run: |
           node scripts/test-native-resident-site.mjs --source-only
       - name: Test Native observation replay
         id: native-observation
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-controls' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-observation
         run: |
           node scripts/test-native-resident-site.mjs --observation-replay-only
       - name: Test Native release recovery
         id: native-release
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-controls' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-release
         run: |
           node scripts/test-native-resident-site.mjs --release-recovery-only
       - name: Test Native cancellation
         id: native-cancel
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        if: ${{ matrix.group == 'resident-controls' && !cancelled() && steps.native-preparation.outcome == 'success' }}
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-cancel
         run: |

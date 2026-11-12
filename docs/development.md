@@ -1192,13 +1192,27 @@ work, alongside the refusal tests. Selection and fallback reasons appear in the
 job summary. The focused fixed-request lane similarly checks actual Git fixture
 pins, not just synthetic fixtures; changed shared inputs require re-review.
 
-Linux and macOS Native consumers share only their job's verified preparation.
-Each consumer has a separate scratch root, runs sequentially after successful
-preparation even when another consumer fails, and retains its failure. Packed
-Client consumers use the same rule after the original artifact download. A
-cancelled job or failed preparation never starts these consumers. This collects
-independent failures without treating them as success or introducing parallel
-Store/port ownership. The final required checks are unchanged.
+Linux and macOS each produce their exact-source Native command/component
+preparation once. Independent runtime, Resident and retained-product jobs
+download that producer's immutable artifact ID. Its archive binds the source,
+run/attempt, target, checkout path, runner image and toolchain pin; the existing
+consumers still verify all original compiler/input/body descriptors. Archive
+hash, path or context mismatch refuses without rebuilding. Only public software
+and its preparation receipts are transferred, never application state or keys.
+Original absolute software paths and ordinary permission modes are preserved;
+unsafe archive paths, link traversal and existing destinations refuse.
+
+Every original command/environment has one matrix owner, checked against the
+pre-split inventory. Each case keeps a separate scratch root, and commands
+within a group run sequentially after successful preparation even when another
+case fails. The original Effect/Site failure diagnostic precedence is retained
+within the same group. HTTP integration uses its original stock-library fixture
+and does not wait for the unrelated scoped command preparation. Packed Client
+consumers use the same failure-preserving rule after their artifact download.
+Required producer, matrix and HTTP results remain strict aggregate dependencies;
+a failure, cancellation or unexpected skip cannot become a successful check.
+Rerun the whole workflow after a partial attempt: Native software from a prior
+attempt is not silently adopted as current preparation.
 
 Native preparation logs each command/component interval as
 `ACTQL_NATIVE_CI_PHASE` and writes a small `phase-*.timing.json` diagnostic into

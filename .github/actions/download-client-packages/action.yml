@@ -1,6 +1,9 @@
 name: Download exact Client packages
 description: Validate the producer artifact ID before downloading immutable Client inputs
 inputs:
+  client-environment:
+    description: Export Client npm package variables; false for Native software artifacts
+    default: 'true'
   artifact-id:
     description: The successful package producer's single artifact ID
     required: true
@@ -14,8 +17,13 @@ runs:
       shell: bash
       env:
         ARTIFACT_ID: ${{ inputs.artifact-id }}
+        CLIENT_ENVIRONMENT: ${{ inputs.client-environment }}
       run: |
         node -e '
+          if (!["true", "false"].includes(process.env.CLIENT_ENVIRONMENT ?? "true")) {
+            console.error("Invalid artifact consumer environment");
+            process.exit(1);
+          }
           if (!/^[1-9][0-9]*$/.test(process.env.ARTIFACT_ID ?? "")) {
             console.error("Missing or invalid Client package artifact ID");
             process.exit(1);
@@ -27,6 +35,7 @@ runs:
         path: ${{ inputs.path }}
         merge-multiple: true
     - name: Use verified Client inputs in subsequent acceptance steps
+      if: ${{ inputs.client-environment == 'true' }}
       shell: bash
       env:
         PACKAGES_PATH: ${{ inputs.path }}
