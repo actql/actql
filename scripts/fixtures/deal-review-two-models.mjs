@@ -61,6 +61,27 @@ export function twoModelWholeDealReviewFiles() {
   return Object.freeze(files);
 }
 
+// Minimal distinct connection: two independent Sources JOIN inside one Unit,
+// whose ONE six-field Result is the genuine input of the later Model Unit.
+// Existing README and Whole fixtures retain their original bodies/oracles.
+export function twoModelJoinedWholeDealReviewFiles() {
+  const files = {...twoModelWholeDealReviewFiles()};
+  const program = JSON.parse(files['deal-review.program.json']);
+  const producer = program.stages[0], review = program.stages[1];
+  const fields = ['id', 'name', 'StageName', 'NextStep', 'resource', 'version'];
+  program.id = 'fixture.deal-review-two-source-joined-whole';
+  producer.inputs.files = review.inputs.files;
+  producer.steps = [{join: {with: 'files', kind: 'inner', on: [{left: 'name', right: 'name'}],
+    select: {id: 'left.id', name: 'left.name', StageName: 'left.StageName', NextStep: 'left.NextStep',
+      resource: 'right.resource', version: 'right.version'}}, as: 'joined'}];
+  producer.results = {rows: {from: 'joined', fields}};
+  review.inputs = {joined: {result: {stage: producer.id, result: 'rows'}}, contents: review.inputs.contents};
+  review.from = 'joined';
+  review.steps = review.steps.slice(1);
+  files['deal-review.program.json'] = JSON.stringify(program, null, 2) + '\n';
+  return Object.freeze(files);
+}
+
 // Independently authored structured Program. A Pipe does not create a Unit:
 // the second Model consumes the retained first Stage Result in the SAME Run.
 // The MappingRef is closed declaration DATA under the existing mapping

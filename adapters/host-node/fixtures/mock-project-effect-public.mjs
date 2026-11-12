@@ -2,6 +2,7 @@
 // the same Project and ordinary installed @actql/node package namespace.
 // No internal Host port, application signer or replacement submission is used.
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFile, writeFile, stat} from 'node:fs/promises';
 import {connect} from '@actql/node';
 import {getSubmissionCheckObservation} from '@actql/sdk';
@@ -12,9 +13,10 @@ assert.ok(['capture', 'approve', 'recover'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
 assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
 const dealReview = template === 'deal-review-mock';
-assert.ok(variant === 'readme' || ['two-models', 'two-models-whole'].includes(variant) && dealReview);
+assert.ok(variant === 'readme' || ['two-models', 'two-models-whole', 'two-models-joined-whole'].includes(variant) && dealReview);
 assert.ok(workPurpose === 'workflow' || workPurpose === 'original-run-control' && phase === 'capture');
-const twoModels = variant !== 'readme', wholeProducer = variant === 'two-models-whole';
+const twoModels = variant !== 'readme', joinedWholeProducer = variant === 'two-models-joined-whole';
+const wholeProducer = variant === 'two-models-whole' || joinedWholeProducer;
 const C = /^sha256:[0-9a-f]{64}$/u;
 const expected = Object.freeze(dealReview ? {
   '006Acme': {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'},
@@ -165,6 +167,48 @@ async function readWholeResults(execution, updates) {
   const ordered = rows => [...rows].sort((left, right) => left.id.localeCompare(right.id));
   assert.deepEqual(ordered(reviewed), ordered(updates.map(({confirmation, ...row}) => row)));
   return {answer: sourceRows, main: reviewed};
+}
+
+// Independent authored oracle for the separately named joined-Unit fixture.
+// Opaque authority CIDs are checked as nominal DATA, never recreated as grants.
+function checkJoinedSourceRows(rows) {
+  const expected = [
+    {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null,
+      version: 'mock-revision-acme-1'},
+    {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review',
+      version: 'mock-revision-globex-1'},
+  ];
+  const fileIds = ['file-acme-notes', 'file-globex-notes'];
+  const ordered = [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  assert.equal(ordered.length, expected.length);
+  const identities = new Set();
+  for (const [index, row] of ordered.entries()) {
+    assert.deepEqual(Object.keys(row).sort(), ['id', 'name', 'StageName', 'NextStep', 'resource', 'version'].sort());
+    const {resource, ...values} = row;
+    assert.deepEqual(values, expected[index]);
+    assert.deepEqual(Object.keys(resource).sort(), ['$actql_ref', 'version', 'provider_namespace',
+      'resource_kind', 'provider_identity_cid', 'authority_scope_cid', 'boundary_cid', 'identity_cid'].sort());
+    assert.equal(resource.$actql_ref, 'resource');
+    assert.equal(resource.version, 'actql-resource-ref/0.1');
+    assert.equal(resource.provider_namespace, 'drive');
+    assert.equal(resource.resource_kind, 'file');
+    for (const field of ['provider_identity_cid', 'authority_scope_cid', 'boundary_cid', 'identity_cid']) {
+      assert.match(resource[field], /^sha256:[0-9a-f]{64}$/u);
+    }
+    assert.equal(resource.provider_identity_cid, resource.boundary_cid);
+    const identityWire = JSON.stringify({collection: 'files', identity: fileIds[index], scope: resource.boundary_cid});
+    assert.equal(resource.identity_cid, 'sha256:' + createHash('sha256').update(identityWire).digest('hex'));
+    identities.add(resource.identity_cid);
+  }
+  assert.equal(identities.size, 2);
+}
+async function readJoinedWholeResults(execution, updates) {
+  const answer = await execution.result('answer').all();
+  checkJoinedSourceRows(answer);
+  const main = await execution.result('main').all();
+  const ordered = rows => [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  assert.deepEqual(ordered(main), ordered(updates.map(({confirmation, ...row}) => row)));
+  return {answer, main};
 }
 
 function checkReview(review, summary, ref) {
@@ -329,7 +373,7 @@ try {
       const rows = await step('original Named Result', async () => {
         const rows = await execution.result('updates').all();
         checkRows(rows);
-        if (wholeProducer) allResults = await readWholeResults(execution, rows);
+        if (wholeProducer) allResults = await (joinedWholeProducer ? readJoinedWholeResults : readWholeResults)(execution, rows);
         return rows;
       });
       const after = await step('exact conditional target bytes', async () => {
@@ -352,7 +396,7 @@ try {
       await step('recover original Named Result', async () => {
         const rows = await execution.result('updates').all();
         checkRows(rows); assert.deepEqual(rows, approved.rows);
-        if (wholeProducer) assert.deepEqual(await readWholeResults(execution, rows), approved.allResults);
+        if (wholeProducer) assert.deepEqual(await (joinedWholeProducer ? readJoinedWholeResults : readWholeResults)(execution, rows), approved.allResults);
       });
       await step('recover completed same Run', async () => {
         const state = await execution.status();
