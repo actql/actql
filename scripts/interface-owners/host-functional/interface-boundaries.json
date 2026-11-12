@@ -29149,7 +29149,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6bf9bcecaec55afb5988a1bd4377e5b40dcce71b72ab22e758f790e5f0392a78",
+      "sha256": "e9c017b1bcb103613defdcfd20f968359a2b2834c5bb4e896cd45dd69207817a",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
