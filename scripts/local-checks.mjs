@@ -50,28 +50,27 @@ const preparation = step => /^(npm ci|moon version|node scripts\/setup-moonbit)/
 // checkout. Runner preparation (`uses:` and install steps) is left to the
 // developer's own installed toolchain. CI-only inspection keeps expressions raw.
 function commands(name, target, raw = false) {
-  const job = workflow.jobs[name === 'native' && !raw && workflow.jobs['native-consumers'] ? 'native-consumers' : name];
+  const job = workflow.jobs[name === 'native' && !raw && workflow.jobs['native-workloads'] ? 'native-workloads' : name];
   if (job === undefined || !Array.isArray(job.steps)) {
     fail(`Unknown job: ${name}`);
   }
   const scratch = join(root, '_build', 'local-checks', name);
   let steps = job.steps;
-  if (name === 'native' && !raw && workflow.jobs['native-preparation']) {
-    // Keep the existing complete local Native route. Hosted consumers restore
-    // an Actions-bound archive; a local invocation instead prepares the same
-    // original software once, then runs all original commands serially.
-    const download = steps.findIndex(step => step.name === 'Download the exact Native software producer artifact');
-    const restore = steps.findIndex(step => step.id === 'native-preparation');
-    const prepare = workflow.jobs['native-preparation'].steps.find(step => step.id === 'native-preparation');
+  if (name === 'native' && !raw && workflow.jobs['native-workloads']) {
+    const plan = JSON.parse(readFileSync(join(root, 'scripts/ci-native-background-groups.json'), 'utf8')).native;
+    const prepare = steps.findIndex(step => step.id === 'native-preparation');
     const http = workflow.jobs['native-http']?.steps.find(step => step.id === 'native-http');
-    if (download < 0 || restore <= download || !prepare || !http)
-      fail('Incomplete local Native composition; retain all original consumers');
+    if (prepare < 0 || !http) fail('Incomplete local Native composition; retain all original consumers');
     const environment = {
       ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION: join(scratch, 'native-scoped-preparation'),
       ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT: join(scratch, 'native-scoped-preparation/http/component/build.json'),
     };
-    steps = [...steps.slice(0, download), prepare, http,
-      ...steps.slice(restore + 1).map(step => ({...step, env: {...environment, ...step.env}}))];
+    // Hosted background bookkeeping is not needed locally. Keep every original
+    // case serially in this same process tree, with one original preparation.
+    steps = [...steps.slice(0, prepare + 1), http,
+      ...steps.slice(prepare + 1).filter(step => !['native-background-start', 'native-background'].includes(step.id)),
+      ...plan.flatMap(group => group.steps.map(step => ({...step, 'timeout-minutes': step.timeoutMinutes})))];
+    steps = steps.map(step => ({...step, env: {...environment, ...step.env}}));
   }
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
@@ -142,7 +141,7 @@ function requireHeavy(classification, options) {
 // is not an Actions expression evaluator; unfamiliar expressions require an
 // explicit local budget, just like missing/non-numeric workflow values.
 function workflowMinutes(name, target) {
-  const value = workflow.jobs[name === 'native' && workflow.jobs['native-consumers'] ? 'native-consumers' : name]?.['timeout-minutes'];
+  const value = workflow.jobs[name === 'native' && workflow.jobs['native-workloads'] ? 'native-workloads' : name]?.['timeout-minutes'];
   if (typeof value === 'number') return value;
   if (name !== 'core' || typeof value !== 'string' || target === undefined) return undefined;
   const match = /^\$\{\{\s*matrix\.target\s*==\s*'native'\s*&&\s*([1-9][0-9]*)\s*\|\|\s*([1-9][0-9]*)\s*\}\}$/u.exec(value);

@@ -75,3 +75,18 @@ test('duplicate selection, missing results and foreign result identity remain re
     await assert.rejects(waitNativeGroups(directory, {report() {}}));
   }
 });
+
+test('a successful join requires the original case identity and actual zero exit, not a success label alone', async t => {
+  const f = fixture(t);
+  const directory = f.start([{name: 'runtime', steps: [f.step('original', '', {id: 'original-case'})]}]);
+  await waitNativeGroups(directory, {report() {}});
+  const path = join(directory, 'result.json'), result = JSON.parse(readFileSync(path));
+  for (const change of [value => { value.code = 7; }, value => { value.signal = 'SIGTERM'; },
+    value => { value.failure = 'original'; }, value => { value.id = 'foreign'; },
+    value => { value.group = 'foreign'; }, value => { value.status = 'skipped'; },
+    value => { delete value.completedAt; }]) {
+    const changed = structuredClone(result); change(changed.groups[0].cases[0]);
+    writeFileSync(path, JSON.stringify(changed));
+    await assert.rejects(waitNativeGroups(directory, {report() {}}));
+  }
+});

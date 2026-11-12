@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
-import {appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync,
+import {appendFileSync, closeSync, createReadStream, existsSync, mkdirSync, openSync, readFileSync,
   realpathSync, renameSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -58,7 +58,7 @@ export function startNativeGroups({root, directory, groups, deadline, slots = 2}
 
 async function executeCase(control, directory, group, step, index) {
   const startedAt = Date.now(), remaining = control.deadline - startedAt;
-  if (remaining <= 0) return {name: step.name, group, status: 'unexecuted', outputs: {}};
+  if (remaining <= 0) return {name: step.name, id: step.id, group, status: 'unexecuted', outputs: {}};
   const output = join(directory, `${group}-${index}.outputs`);
   const log = openSync(join(directory, group + '.log'), 'a', 0o600);
   const substitute = text => text.replaceAll('${{ runner.temp }}', process.env.RUNNER_TEMP ?? '')
@@ -116,7 +116,7 @@ export async function runNativeGroups(directory) {
   return result;
 }
 
-export async function waitNativeGroups(directory, {report = console.log} = {}) {
+export async function waitNativeGroups(directory, {report = value => process.stdout.write(value)} = {}) {
   const control = JSON.parse(readFileSync(join(directory, 'control.json'), 'utf8'));
   const worker = JSON.parse(readFileSync(join(directory, 'worker.json'), 'utf8'));
   assert.equal(worker.token, control.token);
@@ -132,13 +132,24 @@ export async function waitNativeGroups(directory, {report = console.log} = {}) {
   for (const [index, group] of result.groups.entries()) {
     assert.deepEqual(group.cases.map(value => value.name), control.groups[index].steps.map(value => value.name));
     const log = join(directory, group.name + '.log');
-    if (existsSync(log)) report(readFileSync(log, 'utf8'));
-    for (const item of group.cases) {
+    if (existsSync(log)) for await (const chunk of createReadStream(log, {encoding: 'utf8'})) report(chunk);
+    for (const [ordinal, item] of group.cases.entries()) {
+      const expected = control.groups[index].steps[ordinal];
+      assert.equal(item.id, expected.id);
+      assert.equal(item.group, group.name);
+      assert(['success', 'failure', 'unexecuted'].includes(item.status));
+      if (item.status === 'success') {
+        assert.equal(item.code, 0);
+        assert.equal(item.signal, null);
+        assert.equal(item.failure, undefined);
+        assert(Number.isSafeInteger(item.startedAt) && Number.isSafeInteger(item.completedAt) &&
+          item.completedAt >= item.startedAt);
+      }
       failed ||= item.status !== 'success';
       if (item.id && item.outputs['evidence-directory']) outputs[item.id + '-evidence-directory'] = item.outputs['evidence-directory'];
       report('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({phase: 'consumer', group: group.name,
         name: item.name, milliseconds: item.completedAt === undefined ? null : item.completedAt - item.startedAt,
-        outcome: item.status}));
+        outcome: item.status}) + '\n');
     }
   }
   return {status: failed ? 1 : 0, outputs, result};

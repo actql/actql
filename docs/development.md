@@ -1192,27 +1192,21 @@ work, alongside the refusal tests. Selection and fallback reasons appear in the
 job summary. The focused fixed-request lane similarly checks actual Git fixture
 pins, not just synthetic fixtures; changed shared inputs require re-review.
 
-Linux and macOS each produce their exact-source Native command/component
-preparation once. Independent runtime, Resident and retained-product jobs
-download that producer's immutable artifact ID. Its archive binds the source,
-run/attempt, target, checkout path, runner image and toolchain pin; the existing
-consumers still verify all original compiler/input/body descriptors. Archive
-hash, path or context mismatch refuses without rebuilding. Only public software
-and its preparation receipts are transferred, never application state or keys.
-Original absolute software paths and ordinary permission modes are preserved;
-unsafe archive paths, link traversal and existing destinations refuse.
+Linux and macOS each prepare the original Native commands/components once in
+one workload runner. Background command groups use that SAME physical
+preparation and toolchain. Resident Effect/Site remain inline, retaining the
+original immediate summary upload, bounded failure-only diagnosis and fallback.
+Two background slots run the other independently owned cases; final join checks
+the complete original inventory, preserves failures and forwards original packed
+artifact outputs. HTTP integration remains an independent job with its original
+stock-library fixture. Both workload and HTTP results are strict dependencies.
 
-Every original command/environment has one matrix owner, checked against the
-pre-split inventory. Each case keeps a separate scratch root, and commands
-within a group run sequentially after successful preparation even when another
-case fails. The original Effect/Site failure diagnostic precedence is retained
-within the same group. HTTP integration uses its original stock-library fixture
-and does not wait for the unrelated scoped command preparation. Packed Client
-consumers use the same failure-preserving rule after their artifact download.
-Required producer, matrix and HTTP results remain strict aggregate dependencies;
-a failure, cancellation or unexpected skip cannot become a successful check.
-Rerun the whole workflow after a partial attempt: Native software from a prior
-attempt is not silently adopted as current preparation.
+No Native preparation is transplanted across runners: existing descriptors bind
+physical compiler aliases and generated toolchain inputs. A mismatched original
+still refuses; there is no metadata rewrite or implicit rebuild fallback.
+Local `run native` retains one preparation and every original case serially.
+Job and case deadlines stay unchanged. Parallelism is CI orchestration, not a
+product lifetime, permission, capacity or successful cleanup claim.
 
 Native preparation logs each command/component interval as
 `ACTQL_NATIVE_CI_PHASE` and writes a small `phase-*.timing.json` diagnostic into
