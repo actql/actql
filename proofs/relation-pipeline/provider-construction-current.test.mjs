@@ -114,6 +114,24 @@ test('current five-field candidate component derives 2432 without promoting hist
   // the actual constructor/lifecycle remain outside callback execution.
   const crossPath = 'src/connectors/local/cross_join_provider.mbt';
   const cross = read(crossPath).toString();
+  // The reviewed typed work refusal changes only the error mapper preceding
+  // the constructor. Reverse exactly that arm to authenticate the complete
+  // prior Source; candidate layout, captures and cleanup observer stay exact.
+  const typedWork = '    @execution.ControlWorkLimit => @connector.ControlWorkLimit\n';
+  assert.equal(cross.split(typedWork).length, 2, 'Reach the one typed work-refusal arm');
+  const beforeTypedWork = cross.replace(typedWork, '');
+  assert.equal(hash(beforeTypedWork),
+    'a02cf4c88fe349c5a71aaec5348e62f9af3555b530a8d97715a0f13255771590',
+    'Typed work classification must preserve the complete previously reviewed Source');
+  assert.equal(cross.slice(cross.indexOf('fn cross_join_provider(')),
+    beforeTypedWork.slice(beforeTypedWork.indexOf('fn cross_join_provider(')),
+    'Constructor and all execution/cleanup callback bodies remain unchanged');
+  for (const changed of [beforeTypedWork,
+    cross.replace(typedWork, typedWork + typedWork),
+    cross.replace(typedWork, '    @execution.ControlWorkLimit => @connector.Execution(@execution.InputLimit)\n')]) {
+    assert.throws(() => providerConstructionBound(path => path === crossPath ? changed : read(path)),
+      /Unreviewed current constructor source/);
+  }
   assert.equal(cross.split(bounded).length, 2, 'Reach the one reviewed CROSS JOIN capacity query');
   const cleanupObserver = `      ).map(owner => {
         owner.cleanup_continuation = Some(() => {
@@ -122,7 +140,7 @@ test('current five-field candidate component derives 2432 without promoting hist
         owner
       })`;
   assert.equal(cross.split(cleanupObserver).length, 2, 'Reach the one execution-only Cross Join observer');
-  const beforeObserver = cross.replace(cleanupObserver, '      )');
+  const beforeObserver = beforeTypedWork.replace(cleanupObserver, '      )');
   assert.equal(hash(beforeObserver),
     '0e2b820abd78a4391861332f8748682cb1b70c536dd05f9bc7126531bd197942',
     'Cross Join observer must preserve the complete prior candidate constructor Source');

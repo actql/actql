@@ -10,7 +10,7 @@
     {
       "name": "cross_join_provider",
       "path": "src/connectors/local/cross_join_provider.mbt",
-      "sourceDigest": "a02cf4c88fe349c5a71aaec5348e62f9af3555b530a8d97715a0f13255771590",
+      "sourceDigest": "4a72e422dd1b3e5417065e9edbeb9369fa5736b9ef10e01802fd29930939dd14",
       "binding": "managed_provider"
     },
     {
