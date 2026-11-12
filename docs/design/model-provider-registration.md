@@ -118,7 +118,7 @@ representation; absence supplies no default native profile. Removing a profile
 changes the compiled graph and remains subject to the complete saved Plan/Run
 identity fences. This material transfer grants no currentness, read or send.
 
-A single keyed Native Effect Model also retains its original selected
+A single keyed file-reading Effect Model also retains its original selected
 `native_file_content_read` contract in `infer_native_read_profile_json`.
 Restoration admits that exact contract and binds it to the same checked
 Source/acquisition before rebuilding the existing keyed Model Graph. It does
@@ -126,6 +126,13 @@ not select a current installation or fabricate a default read profile. The
 saved Template, compiled Plan, Request, Run and canonical material checks
 remain mandatory; missing, malformed or foreign profile input cannot become
 read or execution authority. Non-keyed material bytes remain unchanged.
+
+The single-Model field keeps its existing wire representation for both original
+file implementations. Its shared bounded reader selects only the original
+Native or declared-file version and passes that same parsed value through the
+ordinary complete contract/identity/nested-reference admission. Plural entries
+also require their retained kind to match this admitted original kind. Neither
+path tries multiple schemas, reparses for kind discovery or supplies a default.
 
 When restoring pending Native approval, static Source Request values must keep
 their original policy meaning in the rebuilt Plan. The trusted installed Host

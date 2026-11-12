@@ -429,14 +429,14 @@ fn read_plural_client_infer_run_graphs(
             kind == "declared_file_content_read"
           ) &&
           @decode.text(value) is Ok(wire) &&
-          @publication.admit_publication_contract(
-            kind,
+          @publication.admit_file_read_profile_contract(
             wire,
             limits.max_evidence_bytes,
             limits.max_evidence_nodes,
             limits.max_evidence_depth,
           )
           is Ok(profile) &&
+          @publication.publication_contract_name(profile) == kind &&
           client_composed_keyed_source_coordinates(occurrence.owner)
           is Ok(Some((stage, input, join))) &&
           stage == occurrence.stage &&

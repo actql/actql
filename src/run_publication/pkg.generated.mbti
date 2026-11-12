@@ -76,6 +76,8 @@ pub fn admit_effectful_final_run_evidence_chain(PublicationContract, Publication
 
 pub fn admit_effectful_final_run_evidence_with_outcomes(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, EffectPreviewIdentity, String, Array[String], String, Int, Int, Int) -> Result[(PublicationContract, EffectSetApplyReceiptEvidence), EffectfulFinalChainIssue]
 
+pub fn admit_file_read_profile_contract(String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
 pub fn admit_hashed_effect_dependency_body(String, String, String, Int, Int, Int, cursor? : @decode_core.Cursor?) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
 pub fn admit_local_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]

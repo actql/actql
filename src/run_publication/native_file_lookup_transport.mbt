@@ -1,4 +1,34 @@
 ///|
+/// Admit the two existing file implementations from the original bounded
+/// version field. Parse once and retain the ordinary complete shape, identity,
+/// nested-reference and canonical-wire checks. This selects no current reader.
+pub fn admit_file_read_profile_contract(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, PublicationContractIssue] {
+  let complete = match
+    parse_contract_wire(wire, max_bytes, max_nodes, max_depth) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let name = match optional_string(@json.object_field(complete, "version")) {
+    Some("actql-native-file-content-read/0.1") => "native_file_content_read"
+    Some("actql-declared-file-content-read/0.1") => "declared_file_content_read"
+    _ => return Err(InvalidField("version"))
+  }
+  admit_publication_contract_material(
+    contract_spec(name).unwrap(),
+    complete,
+    wire,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 /// Pure identities from an already admitted implementation descriptor. The
 /// selected Source capability and actual provider remain Host-owned duties.
 pub fn file_read_profile_contract_bindings(

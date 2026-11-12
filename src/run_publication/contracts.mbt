@@ -1390,6 +1390,23 @@ pub fn admit_publication_contract(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  admit_publication_contract_material(
+    spec, complete, complete_wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// The same full admission after exactly one bounded wire parse. Closed
+// file-profile selection supplies only its existing spec, never authority.
+fn admit_publication_contract_material(
+  spec : ContractSpec,
+  complete : @json.CanonicalValue,
+  complete_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, PublicationContractIssue] {
+  let name = spec.name
   match
     validate_bounded_contract(
       spec, complete, true, max_wire_bytes, max_nodes, max_depth,
