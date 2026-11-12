@@ -9,12 +9,12 @@ import {getSubmissionOutcome, getSubmissionInput, getSubmissionAttempt} from '@a
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
 
 const [phase, handoffPath] = process.argv.slice(2);
-assert(['budget', 'memory-recovery', 'work-recovery', 'capture', 'saved'].includes(phase));
+assert(['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
 const stateDir = join(process.cwd(), phase === 'budget' || phase.endsWith('-recovery') ? phase + '-state' : 'state');
 const counts = [9999, 10000, 10001, 100000];
 const report = {phase, pid: process.pid, cases: [], submits: 0,
-  firstClose: 'unobserved', complete: false, phases: []};
+  firstClose: 'unobserved', firstCloseCalls: 0, complete: false, phases: []};
 const save = (name, value) => writeFile(name, JSON.stringify(value, null, 2) + '\n', {mode: 0o600});
 const started = process.hrtime.bigint();
 const progress = async (event, current) => {
@@ -86,6 +86,25 @@ function originalControlWorkRefusal(observations, ref, terminal, selectedWorkLim
     assert(Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647);
     assert.equal(data.workLimit, selectedWorkLimit);
   }
+  return {...data, verified: true};
+}
+function originalAcceptedMemoryRefusal(observations, ref, terminal) {
+  assert.equal(terminal.status, 'failed');
+  assert.equal(terminal.result_available, false);
+  assert.equal(terminal.control?.physical_stop, 'confirmed');
+  assert.equal(observations.length, 1);
+  const original = observations[0];
+  assert.deepEqual(original.ref, ref);
+  assert.equal(original.code, 'CapturedRunExecutionFailed');
+  assert.equal(original.primaryCode, 'MoonBitHostFailure');
+  const data = original.primaryDiagnostic;
+  assert(data !== null && typeof data === 'object', 'OriginalComputeResourceDiagnosticUnavailable');
+  assert.deepEqual(Object.keys(data).sort(), ['code', 'dimension', 'kind', 'phase', 'task']);
+  assert.equal(data.code, 'MoonBitHostFailure');
+  assert.equal(data.phase, 'local_managed_advance');
+  assert.equal(data.kind, 'resource');
+  assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
+  assert(['retained_bytes', 'execution_bytes'].includes(data.dimension));
   return {...data, verified: true};
 }
 async function sameHostSmallResult(client, report, span, save) {
@@ -178,12 +197,13 @@ try {
   // Explicit finite policy for this authored SQL's measured semantic work.
   // Both capture and the same-original Saved process select the same Host input.
   report.sourceFreeMaxWork = phase === 'work-recovery' ? 100000 : 30000000;
-  const memory = phase === 'budget' ? 32768 : phase === 'memory-recovery' ? 268435456 : 1073741824;
+  const memory = phase === 'budget' ? 32768 : phase === 'memory-recovery' ? 268435456
+    : phase === 'accepted-memory-recovery' ? 536870912 : 1073741824;
   report.requestMemory = {retainedBytes: memory, executionBytes: memory};
   client = await span('open', () => open({stateDir, installation: {
     sourceFreeMaxWork: report.sourceFreeMaxWork,
     requestMemory: report.requestMemory,
-    ...(['budget', 'memory-recovery', 'work-recovery'].includes(phase) ? {authorization: {observe(name, detail) {
+    ...(['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery'].includes(phase) ? {authorization: {observe(name, detail) {
       // A second delivery already fails the exact-one requirement. Bound the
       // retained diagnostic input even if an implementation repeats it.
       if (name === 'preparation_capacity_refused' && capacityObservations.length < 2) {
@@ -262,6 +282,35 @@ try {
     report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
     report.previousSaved = await readPreviousSavedResult(client, previous, report, span);
     report.cases.push({expectedRefusal: report.workRefusal.kind, complete: true});
+  } else if (phase === 'accepted-memory-recovery') {
+    const previous = await createPreviousSavedResult(client, report, span, save);
+    report.currentRunResult = {kind: 'source', purpose: 'accepted-memory', count: 100000};
+    report.submits++;
+    const run = await span('submit-accepted-memory', () => client.startSource(collectionProgram(100000), {format: 'sql'}));
+    await save('accepted-memory-ref-before-wait.json', run.ref);
+    report.acceptedComputeRef = run.ref;
+    report.originalRefRecordedBeforeWait = true;
+    report.currentRunResult = {kind: 'run', ref: run.ref, purpose: 'accepted-memory', count: 100000, complete: false};
+    const terminal = await span('wait-accepted-memory', () => run.wait());
+    report.acceptedComputeTerminal = {status: terminal.status, result_available: terminal.result_available,
+      physical_stop: terminal.control?.physical_stop};
+    assert.equal(capacityObservations.length, 0, 'This control requires an accepted Run, not snapshot refusal');
+    assert.equal(terminal.control?.physical_stop, 'confirmed', 'Unknown stop cannot authorize a recovery pass');
+    if (terminal.status === 'succeeded') {
+      assert.equal(terminal.result_available, true);
+      const names = terminal.next_action?.results;
+      assert(Array.isArray(names) && names.length === 1);
+      exactRows(await span('all-accepted-memory-100000', () => run.result(names[0]).all()), 100000);
+      assert.equal(workObservations.length, 0);
+      report.cases.push({count: 100000, disposition: 'succeeded', rows: 100000, complete: true});
+    } else {
+      report.acceptedMemoryRefusal = await span('verify-accepted-memory-refusal', async () =>
+        originalAcceptedMemoryRefusal(workObservations, run.ref, terminal));
+      report.cases.push({count: 100000, disposition: 'resource_refused', complete: true});
+    }
+    report.currentRunResult.complete = true;
+    report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
+    report.previousSaved = await readPreviousSavedResult(client, previous, report, span);
   } else if (phase === 'capture') {
     for (const count of counts) {
       const programPath = join(process.cwd(), `collection-${count}.sql`);
@@ -366,6 +415,7 @@ finally {
   await persist(`${phase}.pending.json`, {...report,
     firstFailedStep: report.firstFailedStep ?? null, complete: false});
   if (client) try {
+    report.firstCloseCalls++;
     await span('FIRST-close', () => client.close()); report.firstClose = 'returned';
   } catch (error) {report.firstClose = 'threw'; cleanup.push(error);}
   if (report.firstClose === 'returned') try {

@@ -46,7 +46,8 @@ function fixture() {
     resolveBaseline: async request => {
       assert.equal(request.testedSha, current);
       assert(request.requiredJobs.includes('check'));
-      for (const name of ['core (native 1/2)', 'core (native 2/2)'])
+      for (const name of ['core (native 1/4)', 'core (native 2/4)', 'core (native 3/4)', 'core (native 4/4)',
+        'core (native http)', 'core (native source)', 'core (native scoped)'])
         assert(request.requiredJobs.includes(name));
       return state.checkpoint;
     },
