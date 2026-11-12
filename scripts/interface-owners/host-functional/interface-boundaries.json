@@ -16862,7 +16862,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e1c968b73113c65ac70353cb0f354acab20856042e0365a8adb7a815524ed97b",
+      "sha256": "dc968417b89018513107c8b19b3dc89f40bed4c4c464f8f6f26d423ad0a2eab2",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -17261,6 +17261,13 @@
           "async": false
         },
         {
+          "name": "runInstalledStrategy/managedPhysicalSource/managedPhysicalSource",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "runInstalledStrategy/publicationInventory/publicationInventory",
           "parameters": [
             "result"
@@ -17401,6 +17408,7 @@
       "contracts": [
         {
           "operations": [
+            "StrategyHostError/constructor:constructor/constructor:constructor",
             "coreOutputSiteOwner",
             "coreOutputSiteOwner/init:afterFailure/init:afterFailure",
             "coreOutputSiteOwner/init:afterFailure/init:afterFailure/cleanupHandle/init:retry/init:retry",
@@ -17434,8 +17442,8 @@
             "runInstalledStrategy/cleanupPending/cleanupPending",
             "runInstalledStrategy/init:cleanup/init:cleanup",
             "runInstalledStrategy/init:cleanup/init:cleanup/init:cleanup",
-            "runInstalledStrategy/init:cleanup/init:cleanup/init:cleanup/retryKnown/retryKnown",
             "runInstalledStrategy/init:cleanup/init:cleanup/init:cleanup#2",
+            "runInstalledStrategy/init:cleanup/init:cleanup/init:cleanup/retryKnown/retryKnown",
             "runInstalledStrategy/init:close/init:close",
             "runInstalledStrategy/init:close/init:close/init:close",
             "runInstalledStrategy/init:close/init:close/init:close#2",
@@ -17451,6 +17459,7 @@
             "runInstalledStrategy/init:output/init:output",
             "runInstalledStrategy/init:publishEffectFreeRun/init:publishEffectFreeRun",
             "runInstalledStrategy/init:publishEffectFreeRun/init:publishEffectFreeRun/init:publishEffectFreeRun",
+            "runInstalledStrategy/init:refreshCompletedScratch/init:refreshCompletedScratch",
             "runInstalledStrategy/init:storePublicationResult/init:storePublicationResult",
             "runInstalledStrategy/init:storePublicationResult/init:storePublicationResult/beginManagedResult/beginManagedResult",
             "runInstalledStrategy/init:storePublicationResult/init:storePublicationResult/beginManagedResult/beginManagedResult/exported/exported",
@@ -17458,6 +17467,7 @@
             "runInstalledStrategy/init:storePublicationResult/init:storePublicationResult/beginResult/beginResult",
             "runInstalledStrategy/knownCleanupPending/knownCleanupPending",
             "runInstalledStrategy/managedCandidate/managedCandidate",
+            "runInstalledStrategy/managedPhysicalSource/managedPhysicalSource",
             "runInstalledStrategy/publicationInventory/publicationInventory",
             "runInstalledStrategy/publicationInventory/publicationInventory#2",
             "runInstalledStrategy/readRetained/readRetained",
@@ -17476,9 +17486,7 @@
             "runInstalledStrategy/settleSiteAfterFailure/settleSiteAfterFailure/combined/init:status/init:status",
             "runInstalledStrategy/settleSiteAfterFailure/settleSiteAfterFailure/drive/drive",
             "runInstalledStrategy/siteCompletionPermit/init:assertAvailable/init:assertAvailable",
-            "runInstalledStrategy/siteCompletionReady/siteCompletionReady",
-            "StrategyHostError/constructor:constructor/constructor:constructor",
-            "runInstalledStrategy/init:refreshCompletedScratch/init:refreshCompletedScratch"
+            "runInstalledStrategy/siteCompletionReady/siteCompletionReady"
           ],
           "exports": [
             "StrategyHostError",

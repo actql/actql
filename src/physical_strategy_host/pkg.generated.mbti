@@ -67,6 +67,8 @@ pub fn bind_captured_effect_completed_keyed_input(CapturedEffectRunDAG, Int, Int
 
 pub fn[T] bind_captured_effect_local_result_managed_export(CapturedEffectInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
 
+pub fn[T] bind_captured_effect_local_unit_result_managed_export(CapturedEffectLocalUnitInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
+
 pub fn bind_captured_effect_preview_inputs(CapturedEffectRunDAG, CapturedEffectInputs, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[CapturedEffectPreviewInputs, RunIssue]
 
 pub fn bind_checked_effect_run_dag(@physical_strategy.CheckedEffectComputationDAG, @effect_program_binding.EffectProgramRunCandidate) -> Result[@physical_strategy.CheckedEffectRunDAG, RunIssue]
@@ -328,6 +330,8 @@ pub fn captured_next_managed_producer(CapturedDAG) -> Int?
 pub fn captured_next_managed_producers(CapturedDAG) -> Array[Int]
 
 pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relation.CompletedOutput
+
+pub fn captured_pending_task_input_output(CapturedDAG, Int, Int) -> @execution_relation.CompletedOutput?
 
 pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
@@ -860,6 +864,8 @@ pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStor
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
 pub fn retain_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Unit, CapturedEffectCommandKeyIssue]
+
+pub fn retain_captured_effect_local_unit_result_pending_inputs(CapturedEffectLocalResultExport, Int, Int) -> Result[Unit, CapturedEffectLocalResultExportIssue]
 
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 

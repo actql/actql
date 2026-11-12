@@ -612,6 +612,8 @@ pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelati
 
 pub fn completed_result_export_preparation_retains_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
+pub fn completed_result_export_preparation_source(CompletedResultRelationExportPreparation) -> CompletedOutput?
+
 pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, CompletedResultRelationExportPreparation, @relation_schema.Field) -> Bool
 
 pub fn completed_row_count(CompletedOutput) -> Int
@@ -1020,6 +1022,8 @@ pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProd
 
 pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
 
+pub fn[T] managed_publication_bridge_import_geometry(ManagedCompletedOutput[T], ManagedRetainedOutput[T], Int, Int) -> ManagedPublicationBridgeLimits?
+
 pub fn[T] managed_publication_bridge_matches_result_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedResultRelationExportPreparation, ManagedResultOccurrence) -> Bool
 
 pub fn[T] managed_publication_bridge_matches_table_input_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedTableInputRelationExportPreparation, ManagedTableInputOccurrence) -> Bool
@@ -1277,6 +1281,8 @@ pub fn producer_read_input_index(ProducerRead) -> Int
 pub fn producer_read_matches_completed_output(ProducerRead, CompletedOutput) -> Bool
 
 pub fn producer_read_matches_operation_input(ProducerRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
+pub fn producer_read_original_output(ProducerRead) -> CompletedOutput?
 
 pub fn producer_read_preparation_is_small(ProducerReadPreparation) -> Bool
 

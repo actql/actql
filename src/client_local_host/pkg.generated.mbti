@@ -514,6 +514,8 @@ pub fn installed_effect_mock_model_run_requirements(@run_publication_host.Prepar
 
 pub fn installed_effect_model_read_window(ClientInstalledEffectModelDemand) -> Array[Int64]
 
+pub fn[T] installed_effect_model_unit_managed_export_limits(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedEffectRunDAG, @physical_strategy_host.CapturedEffectLocalUnitInputs, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedRetainedOutput[T]) -> Result[@run_publication_host.PublicationOutputExportLimits, ClientEffectUnitPreparationIssue]
+
 pub fn installed_effect_model_unit_parent(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
 pub fn installed_effect_opaque_boundary_footprint_capacity(String, String, Int) -> @execution_relation.ExecutionCapacity?

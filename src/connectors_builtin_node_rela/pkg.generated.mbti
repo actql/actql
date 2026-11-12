@@ -4201,6 +4201,7 @@ pub(all) enum ClientEffectLocalArtifactBridgeIssue {
 type ClientEffectManagedInputImport
 
 pub(all) enum ClientEffectManagedInputIssue {
+  UnitPreparation(@client_local_host.ClientEffectUnitPreparationIssue)
   ForeignOutput
   Closed
   Bridge(@execution_relation.ManagedProducerBridgeIssue)

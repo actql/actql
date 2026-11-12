@@ -426,6 +426,8 @@ pub fn client_program_begin_infer_original_read_scope(@run_publication_host.Clie
 
 pub fn client_program_begin_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_begin_installed_effect_model_unit_managed_export(@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedEffectRunDAG, @physical_strategy_host.CapturedEffectLocalUnitInputs, Int, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedRetainedOutput[Int]) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue]
+
 pub fn client_program_begin_installed_source_io(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal, Int64) -> Result[@physical_resources.PreparationIo, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
@@ -1108,11 +1110,17 @@ pub fn client_program_effect_model_evidence_copy_capacity(Int, Int, Int, @encode
 
 pub fn client_program_effect_model_unit_export_receipt(@physical_strategy_host.CapturedEffectLocalResultExport) -> Result[@execution_relation.CompletedRelationExportReceipt, @execution_relation.CompletedExportIssue]
 
+pub fn client_program_effect_model_unit_managed_export_owner(@physical_strategy_host.CapturedEffectLocalUnitInputs, Int, ClientEffectManagedInputImport) -> Result[@physical_strategy_host.CapturedEffectLocalResultExport, @client_local_host.ClientEffectUnitPreparationIssue]
+
 pub fn client_program_effect_model_unit_result_count(@physical_strategy_host.CapturedEffectLocalUnitInputs) -> Int
 
 pub fn client_program_effect_model_unit_result_export_issue_kind(Result[@physical_strategy_host.CapturedEffectLocalResultExport, @client_local_host.ClientEffectUnitPreparationIssue]) -> String?
 
 pub fn client_program_effect_model_unit_result_name(@physical_strategy_host.CapturedEffectLocalUnitInputs, Int) -> String?
+
+pub fn client_program_effect_model_unit_result_requires_managed_export(@physical_strategy_host.CapturedEffectLocalUnitInputs, Int) -> Bool
+
+pub fn client_program_effect_model_unit_result_task(@physical_strategy_host.CapturedEffectLocalUnitInputs, Int) -> Int?
 
 pub fn client_program_effect_notion_date_range_write(@physical_strategy_host.CapturedEffectCheckedProposalRow, Int, Int, @actql/actql/connectors/notion/catalog.NotionDataSourceCatalog, Int, @actql/actql/connectors/notion/catalog.NotionPropertyWriteLimits) -> Result[ClientEffectNotionPropertyWrite, ClientEffectNotionPropertyIssue]
 
@@ -6196,6 +6204,7 @@ pub(all) enum ClientEffectLocalArtifactBridgeIssue {
 type ClientEffectManagedInputImport
 
 pub(all) enum ClientEffectManagedInputIssue {
+  UnitPreparation(@client_local_host.ClientEffectUnitPreparationIssue)
   ForeignOutput
   Closed
   Bridge(@execution_relation.ManagedProducerBridgeIssue)

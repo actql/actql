@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "3399c8b0f77511ae590d1510a3db434bf22c275a197e1b7781fed44a2935f833",
+      "sha256": "deac72eb970847dde1b10ad2e269e9f111a7ee1f08c3be4c97a0aa7291b98514",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -137,9 +137,32 @@
           "async": false
         },
         {
-          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind#2",
-          "parameters": [],
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind/artifact/artifact",
+          "parameters": [
+            "value"
+          ],
           "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind/catalogs/catalogs",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind/producer/producer",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind#2",
+          "parameters": [
+            "physicalSource"
+          ],
+          "async": true
         },
         {
           "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind#3",
@@ -152,29 +175,13 @@
           "async": false
         },
         {
-          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults",
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind#5",
           "parameters": [],
           "async": false
         },
         {
-          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/artifact/artifact",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/catalogs/catalogs",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/producer/producer",
-          "parameters": [
-            "member"
-          ],
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults",
+          "parameters": [],
           "async": false
         },
         {
@@ -218,6 +225,13 @@
         },
         {
           "name": "acquiredEffectModelGroup/init:failure/init:failure/failed/failed",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:failure/init:failure/preparation/preparation",
           "parameters": [
             "child"
           ],
@@ -276,6 +290,40 @@
           "name": "acquiredEffectModelGroup/init:persistStopped/init:persistStopped",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:prepareNext/init:prepareNext",
+          "parameters": [
+            "task",
+            "physicalSource"
+          ],
+          "async": true
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:prepareNext/init:prepareNext/child/child",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:prepareNext/init:prepareNext/init:prepareNext",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:prepareNext/init:prepareNext/init:prepareNext#2",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:prepareNext/init:prepareNext/init:prepareNext#3",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
         },
         {
           "name": "acquiredEffectModelGroup/init:prime/init:prime",
@@ -371,7 +419,24 @@
           "async": false
         },
         {
+          "name": "acquiredEffectModelGroup/preconsumerPending/preconsumerPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/preconsumerPending/preconsumerPending/preconsumerPending",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
           "name": "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/publicationRetained/publicationRetained",
           "parameters": [],
           "async": false
         },
@@ -502,7 +567,8 @@
         {
           "name": "openAcquiredEffectComputation/beforeModelPrepare",
           "parameters": [
-            "task"
+            "task",
+            "physicalSource"
           ],
           "async": true
         },
@@ -930,10 +996,11 @@
             "acquiredEffectModelGroup/init:bind/init:bind/init:bind#2",
             "acquiredEffectModelGroup/init:bind/init:bind/init:bind#3",
             "acquiredEffectModelGroup/init:bind/init:bind/init:bind#4",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:bind#5",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:bind/artifact/artifact",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:bind/catalogs/catalogs",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:bind/producer/producer",
             "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults",
-            "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/artifact/artifact",
-            "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/catalogs/catalogs",
-            "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/producer/producer",
             "acquiredEffectModelGroup/init:bind/init:bind/init:retainOperation/init:retainOperation",
             "acquiredEffectModelGroup/init:bind/init:bind/prepareSourceContext/prepareSourceContext",
             "acquiredEffectModelGroup/init:bind/init:bind/prepareSourceContext/prepareSourceContext/inherited/inherited",
@@ -941,6 +1008,7 @@
             "acquiredEffectModelGroup/init:bindKeyedFamily/init:bindKeyedFamily",
             "acquiredEffectModelGroup/init:failure/init:failure",
             "acquiredEffectModelGroup/init:failure/init:failure/failed/failed",
+            "acquiredEffectModelGroup/init:failure/init:failure/preparation/preparation",
             "acquiredEffectModelGroup/init:keyedMember/init:keyedMember",
             "acquiredEffectModelGroup/init:keyedMember/init:keyedMember/init:keyedMember",
             "acquiredEffectModelGroup/init:openRestoredHost/init:openRestoredHost",
@@ -949,6 +1017,11 @@
             "acquiredEffectModelGroup/init:openRestoredHost/init:openRestoredHost/init:openRestoredHost#3",
             "acquiredEffectModelGroup/init:openRestoredHost/init:openRestoredHost/retained/retained",
             "acquiredEffectModelGroup/init:persistStopped/init:persistStopped",
+            "acquiredEffectModelGroup/init:prepareNext/init:prepareNext",
+            "acquiredEffectModelGroup/init:prepareNext/init:prepareNext/child/child",
+            "acquiredEffectModelGroup/init:prepareNext/init:prepareNext/init:prepareNext",
+            "acquiredEffectModelGroup/init:prepareNext/init:prepareNext/init:prepareNext#2",
+            "acquiredEffectModelGroup/init:prepareNext/init:prepareNext/init:prepareNext#3",
             "acquiredEffectModelGroup/init:prime/init:prime",
             "acquiredEffectModelGroup/init:prime/init:prime/candidates/candidates",
             "acquiredEffectModelGroup/init:prime/init:prime/init:prime",
@@ -964,7 +1037,10 @@
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
+            "acquiredEffectModelGroup/preconsumerPending/preconsumerPending",
+            "acquiredEffectModelGroup/preconsumerPending/preconsumerPending/preconsumerPending",
             "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
+            "acquiredEffectModelGroup/publicationRetained/publicationRetained",
             "acquiredEffectModelGroup/releaseUnitOutputs",
             "acquiredEffectModelGroup/releaseUnitOutputs/releaseUnitOutputs",
             "acquiredEffectModelGroup/retainCompleted/retainCompleted",
@@ -4751,7 +4827,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "f3a5831dcf7e5a2b115d08d592f1a9f6ff1c7b70a7378972b54383ea64aa03b8",
+      "sha256": "a47756971780da475caa2f1800829dd34ef3ce41b572bec9285e0468187ceb1e",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

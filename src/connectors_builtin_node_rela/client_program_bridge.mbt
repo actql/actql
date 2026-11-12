@@ -6334,6 +6334,7 @@ fn client_program_own_effect_export_limits(
 
 ///|
 pub(all) enum ClientEffectManagedInputIssue {
+  UnitPreparation(@client_local_host.ClientEffectUnitPreparationIssue)
   ForeignOutput
   Closed
   Bridge(@execution.ManagedProducerBridgeIssue)

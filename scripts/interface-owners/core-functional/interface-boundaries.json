@@ -2037,6 +2037,9 @@
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/extent/extent",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#2",
+            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
             "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
@@ -12388,7 +12391,30 @@
             "limits",
             "retained",
             "current",
-            "prepared"
+            "prepared",
+            "consumerOccurrence",
+            "physicalSource",
+            "signal",
+            "retainedCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -15859,7 +15885,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ca1cb7b9924cc724f1930441152ca7b242d9af519702f9174acedde51563c80b"
+      "sha256": "a7cd30db55993af4a5cf7dc465338e4e14b38505ac17f58a2abcb95fa7ea1ecf"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -23576,7 +23602,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "973190203f6e8572b632c4e5134cae8837a2e25f9d106f72081c3a6e9f2b025b",
+      "sha256": "bbba128fca87a2d4f1a8fad2234718af83b13a3b5248e9f92b98588b85935396",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -23594,7 +23620,9 @@
         },
         {
           "name": "localStrategyContribution/init:beforeNext/init:beforeNext",
-          "parameters": [],
+          "parameters": [
+            "physicalSource"
+          ],
           "async": true
         },
         {
@@ -59807,7 +59835,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "dcaf38b76ea35a2213b2c726c0328faa7ae7ed068695a5950a938ac4eee7c57c",
+      "sha256": "62c9854043040ad8b9dac72a3c4bf63be8f3bdddbc5d4591ecc51be31d625daa",
       "exports": [],
       "operations": [
         {
@@ -69156,7 +69184,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "bd1dd97c141acedc48b1eee08b328d683c11e8e11d3e74c622fdfed0ba3a7a2d",
+      "sha256": "4fd9d1940f07c839cb6496b22ee8a581458c1c5c7fc140803f1b59930c5beff5",
       "exports": [],
       "operations": [
         {
@@ -69270,6 +69298,10 @@
         {
           "name": "captured_output_inputs_match",
           "declaration": "captured_output_inputs_match ( run : CapturedDAG , task : Int , output : @ execution . CompletedOutput , ) - > Bool"
+        },
+        {
+          "name": "captured_pending_task_input_output",
+          "declaration": "captured_pending_task_input_output ( run : CapturedDAG , task : Int , input : Int , ) - > @ execution . CompletedOutput ?"
         },
         {
           "name": "captured_releasable_managed_producers",
@@ -69519,6 +69551,7 @@
             "captured_next_managed_producer",
             "captured_next_managed_producers",
             "captured_output_inputs_match",
+            "captured_pending_task_input_output",
             "captured_releasable_managed_producers",
             "captured_request_inputs_match",
             "captured_root_statistics",
@@ -77714,9 +77747,13 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "7f84d67f8111e58c8e6c2afca9f515801404c5af84691e55309b41f50658a158",
+      "sha256": "f498e7f34f4e5d6dcda6573154bf07be21b9a427f0e9ee660e36fe23275f601c",
       "exports": [],
       "operations": [
+        {
+          "name": "[T]installed_effect_model_unit_managed_export_limits",
+          "declaration": "[ T ] installed_effect_model_unit_managed_export_limits ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , output : @ execution . ManagedCompletedOutput [ T ] , material : @ execution . ManagedRetainedOutput [ T ] , ) - > Result [ @ publication_host . PublicationOutputExportLimits , ClientEffectUnitPreparationIssue , ]"
+        },
         {
           "name": "borrow_installed_effect_dispatch_preparation",
           "declaration": "borrow_installed_effect_dispatch_preparation ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . PreparationBodyBorrow [ ClientInstalledEffectManagedPlan ] ? , ClientInstalledManagedRunIssue , ]"
@@ -77740,6 +77777,10 @@
         {
           "name": "installed_effect_model_unit_parent",
           "declaration": "installed_effect_model_unit_parent ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_model_unit_result_export_limits",
+          "declaration": "installed_effect_model_unit_result_export_limits ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , managed ? : @ execution . ManagedPublicationBridgeLimits ?"
         },
         {
           "name": "installed_managed_preparation_usage_isolated",
@@ -77785,12 +77826,14 @@
         {
           "operations": [
             "<module>",
+            "[T]installed_effect_model_unit_managed_export_limits",
             "borrow_installed_effect_dispatch_preparation",
             "borrow_installed_managed_dispatch_preparation",
             "effect_unit_publication_body",
             "effect_unit_publication_capacity",
             "effect_unit_sealed_geometry",
             "installed_effect_model_unit_parent",
+            "installed_effect_model_unit_result_export_limits",
             "installed_managed_preparation_usage_isolated",
             "pin_installed_effect_model_unit_results",
             "prepare_installed_effect_model_source_unit",
