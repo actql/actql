@@ -1169,11 +1169,19 @@ test('plural Effect rejects foreign saved inventory and lost current before jour
 
 test('plural Effect downstream Model retains original Source provenance and consumes its own Result rather than an earlier keyed input', async () => {
   const f = effectModelGroupFixture({keyed:true}); await f.prime(); f.bind();
+  assert.equal(f.events.filter(event => event[0] === 'sources').length, 0,
+    'binding retains the original continuation before preparing Source inputs');
+  const first = f.contexts[0].prepareSourceContext();
+  const second = f.contexts[1].prepareSourceContext();
   assert.equal(f.events.filter(event => event[0] === 'sources').length, 1);
-  assert.strictEqual(f.contexts[0].sources, f.sourceClosureOriginal);
-  assert.strictEqual(f.contexts[1].sources, f.sourceClosureOriginal);
-  assert.strictEqual(f.contexts[0].capturedInput, f.capturedInput);
-  assert.equal(f.contexts[1].capturedInput, undefined);
+  assert.strictEqual(first.sources, f.sourceClosureOriginal);
+  assert.strictEqual(second.sources, f.sourceClosureOriginal);
+  assert.strictEqual(first.capturedInput, f.capturedInput);
+  assert.equal(second.capturedInput, undefined);
+  assert.strictEqual(f.contexts[0].prepareSourceContext(), first);
+  assert.strictEqual(f.contexts[1].prepareSourceContext(), second);
+  assert.equal(f.events.filter(event => event[0] === 'sources').length, 1,
+    'the same prepared Source context is reused without another admission');
   assert.equal(await f.group.cleanup(true), true);
 });
 
