@@ -423,6 +423,8 @@ test('shared target reader retains both actual selected Core package target clau
       ['preparation_request_snapshot_js_wbtest.mbt', ['js']],
       ['preparation_request_native_input_js_wbtest.mbt', ['js']],
       ['preparation_request_parent_js_wbtest.mbt', ['js']],
+      ['preparation_request_result_metadata_js_wbtest.mbt', ['js']],
+      ['preparation_request_result_read_js_wbtest.mbt', ['js']],
       ['preparation_request_work_calls_js_wbtest.mbt', ['js']],
       ['preparation_host_initial_js_wbtest.mbt', ['js']],
       ['preparation_request_terminal_js_wbtest.mbt', ['js']],
