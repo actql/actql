@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "59c346b2fd653877643ccee4a0f6bdf822b76fb9dd971a26931270172bd48294",
+      "sha256": "3399c8b0f77511ae590d1510a3db434bf22c275a197e1b7781fed44a2935f833",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -20,6 +20,8 @@
             "acquired",
             "infer",
             "originalModelComponents",
+            "preparedProgram",
+            "inferEvidence",
             "originalModelSelection",
             "originalPreparation",
             "plan",
@@ -128,13 +130,6 @@
           "async": false
         },
         {
-          "name": "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
           "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind",
           "parameters": [
             "child"
@@ -190,9 +185,29 @@
           "async": false
         },
         {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/prepareSourceContext/prepareSourceContext",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/prepareSourceContext/prepareSourceContext/inherited/inherited",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "acquiredEffectModelGroup/init:bind/init:bind/sourceEvidence/sourceEvidence",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bindKeyedFamily/init:bindKeyedFamily",
+          "parameters": [
+            "original",
+            "completedAt"
           ],
           "async": false
         },
@@ -314,9 +329,23 @@
           "async": true
         },
         {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding",
+          "parameters": [
+            "bundle"
+          ],
+          "async": false
+        },
+        {
           "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
           "parameters": [
             "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
+          "parameters": [
+            "copy"
           ],
           "async": false
         },
@@ -448,6 +477,7 @@
             "computeConfigurations",
             "withComputePauseHandler",
             "modelController",
+            "inferEvidence",
             "submission",
             "existingModel",
             "modelClaim",
@@ -468,6 +498,25 @@
             "runRef"
           ],
           "async": true
+        },
+        {
+          "name": "openAcquiredEffectComputation/beforeModelPrepare",
+          "parameters": [
+            "task"
+          ],
+          "async": true
+        },
+        {
+          "name": "openAcquiredEffectComputation/beforeModelPrepare/beforeModelPrepare",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openAcquiredEffectComputation/beforeModelPrepare/beforeModelPrepare/init:retain/init:retain",
+          "parameters": [
+            "child"
+          ],
+          "async": false
         },
         {
           "name": "openAcquiredEffectComputation/capacities/capacities",
@@ -585,14 +634,14 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -605,6 +654,20 @@
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#15",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#16",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#17",
           "parameters": [
             "task"
           ],
@@ -661,7 +724,8 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#9",
           "parameters": [
-            "value"
+            "value",
+            "index"
           ],
           "async": false
         },
@@ -872,7 +936,10 @@
             "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/catalogs/catalogs",
             "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/producer/producer",
             "acquiredEffectModelGroup/init:bind/init:bind/init:retainOperation/init:retainOperation",
+            "acquiredEffectModelGroup/init:bind/init:bind/prepareSourceContext/prepareSourceContext",
+            "acquiredEffectModelGroup/init:bind/init:bind/prepareSourceContext/prepareSourceContext/inherited/inherited",
             "acquiredEffectModelGroup/init:bind/init:bind/sourceEvidence/sourceEvidence",
+            "acquiredEffectModelGroup/init:bindKeyedFamily/init:bindKeyedFamily",
             "acquiredEffectModelGroup/init:failure/init:failure",
             "acquiredEffectModelGroup/init:failure/init:failure/failed/failed",
             "acquiredEffectModelGroup/init:keyedMember/init:keyedMember",
@@ -893,7 +960,9 @@
             "acquiredEffectModelGroup/persistPublication",
             "acquiredEffectModelGroup/persistPublication/persistPublication",
             "acquiredEffectModelGroup/persistPublication/persistPublication#2",
+            "acquiredEffectModelGroup/persistPublication/persistPublication/init:copyFunding/init:copyFunding",
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
+            "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainCopy/init:retainCopy",
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
@@ -909,6 +978,9 @@
             "acquiredEffectModelGroup/unitPinsPending/unitPinsPending",
             "acquiredEffectModelGroup/unitPinsPending/unitPinsPending/unitPinsPending",
             "openAcquiredEffectComputation",
+            "openAcquiredEffectComputation/beforeModelPrepare",
+            "openAcquiredEffectComputation/beforeModelPrepare/beforeModelPrepare",
+            "openAcquiredEffectComputation/beforeModelPrepare/beforeModelPrepare/init:retain/init:retain",
             "openAcquiredEffectComputation/capacities/capacities",
             "openAcquiredEffectComputation/cleanupInfer/cleanupInfer",
             "openAcquiredEffectComputation/configurations/configurations",
@@ -929,6 +1001,8 @@
             "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#15",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#16",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#17",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
             "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
@@ -1539,6 +1613,7 @@
         "./acquired-effect-sources.mjs",
         "./entry.mjs",
         "./infer-capture-custody.mjs",
+        "./infer-evaluation-evidence.mjs",
         "./infer-operation.mjs",
         "./local-values-plan.mjs"
       ],
@@ -20270,7 +20345,8 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
           "parameters": [
             "configurations",
-            "handlePause"
+            "handlePause",
+            "beforePrepare"
           ],
           "async": false
         },
@@ -23930,7 +24006,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "7712f1dedcf6655e838ada0402dcfef188c8d3c65460f5fbf8410291638d504e"
+      "sha256": "61beb61496998454fc6867c67c70c20d78fb3a07d7350a7669fd710ce5c92063"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -27849,7 +27925,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
-      "sha256": "228c01bf203e52ed808bc9f66e480e622f7205ced1fafbc9de1801d3092c1d3f",
+      "sha256": "4c83dea067fd162d6198c93d964bcdd0e099fe567c7b8d3906415812cbac2031",
       "exports": [
         "prepareAcquiredEffectKeyedPrefix"
       ],
@@ -27956,7 +28032,8 @@
             "current",
             "retain",
             "requestJournal",
-            "runRef"
+            "runRef",
+            "originalHost"
           ],
           "async": true
         },

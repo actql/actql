@@ -2019,6 +2019,9 @@
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2",
+            "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput",
+            "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput",
+            "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput/originals/originals",
             "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage",
             "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage/exported/exported",
             "publicationControl/init:prepareKeyedLookupRawCapture/init:prepareKeyedLookupRawCapture",
@@ -12206,6 +12209,34 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput",
+          "parameters": [
+            "managedRun",
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "keyed",
+            "captures",
+            "host"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput/originals/originals",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage",
           "parameters": [
             "keyedRequest",
@@ -15828,7 +15859,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e04340ae667e51f3466947230b2794624c1bbc38a63758620622c0cd74c99d41"
+      "sha256": "ca1cb7b9924cc724f1930441152ca7b242d9af519702f9174acedde51563c80b"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -16084,7 +16115,7 @@
     },
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
-      "sha256": "a8b59358ea08677da044371e235c6a31f9b5e95a6552090b00193d9b21916963",
+      "sha256": "5efba938b780198303fa50aaeb7e8f1d8ae735a773dda858dc61f3ed8118c38b",
       "role": "physical-io",
       "exports": [
         "configureInferEvidence",
@@ -16149,7 +16180,9 @@
             "continuation",
             "authorityScopeCid",
             "retainCopy",
-            "partial"
+            "partial",
+            "copyFunding",
+            "current"
           ],
           "async": true
         },
@@ -16166,6 +16199,11 @@
             "sum",
             "wire"
           ],
+          "async": false
+        },
+        {
+          "name": "projectInferEvidence/checkOriginalCurrent/checkOriginalCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -16281,6 +16319,7 @@
             "projectInferEvidence",
             "projectInferEvidence/bySlot/bySlot",
             "projectInferEvidence/bytes/bytes",
+            "projectInferEvidence/checkOriginalCurrent/checkOriginalCurrent",
             "projectInferEvidence/projectInferEvidence",
             "projectInferEvidence/projectInferEvidence#2",
             "projectInferEvidence/projectInferEvidence#3",
@@ -18764,7 +18803,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dd13cfe78076b727002b87f8bf6286c088db7ba2a0f4ae8db447b013873575e7"
+      "sha256": "ea8257907923cb10e3999b2ce51946132faaea8eceb94aeb15d86c91a69f87c4"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -21136,7 +21175,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "81de5e344156a34df683bdeb72a7f33466d95cb1352a96fe46d6a2b63001f7e1",
+      "sha256": "9644a7634a723a7b48a058e7e168e50f460e0b80de9d03e55a52846a91382429",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -21334,6 +21373,7 @@
             "sourceContinuation",
             "retainEvidenceCopy",
             "originalPreparation",
+            "preserveEvidenceInputs",
             "ownership"
           ],
           "async": true
@@ -23536,7 +23576,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "464d062ab4243079928835c390eb1d75e0a69e01aacb38c03b1de59209003560",
+      "sha256": "973190203f6e8572b632c4e5134cae8837a2e25f9d106f72081c3a6e9f2b025b",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -23551,6 +23591,11 @@
             "configuration"
           ],
           "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:beforeNext/init:beforeNext",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "localStrategyContribution/init:prepareNext/init:prepareNext",
@@ -23957,6 +24002,7 @@
         {
           "operations": [
             "localStrategyContribution",
+            "localStrategyContribution/init:beforeNext/init:beforeNext",
             "localStrategyContribution/init:prepareNext/init:prepareNext",
             "localStrategyContribution/init:prepareNext/init:prepareNext/init:prepareNext",
             "localStrategyContribution/init:prepareNext/init:prepareNext/init:prepareNext#2",
@@ -23979,6 +24025,8 @@
             "localStrategyContribution/init:run/init:run/stopped/stopped",
             "localStrategyContribution/init:runPrepared/init:runPrepared",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#11",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#2",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#3",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#4",
@@ -23991,6 +24039,7 @@
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#2",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#3",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#4",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/init:read/init:read",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory#2",
@@ -24011,10 +24060,7 @@
             "stopBoundedExecution/stopBoundedExecution",
             "validateManagedAdvance/validateManagedAdvance",
             "yieldToHost/yieldToHost",
-            "yieldToHost/yieldToHost/yieldToHost",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#11"
+            "yieldToHost/yieldToHost/yieldToHost"
           ],
           "exports": [
             "localStrategyContribution"
@@ -69110,7 +69156,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "01e8fb9e5721ebfef4a9cf4d070e53c08bebfdabd9278d43e12e89af0ec02957",
+      "sha256": "bd1dd97c141acedc48b1eee08b328d683c11e8e11d3e74c622fdfed0ba3a7a2d",
       "exports": [],
       "operations": [
         {
@@ -69128,6 +69174,10 @@
         {
           "name": "analytic_envelopes_satisfied",
           "declaration": "analytic_envelopes_satisfied ( required : Array [ @ connector . AnalyticEnvelope ] , declared : ( Int ) - > @ connector . AnalyticEnvelope ? , ) - > Bool"
+        },
+        {
+          "name": "bind_captured_effect_completed_keyed_input",
+          "declaration": "bind_captured_effect_completed_keyed_input ( value : CapturedEffectRunDAG , task : Int , step : Int , read : @ execution . SuppliedRelationRead , ) - > Result [ Unit , RunIssue ]"
         },
         {
           "name": "captured_carrier_managed_task_input",
@@ -69160,6 +69210,10 @@
         {
           "name": "captured_dag_strategy",
           "declaration": "captured_dag_strategy ( run : CapturedDAG ) - > StrategyRevision ?"
+        },
+        {
+          "name": "captured_effect_keyed_prefix_input_matches",
+          "declaration": "captured_effect_keyed_prefix_input_matches ( value : CapturedEffectRunDAG , task : Int , step : Int , port : Int , read : @ execution . ProducerRead , ) - > Bool"
         },
         {
           "name": "captured_effect_run_dag",
@@ -69394,6 +69448,10 @@
           "declaration": "open_source_inputs_effect_run_dag ( checked : CheckedEffectRunDAG , graph : CheckedDAG , sources : Array [ @ query . CapturedInputSource ] , ledger : @ resources . Ledger , keyed ? : ( Int , Int , @ execution . SuppliedRelationRead ) ?"
         },
         {
+          "name": "retain_captured_original_supplied_read",
+          "declaration": "retain_captured_original_supplied_read ( run : CapturedDAG , task : Int , port : Int , read : @ execution . SuppliedRelationRead , ) - > Unit"
+        },
+        {
           "name": "select_captured_managed_registration",
           "declaration": "select_captured_managed_registration ( run : CapturedDAG , task : Int , registration : @ connector . CapabilityRegistration , ) - > Result [ Unit , RunIssue ]"
         },
@@ -69437,6 +69495,7 @@
             "[T]captured_managed_task_output_matches",
             "aggregate_output_limits_satisfied",
             "analytic_envelopes_satisfied",
+            "bind_captured_effect_completed_keyed_input",
             "captured_carrier_managed_task_input",
             "captured_carrier_managed_task_output_matches",
             "captured_compute_first_task",
@@ -69445,6 +69504,7 @@
             "captured_dag_graph",
             "captured_dag_ledger",
             "captured_dag_strategy",
+            "captured_effect_keyed_prefix_input_matches",
             "captured_effect_run_dag",
             "captured_effect_run_matches_checked",
             "captured_effect_run_matches_preparation",
@@ -69503,14 +69563,15 @@
             "open_source_input_dag",
             "open_source_inputs_dag",
             "open_source_inputs_effect_run_dag",
+            "retain_captured_original_supplied_read",
             "select_captured_managed_registration",
             "source_input_dag_matches_read",
             "source_input_dag_matches_read_at",
+            "source_input_dag_retains_completed_read_at",
             "source_inputs_original_reads",
             "stop_captured_dag",
             "task_done",
-            "valid_source_free_root",
-            "source_input_dag_retains_completed_read_at"
+            "valid_source_free_root"
           ],
           "exports": [],
           "attributes": {
@@ -85794,7 +85855,7 @@
     },
     {
       "module": "src/client_local_host/original_composed_keyed_prefix.mbt",
-      "sha256": "4a300a2f2b8f77f2a4717f05b142c9ae7ed95baf6b30c4fd7c3852b76d113247",
+      "sha256": "c04b53ed1da485827db1cf5a0f99e272c1b9bcc41d7209966dbf32db1dd6146d",
       "exports": [],
       "operations": [
         {
@@ -85822,6 +85883,10 @@
           "declaration": "composed_keyed_root_control_bytes ( sequences : Array [ @ execution . GeneratedSequence ] , producer_sources ? : Int"
         },
         {
+          "name": "prepare_installed_original_composed_keyed_host_input_left",
+          "declaration": "prepare_installed_original_composed_keyed_host_input_left ( owner : ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowCapturedInput ] , host : @ strategy . CapturedEffectRunDAG , max_entries : Int , max_name_bytes : Int , ) - > Result [ @ publication_host . ClientKeyedLeftRead ? , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
           "name": "retire_composed_keyed_prefix_input_aliases",
           "declaration": "retire_composed_keyed_prefix_input_aliases ( value : ClientOriginalComposedKeyedPrefix , ) - > Unit"
         },
@@ -85832,6 +85897,10 @@
         {
           "name": "start_client_original_composed_keyed_prefix_owned",
           "declaration": "start_client_original_composed_keyed_prefix_owned ( scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowCapturedInput ] , input_prefix : @ execution . GeneratedSequence , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , installed : ClientInstalledManagedRun ? , borrowed_inputs ? : Bool"
+        },
+        {
+          "name": "start_installed_original_composed_keyed_host_prefix",
+          "declaration": "start_installed_original_composed_keyed_host_prefix ( owner : ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowCapturedInput ] , host : @ strategy . CapturedEffectRunDAG , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
         },
         {
           "name": "start_installed_original_composed_keyed_input_prefix",
@@ -85851,16 +85920,18 @@
           "operations": [
             "<module>",
             "advance_client_original_composed_keyed_prefix",
-            "client_original_composed_keyed_prefix_execution",
-            "complete_client_original_composed_keyed_prefix",
-            "start_client_original_composed_keyed_prefix",
-            "start_client_original_composed_keyed_prefix_owned",
-            "start_installed_original_composed_keyed_prefix",
-            "start_installed_original_composed_keyed_input_prefix",
             "advance_client_original_composed_keyed_prefix_owned",
             "client_composed_source_root_control_bytes",
+            "client_original_composed_keyed_prefix_execution",
+            "complete_client_original_composed_keyed_prefix",
             "composed_keyed_root_control_bytes",
-            "retire_composed_keyed_prefix_input_aliases"
+            "prepare_installed_original_composed_keyed_host_input_left",
+            "retire_composed_keyed_prefix_input_aliases",
+            "start_client_original_composed_keyed_prefix",
+            "start_client_original_composed_keyed_prefix_owned",
+            "start_installed_original_composed_keyed_host_prefix",
+            "start_installed_original_composed_keyed_input_prefix",
+            "start_installed_original_composed_keyed_prefix"
           ],
           "exports": [],
           "attributes": {

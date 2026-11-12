@@ -776,11 +776,12 @@
     {
       "module": "adapters/local-node/retained-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c41a08936e5c5cf838dad86fb32b724e8e096a65ba7fda5d1d052f12e8ed5088",
+      "sha256": "49b0dbc209ae64374a828afdee678b254a7a0a9100f7b7364bcea92cf1280818",
       "exports": [
         "installLocalRetainedStore",
         "installLocalSnapshotStore",
         "localComputeFaultInjection",
+        "localExecutionBeforePrepare",
         "localExecutionPauseHandler",
         "localRetainedStore",
         "localSnapshotStore",
@@ -811,6 +812,13 @@
           "async": false
         },
         {
+          "name": "localExecutionBeforePrepare",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
           "name": "localExecutionPauseHandler",
           "parameters": [
             "configuration"
@@ -835,7 +843,8 @@
           "name": "withLocalExecutionPauseHandler",
           "parameters": [
             "configuration",
-            "handlePause"
+            "handlePause",
+            "beforePrepare"
           ],
           "async": false
         }
@@ -849,6 +858,7 @@
             "installLocalRetainedStore",
             "installLocalSnapshotStore",
             "localComputeFaultInjection",
+            "localExecutionBeforePrepare",
             "localExecutionPauseHandler",
             "localRetainedStore",
             "localSnapshotStore",
@@ -858,6 +868,7 @@
             "installLocalRetainedStore",
             "installLocalSnapshotStore",
             "localComputeFaultInjection",
+            "localExecutionBeforePrepare",
             "localExecutionPauseHandler",
             "localRetainedStore",
             "localSnapshotStore",
@@ -946,7 +957,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/store-local/delegated-file.mjs",
