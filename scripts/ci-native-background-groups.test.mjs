@@ -68,6 +68,20 @@ test('joined Native HTTP outcome comes from its original complete child rather t
   }
 });
 
+test('buffered Native consumer reports retain the original child execution bounds', async t => {
+  const f = fixture(t), messages = [], before = Date.now();
+  const directory = f.start([{name: 'runtime', steps: [f.step('timed', 'setTimeout(() => {}, 30);')]}]);
+  const result = await waitNativeGroups(directory, {report: value => messages.push(value)});
+  const prefix = 'ACTQL_NATIVE_CI_PHASE ';
+  const phase = JSON.parse(messages.find(value => value.startsWith(prefix)).slice(prefix.length));
+  const child = result.result.groups[0].cases[0];
+  assert.equal(phase.startedAt, child.startedAt);
+  assert.equal(phase.completedAt, child.completedAt);
+  assert(phase.startedAt >= before && phase.completedAt <= Date.now());
+  assert.equal(phase.milliseconds, phase.completedAt - phase.startedAt);
+  assert.equal(phase.outcome, 'success');
+});
+
 test('the original deadline marks later commands unexecuted instead of accepting a partial group', async t => {
   const f = fixture(t);
   const directory = f.start([{name: 'runtime', steps: [
