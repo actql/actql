@@ -79,8 +79,8 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
   } else {
     None
   }
-  let fields = match
-    read_local_initial_host_signing_control(
+  let (fields, subject) = match
+    read_local_initial_host_signing_control_with_subject(
       self,
       reviewer.control_body,
       signing_original~,
@@ -99,15 +99,22 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
     exported: fields.exported,
     public_key: fields.public_key,
     public_key_pem: fields.public_key_pem,
-    signing_subject: match
-      read_initial_host_signing_subject(
-        self,
-        reviewer.control_body,
-        fields,
-        signing_original~,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
+    // The same original Read admitted this immutable subject with its fields.
+    // Keep that DATA; the complete post-projection current check below still
+    // authenticates the control and subject after the physical boundary.
+    signing_subject: if signing_original is Some(_) {
+      subject
+    } else {
+      match
+        read_initial_host_signing_subject(
+          self,
+          reviewer.control_body,
+          fields,
+          signing_original~,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
     },
   }
   original.require_current().map(_ => original)

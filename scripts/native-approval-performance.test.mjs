@@ -226,3 +226,30 @@ test('initial physical constructor retains independent admission fields physical
   assert.match(closed, /prepare_local_initial_resolution_library\(self\.key, self\.scope\)/u);
   assert.doesNotMatch(closed, /pub fn|\.now|\.current\(|journal\.|\.require_current\(|\.scope\s*=|\.key\s*=/u);
 });
+
+test('initial host restoration consumes the same admitted subject while preserving full post-IO current', () => {
+  const source = readFileSync(new URL('../src/platform_native/client_host/local_initial_host_signing_original.mbt', import.meta.url), 'utf8');
+  const constructor = signingMethod(source, 'NativeLocalHostConnection', 'restore_initial_host_signing_original');
+  // Both field readers use the same complete with-subject decoder. Count the
+  // selected scoped expression, rather than treating its legacy fallback as
+  // another read on that path. These are Source calls, not runtime SQL counts.
+  const assignment = constructor.slice(constructor.indexOf('    signing_subject:'));
+  const scopedReads = assignment.startsWith('    signing_subject: if signing_original is Some(_) {\n      subject\n    } else {')
+    ? 0 : [...assignment.matchAll(/read_initial_host_signing_subject\(/gu)].length;
+  assert.equal(1 + scopedReads, 1, 'The admitted scoped subject must not be discarded and authenticated again');
+  assert.match(constructor, /let \(fields, subject\) = match\n    read_local_initial_host_signing_control_with_subject\(/u);
+  assert.match(constructor, /let signing_original = if reviewer\.original_read is Some\(_\)/u);
+  assert.equal([...assignment.matchAll(/read_initial_host_signing_subject\(/gu)].length, 1,
+    'The independent legacy/unscoped branch keeps its complete subject read');
+  assert.match(constructor, /root\.restore_private_file_projection\(fields\.exported\)/u);
+  assert.match(constructor, /original\.require_current\(\)\.map\(_ => original\)/u,
+    'Physical projection construction is followed by the complete fresh current read');
+  const controlStart = source.indexOf('fn read_local_initial_host_signing_control_with_subject(');
+  const digest = value => createHash('sha256').update(value).digest('hex');
+  assert.equal(digest(source.slice(controlStart, source.indexOf('\n///|', controlStart))),
+    'bc26137008e37267832cda58e328a789acbd94456f641216c816b9da6c6159d8',
+    'The full authenticated original control/issuer/policy admission remains exact');
+  assert.equal(digest(signingMethod(source, 'NativeLocalInitialHostSigningOriginal', 'require_current')),
+    'e0059625e837d5aba6b7f72a07bccd7069e776f6a815bdcb3910eedad07daedf',
+    'All post-IO mutable/reviewer/control/subject/projection and final Host fences remain exact');
+});
