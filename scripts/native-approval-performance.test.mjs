@@ -253,3 +253,26 @@ test('initial host restoration consumes the same admitted subject while preservi
     'e0059625e837d5aba6b7f72a07bccd7069e776f6a815bdcb3910eedad07daedf',
     'All post-IO mutable/reviewer/control/subject/projection and final Host fences remain exact');
 });
+
+test('finite read statement keeps exact row admission and private selected ABI bindings', () => {
+  const source = readFileSync(new URL('../src/platform_native/sqlite/sqlite_stub.c', import.meta.url), 'utf8');
+  const start = source.indexOf('static int32_t actql_database_read(');
+  const row = source.indexOf('  int32_t result = actql_bind_key(', start);
+  const end = source.indexOf('  int finalize_code', row);
+  assert.equal(createHash('sha256').update(source.slice(row, end)).digest('hex'),
+    '68d5f9ee07f0d524a8cd4a17eedbb7561bee5df9be85d40aa449f3e365de0cb1',
+    'Both original bindings, step, extent/revision/type and all row/body limits stay exact');
+  assert.match(source, /bool reusable = !exact_extent && database->library->reset != NULL &&\n    database->library->clear_bindings != NULL/u);
+  assert.equal([...source.matchAll(/sqlite3_stmt \*record_read_statement;/gu)].length, 1);
+  const api = readFileSync(new URL('../packages/python-local-runtime/native/sqlite-component/api.h', import.meta.url), 'utf8');
+  const selected = readFileSync(new URL('../src/platform_native/sqlite/sqlite_selected_component.inc', import.meta.url), 'utf8');
+  assert.match(api, /#define ACTQL_SQLITE_COMPONENT_ABI 3/u);
+  assert.match(selected, /api->abi != ACTQL_SQLITE_COMPONENT_ABI/u);
+  assert.match(selected, /api->bytes != sizeof\(\*api\)/u);
+  for (const port of ['reset', 'clear_bindings']) {
+    assert(selected.includes(`api->${port} == NULL`));
+    assert(selected.includes(`(void *)api->${port}`), 'Every added port retains actual module-origin validation');
+    assert(selected.includes(`library->${port} = api->${port};`));
+    assert(source.includes(`!ACTQL_LOAD(library, ${port}, "sqlite3_${port}")`));
+  }
+});

@@ -2414,6 +2414,10 @@ jobs:
         run: |
           test "$(uname -m)" = arm64
           moon version --all
+      - name: Test finite original SQLite statement and selected API custody
+        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
+        timeout-minutes: 5
+        run: node scripts/test-native-sqlite-read-statement.mjs
       - name: Test native macOS retained task file ownership
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
         run: npm run check:native-retained-task-file

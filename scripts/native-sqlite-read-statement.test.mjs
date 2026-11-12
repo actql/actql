@@ -3,8 +3,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {join} from 'node:path';
-import {readFileSync} from 'node:fs';
-import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {createCommandEvidence, commandSource} from './packed-query-evidence.mjs';
 
@@ -13,6 +13,8 @@ async function checkFixture(args, expected) {
   assert.equal(process.arch, 'arm64');
   const root = process.cwd(), moon = process.env.MOON_HOME;
   assert(moon, 'explicit pinned toolchain required');
+  const clang = execFileSync('xcrun', ['--find', 'clang'], {encoding: 'utf8'}).trim();
+  const sdk = execFileSync('xcrun', ['--show-sdk-path'], {encoding: 'utf8'}).trim();
   const scratch = await createOwnedScratch({parent: join(root, '_build'),
     prefix: 'read-statement-c-', label: 'physical read statement controls',
     digests: () => ['read-statement']});
@@ -23,9 +25,9 @@ async function checkFixture(args, expected) {
       `-I${moon}/include`, join(root, 'scripts/fixtures/native-sqlite-read-statement.c'),
       `${moon}/lib/runtime/runtime.c`, `${moon}/lib/runtime/backtrace.c`,
       `${moon}/lib/libmoonbitrun.o`, '-isysroot',
-      '/Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk',
+      sdk,
       '-lsqlite3', '-o', join(scratch.path, 'read-statement')];
-    const built = evidence.capture('/Library/Developer/CommandLineTools/usr/bin/clang',
+    const built = evidence.capture(clang,
       compile, {timeout: 20000, killSignal: 'SIGTERM', maxBuffer: 2 * 1024 * 1024});
     assert.equal(built.result.status, 0, built.result.stderr);
     assert(!built.result.error && !built.result.signal && !built.writeFailure);
@@ -59,25 +61,47 @@ test('physical journal reads reuse one finite original-Database statement and re
 test('physical journal statement reset errors limits transactions and pending close retain original semantics',
   () => checkFixture(['controls'], 8));
 
-test('finite read statement keeps exact row admission and private selected ABI bindings', () => {
-  const source = readFileSync(new URL('../src/platform_native/sqlite/sqlite_stub.c', import.meta.url), 'utf8');
-  const start = source.indexOf('static int32_t actql_database_read(');
-  const row = source.indexOf('  int32_t result = actql_bind_key(', start);
-  const end = source.indexOf('  int finalize_code', row);
-  assert.equal(createHash('sha256').update(source.slice(row, end)).digest('hex'),
-    '68d5f9ee07f0d524a8cd4a17eedbb7561bee5df9be85d40aa449f3e365de0cb1',
-    'Both original bindings, step, extent/revision/type and all row/body limits stay exact');
-  assert.match(source, /bool reusable = !exact_extent && database->library->reset != NULL &&\n    database->library->clear_bindings != NULL/u);
-  assert.equal([...source.matchAll(/sqlite3_stmt \*record_read_statement;/gu)].length, 1);
-  const api = readFileSync(new URL('../packages/python-local-runtime/native/sqlite-component/api.h', import.meta.url), 'utf8');
-  const selected = readFileSync(new URL('../src/platform_native/sqlite/sqlite_selected_component.inc', import.meta.url), 'utf8');
-  assert.match(api, /#define ACTQL_SQLITE_COMPONENT_ABI 3/u);
-  assert.match(selected, /api->abi != ACTQL_SQLITE_COMPONENT_ABI/u);
-  assert.match(selected, /api->bytes != sizeof\(\*api\)/u);
-  for (const port of ['reset', 'clear_bindings']) {
-    assert(selected.includes(`api->${port} == NULL`));
-    assert(selected.includes(`(void *)api->${port}`), 'Every added port retains actual module-origin validation');
-    assert(selected.includes(`library->${port} = api->${port};`));
-    assert(source.includes(`!ACTQL_LOAD(library, ${port}, "sqlite3_${port}")`));
+test('prepared selected SQLite table and original-Database statement keep actual current and close', async () => {
+  assert.equal(process.platform, 'darwin');
+  assert.equal(process.arch, 'arm64');
+  const root = process.cwd(), moon = process.env.MOON_HOME;
+  assert(moon && process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION,
+    'Existing exact-source preparation is required; no component producer fallback');
+  const scratch = await createOwnedScratch({parent: join(root, '_build'),
+    prefix: 'selected-read-statement-c-', label: 'selected read statement controls',
+    digests: () => ['selected-read-statement']});
+  const evidence = createCommandEvidence({scratch: join(root, '_build/selected-read-statement-c-evidence'),
+    revision: commandSource(root).revision, cwd: root});
+  try {
+    const {sqliteLibrary} = prepareNativeRuntimeBundleLibraries(root, join(scratch.path, 'unused-producer'),
+      {moonHome: moon, preparation: process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION});
+    const clang = execFileSync('xcrun', ['--find', 'clang'], {encoding: 'utf8'}).trim();
+    const sdk = execFileSync('xcrun', ['--show-sdk-path'], {encoding: 'utf8'}).trim();
+    const selected = join(scratch.path, 'actor');
+    const built = evidence.capture('python3', ['-B', 'scripts/prepare-native-sqlite-read-statement-fixture.py',
+      '--destination', selected, '--moon-home', moon, '--clang', clang, '--sdk', sdk],
+      {timeout: 180000, killSignal: 'SIGTERM', maxBuffer: 2 * 1024 * 1024});
+    assert.equal(built.result.status, 0, built.result.stderr);
+    assert(!built.result.error && !built.result.signal && !built.writeFailure);
+    const actual = evidence.capture(join(selected, 'read-statement'), [sqliteLibrary],
+      {timeout: 30000, killSignal: 'SIGTERM', maxBuffer: 2 * 1024 * 1024}, result => {
+        const rows = [...(result.stdout ?? '').matchAll(/^.+: PASS$/gm)];
+        const valid = result.status === 0 && !result.signal && !result.error && rows.length === 2 &&
+          result.stdout.includes('Selected read statement C cases: 2/2');
+        return {status: valid ? 0 : 1, counts: {tests: rows.length, passed: valid ? 2 : 0,
+          failed: valid ? 0 : rows.length, cancelled: 0, skipped: 0, todo: 0}};
+      });
+    process.stdout.write(actual.result.stdout ?? '');
+    process.stderr.write(actual.result.stderr ?? '');
+    assert.equal(actual.result.status, 0);
+    assert(!actual.result.error && !actual.result.signal && !actual.writeFailure);
+    assert.equal(actual.checked.status, 0);
+    assert.equal(actual.checked.counts.tests, 2);
+    evidence.finish('passed');
+    assert(evidence.summary.complete);
+    scratch.passed();
+  } catch (error) {
+    evidence.finish('failed');
+    throw error;
   }
 });

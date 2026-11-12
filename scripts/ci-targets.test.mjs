@@ -251,6 +251,42 @@ test('Native consumers keep all original commands and collect independent failur
     assert.equal(jobs.native.steps.find(step => step.id === id).if, condition);
 });
 
+test('finite SQLite regressions have portable lint and required prepared macOS Native owners', () => {
+  const selection = selectTargets(['src/platform_native/sqlite/sqlite_stub.c'], {draft: false});
+  assert.equal(selection.profile, 'full');
+  assert.equal(gateJobRequired(selection, 'native-macos'), true);
+  const step = jobs['native-macos'].steps.find(row =>
+    row.name === 'Test finite original SQLite statement and selected API custody');
+  assert.ok(step);
+  assert.equal(step.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+  assert.equal(step['continue-on-error'], undefined);
+  assert.equal(step['timeout-minutes'], 5);
+  assert.equal(step.run, 'node scripts/test-native-sqlite-read-statement.mjs');
+  assert(jobs['native-macos'].steps.indexOf(step) > jobs['native-macos'].steps.findIndex(row => row.id === 'native-preparation'));
+  const runner = readFileSync(new URL('./test-native-sqlite-read-statement.mjs', import.meta.url), 'utf8');
+  assert.match(runner, /ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION/u);
+  assert.match(runner, /expectedTests: 3/u);
+  const env = {...process.env};
+  delete env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION;
+  const missing = spawnSync(process.execPath, ['scripts/test-native-sqlite-read-statement.mjs'],
+    {encoding: 'utf8', timeout: 5000, maxBuffer: 65536, env});
+  assert.equal(missing.status, 1);
+  assert(!missing.signal && !missing.error);
+  assert.match(missing.stderr, /same job exact-source Native component preparation is required/u);
+  const consumer = readFileSync(new URL('./native-sqlite-read-statement.test.mjs', import.meta.url), 'utf8');
+  assert.match(consumer, /prepareNativeRuntimeBundleLibraries/u);
+  assert.match(consumer, /preparation: process\.env\.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION/u);
+  assert.match(consumer, /xcrun', \['--show-sdk-path'\]/u);
+  assert.doesNotMatch(consumer, /MacOSX26\.2\.sdk|CommandLineTools\/usr\/bin\/clang/u);
+  const compiler = readFileSync(new URL('./prepare-native-sqlite-read-statement-fixture.py', import.meta.url), 'utf8');
+  assert(compiler.includes('sqlite-component/fixtures/read_statement.c'));
+  assert(!compiler.includes("'component.c'"), 'The consumer compiles no replacement engine/component');
+  assert(!compiler.includes('urlopen'), 'The consumer downloads no replacement input');
+  const sourceOwner = readFileSync(new URL('./native-approval-performance.test.mjs', import.meta.url), 'utf8');
+  assert(sourceOwner.includes("test('finite read statement keeps exact row admission and private selected ABI bindings'"));
+  assert(jobs.lint.steps.some(row => row.run?.includes('scripts/native-approval-performance.test.mjs')));
+});
+
 test('Native retained verification builds exactly its checked release module inventory', () => {
   const step = jobs.native.steps.find(step => step.name === 'Verify registered Native retained product path');
   assert(step);

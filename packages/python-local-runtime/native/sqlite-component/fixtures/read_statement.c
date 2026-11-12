@@ -44,8 +44,47 @@ static int observed_prepare(sqlite3 *db, const char *sql, int bytes,
     return original_prepare(db, sql, bytes, out, tail);
 }
 
+/* Pure validator inputs only: one otherwise-complete table in the SAME
+ * actual image as all its marker addresses. Never borrowed, invoked, installed
+ * or accepted as a Library. A shape-guard mutation must fail these controls
+ * rather than accidentally remain refused by unrelated image provenance. */
+static actql_sqlite_component_api shape_probe;
+static void shape_probe_entry(void) { }
+static void check_shape_controls(void) {
+    shape_probe.abi = 3;
+    shape_probe.bytes = sizeof(shape_probe);
+    shape_probe.instance = &shape_probe;
+#define PROBE_PORT(name) shape_probe.name = (__typeof__(shape_probe.name))shape_probe_entry
+    PROBE_PORT(allocate_memory); PROBE_PORT(libversion); PROBE_PORT(libversion_number);
+    PROBE_PORT(open_v2); PROBE_PORT(close_v2); PROBE_PORT(errmsg); PROBE_PORT(exec);
+    PROBE_PORT(free_memory); PROBE_PORT(prepare_v2); PROBE_PORT(bind_text);
+    PROBE_PORT(bind_blob); PROBE_PORT(bind_int64); PROBE_PORT(step);
+    PROBE_PORT(column_int64); PROBE_PORT(column_blob); PROBE_PORT(column_bytes);
+    PROBE_PORT(finalize); PROBE_PORT(changes64); PROBE_PORT(busy_timeout);
+    PROBE_PORT(get_autocommit); PROBE_PORT(reset); PROBE_PORT(clear_bindings);
+#undef PROBE_PORT
+    Dl_info image;
+    assert(dladdr(&shape_probe, &image));
+    assert(actql_component_api_original(&shape_probe, image.dli_fbase));
+    shape_probe.abi = 2;
+    assert(!actql_component_api_original(&shape_probe, image.dli_fbase));
+    shape_probe.abi = 3;
+    shape_probe.bytes = offsetof(actql_sqlite_component_api, reset);
+    assert(!actql_component_api_original(&shape_probe, image.dli_fbase));
+    shape_probe.bytes = sizeof(shape_probe);
+    actql_sqlite_reset_fn reset = shape_probe.reset;
+    shape_probe.reset = NULL;
+    assert(!actql_component_api_original(&shape_probe, image.dli_fbase));
+    shape_probe.reset = reset;
+    actql_sqlite_clear_bindings_fn clear = shape_probe.clear_bindings;
+    shape_probe.clear_bindings = NULL;
+    assert(!actql_component_api_original(&shape_probe, image.dli_fbase));
+    shape_probe.clear_bindings = clear;
+    assert(actql_component_api_original(&shape_probe, image.dli_fbase));
+}
+
 int main(int argc, char **argv) {
-    assert(argc == 2);
+    assert(argc == 2 || (argc == 3 && !strcmp(argv[2], "--abi-controls-only")));
     original value = fresh();
     enter(value);
     actql_native_sqlite_library *library = actql_native_sqlite_load_current_component(
@@ -56,20 +95,16 @@ int main(int argc, char **argv) {
     Dl_info image;
     assert(api && api->abi == 3 && api->bytes == sizeof(*api));
     assert(dladdr(api, &image) && actql_component_api_original(api, image.dli_fbase));
-    actql_sqlite_component_api wrong = *api;
-    wrong.instance = &wrong;
-    wrong.abi = 2;
-    assert(!actql_component_api_original(&wrong, image.dli_fbase));
-    wrong.abi = 3;
-    wrong.bytes = offsetof(actql_sqlite_component_api, reset);
-    assert(!actql_component_api_original(&wrong, image.dli_fbase));
-    wrong.bytes = sizeof(wrong);
-    wrong.reset = NULL;
-    assert(!actql_component_api_original(&wrong, image.dli_fbase));
-    wrong.reset = api->reset;
-    wrong.clear_bindings = NULL;
-    assert(!actql_component_api_original(&wrong, image.dli_fbase));
+    check_shape_controls();
     puts("actual selected ABI3 admits original complete ports and rejects ABI2 truncated or missing reset/clear: PASS");
+    if (argc == 3) {
+        assert(actql_native_sqlite_library_close_checked(library) == 1);
+        moonbit_decref(library);
+        leave(value);
+        finish(&value);
+        puts("Selected ABI controls C cases: 1/1");
+        return 0;
+    }
 
     actql_native_sqlite_database *db = actql_native_sqlite_open_database(
         library, (moonbit_bytes_t)":memory:", 8, 65536);
