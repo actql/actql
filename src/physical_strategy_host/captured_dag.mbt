@@ -2603,3 +2603,22 @@ fn retain_captured_original_supplied_read(
     }),
   )
 }
+
+///|
+/// Inspect the already bound original input of the SAME pending task. This is
+/// used after its exact managed Result bridge has been retained in inputs;
+/// it never changes the managed output inventory or issues another read.
+pub fn captured_pending_task_input_output(
+  run : CapturedDAG,
+  task : Int,
+  input : Int,
+) -> @execution.CompletedOutput? {
+  if run.stopped || next_captured_task(run) != Some(task) {
+    return None
+  }
+  run.inputs
+  .get(task)
+  .bind(ports => ports.get(input))
+  .bind(value => value)
+  .bind(@execution.producer_read_original_output)
+}

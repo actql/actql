@@ -1559,13 +1559,20 @@ pub fn prepare_client_original_composed_keyed_host_input_left(
     return Err(ForeignLeft)
   }
   let graph = @strategy.captured_dag_graph(run)
-  let mut output = None
+  let mut output = @strategy.captured_pending_task_input_output(
+    run, task, input,
+  )
+  let mut matched = false
   for index in 0..<@strategy.graph_data_count(graph) {
     let edge = @strategy.graph_data_at(graph, index).unwrap()
     if @strategy.data_edge_consumer(edge) == task &&
       @strategy.data_edge_input(edge) == input {
-      if output is Some(_) {
+      if matched {
         return Err(ForeignLeft)
+      }
+      matched = true
+      if output is Some(_) {
+        continue
       }
       output = @strategy.captured_task_output(
         run,

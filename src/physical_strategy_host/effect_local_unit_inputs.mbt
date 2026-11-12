@@ -109,7 +109,8 @@ pub fn captured_effect_local_unit_result_export_retained(
       physical_equal(original, inputs) &&
       inputs.live &&
       inputs.pins.live &&
-      captured_any_result_borrow_retained(exported.result.borrow)
+      captured_any_result_borrow_retained(exported.result.borrow) &&
+      captured_effect_local_result_export_derived_retained(exported)
     EffectInputs(_) => false
   }
 }
@@ -249,6 +250,41 @@ pub fn start_captured_effect_local_unit_result_export(
 }
 
 ///|
+/// Reuse the original managed generation and bridge for this preconsumer Unit.
+/// Neither an equal completion nor a final Effect inventory can replace its pin.
+pub fn[T] bind_captured_effect_local_unit_result_managed_export(
+  inputs : CapturedEffectLocalUnitInputs,
+  index : Int,
+  output : @execution.ManagedCompletedOutput[T],
+  bridge : @execution.ManagedPublicationBridge[T],
+  preparation : @execution.CompletedResultRelationExportPreparation,
+) -> Result[
+  CapturedEffectLocalResultExport,
+  CapturedEffectLocalResultExportIssue,
+] {
+  guard captured_effect_local_unit_result_at(inputs, index) is Some(result) else {
+    return Err(MissingResult)
+  }
+  if !captured_any_result_borrow_matches_managed(result.borrow, output) ||
+    !@execution.managed_publication_bridge_matches_result_export(
+      bridge,
+      output,
+      preparation,
+      captured_any_result_borrow_occurrence(result.borrow),
+    ) {
+    return Err(ForeignOutput)
+  }
+  Ok({
+    owner: LocalUnit(inputs),
+    result,
+    preparation,
+    derived_retained: Some(() => {
+      @execution.managed_publication_bridge_retained(bridge)
+    }),
+  })
+}
+
+///|
 pub fn captured_effect_local_unit_result_export_matches_receipt(
   inputs : CapturedEffectLocalUnitInputs,
   value : CapturedEffectLocalResultExport,
@@ -291,4 +327,89 @@ pub fn captured_effect_local_unit_source_ancestor_matches(
     identity,
   ) &&
   inputs.live
+}
+
+///|
+/// Reuse the SAME managed bridge as an original pending consumer input. The
+/// captured managed completion remains in outputs; no task is replayed or
+/// relabelled as a materialized producer. Repeated input occurrences retain
+/// their distinct receiving bindings in the existing Run input inventory.
+pub fn retain_captured_effect_local_unit_result_pending_inputs(
+  value : CapturedEffectLocalResultExport,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[Unit, CapturedEffectLocalResultExportIssue] {
+  guard value.owner is LocalUnit(inputs) &&
+    captured_effect_local_unit_result_export_retained(inputs, value) &&
+    captured_effect_local_result_export_derived_retained(value) &&
+    @execution.completed_result_export_preparation_source(value.preparation)
+    is Some(output) else {
+    return Err(ForeignOutput)
+  }
+  let run = inputs.run.captured
+  guard next_captured_task(run) is Some(task) &&
+    run.managed_selections[task] is None &&
+    run.activation_grant is None else {
+    return Err(ForeignOutput)
+  }
+  let source = @execution.restrict_completed_output(output, fn() {
+    inputs.live &&
+    inputs.pins.live &&
+    !run.stopped &&
+    captured_any_result_borrow_retained(value.result.borrow) &&
+    captured_effect_local_result_export_derived_retained(value)
+  })
+  for edge in run.graph.data_iter() {
+    if edge.consumer != task ||
+      edge.producer != value.result.task ||
+      @ports.port_target(
+        @execution.managed_result_occurrence_port(
+          captured_any_result_borrow_occurrence(value.result.borrow),
+        ),
+      ) !=
+      edge.target {
+      continue
+    }
+    if run.inputs[task][edge.input] is Some(original) {
+      if !@execution.producer_read_matches_completed_output(original, source) {
+        return Err(ForeignOutput)
+      }
+      continue
+    }
+    let receiver = run.graph.owners_at(task).unwrap()
+    let producer = run.graph.owners_at(edge.producer).unwrap()
+    let binding = match (edge.operation_input, edge.source_input) {
+      (Some((step, port)), None) =>
+        @execution.bind_completed_operation_input(
+          receiver, step, port, producer, source,
+        )
+      _ =>
+        @execution.bind_completed_input(
+          receiver,
+          edge.source_input.unwrap_or(edge.input),
+          producer,
+          source,
+        )
+    }
+    let binding = match binding {
+      Ok(value) => value
+      Err(_) => return Err(ForeignOutput)
+    }
+    let read = match
+      @execution.prepare_producer_read(
+        receiver, binding, max_entries, max_name_bytes,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(ForeignOutput)
+    }
+    guard next_captured_task(run) == Some(task) &&
+      run.managed_selections[task] is None &&
+      run.activation_grant is None &&
+      captured_effect_local_unit_result_export_retained(inputs, value) &&
+      captured_effect_local_result_export_derived_retained(value) else {
+      return Err(ForeignOutput)
+    }
+    run.inputs[task][edge.input] = Some(read)
+  }
+  Ok(())
 }

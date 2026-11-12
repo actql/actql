@@ -4780,8 +4780,8 @@ function publicationControl(moon) {
       current();
       return value;
     },
-    prepareOriginalEffectSourceUnitResults(managedRun, plan, request, captured, dependency,
-      admission, definition, limits, retained, current, prepared, consumerOccurrence) {
+    async prepareOriginalEffectSourceUnitResults(managedRun, plan, request, captured, dependency,
+      admission, definition, limits, retained, current, prepared, consumerOccurrence, physicalSource, signal, retainedCurrent) {
       issuanceLimits(limits, 'Original preconsumer Effect Unit Results');
       const owned = localEffectDependencyTokens.get(dependency);
       if (!['combined_source', 'preconsumer_model'].includes(owned?.kind) || retained === null || typeof retained !== 'object' ||
@@ -4797,7 +4797,32 @@ function publicationControl(moon) {
       current();
       const count = moon.clientProgramEffectModelUnitResultCount(retained.pins);
       for (let index = 0; index < count; index++) {
-        const result = moon.clientProgramPrepareInstalledEffectModelUnitResultExport(
+        let result;
+        if (moon.clientProgramEffectModelUnitResultRequiresManagedExport(retained.pins, index)) {
+          const task = moon.clientProgramEffectModelUnitResultTask(retained.pins, index);
+          const physical = physicalSource?.(task);
+          if (physical === undefined) throw new Error('OriginalEffectUnitPhysicalSourceUnavailable');
+          const importing = checked(moon.clientProgramBeginInstalledEffectModelUnitManagedExport(
+            managedRun, plan, request, captured, retained.pins, index, physical.completed, physical.material));
+          // Retain the SAME bridge before current/withRows can reenter or await.
+          (retained.imports ??= []).push(importing); current();
+          if (typeof retainedCurrent !== 'function') throw new TypeError('OriginalEffectUnitRetainedFenceUnavailable');
+          await physical.withRows(row => {
+            // The physical reader owns its same-material use and signal. A
+            // row checks only local retention; full Journal/selection current
+            // stays at the existing read/finish and Model dispatch boundaries.
+            retainedCurrent();
+            checked(moon.clientProgramEffectManagedInputAppend(importing, row));
+            retainedCurrent();
+          }, signal, () => {
+            current();
+            const preparation = checked(moon.clientProgramEffectManagedInputFinish(importing));
+            current();
+            return preparation;
+          });
+          current();
+          result = moon.clientProgramEffectModelUnitManagedExportOwner(retained.pins, index, importing);
+        } else result = moon.clientProgramPrepareInstalledEffectModelUnitResultExport(
           managedRun, plan, request, captured, retained.pins, index);
         let exported;
         try { exported = checked(result); }
@@ -4883,6 +4908,8 @@ function publicationControl(moon) {
       // physical stop/Store ACK or consumed-work refund is inferred here.
       for (const exported of retained.exports) moon.clientProgramEffectInputExportCancelPreparation(
         moon.clientProgramEffectLocalResultExportPreparation(exported));
+      for (const importing of retained.imports ?? []) moon.clientProgramEffectManagedInputCancel(importing);
+      if (retained.imports !== undefined) retained.imports.length = 0;
       for (const receipt of retained.receipts) moon.clientProgramEffectInputExportReleaseReceipt(receipt);
       if (retained.modelReceipt !== undefined) moon.clientProgramInferModelIdentityReceiptCancel(retained.modelReceipt);
       if (retained.modelScan !== undefined) moon.clientProgramInferModelIdentityCancel(retained.modelScan);

@@ -66,6 +66,16 @@ test "managed full completed projection preserves original output through public
     (_ : Unit) => Some(material),
   ).unwrap()
   let completed = complete_managed_output(port, ()).unwrap()
+  let geometry = managed_publication_bridge_import_geometry(
+    completed, material, 1000, 10000,
+  ).unwrap()
+  assert_eq(geometry.max_rows, 2)
+  assert_true(geometry.values.max_nodes < stream_value_limits().max_nodes)
+  assert_true(geometry.row.max_bytes < 10000)
+  assert_true(
+    managed_publication_bridge_import_geometry(completed, material, 1, 10000)
+    is None,
+  )
   let bridge = prepare_managed_publication_bridge(
     completed,
     material,
@@ -320,4 +330,68 @@ test "managed completed projection retains the original output row refusal bound
   )
   assert_true(finish_managed_output_values(values) is Err(Closed))
   assert_true(values.completed_projection is None)
+}
+
+///|
+test "managed publication import quotes actual long text separately from syntax nodes" {
+  let owner = capture_fixture()
+  let generated = prepare_completion(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    ["select_1"],
+    10000,
+    1000,
+  ).unwrap()
+  let values = prepare_managed_output_values(
+    owner,
+    Step(1),
+    2,
+    stream_value_limits(),
+    5000,
+    { max_work: 20000, max_bytes: 20000, max_nodes: 1000, max_depth: 10, },
+  ).unwrap()
+  let retention = prepare_managed_output_retention_port(values, (
+    receipt : ManagedOutputValueReceipt,
+  ) => Some((receipt, 7, 9000L, () => true))).unwrap()
+  for row in 0..<2 {
+    let schema = @pipeline.schema_at(
+      @lower.pipeline(@lower.bound_preparation(owner)),
+      Step(1),
+    ).unwrap()
+    let cells = Array::makei(@schema.field_count(schema), column => {
+      let field = @schema.field_at(schema, column).unwrap()
+      let text = if @schema.reference_name(field.name) == "n" {
+        (row + 1).to_string()
+      } else {
+        "\"" + "x".repeat(4096) + "\""
+      }
+      @admitted.admit(field.contract, input_cursor(text), {
+        max_nodes: 10,
+        max_text_bytes: 5000,
+        max_depth: 2,
+      }).unwrap()
+    })
+    append_managed_output_values(values, cells.length(), column => {
+      cells.get(column)
+    }).unwrap()
+  }
+  let receipt = finish_managed_output_values(values).unwrap()
+  let material = retain_managed_output(retention, receipt).unwrap()
+  let port = prepare_managed_completion_port(
+    managed_test_profile(),
+    generated,
+    Step(1),
+    1000,
+    10000,
+    (_ : Unit) => Some(material),
+  ).unwrap()
+  let output = complete_managed_output(port, ()).unwrap()
+  let geometry = managed_publication_bridge_import_geometry(
+    output, material, 2, 20000,
+  ).unwrap()
+  assert_eq(geometry.max_rows, 2)
+  assert_eq(geometry.values.max_nodes, receipt.usage.nodes)
+  assert_true(geometry.row.max_bytes > 4096)
+  assert_true(geometry.row.max_nodes < 100)
+  assert_true(geometry.row.max_nodes < geometry.row.max_bytes)
 }

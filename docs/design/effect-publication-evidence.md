@@ -146,3 +146,25 @@ only for its existing contracts/physical owner; it is never marked executed.
 The existing native left-identity consumer reads either genuine proof through
 the same original-output projection. Step-left consumers keep their original
 prefix, completion receipt, backing and cleanup.
+
+
+A preconsumer Unit Result backed by a managed Relation uses the original Host's
+completed physical record. The existing `beforeNext` await retains its exact
+import bridge on the Unit preparation record before reading rows. The checked
+Unit pin, managed completion/material and Result occurrence must agree; the
+cell/Source exporter is retained for its original representations and never
+casts a resident Result to cells. Import backing uses the original measured
+row/value inventory and finite row parser window on the same Plan parent.
+Per-row checks cover the original bridge, signal and local retirement only;
+full Host/Journal selection currentness remains at read/finish and dispatch
+boundaries rather than being amplified with the number of rows.
+
+The same derived full completion may bind an actual pending input of that
+captured DAG. It preserves the managed output inventory and distinct repeated
+receiving occurrences. A keyed consumer borrows that existing bound read;
+opening its lookup does not rerun the Source or JOIN. The Model's synchronous
+open consumes only the already prepared Artifact/Manifest cache. Cancellation
+or reentrant cleanup keeps the pending preparation and prevents later issuance.
+After consumers stop, cleanup cancels the original bridges/exports, returns the
+Unit pins and severs the resolved Promise/cache aliases. These local returns do
+not acknowledge physical stop, Store cleanup or publication.

@@ -376,6 +376,100 @@ pub fn client_program_effect_model_unit_result_export_issue_kind(
 }
 
 ///|
+#export_name("clientProgramEffectModelUnitResultTask")
+pub fn client_program_effect_model_unit_result_task(
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  index : Int,
+) -> Int? {
+  @strategy.captured_effect_local_unit_result_at(inputs, index).map(result => {
+    @strategy.captured_effect_local_result_task(result)
+  })
+}
+
+///|
+#export_name("clientProgramEffectModelUnitResultRequiresManagedExport")
+pub fn client_program_effect_model_unit_result_requires_managed_export(
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  index : Int,
+) -> Bool {
+  match @strategy.captured_effect_local_unit_result_at(inputs, index) {
+    Some(result) =>
+      @strategy.captured_any_result_borrow_requires_managed_export(
+        @strategy.captured_effect_local_result_borrow(result),
+      )
+    None => false
+  }
+}
+
+///|
+#export_name("clientProgramBeginInstalledEffectModelUnitManagedExport")
+pub fn client_program_begin_installed_effect_model_unit_managed_export(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  captured : @strategy.CapturedEffectRunDAG,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  index : Int,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
+  let limits = match
+    @client_local_host.installed_effect_model_unit_managed_export_limits(
+      run, plan, request, captured, inputs, index, output, material,
+    ) {
+    Ok(limits) => limits
+    Err(issue) => return Err(UnitPreparation(issue))
+  }
+  guard @strategy.captured_effect_local_unit_result_at(inputs, index)
+    is Some(result) else {
+    return Err(ForeignOutput)
+  }
+  begin_client_effect_result_import(
+    None,
+    None,
+    Result(@strategy.captured_effect_local_result_borrow(result)),
+    output,
+    material,
+    limits,
+  )
+}
+
+///|
+#export_name("clientProgramEffectModelUnitManagedExportOwner")
+pub fn client_program_effect_model_unit_managed_export_owner(
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  index : Int,
+  value : ClientEffectManagedInputImport,
+) -> Result[
+  @strategy.CapturedEffectLocalResultExport,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  guard value.preparation is Some(preparation) else {
+    return Err(Export(ForeignOutput))
+  }
+  let exported = match
+    @strategy.bind_captured_effect_local_unit_result_managed_export(
+      inputs,
+      index,
+      value.output,
+      value.bridge,
+      preparation,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Export(issue))
+  }
+  @strategy.retain_captured_effect_local_unit_result_pending_inputs(
+    exported,
+    value.limits.max_result_workspace_entries,
+    value.limits.schema.max_bytes,
+  )
+  .map_err(issue => {
+    @client_local_host.ClientEffectUnitPreparationIssue::Export(issue)
+  })
+  .map(_ => exported)
+}
+
+///|
 #export_name("clientProgramEffectModelUnitResultCount")
 pub fn client_program_effect_model_unit_result_count(
   inputs : @strategy.CapturedEffectLocalUnitInputs,

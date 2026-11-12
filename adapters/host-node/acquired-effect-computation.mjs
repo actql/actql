@@ -730,7 +730,9 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     if ((component !== undefined || modelGroup !== undefined || contentFamily !== undefined) && typeof withComputePauseHandler !== 'function') {
       throw new TypeError('PhysicalPauseConfigurationMissing');
     }
-    async function beforeModelPrepare(task) {
+    async function beforeModelPrepare(task, physicalSource) {
+      await modelGroup?.prepareNext(task, physicalSource);
+      current();
       if (deferredKeyedMember === undefined || task !== runtimeField(
           moon.clientProgramInferPlanBoundary(deferredKeyedMember.selection.graph), 0)) return;
       if (!keyedAttempted) {
@@ -979,20 +981,21 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   const unitPinsPending = () => sourceUnitsOriginal !== undefined && [...sourceUnitsOriginal.byUnit.values()]
     .some(entry => entry.resultPreparing || entry.results?.pins !== undefined ||
       entry.results?.modelScan !== undefined || entry.results?.modelOriginal !== undefined);
-  const pending = () => projectionPending || unitPinsPending() || children.some(child => child.copy?.cleanupPending() || child.capture !== undefined && !child.captureReleased ||
+  const preconsumerPending = () => children.some(child => child.resultsPreparation !== undefined && !child.resultsReady && !child.resultsFailed);
+  const pending = () => projectionPending || preconsumerPending() || unitPinsPending() || children.some(child => child.copy?.cleanupPending() || child.capture !== undefined && !child.captureReleased ||
     child.continuation !== undefined && !child.continuationReleased || child.output !== undefined);
-  const publicationCurrent = () => {
-    same();
+  const publicationRetained = () => {
     signal?.throwIfAborted();
     if (retirementRequested) throw new Error('InstalledEffectModelPublicationRetired');
   };
+  const publicationCurrent = () => {same(); publicationRetained();};
   async function retirePublication() {
     // Retirement shares the original pending preparation. It cannot treat a
     // Promise as a binding, detach it, or publish after that preparation settles.
     retirementRequested = true;
     // A Sink can reenter first close from its own pending callback. It cannot
     // wait on itself: retain this original phase/copy and report Pending.
-    if (projectionPending) return false;
+    if (projectionPending || preconsumerPending()) return false;
     publicationRetirement ??= Promise.resolve().then(async () => {
       if (publicationPreparation !== undefined) {
         try {await publicationPreparation;} catch { /* The persist caller retains its primary failure. */ }
@@ -1180,7 +1183,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint};
   }
   function releaseUnitOutputs() {
-    if (releasingOutputs || [...(sourceUnitsOriginal?.byUnit.values() ?? [])].some(entry => entry.resultPreparing)) return false;
+    if (releasingOutputs || preconsumerPending() || [...(sourceUnitsOriginal?.byUnit.values() ?? [])].some(entry => entry.resultPreparing)) return false;
     releasingOutputs = true;
     try {
       if (unitPinsPending()) {
@@ -1194,6 +1197,10 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         // Model metadata/scan aliases before returning its publication borrow.
         // Final Store/Run children retain and retire their own original data.
         if (entry.modelProducer !== undefined) entry.value = undefined;
+      }
+      for (const child of children) {
+        child.preparedResults = child.resultsPreparation = child.prepareResults = undefined;
+        child.resultsRetired = true;
       }
       // Only our aliases/pins returned. Enclosing physical.cleanup and the
       // original Run retirement still decide their separate ACK/Unknown facts.
@@ -1282,6 +1289,62 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
           sourceContext = {sources, capturedInput: ownsKeyed ? keyedFamily.capturedInput : undefined};
           return sourceContext;
         };
+        child.prepareResults = async physicalSource => {
+          publicationCurrent();
+          if (sourceUnitsOriginal === undefined) return undefined;
+          const imports = moon.clientProgramInferOccurrenceResultImports(child.selection.occurrence);
+          const bound = [];
+          for (const [index, imported] of imports.entries()) {
+            const unit = runtimeField(imported, 0), name = runtimeField(imported, 1);
+            let entry = sourceUnitsOriginal.byUnit.get(unit);
+            if (entry === undefined) {
+              const producer = children.find(member =>
+                runtimeField(moon.clientProgramInferOccurrenceCoordinates(member.selection.occurrence), 1) === unit);
+              if (producer?.completed !== true || producer.operation === undefined) {
+                throw new Error('OriginalEffectProducerUnitUnavailable');
+              }
+              entry = {preparing: false, value: undefined, modelProducer: producer};
+              sourceUnitsOriginal.byUnit.set(unit, entry);
+            }
+            if (entry.resultFailed) throw entry.resultFailure;
+            if (entry.resultPreparing) throw new Error('EffectProducerUnitPreparationPending');
+            if (!entry.resultAttempted) {
+              entry.resultAttempted = true; entry.resultPreparing = true;
+              entry.results = {pins: undefined, exports: [], receipts: [], artifacts: [], manifest: undefined};
+              try {
+                const host = originalHost?.();
+                if (host === undefined) throw new Error('OriginalEffectProducerHostUnavailable');
+                if (entry.modelProducer !== undefined) {
+                  const producer = entry.modelProducer;
+                  producer.output ??= producer.operation.acquireOutput();
+                  if (producer.output === undefined || publicationOwner === undefined) {
+                    throw new Error('OriginalCompletedModelOutputUnavailable');
+                  }
+                  const catalogs = [...sourceUnitsOriginal.byUnit.values()]
+                    .flatMap(original => original.value?.catalogBodies ?? []);
+                  entry.modelOperation = producer.operation;
+                  entry.value = acquired.control.prepareOriginalEffectModelUnitEvidence(managedRun,
+                    sourcePlan, acquired.requestIdentity, producer.output, plan.compiled, plan.runDefinition,
+                    producer.selection.graph, unit, sourceUnitsOriginal.retention, catalogs,
+                    publicationOwner, localContractLimits, entry.results, publicationCurrent,
+                    earlyIdentityRetained, earlyIdentityExecution);
+                  earlyIdentityRetained += entry.results.identityRetainedBytes;
+                  earlyIdentityExecution += entry.results.identityExecutionBytes;
+                }
+                await acquired.control.prepareOriginalEffectSourceUnitResults(managedRun, sourcePlan, acquired.requestIdentity,
+                  moon.clientProgramLocalEffectHostRun(host), entry.value, acquired.admission, acquired.definition,
+                  localContractLimits, entry.results, publicationCurrent, acquired.prepared, child.selection.occurrence, physicalSource, signal, publicationRetained);
+              } catch (cause) {
+                entry.resultFailed = true; entry.resultFailure = cause; throw cause;
+              } finally {entry.resultPreparing = false;}
+            }
+            const artifact = entry.results.artifacts.find(value => value.name === name)?.artifact;
+            if (artifact === undefined || entry.results.manifest === undefined) throw new Error('OriginalEffectUnitResultUnavailable');
+            bound.push({index, artifact, manifest: entry.results.manifest});
+          }
+          publicationCurrent();
+          return bound;
+        };
         child.component.bindOriginal({moon, selected: child.selection, prepareSourceContext, control: acquired.control, plan,
           originalPreparation: child.originalPreparation, assertRuntimeCurrent: child.originalPreparation.assertRuntimeCurrent,
           principalId, signal, now, durableCalls: true, restoredInput: child.restoredInput,
@@ -1290,58 +1353,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
           prepareOriginalResults() {
             publicationCurrent();
             if (sourceUnitsOriginal === undefined) return undefined;
-            const imports = moon.clientProgramInferOccurrenceResultImports(child.selection.occurrence);
-            const bound = [];
-            for (const [index, imported] of imports.entries()) {
-              const unit = runtimeField(imported, 0), name = runtimeField(imported, 1);
-              let entry = sourceUnitsOriginal.byUnit.get(unit);
-              if (entry === undefined) {
-                const producer = children.find(member =>
-                  runtimeField(moon.clientProgramInferOccurrenceCoordinates(member.selection.occurrence), 1) === unit);
-                if (producer?.completed !== true || producer.operation === undefined) {
-                  throw new Error('OriginalEffectProducerUnitUnavailable');
-                }
-                entry = {preparing: false, value: undefined, modelProducer: producer};
-                sourceUnitsOriginal.byUnit.set(unit, entry);
-              }
-              if (entry.resultFailed) throw entry.resultFailure;
-              if (entry.resultPreparing) throw new Error('EffectProducerUnitPreparationPending');
-              if (!entry.resultAttempted) {
-                entry.resultAttempted = true; entry.resultPreparing = true;
-                entry.results = {pins: undefined, exports: [], receipts: [], artifacts: [], manifest: undefined};
-                try {
-                  const host = originalHost?.();
-                  if (host === undefined) throw new Error('OriginalEffectProducerHostUnavailable');
-                  if (entry.modelProducer !== undefined) {
-                    const producer = entry.modelProducer;
-                    producer.output ??= producer.operation.acquireOutput();
-                    if (producer.output === undefined || publicationOwner === undefined) {
-                      throw new Error('OriginalCompletedModelOutputUnavailable');
-                    }
-                    const catalogs = [...sourceUnitsOriginal.byUnit.values()]
-                      .flatMap(original => original.value?.catalogBodies ?? []);
-                    entry.modelOperation = producer.operation;
-                    entry.value = acquired.control.prepareOriginalEffectModelUnitEvidence(managedRun,
-                      sourcePlan, acquired.requestIdentity, producer.output, plan.compiled, plan.runDefinition,
-                      producer.selection.graph, unit, sourceUnitsOriginal.retention, catalogs,
-                      publicationOwner, localContractLimits, entry.results, publicationCurrent,
-                      earlyIdentityRetained, earlyIdentityExecution);
-                    earlyIdentityRetained += entry.results.identityRetainedBytes;
-                    earlyIdentityExecution += entry.results.identityExecutionBytes;
-                  }
-                  acquired.control.prepareOriginalEffectSourceUnitResults(managedRun, sourcePlan, acquired.requestIdentity,
-                    moon.clientProgramLocalEffectHostRun(host), entry.value, acquired.admission, acquired.definition,
-                    localContractLimits, entry.results, publicationCurrent, acquired.prepared, child.selection.occurrence);
-                } catch (cause) {
-                  entry.resultFailed = true; entry.resultFailure = cause; throw cause;
-                } finally {entry.resultPreparing = false;}
-              }
-              const artifact = entry.results.artifacts.find(value => value.name === name)?.artifact;
-              if (artifact === undefined || entry.results.manifest === undefined) throw new Error('OriginalEffectUnitResultUnavailable');
-              bound.push({index, artifact, manifest: entry.results.manifest});
-            }
-            publicationCurrent();
-            return bound;
+            if (child.resultsRetired) throw new Error('OriginalEffectUnitResultsRetired');
+            if (child.resultsReady !== true) throw new Error('OriginalEffectUnitResultsNotPrepared');
+            return child.preparedResults;
           },
           retainOperation(operation) {
             child.operation = operation;
@@ -1350,6 +1364,22 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
                 : [...sourceEvidence, (keyedFamily?.evidence ?? restoredKeyed).source], faultInjection, durableCalls: true, captureOnly: true});
           }, retainCompleted: () => retainCompleted(child)});
       }
+    },
+    async prepareNext(task, physicalSource) {
+      publicationCurrent();
+      const child = children.find(member => runtimeField(moon.clientProgramInferPlanBoundary(member.selection.graph), 0) === task);
+      if (child === undefined) return;
+      if (child.resultsRetired) throw new Error('OriginalEffectUnitResultsRetired');
+      if (child.prepareResults === undefined || child.resultsReady) return;
+      if (child.resultsFailed) throw child.resultsFailure;
+      child.resultsPreparation ??= Promise.resolve().then(() => child.prepareResults(physicalSource)).then(result => {
+        publicationCurrent();
+        child.preparedResults = result; child.resultsReady = true;
+      }).catch(cause => {
+        child.resultsFailed = true; child.resultsFailure = cause; throw cause;
+      });
+      await child.resultsPreparation;
+      publicationCurrent();
     },
     bindKeyedFamily(original, completedAt) {
       same();
@@ -1401,8 +1431,10 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     async persistStopped() {
       for (const child of children) if (child.operation?.physicalStopped()) await child.capture.persistStoppedAttempts();
     },
-    hasFailure: () => children.some(child => child.component.hasFailure?.() || child.component.failure() !== undefined),
+    hasFailure: () => children.some(child => child.resultsFailed || child.component.hasFailure?.() || child.component.failure() !== undefined),
     failure() {
+      const preparation = children.find(child => child.resultsFailed);
+      if (preparation !== undefined) return preparation.resultsFailure;
       const failed = children.find(child => child.component.hasFailure?.() || child.component.failure() !== undefined);
       return failed?.component.failure();
     },

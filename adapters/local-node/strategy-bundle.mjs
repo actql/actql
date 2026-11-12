@@ -153,14 +153,14 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
   return Object.freeze({
     registration,
     managedSelectionKey: moon.strategyHostRegistrationSelectionKey(registration),
-    async beforeNext() {
+    async beforeNext(physicalSource) {
       if (beforePrepare === undefined) return;
       const task = moon.strategyHostNextTask(setup);
       if (task >= 0 && beforePrepare !== undefined) {
         // The existing Host beforeNext boundary precedes candidate planning
         // and input selection/dispatch. It may attach its actual completed keyed read;
         // it cannot replace the selected task or replay a producer.
-        await beforePrepare(task);
+        await beforePrepare(task, physicalSource);
         if (moon.strategyHostNextTask(setup) !== task) throw new Error('LocalTaskChangedDuringPreparation');
       }
     },

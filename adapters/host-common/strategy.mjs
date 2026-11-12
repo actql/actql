@@ -686,6 +686,16 @@ export async function runInstalledStrategy({
     knownCleanupPending(),
     unconfirmedRelease.size !== 0 || unconfirmedSiteOperations.size !== 0,
   );
+  // Borrow only a completed physical record already retained by this Host.
+  // The receiving Core Result pin still checks its exact occurrence/material.
+  const managedPhysicalSource = task => {
+    if (closed || failed || !Number.isSafeInteger(task) || task < 0 || task >= core.count(setup)) {
+      throw new StrategyHostError('InvalidEffectPhysicalSource');
+    }
+    const source = managedOutputs.get(task);
+    return source === undefined || typeof source.withRows !== 'function' ? undefined
+      : Object.freeze({completed: source.completed, material: source.material, withRows: source.withRows});
+  };
   let firstTask = 1;
   try {
     const count = core.count(setup);
@@ -696,7 +706,7 @@ export async function runInstalledStrategy({
       signal?.throwIfAborted();
       for (const entry of installed.values()) {
         signal?.throwIfAborted();
-        await entry.beforeNext?.();
+        await entry.beforeNext?.(managedPhysicalSource);
         // Even an absent callback yields to the caller. Cancellation during
         // preparation must not authorize another callback or a fresh attempt.
         signal?.throwIfAborted();
@@ -1373,15 +1383,7 @@ export async function runInstalledStrategy({
           task >= core.count(setup)) {
         throw new StrategyHostError('InvalidEffectPhysicalSource');
       }
-      const source = managedOutputs.get(task);
-      if (source === undefined || typeof source.withRows !== 'function') {
-        return undefined;
-      }
-      return Object.freeze({
-        completed: source.completed,
-        material: source.material,
-        withRows: source.withRows,
-      });
+      return managedPhysicalSource(task);
     },
     close() {
       if (closed) return closeResult;

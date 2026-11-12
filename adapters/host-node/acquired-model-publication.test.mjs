@@ -30,7 +30,7 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 // Actual group custody with explicit nominal publication/Store ports. The
 // deferred preparation is not an installed Model, Core ABI or physical ACK.
 function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding, retireCapture,
-  store, holdingFactory, originalNames = false, inferEvidence, project} = {}) {
+  store, holdingFactory, originalNames = false, inferEvidence, project, unitPreparation} = {}) {
   const events = [], contexts = [], preparedOptions = [], funding = [], controller = new AbortController();
   const sourcePlan = {}, preparedProgram = {}, plan = {compiled: {}, runDefinition: {}}, issuance = {};
   const publication = {binding: {}, observation: {name: 'observation', wire: '{}', identity: 'observation'},
@@ -42,7 +42,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   let current = true;
   const selections = Object.freeze([0, 1].map(index => Object.freeze({graph: {index}, occurrence: {index},
     observeAccount: () => ({})})));
-  const components = selections.map((selection, index) => ({bindOriginal(context) {contexts[index] = context;}}));
+  const components = selections.map((selection, index) => ({bindOriginal(context) {contexts[index] = context;}, hasFailure: () => false, failure: () => undefined}));
   const originalPreparation = {components: selections.map((selection, index) => ({selection, component: components[index]}))};
   const operations = selections.map((_, index) => ({index, physicalStopped: () => true,
     evaluationRequest: () => ({_0: {index}, _1: '{}', _2: '{}'}),
@@ -62,6 +62,21 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   }, clientProgramCancelInferObservationIssuance: () => false,
   clientProgramEffectComposedModelKeyedAcquisition: () => ({$tag: 1, _0: undefined})};
   moon.clientProgramCleanupInferObservationIssuance = () => ({$tag: 1, _0: true});
+  moon.clientProgramInferPlanBoundary = graph => ({_0: graph.index});
+  const host = {}, unit = {value: {}}, sourceUnits = {byUnit: new Map([[0, unit]])};
+  moon.clientProgramInferOccurrenceCoordinates = occurrence => ({_0: occurrence.index, _1: occurrence.index + 1, _2: 0});
+  moon.clientProgramInferOccurrenceResultImports = () => [{_0: 0, _1: 'joined'}];
+  moon.clientProgramLocalEffectHostRun = actual => {assert.strictEqual(actual, host); return host;};
+  moon.clientProgramRetireInstalledEffectCapturedConsumers = () => ({$tag: 1, _0: undefined});
+  acquired.control.prepareOriginalEffectSourceUnitResults = async (...args) => {
+    const retained = args[8];
+    retained.pins = {}; events.push('prepare-unit');
+    await unitPreparation({retained, current: args[9]});
+    retained.artifacts.push({name: 'joined', artifact: {}}); retained.manifest = {};
+  };
+  acquired.control.retireOriginalEffectUnitResults = retained => {
+    events.push('retire-unit'); retained.pins = undefined; return true;
+  };
   moon.clientProgramModelRequestInputFrameGeometry = (request, maximum) => {
     assert.equal(maximum, 65536);
     return {$tag: 1, _0: {request}};
@@ -72,7 +87,8 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
     return {$tag: 1, _0: {_0: shape.request.index === 0 ? 100n : 50n,
       _1: shape.request.index === 0 ? 200n : 80n}};
   };
-  const ports = {runtimeField, checked,
+  const ports = {runtimeField, checked, localContractLimits: limits,
+    prepareAcquiredEffectSourceUnits: () => sourceUnits,
     async projectInferEvidence(facts) {
       events.push('evidence-' + facts.operation.index);
       assert.strictEqual(facts.configuration, inferEvidence);
@@ -105,9 +121,9 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   const group = create({moon, acquired, infer: {components: selections}, originalModelComponents: components,
     preparedProgram, inferEvidence,
     originalModelSelection: {components: selections}, originalPreparation, plan, sourcePlan,
-    signal: controller.signal, modelController: {}, faultInjection, store,
+    signal: controller.signal, modelController: {}, faultInjection, store, originalHost: () => host,
     current() {if (!current) throw new Error('OriginalCurrentLost');}});
-  group.bind({captures: [{}], evidence: [{}], captureStartedAt: 'start', captureCompletedAt: 'end'});
+  group.bind({captures: unitPreparation === undefined ? [{}] : [{}, {}], evidence: unitPreparation === undefined ? [{}] : [{}, {}], captureStartedAt: 'start', captureCompletedAt: 'end'});
   for (const [index, context] of contexts.entries()) context.retainOperation(operations[index]);
   for (const context of contexts) assert.equal(context.retainCompleted(), true);
   return {group, events, contexts, publication, preparedOptions, funding, sourcePlan, signal: controller.signal, operations, cancel: () => controller.abort(new Error('OriginalCancelled')),
@@ -755,4 +771,49 @@ test('final plural publication reuses an earlier Model original scan and body un
   assert.deepEqual(bindings, issued.map(value => value.binding)); assert.strictEqual(publication.plan, final);
   assert.strictEqual(sourceUnitsOriginal.byUnit.get(1).results.modelReceipt, receipt,
     'the existing group still owns its original receipt until retirement');
+});
+
+
+test('plural preconsumer boundary preserves the existing no-Unit path and original selected Model task', async () => {
+  const f = publicationGroupFixture();
+  // The actual fixture has one captured input and no replacement Unit cache.
+  // Its original Model graph task still selects the existing beforeNext path.
+  for (const context of f.contexts) assert.equal(context.prepareOriginalResults(), undefined);
+  await f.group.prepareNext(0, () => {throw new Error('unexpected physical reader');});
+  await f.group.prepareNext(0, () => {throw new Error('unexpected duplicate reader');});
+  assert.equal(f.contexts[0].prepareOriginalResults(), undefined);
+  assert.equal(f.events.includes('prepare'), false);
+});
+
+
+test('plural preconsumer pending phase is shared and reentrant retirement cannot release its original bridge', async () => {
+  const entered = deferred(), finish = deferred();
+  const f = publicationGroupFixture({async unitPreparation() {entered.resolve(); await finish.promise;}});
+  const first = f.group.prepareNext(0, () => {}), second = f.group.prepareNext(0, () => {});
+  const outcome = Promise.allSettled([first, second]);
+  await Promise.race([entered.promise, first.then(() => {throw new Error('OriginalUnitPreparationDidNotEnter');})]);
+  assert.equal(f.group.cleanupPending(), true);
+  assert.equal(await f.group.retirePublication(), false);
+  assert.equal(f.group.releaseUnitOutputs(), false);
+  finish.resolve();
+  const results = await outcome;
+  assert(results.every(value => value.status === 'rejected' && /Retired/.test(value.reason.message)));
+  assert.equal(f.events.filter(value => value === 'prepare-unit').length, 1);
+  assert.equal(f.group.releaseUnitOutputs(), true);
+  assert.equal(f.events.filter(value => value === 'retire-unit').length, 1);
+});
+
+test('plural preconsumer first undefined failure is sticky without issuing another original preparation', async () => {
+  const f = publicationGroupFixture({async unitPreparation() {throw undefined;}});
+  for (let index = 0; index < 2; index++) {
+    let failed = false, primary;
+    try {await f.group.prepareNext(0, () => {});} catch (cause) {failed = true; primary = cause;}
+    assert.equal(failed, true); assert.strictEqual(primary, undefined);
+  }
+  assert.equal(f.group.hasFailure(), true);
+  assert.strictEqual(f.group.failure(), undefined);
+  assert.equal(f.events.filter(value => value === 'prepare-unit').length, 1);
+  assert.equal(f.group.releaseUnitOutputs(), true);
+  assert.throws(() => f.contexts[0].prepareOriginalResults(), /Retired/);
+  await assert.rejects(f.group.prepareNext(0, () => {}), /Retired/);
 });

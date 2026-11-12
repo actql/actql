@@ -1009,3 +1009,16 @@ fn bind_completed_export_material(
     representation: Some(material),
   })
 }
+
+///|
+/// Borrow this export's same full physical completion, before or after view
+/// preparation. A Result projection does not replace the original input body.
+pub fn completed_result_export_preparation_source(
+  value : CompletedResultRelationExportPreparation,
+) -> CompletedOutput? {
+  if value.closed || !completed_output_available(value.rows.source) {
+    None
+  } else {
+    Some(value.rows.source)
+  }
+}

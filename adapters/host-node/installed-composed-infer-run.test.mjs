@@ -579,7 +579,7 @@ function originalRuntimeControlMethod(name, ports) {
 
 // Original runtime facade with explicit nominal Core ports. These are source
 // handoff/retirement controls, not Common ABI, provider or physical-close proof.
-function originalUnitResultFacadeFixture({failure, projectKind, coordinates = {_0: 4, _1: 2, _2: 5}} = {}) {
+function originalUnitResultFacadeFixture({managed = false, gate, rowCount = 1, failure, projectKind, coordinates = {_0: 4, _1: 2, _2: 5}} = {}) {
   const run = {}, plan = {}, request = {}, captured = {}, dependency = {invocation: {}}, source = {}, admission = {}, definition = {};
   const pins = {}, exported = {}, receipt = {}, artifact = {}, manifest = {}, events = [];
   const failedResult = {}, occurrence = {};
@@ -591,6 +591,9 @@ function originalUnitResultFacadeFixture({failure, projectKind, coordinates = {_
       assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
       assert.strictEqual(actualCaptured, captured); assert.equal(unit, 0); events.push('pin'); return {ok: pins};
     }, clientProgramEffectModelUnitResultCount: actual => {assert.strictEqual(actual, pins); return 1;},
+    clientProgramEffectModelUnitResultRequiresManagedExport(actual, index) {
+      assert.strictEqual(actual, pins); assert.equal(index, 0); return managed;
+    },
     clientProgramPrepareInstalledEffectModelUnitResultExport(actualRun, actualPlan, actualRequest, actualCaptured, actualPins, index) {
       assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
       assert.strictEqual(actualCaptured, captured); assert.strictEqual(actualPins, pins); assert.equal(index, 0);
@@ -614,6 +617,35 @@ function originalUnitResultFacadeFixture({failure, projectKind, coordinates = {_
       assert.equal(index, 0); assert.strictEqual(actualArtifact, artifact); assert.strictEqual(actualManifest, manifest); events.push('bind'); return {ok: undefined};
     },
   };
+  const importing = {}, completed = {}, material = {};
+  moon.clientProgramEffectModelUnitResultTask = actual => {assert.strictEqual(actual, pins); return 3;};
+  moon.clientProgramBeginInstalledEffectModelUnitManagedExport = (r, p, q, c, actualPins, index, actualOutput, actualMaterial) => {
+    assert.strictEqual(r, run); assert.strictEqual(p, plan); assert.strictEqual(q, request); assert.strictEqual(c, captured);
+    assert.strictEqual(actualPins, pins); assert.equal(index, 0); assert.strictEqual(actualOutput, completed);
+    assert.strictEqual(actualMaterial, material); events.push('import'); return {ok: importing};
+  };
+  moon.clientProgramEffectManagedInputAppend = (actual, row) => {
+    assert.strictEqual(actual, importing); assert.equal(row, '{"left":"A","right":"B"}');
+    events.push('append'); return {ok: undefined};
+  };
+  moon.clientProgramEffectManagedInputFinish = actual => {
+    assert.strictEqual(actual, importing); events.push('finish-import'); return {ok: {}};
+  };
+  moon.clientProgramEffectModelUnitManagedExportOwner = (actual, index, imported) => {
+    assert.strictEqual(actual, pins); assert.equal(index, 0); assert.strictEqual(imported, importing);
+    events.push('managed-owner'); return {ok: exported};
+  };
+  moon.clientProgramEffectManagedInputCancel = actual => {assert.strictEqual(actual, importing); events.push('retire-import');};
+  const physicalSource = task => {
+    assert.equal(task, 3);
+    return {completed, material, async withRows(emit, signal, commit) {
+      assert.strictEqual(retained.imports[0], importing, 'retain original before the physical callback');
+      events.push('physical-read');
+      if (gate !== undefined) await gate;
+      for (let row = 0; row < rowCount; row++) await emit('{"left":"A","right":"B"}');
+      return commit();
+    }};
+  };
   if (projectKind !== undefined) moon.clientProgramEffectModelUnitResultExportIssueKind = result => {
     assert.strictEqual(result, failedResult); events.push('project-kind'); return projectKind();
   };
@@ -630,12 +662,12 @@ function originalUnitResultFacadeFixture({failure, projectKind, coordinates = {_
   const bind = originalRuntimeControlMethod('bindInferOriginalResultArtifact', ports);
   const retained = {pins: undefined, exports: [], receipts: [], artifacts: [], manifest: undefined};
   return {events, pins, retained, retire, bind, release() {release = true;},
-    prepare(current = () => {}) {return prepare(run, plan, request, captured, dependency, admission, definition, {}, retained, current, undefined, occurrence);}};
+    prepare(current = () => {}, retainedCurrent = current) {return prepare(run, plan, request, captured, dependency, admission, definition, {}, retained, current, undefined, occurrence, physicalSource, undefined, retainedCurrent);}};
 }
 
-test('original upstream Result facade retains every issued original before the next fallible boundary', () => {
+test('original upstream Result facade retains every issued original before the next fallible boundary', async () => {
   const f = originalUnitResultFacadeFixture();
-  assert.strictEqual(f.prepare(), f.retained);
+  assert.strictEqual(await f.prepare(), f.retained);
   assert.deepEqual(f.events, ['pin', 'export', 'receipt', 'artifact', 'manifest']);
   f.bind({}, 0, f.retained.artifacts[0].artifact, f.retained.manifest);
   assert.throws(() => f.bind({}, 0, {...f.retained.artifacts[0].artifact}, f.retained.manifest), /ForeignInferResultArtifact/u);
@@ -645,10 +677,10 @@ test('original upstream Result facade retains every issued original before the n
   assert.equal(f.retained.pins, undefined); assert.equal(f.retained.artifacts.length, 0);
 });
 
-test('original Source Unit export failure retains same cause and pins with actual consumer diagnostic', () => {
+test('original Source Unit export failure retains same cause and pins with actual consumer diagnostic', async () => {
   const cause = Object.assign(new Error('private message'), {code: 'MoonBitHostFailure', cause: {privateBody: true}});
   const f = originalUnitResultFacadeFixture({failure: cause, projectKind: () => 'export.completed.unavailable'});
-  assert.throws(() => f.prepare(), actual => actual === cause);
+  await assert.rejects(f.prepare(), actual => actual === cause);
   assert.deepEqual(cause.primaryDiagnostic, {code: 'MoonBitHostFailure',
     phase: 'original_effect_source_unit_result_export', kind: 'export.completed.unavailable', task: 4, unit: 2, step: 5});
   assert(Object.isFrozen(cause.primaryDiagnostic));
@@ -659,7 +691,7 @@ test('original Source Unit export failure retains same cause and pins with actua
   f.release(); assert.equal(f.retire(f.retained), true);
 });
 
-test('optional Source Unit export diagnostic never masks primary failure or invents occurrence', () => {
+test('optional Source Unit export diagnostic never masks primary failure or invents occurrence', async () => {
   for (const mode of ['missing-projector', 'throwing-projector', 'missing-kind', 'invalid-task', 'invalid-unit', 'invalid-step']) {
     const cause = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
     const coordinates = {_0: 4, _1: 2, _2: 5};
@@ -671,7 +703,7 @@ test('optional Source Unit export diagnostic never masks primary failure or inve
       return mode === 'missing-kind' ? undefined : 'export.completed.unavailable';
     };
     const f = originalUnitResultFacadeFixture({failure: cause, projectKind, coordinates});
-    assert.throws(() => f.prepare(), actual => actual === cause);
+    await assert.rejects(f.prepare(), actual => actual === cause);
     assert.equal(Object.hasOwn(cause, 'primaryDiagnostic'), false);
     assert.strictEqual(f.retained.pins, f.pins);
     assert.deepEqual(f.retained.exports, []);
@@ -679,9 +711,9 @@ test('optional Source Unit export diagnostic never masks primary failure or inve
   }
 });
 
-test('original upstream Result facade preserves partial custody when current throws undefined after pinning', () => {
+test('original upstream Result facade preserves partial custody when current throws undefined after pinning', async () => {
   const f = originalUnitResultFacadeFixture(); let calls = 0, failed = false, cause;
-  try {f.prepare(() => {if (++calls === 2) throw undefined;});} catch (error) {failed = true; cause = error;}
+  try {await f.prepare(() => {if (++calls === 2) throw undefined;});} catch (error) {failed = true; cause = error;}
   assert.equal(failed, true); assert.strictEqual(cause, undefined);
   assert.deepEqual(f.events, ['pin']); assert.strictEqual(f.retained.pins, f.pins);
   assert.equal(f.retire(f.retained), false);
@@ -771,4 +803,52 @@ test('earlier Model facade keeps the same partial scan and receipt when current 
   assert.equal(f.retained.modelOriginal, undefined); assert.equal(f.events.includes('metadata'), false);
   assert.equal(f.retire(f.retained), true);
   assert.deepEqual(f.events.slice(-2), ['retire-receipt', 'retire-scan']);
+});
+
+
+test('original managed Unit Result awaits the same physical bridge before artifact and retains it through cleanup', async () => {
+  let release;
+  const gate = new Promise(resolve => {release = resolve;});
+  const f = originalUnitResultFacadeFixture({managed: true, gate});
+  const pending = f.prepare();
+  assert.deepEqual(f.events, ['pin', 'import', 'physical-read']);
+  assert.equal(f.retained.artifacts.length, 0);
+  release();
+  assert.strictEqual(await pending, f.retained);
+  assert.deepEqual(f.events, ['pin', 'import', 'physical-read', 'append', 'finish-import', 'managed-owner', 'receipt', 'artifact', 'manifest']);
+  assert.equal(f.events.includes('export'), false, 'resident never enters the cell-only exporter');
+  f.release(); assert.equal(f.retire(f.retained), true);
+  assert.deepEqual(f.events.slice(-4), ['retire-export', 'retire-import', 'retire-receipt', 'release-pin']);
+});
+
+test('original managed Unit Result cancellation after physical await retains original bridge and no artifact', async () => {
+  let release, retired = false;
+  const gate = new Promise(resolve => {release = resolve;});
+  const f = originalUnitResultFacadeFixture({managed: true, gate});
+  const cause = new Error('cancelled-original');
+  const pending = f.prepare(() => {if (retired) throw cause;});
+  retired = true; release();
+  await assert.rejects(pending, actual => actual === cause);
+  assert.equal(f.retained.imports.length, 1);
+  assert.equal(f.retained.artifacts.length, 0);
+  assert.equal(f.events.includes('append'), false);
+  f.release(); assert.equal(f.retire(f.retained), true);
+});
+
+
+test('original managed Unit full-current count is independent of row count and revocation blocks artifact', async () => {
+  let expected;
+  for (const rowCount of [1, 64]) {
+    let full = 0, local = 0;
+    const f = originalUnitResultFacadeFixture({managed: true, rowCount});
+    await f.prepare(() => {full++;}, () => {local++;});
+    expected ??= full;
+    assert.equal(full, expected, 'no per-row full selection or Journal recheck');
+    assert.equal(local, 2 * rowCount);
+  }
+  let revoked = false;
+  const cause = new Error('OriginalCurrentLost');
+  const f = originalUnitResultFacadeFixture({managed: true});
+  await assert.rejects(f.prepare(() => {if (revoked) throw cause;}, () => {revoked = true;}), actual => actual === cause);
+  assert.equal(f.retained.artifacts.length, 0);
 });

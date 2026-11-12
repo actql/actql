@@ -670,15 +670,16 @@ pub fn pin_installed_effect_model_unit_results(
 /// actual producer rows and checked Named Result fields back the additional
 /// projection/stable-order maps before their existing constructor allocates.
 /// Cells and field text remain borrowed from the original completed producer.
-pub fn prepare_installed_effect_model_unit_result_export(
+fn installed_effect_model_unit_result_export_limits(
   value : ClientInstalledManagedRun,
   plan : ClientInstalledEffectManagedPlan,
   request : @publication_host.ClientRequestIdentity,
   run : @strategy.CapturedEffectRunDAG,
   inputs : @strategy.CapturedEffectLocalUnitInputs,
   index : Int,
+  managed? : @execution.ManagedPublicationBridgeLimits? = None,
 ) -> Result[
-  @strategy.CapturedEffectLocalResultExport,
+  @publication_host.PublicationOutputExportLimits,
   ClientEffectUnitPreparationIssue,
 ] {
   guard effect_unit_publication_body(value, plan, request) is Ok(_) &&
@@ -699,6 +700,10 @@ pub fn prepare_installed_effect_model_unit_result_export(
     @local.local_export_retention_capacity(plan.capacity_plan.exports)
     is Some(codec) else {
     return Err(Run(InsufficientCapacity))
+  }
+  if managed is Some(_) &&
+    !@strategy.captured_any_result_borrow_requires_managed_export(borrow) {
+    return Err(Export(ForeignOutput))
   }
   let port = @execution.managed_result_occurrence_port(
     @strategy.captured_any_result_borrow_occurrence(borrow),
@@ -742,10 +747,110 @@ pub fn prepare_installed_effect_model_unit_result_export(
     is Some(capacity) else {
     return Err(Run(InsufficientCapacity))
   }
+  let capacity = if managed is Some(geometry) {
+    // The existing Local import allowance owns re-admitted rows, values and
+    // decode scratch while the physical original and export view remain held.
+    guard @local.local_import_retention_capacity({
+        max_rows: geometry.max_rows,
+        values: geometry.values,
+        wire: {
+          max_columns: geometry.entries,
+          max_order_work: 0,
+          max_bytes: geometry.row.max_bytes,
+          max_nodes: geometry.row.max_nodes,
+          max_depth: geometry.row.max_depth,
+        },
+        row: geometry.row,
+        max_batch_bytes: Int::max(1, geometry.row.max_bytes),
+      })
+      is Some(importing) &&
+      @execution.checked_preparation_add_product(
+        @execution.execution_capacity_retained_bytes(capacity),
+        importing,
+        1L,
+      )
+      is Some(retained) &&
+      @execution.checked_preparation_add_product(
+        @execution.execution_capacity_execution_bytes(capacity),
+        importing,
+        1L,
+      )
+      is Some(executing) &&
+      @execution.execution_capacity(retained, executing) is Some(capacity) else {
+      return Err(Run(InsufficientCapacity))
+    }
+    capacity
+  } else {
+    capacity
+  }
   match
     reserve_effect_unit_publication_capacity(value, plan, request, capacity) {
     Ok(_) => ()
     Err(issue) => return Err(Run(issue))
+  }
+  Ok(limits)
+}
+
+///|
+/// Derive the import geometry from the SAME pinned managed completion. The
+/// caller cannot submit an extent record or use another generation's rows.
+pub fn[T] installed_effect_model_unit_managed_export_limits(
+  value : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  run : @strategy.CapturedEffectRunDAG,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  index : Int,
+  output : @execution.ManagedCompletedOutput[T],
+  material : @execution.ManagedRetainedOutput[T],
+) -> Result[
+  @publication_host.PublicationOutputExportLimits,
+  ClientEffectUnitPreparationIssue,
+] {
+  guard @strategy.captured_effect_local_unit_result_at(inputs, index)
+    is Some(result) &&
+    @strategy.captured_any_result_borrow_matches_managed(
+      @strategy.captured_effect_local_result_borrow(result),
+      output,
+    ) &&
+    @execution.managed_publication_bridge_import_geometry(
+      output,
+      material,
+      plan.capacity_plan.exports.wire.max_columns,
+      plan.capacity_plan.exports.wire.max_bytes,
+    )
+    is Some(geometry) else {
+    return Err(Export(ForeignOutput))
+  }
+  installed_effect_model_unit_result_export_limits(
+    value,
+    plan,
+    request,
+    run,
+    inputs,
+    index,
+    managed=Some(geometry),
+  )
+}
+
+///|
+pub fn prepare_installed_effect_model_unit_result_export(
+  value : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  run : @strategy.CapturedEffectRunDAG,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  index : Int,
+) -> Result[
+  @strategy.CapturedEffectLocalResultExport,
+  ClientEffectUnitPreparationIssue,
+] {
+  let limits = match
+    installed_effect_model_unit_result_export_limits(
+      value, plan, request, run, inputs, index,
+    ) {
+    Ok(limits) => limits
+    Err(issue) => return Err(issue)
   }
   let export_result = @strategy.start_captured_effect_local_unit_result_export(
     inputs,

@@ -336,7 +336,9 @@ test('actual Local input selection awaits original Host continuation before disp
   for (const replace of [false, true]) {
     let resume, task = 4, dispatched = 0;
     const pending = new Promise(resolve => {resume = resolve;});
-    const setup = {}, configuration = withLocalExecutionPauseHandler(undefined, () => {}, async actual => {
+    const physicalSource = () => ({});
+    const setup = {}, configuration = withLocalExecutionPauseHandler(undefined, () => {}, async (actual, physical) => {
+      assert.strictEqual(physical, physicalSource);
       assert.equal(actual, 4); await pending; if (replace) task = 5;
     });
     const entry = localStrategyContribution({
@@ -346,7 +348,7 @@ test('actual Local input selection awaits original Host continuation before disp
       strategyModule_local_ManagedCapacity: () => [0n, 0n], strategyModule_local_ManagedDuration: () => 0n,
       strategyHostReleasableManagedProducers: () => [],
     }, setup, value => value._0, configuration);
-    const result = entry.beforeNext().then(() => entry.prepareNext(new Map()));
+    const result = entry.beforeNext(physicalSource).then(() => entry.prepareNext(new Map()));
     await Promise.resolve(); assert.equal(dispatched, 0); resume();
     if (replace) await assert.rejects(result, /LocalTaskChangedDuringPreparation/);
     else assert.equal((await result).task, 4);
