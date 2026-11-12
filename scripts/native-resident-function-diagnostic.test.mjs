@@ -69,6 +69,16 @@ test('diagnostic changes only the hash-fenced original control parent, leaving i
   assert.throws(() => rewriteResidentControlSpawn(source + '\n', {}), /Source hash differs/u);
 });
 
+test('diagnostic refuses missing or duplicate original spawn anchors without a fallback', () => {
+  const anchor = "const child = spawn(executable, ['run', ...configured,";
+  for (const changed of [source.replace(anchor, 'const child = foreignControl('), source + '\n' + anchor]) {
+    // The full Source fence runs first. These changed originals cannot borrow
+    // the reviewed pin merely because other diagnostic fields are present.
+    assert.throws(() => rewriteResidentControlSpawn(changed,
+      {python: '/usr/bin/python3', wrapper: '/test/wrapper.py', report: '/test/report.json'}), /Source hash differs/u);
+  }
+});
+
 test('outer diagnostic suppresses private original output and preserves its nonzero exit', () => {
   let invocation;
   const result = runFunctionDiagnosticCase('/private/report.json', {
