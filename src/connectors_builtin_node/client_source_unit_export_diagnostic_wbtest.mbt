@@ -55,3 +55,27 @@ test "Source Unit artifact diagnostic retains the original typed failure family"
     )
   }
 }
+
+///|
+test "actual Model component call-scope issue retains its typed original family" {
+  let cases : Array[(@publication_host.ClientInferCallScopeIssue, String)] = [
+    (ForeignOwner, "call_scope.foreign_owner"),
+    (ForeignInput, "call_scope.foreign_input"),
+    (UnsupportedBindings, "call_scope.unsupported_bindings"),
+    (Encoding, "call_scope.encoding"),
+  ]
+  for (issue, expected) in cases {
+    assert_eq(
+      client_program_infer_call_scope_issue_kind(
+        @infer_host.Issue::CallScope(issue),
+      ),
+      Some(expected),
+    )
+  }
+  assert_true(
+    client_program_infer_call_scope_issue_kind(
+      @infer_host.Issue::InvalidAdvance,
+    )
+    is None,
+  )
+}

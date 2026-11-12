@@ -380,3 +380,55 @@ test('same Host direct Result left reaches one lookup without prefix execution o
   assert(!f.events.includes('prefix-start')); assert(!f.events.includes('prefix-cancel'));
   assert(!f.events.includes('prefix-cleanup'));
 });
+
+
+test('actual Local selection consumes the prebound original relation without reimporting its managed producer', async () => {
+  const setup = {}, marker = {}, configuration = {}, events = [];
+  const original = Object.defineProperty({}, 'completed', {
+    get() {assert.fail('The retained original must not be imported a second time');},
+  });
+  const outputs = new Map([[3, original]]);
+  const entry = localStrategyContribution({
+    strategyModule_local_Registration: () => ({}), strategyHostRegistrationSelectionKey: () => 'local',
+    strategyHostNextTask: () => 4, strategyHostManagedProducers: () => [3], strategyHostManagedInputCount: () => 1,
+    strategyModule_local_HasPreparedRelationInput(actual, index) {
+      assert.strictEqual(actual, setup); assert.equal(index, 0); events.push('original'); return true;
+    },
+    strategyModule_local_CapturedRelationInput() {events.push('captured'); return marker;},
+    strategyModule_local_RelationOutput() {assert.fail('No second relation import');},
+    strategyModule_local_CarrierOutput() {assert.fail('No replacement carrier');},
+    strategyModule_local_ManagedCarrierDispatch(actual, inputs, bytes) {
+      assert.strictEqual(actual, setup); assert.deepEqual(inputs, [marker]); assert.equal(bytes, 0n);
+      events.push('dispatch'); return ok(configuration);
+    },
+    strategyModule_local_ManagedUsesProvider(actual) {assert.strictEqual(actual, configuration); return true;},
+    strategyModule_local_ManagedCapacity: () => [0n, 0n], strategyModule_local_ManagedDuration: () => 0n,
+    strategyHostReleasableManagedProducers: () => [],
+  }, setup, value => value._0);
+  const prepared = await entry.prepareNext(outputs);
+  assert.deepEqual(events, ['original', 'captured', 'dispatch']);
+  assert.deepEqual(prepared.inputs, []);
+  assert.deepEqual(prepared.dispatchInputs, [{task: 3, capturedRelation: true}]);
+  assert.strictEqual(prepared.outputs, outputs); assert.strictEqual(prepared.configuration, configuration);
+  // No producer was replaced or retired by selection.
+  assert.equal(outputs.size, 1); assert.strictEqual(outputs.get(3), original);
+});
+
+test('actual Local prebound selection preserves the Core dispatch refusal and provider guard', async () => {
+  for (const refused of [true, false]) {
+    const failure = new Error('original captured read refused'), marker = {}, configuration = {};
+    const entry = localStrategyContribution({
+      strategyModule_local_Registration: () => ({}), strategyHostRegistrationSelectionKey: () => 'local',
+      strategyHostNextTask: () => 4, strategyHostManagedProducers: () => [3], strategyHostManagedInputCount: () => 1,
+      strategyModule_local_HasPreparedRelationInput: () => true,
+      strategyModule_local_CapturedRelationInput: () => marker,
+      strategyModule_local_RelationOutput() {assert.fail('No reimport fallback');},
+      strategyModule_local_CarrierOutput() {assert.fail('No replacement carrier');},
+      strategyModule_local_ManagedCarrierDispatch() {if (refused) throw failure; return ok(configuration);},
+      strategyModule_local_ManagedUsesProvider: () => false,
+      strategyModule_local_ManagedCapacity() {assert.fail('Unavailable read cannot reach capacity');},
+    }, {}, value => value._0);
+    if (refused) await assert.rejects(entry.prepareNext(new Map()), error => error === failure);
+    else assert.equal(await entry.prepareNext(new Map()), undefined);
+  }
+});

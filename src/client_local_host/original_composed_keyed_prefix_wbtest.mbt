@@ -1096,6 +1096,10 @@ fn original_composed_keyed_consumer(
       source_results=[(0, source_sequence, bindings, proof)],
       deferred_keyed=Some((task, step)),
     ).unwrap()
+    let captured_run = @strategy.captured_effect_run_dag(host)
+    assert_false(
+      @strategy.captured_next_task_has_prepared_input(captured_run, 0),
+    )
     let before = @resources.ledger_usage(ledger)
     let left = @publication_host.prepare_client_original_composed_keyed_host_input_left(
         scope,
@@ -1111,6 +1115,15 @@ fn original_composed_keyed_consumer(
       )
       .unwrap()
       .unwrap()
+    assert_true(
+      @strategy.captured_next_task_has_prepared_input(captured_run, 0),
+    )
+    assert_false(
+      @strategy.captured_next_task_has_prepared_input(captured_run, -1),
+    )
+    assert_false(
+      @strategy.captured_next_task_has_prepared_input(captured_run, 1),
+    )
     assert_eq(@publication_host.client_keyed_left_read_rows(left), Some(1))
     assert_eq(@resources.ledger_usage(ledger), before)
     let lookup = @publication_host.start_client_original_composed_keyed_lookup_input(

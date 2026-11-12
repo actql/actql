@@ -71,7 +71,7 @@ function dispatchFailureSnapshot(error) {
         dimension !== undefined && Object.hasOwn(dimension, 'value') &&
         (dimension.value === 'retained_bytes' || dimension.value === 'execution_bytes');
       if (data.code === 'MoonBitHostFailure' &&
-          (['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact'].includes(data.phase) &&
+          (['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component'].includes(data.phase) &&
             validOrdinals || localWork || valueWork || resource) &&
           typeof data.kind === 'string' && data.kind.length <= 96 &&
           /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {

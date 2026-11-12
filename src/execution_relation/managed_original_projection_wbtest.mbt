@@ -92,6 +92,16 @@ test "managed full completed projection preserves original output through public
     ).unwrap()
   }
   let converted = finish_managed_publication_bridge(bridge).unwrap()
+  let receipt = content_borrow_export(converted)
+  assert_true(
+    physical_equal(
+      completed_relation_export_original_source(receipt).unwrap(),
+      converted,
+    ),
+  )
+  let foreign = managed_projection_original(owner)
+  assert_eq(completed_row_count(foreign), completed_row_count(converted))
+  assert_false(completed_relation_export_matches_output(receipt, foreign))
   assert_eq(completed_row_count(converted), 2)
   assert_false(converted.completion.readmitted)
   assert_true(completed_output_same_occurrence(original, converted))
@@ -100,10 +110,21 @@ test "managed full completed projection preserves original output through public
   assert_true(completed_output_available(converted))
   original_live.val = true
   live.val = false
+  assert_true(completed_relation_export_original_source(receipt) is None)
   assert_false(completed_output_available(converted))
   assert_false(completed_output_same_occurrence(original, converted))
   live.val = true
+  assert_true(
+    physical_equal(
+      completed_relation_export_original_source(receipt).unwrap(),
+      converted,
+    ),
+  )
+  let released = content_borrow_export(converted)
+  cancel_completed_relation_export_receipt(released)
+  assert_true(completed_relation_export_original_source(released) is None)
   close_managed_publication_bridge(bridge)
+  assert_true(completed_relation_export_original_source(receipt) is None)
   assert_false(completed_output_available(converted))
   assert_true(completed_output_available(original))
 }

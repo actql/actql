@@ -689,7 +689,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       // The same typed pre-Model or Model failure is selectable through the existing
       // infer signal, without subscribing a work collector to Run lifecycle.
       if (name === 'dispatch_failed' && config.eventLevel === 'diagnostic' && config.allowed.has('infer') &&
-          ['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact']
+          ['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component']
             .includes(detail?.primaryDiagnostic?.phase)) {
         emit('infer', 'dispatch_failed', {ref: detail.ref, primaryDiagnostic: detail.primaryDiagnostic});
       }

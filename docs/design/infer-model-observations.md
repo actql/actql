@@ -179,3 +179,19 @@ own input/outcome observation before a subsequent Model starts; this does not
 complete the all-Model observation inventory. Variable semantic bodies and
 retained inventories must be funded on the same original parent before their
 constructors, independently of codec limits and fixed Common controls.
+
+The Local preconsumer boundary can retain a managed Unit's full publication
+bridge as the same Run's pending input. Input selection then uses the existing
+captured-relation constructor and its original read checks; it must not import
+that producer again merely because its managed generation is still present in
+the output map. The successful Artifact receipt retains that same completed
+source after its export preparation finishes. A resident Result import borrows
+this exact source and proves that the completed pre-Model segment consumed it
+through the original checked input port. Equal rows, another import or a
+released receipt cannot substitute for this correspondence. Cell Results keep
+their original direct completion path.
+
+A Model component's typed call-scope failure can be projected through the
+existing dispatch diagnostic as a bounded category and original occurrence
+coordinates. Projection observes no input body, current callback or permission,
+and cannot replace the first failure or change cleanup and publication.

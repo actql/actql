@@ -59,9 +59,25 @@ pub fn prepare_client_infer_result_artifact_input(
     artifact.source is ResultSource(borrow, definition) &&
     interface.producer_unit_definition_cid == definition.unit_definition_cid &&
     interface.result_name == definition.result_name &&
-    artifact.invocation.unit < occurrence.stage &&
-    @strategy.captured_any_result_borrow_cell_output(borrow) is Some(original) else {
+    artifact.invocation.unit < occurrence.stage else {
     return Err(ForeignInput)
+  }
+  // Cells retain their existing completion directly. A resident Artifact
+  // was sealed against its exact managed bridge/export receipt by its issuer;
+  // borrow THAT completed source, never equal rows or another physical import.
+  let original = match
+    @strategy.captured_any_result_borrow_cell_output(borrow) {
+    Some(value) => value
+    None => {
+      guard @strategy.captured_any_result_borrow_requires_managed_export(borrow) &&
+        @execution.completed_relation_export_original_source(
+          artifact.export_receipt,
+        )
+        is Some(value) else {
+        return Err(ForeignInput)
+      }
+      value
+    }
   }
   let pipeline = @lower.pipeline(
     @lower.bound_preparation(occurrence.preparation),

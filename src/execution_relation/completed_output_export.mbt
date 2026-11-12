@@ -1022,3 +1022,20 @@ pub fn completed_result_export_preparation_source(
     Some(value.rows.source)
   }
 }
+
+///|
+/// Borrow only the exact completed source retained by this successful export.
+/// This neither admits another output nor restores a released receipt alias.
+pub fn completed_relation_export_original_source(
+  value : CompletedRelationExportReceipt,
+) -> CompletedOutput? {
+  guard value.rows.source is Some(source) else { return None }
+  let available = completed_output_available(source)
+  if available &&
+    value.rows.source is Some(actual) &&
+    physical_equal(actual, source) {
+    Some(source)
+  } else {
+    None
+  }
+}

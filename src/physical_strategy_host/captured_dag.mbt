@@ -2622,3 +2622,18 @@ pub fn captured_pending_task_input_output(
   .bind(value => value)
   .bind(@execution.producer_read_original_output)
 }
+
+///|
+/// Immutable presence of an original read already retained for the next task.
+/// Selection observes no current callback; captured_task_input still verifies
+/// that same bound read before the selected provider can consume it.
+pub fn captured_next_task_has_prepared_input(
+  run : CapturedDAG,
+  input : Int,
+) -> Bool {
+  guard !run.stopped && next_captured_task(run) is Some(task) else {
+    return false
+  }
+  run.inputs.get(task).bind(ports => ports.get(input)).bind(value => value)
+  is Some(_)
+}

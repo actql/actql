@@ -835,3 +835,20 @@ pub fn client_program_infer_occurrence_result_imports(
 ) -> Array[(Int, String)] {
   @publication_host.client_infer_occurrence_result_imports(occurrence)
 }
+
+///|
+/// Project only the actual typed call-scope failure returned by this Model
+/// component. This observes no owner, input body or current callback.
+#export_name("clientProgramInferCallScopeIssueKind")
+pub fn client_program_infer_call_scope_issue_kind(
+  issue : @infer_host.Issue,
+) -> String? {
+  match issue {
+    CallScope(ForeignOwner) => Some("call_scope.foreign_owner")
+    CallScope(ForeignInput) => Some("call_scope.foreign_input")
+    CallScope(UnsupportedBindings) => Some("call_scope.unsupported_bindings")
+    CallScope(Encoding) => Some("call_scope.encoding")
+    CallScope(Evidence(_)) => Some("call_scope.evidence")
+    _ => None
+  }
+}

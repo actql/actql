@@ -1401,8 +1401,22 @@ export function openNodeComposedInferProvider({moon, selected, sources,
     };
   const provider = selectProvider(
     selected.occurrence, openOriginal, issue => {
-      recordFailure(Object.assign(new Error('ComposedInferComponentFailed'),
-        {code: 'MoonBitHostFailure', cause: issue}));
+      const error = Object.assign(new Error('ComposedInferComponentFailed'),
+        {code: 'MoonBitHostFailure', cause: issue});
+      try {
+        const kind = moon.clientProgramInferCallScopeIssueKind?.(issue);
+        const coordinates = moon.clientProgramInferOccurrenceCoordinates?.(selected.occurrence);
+        const task = runtimeField(coordinates, 0), unit = runtimeField(coordinates, 1),
+          step = runtimeField(coordinates, 2);
+        if (typeof kind === 'string' && kind.startsWith('call_scope.') &&
+            kind.length <= 96 && /^[a-z_]+(?:\.[a-z_]+)*$/u.test(kind) &&
+            [task, unit, step].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647)) {
+          error.primaryDiagnostic = Object.freeze({code: 'MoonBitHostFailure',
+            phase: 'original_infer_component', kind,
+            task, unit, step});
+        }
+      } catch { /* Optional typed DATA never replaces the original issue. */ }
+      recordFailure(error);
     }, active => {
       try {
         if (operation === undefined || activeOperations.get(operation) !== active) {

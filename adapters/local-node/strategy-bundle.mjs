@@ -177,11 +177,17 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           producers.length !== inputCount) {
         return undefined;
       }
-      const inputs = producers.map(producer => {
+      const inputs = producers.map((producer, index) => {
         if (producer === -1) return Object.freeze({
           task: producer,
           suppliedRelation: true,
         });
+        // A preconsumer Unit may already retain its exact physical bridge
+        // as this Run's receiving read. Reuse the existing captured-relation
+        // route; importing the managed producer again creates another body.
+        if (producer >= 0 && moon.strategyModule_local_HasPreparedRelationInput?.(setup, index) === true) {
+          return Object.freeze({task: producer, capturedRelation: true});
+        }
         const managed = outputs.get(producer);
         if (managed != null) return managed;
         // Common captured_task_input checks the exact completed predecessor,
