@@ -2388,55 +2388,24 @@ jobs:
   # Ready PRs keep macOS for target/runtime-sensitive or unknown
   # inputs. The selector records why a portable PR omits this job.
   native-http-macos:
-    needs: [select-targets, preflight]
+    needs: [select-targets, preflight, native-macos-workloads]
     if: >-
-      ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+      ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
-    runs-on: macos-15
-    # Each independent group retains the original consumer timeout.
-    timeout-minutes: 115
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 22.22.0
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            adapters/connectors/duckdb/node/package-lock.json
-      - run: npm ci
-      - name: Install pinned native DuckDB transport
-        run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
-      - name: Install pinned MoonBit
-        run: |
-          node scripts/setup-moonbit.mjs
-          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
-          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
-          echo "$toolchain/bin" >> "$GITHUB_PATH"
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: '3.12'
-      - name: Install existing scoped component producer dependencies
-        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
-      - name: Ensure the original curl signature verifier tools are available
-        timeout-minutes: 5
-        run: |
-          if ! command -v gpg >/dev/null || ! command -v gpgv >/dev/null; then
-            HOMEBREW_NO_AUTO_UPDATE=1 brew install gnupg
-          fi
-          command -v gpg
-          command -v gpgv
-      # The cold Resident production -O2 compile reached the 15-minute bound.
-      # Only it receives 1200s; the other 3 producers retain 900s each.
-      # Keep each 30s caller allowance plus metadata and cleanup time.
-      - name: Test Node-free native storage publication and control
-        id: native-http
+      - name: Require the original macOS HTTP child after the complete Native join
         env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
+          WORKLOAD_RESULT: ${{ needs.native-macos-workloads.result }}
+          HTTP_RESULT: ${{ needs.native-macos-workloads.outputs.native-http-result }}
         run: |
-          node scripts/test-native-http-client.mjs
+          node -e '
+            if (process.env.WORKLOAD_RESULT !== "success" || process.env.HTTP_RESULT !== "success") {
+              console.error(`macOS Native workload=${process.env.WORKLOAD_RESULT || "missing"}, HTTP=${process.env.HTTP_RESULT || "missing"}`);
+              process.exitCode = 1;
+            }
+          '
   native-macos-workloads:
     needs:
       - select-targets
@@ -2446,6 +2415,8 @@ jobs:
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-15
     timeout-minutes: 115
+    outputs:
+      native-http-result: ${{ steps.native-background.outputs.native-http-result }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
