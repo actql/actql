@@ -28,7 +28,7 @@ test('actual schema version regex and shared parser match independent literal ve
 test('existing public lint selects the release files without new publication authority', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs.lint;
-  assert.deepEqual(workflow.jobs.native.steps.find(step => step.name === 'Test immutable Native package-version C mechanism'),
+  assert.deepEqual(workflow.jobs['native-workloads'].steps.find(step => step.name === 'Test immutable Native package-version C mechanism'),
     {name: 'Test immutable Native package-version C mechanism', run: 'node --test scripts/native-cli-version-native.test.mjs'});
   assert.deepEqual(job.needs, ['select-targets', 'preflight']);
   assert.equal(job.if, "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}");

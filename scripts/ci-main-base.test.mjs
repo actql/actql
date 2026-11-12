@@ -44,8 +44,8 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
-  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
-  'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
+  'core (js)', 'core (wasm)', 'core (native 1/4)', 'core (native 2/4)', 'core (native 3/4)', 'core (native 4/4)', 'core (native http)', 'core (native source)', 'core (native scoped)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
+  'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network (direct)', 'native-separated-network (store)', 'workers', 'connector-addition', 'duckdb-node',
   'client-readme-packed (22.22.0)', 'client-readme-packed (24)'];
 function fullWorkflowFixture() {
@@ -89,8 +89,8 @@ test('full checkpoint refuses missing failed skipped or cancelled README matrix 
     }
   }
 });
-test('full checkpoint requires both original Native partitions and refuses missing failed cancelled or skipped coverage', async () => {
-  for (const name of ['core (native 1/2)', 'core (native 2/2)']) {
+test('full checkpoint requires all original Native partitions and physical profiles and refuses missing failed cancelled or skipped coverage', async () => {
+  for (const name of ['core (native 1/4)', 'core (native 2/4)', 'core (native 3/4)', 'core (native 4/4)', 'core (native http)', 'core (native source)', 'core (native scoped)']) {
     for (const outcome of ['missing', 'failure', 'cancelled', 'skipped']) {
       const f = fullWorkflowFixture();
       if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);

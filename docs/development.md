@@ -1192,13 +1192,26 @@ work, alongside the refusal tests. Selection and fallback reasons appear in the
 job summary. The focused fixed-request lane similarly checks actual Git fixture
 pins, not just synthetic fixtures; changed shared inputs require re-review.
 
-Linux and macOS Native consumers share only their job's verified preparation.
-Each consumer has a separate scratch root, runs sequentially after successful
-preparation even when another consumer fails, and retains its failure. Packed
-Client consumers use the same rule after the original artifact download. A
-cancelled job or failed preparation never starts these consumers. This collects
-independent failures without treating them as success or introducing parallel
-Store/port ownership. The final required checks are unchanged.
+Linux and macOS each prepare the original Native commands/components once in
+one workload runner. Background command groups use that SAME physical
+preparation and toolchain. Resident Effect/Site remain inline, retaining the
+original immediate summary upload, bounded failure-only diagnosis and fallback.
+Two background slots run the other independently owned cases; final join checks
+the complete original inventory, preserves failures and forwards original packed
+artifact outputs. HTTP integration remains an independent job with its original
+stock-library fixture. Both workload and HTTP results are strict dependencies.
+The original retained-product command runs after the background join: its long
+global Moon build must not hold the build lock during bounded npm prepack.
+
+No Native preparation is transplanted across runners: existing descriptors bind
+physical compiler aliases and generated toolchain inputs. A mismatched original
+still refuses; there is no metadata rewrite or implicit rebuild fallback.
+Local `run native` retains one preparation and every original case serially.
+Job and case deadlines stay unchanged. Parallelism is CI orchestration, not a
+product lifetime, permission, capacity or successful cleanup claim.
+Timeout and failed-command cleanup retains the known process group's TERM/KILL
+grace after its leader closes. An unconfirmed group stop remains a failure;
+a timed out leader exiting zero cannot turn the command into a success.
 
 Native preparation logs each command/component interval as
 `ACTQL_NATIVE_CI_PHASE` and writes a small `phase-*.timing.json` diagnostic into
@@ -1211,6 +1224,32 @@ Execution includes Moon's incremental freshness check; it is not a pure test-CPU
 measurement. Compare these intervals with Actions job start/queue observations;
 case counts alone do not predict wall-time savings.
 
+Hosted Native Core assigns complete compiler-owned ordinary package drivers to
+four disjoint jobs. HTTP, Source and scoped physical profiles have independent
+jobs with their original environments; the scoped profile retains the deliberate
+second geometry configuration. The compiler metadata selection checks complete
+case identities, unchanged driver inputs, nonempty partitions and no overlapping
+ordinary drivers before C generation. Portable targets are not multiplied.
+The original two-part local interface remains supported.
+
+The hosted scoped job runs its two existing allocation profiles concurrently
+on the same runner (`ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS=2`). Checkpoint,
+component and relation preparation still occur once, before both loops, and
+each profile keeps its original separate compiler target and per-case files.
+The original shared deadline and nonzero case checks remain. A failed profile
+stops its own later cases; the other profile finishes within that deadline
+before the original failure propagates or scratch cleanup is confirmed.
+Local execution defaults to one serial profile at a time.
+The existing scoped compiler wrapper records each original C compile/link/query
+interval separately. These intervals exclude Moon lowering and test execution;
+their sum is compiler activity, not elapsed job time when profiles overlap.
+
+The ordinary Native child measures `--build-only` and subsequent execution
+separately in the same build tree, with identical arguments and environment.
+Both phases share the original absolute timeout. Execution still uses the
+nonzero/full-count guard and includes Moon's incremental freshness check.
+Neither successful compilation nor a timing record establishes test success.
+
 The preparation helper reuses the verified OpenSSL source archive from the
 compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the
 original digest and builds its own patched source/libraries; Homebrew and Linux
@@ -1221,6 +1260,13 @@ one. Linux and macOS full Native CI explicitly select two after a bounded actual
 Mac TLS/HTTP component build. Existing time windows, compiler flags, cleanup and
 deployment settings stay intact. Local measurements do not establish CI speedup;
 runtime resource limits and the component lifetime profile are unchanged.
+
+Session input/origin rejection tests run in the independent `session-controls`
+job, with the same pinned toolchain, Lean and complete test-file inventory.
+Every selected file must report executed tests, with no failure, cancellation,
+skip or todo. The `session-evidence` collector, mutation/final campaigns and
+artifact identities remain unchanged. Both jobs are required for deep proof
+coverage; local `run session-evidence` retains both sequences serially.
 
 ### Full integration and release evidence
 

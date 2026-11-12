@@ -21,6 +21,7 @@ const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'),
 // Jobs whose environment a developer machine does not provide.
 const ciOnly = new Map([
   ['native-macos', 'runs on macOS arm64 runners'],
+  ['native-http-macos', 'runs on macOS arm64 runners'],
   ['native-separated-network', 'needs root network namespaces'],
   ['performance-matrix', 'registered performance runs'],
   ['check', 'aggregates the other jobs'],
@@ -49,11 +50,40 @@ const preparation = step => /^(npm ci|moon version|node scripts\/setup-moonbit)/
 // checkout. Runner preparation (`uses:` and install steps) is left to the
 // developer's own installed toolchain. CI-only inspection keeps expressions raw.
 function commands(name, target, raw = false) {
-  const job = workflow.jobs[name];
+  const job = workflow.jobs[name === 'native' && !raw && workflow.jobs['native-workloads'] ? 'native-workloads' : name];
   if (job === undefined || !Array.isArray(job.steps)) {
     fail(`Unknown job: ${name}`);
   }
   const scratch = join(root, '_build', 'local-checks', name);
+  let steps = job.steps;
+  if (name === 'native' && !raw && workflow.jobs['native-workloads']) {
+    const plan = JSON.parse(readFileSync(join(root, 'scripts/ci-native-background-groups.json'), 'utf8')).native;
+    const prepare = steps.findIndex(step => step.id === 'native-preparation');
+    const http = workflow.jobs['native-http']?.steps.find(step => step.id === 'native-http');
+    const retained = steps.find(step => step.name === 'Verify registered Native retained product path');
+    if (prepare < 0 || !http) fail('Incomplete local Native composition; retain all original consumers');
+    const environment = {
+      ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION: join(scratch, 'native-scoped-preparation'),
+      ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT: join(scratch, 'native-scoped-preparation/http/component/build.json'),
+    };
+    // Hosted background bookkeeping is not needed locally. Keep every original
+    // case serially in this same process tree, with one original preparation.
+    steps = [...steps.slice(0, prepare + 1), http,
+      ...steps.slice(prepare + 1).filter(step => step !== retained &&
+        !['native-background-start', 'native-background'].includes(step.id)),
+      ...plan.flatMap(group => group.steps.map(step => ({...step, 'timeout-minutes': step.timeoutMinutes}))),
+      ...(retained ? [retained] : [])];
+    steps = steps.map(step => ({...step, env: {...environment, ...step.env}}));
+  }
+  if (name === 'session-evidence' && !raw && workflow.jobs['session-controls']) {
+    // Preserve the original complete local route without a second setup or
+    // collector. Hosted jobs run controls independently on another runner.
+    const controls = workflow.jobs['session-controls'].steps.filter(step =>
+      typeof step.run === 'string' && !preparation(step));
+    const index = steps.findIndex(step => step.run === 'node proofs/ci-evidence/collect.mjs init');
+    if (index < 0 || controls.length !== 1) fail('Incomplete local Session controls composition');
+    steps = [...steps.slice(0, index), ...controls, ...steps.slice(index)];
+  }
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
     .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false')
@@ -76,16 +106,22 @@ function commands(name, target, raw = false) {
       return [key, ''];
     }
     if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PARTITION') {
-      if (value !== "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}") {
+      if (value !== "${{ matrix.target == 'native' && matrix.partition || '' }}") {
         fail('Unsupported Native Core partition expression; local CI must retain complete coverage');
       }
       // One local runner keeps the complete original campaign, rather than
-      // silently selecting one half of the hosted two-runner matrix.
+      // silently selecting only one hosted partition or physical profile.
       return [key, ''];
+    }
+    if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS') {
+      if (value !== "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}") {
+        fail('Unsupported Native Core scheduling expression; local CI must retain the serial scoped profile');
+      }
+      return [key, '1'];
     }
     return [key, resolve(value)];
   };
-  return job.steps.filter(step => typeof step.run === 'string' &&
+  return steps.filter(step => typeof step.run === 'string' &&
     !preparation(step)).map(step => ({
     name: step.name ?? step.run.split('\n')[0],
     run: resolve(step.run),
@@ -123,7 +159,7 @@ function requireHeavy(classification, options) {
 // is not an Actions expression evaluator; unfamiliar expressions require an
 // explicit local budget, just like missing/non-numeric workflow values.
 function workflowMinutes(name, target) {
-  const value = workflow.jobs[name]?.['timeout-minutes'];
+  const value = workflow.jobs[name === 'native' && workflow.jobs['native-workloads'] ? 'native-workloads' : name]?.['timeout-minutes'];
   if (typeof value === 'number') return value;
   if (name !== 'core' || typeof value !== 'string' || target === undefined) return undefined;
   const match = /^\$\{\{\s*matrix\.target\s*==\s*'native'\s*&&\s*([1-9][0-9]*)\s*\|\|\s*([1-9][0-9]*)\s*\}\}$/u.exec(value);

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
@@ -260,12 +261,12 @@ test('Whole three-Source and binary JOIN CI always collects only the invocation 
   ]) {
     const consumer = steps.find(step => step.id === id); assert(consumer);
     assert.equal(consumer.run, `node scripts/test-packed-hubspot-source.mjs --ci ${selection}`);
-    assert.equal(consumer.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+    assert.equal(consumer.if, "${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
     assert.equal(Object.values(workflow.jobs).flatMap(job => job.steps ?? [])
       .filter(step => step.run?.includes(selection)).length, 1, 'Each original consumer runs once');
     const upload = steps.find(step => step.with?.directory === `\${{ steps.${id}.outputs.evidence-directory }}`);
     assert(upload); assert(steps.indexOf(upload) > steps.indexOf(consumer));
-    assert.equal(upload.if, `always() && steps.${id}.outputs.evidence-directory != ''`);
+    assert.equal(upload.if, `matrix.group == 'connectors' && always() && steps.${id}.outputs.evidence-directory != ''`);
     assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
     assert.equal(upload['continue-on-error'], undefined);
     assert.equal(consumer['continue-on-error'], undefined);
@@ -1127,24 +1128,54 @@ test('required Native counter stays case-scoped and nonzero through the original
   const source = await readFile(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
   const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const file = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
-  const matches = [];
-  function visit(node, parent) {
+  const matches = [], nodes = [];
+  function visit(node, parents) {
     if (node === null || typeof node !== 'object') return;
-    if (node.type === 'CallExpression' && node.callee.name === 'spawnSync') {
+    nodes.push(node);
+    if (node.type === 'CallExpression' && node.callee.name === 'spawn') {
       const environment = node.arguments[2]?.properties?.find(value => value.key?.name === 'env')?.value;
       const selected = environment?.properties?.find(value => value.type === 'SpreadElement' &&
         value.argument.type === 'CallExpression' &&
         value.argument.callee.name === 'nativeCoreScopedTestEnvironment');
-      if (selected) matches.push({node, parent, selected});
+      if (selected) matches.push({node, parents, selected});
     }
     for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(child => visit(child, node));
-      else if (value && typeof value === 'object') visit(value, node);
+      if (Array.isArray(value)) value.forEach(child => visit(child, [...parents, node]));
+      else if (value && typeof value === 'object') visit(value, [...parents, node]);
     }
   }
-  visit(tree, null); assert.equal(matches.length, 1);
-  const {node, parent, selected} = matches[0];
-  assert.equal(parent.callee.name, 'checkChild');
+  visit(tree, []); assert.equal(matches.length, 1);
+  const {node, parents, selected} = matches[0];
+  assert.equal(parents.at(-1).type, 'VariableDeclarator');
+  assert.equal(parents.at(-1).id.name, 'child');
+  const profile = parents.find(value => value.type === 'VariableDeclarator' && value.id.name === 'runScopedProfile');
+  assert.equal(profile.init.async, true);
+  const result = parents.find(value => value.type === 'VariableDeclarator' && value.id.name === 'result');
+  assert.equal(result.init.type, 'AwaitExpression');
+  assert.equal(result.init.argument.type, 'NewExpression');
+  assert.equal(result.init.argument.callee.name, 'Promise');
+  const executor = result.init.argument.arguments[0];
+  const close = nodes.find(value => value.type === 'CallExpression' && value.start >= executor.start &&
+    value.end <= executor.end && value.callee.type === 'MemberExpression' &&
+    value.callee.object.name === 'child' && value.callee.property.name === 'once' && value.arguments[0].value === 'close');
+  assert(close);
+  assert.deepEqual(close.arguments[1].params.map(value => value.name), ['status', 'signal']);
+  const resolved = close.arguments[1].body;
+  assert.equal(resolved.callee.name, 'resolve');
+  assert.deepEqual(resolved.arguments[0].properties.map(value => value.key.name), ['status', 'signal', 'error']);
+  const loop = [...parents].reverse().find(value => value.type === 'ForOfStatement');
+  const resultIndex = loop.body.body.findIndex(value => value.type === 'VariableDeclaration' &&
+    value.declarations.some(declaration => declaration === result));
+  const guard = loop.body.body[resultIndex + 1];
+  assert.equal(guard.type, 'IfStatement');
+  assert.equal(source.slice(guard.test.start, guard.test.end), 'result.error || result.status !== 0');
+  assert.equal(guard.consequent.type, 'ReturnStatement');
+  assert.equal(guard.consequent.argument.name, 'result');
+  const increment = loop.body.body[resultIndex + 2].expression;
+  assert.equal(increment.type, 'UpdateExpression'); assert.equal(increment.argument.name, 'passedCases');
+  const calls = nodes.filter(value => value.type === 'CallExpression');
+  assert(calls.some(value => source.slice(value.start, value.end) === 'Promise.allSettled(profiles.map(runScopedProfile))'));
+  assert(calls.some(value => source.slice(value.start, value.end) === 'checkChild(outcome.value)'));
   assert(tree.body.some(value => value.type === 'ImportDeclaration' &&
     value.source.value === './native-core-test-selection.mjs' && value.specifiers.some(specifier =>
       specifier.imported?.name === 'nativeCoreScopedTestEnvironment' &&
@@ -1161,9 +1192,25 @@ test('required Native counter stays case-scoped and nonzero through the original
   const command = source.slice(node.start, node.end);
   assert(command.includes("runFocusedTests('moon'"));
   assert(command.includes('expectedTests: 1'));
+  const originalArgs = ['--target', 'native', '--release', file, '--index', '13', '--target-dir', '/original/target'];
+  const inline = node.arguments[1].elements[2];
+  const childCode = runInNewContext(source.slice(inline.start, inline.end), {
+    JSON, scopedArgs: originalArgs, timeout: 1234, scopedScratch: {path: '/original/evidence'},
+  });
+  const prefix = "import {runFocusedTests} from './scripts/test-execution.mjs'; ";
+  assert(childCode.startsWith(prefix));
+  const execution = {};
+  runInNewContext(childCode.slice(prefix.length), {process: execution, runFocusedTests(kind, args, options) {
+    assert.equal(kind, 'moon'); assert.deepEqual(Array.from(args), originalArgs);
+    assert.equal(options.expectedTests, 1); assert.equal(options.timeout, 1234);
+    assert.equal(options.evidenceScratch, '/original/evidence');
+    return 7;
+  }});
+  assert.equal(execution.exitCode, 7, 'The exact inline counter cannot turn a failed original case into success');
   assert(gateJobs.includes('native')); assert(workflow.jobs.check.needs.includes('native'));
   assert.equal(workflow.jobs.native.env?.ACTQL_NATIVE_TIMINGS, undefined);
-  assert(workflow.jobs.native.steps.every(step => step.env?.ACTQL_NATIVE_TIMINGS === undefined));
+  for (const name of ['native-workloads', 'native-http', 'native-macos-workloads', 'native-http-macos'])
+    assert(workflow.jobs[name].steps.every(step => step.env?.ACTQL_NATIVE_TIMINGS === undefined));
 });
 
 

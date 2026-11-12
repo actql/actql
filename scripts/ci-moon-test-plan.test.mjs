@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {runInNewContext} from 'node:vm';
 import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
@@ -108,7 +109,7 @@ test('a source-bound Moon plan narrows execution without omitting whole checks o
   const {plan} = fixture();
   const selected = validateSelection(selectTargets(['src/a/code.mbt'], {moonTests:plan}));
   assert.equal(selected.moonTests, plan); assert.deepEqual(selected.targets, ['js', 'wasm', 'native']);
-  for (const name of ['core', 'host', 'client', 'native', 'native-macos', 'python-wheels', 'session-evidence', 'pipeline-evidence'])
+  for (const name of ['core', 'host', 'client', 'native', 'native-macos', 'python-wheels', 'session-evidence', 'session-controls', 'pipeline-evidence'])
     assert.equal(gateJobRequired(selected, name), true, name);
   assert.equal(deepProofRequired(selected), true);
   assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan, targetSensitiveDiff:true}).moonTests, undefined);
@@ -186,7 +187,28 @@ test('Native caller consumes the same checked package closure without changing i
   assert.match(source, /const full = !\['focused', 'reporting'\]\.includes/u);
   assert.match(source, /full && \(process\.env\.CI_PLAN \|\| process\.env\.CI_PLAN_PATH\)/u);
   assert.match(source, /nativeMoonPackages\(\)/u);
-  assert.match(source, /timeoutMs: 5 \* 60_000, executionPackages/u);
+  const start = source.indexOf('const selection = full ? nativeCoreTestSelection');
+  const end = source.indexOf('if (selection?.executionScope)', start);
+  assert(start > 0 && end > start);
+  const packages = selection.moonTests.packages;
+  for (const partition of [undefined, '1/2', '2/2', '1/4', '4/4', 'http', 'source', 'scoped']) {
+    let calls = 0;
+    runInNewContext(source.slice(start, end), {
+      full: true, root: '/same/source', args: ['--release'], partition,
+      executionPackages: packages, compilerEnvironment: {},
+      nativeCoreTestSelection(root, args, options) {
+        calls++;
+        assert.equal(root, '/same/source');
+        assert.equal(options.timeoutMs, 300_000);
+        assert.equal(options.partitionProfiles, true);
+        assert.equal(options.ordinaryPartitions, partition?.endsWith('/4') ? 4 :
+          Boolean(partition) && !['http', 'source', 'scoped'].includes(partition));
+        assert.equal(options.executionPackages, ['http', 'source', 'scoped'].includes(partition) ? undefined : packages,
+          'Physical profiles keep full originals; ordinary jobs use only the same authenticated closure');
+      },
+    });
+    assert.equal(calls, 1);
+  }
 });
 
 test('Native file transport retains the original compiler inventory and refuses changed evidence', t => {
