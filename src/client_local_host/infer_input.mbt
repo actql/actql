@@ -326,6 +326,22 @@ pub fn start_client_composed_infer_input(
       // verifies its live originals before execution. Explicit supplied vectors
       // still need every original binding check; empty DATA alone grants none.
       Some(_) if inputs.is_empty() => true
+      // One original joined Result can retain several Source ancestors. Only
+      // its actual Host/direct-output binding selects this two-port branch;
+      // a count, equal Result or raw Source cannot stand in for that binding.
+      Some(_) if inputs.length() == 2 &&
+        inputs[0] is @local.RelationInput(read) &&
+        @publication_host.client_composed_keyed_lookup_result_input_matches(
+          lookup, occurrence, read,
+        ) => {
+        guard inputs[1] is @local.SuppliedRelationInput(read) &&
+          @publication_host.finish_client_keyed_lookup_input(lookup)
+          is Ok(original) else {
+          return Err(UnsupportedProgram)
+        }
+        @execution.supplied_relation_read_same_binding(read, original) &&
+        @execution.supplied_relation_read_available(read)
+      }
       Some(sources) => {
         guard inputs.length() == sources.length() + 1 &&
           @publication_host.finish_client_keyed_lookup_input(lookup)

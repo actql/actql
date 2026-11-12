@@ -1148,7 +1148,233 @@ fn original_composed_keyed_consumer(
     assert_true(
       @publication_host.client_composed_keyed_lookup_matches_host(lookup, host),
     )
+    // The actual task driver supplies one joined Result and one keyed read.
+    // Its two Source ancestors remain a separate complete custody inventory.
+    let request_preparation = @publication_host.start_client_keyed_lookup_request(
+      lookup, 0,
+    ).unwrap()
+    let mut request = None
+    for _ in 0..<10000 {
+      match
+        @publication_host.advance_client_keyed_lookup_request(
+          lookup, request_preparation,
+        ) {
+        @publication_host.ClientKeyedRequestContinue(..) => ()
+        @publication_host.ClientKeyedRequestComplete(value, ..) => {
+          request = Some(value)
+          break
+        }
+        _ => fail("original joined Result request")
+      }
+    }
+    let request = request.unwrap()
+    let request_value = @publication_host.client_keyed_request_value(
+      request, keyed,
+    ).unwrap()
+    let acquisition = @row_source_host.prepare_keyed_row_acquisition(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      @publication_host.client_keyed_acquisition_facts(keyed),
+      request_value,
+      declaration,
+      original_keyed_child_limits(),
+      input_available=Some(() => {
+        @publication_host.client_composed_keyed_request_retained_model_parent(
+          request,
+          model.compiled,
+          model.definition,
+          model.graph,
+          ledger,
+        )
+      }),
+    ).unwrap()
+    let keyed_child = @row_source_host.start_accounted_keyed_row_acquisition(
+      acquisition,
+      "joined-result-keyed-child",
+      _ => true,
+      ledger,
+      8192L,
+      4096L,
+      _ => true,
+    ).unwrap()
+    let response = @utf8.encode(
+      "[" + original_keyed_child_expected_row(0) + "]",
+    )
+    @publication_host.observe_client_keyed_request_attempt(
+      request,
+      @publication_host.client_keyed_request_wire(request, 4096, 2000, 32)
+      .unwrap()
+      .length()
+      .to_int64(),
+      0L,
+    ).unwrap()
+    @row_source_host.begin_keyed_row_run(
+      keyed_child,
+      reference_issuer=Some(issuer),
+    ).unwrap()
+    @publication_host.observe_client_keyed_response(
+      request,
+      response.length().to_int64(),
+      response.length().to_int64(),
+      0L,
+    ).unwrap()
+    @row_source_host.begin_row_run_keyed_page(keyed_child, response).unwrap()
+    let mut page_complete = false
+    for _ in 0..<10000 {
+      match
+        @row_source_host.advance_row_run_keyed_page(keyed_child, 7).unwrap() {
+        @row_source_host.KeyedPageContinue(..) => ()
+        @row_source_host.KeyedPageComplete(..) => {
+          page_complete = true
+          break
+        }
+      }
+    }
+    assert_true(page_complete)
+    @row_source_host.finish_row_run(keyed_child).unwrap()
+    let captured = @row_source_host.retain_keyed_row_run(keyed_child).unwrap()
+    @publication_host.finish_client_keyed_request_io(request, 0L).unwrap()
+    begin_client_original_keyed_lookup_response(
+      keyed, lookup, request, captured,
+    ).unwrap()
+    let mut assembled = false
+    for _ in 0..<10000 {
+      if @publication_host.advance_client_keyed_lookup_input(lookup, 7).unwrap() {
+        assembled = true
+        break
+      }
+    }
+    assert_true(assembled)
+    let right = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
+    assert_eq(
+      @publication_host.client_composed_keyed_lookup_sources(
+        lookup,
+        model._occurrence,
+      )
+      .unwrap()
+      .length(),
+      2,
+    )
+    let read = @strategy.captured_task_input(
+      captured_run,
+      task,
+      10000,
+      10000,
+      input_index=0,
+    ).unwrap()
+    let inputs = [
+      @local.managed_provider_relation_input(read),
+      @local.managed_provider_supplied_relation_input(right),
+    ]
+    assert_eq(inputs.length(), 2)
+    let foreign_binding = @execution.bind_completed_input(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      0,
+      source_owner,
+      output.unwrap(),
+    ).unwrap()
+    let equal_read = @execution.prepare_producer_read(
+      @publication_host.client_keyed_acquisition_owner(keyed),
+      foreign_binding,
+      10000,
+      10000,
+    ).unwrap()
+    assert_false(@execution.producer_read_same_binding(read, equal_read))
+    assert_true(
+      @execution.producer_read_matches_completed_output(
+        equal_read,
+        output.unwrap(),
+      ),
+    )
+    let invalid_vectors = [
+      [@local.managed_provider_relation_input(equal_read), inputs[1]],
+      [inputs[1], inputs[0]],
+      [inputs[0], inputs[1], inputs[1]],
+      [
+        inputs[0],
+        @local.managed_provider_supplied_relation_input(
+          @execution.restrict_supplied_relation_read(right, () => false),
+        ),
+      ],
+    ]
+    for invalid in invalid_vectors {
+      assert_true(
+        start_client_composed_infer_input(
+          model._occurrence,
+          prefix,
+          invalid,
+          execution,
+          measurement,
+          mapping,
+          keyed=Some(lookup),
+        )
+        is Err(UnsupportedProgram),
+      )
+    }
+    let input = match
+      start_client_composed_infer_input(
+        model._occurrence,
+        prefix,
+        inputs,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      ) {
+      Ok(value) => value
+      Err(UnsupportedProgram) =>
+        fail("one original joined Result is not two raw Source ports")
+      Err(_) => fail("original joined Result Model input")
+    }
+    let mut mapped = None
+    for _ in 0..<10000 {
+      match advance_client_infer_input(input, 7).unwrap() {
+        Complete(rows, ..) => {
+          mapped = Some(rows)
+          break
+        }
+        Continue(..) => ()
+        _ => fail("original joined Result Model mapping")
+      }
+    }
+    assert_eq(@execution.prepared_infer_rows_count(mapped.unwrap()), 1)
+    assert_false(cancel_client_infer_input(input))
+    assert_true(cleanup_client_infer_input(input).unwrap())
+    let stop_observed = Ref(false)
+    let stopping_right = @execution.restrict_supplied_relation_read(right, () => {
+      stop_observed.val = true
+      @strategy.stop_captured_dag(captured_run)
+      true
+    })
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        prefix,
+        [
+          inputs[0],
+          @local.managed_provider_supplied_relation_input(stopping_right),
+        ],
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
+    assert_true(stop_observed.val)
+    @row_source_host.close_accounted_row_run(keyed_child).unwrap()
     @strategy.stop_captured_dag(@strategy.captured_effect_run_dag(host))
+    assert_true(
+      start_client_composed_infer_input(
+        model._occurrence,
+        prefix,
+        inputs,
+        execution,
+        measurement,
+        mapping,
+        keyed=Some(lookup),
+      )
+      is Err(UnsupportedProgram),
+    )
     assert_true(@publication_host.client_keyed_left_read_rows(left) is None)
     assert_true(
       @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000)

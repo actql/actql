@@ -891,6 +891,29 @@ pub fn client_composed_keyed_lookup_sources(
 }
 
 ///|
+/// Match the single original Result port retained by the direct Host input
+/// entrance. Its complete Source ancestry is checked independently by the
+/// enclosing lookup; ancestry count is not the managed producer-port count.
+/// This immutable comparison performs no availability callback or new borrow.
+pub fn client_composed_keyed_lookup_result_input_matches(
+  lookup : ClientKeyedLookupInput,
+  occurrence : ClientInferOccurrence,
+  read : @execution.ProducerRead,
+) -> Bool {
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.left.composed is Some(original) &&
+    original.host is Some(_) &&
+    original.direct_output is Some(_) &&
+    original.completed is None &&
+    original.inputs.length() == 1 &&
+    client_infer_occurrence_matches_plan(occurrence, original.plan) else {
+    return false
+  }
+  @execution.producer_read_same_binding(read, original.inputs[0].2)
+}
+
+///|
 /// Match the actual producer retained by this keyed lookup, not the raw
 /// acquisition before its checked filter/projection. Equal rows, target or
 /// logical identity cannot replace the original completed occurrence.
