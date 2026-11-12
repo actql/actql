@@ -61,6 +61,8 @@ fn original_composed_keyed_consumer(
   keyed_start_observer? : ((ClientInstalledKeyedSourceRead) -> Unit)? = None,
   retained_input_root? : Bool = false,
   shared_source_producers? : Bool = false,
+  joined_input_direct? : Bool = false,
+  joined_input_consume? : Bool = false,
   supplied_source_inputs? : Bool = false,
   mixed_plan_only? : Bool = false,
   initial_identity_policy? : Bool = false,
@@ -293,6 +295,28 @@ fn original_composed_keyed_consumer(
     }
     document = Json::object(fields).stringify()
   }
+  if joined_input_direct {
+    guard @json.parse(document) is Object(program) &&
+      program["stages"] is Array(stages) &&
+      stages[2] is Object(model) &&
+      model["steps"] is Array(steps) else {
+      fail("original joined keyed fixture")
+    }
+    let producer = @json.parse(
+      "{\"id\":\"joined\",\"inputs\":{\"a\":{\"connector\":\"content-fixture\",\"resource\":\"files\"},\"b\":{\"connector\":\"content-fixture\",\"resource\":\"files\"}},\"from\":\"a\",\"steps\":[{\"join\":{\"with\":\"b\",\"kind\":\"inner\",\"on\":[{\"left\":\"name\",\"right\":\"name\"}],\"select\":{\"name\":\"left.name\",\"resource\":\"left.resource\",\"version\":\"right.version\"}},\"as\":\"joined\"}],\"results\":{\"rows\":{\"from\":\"joined\",\"fields\":[\"name\",\"resource\",\"version\"]}}}",
+    )
+    model["inputs"] = @json.parse(
+      "{\"a\":{\"result\":{\"stage\":\"joined\",\"result\":\"rows\"}},\"contents\":{\"connector\":\"content-fixture\",\"resource\":\"contents\"}}",
+    )
+    model["from"] = Json::string("a")
+    model["steps"] = Json::array(steps[1:].to_owned())
+    guard model["steps"] is Array(selected) && selected[0] is Object(first) else {
+      fail("first Content JOIN")
+    }
+    first["from"] = Json::string("a")
+    program["stages"] = Json::array([producer, stages[2]])
+    document = Json::object(program).stringify()
+  }
   if mixed_plan_only {
     assert_true(following && !whole && !shared_source_producers)
     guard @json.parse(document) is Object(fields) &&
@@ -315,7 +339,7 @@ fn original_composed_keyed_consumer(
     fields["stages"] = Json::array([stages[0], stages[2], stages[3]])
     document = Json::object(fields).stringify()
   }
-  if whole && !shared_source_producers {
+  if whole && !shared_source_producers && !joined_input_direct {
     guard @json.parse(document) is Object(fields) &&
       fields["stages"] is Array(stages) &&
       stages[2] is Object(unit) &&
@@ -512,6 +536,24 @@ fn original_composed_keyed_consumer(
       ),
     )
   }
+  if joined_input_direct && !joined_input_consume {
+    let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
+      prepared,
+    ).unwrap()
+    let keyed = @publication_host.select_client_effect_model_keyed_acquisition(
+        prepared, occurrence,
+      )
+      .unwrap()
+      .unwrap()
+    let (stage, task, join) = @publication_host.client_keyed_acquisition_coordinates(
+      keyed,
+    ).unwrap()
+    let owner = @publication_host.client_keyed_acquisition_owner(keyed)
+    let node = @lower.node_at(@lower.bound_preparation(owner), join).unwrap()
+    assert_eq((stage, task, join), (1, 1, 0))
+    assert_true(@lower.node_input_target(node, 0) is Some(@pipeline.Input(0)))
+    return
+  }
   // These are three distinct checked response originals even though the two
   // Direct occurrences select the same SourceView. The keyed response is not
   // one of those Direct roots and cannot be dropped from the whole Run policy.
@@ -522,7 +564,9 @@ fn original_composed_keyed_consumer(
   )
   let final_publication = @checked.unit_publication_at(
     checked_program,
-    if whole && !shared_source_producers {
+    if joined_input_direct {
+      1
+    } else if whole && !shared_source_producers {
       0
     } else {
       2
@@ -622,6 +666,7 @@ fn original_composed_keyed_consumer(
         model,
         declaration,
         whole_roots=true,
+        effect_stage=if joined_input_direct { 1 } else { 2 },
       ),
     )
   } else {
@@ -924,7 +969,11 @@ fn original_composed_keyed_consumer(
         source,
         identity,
         capacity.original,
-        task=if shared_source_producers { task } else { 0 },
+        task=if shared_source_producers && !joined_input_direct {
+          task
+        } else {
+          0
+        },
       ).unwrap()
       let facts = @planning.source_acquisition_evidence_facts(capacity.original).unwrap()
       let observation = @row_source_host.issue_row_input_source_evidence(
@@ -976,6 +1025,126 @@ fn original_composed_keyed_consumer(
   }
   assert_eq(@resources.ledger_usage(ledger).attempts, prior_attempts + 2)
   let (execution, measurement, mapping) = original_composed_keyed_test_limits()
+  if joined_input_consume {
+    let original_plan = shared_plan.unwrap()
+    let source_sequence = original_plan.sequences[0]
+    let source_owner = @execution.generated_sequence_owner(source_sequence)
+    let sources = captures.map(capture => {
+      @row_source_host.row_capture_source(capture).unwrap()
+    })
+    let reads = sources.mapi((index, source) => {
+      let bound = @query.bind_captured_source_operation(
+        source, source_owner, 0, index,
+      ).unwrap()
+      @execution.prepare_producer_read(source_owner, bound, 10000, 10000).unwrap()
+    })
+    let provider = @local.local_bounded_relation_provider(
+      execution, measurement, source_sequence,
+    ).unwrap()
+    let child = @local.start_managed_provider_with_inputs_and_execution(
+      provider,
+      source_sequence,
+      reads.map(@local.managed_provider_relation_input),
+      2,
+      measurement.max_bytes,
+      execution,
+    ).unwrap()
+    let mut output = None
+    for _ in 0..<10000 {
+      match @local.advance_managed_provider(child, 7).unwrap() {
+        @local.Complete(value, ..) => {
+          output = Some(value)
+          break
+        }
+        @local.Continue(..) | @local.Settling(_, ..) => ()
+        _ => fail("original joined producer")
+      }
+    }
+    let bindings = [(0, 0, reads[0]), (0, 1, reads[1])]
+    let proof = @execution.retain_completed_segment_inputs(
+      output.unwrap(),
+      source_sequence,
+      bindings,
+      100000,
+    ).unwrap()
+    let allowed = @publication_host.issue_client_effect_allowed_run(
+      model._compilation,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "2027-01-01T00:00:00.000Z",
+    ).unwrap()
+    let bound = @publication_host.bind_client_effect_compiled_run(
+      prepared,
+      allowed,
+      model.definition,
+    ).unwrap()
+    let graph = @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    )
+    let selected = @strategy.prepare_source_inputs_dag(
+      graph,
+      whole_capacities.map(value => value.original),
+    ).unwrap()
+    let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      model._occurrence,
+    )
+    let host = @strategy.open_source_inputs_effect_run_dag(
+      @publication_host.prepared_client_effect_run_graph(bound),
+      selected,
+      sources,
+      ledger,
+      source_results=[(0, source_sequence, bindings, proof)],
+      deferred_keyed=Some((task, step)),
+    ).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let left = @publication_host.prepare_client_original_composed_keyed_host_input_left(
+        scope,
+        model.compiled,
+        model.definition,
+        model.graph,
+        keyed,
+        closed_inputs,
+        host,
+        prefix,
+        10000,
+        10000,
+      )
+      .unwrap()
+      .unwrap()
+    assert_eq(@publication_host.client_keyed_left_read_rows(left), Some(1))
+    assert_eq(@resources.ledger_usage(ledger), before)
+    let lookup = @publication_host.start_client_original_composed_keyed_lookup_input(
+      left, 4096, 10000,
+    ).unwrap()
+    assert_eq(
+      @publication_host.client_composed_keyed_lookup_prefix_work(
+        lookup,
+        model._occurrence,
+      ),
+      Some(0L),
+    )
+    assert_true(
+      @publication_host.client_composed_keyed_lookup_matches_model_parent(
+        lookup,
+        model.compiled,
+        model.definition,
+        model.graph,
+        ledger,
+      ),
+    )
+    assert_true(
+      @publication_host.client_composed_keyed_lookup_matches_host(lookup, host),
+    )
+    @strategy.stop_captured_dag(@strategy.captured_effect_run_dag(host))
+    assert_true(@publication_host.client_keyed_left_read_rows(left) is None)
+    assert_true(
+      @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000)
+      is Ok(true),
+    )
+    @local.cancel_managed_provider(child) |> ignore
+    assert_true(@local.cleanup_managed_provider(child) is Ok(true))
+    return
+  }
   let start_prefix = (rows : Array[@row_source_host.RowSourceCapture]) => {
     if whole {
       let selected = rows.map(row => {
@@ -3556,6 +3725,7 @@ fn original_composed_keyed_installed_plan(
   model : ClientInstalledEffectModelDemand,
   declaration : @row_source_host.RowDeclaration,
   whole_roots? : Bool = false,
+  effect_stage? : Int = 2,
 ) -> ClientInstalledEffectManagedPlan {
   // This component never starts its future UPDATE or physical Model provider.
   // Its actual selected construction member fails closed if invoked.
@@ -3567,7 +3737,7 @@ fn original_composed_keyed_installed_plan(
   ).unwrap()
   let operation = prepare_installed_effect_operation_demand(
     prepared,
-    2,
+    effect_stage,
     "save",
     [extent],
     [extent],
@@ -3962,5 +4132,20 @@ test "installed noncanonical Source Request completes the owned keyed dependency
     declared_dependency_closure=true,
     canonical_source_request=true,
     source_metadata_wire_bytes=1000000,
+  )
+}
+
+///|
+test "joined producer Result is the direct Input left of the first keyed Content JOIN" {
+  original_composed_keyed_consumer(joined_input_direct=true)
+}
+
+///|
+test "first keyed JOIN borrows the same completed two-Source Result without a prefix attempt" {
+  original_composed_keyed_consumer(
+    joined_input_direct=true,
+    joined_input_consume=true,
+    whole=true,
+    shared_source_producers=true,
   )
 }

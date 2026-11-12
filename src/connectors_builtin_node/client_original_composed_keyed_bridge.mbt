@@ -212,3 +212,32 @@ pub fn client_program_installed_effect_managed_keyed_host_bind(
     lookup,
   )
 }
+
+///|
+#export_name("clientProgramInstalledOriginalComposedKeyedHostInputLeft")
+pub fn client_program_installed_original_composed_keyed_host_input_left(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@client_row_source_host.RowCapturedInput],
+  host : ClientLocalEffectHost,
+) -> Result[
+  @publication_host.ClientKeyedLeftRead?,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  @client_local_host.prepare_installed_original_composed_keyed_host_input_left(
+    owner,
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    rows,
+    host.run,
+    100000,
+    1000000,
+  )
+}

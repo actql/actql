@@ -11,8 +11,9 @@ priv struct ClientComposedKeyedOriginal {
   captures : @row_host.RowCapturedInputs
   sequence : @execution.GeneratedSequence
   inputs : Array[(Int, Int, @execution.ProducerRead)]
-  completed : @execution.CompletedSegmentInputs
-  prefix : @resources.Reservation
+  completed : @execution.CompletedSegmentInputs?
+  direct_output : @execution.CompletedOutput?
+  prefix : @resources.Reservation?
   prefix_work : Int64
   producers : ClientComposedKeyedProducerIndex
   host : @strategy.CapturedEffectRunDAG?
@@ -616,17 +617,8 @@ fn client_composed_keyed_original_current(
     value.definition,
     value.plan,
   ) &&
-  @resources.original_borrowed_reservation_available(
-    value.scope.identity,
-    value.scope.ledger,
-    value.prefix,
-  ) &&
-  @execution.completed_segment_inputs_output(
-    value.completed,
-    value.sequence,
-    value.inputs,
-  )
-  is Some(_) &&
+  client_composed_keyed_original_prefix_available(value) &&
+  client_composed_keyed_original_output(value) is Some(_) &&
   value.host
   .map(host => {
     client_composed_keyed_host_inputs_match(
@@ -748,11 +740,7 @@ pub fn client_composed_keyed_request_matches_model_parent(
   ) &&
   lookup.left.composed is Some(original) &&
   @row_host.row_captured_inputs_borrowed_available(original.captures, ledger) &&
-  @resources.original_borrowed_reservation_available(
-    original.scope.identity,
-    ledger,
-    original.prefix,
-  ) &&
+  client_composed_keyed_original_prefix_available(original) &&
   @resources.original_borrowed_reservation_available(
     original.scope.identity,
     ledger,
@@ -1345,8 +1333,9 @@ pub fn prepare_client_original_composed_keyed_left(
     captures,
     sequence,
     inputs: inputs.copy(),
-    completed,
-    prefix,
+    completed: Some(completed),
+    direct_output: None,
+    prefix: Some(prefix),
     prefix_work,
     producers: producer_index,
     host,
@@ -1449,4 +1438,184 @@ pub fn client_composed_keyed_lookup_matches_host(
     client_composed_keyed_original_current(original)
   })
   .unwrap_or(false)
+}
+
+///|
+fn client_composed_keyed_original_prefix_available(
+  original : ClientComposedKeyedOriginal,
+) -> Bool {
+  match original.prefix {
+    Some(prefix) =>
+      @resources.original_borrowed_reservation_available(
+        original.scope.identity,
+        original.scope.ledger,
+        prefix,
+      )
+    None =>
+      original.host is Some(_) &&
+      original.direct_output is Some(_) &&
+      original.completed is None &&
+      @resources.original_ledger_inventory_available(original.scope.identity)
+  }
+}
+
+///|
+// A real completed prefix and a directly borrowed imported Result are distinct
+// original proofs. The direct branch claims no sequence execution or work.
+fn client_composed_keyed_original_output(
+  original : ClientComposedKeyedOriginal,
+) -> @execution.CompletedOutput? {
+  match (original.completed, original.direct_output) {
+    (Some(completed), None) =>
+      @execution.completed_segment_inputs_output(
+        completed,
+        original.sequence,
+        original.inputs,
+      )
+    (None, Some(output)) => {
+      guard original.host is Some(host) &&
+        original.inputs.length() == 1 &&
+        client_composed_keyed_host_inputs_match(
+          host,
+          original.plan,
+          original.scope.ledger,
+          original.sources,
+          original.host_sources,
+          original.inputs,
+        ) &&
+        @execution.producer_read_matches_completed_output(
+          original.inputs[0].2,
+          output,
+        ) else {
+        return None
+      }
+      Some(output)
+    }
+    _ => None
+  }
+}
+
+///|
+/// A first keyed JOIN can consume the original imported Result directly. Its
+/// input is already a completed producer; no empty prefix, synthetic Step,
+/// provider execution, reservation or replacement output is constructed.
+pub fn prepare_client_original_composed_keyed_host_input_left(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  keyed : ClientKeyedAcquisition,
+  rows : Array[@row_host.RowCapturedInput],
+  host : @strategy.CapturedEffectRunDAG,
+  sequence : @execution.GeneratedSequence,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[ClientKeyedLeftRead?, ClientKeyedRequestIssue] {
+  guard client_keyed_acquisition_coordinates(keyed) is Some((_, task, join)) &&
+    task == plan.task &&
+    physical_equal(@execution.generated_sequence_owner(sequence), keyed.owner) &&
+    @lower.node_at(@lower.bound_preparation(keyed.owner), join) is Some(node) else {
+    return Err(ForeignLeft)
+  }
+  let input = match @lower.node_input_target(node, 0) {
+    Some(@pipeline.Step(_)) => return Ok(None)
+    Some(@pipeline.Input(input)) => input
+    _ => return Err(ForeignLeft)
+  }
+  let (ledger, captures, sources) = match
+    borrow_client_original_composed_keyed_input_captures(
+      scope,
+      compiled,
+      definition,
+      plan,
+      keyed,
+      rows,
+      installed=true,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignLeft)
+  }
+  let run = @strategy.captured_effect_run_dag(host)
+  let read = match
+    @strategy.captured_task_input(
+      run,
+      task,
+      max_entries,
+      max_name_bytes,
+      input_index=input,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignLeft)
+  }
+  let originals = sources
+    .mapi((slot, _) => {
+      @row_host.row_captured_inputs_source_original_at(captures, slot)
+    })
+    .filter_map(value => value)
+  let inputs = [(join, 0, read)]
+  guard client_composed_keyed_host_inputs_match(
+    host, plan, ledger, sources, originals, inputs,
+  ) else {
+    return Err(ForeignLeft)
+  }
+  let graph = @strategy.captured_dag_graph(run)
+  let mut output = None
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    if @strategy.data_edge_consumer(edge) == task &&
+      @strategy.data_edge_input(edge) == input {
+      if output is Some(_) {
+        return Err(ForeignLeft)
+      }
+      output = @strategy.captured_task_output(
+        run,
+        @strategy.data_edge_producer(edge),
+        @strategy.data_edge_target(edge),
+      )
+    }
+  }
+  guard output is Some(output) &&
+    @execution.producer_read_matches_completed_output(read, output) else {
+    return Err(ForeignLeft)
+  }
+  let original : ClientComposedKeyedOriginal = {
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    sources,
+    captures,
+    // Only contracts/physical owner are borrowed from this original sequence.
+    // completed=None records that it did not execute to produce this input.
+    sequence,
+    inputs,
+    completed: None,
+    direct_output: Some(output),
+    prefix: None,
+    prefix_work: 0L,
+    producers: NoProducers,
+    host: Some(host),
+    host_sources: originals,
+  }
+  guard client_composed_keyed_original_current(original) else {
+    return Err(ForeignLeft)
+  }
+  Ok(
+    Some({
+      acquisition: keyed,
+      source: None,
+      composed: Some(original),
+      read,
+      requests: 0L,
+      attempts: 0L,
+      request_bytes: 0L,
+      response_bytes: 0L,
+      decoded_bytes: 0L,
+      started_ms: None,
+      observed_ms: 0L,
+      lookup_issue: None,
+      assembly_started: false,
+    }),
+  )
 }

@@ -55,26 +55,34 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
   const adapter = installedSourceFor(sourceProfile, facts[0]);
   const access = adapter.sourceAccess;
   const capacity = adapter.keyedLedgerCapacity(acquisition);
-  prefix = originalHost === undefined
-    ? acquired.control.startInstalledOriginalComposedKeyedPrefix(managedRun,
-      plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures)
-    : acquired.control.startInstalledOriginalComposedKeyedHostPrefix(managedRun,
+  let left;
+  if (originalHost !== undefined) {
+    const original = acquired.control.prepareInstalledOriginalComposedKeyedHostInput(managedRun,
       plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures, originalHost);
-  execution = moon.clientProgramOriginalComposedKeyedPrefixExecution(prefix);
-  current();
-  for (;;) {
-    signal?.throwIfAborted();
-    const poll = checked(moon.clientProgramOriginalComposedKeyedPrefixAdvance(prefix, 64));
-    current();
-    if (runtimeField(poll, 0)) break;
-    if (runtimeField(poll, 2) !== undefined) {
-      throw Object.assign(new Error('InstalledComposedKeyedPrefixFailed'),
-        {code: 'MoonBitHostFailure', cause: runtimeField(poll, 2)});
-    }
-    if (runtimeField(poll, 1)) throw new Error('InstalledComposedKeyedPrefixStopped');
-    await yieldEventLoop();
+    left = original.left; prefix = original.prefix;
+  } else {
+    prefix = acquired.control.startInstalledOriginalComposedKeyedPrefix(managedRun,
+      plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures);
   }
-  const left = checked(moon.clientProgramCompleteOriginalComposedKeyedPrefix(prefix));
+  if (prefix !== undefined) {
+    execution = moon.clientProgramOriginalComposedKeyedPrefixExecution(prefix);
+    current();
+    for (;;) {
+      signal?.throwIfAborted();
+      const poll = checked(moon.clientProgramOriginalComposedKeyedPrefixAdvance(prefix, 64));
+      current();
+      if (runtimeField(poll, 0)) break;
+      if (runtimeField(poll, 2) !== undefined) {
+        throw Object.assign(new Error('InstalledComposedKeyedPrefixFailed'),
+          {code: 'MoonBitHostFailure', cause: runtimeField(poll, 2)});
+      }
+      if (runtimeField(poll, 1)) throw new Error('InstalledComposedKeyedPrefixStopped');
+      await yieldEventLoop();
+    }
+    left = checked(moon.clientProgramCompleteOriginalComposedKeyedPrefix(prefix));
+  }
+  current();
+  if (left === undefined) throw new Error('OriginalKeyedHostLeftUnavailable');
   const prepared = await adapter.prepareKeyed({preparedEffect: acquired.prepared,
     keyedAcquisition: acquisition, requestIdentity: acquired.requestIdentity, sourceAccess: access});
   current();

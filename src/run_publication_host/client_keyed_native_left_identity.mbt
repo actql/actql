@@ -75,12 +75,7 @@ fn prepare_client_keyed_native_left_identity_owned(
     lookup.left.composed is Some(original) &&
     original.plan.keyed is Some(component) &&
     client_keyed_left_available(lookup.left) &&
-    @execution.completed_segment_inputs_output(
-      original.completed,
-      original.sequence,
-      original.inputs,
-    )
-    is Some(output) else {
+    client_composed_keyed_original_output(original) is Some(output) else {
     return Err(Assembly("foreign_or_started_native_left_identity"))
   }
   // The preceding original-current/output observations may reenter this very

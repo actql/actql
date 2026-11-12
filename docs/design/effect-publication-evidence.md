@@ -135,3 +135,14 @@ retains its pending-start cleanup; no absent handle is treated as a physical
 acknowledgement. Only the completed original lookup can add its checked supplied
 read to this still-unselected Model task. The same DAG, Plan, Scope and prior
 outputs continue; no Source task, compiler or Model invocation is repeated.
+
+
+When the keyed JOIN is the consumer's first operation, its left target is the
+imported Input itself. The same checked DAG's original ProducerRead and completed
+producer output supply that left directly. The retained proof distinguishes this
+from an executed prefix: there is no completed-segment receipt, prefix
+reservation, provider child or prefix work. The original sequence is borrowed
+only for its existing contracts/physical owner; it is never marked executed.
+The existing native left-identity consumer reads either genuine proof through
+the same original-output projection. Step-left consumers keep their original
+prefix, completion receipt, backing and cleanup.

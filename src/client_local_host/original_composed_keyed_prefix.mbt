@@ -956,3 +956,40 @@ pub fn start_installed_original_composed_keyed_host_prefix(
     () => owner.source_free_opening = false,
   )
 }
+
+///|
+/// Select only a direct original imported Result. Step-left consumers return
+/// None and continue through the existing original prefix constructor.
+pub fn prepare_installed_original_composed_keyed_host_input_left(
+  owner : ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@row_source_host.RowCapturedInput],
+  host : @strategy.CapturedEffectRunDAG,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[
+  @publication_host.ClientKeyedLeftRead?,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  if owner.source_free_opening || owner.serialization_prefix is Some(_) {
+    return Err(@publication_host.ForeignLeft)
+  }
+  guard require_installed_managed_run(owner) is Ok(_) &&
+    owner.preparation is Some(PlannedEffectManaged(_, selected)) &&
+    selected.model is Some(model) &&
+    physical_equal(model.compiled, compiled) &&
+    physical_equal(model.definition, definition) &&
+    prepared_installed_effect_model_sequence(selected, plan) is Ok(sequence) &&
+    owner.source_free_captured is Some(run) &&
+    physical_equal(run, @strategy.captured_effect_run_dag(host)) else {
+    return Err(@publication_host.ForeignLeft)
+  }
+  @publication_host.prepare_client_original_composed_keyed_host_input_left(
+    scope, compiled, definition, plan, keyed, rows, host, sequence, max_entries,
+    max_name_bytes,
+  )
+}

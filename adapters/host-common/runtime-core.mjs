@@ -3455,16 +3455,20 @@ function publicationControl(moon) {
         scope, value, token(definition), graph, keyed,
         captures.map(value => value.capture.originalRowCapture())));
     },
-    startInstalledOriginalComposedKeyedHostPrefix(managedRun, compiled, definition, graph, scope, keyed, captures, host) {
+    prepareInstalledOriginalComposedKeyedHostInput(managedRun, compiled, definition, graph, scope, keyed, captures, host) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer' || host === undefined ||
           captures.some(value => value.inputKind !== 'whole-input' ||
             typeof value.capture.originalCapturedInput !== 'function')) {
         throw new TypeError('Foreign original keyed Host prefix');
       }
-      return checked(moon.clientProgramStartInstalledOriginalComposedKeyedHostPrefix(
-        managedRun, scope, value, token(definition), graph, keyed,
-        captures.map(value => value.capture.originalCapturedInput()), host));
+      const originals = captures.map(value => value.capture.originalCapturedInput());
+      const originalDefinition = token(definition);
+      const left = checked(moon.clientProgramInstalledOriginalComposedKeyedHostInputLeft(
+        managedRun, scope, value, originalDefinition, graph, keyed, originals, host));
+      if (left !== undefined) return Object.freeze({left});
+      return Object.freeze({prefix: checked(moon.clientProgramStartInstalledOriginalComposedKeyedHostPrefix(
+        managedRun, scope, value, originalDefinition, graph, keyed, originals, host))});
     },
     prepareKeyedLookupSourceMetadata(lookup, request, captures, sources,
       retentionSelection, outputLimits, maxWork, limits, fileReadDeclarations) {

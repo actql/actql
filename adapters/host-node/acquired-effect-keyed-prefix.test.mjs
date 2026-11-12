@@ -142,7 +142,7 @@ function fixture({rawProtocol = false} = {}) {
     captures, sourceProfile:adapter, ledger, now: () => '2026-11-05T00:00:00.000Z',
     current() {if (!current) throw new Error('OriginalNotCurrent');},
     retain(value) {assert.equal(duty, undefined); duty = value;}};
-  return {options, moon, adapter, events, lookup, original, observation, evidence,
+  return {options, moon, adapter, events, lookup, original, observation, evidence, left,
     duty: () => duty, counts: () => ({acquired, prepares, advances, closes, cleanups}),
     setCurrent: value => {current = value;}, acknowledge: value => {ack = value;}};
 }
@@ -255,9 +255,9 @@ test('same Host continuation selects original completed Result prefix without th
   const f = fixture(), host = {}, old = f.options.acquired.control.startInstalledOriginalComposedKeyedPrefix;
   let hostCalls = 0;
   f.options.acquired.control.startInstalledOriginalComposedKeyedPrefix = () => {throw new Error('raw prefix reentry');};
-  f.options.acquired.control.startInstalledOriginalComposedKeyedHostPrefix = (...args) => {
+  f.options.acquired.control.prepareInstalledOriginalComposedKeyedHostInput = (...args) => {
     assert.strictEqual(args.at(-1), host); hostCalls++;
-    return old(...args.slice(0, -1));
+    return {prefix: old(...args.slice(0, -1))};
   };
   const result = await prepareAcquiredEffectKeyedPrefix({...f.options, originalHost: host});
   assert.strictEqual(result.lookup, f.original);
@@ -362,4 +362,19 @@ test('same Host pending original cancellation cannot publish the later Model inp
   await assert.rejects(pending, error => error === original);
   await assert.rejects(f.beforeModelPrepare(4), error => error === original);
   assert.deepEqual(f.counts(), {calls: 1, binds: 0, adopts: 0});
+});
+
+
+test('same Host direct Result left reaches one lookup without prefix execution or work', async () => {
+  const f = fixture(), host = {};
+  f.options.acquired.control.prepareInstalledOriginalComposedKeyedHostInput = (...args) => {
+    assert.strictEqual(args.at(-1), host); assert(f.duty()); return {left: f.left};
+  };
+  f.options.acquired.control.startInstalledOriginalComposedKeyedPrefix = () => {throw new Error('unexpected raw prefix');};
+  const result = await prepareAcquiredEffectKeyedPrefix({...f.options, originalHost: host});
+  assert.strictEqual(result.lookup, f.original);
+  assert.deepEqual(f.counts(), {acquired: 1, prepares: 1, advances: 0, closes: 0, cleanups: 0});
+  assert.equal(await f.duty().cleanup(), true);
+  assert(!f.events.includes('prefix-start')); assert(!f.events.includes('prefix-cancel'));
+  assert(!f.events.includes('prefix-cleanup'));
 });
