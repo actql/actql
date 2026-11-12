@@ -1,4 +1,5 @@
 ///|
+#cfg(target="js")
 test "selected 512MiB collection preserves retention refusal and retires original cleanup" {
   let limits = client_local_preparation_initial_limits(
     client_local_resource_policy(),
