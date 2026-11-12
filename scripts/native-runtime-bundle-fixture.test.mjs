@@ -32,7 +32,7 @@ function portablePreparationFixture(t) {
     executeChild('git', args, {cwd: root, stdio: 'pipe'});
   }
   const env = {...process.env, MOON_HOME: join(root, '.tools')};
-  const names = ['coordinator-core', 'run-host-core', ...(process.platform === 'linux' ? ['transfer-core'] : [])];
+  const names = ['coordinator-core', 'run-host-core', 'transfer-core'];
   const inputs = runtimePackageInputs(root);
   const sources = ['connectors_builtin_node', ...new Set(names.flatMap(name => inputs[name].sources))];
   const artifacts = [...names.flatMap(name => inputs[name].files),
@@ -124,6 +124,39 @@ test('Native portable preparation consumer verifies originals before imports wit
   calls.length = 0;
   f.put(f.artifacts[0], 'corrupt software');
   assert.throws(invoke);
+  assert.deepEqual(calls, ['http', 'resident', 'verify']);
+});
+
+test('Native Effect portable preparation verifies transfer before any runtime import', t => {
+  const f = portablePreparationFixture(t); f.prepare();
+  const source = readFileSync(new URL('./test-native-resident-site.mjs', import.meta.url), 'utf8');
+  const modeStart = source.indexOf('const effectComputationMode = ');
+  const modeEnd = source.indexOf('const retainedCoordinatorReconstruction = ', modeStart);
+  assert(modeStart >= 0 && modeEnd > modeStart);
+  const retainedConsumerMode = runInNewContext(source.slice(modeStart, modeEnd) + 'retainedConsumerMode;', {
+    retainedChainMode: false, process: {argv: ['node', 'resident', '--effect-computation-only'], env: {}},
+  });
+  assert.equal(retainedConsumerMode, true, 'The actual Effect mode requires the retained transfer owner on both OS profiles');
+  const begin = source.indexOf('  const httpLibrary = '), end = source.indexOf('  const moonModule = ', begin);
+  const calls = [];
+  const invoke = () => runInNewContext(source.slice(begin, end), {
+    process: {env: {ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: f.receipt}, execPath: process.execPath},
+    repository: f.root, root: '/owned/effect', join, moon: join(f.env.MOON_HOME, 'bin/moon'), retainedConsumerMode,
+    timedResidentPreparation: (_phase, operation) => operation(),
+    prepareNativeResidentHttpLibrary: () => calls.push('http'),
+    prepareNativeResidentSite: () => calls.push('resident'),
+    prepareNativeRuntimeBundle: () => calls.push('bundle'),
+    prepareNativeRuntimeBundleLibraries: () => calls.push('components'),
+    verifyNativeResidentPortablePreparation: (root, path) => {
+      calls.push('verify'); verifyNativeResidentPortablePreparation(root, path, {env: f.env});
+    },
+    execFileSync: () => {throw new Error('Unexpected duplicate Effect portable build');},
+  });
+  invoke();
+  assert.deepEqual(calls, ['http', 'resident', 'verify', 'bundle', 'components']);
+  calls.length = 0;
+  rmSync(join(f.root, 'packages/transfer-core/dist/remote_transfer_abi.js'));
+  assert.throws(invoke, /ENOENT/u, 'Missing transfer must refuse before reaching the runtime imports');
   assert.deepEqual(calls, ['http', 'resident', 'verify']);
 });
 
