@@ -281,21 +281,32 @@ fn NativeLocalReviewerProofKey::require_signing_key_scope(
         Err(issue) => return Err(ProofKey(issue))
         Ok(_) => ()
       }
-      let facts = key.fields
-      if scope.purpose != @credential.ReviewerProof ||
-        scope.checkpoint_kind != @checkpoint.EffectSet ||
-        scope.account_configuration_cid != facts.account_configuration_cid ||
-        scope.account_id != facts.account_id ||
-        scope.authority_scope_cid != facts.authority_scope_cid ||
-        scope.host_adoption_cid != facts.host_adoption_cid ||
-        scope.key_configuration_cid != facts.key_configuration_cid ||
-        scope.key_generation_cid != facts.key_generation_cid ||
-        scope.key_id != facts.key_id ||
-        scope.key_public_key_cid != facts.key_public_key_cid ||
-        scope.principal != facts.principal {
-        return Err(ProofUnavailable)
-      }
-      key.finish_original_projection().map_err(issue => ProofKey(issue))
+      key.require_signing_scope_after_current(scope)
     }
   }
+}
+
+///|
+// Only the full independent entry above or the immediately completed original
+// signing-current constructor calls this shared correspondence projection.
+// No callback may separate that constructor from this terminal physical fence.
+fn NativeLocalInitialReviewerSigningKey::require_signing_scope_after_current(
+  self : NativeLocalInitialReviewerSigningKey,
+  scope : @credential.LocalSigningCredentialScope,
+) -> Result[Unit, NativeLocalReviewerProofMaterialsIssue] {
+  let facts = self.fields
+  if scope.purpose != @credential.ReviewerProof ||
+    scope.checkpoint_kind != @checkpoint.EffectSet ||
+    scope.account_configuration_cid != facts.account_configuration_cid ||
+    scope.account_id != facts.account_id ||
+    scope.authority_scope_cid != facts.authority_scope_cid ||
+    scope.host_adoption_cid != facts.host_adoption_cid ||
+    scope.key_configuration_cid != facts.key_configuration_cid ||
+    scope.key_generation_cid != facts.key_generation_cid ||
+    scope.key_id != facts.key_id ||
+    scope.key_public_key_cid != facts.key_public_key_cid ||
+    scope.principal != facts.principal {
+    return Err(ProofUnavailable)
+  }
+  self.finish_original_projection().map_err(issue => ProofKey(issue))
 }

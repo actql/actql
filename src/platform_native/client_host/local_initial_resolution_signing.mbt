@@ -39,6 +39,40 @@ fn prepare_local_initial_resolution_physical(
     Err(issue) => return Err(OriginalSigningProof(issue))
     Ok(_) => ()
   }
+  prepare_local_initial_resolution_library(key, scope)
+}
+
+///|
+// This private view has just completed the same key/material/subject current
+// checks after fresh authority selection. Keep every scope field and physical
+// projection check without re-entering that full traversal before any callback.
+// The Library child is still retained before the post-constructor current fence.
+fn NativeLocalInitialSigningCurrent::prepare_original_physical(
+  self : NativeLocalInitialSigningCurrent,
+) -> Result[
+  @crypto.OriginalKeySigningAttempt,
+  NativeLocalInitialResolutionSigningIssue,
+] {
+  guard self.materials.reviewer.approval_scope is SavedApproval(saved) &&
+    self.key.original.original_read is Some((capture, _)) &&
+    physical_equal(saved.capture, capture) else {
+    return prepare_local_initial_resolution_physical(self.key, self.scope)
+  }
+  match self.key.require_signing_scope_after_current(self.scope) {
+    Err(issue) => return Err(OriginalSigningProof(issue))
+    Ok(_) => ()
+  }
+  prepare_local_initial_resolution_library(self.key, self.scope)
+}
+
+///|
+fn prepare_local_initial_resolution_library(
+  key : NativeLocalInitialReviewerSigningKey,
+  scope : @credential.LocalSigningCredentialScope,
+) -> Result[
+  @crypto.OriginalKeySigningAttempt,
+  NativeLocalInitialResolutionSigningIssue,
+] {
   let public_key = match key.original.public_key.raw32() {
     Err(_) => return Err(OriginalSigningUnavailable)
     Ok(value) => value
@@ -106,8 +140,7 @@ fn NativeLocalReviewerProofMaterials::prepare_initial_original_signing(
   if host.reviewer_signing_attempt is Some(previous) && !previous.closed {
     return Err(OriginalSigningUnavailable)
   }
-  let physical = match
-    prepare_local_initial_resolution_physical(current.key, scope) {
+  let physical = match current.prepare_original_physical() {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
