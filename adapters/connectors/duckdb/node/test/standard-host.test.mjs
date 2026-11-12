@@ -11084,6 +11084,9 @@ async function exerciseStrategyGraph(
         assert(execution.failure.cause, `${name}: preserve the typed failure`);
         const resourceCause = fixture.strategyFixtureRetainedRowLimit(
           execution.failure.cause) ||
+          (name === 'cross-work-short' &&
+            fixture.strategyFixtureRetainedControlWorkLimit(
+              execution.failure.cause)) ||
           (name === 'append-chain-work-short' &&
             fixture.strategyFixtureRetainedInputLimit(
               execution.failure.cause));

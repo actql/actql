@@ -263,6 +263,21 @@ pub fn strategy_fixture_retained_row_limit(
 }
 
 ///|
+/// Match only the original materializing preparation's control-work refusal.
+/// A row/input/capture limit or another dispatch phase is not this failure.
+#export_name("strategyFixtureRetainedControlWorkLimit")
+pub fn strategy_fixture_retained_control_work_limit(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  issue
+  is @local_driver.Preparation(
+    @local_connector.Materializing(
+      @local_connector.Candidate(@connector.ControlWorkLimit)
+    )
+  )
+}
+
+///|
 /// Match the retained nest provider's per-parent item limit without relying
 /// on JavaScript's representation of the typed failure.
 #export_name("strategyFixtureRetainedNestItemLimit")
