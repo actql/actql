@@ -242,7 +242,7 @@ test('Native approval only selects its original Native artifact without unrelate
 test('Native approval formal shell keeps the existing thirty-each protocol and actual collector failure', t => {
   const root = temporary(t), bin = join(root, 'bin'), argv = join(root, 'native-argv.jsonl');
   mkdirSync(bin);
-  writeFileSync(join(bin, 'node'), `#!${process.execPath}\nrequire('node:fs').appendFileSync(process.env.ARGV,JSON.stringify(process.argv.slice(2))+'\\n');process.exit(Number(process.env.EXIT));\n`);
+  writeFileSync(join(bin, 'node'), `#!${process.execPath}\nconst args=process.argv.slice(2);\nrequire('node:fs').appendFileSync(process.env.ARGV,JSON.stringify(args)+'\\n');\nprocess.exit(Number(args[0]==='--input-type=module' ? process.env.PRECHECK_EXIT ?? '0' : process.env.EXIT));\n`);
   chmodSync(join(bin, 'node'), 0o755);
   const job = workflow.jobs['native-approval'];
   const validate = job.steps.find(step => step.name === 'Validate the selected independent Native runner');
@@ -256,11 +256,19 @@ test('Native approval formal shell keeps the existing thirty-each protocol and a
   assert.equal(run(validate, root, {NATIVE_APPROVAL_RUNNER: 'foreign-runner'}).status, 1);
   assert.equal(run(validate, root, {NATIVE_APPROVAL_RUNNER: 'macos-15'}).status, 1, 'No hosted Darwin Local producer is available');
   const calls = readFileSync(argv, 'utf8').trim().split('\n').map(JSON.parse);
-  assert.equal(calls.length, 3);
-  for (let index = 0; index < calls.length; index++) assert.deepEqual(calls[index], [
-    'scripts/test-native-approval-performance.mjs', '--normal', join(root, 'native-approval/packages/release'),
-    '--output', join(root, 'native-approval/assessment.json'), '--runner', 'ubuntu-24.04',
-  ]);
+  assert.equal(calls.length, 6, 'Each collector status follows one successful source precheck');
+  for (let index = 0; index < 3; index++) {
+    assert.deepEqual(calls[index * 2], ['--input-type=module']);
+    assert.deepEqual(calls[index * 2 + 1], [
+      'scripts/test-native-approval-performance.mjs', '--normal', join(root, 'native-approval/packages/release'),
+      '--output', join(root, 'native-approval/assessment.json'), '--runner', 'ubuntu-24.04',
+    ]);
+  }
+  assert.equal(run(collect, root, {PATH: `${bin}:${process.env.PATH}`, ARGV: argv,
+    NATIVE_APPROVAL_RUNNER: 'ubuntu-24.04', EXIT: '0', PRECHECK_EXIT: '73'}).status, 73);
+  const refused = readFileSync(argv, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(refused.length, calls.length + 1, 'Failed source precheck never starts the collector');
+  assert.deepEqual(refused.at(-1), ['--input-type=module']);
 });
 
 test('Native approval upload always keeps partial assessment and actual receipts without runtime state', () => {
@@ -270,7 +278,8 @@ test('Native approval upload always keeps partial assessment and actual receipts
   assert.equal(upload.with['if-no-files-found'], 'error');
   assert.equal(upload.with.name, 'native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}');
   assert.deepEqual(upload.with.path.trim().split('\n'), [
-    '${{ runner.temp }}/native-approval/producer.json', '${{ runner.temp }}/native-approval/assessment.json',
+    '${{ runner.temp }}/native-approval/producer.json', '${{ runner.temp }}/native-approval/source.json',
+    '${{ runner.temp }}/native-approval/assessment.json',
     '${{ runner.temp }}/native-approval/packages/release/release.json', '${{ runner.temp }}/native-approval/packages/release/mock-install-*.json',
   ]);
 });
