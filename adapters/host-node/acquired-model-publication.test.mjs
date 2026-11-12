@@ -48,7 +48,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
     evaluationRequest: () => ({_0: {index}, _1: '{}', _2: '{}'}),
     growOriginalPublicationCapacity(retained, execution) {funding.push({owner: index, retained, execution});},
     releaseOriginalPublicationCapacity() {events.push('release-capacity'); return true;}}));
-  const acquired = {compilation: {}, prepared: {}, control: {runDefinitionRunId: () => 'component',
+  const acquired = {definition: {identity: 'same-definition', separatelyAdmitted: true}, compilation: {}, prepared: {}, control: {runDefinitionRunId: () => 'component',
     admitComposedInferSources: () => ({}), composedInferSourcesFor: () => undefined,
     modelPrivateHoldingCid: () => 'holding'}};
   const moon = {clientProgramAdvanceInferObservationIssuance: actual => {
@@ -69,6 +69,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   moon.clientProgramLocalEffectHostRun = actual => {assert.strictEqual(actual, host); return host;};
   moon.clientProgramRetireInstalledEffectCapturedConsumers = () => ({$tag: 1, _0: undefined});
   acquired.control.prepareOriginalEffectSourceUnitResults = async (...args) => {
+    assert.strictEqual(args[6], plan.runDefinition, 'use the retained Plan definition view, not the separate Journal admission');
     const retained = args[8];
     retained.pins = {}; events.push('prepare-unit');
     await unitPreparation({retained, current: args[9]});
@@ -816,4 +817,12 @@ test('plural preconsumer first undefined failure is sticky without issuing anoth
   assert.equal(f.group.releaseUnitOutputs(), true);
   assert.throws(() => f.contexts[0].prepareOriginalResults(), /Retired/);
   await assert.rejects(f.group.prepareNext(0, () => {}), /Retired/);
+});
+
+
+test('plural Source artifact preparation forwards the original Model Plan definition across Journal admission', async () => {
+  const f = publicationGroupFixture({async unitPreparation() {}});
+  await f.group.prepareNext(0, () => {});
+  assert.equal(f.events.filter(value => value === 'prepare-unit').length, 1);
+  assert.equal(f.contexts[0].prepareOriginalResults().length, 1);
 });

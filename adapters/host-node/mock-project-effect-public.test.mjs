@@ -523,3 +523,23 @@ test('workflow observes pre-Model Source Unit export failure without reporting M
     occurrence: {task: 4, unit: 2, step: 5}});
   assert.equal(JSON.stringify(actual).includes('private'), false);
 });
+
+
+test('workflow observes pre-Model Source Unit artifact failure without reporting Model work or private payload', async () => {
+  const make = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`);
+  const work = make(createHostObservationConnection)();
+  const observer = installHostObservation(work.connection);
+  observer.diagnostic('dispatch_failed', {primaryDiagnostic: {
+    code: 'MoonBitHostFailure', phase: 'original_effect_source_unit_artifact',
+    kind: 'run.foreign_original', task: 4, unit: 2, step: 5},
+    message: 'private message', body: 'private body'});
+  await observer.close();
+  const actual = work.snapshot();
+  assert.equal(actual.complete, true);
+  assert.equal(actual.modelCallStarts, 0);
+  assert.deepEqual(actual.primaryFailure, {available: true, code: 'MoonBitHostFailure',
+    phase: 'original_effect_source_unit_artifact', kind: 'run.foreign_original',
+    occurrence: {task: 4, unit: 2, step: 5}});
+  assert.equal(JSON.stringify(actual).includes('private'), false);
+});

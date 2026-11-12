@@ -30,3 +30,28 @@ test "Source Unit export diagnostic projects actual returned issue only" {
     )
   }
 }
+
+///|
+test "Source Unit artifact diagnostic retains the original typed failure family" {
+  let cases : Array[
+    (@client_local_host.ClientEffectUnitPreparationIssue, String),
+  ] = [
+    (Run(ForeignOriginal), "run.foreign_original"),
+    (Run(InsufficientCapacity), "run.insufficient_capacity"),
+    (Run(Retired), "run.retired"),
+    (Artifact(ForeignOwner), "artifact.foreign_owner"),
+    (Artifact(ForeignDefinition), "artifact.foreign_definition"),
+    (Artifact(ForeignExport), "artifact.foreign_export"),
+    (Artifact(ForeignRun), "artifact.foreign_run"),
+  ]
+  for (issue, expected) in cases {
+    let result : Result[
+      @publication_host.ClientEffectLocalResultArtifact,
+      @client_local_host.ClientEffectUnitPreparationIssue,
+    ] = Err(issue)
+    assert_eq(
+      client_program_effect_model_unit_result_artifact_issue_kind(result),
+      Some(expected),
+    )
+  }
+}

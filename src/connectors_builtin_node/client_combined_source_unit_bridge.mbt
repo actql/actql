@@ -376,6 +376,50 @@ pub fn client_program_effect_model_unit_result_export_issue_kind(
 }
 
 ///|
+/// Typed Artifact Result projection. The export Result has another Ok type;
+/// no JS cast, tuple rebuild or message/cause traversal substitutes for this.
+#export_name("clientProgramEffectModelUnitResultArtifactIssueKind")
+pub fn client_program_effect_model_unit_result_artifact_issue_kind(
+  result : Result[
+    @publication_host.ClientEffectLocalResultArtifact,
+    @client_local_host.ClientEffectUnitPreparationIssue,
+  ],
+) -> String? {
+  match result {
+    Ok(_) => None
+    Err(Run(issue)) =>
+      Some(
+        match issue {
+          ForeignOriginal => "run.foreign_original"
+          InsufficientCapacity => "run.insufficient_capacity"
+          Retired => "run.retired"
+          Preparation(_) => "run.preparation"
+          _ => "run"
+        },
+      )
+    Err(Artifact(issue)) =>
+      Some(
+        match issue {
+          ForeignOwner => "artifact.foreign_owner"
+          MissingInput => "artifact.missing_input"
+          ForeignDefinition => "artifact.foreign_definition"
+          ForeignInvocation => "artifact.foreign_invocation"
+          ForeignExport => "artifact.foreign_export"
+          ForeignRun => "artifact.foreign_run"
+          Context(_) => "artifact.context"
+          Evidence(_) => "artifact.evidence"
+          Artifact(_) => "artifact.issuance"
+          Scope(_) => "artifact.scope"
+        },
+      )
+    Err(Evidence(_)) => Some("evidence")
+    Err(Pin(_)) => Some("pin")
+    Err(Export(_)) => Some("export")
+    Err(Manifest(_)) => Some("manifest")
+  }
+}
+
+///|
 #export_name("clientProgramEffectModelUnitResultTask")
 pub fn client_program_effect_model_unit_result_task(
   inputs : @strategy.CapturedEffectLocalUnitInputs,

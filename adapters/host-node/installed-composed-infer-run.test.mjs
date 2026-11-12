@@ -579,9 +579,12 @@ function originalRuntimeControlMethod(name, ports) {
 
 // Original runtime facade with explicit nominal Core ports. These are source
 // handoff/retirement controls, not Common ABI, provider or physical-close proof.
-function originalUnitResultFacadeFixture({managed = false, gate, rowCount = 1, failure, projectKind, coordinates = {_0: 4, _1: 2, _2: 5}} = {}) {
-  const run = {}, plan = {}, request = {}, captured = {}, dependency = {invocation: {}}, source = {}, admission = {}, definition = {};
+function originalUnitResultFacadeFixture({managed = false, gate, rowCount = 1, failure, projectKind, artifactFailure, projectArtifactKind, coordinates = {_0: 4, _1: 2, _2: 5}} = {}) {
+  const run = {}, plan = {}, request = {}, captured = {}, dependency = {invocation: {}}, source = {}, admission = {}, definition = Object.freeze({identity: 'same-definition', wire: 'same-wire'});
   const pins = {}, exported = {}, receipt = {}, artifact = {}, manifest = {}, events = [];
+  const originalDefinition = Object.freeze({identity: 'same-definition', wire: 'same-wire'});
+  let definitionReads = 0;
+  const artifactFailedResult = {};
   const failedResult = {}, occurrence = {};
   const dependencies = new WeakMap([[dependency, {kind: 'combined_source', issued: source, unit: 0}]]);
   const artifacts = new WeakMap(), manifests = new WeakMap();
@@ -602,8 +605,8 @@ function originalUnitResultFacadeFixture({managed = false, gate, rowCount = 1, f
     clientProgramPrepareInstalledEffectModelSourceUnitArtifact(actualRun, actualPlan, actualRequest, actualPins, actualExport, actualSource, actualReceipt, actualAdmission, actualDefinition) {
       assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
       assert.strictEqual(actualPins, pins); assert.strictEqual(actualExport, exported); assert.strictEqual(actualSource, source);
-      assert.strictEqual(actualReceipt, receipt); assert.strictEqual(actualAdmission, admission); assert.strictEqual(actualDefinition, definition);
-      events.push('artifact'); return {ok: artifact};
+      assert.strictEqual(actualReceipt, receipt); assert.strictEqual(actualAdmission, admission); assert.strictEqual(actualDefinition, originalDefinition);
+      events.push('artifact'); return artifactFailure === undefined ? {ok: artifact} : artifactFailedResult;
     }, clientProgramEffectModelUnitResultName: () => 'joined',
     clientProgramPrepareInstalledEffectModelUnitManifest(actualRun, actualPlan, actualRequest, invocation, actualArtifacts) {
       assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
@@ -646,13 +649,17 @@ function originalUnitResultFacadeFixture({managed = false, gate, rowCount = 1, f
       return commit();
     }};
   };
+  if (projectArtifactKind !== undefined) moon.clientProgramEffectModelUnitResultArtifactIssueKind = result => {
+    assert.strictEqual(result, artifactFailedResult); return projectArtifactKind();
+  };
   if (projectKind !== undefined) moon.clientProgramEffectModelUnitResultExportIssueKind = result => {
     assert.strictEqual(result, failedResult); events.push('project-kind'); return projectKind();
   };
   moon.clientProgramInferOccurrenceCoordinates = actual => {
     assert.strictEqual(actual, occurrence); events.push('consumer-coordinates'); return coordinates;
   };
-  const ports = {moon, checked: value => {if (value === failedResult) throw failure; return value.ok;}, issuanceLimits() {},
+  const ports = {moon, checked: value => {if (value === failedResult) throw failure; if (value === artifactFailedResult) throw artifactFailure; return value.ok;}, issuanceLimits() {},
+    token(value) {if (value !== definition) throw new TypeError('Foreign publication contract'); definitionReads++; return originalDefinition;},
     runtimeField: (value, index) => value?.['_' + index],
     localEffectDependencyTokens: dependencies, localEffectArtifactTokens: artifacts, localEffectManifestTokens: manifests,
     admissionToken: value => {assert.strictEqual(value, admission); return admission;},
@@ -661,8 +668,8 @@ function originalUnitResultFacadeFixture({managed = false, gate, rowCount = 1, f
   const retire = originalRuntimeControlMethod('retireOriginalEffectUnitResults', ports);
   const bind = originalRuntimeControlMethod('bindInferOriginalResultArtifact', ports);
   const retained = {pins: undefined, exports: [], receipts: [], artifacts: [], manifest: undefined};
-  return {events, pins, retained, retire, bind, release() {release = true;},
-    prepare(current = () => {}, retainedCurrent = current) {return prepare(run, plan, request, captured, dependency, admission, definition, {}, retained, current, undefined, occurrence, physicalSource, undefined, retainedCurrent);}};
+  return {events, pins, retained, retire, bind, definition, originalDefinition, definitionReads: () => definitionReads, release() {release = true;},
+    prepare(current = () => {}, retainedCurrent = current, suppliedDefinition = definition) {return prepare(run, plan, request, captured, dependency, admission, suppliedDefinition, {}, retained, current, undefined, occurrence, physicalSource, undefined, retainedCurrent);}};
 }
 
 test('original upstream Result facade retains every issued original before the next fallible boundary', async () => {
@@ -851,4 +858,34 @@ test('original managed Unit full-current count is independent of row count and r
   const f = originalUnitResultFacadeFixture({managed: true});
   await assert.rejects(f.prepare(() => {if (revoked) throw cause;}, () => {revoked = true;}), actual => actual === cause);
   assert.equal(f.retained.artifacts.length, 0);
+});
+
+
+test('original Source Unit artifact unwraps the same Plan definition holder and refuses equal copied admissions', async () => {
+  const f = originalUnitResultFacadeFixture();
+  assert.notStrictEqual(f.definition, f.originalDefinition);
+  assert.deepEqual(f.definition, f.originalDefinition);
+  await f.prepare();
+  assert.equal(f.definitionReads(), 1);
+  assert.equal(f.retained.artifacts.length, 1);
+  for (const kind of ['copied', 'separate-raw']) {
+    const original = originalUnitResultFacadeFixture();
+    const supplied = kind === 'copied' ? {...original.definition} : {...original.originalDefinition};
+    await assert.rejects(original.prepare(undefined, undefined, supplied), /Foreign publication contract/);
+    assert.equal(original.retained.artifacts.length, 0);
+    assert.equal(original.events.includes('artifact'), false);
+  }
+});
+
+test('Source Unit artifact typed failure preserves same primary and partial original receipt', async () => {
+  const cause = Object.assign(new Error('private error body'), {code: 'MoonBitHostFailure'});
+  const f = originalUnitResultFacadeFixture({artifactFailure: cause,
+    projectArtifactKind: () => 'run.foreign_original'});
+  await assert.rejects(f.prepare(), actual => actual === cause);
+  assert.deepEqual(cause.primaryDiagnostic, {code: 'MoonBitHostFailure',
+    phase: 'original_effect_source_unit_artifact', kind: 'run.foreign_original', task: 4, unit: 2, step: 5});
+  assert.equal(f.retained.exports.length, 1);
+  assert.equal(f.retained.receipts.length, 1);
+  assert.equal(f.retained.artifacts.length, 0);
+  f.release(); assert.equal(f.retire(f.retained), true);
 });
