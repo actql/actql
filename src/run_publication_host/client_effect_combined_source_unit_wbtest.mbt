@@ -5,6 +5,7 @@ fn combined_unit_whole_capture(
   prepared : PreparedClientEffectComputation,
   live : Ref[Bool],
   input_index : Int,
+  stage? : Int = 0,
 ) -> (
   @query.CapturedInputSource,
   @query.CapturedSourceRelationIdentity,
@@ -14,20 +15,43 @@ fn combined_unit_whole_capture(
 ) {
   let graph = @strategy.checked_effect_computation_graph(prepared.graph)
   let acquisition = prepare_client_effect_source_acquisition(
-    prepared, 0, input_index,
+    prepared, stage, input_index,
   ).unwrap()
-  let owner = @strategy.graph_task_owner(graph, 0).unwrap()
-  let sequence = @lower.prepare_sequence(owner, run_materials_limits().sequence).unwrap()
+  let direct = select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  let coordinate = direct.coordinates
+    .iter()
+    .find_first(value => value.0 == stage && value.1 == input_index)
+    .unwrap()
+  let owner = @strategy.graph_task_owner(graph, coordinate.2).unwrap()
+  let input_slot = match @acquisition.source_acquisition_input(acquisition) {
+    @pipeline.Input(slot) => slot
+    _ => input_index
+  }
+  let model = prepared_client_effect_infer_occurrences(prepared).bind(values => {
+    values.iter().find_first(value => value.stage == stage)
+  })
+  let sequence = match model {
+    Some(original) =>
+      @lower.prepare_sequence_with_infer_boundary(
+        owner,
+        original.step,
+        run_materials_limits().sequence,
+      ).unwrap()
+    None =>
+      @lower.prepare_sequence(owner, run_materials_limits().sequence).unwrap()
+  }
   let rows = @execution.capture_input(
     owner,
-    input_index,
+    input_slot,
     [scalar_profile_cursor("{\"amount\":7,\"id\":1}")],
     max_rows=1,
     string_try_number_execution_limits().rows.input_values,
   ).unwrap()
   let original = @execution.prepare_supplied_relation_read(
     owner,
-    input_index,
+    input_slot,
     rows,
     () => live.val,
   ).unwrap()
@@ -70,7 +94,11 @@ fn combined_unit_whole_capture(
     20000,
   ).unwrap()
   let input = issue_captured_whole_source_input_logical(
-    graph, captured, identity, acquisition,
+    graph,
+    captured,
+    identity,
+    acquisition,
+    task=coordinate.2,
   ).unwrap()
   let facts = @planning.source_acquisition_evidence_facts(acquisition).unwrap()
   let authority = "sha256:" + "a".repeat(64)

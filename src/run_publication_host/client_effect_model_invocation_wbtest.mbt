@@ -232,7 +232,7 @@ test "plural Model scope selection never substitutes for required original impor
       issue_single_model_client_effect_local_invocation(
         compiled, scope, body, 10000, 1000, 20,
       )
-      is Err(ForeignSourceObservation),
+      is Err(IncompleteResultImports),
     )
   }
 }

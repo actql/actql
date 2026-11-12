@@ -34,10 +34,12 @@ pub fn issue_single_model_client_effect_acquired_evidence(
 ] {
   if !physical_equal(compiled.owner, call_scope.owner) ||
     !physical_equal(sources.occurrence.owner, call_scope.owner) ||
-    !client_infer_occurrence_matches_plan(sources.occurrence, call_scope.plan) ||
-    call_scope.named_sources.length() !=
-    sources.inputs.length() + (if sources.keyed is Some(_) { 1 } else { 0 }) {
+    !client_infer_occurrence_matches_plan(sources.occurrence, call_scope.plan) {
     return Err(Invocation(ForeignCapturedInput))
+  }
+  if call_scope.named_sources.length() !=
+    sources.inputs.length() + (if sources.keyed is Some(_) { 1 } else { 0 }) {
+    return Err(Invocation(ForeignSourceObservation))
   }
   for input in sources.inputs {
     if !call_scope.named_sources.any(entry => {
@@ -49,22 +51,27 @@ pub fn issue_single_model_client_effect_acquired_evidence(
   let keyed = match sources.keyed {
     None => {
       if call_scope.plan.keyed is Some(_) {
-        return Err(Invocation(ForeignSourceObservation))
+        return Err(Invocation(MissingCapturedInput))
       }
       None
     }
     Some((name, observation, admitted)) => {
       let lookup = observation.lookup
+      if lookup.closed || lookup.left.lookup_issue is Some(_) {
+        return Err(Invocation(ForeignCapturedInput))
+      }
+      guard lookup.identity is Some(_) &&
+        lookup.native_completion is Some(completed) else {
+        return Err(Invocation(MissingCapturedInput))
+      }
+      guard lookup.left.composed is Some(original) &&
+        physical_equal(original.compiled, compiled) &&
+        physical_equal(original.plan, call_scope.plan) else {
+        return Err(Invocation(ForeignCapturedInput))
+      }
       guard call_scope.named_sources.any(entry => {
           entry.0 == name && physical_equal(entry.1, admitted)
         }) &&
-        !lookup.closed &&
-        lookup.left.lookup_issue is None &&
-        lookup.identity is Some(_) &&
-        lookup.native_completion is Some(completed) &&
-        lookup.left.composed is Some(original) &&
-        physical_equal(original.compiled, compiled) &&
-        physical_equal(original.plan, call_scope.plan) &&
         physical_equal(observation.source, completed.source) &&
         physical_equal(observation.input, completed.input) else {
         return Err(Invocation(ForeignSourceObservation))
@@ -105,10 +112,14 @@ pub fn issue_single_model_client_effect_acquired_evidence(
     ) {
     return Err(Invocation(ForeignCapturedInput))
   }
-  let scopes = match imports {
-    Some(original) => [original.scope]
-    None => direct.map(value => value.scope)
+  let scopes = []
+  for index, source in direct {
+    if imports.map(original => model_effect_imported_source(original, sources.inputs[index])).unwrap_or(false) {
+      continue
+    }
+    scopes.push(source.scope)
   }
+  if imports is Some(original) { scopes.push(original.scope) }
   if keyed is Some((lookup, _)) {
     guard lookup.publication_identity is Some(identity) else {
       return Err(Invocation(ForeignSourceObservation))

@@ -728,12 +728,12 @@ fn infer_scope_expected_whole_sources(
     is Ok(direct) else {
     return Ok(None)
   }
-  let source_origin = client_infer_composed_source_origin(occurrence)
-  let source_names = match source_origin {
-    Some(origin) => client_infer_composed_whole_source_names(origin, direct)
-    None => None
+  let original = client_infer_composed_source_origin(occurrence)
+  if original is Some(first) && client_infer_occurrence_coordinates(first) != client_infer_occurrence_coordinates(occurrence) {
+    return infer_scope_expected_whole_sources(first)
   }
   let expected : Array[(String, @planning.QuerySourceEvidenceFacts)] = []
+  let mut invalid_port = false
   let mut whole = 0
   for slot in 0..<client_direct_acquisition_occurrence_count(direct) {
     guard client_direct_acquisition_occurrence_at(direct, slot)
@@ -745,39 +745,24 @@ fn infer_scope_expected_whole_sources(
       is Some(requests) else {
       return Err(ForeignInput)
     }
-    match
-      @acquisition.select_source_acquisition_route(requests, input, 1000000) {
-      Ok(@acquisition.QueryRoute(_)) => ()
-      Ok(@acquisition.WholeInputRoute(original)) => {
-        guard @planning.source_acquisition_evidence_facts(original)
-          is Some(facts) else {
-          return Err(ForeignInput)
-        }
-        // Use the same checked local/imported port names as live admission.
-        // Downstream Models retain the original closure rather than renaming
-        // it to their later Result input or reacquiring an earlier Source.
-        guard source_names is Some(names) else { return Err(ForeignInput) }
-        let name = names[slot]
-        if expected.any(entry => entry.0 == name) {
-          return Err(ForeignInput)
-        }
-        expected.push((name, facts))
+    let facts = match @acquisition.select_source_acquisition_route(requests, input, 1000000) {
+      Ok(@acquisition.QueryRoute(acquisition)) => @planning.query_acquisition_source_evidence_facts(acquisition)
+      Ok(@acquisition.WholeInputRoute(acquisition)) => {
         whole += 1
+        @planning.source_acquisition_evidence_facts(acquisition)
       }
       Err(_) => return Err(ForeignInput)
     }
+    let name = model_effect_checked_source_port_name(@strategy.graph_program(owner.graph), occurrence.stage, direct.checks[slot])
+    if name is Some(name) && facts is Some(facts) && !expected.any(entry => entry.0 == name) {
+      expected.push((name, facts))
+    } else {
+      invalid_port = true
+    }
   }
-  if whole == 0 {
-    return Ok(None)
-  }
-  if whole != client_direct_acquisition_occurrence_count(direct) {
-    return Err(UnsupportedBindings)
-  }
-  guard source_origin is Some(original) else { return Err(ForeignInput) }
-  if client_infer_occurrence_coordinates(original) !=
-    client_infer_occurrence_coordinates(occurrence) {
-    return infer_scope_expected_whole_sources(original)
-  }
+  if whole == 0 { return Ok(None) }
+  if invalid_port || original is None { return Err(ForeignInput) }
+
   match client_composed_keyed_source_coordinates(owner) {
     Ok(None) => ()
     Ok(Some((stage, input, join))) => {

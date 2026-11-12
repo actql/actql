@@ -124,16 +124,6 @@ fn admit_client_infer_composed_sources_owned(
     client_infer_prefix_owner_for_input(owner, 0, occurrence.step, true)
     is Some(_)
   let same_unit = keyed_unit || direct_unit
-  let whole_names = if whole {
-    guard direct is Some(selected) &&
-      client_infer_composed_whole_source_names(occurrence, selected)
-      is Some(names) else {
-      return Err(ForeignInput)
-    }
-    Some(names)
-  } else {
-    None
-  }
   if !client_infer_occurrence_matches(occurrence, owner) ||
     count < 1 ||
     (!whole && !same_unit && occurrence.task < count) ||
@@ -155,6 +145,8 @@ fn admit_client_infer_composed_sources_owned(
       )
     }
   }
+  // Whole declarations are resolved per checked port below. A mixed Unit's
+  // one imported Result plus one inline Source is not two graph data edges.
   if !whole && incoming.length() != (if same_unit { 0 } else { count }) {
     return Err(ForeignInput)
   }
@@ -203,18 +195,28 @@ fn admit_client_infer_composed_sources_owned(
           @planning.source_acquisition_evidence_facts(original) is Some(facts) else {
           return Err(ForeignInput)
         }
-        let name = whole_names.unwrap()[task]
-        // A local Whole input has no Stage edge. An imported input keeps the
-        // exact producer edge selected above, including its keyed obligation.
-        if source_task != occurrence.task &&
-          keyed is Some(observed) &&
-          !client_composed_keyed_lookup_has_source_producer(
-            observed.lookup,
-            occurrence,
-            captures,
-            task,
+        let name = match
+          model_effect_source_port_name(
+            @strategy.graph_program(owner.graph),
+            occurrence.stage,
+            Whole(original),
           ) {
-          return Err(ForeignInput)
+          Some(name) => name
+          None => return Err(ForeignInput)
+        }
+        if source_task != occurrence.task {
+          // An ordinary checked Stage edge names this exact producer. A keyed
+          // prefix adds its existing completed lookup proof to the same edge;
+          // the direct path retains its separate no-keyed-obligation check.
+          if keyed is Some(observed) &&
+            !client_composed_keyed_lookup_has_source_producer(
+              observed.lookup,
+              occurrence,
+              captures,
+              task,
+            ) {
+            return Err(ForeignInput)
+          }
         }
         (name, facts)
       }
@@ -345,79 +347,6 @@ fn admit_client_infer_composed_sources_owned(
 }
 
 ///|
-// Resolve each checked Source occurrence independently: a local declaration
-// borrows its original input, while an upstream Unit contributes its actual
-// Result edge. This projects existing graph membership; it admits no Source,
-// completion, current authority or read and does not replace a transformed
-// producer with its raw capture.
-fn client_infer_composed_whole_source_names(
-  occurrence : ClientInferOccurrence,
-  direct : ClientDirectAcquisitionOccurrences,
-) -> Array[String]? {
-  let owner = occurrence.owner
-  let graph = owner.graph
-  let count = client_direct_acquisition_occurrence_count(direct)
-  guard client_infer_occurrence_matches(occurrence, owner) &&
-    client_direct_acquisition_occurrences_match_program(direct, owner) &&
-    count > 0 else {
-    return None
-  }
-  let pipeline = @lower.pipeline(
-    @lower.bound_preparation(occurrence.preparation),
-  )
-  let incoming : Array[(Int, Int)] = []
-  for index in 0..<@strategy.graph_data_count(graph) {
-    guard @strategy.graph_data_at(graph, index) is Some(edge) else {
-      return None
-    }
-    if @strategy.data_edge_consumer(edge) == occurrence.task {
-      incoming.push(
-        (@strategy.data_edge_producer(edge), @strategy.data_edge_input(edge)),
-      )
-    }
-  }
-  let names : Array[String] = []
-  let producers : Array[Int] = []
-  for slot in 0..<count {
-    guard client_direct_acquisition_occurrence_at(direct, slot)
-      is Some((stage, _, producer)) else {
-      return None
-    }
-    let name = if producer == occurrence.task {
-      guard stage == occurrence.stage &&
-        client_direct_acquisition_occurrence_subject(direct, slot)
-        is Some(subject) else {
-        return None
-      }
-      let name = @acquisition.declaration(subject.source).input_name
-      guard @pipeline.lookup(pipeline, name) is Some(@pipeline.Input(_)) else {
-        return None
-      }
-      name
-    } else {
-      let ports = incoming.filter(edge => edge.0 == producer)
-      guard producer < occurrence.task &&
-        ports.length() == 1 &&
-        @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) else {
-        return None
-      }
-      producers.push(producer)
-      name
-    }
-    if names.contains(name) {
-      return None
-    }
-    names.push(name)
-  }
-  // No unrelated or duplicate imported edge may be hidden by a local input.
-  if incoming.length() != producers.length() ||
-    incoming.any(edge => !producers.contains(edge.0)) {
-    return None
-  }
-  Some(names)
-}
-
-///|
 // Resolve only the existing full captured-prefix boundary. A downstream Model
 // retains this provenance while Local supplies its actual completed Result
 // input; the Source closure is never a substitute for that producer port.
@@ -475,8 +404,30 @@ fn client_infer_composed_source_boundary(
       })
     }
     if count != @strategy.graph_captured_prefix(graph) {
-      return client_infer_composed_whole_source_names(occurrence, direct)
-        is Some(_)
+      let program = @strategy.graph_program(graph)
+      if count == 0 ||
+        !direct.checks.all(check => {
+          model_effect_checked_source_port_name(
+            program,
+            occurrence.stage,
+            check,
+          )
+          is Some(_)
+        }) {
+        return false
+      }
+      guard prepared_client_composed_infer_occurrences(occurrence.owner)
+        is Some(models) else {
+        return false
+      }
+      return !models.any(previous => {
+        previous.task < occurrence.task &&
+        direct.checks.all(check => {
+          model_effect_checked_source_port_name(program, previous.stage, check)
+          is Some(_)
+        }) &&
+        client_infer_composed_source_precedes(previous, occurrence)
+      })
     }
   }
   let count = @strategy.graph_captured_prefix(graph)
