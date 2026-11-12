@@ -271,15 +271,16 @@ test('four Native ordinary bins separate measured large packages without splitti
     parts.map(part => ({...part, args: [...args, ...part.args.slice(args.length).reverse()]})));
   assert.equal(JSON.stringify(records), original, 'Original compiler records must remain unchanged');
   assert.deepEqual(nativeCoreOrdinaryPartitions(args, paths, records, 2).map(part => part.args.slice(args.length)),
-    [[other[1], other[2]], [other[0], ...heavy]], 'The existing two-way local plan is unchanged');
+    [[other[0], other[2]], [other[1], ...heavy]], 'The existing two-way local plan is unchanged');
 });
 
 test('actual compiler four-way Native inventory never duplicates a generated test driver', t => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-four-partitions-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   writeFileSync(join(root, 'moon.mod'), 'name = "fixture/native_four"\nversion = "0.0.0"\n');
-  for (let i = 0; i < 8; i++) {
-    const directory = join(root, 'src', `package-${i}`);
+  const heavy = ['src/canonical_value', 'src/query_integration', 'src/cmd/native_client'];
+  for (const path of [...heavy, ...Array.from({length: 5}, (_, i) => `src/package-${i}`)]) {
+    const directory = join(root, path);
     mkdirSync(directory, {recursive: true});
     writeFileSync(join(directory, 'moon.pkg'), '');
     writeFileSync(join(directory, 'main.mbt'), 'test "original case" { assert_eq(7, 7) }\n');
@@ -290,6 +291,7 @@ test('actual compiler four-way Native inventory never duplicates a generated tes
   assert.equal(parts.length, 4);
   assert.equal(selected.cases, 8);
   assert.deepEqual(parts.map(p => p.cases), [2, 2, 2, 2]);
+  assert.equal(new Set(heavy.map(path => parts.findIndex(part => part.args.includes(path)))).size, 3);
   const paths = parts.flatMap(p => p.args.slice(args.length));
   assert.equal(new Set(paths).size, 8);
   const drivers = parts.flatMap(p => p.drivers);
