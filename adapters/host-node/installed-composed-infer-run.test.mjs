@@ -732,7 +732,7 @@ test('original upstream Result facade preserves partial custody when current thr
 // Execute the actual preconsumer control method with explicit nominal ports.
 // The original output/scan/proof stand for Core handles, not fabricated normal
 // execution, installed ABI, Source/Model work or physical cleanup evidence.
-function earlierModelUnitFacadeFixture() {
+function earlierModelUnitFacadeFixture({lookupBodies = [], lookupFailure, refuseLookup = false} = {}) {
   const run = {}, plan = {}, request = {}, held = {}, compiled = {kind: 'infer'},
     rawCompiled = {}, definition = {}, graph = {}, retention = {}, scan = {}, receipt = {},
     proof = {}, acquired = {}, invocation = {}, dependencies = new WeakMap(), events = [];
@@ -765,6 +765,11 @@ function earlierModelUnitFacadeFixture() {
       return {ok: [{_0: 'local_model_observation', _1: 'model', _2: 'original-model'}]};
     },
     clientProgramOriginalModelAcquiredEffectSources: () => [],
+    clientProgramOriginalModelAcquiredLookupDependencyBodies(original) {
+      assert.strictEqual(original, acquired); events.push('lookup-bodies');
+      if (refuseLookup) throw lookupFailure;
+      return {ok: lookupBodies};
+    },
     clientProgramOriginalModelAcquiredScopeImportBodies: () => [{_0: 'result_import_observation', _1: 'input', _2: 'original-input'}],
     clientProgramOriginalModelAcquiredEffectScope: () => 'original-scope',
     clientProgramEffectInputExportLogicalCid: () => 'outcome', clientProgramEffectInputExportSchemaCid: () => 'schema',
@@ -799,6 +804,43 @@ test('earlier Model facade backs and retains original scan receipt and semantic 
   assert.equal(f.retire(f.retained), true);
   assert.deepEqual(f.events.slice(-2), ['retire-receipt', 'retire-scan']);
   assert.equal(f.retained.modelOriginal, undefined);
+});
+
+test('earlier Model facade forwards its retained keyed dependency closure before the later Unit', () => {
+  const lookupBodies = Object.freeze([
+    Object.freeze({_0: 'request_key_set', _1: 'keys', _2: '{"keys":"original"}'}),
+    Object.freeze({_0: 'acquisition_relation', _1: 'lookup-relation', _2: '{"lookup":"original"}'}),
+    Object.freeze({_0: 'lookup_evidence', _1: 'lookup-observation', _2: '{"observation":"original"}'}),
+    Object.freeze({_0: 'source_contract', _1: 'lookup-source', _2: '{"source":"original"}'}),
+    Object.freeze({_0: 'request_schema', _1: 'lookup-request', _2: '{"request":"original"}'}),
+  ]);
+  const f = earlierModelUnitFacadeFixture({lookupBodies}), value = f.prepare();
+  assert.equal(f.events.filter(event => event === 'lookup-bodies').length, 1);
+  for (const original of lookupBodies) {
+    assert.deepEqual(value.bodies.find(body => body.cid === original._1),
+      {kind: original._0, cid: original._1, wire: original._2});
+  }
+  assert.deepEqual(value.catalogBodies, lookupBodies.slice(3).map(original =>
+    ({kind: original._0, cid: original._1, wire: original._2})));
+  assert.strictEqual(f.dependencies.get(value).original, f.proof);
+  assert.strictEqual(f.retained.modelReceipt, f.receipt);
+  assert.equal(f.retire(f.retained), true);
+});
+
+test('earlier Model keyed closure refusal retains its original partials and first thrown failure', () => {
+  for (const lookupFailure of [new Error('OriginalLookupClosureUnavailable'), undefined]) {
+    const f = earlierModelUnitFacadeFixture({lookupFailure, refuseLookup: true});
+    let failed = false, primary;
+    try { f.prepare(); } catch (error) { failed = true; primary = error; }
+    assert.equal(failed, true); assert.strictEqual(primary, lookupFailure);
+    assert.equal(f.events.filter(event => event === 'lookup-bodies').length, 1);
+    assert.strictEqual(f.retained.modelScan, f.scan);
+    assert.strictEqual(f.retained.modelReceipt, f.receipt);
+    assert.strictEqual(f.retained.modelOriginal, f.proof);
+    assert.equal(f.retire(f.retained), true);
+    assert.deepEqual(f.events.slice(-2), ['retire-receipt', 'retire-scan']);
+    assert.equal(f.retained.modelOriginal, undefined);
+  }
 });
 
 test('earlier Model facade keeps the same partial scan and receipt when current throws undefined', () => {

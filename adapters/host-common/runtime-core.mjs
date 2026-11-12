@@ -4760,11 +4760,14 @@ function publicationControl(moon) {
       const originals = checked(moon.clientProgramPreconsumerModelUnitDependencyBodies(retained.modelOriginal))
         .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}));
       const direct = moon.clientProgramOriginalModelAcquiredEffectSources(acquired);
+      const lookupBodies = checked(moon.clientProgramOriginalModelAcquiredLookupDependencyBodies(acquired))
+        .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}));
       const bodies = [
         ...originals,
         ...direct.flatMap(source => moon.clientProgramAcquiredEffectDependencyBodies(source)
           .map(pair => Object.freeze({kind: runtimeField(pair, 0), wire: runtimeField(pair, 1),
             ...(runtimeField(pair, 0) === 'request_values' ? {cid: moon.clientProgramAcquiredEffectRequestCid(source)} : {})}))),
+        ...lookupBodies,
         ...moon.clientProgramOriginalModelAcquiredScopeImportBodies(acquired)
           .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)})),
         Object.freeze({kind: 'acquisition_scope', wire: moon.clientProgramOriginalModelAcquiredEffectScope(acquired)}),
@@ -4774,7 +4777,9 @@ function publicationControl(moon) {
           wire: moon.clientProgramEffectInputExportSchemaWire(retained.modelReceipt)}),
       ];
       const value = Object.freeze({invocation: moon.clientProgramOriginalModelAcquiredEffectInvocation(acquired),
-        bodies: Object.freeze(bodies), catalogBodies: Object.freeze([...catalogBodies])});
+        bodies: Object.freeze(bodies), catalogBodies: Object.freeze([...catalogBodies,
+          ...lookupBodies.filter(body => ['source_contract', 'source_view_contract', 'data_policy',
+            'request_schema', 'carrier_schema', 'schema_evidence', 'capability_evidence'].includes(body.kind))])});
       localEffectDependencyTokens.set(value, {kind: 'preconsumer_model', issued: acquired,
         original: retained.modelOriginal, unit});
       current();
