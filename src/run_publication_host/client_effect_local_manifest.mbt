@@ -263,3 +263,60 @@ pub fn client_effect_local_manifest_matches(
   }
   true
 }
+
+///|
+/// Measure the existing Manifest emitter over original local Artifacts. The
+/// parent has already backed the checked Unit inventory before retaining it;
+/// this sink allocates no manifest wire, hash identity or publication grant.
+pub fn client_effect_local_manifest_construction_geometry(
+  invocation : ClientEffectLocalInvocation,
+  artifacts : Array[ClientEffectLocalResultArtifact],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @encode.EncodingConstructionGeometry,
+  ClientEffectLocalManifestIssue,
+] {
+  let names : Array[String] = []
+  let tables : Array[String] = []
+  let by_name : Map[String, ClientEffectLocalResultArtifact] = Map([])
+  let by_table : Map[String, ClientEffectLocalResultArtifact] = Map([])
+  for artifact in artifacts {
+    match artifact.source {
+      ResultSource(_, definition) => {
+        names.push(definition.result_name)
+        by_name[definition.result_name] = artifact
+      }
+      TableSource(_, definition) => {
+        tables.push(definition.name)
+        by_table[definition.name] = artifact
+      }
+    }
+  }
+  names.sort_by(@canonical_value.compare_utf16)
+  tables.sort_by(@canonical_value.compare_utf16)
+  let writer = @encode.construction_measuring_writer(
+    max_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    emit_client_effect_local_manifest(
+      writer,
+      invocation.unit_definition_cid,
+      invocation.cid,
+      names,
+      by_name,
+      tables,
+      by_table,
+      Some(invocation.cid),
+    )
+    Ok(@encode.finish_construction_measurement(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(Encoding)
+    }
+  }
+}

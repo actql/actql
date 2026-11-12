@@ -9,6 +9,7 @@ pub fn issue_combined_acquisition_scope(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[PublicationContract, AcquisitionRelationIssue] {
   if scopes.is_empty() {
     return Err(WrongScope)
@@ -45,6 +46,29 @@ pub fn issue_combined_acquisition_scope(
     }
   }
   keys.sort_by(@canonical.compare_utf16)
+  if before_body is Some(back) {
+    let measure = @encode.construction_measuring_writer(
+      max_bytes, max_nodes, max_depth,
+    ) catch {
+      _ => return Err(Encoding)
+    }
+    let shape = try {
+      emit_acquisition_scope_body(measure, writer => {
+        for key in keys {
+          @json.emit_value(entries[key], writer)
+        }
+      })
+      @encode.finish_construction_measurement(measure)
+    } catch {
+      _ => {
+        @encode.cancel_writer(measure)
+        return Err(Encoding)
+      }
+    }
+    if !back("acquisition_scope", shape) {
+      return Err(Encoding)
+    }
+  }
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -74,6 +98,7 @@ pub fn source_unit_metadata_construction_geometry(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  include_union? : Bool = true,
 ) -> Result[
   Array[(String, @encode.EncodingConstructionGeometry)],
   AcquisitionRelationIssue,
@@ -157,6 +182,9 @@ pub fn source_unit_metadata_construction_geometry(
           @encode.finish_construction_measurement(writer),
         ),
       )
+    }
+    if !include_union {
+      return Ok(bodies)
     }
     let writer = @encode.construction_measuring_writer(
       max_bytes, max_nodes, max_depth,

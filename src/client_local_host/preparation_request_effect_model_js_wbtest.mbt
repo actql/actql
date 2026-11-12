@@ -689,3 +689,78 @@ test "plural Effect Scopes bind and adopt complete order on the same finite Requ
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
 }
+
+///|
+// Actual original preparation/adoption/Resource current and retirement. The
+// finite byte pair is an explicit constructor component port, not a row-body
+// recipe, whole ordinary backing claim, provider or publication permission.
+test "upstream Unit publication grows the same adopted Plan once and preserves consumed work through retirement" {
+  let currents = Ref(0)
+  let (parent, input, plan, request, construction) = request_effect_model_plan_fixture(current=() => {
+      currents.val += 1
+      true
+    },
+  )
+  let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
+  complete_request_effect_preparation(parent, input, plan).unwrap()
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  let run = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+  let body = effect_unit_publication_body(run, plan, request).unwrap()
+  let before = @resources.preparation_body_borrow_reserved_extents(body).unwrap()
+  let used = @resources.ledger_usage(parent.ledger)
+  let capacity = @execution.execution_capacity_inventory(
+    [{ unit: QuotedBytes, count: 37L, copies: 1, }],
+    [{ unit: QuotedBytes, count: 91L, copies: 1, }],
+    @execution.RetainedAlongsideExecution,
+  ).unwrap()
+  let calls = currents.val
+  reserve_effect_unit_publication_capacity(run, plan, request, capacity).unwrap()
+  assert_eq(currents.val, calls + 1)
+  assert_eq(
+    @resources.preparation_body_borrow_reserved_extents(body),
+    Ok((before.0 + 37L, Int64::max(before.1, before.0 + 128L))),
+  )
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).planning_work,
+    used.planning_work,
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, used.attempts)
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).live_reservations,
+    used.live_reservations,
+  )
+  let calls = currents.val
+  let (foreign_parent, _, foreign_plan, foreign_request, foreign_construction) = request_effect_model_plan_fixture()
+  assert_true(
+    reserve_effect_unit_publication_capacity(
+      run, foreign_plan, foreign_request, capacity,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(currents.val, calls)
+  @resources.return_preparation_body_borrow(foreign_construction).unwrap()
+  |> ignore
+  abort_request_preparation_after_cleanup(foreign_parent).unwrap()
+  let selected = plan.model.unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      selected.compiled,
+      selected.definition,
+      selected.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  let calls = currents.val
+  assert_true(
+    reserve_effect_unit_publication_capacity(run, plan, request, capacity)
+    is Err(ForeignOriginal),
+  )
+  assert_eq(currents.val, calls)
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).planning_work,
+    used.planning_work,
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

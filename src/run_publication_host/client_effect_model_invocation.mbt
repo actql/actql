@@ -34,6 +34,9 @@ fn issue_model_effect_local_invocation(
   max_nodes : Int,
   max_depth : Int,
   imports? : (ClientEffectImportedEvidence, ClientInferComposedSources)? = None,
+  scope_imports? : Array[ClientScopeResultImportObservation] = [],
+  scope_sources? : ClientInferComposedSources? = None,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
   guard compiled.compilation is Effects(allowed) &&
     physical_equal(compiled.owner, scope.owner) &&
@@ -60,7 +63,9 @@ fn issue_model_effect_local_invocation(
     @checked.unit_contracts_cid(program, unit) is Some(contracts) else {
     return Err(MissingUnit)
   }
-  if !model_effect_imports_match(owner, scope, occurrence, imports) {
+  if !model_effect_imports_match(
+      owner, scope, occurrence, imports, scope_imports,
+    ) {
     return Err(
       if imports is None {
         IncompleteResultImports
@@ -78,12 +83,22 @@ fn issue_model_effect_local_invocation(
     return Err(ForeignSourceObservation)
   }
   let observations = [@publication.captured_effect_dependency_body_cid(model)]
+  for observed in scope_imports {
+    observations.push(observed.cid)
+  }
   if imports is Some((original, _)) {
     for observed in original.observations {
       observations.push(observed.cid)
     }
   }
   for source in client_infer_call_scope_source_observations(scope) {
+    if scope_sources is Some(sources) &&
+      sources.inputs.any(input => {
+        physical_equal(input.observation, source) &&
+        model_effect_scope_imported_source(scope_imports, input)
+      }) {
+      continue
+    }
     if imports is Some((original, sources)) &&
       sources.inputs.any(input => {
         physical_equal(input.observation, source) &&
@@ -128,6 +143,7 @@ fn issue_model_effect_local_invocation(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    before_body~,
   )
 }
 
@@ -139,6 +155,7 @@ fn model_effect_imports_match(
   scope : ClientInferCallScope,
   occurrence : ClientInferOccurrence,
   imports : (ClientEffectImportedEvidence, ClientInferComposedSources)?,
+  scope_imports : Array[ClientScopeResultImportObservation],
 ) -> Bool {
   let program = @checked.effect_program_static_checked_computation(
     owner.candidate,
@@ -149,9 +166,19 @@ fn model_effect_imports_match(
     return false
   }
   if count == 0 {
-    return imports is None
+    return imports is None && scope_imports.is_empty()
   }
-  guard imports is Some((original, sources)) &&
+  if imports is None &&
+    scope_imports.length() == count &&
+    scope.result_inputs.length() == count {
+    return scope_imports.all(observed => {
+      scope.result_inputs.any(original => {
+        physical_equal(original, observed.input)
+      })
+    })
+  }
+  guard scope_imports.is_empty() &&
+    imports is Some((original, sources)) &&
     physical_equal(original.owner, owner) &&
     original.invocation.unit == occurrence.stage &&
     original.observations.length() == count &&

@@ -169,6 +169,9 @@ fn combined_source_unit_completed_fixture(
   model_columns? : Bool = false,
   construction_geometry? : Bool = false,
   catalog_guard? : Bool = false,
+  artifact_geometry? : Bool = false,
+  model_scope_imports? : Bool = false,
+  model_scope_backing? : Bool = false,
 ) -> Unit raise {
   let document =
     #|{"version":"actql/0.1","id":"combined-source-unit","stages":[{"id":"joined","inputs":{"left_rows":{"connector":"crm/main","resource":"r"},"right_rows":{"connector":"crm/right","resource":"r"}},"from":"left_rows","steps":[{"join":{"with":"right_rows","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":4,"select":{"value":"left.id"}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"joined":{"from":{"stage":"joined","result":"out"}}}}
@@ -690,6 +693,15 @@ fn combined_source_unit_completed_fixture(
       1000,
     ).unwrap()
     let receipt = combined_unit_finish_export(exported)
+    let metadata_geometry = if artifact_geometry {
+      Some(
+        client_effect_source_unit_artifact_construction_geometry(
+          combined, "out", receipt, admission, 100000, 10000, 100,
+        ).unwrap(),
+      )
+    } else {
+      None
+    }
     let local_definition = issue_client_effect_local_result_definition(
       prepared, 0, "out", 100000, 10000, 100,
     ).unwrap()
@@ -715,6 +727,19 @@ fn combined_source_unit_completed_fixture(
         100,
       ).unwrap()
     }
+    let manifest_geometry = if artifact_geometry {
+      Some(
+        client_effect_local_manifest_construction_geometry(
+          combined.invocation,
+          [artifact],
+          100000,
+          10000,
+          100,
+        ).unwrap(),
+      )
+    } else {
+      None
+    }
     let manifest = issue_client_effect_local_manifest(
       prepared,
       combined.invocation,
@@ -724,6 +749,37 @@ fn combined_source_unit_completed_fixture(
       100,
     )
     assert_true(manifest is Ok(_))
+    if metadata_geometry is Some(geometries) {
+      let actual = [
+        client_effect_local_result_definition_json(local_definition),
+        client_effect_local_result_derivation_json(artifact),
+        client_effect_local_result_ordering_json(artifact),
+        client_effect_local_result_artifact_json(artifact),
+      ]
+      for index in 0..<geometries.length() {
+        let (name, geometry) = geometries[index]
+        let extra = if name == "local_result_definition" {
+          0
+        } else {
+          let field = @publication.publication_contract_identity_field_for_name(
+            name,
+          ).unwrap()
+          // These existing registered identities are ASCII SHA256 CIDs.
+          @utf8.encode(
+            "\"" +
+            field +
+            "\":\"" +
+            @publication.publication_contract_identity(definition) +
+            "\",",
+          ).length()
+        }
+        assert_eq(@utf8.encode(actual[index]).length(), geometry.bytes + extra)
+      }
+      assert_eq(
+        @utf8.encode(client_effect_local_manifest_json(manifest.unwrap())).length(),
+        manifest_geometry.unwrap().bytes,
+      )
+    }
     assert_eq(
       client_effect_local_artifact_invocation_cid(artifact),
       combined.invocation.cid,
@@ -919,6 +975,173 @@ fn combined_source_unit_completed_fixture(
         result_inputs=[imported],
         sources=ancestry,
       ).unwrap()
+      if model_scope_imports || model_scope_backing {
+        let observations = issue_scope_model_result_import_observations(
+          prepared, scope, 100000, 10000, 100,
+        ).unwrap()
+        assert_eq(observations.length(), 1)
+        assert_true(physical_equal(observations[0].input, imported))
+        assert_true(
+          model_effect_imports_match(
+            prepared,
+            scope,
+            occurrence,
+            None,
+            observations,
+          ),
+        )
+        assert_false(
+          model_effect_imports_match(prepared, scope, occurrence, None, []),
+        )
+        let sources = ancestry.unwrap()
+        assert_eq(sources.inputs.length(), 2)
+        for original in sources.inputs {
+          assert_true(
+            model_effect_scope_imported_source(observations, original),
+          )
+        }
+        guard @json.parse(observations[0].wire) is Object(observed) else {
+          fail("original import body")
+        }
+        assert_eq(observed["input_name"], Json::string("rows"))
+        assert_eq(
+          observed["result_artifact_cid"],
+          Json::string(client_effect_local_result_artifact_cid(artifact)),
+        )
+        assert_eq(
+          observed["producer_local_manifest_cid"],
+          Json::string(client_effect_local_manifest_cid(manifest.unwrap())),
+        )
+
+        // Exercise the actual semantic Model closure with this genuine Scope.
+        // The admitted body below is explicit test DATA, not a claim that a
+        // Model ran or that physical construction/publication was funded.
+        let (logical, schema) = @publication.model_input_artifact_relation_identities(
+          scope.artifact,
+        ).unwrap()
+        let preimage = "{\"input_logical_relation_cid\":\"" +
+          logical +
+          "\",\"input_relation_schema_cid\":\"" +
+          schema +
+          "\",\"outcome_logical_relation_cid\":\"" +
+          logical +
+          "\",\"outcome_relation_schema_cid\":\"" +
+          schema +
+          "\",\"source_ordinal\":" +
+          occurrence.step.to_string() +
+          ",\"unit_definition_cid\":\"" +
+          scope.unit_definition_cid +
+          "\",\"version\":\"actql-local-model-observation/0.1\"}"
+        let model_cid = "sha256:" + @sha.hex(@utf8.encode(preimage))
+        let model = @publication.admit_local_effect_dependency_body(
+          "local_model_observation",
+          preimage.replace(
+            old=",\"source_ordinal\":",
+            new=",\"self_cid\":\"" + model_cid + "\",\"source_ordinal\":",
+          ),
+          100000,
+          10000,
+          100,
+        ).unwrap()
+        let acquired = issue_single_model_client_effect_acquired_evidence(
+          client_effect_allowed_component_run(allowed, None),
+          scope,
+          model,
+          sources,
+          retention,
+          100000,
+          10000,
+          100,
+        ).unwrap()
+        assert_true(physical_equal(acquired.call_scope, scope))
+        assert_eq(acquired.scope_imports.length(), 1)
+        assert_true(physical_equal(acquired.scope_imports[0].input, imported))
+        assert_eq(acquired.scope_relations.length(), 1)
+        assert_eq(
+          effect_model_acquired_relation_cids(acquired).unwrap().length(),
+          1,
+        )
+        assert_eq(
+          @publication.publication_contract_identity(acquired.scope),
+          @publication.publication_contract_identity(artifact.scope.unwrap()),
+        )
+        guard @json.parse(
+            client_effect_local_invocation_json(acquired.invocation),
+          )
+          is Object(invocation) &&
+          invocation["observation_cids"] is Array(cids) else {
+          fail("original Model invocation")
+        }
+        assert_eq(cids.length(), 2)
+        assert_true(cids.contains(Json::string(model_cid)))
+        assert_true(cids.contains(Json::string(observations[0].cid)))
+        let bodies = client_effect_model_acquired_scope_import_bodies(acquired)
+        assert_eq(bodies.length(), 2)
+        assert_eq(bodies[0].0, "result_import_observation")
+        assert_eq(bodies[0].1, observations[0].cid)
+        assert_eq(bodies[1].0, "acquisition_relation")
+        if model_scope_backing {
+          let kinds : Array[String] = []
+          let valid_shapes = Ref(true)
+          let backed = issue_single_model_client_effect_acquired_evidence(
+            client_effect_allowed_component_run(allowed, None),
+            scope,
+            model,
+            sources,
+            retention,
+            100000,
+            10000,
+            100,
+            before_body=Some(fn(kind, shape) {
+              valid_shapes.val = valid_shapes.val &&
+                shape.bytes > 0 &&
+                shape.nodes > 0
+              kinds.push(kind)
+              true
+            }),
+          ).unwrap()
+          assert_eq(backed.invocation.cid, acquired.invocation.cid)
+          assert_true(valid_shapes.val)
+          assert_eq(
+            @publication.publication_contract_identity(backed.scope),
+            @publication.publication_contract_identity(acquired.scope),
+          )
+          for
+            kind in [
+              "result_import_observation", "local_computation", "request_values",
+              "acquisition_scope", "ordering_evidence", "acquisition_relation",
+            ] {
+            let mut found : Int? = None
+            for index, candidate in kinds {
+              if candidate == kind && found is None {
+                found = Some(index)
+              }
+            }
+            let position = found.unwrap()
+            let entered = Ref(0)
+            assert_true(
+              issue_single_model_client_effect_acquired_evidence(
+                client_effect_allowed_component_run(allowed, None),
+                scope,
+                model,
+                sources,
+                retention,
+                100000,
+                10000,
+                100,
+                before_body=Some(fn(_, _) {
+                  let slot = entered.val
+                  entered.val += 1
+                  slot != position
+                }),
+              )
+              is Err(_),
+            )
+            assert_eq(entered.val, position + 1)
+            assert_true(client_infer_call_scope_generation_available(scope))
+          }
+        }
+      }
       guard @json.parse(@publication.run_evidence_value_json(scope.effective))
         is Object(effective) &&
         effective["input_artifacts"] is Object(upstream) else {
@@ -1480,5 +1703,34 @@ test "Source Unit Catalog wire construction honors the original before-body back
     early_unit=true,
     consumer_model=true,
     catalog_guard=true,
+  )
+}
+
+///|
+test "original Unit Result Definition Artifact and Manifest geometry match their existing issuers" {
+  combined_source_unit_completed_fixture(
+    early_unit=true,
+    consumer_model=true,
+    artifact_geometry=true,
+  )
+}
+
+///|
+test "Model Effect import matching retains both Source ancestors through the original Result Scope before final inputs" {
+  combined_source_unit_completed_fixture(
+    early_unit=true,
+    consumer_model=true,
+    shared_ancestry=true,
+    model_scope_imports=true,
+  )
+}
+
+///|
+test "Model Scope semantic body backing refuses before each actual original emitter boundary" {
+  combined_source_unit_completed_fixture(
+    early_unit=true,
+    consumer_model=true,
+    shared_ancestry=true,
+    model_scope_backing=true,
   )
 }

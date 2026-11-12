@@ -824,3 +824,63 @@ pub fn client_effect_combined_source_unit_matches_inputs(
 ) -> Bool {
   physical_equal(value.original, inputs)
 }
+
+///|
+/// Metadata emitted from this same original Source Unit and actual Result
+/// receipt. The measuring sinks issue no Definition, Artifact or authority.
+pub fn client_effect_source_unit_artifact_construction_geometry(
+  combined : ClientEffectCombinedSourceUnit,
+  result_name : String,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  ClientEffectLocalResultArtifactIssue,
+] {
+  let definition = match
+    client_effect_local_result_definition_construction_geometry(
+      combined.original.owner,
+      combined.invocation.unit,
+      result_name,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignDefinition)
+  }
+  let shapes = match
+    @publication.local_result_metadata_construction_geometry(
+      combined.invocation.unit_definition_cid,
+      combined.invocation.cid,
+      @execution.logical_relation_cid(
+        @execution.completed_relation_export_identity(receipt),
+      ),
+      @execution.relation_schema_cid(
+        @execution.completed_relation_export_schema_identity(receipt),
+      ),
+      combined.invocation.unit_definition_cid,
+      combined.relations.map(@publication.publication_contract_identity),
+      @publication.publication_contract_identity(combined.scope),
+      combined.original.source.data_policy_cid,
+      "actql-common-host",
+      @publication.run_publication_execution_context(admission),
+      @publication.publication_contract_identity(combined.retention),
+      @execution.completed_relation_export_measurement(receipt).row_count,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  Ok([
+    ("local_result_definition", definition),
+    ("derivation_evidence", shapes[0]),
+    ("ordering_evidence", shapes[1]),
+    ("result_artifact", shapes[2]),
+  ])
+}

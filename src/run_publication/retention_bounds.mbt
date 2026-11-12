@@ -89,3 +89,35 @@ fn emit_result_retention_for_data_policy(
   }
   @encode.end_object(writer)
 }
+
+///|
+/// The existing emitter supplies the optional policy-adjusted retention body.
+/// A matching original is borrowed and needs no replacement construction.
+pub fn result_retention_policy_construction_geometry(
+  original : PublicationContract,
+  policy : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodingConstructionGeometry?, PublicationContractIssue] {
+  if original.name != "result_retention_policy" || !valid_contract_cid(policy) {
+    return Err(InvalidObject)
+  }
+  if contract_string(original, "effective_data_policy_cid") == Some(policy) {
+    return Ok(None)
+  }
+  let writer = @encode.construction_measuring_writer(
+    max_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    emit_result_retention_for_data_policy(writer, original, policy)
+    Ok(Some(@encode.finish_construction_measurement(writer)))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(Encoding)
+    }
+  }
+}

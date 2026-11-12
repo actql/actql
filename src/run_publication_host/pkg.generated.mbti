@@ -601,6 +601,8 @@ pub fn client_effect_local_invocation_unit_definition_cid(ClientEffectLocalInvoc
 
 pub fn client_effect_local_manifest_cid(ClientEffectLocalManifest) -> String
 
+pub fn client_effect_local_manifest_construction_geometry(ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientEffectLocalManifestIssue]
+
 pub fn client_effect_local_manifest_json(ClientEffectLocalManifest) -> String
 
 pub fn client_effect_local_manifest_matches(ClientEffectLocalManifest, PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact]) -> Bool
@@ -616,6 +618,8 @@ pub fn client_effect_local_result_artifact_json(ClientEffectLocalResultArtifact)
 pub fn client_effect_local_result_artifact_matches_public_result(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, Int) -> Bool
 
 pub fn client_effect_local_result_definition_cid(ClientEffectLocalResultDefinition) -> String
+
+pub fn client_effect_local_result_definition_construction_geometry(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_effect_local_result_definition_json(ClientEffectLocalResultDefinition) -> String
 
@@ -649,9 +653,13 @@ pub fn client_effect_model_acquired_lookup_dependency_bodies(ClientEffectModelAc
 
 pub fn client_effect_model_acquired_matches(ClientEffectModelAcquiredEvidence, ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody) -> Bool
 
+pub fn client_effect_model_acquired_scope_import_bodies(ClientEffectModelAcquiredEvidence) -> Array[(String, String, String)]
+
 pub fn client_effect_model_acquired_scope_json(ClientEffectModelAcquiredEvidence) -> String
 
 pub fn client_effect_model_public_result_evidence_refs(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, ClientEffectModelAcquiredEvidence, ClientEffectLocalResultArtifact, Int, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[(String, Array[String], String, String, String), ClientEffectLocalResultArtifactIssue]
+
+pub fn client_effect_model_unit_artifact_construction_geometry(PreparedClientEffectComputation, ClientEffectModelAcquiredEvidence, String, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectLocalResultArtifactIssue]
 
 pub fn client_effect_normalization_catalog_cid(ClientEffectNormalization) -> String
 
@@ -690,6 +698,8 @@ pub fn client_effect_source_binding_request(@remote_site_protocol.RemoteInputBin
 pub fn client_effect_source_evidence_facts(ClientEffectCompilation, Int, Int) -> @query_planning.QuerySourceEvidenceFacts?
 
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
+
+pub fn client_effect_source_unit_artifact_construction_geometry(ClientEffectCombinedSourceUnit, String, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectLocalResultArtifactIssue]
 
 pub fn client_effect_source_unit_construction_geometry(ClientEffectSourceUnitInputs, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectAcquiredEvidenceIssue]
 
@@ -812,6 +822,8 @@ pub fn client_infer_occurrence_output_step(ClientInferOccurrence) -> Int?
 pub fn client_infer_occurrence_preparation(ClientInferOccurrence) -> @lowering_relation.BoundPrepared
 
 pub fn client_infer_occurrence_result_import_count(ClientInferOccurrence) -> Int
+
+pub fn client_infer_occurrence_result_imports(ClientInferOccurrence) -> Array[(Int, String)]
 
 pub fn client_infer_occurrence_target_name(ClientInferOccurrence) -> String?
 
@@ -1939,7 +1951,7 @@ pub fn issue_prepared_source_free_client_bound_template(PreparedClientProgram, C
 
 pub fn issue_restored_model_client_effect_imported_evidence(ClientCompiledRun, ClientInferCallScope, ClientInferSavedCallScope, @run_publication.CapturedEffectDependencyBody, @run_publication.PublicationContract, Int, Int, Int, ClientEffectImportedEvidence, Array[ClientEffectAcquiredEvidence]) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
-pub fn issue_single_model_client_effect_acquired_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int, imports? : ClientEffectImportedEvidence?) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
+pub fn issue_single_model_client_effect_acquired_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int, imports? : ClientEffectImportedEvidence?, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[ClientEffectModelAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_single_model_client_effect_direct_source_evidence(ClientCompiledRun, ClientInferCallScope, @run_publication.CapturedEffectDependencyBody, ClientInferComposedSources, @run_publication.PublicationContract, Int, Int, Int) -> Result[(ClientEffectLocalInvocation, Array[ClientEffectAcquiredEvidence]), ClientEffectAcquiredEvidenceIssue]
 

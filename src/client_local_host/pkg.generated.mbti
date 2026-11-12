@@ -13,6 +13,7 @@ import {
   "actql/actql/connectors/local/driver",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
@@ -505,6 +506,8 @@ pub fn installed_effect_mock_model_run_requirements(@run_publication_host.Prepar
 
 pub fn installed_effect_model_read_window(ClientInstalledEffectModelDemand) -> Array[Int64]
 
+pub fn installed_effect_model_unit_parent(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
+
 pub fn installed_effect_opaque_boundary_footprint_capacity(String, String, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_effect_operation_extent_capacity(ClientInstalledEffectOperationExtent) -> @execution_relation.ExecutionCapacity
@@ -701,6 +704,8 @@ pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.Prep
 
 pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @source_frontend.Format, source_path? : String) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
 
+pub fn pin_installed_effect_model_unit_results(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedEffectRunDAG, Int) -> Result[@physical_strategy_host.CapturedEffectLocalUnitInputs, ClientEffectUnitPreparationIssue]
+
 pub fn prepare_captured_local_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
 
 pub fn prepare_client_acquired_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, ClientInstalledSequenceContracts, String, String?, String?, query_time? : (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity)?) -> @execution_relation.GeneratedSequence?
@@ -779,7 +784,13 @@ pub fn prepare_installed_effect_model_demand(@run_publication_host.PreparedClien
 
 pub fn prepare_installed_effect_model_source_unit(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectSourceUnitInputs, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectCombinedSourceUnit, ClientEffectUnitPreparationIssue]
 
+pub fn prepare_installed_effect_model_source_unit_artifact(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectCombinedSourceUnit, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectUnitPreparationIssue]
+
 pub fn prepare_installed_effect_model_source_unit_catalog(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectSourceUnitInputs, @run_publication_host.ClientEffectCombinedSourceUnit, Int, Int, Int) -> Result[Array[(String, String, String)], ClientEffectUnitPreparationIssue]
+
+pub fn prepare_installed_effect_model_unit_manifest(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalManifest, ClientEffectUnitPreparationIssue]
+
+pub fn prepare_installed_effect_model_unit_result_export(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedEffectRunDAG, @physical_strategy_host.CapturedEffectLocalUnitInputs, Int) -> Result[@physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectUnitPreparationIssue]
 
 pub fn prepare_installed_effect_models_demand(Array[ClientInstalledEffectModelDemand]) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue]
 
@@ -1147,6 +1158,8 @@ pub fn reserve_installed_effect_capture_decoded(ClientInstalledEffectCaptureReco
 
 pub fn reserve_installed_effect_capture_recovery(ClientInstalledEffectCaptureRecovery, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn reserve_installed_effect_model_unit_body(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, String, @encode_core.EncodingConstructionGeometry) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn[I, S] reserve_installed_source_construction(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
 pub fn reserve_program_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[ClientProgramPublication, ClientClosedValuesPreparationIssue]
@@ -1440,6 +1453,10 @@ type ClientDuckDBCaptureCapacity
 pub(all) enum ClientEffectUnitPreparationIssue {
   Run(ClientInstalledManagedRunIssue)
   Evidence(@run_publication_host.ClientEffectAcquiredEvidenceIssue)
+  Pin(@physical_strategy_host.RunIssue)
+  Export(@physical_strategy_host.CapturedEffectLocalResultExportIssue)
+  Artifact(@run_publication_host.ClientEffectLocalResultArtifactIssue)
+  Manifest(@run_publication_host.ClientEffectLocalManifestIssue)
 }
 
 pub(all) enum ClientHostInitializationIssue {

@@ -274,3 +274,21 @@ pub fn captured_effect_local_unit_inputs_match_run(
 ) -> Bool {
   inputs.live && !run.captured.stopped && physical_equal(inputs.run, run)
 }
+
+///|
+/// For a checked imported Result ancestry, retain the SAME Run's original
+/// Source at its actual producer Unit. This does not promote that Source to
+/// the consuming Unit or grant a read; the caller still proves the import edge.
+pub fn captured_effect_local_unit_source_ancestor_matches(
+  inputs : CapturedEffectLocalUnitInputs,
+  producer_unit : Int,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Bool {
+  inputs.live &&
+  captured_effect_original_acquisition_matches(
+    inputs.run.captured,
+    producer_unit,
+    identity,
+  ) &&
+  inputs.live
+}

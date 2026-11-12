@@ -87,7 +87,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
   group.bind({captures: [{}], evidence: [{}], captureStartedAt: 'start', captureCompletedAt: 'end'});
   for (const [index, context] of contexts.entries()) context.retainOperation(operations[index]);
   for (const context of contexts) assert.equal(context.retainCompleted(), true);
-  return {group, events, publication, preparedOptions, sourcePlan, signal: controller.signal, operations, cancel: () => controller.abort(new Error('OriginalCancelled')),
+  return {group, events, contexts, publication, preparedOptions, sourcePlan, signal: controller.signal, operations, cancel: () => controller.abort(new Error('OriginalCancelled')),
     revoke() {current = false;}};
 }
 
@@ -586,4 +586,13 @@ test('plural retirement installs retry phase before reentrant original child cle
   assert.deepEqual(outcomes,[{status:'fulfilled',value:true},{status:'fulfilled',value:true}]);
   assert.equal(f.events.filter(value=>value==='release-binding').length,1);
   assert.equal(f.events.filter(value=>value==='release-capacity').length,1);
+});
+
+
+test('plural existing input path requires no replacement Result API without an original Unit cache', () => {
+  const f = publicationGroupFixture();
+  for (const context of f.contexts) {
+    assert.equal(context.prepareOriginalResults(), undefined);
+  }
+  assert.equal(f.events.includes('prepare'), false);
 });

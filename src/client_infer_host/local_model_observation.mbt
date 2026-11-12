@@ -94,7 +94,18 @@ pub fn start_invocation_binding_original_model_identity(
   guard invocation_binding_original_model_outcomes(binding) is Some(outcomes) else {
     return Err(Unavailable)
   }
-  let limits = binding.output_use.owner.limits
+  start_original_model_outcome_identity(binding.output_use, outcomes)
+}
+
+///|
+fn start_original_model_outcome_identity(
+  held : OutputUse,
+  outcomes : @relation.CompletedOutput,
+) -> Result[
+  @relation.CompletedRelationIdentityScan,
+  @relation.CompletedExportIssue,
+] {
+  let limits = held.owner.limits
   @relation.start_completed_relation_identity_scan(
     outcomes,
     limits.output_rows,
@@ -118,8 +129,21 @@ pub fn invocation_binding_original_model_observation_capacity(
   receipt : @relation.CompletedRelationExportReceipt,
   max_wire_bytes : Int,
 ) -> @relation.ExecutionCapacity? {
+  original_model_observation_construction_capacity(
+    binding.output_use,
+    receipt,
+    max_wire_bytes,
+  )
+}
+
+///|
+fn original_model_observation_construction_capacity(
+  held : OutputUse,
+  receipt : @relation.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+) -> @relation.ExecutionCapacity? {
   guard max_wire_bytes >= 0 &&
-    binding.output_use.owner.call_scope is Some(scope) &&
+    held.owner.call_scope is Some(scope) &&
     @publication.model_input_artifact_relation_identities(
       @publication_host.client_infer_call_scope_artifact(scope),
     )
@@ -688,4 +712,63 @@ pub fn prepare_preconsumer_model_unit_observation(
   } else {
     None
   }
+}
+
+///|
+/// The completed earlier Model retains its original output and CallScope even
+/// while later Models have not run. This is no whole-Run observation/binding.
+/// The existing publication borrower backs the actual scanner before entry.
+pub fn preconsumer_model_unit_identity_start_capacity(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> @relation.ExecutionCapacity? {
+  borrow_original_model_observation_relations(held, compiled, definition, plan).bind(pair => {
+      @relation.completed_relation_identity_scan_start_construction_capacity(
+        pair.1,
+        retain_body=true,
+      )
+    },
+  )
+}
+
+///|
+pub fn start_preconsumer_model_unit_identity(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> Result[
+  @relation.CompletedRelationIdentityScan,
+  @relation.CompletedExportIssue,
+] {
+  guard borrow_original_model_observation_relations(
+      held, compiled, definition, plan,
+    )
+    is Some((_, outcomes)) else {
+    return Err(Unavailable)
+  }
+  start_original_model_outcome_identity(held, outcomes)
+}
+
+///|
+pub fn preconsumer_model_unit_observation_capacity(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  receipt : @relation.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+) -> @relation.ExecutionCapacity? {
+  guard borrow_original_model_observation_relations(
+      held, compiled, definition, plan,
+    )
+    is Some((_, outcomes)) &&
+    @relation.completed_relation_export_matches_output(receipt, outcomes) else {
+    return None
+  }
+  original_model_observation_construction_capacity(
+    held, receipt, max_wire_bytes,
+  )
 }

@@ -178,10 +178,18 @@ pub fn issue_preconsumer_original_model_acquired_evidence(
   max_depth : Int,
   imports? : @publication_host.ClientEffectImportedEvidence? = None,
   source_originals? : Array[@publication_host.ClientEffectAcquiredEvidence] = [],
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
+  parent_ledger? : @resources.Ledger? = None,
 ) -> Result[
   PreconsumerModelUnitEvidence,
   @publication_host.ClientEffectAcquiredEvidenceIssue,
 ] {
+  if parent_ledger is Some(parent) &&
+    !held.owner.model
+    .map(model => @model.original_completed_model_matches_parent(model, parent))
+    .unwrap_or(false) {
+    return Err(Invocation(ForeignCapturedInput))
+  }
   guard prepare_preconsumer_model_unit_observation(
       held, compiled, definition, plan, receipt, max_bytes, max_nodes, max_depth,
     )
@@ -207,6 +215,7 @@ pub fn issue_preconsumer_original_model_acquired_evidence(
         max_nodes,
         max_depth,
         imports~,
+        before_body~,
       )
     _ => Err(Invocation(ForeignCapturedInput))
   }

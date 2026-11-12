@@ -297,3 +297,154 @@ pub fn client_program_prepare_installed_effect_model_source_unit_catalog(
     run, plan, request, inputs, unit, max_bytes, max_nodes, max_depth,
   )
 }
+
+///|
+#export_name("clientProgramPinInstalledEffectModelUnitResults")
+pub fn client_program_pin_installed_effect_model_unit_results(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  captured : @strategy.CapturedEffectRunDAG,
+  unit : Int,
+) -> Result[
+  @strategy.CapturedEffectLocalUnitInputs,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  @client_local_host.pin_installed_effect_model_unit_results(
+    run, plan, request, captured, unit,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareInstalledEffectModelUnitResultExport")
+pub fn client_program_prepare_installed_effect_model_unit_result_export(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  captured : @strategy.CapturedEffectRunDAG,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  index : Int,
+) -> Result[
+  @strategy.CapturedEffectLocalResultExport,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  @client_local_host.prepare_installed_effect_model_unit_result_export(
+    run, plan, request, captured, inputs, index,
+  )
+}
+
+///|
+#export_name("clientProgramEffectModelUnitResultCount")
+pub fn client_program_effect_model_unit_result_count(
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+) -> Int {
+  @strategy.captured_effect_local_unit_result_count(inputs)
+}
+
+///|
+#export_name("clientProgramReleaseEffectModelUnitResults")
+pub fn client_program_release_effect_model_unit_results(
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+) -> Bool {
+  @strategy.release_captured_effect_local_unit_inputs(inputs)
+}
+
+///|
+#export_name("clientProgramPrepareInstalledEffectModelSourceUnitArtifact")
+pub fn client_program_prepare_installed_effect_model_source_unit_artifact(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  combined : @publication_host.ClientEffectCombinedSourceUnit,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  @client_local_host.prepare_installed_effect_model_source_unit_artifact(
+    run, plan, request, inputs, exported, combined, receipt, admission, definition,
+    max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareInstalledEffectModelUnitManifest")
+pub fn client_program_prepare_installed_effect_model_unit_manifest(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalManifest,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  @client_local_host.prepare_installed_effect_model_unit_manifest(
+    run, plan, request, invocation, artifacts, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// The original Named Result exporter already owns projection/order and
+/// bounded row encoding. No canonical-row reparse or Store write is needed
+/// merely to establish this upstream semantic Artifact's exact receipt.
+#export_name("clientProgramEffectModelUnitExportReceipt")
+pub fn client_program_effect_model_unit_export_receipt(
+  exported : @strategy.CapturedEffectLocalResultExport,
+) -> Result[
+  @execution.CompletedRelationExportReceipt,
+  @execution.CompletedExportIssue,
+] {
+  let preparation = @strategy.captured_effect_local_result_export_preparation(
+    exported,
+  )
+  while true {
+    match
+      @execution.advance_completed_result_relation_export(preparation, 256) {
+      Ok((true, _)) => break
+      Ok((false, _)) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  let stream = match
+    @execution.finish_completed_result_relation_export_preparation(preparation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match @execution.next_completed_output_export(stream) {
+      Ok(Some(_)) => ()
+      Ok(None) => break
+      Err(issue) => {
+        @execution.cancel_completed_output_export(stream)
+        return Err(issue)
+      }
+    }
+  }
+  @execution.finish_completed_relation_export(stream).map(value => value.0)
+}
+
+///|
+#export_name("clientProgramEffectModelUnitResultName")
+pub fn client_program_effect_model_unit_result_name(
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  index : Int,
+) -> String? {
+  @strategy.captured_effect_local_unit_result_at(inputs, index).map(result => {
+    @execution.managed_result_occurrence_name(
+      @strategy.captured_any_result_borrow_occurrence(
+        @strategy.captured_effect_local_result_borrow(result),
+      ),
+    )
+  })
+}

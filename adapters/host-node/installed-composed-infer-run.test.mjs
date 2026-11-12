@@ -560,3 +560,89 @@ test('upstream Source Unit preparation retains original bodies before Models and
   assert.throws(() => publish({acquired, sources: sources.slice(), sourcePlan, managedRun, sourceUnitsOriginal: original,
     issuedModel: {}, modelOriginals: [{unit: 1}, {unit: 2}]}), /ForeignEffectSourceUnitOriginal/u);
 });
+
+function originalRuntimeControlMethod(name, ports) {
+  const text = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  const root = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  let selected;
+  const visit = value => {
+    if (value === null || typeof value !== 'object') return;
+    if (value.type === 'Property' && value.method && value.key.name === name) selected = value;
+    for (const child of Object.values(value)) {
+      if (Array.isArray(child)) child.forEach(visit);
+      else if (child !== null && typeof child === 'object') visit(child);
+    }
+  };
+  visit(root); assert(selected);
+  return Function(...Object.keys(ports), `return ({${text.slice(selected.start, selected.end)}}).${name};`)(...Object.values(ports));
+}
+
+// Original runtime facade with explicit nominal Core ports. These are source
+// handoff/retirement controls, not Common ABI, provider or physical-close proof.
+function originalUnitResultFacadeFixture() {
+  const run = {}, plan = {}, request = {}, captured = {}, dependency = {invocation: {}}, source = {}, admission = {}, definition = {};
+  const pins = {}, exported = {}, receipt = {}, artifact = {}, manifest = {}, events = [];
+  const dependencies = new WeakMap([[dependency, {kind: 'combined_source', issued: source, unit: 0}]]);
+  const artifacts = new WeakMap(), manifests = new WeakMap();
+  let release = false;
+  const moon = {
+    clientProgramPinInstalledEffectModelUnitResults(actualRun, actualPlan, actualRequest, actualCaptured, unit) {
+      assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
+      assert.strictEqual(actualCaptured, captured); assert.equal(unit, 0); events.push('pin'); return {ok: pins};
+    }, clientProgramEffectModelUnitResultCount: actual => {assert.strictEqual(actual, pins); return 1;},
+    clientProgramPrepareInstalledEffectModelUnitResultExport(actualRun, actualPlan, actualRequest, actualCaptured, actualPins, index) {
+      assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
+      assert.strictEqual(actualCaptured, captured); assert.strictEqual(actualPins, pins); assert.equal(index, 0);
+      events.push('export'); return {ok: exported};
+    }, clientProgramEffectModelUnitExportReceipt(actual) {assert.strictEqual(actual, exported); events.push('receipt'); return {ok: receipt};},
+    clientProgramPrepareInstalledEffectModelSourceUnitArtifact(actualRun, actualPlan, actualRequest, actualPins, actualExport, actualSource, actualReceipt, actualAdmission, actualDefinition) {
+      assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
+      assert.strictEqual(actualPins, pins); assert.strictEqual(actualExport, exported); assert.strictEqual(actualSource, source);
+      assert.strictEqual(actualReceipt, receipt); assert.strictEqual(actualAdmission, admission); assert.strictEqual(actualDefinition, definition);
+      events.push('artifact'); return {ok: artifact};
+    }, clientProgramEffectModelUnitResultName: () => 'joined',
+    clientProgramPrepareInstalledEffectModelUnitManifest(actualRun, actualPlan, actualRequest, invocation, actualArtifacts) {
+      assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
+      assert.strictEqual(invocation, dependency.invocation); assert.deepEqual(actualArtifacts, [artifact]); events.push('manifest'); return {ok: manifest};
+    }, clientProgramLocalEffectResultManifestCid: () => 'original-manifest', clientProgramLocalEffectResultManifestJson: () => '{}',
+    clientProgramEffectLocalResultExportPreparation: actual => {assert.strictEqual(actual, exported); return exported;},
+    clientProgramEffectInputExportCancelPreparation: actual => {assert.strictEqual(actual, exported); events.push('retire-export');},
+    clientProgramEffectInputExportReleaseReceipt: actual => {assert.strictEqual(actual, receipt); events.push('retire-receipt');},
+    clientProgramReleaseEffectModelUnitResults(actual) {assert.strictEqual(actual, pins); events.push('release-pin'); return release;},
+    clientProgramBindInferResultArtifactInput(active, index, actualArtifact, actualManifest) {
+      assert.equal(index, 0); assert.strictEqual(actualArtifact, artifact); assert.strictEqual(actualManifest, manifest); events.push('bind'); return {ok: undefined};
+    },
+  };
+  const ports = {moon, checked: value => value.ok, issuanceLimits() {},
+    localEffectDependencyTokens: dependencies, localEffectArtifactTokens: artifacts, localEffectManifestTokens: manifests,
+    admissionToken: value => {assert.strictEqual(value, admission); return admission;},
+    inspectLocalEffectArtifact: actual => {const value = Object.freeze({}); artifacts.set(value, actual); return value;}};
+  const prepare = originalRuntimeControlMethod('prepareOriginalEffectSourceUnitResults', ports);
+  const retire = originalRuntimeControlMethod('retireOriginalEffectUnitResults', ports);
+  const bind = originalRuntimeControlMethod('bindInferOriginalResultArtifact', ports);
+  const retained = {pins: undefined, exports: [], receipts: [], artifacts: [], manifest: undefined};
+  return {events, pins, retained, retire, bind, release() {release = true;},
+    prepare(current = () => {}) {return prepare(run, plan, request, captured, dependency, admission, definition, {}, retained, current);}};
+}
+
+test('original upstream Result facade retains every issued original before the next fallible boundary', () => {
+  const f = originalUnitResultFacadeFixture();
+  assert.strictEqual(f.prepare(), f.retained);
+  assert.deepEqual(f.events, ['pin', 'export', 'receipt', 'artifact', 'manifest']);
+  f.bind({}, 0, f.retained.artifacts[0].artifact, f.retained.manifest);
+  assert.throws(() => f.bind({}, 0, {...f.retained.artifacts[0].artifact}, f.retained.manifest), /ForeignInferResultArtifact/u);
+  assert.equal(f.retire(f.retained), false);
+  assert.strictEqual(f.retained.pins, f.pins, 'pending original pin remains with this same record');
+  f.release(); assert.equal(f.retire(f.retained), true);
+  assert.equal(f.retained.pins, undefined); assert.equal(f.retained.artifacts.length, 0);
+});
+
+test('original upstream Result facade preserves partial custody when current throws undefined after pinning', () => {
+  const f = originalUnitResultFacadeFixture(); let calls = 0, failed = false, cause;
+  try {f.prepare(() => {if (++calls === 2) throw undefined;});} catch (error) {failed = true; cause = error;}
+  assert.equal(failed, true); assert.strictEqual(cause, undefined);
+  assert.deepEqual(f.events, ['pin']); assert.strictEqual(f.retained.pins, f.pins);
+  assert.equal(f.retire(f.retained), false);
+  f.release(); assert.equal(f.retire(f.retained), true);
+  assert.equal(f.retained.pins, undefined);
+});

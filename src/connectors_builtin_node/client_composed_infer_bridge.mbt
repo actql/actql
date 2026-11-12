@@ -827,3 +827,11 @@ pub fn client_program_bind_infer_result_artifact_input(
     active, import_index, artifact, manifest,
   )
 }
+
+///|
+#export_name("clientProgramInferOccurrenceResultImports")
+pub fn client_program_infer_occurrence_result_imports(
+  occurrence : @publication_host.ClientInferOccurrence,
+) -> Array[(Int, String)] {
+  @publication_host.client_infer_occurrence_result_imports(occurrence)
+}

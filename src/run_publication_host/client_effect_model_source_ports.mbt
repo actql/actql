@@ -290,3 +290,42 @@ fn model_effect_originals_share_result_port(
     _ => false
   }
 }
+
+///|
+fn model_effect_scope_imported_source(
+  imports : Array[ClientScopeResultImportObservation],
+  input : ClientInferSourceInput,
+) -> Bool {
+  for observed in imports {
+    let artifact = observed.input.artifact
+    let program = @checked.effect_program_static_checked_computation(
+      artifact.invocation.owner.candidate,
+    )
+    if model_effect_result_port_source(
+        program,
+        observed.input.interface,
+        input.original,
+      )
+      is Some(check) {
+      let stage = @checked.source_execution_subject(check).stage
+      let matches = match artifact.custody {
+        EffectInputs(original) =>
+          @strategy.captured_effect_inputs_acquired_source_matches(
+            original,
+            stage,
+            input.identity,
+          )
+        AcquiredUnit(original) =>
+          @strategy.captured_effect_local_unit_source_ancestor_matches(
+            original,
+            stage,
+            input.identity,
+          )
+      }
+      if matches {
+        return true
+      }
+    }
+  }
+  false
+}

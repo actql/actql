@@ -123,3 +123,31 @@ pub fn client_infer_occurrence_result_import_count(
     occurrence.stage,
   ).unwrap_or(0)
 }
+
+///|
+/// Original checked producer coordinates for the installing caller's bounded
+/// cache. This is immutable inventory DATA, never an Artifact or read grant.
+pub fn client_infer_occurrence_result_imports(
+  occurrence : ClientInferOccurrence,
+) -> Array[(Int, String)] {
+  let program = @strategy.graph_program(occurrence.owner.graph)
+  let count = @checked.unit_result_import_count(program, occurrence.stage).unwrap_or(
+    0,
+  )
+  Array::makei(count, index => {
+    let imported = @checked.unit_result_import_at(
+      program,
+      occurrence.stage,
+      index,
+    ).unwrap()
+    let mut producer = -1
+    for unit in 0..<occurrence.stage {
+      if @checked.unit_definition_cid(program, unit) ==
+        Some(imported.producer_unit_definition_cid) {
+        producer = unit
+        break
+      }
+    }
+    (producer, imported.result_name)
+  })
+}

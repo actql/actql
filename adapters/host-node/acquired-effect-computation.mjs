@@ -214,6 +214,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         restoredModelOutput = undefined;
         unresolved = false;
       }
+      if (modelGroup?.hasUnitPins() && !modelGroup.releaseUnitOutputs()) return false;
       if (modelGroup?.hasOutputPins()) {
         if (physical !== undefined && !physicalRetired) {
           if (await physical.cleanup() === false || physical.cleanupPending() !== false) return false;
@@ -352,7 +353,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       modelGroup = acquiredEffectModelGroup({moon, acquired, infer, originalModelComponents,
         originalModelSelection, originalPreparation, plan: modelPlan, store, principalId, signal, now,
         modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
-        sourceContinuation, faultInjection, current, sourcePlan: operationPlan, managedRun});
+        sourceContinuation, faultInjection, current, sourcePlan: operationPlan, managedRun, originalHost: () => checkedHost});
       await modelGroup.prime();
       current();
     }
@@ -878,7 +879,7 @@ function selectRestoredKeyedSource(moon, originals, direct) {
 function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponents,
   originalModelSelection, originalPreparation, plan, store, principalId, signal, now,
   modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
-  sourceContinuation, faultInjection, current, sourcePlan, managedRun}) {
+  sourceContinuation, faultInjection, current, sourcePlan, managedRun, originalHost}) {
   const selected = infer.components, originals = originalPreparation?.components;
   if (!Array.isArray(selected) || selected.length < 2 || selected.length > 128 ||
       !Object.isFrozen(selected) || !Array.isArray(originalModelComponents) ||
@@ -898,7 +899,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   });
   let issuance, issuanceComplete = false, publicationOwner, publication, holding;
   let publicationPreparation, publicationFailure, publicationFailed = false;
-  let retirementRequested = false, publicationRetirement;
+  let retirementRequested = false, publicationRetirement, releasingOutputs = false;
   const publicationBindings = [];
   let captures, evidence, captureStartedAt, captureCompletedAt, keyedFamily, restoredHost, restoredKeyed, sourceUnitsOriginal;
   let sourceUnitsAttempted = false, sourceUnitsFailed = false, sourceUnitsFailure;
@@ -933,7 +934,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     if (!issuanceComplete) throw new Error('InstalledComposedInferOriginalObservationUnavailable');
     return true;
   };
-  const pending = () => children.some(child => child.capture !== undefined && !child.captureReleased ||
+  const unitPinsPending = () => sourceUnitsOriginal !== undefined && [...sourceUnitsOriginal.byUnit.values()]
+    .some(entry => entry.resultPreparing || entry.results?.pins !== undefined);
+  const pending = () => unitPinsPending() || children.some(child => child.capture !== undefined && !child.captureReleased ||
     child.continuation !== undefined && !child.continuationReleased || child.output !== undefined);
   const publicationCurrent = () => {
     same();
@@ -1074,6 +1077,23 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     // Local retains the actual child, never a recursive parent cleanup handle.
     return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint};
   }
+  function releaseUnitOutputs() {
+    if (releasingOutputs || [...(sourceUnitsOriginal?.byUnit.values() ?? [])].some(entry => entry.resultPreparing)) return false;
+    releasingOutputs = true;
+    try {
+      if (unitPinsPending()) {
+        // Request actual captured consumer retirement first. It may remain
+        // pending precisely because these original Unit pins are still held.
+        checked(moon.clientProgramRetireInstalledEffectCapturedConsumers(managedRun));
+      }
+      for (const entry of sourceUnitsOriginal?.byUnit.values() ?? []) {
+        if (entry.results !== undefined && !acquired.control.retireOriginalEffectUnitResults(entry.results)) return false;
+      }
+      // Only our aliases/pins returned. Enclosing physical.cleanup and the
+      // original Run retirement still decide their separate ACK/Unknown facts.
+      return true;
+    } finally {releasingOutputs = false;}
+  }
   return Object.freeze({
     async prime() {
       same();
@@ -1150,6 +1170,37 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
           ...(context.contentFamily === undefined ? {} : {generatedInput: {
             generation: () => context.contentFamily.generation(), recovery: () => context.contentFamily.recovery()}}),
           capturedInput: ownsKeyed ? keyedFamily.capturedInput : undefined,
+          prepareOriginalResults() {
+            publicationCurrent();
+            if (sourceUnitsOriginal === undefined) return undefined;
+            const imports = moon.clientProgramInferOccurrenceResultImports(child.selection.occurrence);
+            const bound = [];
+            for (const [index, imported] of imports.entries()) {
+              const unit = runtimeField(imported, 0), name = runtimeField(imported, 1);
+              const entry = sourceUnitsOriginal?.byUnit.get(unit);
+              if (entry === undefined) throw new Error('OriginalEffectProducerUnitUnavailable');
+              if (entry.resultFailed) throw entry.resultFailure;
+              if (entry.resultPreparing) throw new Error('EffectProducerUnitPreparationPending');
+              if (!entry.resultAttempted) {
+                entry.resultAttempted = true; entry.resultPreparing = true;
+                entry.results = {pins: undefined, exports: [], receipts: [], artifacts: [], manifest: undefined};
+                try {
+                  const host = originalHost?.();
+                  if (host === undefined) throw new Error('OriginalEffectProducerHostUnavailable');
+                  acquired.control.prepareOriginalEffectSourceUnitResults(managedRun, sourcePlan, acquired.requestIdentity,
+                    moon.clientProgramLocalEffectHostRun(host), entry.value, acquired.admission, acquired.definition,
+                    localContractLimits, entry.results, publicationCurrent);
+                } catch (cause) {
+                  entry.resultFailed = true; entry.resultFailure = cause; throw cause;
+                } finally {entry.resultPreparing = false;}
+              }
+              const artifact = entry.results.artifacts.find(value => value.name === name)?.artifact;
+              if (artifact === undefined || entry.results.manifest === undefined) throw new Error('OriginalEffectUnitResultUnavailable');
+              bound.push({index, artifact, manifest: entry.results.manifest});
+            }
+            publicationCurrent();
+            return bound;
+          },
           retainOperation(operation) {
             child.operation = operation;
             child.capture = openNodeInferCaptureCustody({moon, control: acquired.control, operation, plan, store,
@@ -1187,8 +1238,11 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     },
     // Final Effect dependency issuance still borrows each Model original.
     // Keep these bindings until the existing Host/output retirement boundary.
-    hasOutputPins: () => publicationBindings.length > 0 || children.some(child => child.output !== undefined),
+    hasOutputPins: () => unitPinsPending() || publicationBindings.length > 0 || children.some(child => child.output !== undefined),
+    hasUnitPins: unitPinsPending,
+    releaseUnitOutputs,
     releaseOutputs() {
+      if (!releaseUnitOutputs()) return false;
       if (restoredHost !== undefined && !checked(moon.clientProgramRetireInstalledEffectCapturedConsumers(restoredHost))) return false;
       for (const child of children) {
         if (child.output !== undefined && moon.clientProgramReleaseInferOutput(child.output) !== true) return false;

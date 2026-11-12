@@ -12,6 +12,8 @@ struct ClientEffectModelAcquiredEvidence {
   scope : @publication.PublicationContract
   retention : @publication.PublicationContract
   imports : ClientEffectImportedEvidence?
+  scope_imports : Array[ClientScopeResultImportObservation]
+  scope_relations : Array[@publication.PublicationContract]
 }
 
 ///|
@@ -28,6 +30,7 @@ pub fn issue_single_model_client_effect_acquired_evidence(
   max_nodes : Int,
   max_depth : Int,
   imports? : ClientEffectImportedEvidence? = None,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[
   ClientEffectModelAcquiredEvidence,
   ClientEffectAcquiredEvidenceIssue,
@@ -106,6 +109,25 @@ pub fn issue_single_model_client_effect_acquired_evidence(
   } else {
     None
   }
+  let scope_imports = if imports is None && !call_scope.result_inputs.is_empty() {
+    match
+      issue_scope_model_result_import_observations(
+        match compiled.compilation {
+          Effects(allowed) => allowed.compilation.owner
+          _ => return Err(Invocation(ForeignCapturedInput))
+        },
+        call_scope,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        before_body~,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Invocation(issue))
+    }
+  } else {
+    []
+  }
   let invocation = match
     issue_model_effect_local_invocation(
       compiled,
@@ -116,13 +138,22 @@ pub fn issue_single_model_client_effect_acquired_evidence(
       max_nodes,
       max_depth,
       imports=imports.map(value => (value, sources)),
+      scope_imports~,
+      scope_sources=Some(sources),
+      before_body~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Invocation(issue))
   }
   let direct = match
     build_model_effect_direct_sources(
-      invocation, sources, retention, max_bytes, max_nodes, max_depth,
+      invocation,
+      sources,
+      retention,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      before_body~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -140,7 +171,41 @@ pub fn issue_single_model_client_effect_acquired_evidence(
     return Err(Invocation(ForeignCapturedInput))
   }
   let scopes = []
+  let scope_relations : Array[@publication.PublicationContract] = []
+  for observed in scope_imports {
+    let artifact = observed.input.artifact
+    guard artifact.scope is Some(original_scope) else {
+      return Err(Relation(@publication.WrongScope))
+    }
+    scopes.push(original_scope)
+    let relation = match
+      @publication.issue_derived_input_relation(
+        artifact.artifact,
+        artifact.evidence,
+        original_scope,
+        artifact.retention,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        before_body~,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Relation(issue))
+    }
+    if !scope_relations.any(value => {
+        @publication.publication_contract_identity(value) ==
+        @publication.publication_contract_identity(relation)
+      }) {
+      scope_relations.push(relation)
+    }
+  }
   for index, source in direct {
+    if model_effect_scope_imported_source(scope_imports, sources.inputs[index]) {
+      continue
+    }
+    if !scope_imports.is_empty() {
+      scope_relations.push(source.relation)
+    }
     if imports
       .map(original => {
         model_effect_imported_source(original, sources.inputs[index])
@@ -161,7 +226,11 @@ pub fn issue_single_model_client_effect_acquired_evidence(
   }
   let scope = match
     @publication.issue_combined_acquisition_scope(
-      scopes, max_bytes, max_nodes, max_depth,
+      scopes,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      before_body~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Relation(issue))
@@ -176,6 +245,8 @@ pub fn issue_single_model_client_effect_acquired_evidence(
     scope,
     retention,
     imports,
+    scope_imports,
+    scope_relations,
   })
 }
 
@@ -510,13 +581,17 @@ fn build_model_client_effect_local_result_artifact(
 fn effect_model_acquired_relation_cids(
   acquired : ClientEffectModelAcquiredEvidence,
 ) -> Result[Array[String], ClientEffectLocalResultArtifactIssue] {
-  let relations = match acquired.imports {
-    Some(original) =>
-      original.relations.map(@publication.publication_contract_identity)
-    None =>
-      acquired.direct.map(value => {
-        @publication.publication_contract_identity(value.relation)
-      })
+  let relations = if !acquired.scope_relations.is_empty() {
+    acquired.scope_relations.map(@publication.publication_contract_identity)
+  } else {
+    match acquired.imports {
+      Some(original) =>
+        original.relations.map(@publication.publication_contract_identity)
+      None =>
+        acquired.direct.map(value => {
+          @publication.publication_contract_identity(value.relation)
+        })
+    }
   }
   if acquired.keyed is Some((lookup, completed)) {
     guard !lookup.closed &&
@@ -603,4 +678,109 @@ pub fn client_effect_model_public_result_evidence_refs(
       authority,
     ),
   )
+}
+
+///|
+pub fn client_effect_model_acquired_scope_import_bodies(
+  value : ClientEffectModelAcquiredEvidence,
+) -> Array[(String, String, String)] {
+  let bodies : Array[(String, String, String)] = []
+  for observed in value.scope_imports {
+    bodies.push(("result_import_observation", observed.cid, observed.wire))
+  }
+  for relation in value.scope_relations {
+    bodies.push(
+      (
+        "acquisition_relation",
+        @publication.publication_contract_identity(relation),
+        @publication.publication_contract_json(relation),
+      ),
+    )
+  }
+  bodies
+}
+
+///|
+/// Geometry from the same local Definition and Result evidence emitters, over
+/// this actual completed Model's original Scope/import relations and receipt.
+/// Future CID positions contribute only their fixed canonical width.
+pub fn client_effect_model_unit_artifact_construction_geometry(
+  owner : PreparedClientEffectComputation,
+  acquired : ClientEffectModelAcquiredEvidence,
+  result_name : String,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  ClientEffectLocalResultArtifactIssue,
+] {
+  guard physical_equal(acquired.invocation.owner, owner) &&
+    prepared_client_effect_publication_data_policy_cid(owner) is Some(policy) else {
+    return Err(ForeignOwner)
+  }
+  let definition = match
+    client_effect_local_result_definition_construction_geometry(
+      owner,
+      acquired.invocation.unit,
+      result_name,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(ForeignDefinition)
+  }
+  let relations = match effect_model_acquired_relation_cids(acquired) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let retention = match
+    @publication.result_retention_policy_construction_geometry(
+      acquired.retention,
+      policy,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Scope(issue))
+  }
+  let shapes = match
+    @publication.local_result_metadata_construction_geometry(
+      acquired.invocation.unit_definition_cid,
+      acquired.invocation.cid,
+      @execution.logical_relation_cid(
+        @execution.completed_relation_export_identity(receipt),
+      ),
+      @execution.relation_schema_cid(
+        @execution.completed_relation_export_schema_identity(receipt),
+      ),
+      acquired.invocation.unit_definition_cid,
+      relations,
+      @publication.publication_contract_identity(acquired.scope),
+      policy,
+      "actql-common-host",
+      @publication.run_publication_execution_context(admission),
+      @publication.publication_contract_identity(acquired.retention),
+      @execution.completed_relation_export_measurement(receipt).row_count,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  let bodies = [
+    ("local_result_definition", definition),
+    ("derivation_evidence", shapes[0]),
+    ("ordering_evidence", shapes[1]),
+    ("result_artifact", shapes[2]),
+  ]
+  if retention is Some(shape) {
+    bodies.push(("result_retention_policy", shape))
+  }
+  Ok(bodies)
 }

@@ -322,3 +322,210 @@ pub fn client_program_infer_model_identity_receipt_cancel(
 ) -> Unit {
   @execution.cancel_completed_relation_export_receipt(receipt)
 }
+
+///|
+/// Borrow the original Scope import bodies retained by this Model; no final
+/// Run inputs, re-admission or replacement Result Artifact are synthesized.
+#export_name("clientProgramOriginalModelAcquiredScopeImportBodies")
+pub fn client_program_original_model_acquired_scope_import_bodies(
+  value : @publication_host.ClientEffectModelAcquiredEvidence,
+) -> Array[(String, String, String)] {
+  @publication_host.client_effect_model_acquired_scope_import_bodies(value)
+}
+
+///|
+#export_name("clientProgramPreconsumerModelUnitIdentityStartCapacity")
+pub fn client_program_preconsumer_model_unit_identity_start_capacity(
+  held : @infer_host.OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> (Int64, Int64)? {
+  @infer_host.preconsumer_model_unit_identity_start_capacity(
+    held, compiled, definition, plan,
+  ).map(capacity => {
+    (
+      @execution.execution_capacity_retained_bytes(capacity),
+      @execution.execution_capacity_execution_bytes(capacity),
+    )
+  })
+}
+
+///|
+#export_name("clientProgramPreconsumerModelUnitIdentityStart")
+pub fn client_program_preconsumer_model_unit_identity_start(
+  held : @infer_host.OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> Result[
+  @execution.CompletedRelationIdentityScan,
+  @execution.CompletedExportIssue,
+] {
+  @infer_host.start_preconsumer_model_unit_identity(
+    held, compiled, definition, plan,
+  )
+}
+
+///|
+#export_name("clientProgramPreconsumerModelUnitObservationCapacity")
+pub fn client_program_preconsumer_model_unit_observation_capacity(
+  held : @infer_host.OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  receipt : @execution.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+) -> (Int64, Int64)? {
+  @infer_host.preconsumer_model_unit_observation_capacity(
+    held, compiled, definition, plan, receipt, max_wire_bytes,
+  ).map(capacity => {
+    (
+      @execution.execution_capacity_retained_bytes(capacity),
+      @execution.execution_capacity_execution_bytes(capacity),
+    )
+  })
+}
+
+///|
+#export_name("clientProgramPrepareInstalledEffectModelUnitEvidence")
+pub fn client_program_prepare_installed_effect_model_unit_evidence(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  held : @infer_host.OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @infer_host.PreconsumerModelUnitEvidence,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  let parent = match
+    @client_local_host.installed_effect_model_unit_parent(
+      run, plan, request, compiled, definition, graph,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Run(issue))
+  }
+  let mut failure : @client_local_host.ClientInstalledManagedRunIssue? = None
+  let result = @infer_host.issue_preconsumer_original_model_acquired_evidence(
+    held,
+    compiled,
+    definition,
+    graph,
+    receipt,
+    retention,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    parent_ledger=Some(parent),
+    before_body=Some(fn(kind, shape) {
+      if failure is Some(_) {
+        return false
+      }
+      match
+        @client_local_host.reserve_installed_effect_model_unit_body(
+          run, plan, request, kind, shape,
+        ) {
+        Ok(_) => true
+        Err(issue) => {
+          failure = Some(issue)
+          false
+        }
+      }
+    }),
+  )
+  if failure is Some(issue) {
+    return Err(Run(issue))
+  }
+  guard @client_local_host.installed_effect_model_unit_parent(
+      run, plan, request, compiled, definition, graph,
+    )
+    is Ok(actual) &&
+    physical_equal(actual, parent) else {
+    return Err(Run(Retired))
+  }
+  result.map_err(issue => {
+    @client_local_host.ClientEffectUnitPreparationIssue::Evidence(issue)
+  })
+}
+
+///|
+#export_name("clientProgramPreconsumerModelUnitAcquiredEvidence")
+pub fn client_program_preconsumer_model_unit_acquired_evidence(
+  original : @infer_host.PreconsumerModelUnitEvidence,
+) -> @publication_host.ClientEffectModelAcquiredEvidence? {
+  @infer_host.preconsumer_model_unit_acquired_evidence(original)
+}
+
+///|
+#export_name("clientProgramPrepareInstalledEffectModelUnitArtifact")
+pub fn client_program_prepare_installed_effect_model_unit_artifact(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  owner : @publication_host.PreparedClientEffectComputation,
+  original : @infer_host.PreconsumerModelUnitEvidence,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  guard @infer_host.preconsumer_model_unit_acquired_evidence(original)
+    is Some(acquired) else {
+    return Err(Artifact(ForeignOwner))
+  }
+  let result = @strategy.captured_effect_local_result_export_result(exported)
+  let unit = @strategy.captured_effect_local_result_stage(result)
+  let name = @execution.managed_result_occurrence_name(
+    @strategy.captured_any_result_borrow_occurrence(
+      @strategy.captured_effect_local_result_borrow(result),
+    ),
+  )
+  let shapes = match
+    @publication_host.client_effect_model_unit_artifact_construction_geometry(
+      owner, acquired, name, receipt, admission, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Artifact(issue))
+  }
+  for (kind, shape) in shapes {
+    match
+      @client_local_host.reserve_installed_effect_model_unit_body(
+        run, plan, request, kind, shape,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Run(issue))
+    }
+  }
+  // Resource resize/current callbacks may retire the original Model. Fence
+  // that actual boundary before constructing even its local Definition.
+  guard @infer_host.preconsumer_model_unit_acquired_evidence(original)
+    is Some(same) &&
+    physical_equal(same, acquired) else {
+    return Err(Artifact(ForeignOwner))
+  }
+  let definition = match
+    @publication_host.issue_client_effect_local_result_definition(
+      owner, unit, name, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Artifact(ForeignDefinition))
+  }
+  @infer_host.issue_preconsumer_original_model_unit_artifact(
+    original, owner, inputs, exported, definition, receipt, admission, max_bytes,
+    max_nodes, max_depth,
+  ).map_err(issue => Artifact(issue))
+}

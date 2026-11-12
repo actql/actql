@@ -109,7 +109,35 @@ fn issue_client_effect_local_invocation_body(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
+  if before_body is Some(back) {
+    let measure = @encode.construction_measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    ) catch {
+      _ => return Err(Encoding)
+    }
+    let shape = try {
+      emit_client_effect_local_invocation(
+        measure,
+        unit_definition_cid,
+        used_values_cid,
+        local_contracts_cid,
+        policy_cid,
+        observations,
+        Some(unit_definition_cid),
+      )
+      @encode.finish_construction_measurement(measure)
+    } catch {
+      _ => {
+        @encode.cancel_writer(measure)
+        return Err(Encoding)
+      }
+    }
+    if !back("local_computation", shape) {
+      return Err(Encoding)
+    }
+  }
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }

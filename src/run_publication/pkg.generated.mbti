@@ -560,7 +560,7 @@ pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependency
 
 pub fn issue_captured_source_input_relation(RunEvidenceValue, RunEvidenceValue, String, Int, PublicationContract, Int, Int, Int) -> Result[(PublicationContract, PublicationContract, PublicationContract), AcquisitionRelationIssue]
 
-pub fn issue_combined_acquisition_scope(Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+pub fn issue_combined_acquisition_scope(Array[PublicationContract], Int, Int, Int, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[PublicationContract, AcquisitionRelationIssue]
 
 pub fn issue_complete_local_result_artifact(String, String, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
@@ -578,7 +578,7 @@ pub fn issue_delivery_attempt(PublicationContract, PublicationContract, Publicat
 
 pub fn issue_delivery_record(PublicationContract, PublicationContract?, String, Int, String, Int?, String?, PublicationContract?, String?, String, Array[String], Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
-pub fn issue_derived_input_relation(PublicationContract, ResultOrderingEvidence, PublicationContract, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+pub fn issue_derived_input_relation(PublicationContract, ResultOrderingEvidence, PublicationContract, PublicationContract, Int, Int, Int, before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[PublicationContract, AcquisitionRelationIssue]
 
 pub fn issue_durable_result_binding(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, String, Array[String], String, String, String, Int, Int, String, Int, Int, Int, schema_original? : CapturedEffectDependencyBody?) -> Result[PublicationContract, DurableResultBindingIssue]
 
@@ -671,6 +671,8 @@ pub fn issue_succeeded_run_state(String, String, Array[String], Array[ResultAvai
 pub fn issue_succeeded_run_state_wire(String, String, Array[String], Array[String], Array[String], Array[String], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
 pub fn local_model_observation_matches_input(CapturedEffectDependencyBody, String, Int, RunEvidenceValue) -> Bool
+
+pub fn local_result_metadata_construction_geometry(String, String, String, String, String, Array[String], String, String, String, String, String, Int, Int, Int, Int) -> Result[Array[@encode_core.EncodingConstructionGeometry], ResultEvidenceIssuanceIssue]
 
 pub fn local_sdk_result_read_selection_cid(LocalSDKResultReadSelection) -> String
 
@@ -912,6 +914,8 @@ pub fn publication_contract_identity(PublicationContract) -> String
 
 pub fn publication_contract_identity_field(PublicationContract) -> String
 
+pub fn publication_contract_identity_field_for_name(String) -> String?
+
 pub fn publication_contract_json(PublicationContract) -> String
 
 pub fn publication_contract_name(PublicationContract) -> String
@@ -1066,6 +1070,8 @@ pub fn result_retention_interval_state(PublicationContract, String) -> Result[St
 
 pub fn result_retention_intervals_valid(PublicationContract) -> Bool
 
+pub fn result_retention_policy_construction_geometry(PublicationContract, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry?, PublicationContractIssue]
+
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
 pub fn retain_model_capture_bundle_read(ModelCaptureBundleRead) -> ModelCaptureBundleRead?
@@ -1123,6 +1129,8 @@ pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[Public
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
+
+pub fn source_unit_metadata_construction_geometry(Array[RunEvidenceValue], Array[RunEvidenceValue], Array[Int], PublicationContract, Int, Int, Int, include_union? : Bool) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], AcquisitionRelationIssue]
 
 pub fn start_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int, Int) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue]
 

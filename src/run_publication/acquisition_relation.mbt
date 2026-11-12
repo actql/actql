@@ -158,6 +158,7 @@ pub fn issue_derived_input_relation(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[PublicationContract, AcquisitionRelationIssue] {
   if scope.name != "acquisition_scope" ||
     contract_string(evidence.derivation, "scope_cid") != Some(scope.identity) {
@@ -191,6 +192,7 @@ pub fn issue_derived_input_relation(
     max_bytes,
     max_nodes,
     max_depth,
+    before_body~,
   )
 }
 
@@ -253,7 +255,40 @@ fn seal_input_relation(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[PublicationContract, AcquisitionRelationIssue] {
+  if before_body is Some(back) {
+    let measure = @encode.construction_measuring_writer(
+      max_bytes, max_nodes, max_depth,
+    ) catch {
+      _ => return Err(Encoding)
+    }
+    let shape = try {
+      emit_acquisition_relation_body(
+        measure,
+        producer,
+        logical,
+        schema,
+        ordering,
+        scope.identity,
+        retention.identity,
+        contract_string(retention, "effective_data_policy_cid").unwrap(),
+        rows,
+        completeness,
+        provenance_kind,
+        provenance,
+      )
+      @encode.finish_construction_measurement(measure)
+    } catch {
+      _ => {
+        @encode.cancel_writer(measure)
+        return Err(Encoding)
+      }
+    }
+    if !back("acquisition_relation", shape) {
+      return Err(Encoding)
+    }
+  }
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }

@@ -222,5 +222,7 @@ pub fn issue_restored_model_client_effect_imported_evidence(
     scope: combined,
     retention,
     imports: Some(imports),
+    scope_imports: [],
+    scope_relations: [],
   })
 }
