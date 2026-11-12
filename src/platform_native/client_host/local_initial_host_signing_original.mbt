@@ -126,24 +126,34 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
 pub fn NativeLocalInitialHostSigningOriginal::require_current(
   self : NativeLocalInitialHostSigningOriginal,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match self.reviewer.require_current() {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
   let host = self.reviewer.host
-  let signing_original = if self.reviewer.original_read is Some(_) {
-    Some(self.reviewer)
+  let (fields, subject) = if self.reviewer.original_read is Some(_) {
+    let (reviewer_fields, host_fields) = match
+      self.reviewer.read_current_control() {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    // The same active Read authenticated both roles and this exact subject.
+    // No callback intervenes before consuming the original immutable fields.
+    guard host_fields is Some((fields, subject)) &&
+      fields.policy.cid() == reviewer_fields.policy.cid() &&
+      fields.issuer == reviewer_fields.issuer else {
+      return Err(CustodyLost)
+    }
+    (fields, subject)
   } else {
-    None
-  }
-  let (fields, subject) = match
-    read_local_initial_host_signing_control_with_subject(
-      host,
-      self.reviewer.control_body,
-      signing_original~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+    match self.reviewer.require_current() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    match
+      read_local_initial_host_signing_control_with_subject(
+        host,
+        self.reviewer.control_body,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
   }
   if fields.exported != self.exported ||
     fields.public_key_pem != self.public_key_pem ||

@@ -249,9 +249,46 @@ test('initial host restoration consumes the same admitted subject while preservi
   assert.equal(digest(source.slice(controlStart, source.indexOf('\n///|', controlStart))),
     'bc26137008e37267832cda58e328a789acbd94456f641216c816b9da6c6159d8',
     'The full authenticated original control/issuer/policy admission remains exact');
-  assert.equal(digest(signingMethod(source, 'NativeLocalInitialHostSigningOriginal', 'require_current')),
-    'e0059625e837d5aba6b7f72a07bccd7069e776f6a815bdcb3910eedad07daedf',
-    'All post-IO mutable/reviewer/control/subject/projection and final Host fences remain exact');
+  const current = signingMethod(source, 'NativeLocalInitialHostSigningOriginal', 'require_current');
+  assert.equal(digest(current.slice(current.indexOf('  if fields.exported'))),
+    'd85bcc3daebd7a9865a4744e0fee8f6b34c72322632263b64298f35cfa05ce5b',
+    'All Host identity, subject, physical generation and final current fences remain exact');
+});
+
+test('Host key current consumes the original control fields without admitting both role packets again', () => {
+  const reviewer = readFileSync(new URL('../src/platform_native/client_host/local_initial_signing_original.mbt', import.meta.url), 'utf8');
+  const host = readFileSync(new URL('../src/platform_native/client_host/local_initial_host_signing_original.mbt', import.meta.url), 'utf8');
+  const current = signingMethod(host, 'NativeLocalInitialHostSigningOriginal', 'require_current');
+  const retainedEntry = signingMethod(reviewer, 'NativeLocalInitialSigningOriginal', 'require_current_after_host_binding');
+  const control = retainedEntry.includes('self.read_current_control_after_host_binding()')
+    ? signingMethod(reviewer, 'NativeLocalInitialSigningOriginal', 'read_current_control_after_host_binding')
+    : retainedEntry;
+  const admissions = [...control.matchAll(/read_local_initial_signing_control(?:_with_host_key)?\(/gu)].length;
+  assert.equal(admissions, 1, 'Original current still authenticates the complete control exactly once');
+  const scopedStart = current.indexOf('  let (fields, subject) = if self.reviewer.original_read is Some(_) {');
+  const scopedEnd = current.indexOf('\n  } else {', scopedStart);
+  const scoped = scopedStart < 0 ? current : current.slice(scopedStart, scopedEnd);
+  const reviewerReads = [...scoped.matchAll(/self\.reviewer\.(?:require_current|read_current_control)\(/gu)].length * admissions;
+  const repeatedReads = [...scoped.matchAll(/read_local_initial_host_signing_control_with_subject\(/gu)].length;
+  assert.equal(reviewerReads + repeatedReads, 1,
+    'The immediately admitted Host fields and subject must survive the Reviewer current handoff');
+  assert(scopedStart >= 0 && scopedEnd > scopedStart);
+  const legacy = current.slice(scopedEnd, current.indexOf('  if fields.exported'));
+  assert.match(legacy, /self\.reviewer\.require_current\(\)/u);
+  assert.match(legacy, /read_local_initial_host_signing_control_with_subject\(/u,
+    'Missing original Read retains the independent complete entry');
+  assert.doesNotMatch(scoped, /read_local_initial_host_signing_control|\.now\(|authorize\(|\.transaction\(/u);
+  assert.match(scoped, /fields\.policy\.cid\(\) == reviewer_fields\.policy\.cid\(\)/u);
+  assert.match(scoped, /fields\.issuer == reviewer_fields\.issuer/u);
+  const restored = control
+    .replace(/fn NativeLocalInitialSigningOriginal::read_current_control_after_host_binding\([\s\S]*?\n  guard self\.host/u,
+      'fn NativeLocalInitialSigningOriginal::require_current_after_host_binding(\n  self : NativeLocalInitialSigningOriginal,\n) -> Result[Unit, NativeLocalAdoptionIssue] {\n  guard self.host')
+    .replace('read_local_initial_signing_control_with_host_key(', 'read_local_initial_signing_control(')
+    .replace('is Ok(Some((fields, host_fields)))', 'is Ok(Some(fields))')
+    .replace('self.check_host_current().map(_ => (fields, host_fields))', 'self.check_host_current()');
+  assert.equal(createHash('sha256').update(restored).digest('hex'),
+    '198284f47ac20e744033e508f4b231084eae327f7c2c4e34836861d63e974e68',
+    'Control admission and every original Reviewer custody/separation/projection/current check stay exact');
 });
 
 test('finite read statement keeps exact row admission and private selected ABI bindings', () => {

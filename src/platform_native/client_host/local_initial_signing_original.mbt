@@ -669,6 +669,38 @@ pub fn NativeLocalInitialSigningOriginal::require_current(
 fn NativeLocalInitialSigningOriginal::require_current_after_host_binding(
   self : NativeLocalInitialSigningOriginal,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  self.read_current_control_after_host_binding().map(_ => ())
+}
+
+///|
+// Immediate DATA handoff from the same complete current observation. The Host
+// key caller consumes these fields locally; no observation or Allow is retained.
+fn NativeLocalInitialSigningOriginal::read_current_control(
+  self : NativeLocalInitialSigningOriginal,
+) -> Result[
+  (
+    NativeLocalInitialSigningFields,
+    (NativeLocalInitialSigningFields, (String, String, String)?)?,
+  ),
+  NativeLocalAdoptionIssue,
+] {
+  match self.check_host_current() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.read_current_control_after_host_binding()
+}
+
+///|
+fn NativeLocalInitialSigningOriginal::read_current_control_after_host_binding(
+  self : NativeLocalInitialSigningOriginal,
+) -> Result[
+  (
+    NativeLocalInitialSigningFields,
+    (NativeLocalInitialSigningFields, (String, String, String)?)?,
+  ),
+  NativeLocalAdoptionIssue,
+] {
   guard self.host.database.read("client_local_installation_custody", "host")
     is Ok(row) &&
     row.revision == 0L &&
@@ -680,12 +712,12 @@ fn NativeLocalInitialSigningOriginal::require_current_after_host_binding(
   } else {
     None
   }
-  guard read_local_initial_signing_control(
+  guard read_local_initial_signing_control_with_host_key(
       self.host,
       row.body,
       signing_original~,
     )
-    is Ok(Some(fields)) else {
+    is Ok(Some((fields, host_fields))) else {
     return Err(CustodyLost)
   }
   if fields.public_key_pem != self.public_key_pem {
@@ -703,7 +735,7 @@ fn NativeLocalInitialSigningOriginal::require_current_after_host_binding(
     Err(issue) => return Err(Filesystem(issue))
     Ok(_) => ()
   }
-  self.check_host_current()
+  self.check_host_current().map(_ => (fields, host_fields))
 }
 
 ///|
