@@ -1,6 +1,9 @@
 import './generate-check-reason-catalog.test.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {test} from 'node:test';
 import {buildClientHostWire, nativeProgramSchema} from './generate-client-host-wire.mjs';
 
@@ -8,6 +11,64 @@ const registry = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-client-host.json', import.meta.url), 'utf8'));
 const protocol = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-protocol-schemas.json', import.meta.url), 'utf8'));
+
+function withNativeFormatter(body, check) {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-wire-format-test-'));
+  const originalHome = process.env.MOON_HOME, originalTemp = process.env.TMPDIR;
+  mkdirSync(join(directory, 'bin'));
+  const report = join(directory, 'calls.jsonl');
+  writeFileSync(join(directory, 'bin', 'moonfmt'), `#!${process.execPath}\n` +
+    `const {fstatSync, readFileSync, appendFileSync} = require('node:fs');\n` +
+    `const assert = require('node:assert/strict');\n` +
+    `assert.deepEqual(process.argv.slice(2), ['-']);\n` +
+    `assert.equal(fstatSync(0).isFile(), true, 'formatter stdin must be a regular file');\n` +
+    `const input = readFileSync(0, 'utf8');\n` +
+    `appendFileSync(${JSON.stringify(report)}, JSON.stringify({input, pid: process.pid})+'\\n');\n` + body,
+  {mode: 0o700});
+  process.env.MOON_HOME = directory;
+  process.env.TMPDIR = directory;
+  try {
+    check(() => readFileSync(report, 'utf8').trim().split('\n').map(JSON.parse));
+    assert.deepEqual(readdirSync(directory).sort(), ['bin', 'calls.jsonl']);
+  } finally {
+    if (originalHome === undefined) delete process.env.MOON_HOME;
+    else process.env.MOON_HOME = originalHome;
+    if (originalTemp === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = originalTemp;
+    rmSync(directory, {recursive: true, force: true});
+  }
+}
+
+test('Native wire formatter receives complete source through regular-file stdin', () => {
+  withNativeFormatter(`process.stdout.write('formatted:'+input);\n`, calls => {
+    const output = buildClientHostWire(registry, protocol);
+    const inputs = calls();
+    assert.equal(inputs.length, 2);
+    assert.ok(Buffer.byteLength(inputs[0].input) > 65536);
+    assert.equal(output.native, 'formatted:' + inputs[0].input);
+    assert.equal(output.nativeTests, 'formatted:' + inputs[1].input);
+    assert.match(inputs[0].input, /fn wire_/u);
+    assert.match(inputs[1].input, /fn wire_/u);
+  });
+});
+
+test('Native wire formatter failure is not replaced by unformatted output', () => {
+  withNativeFormatter(`process.stderr.write('selected formatter failure'); process.exit(23);\n`, calls => {
+    assert.throws(() => buildClientHostWire(registry, protocol), error =>
+      error.status === 23 && error.stderr.includes('selected formatter failure'));
+    assert.equal(calls().length, 1);
+  });
+});
+
+test('Native wire formatter retains its existing deadline and cleans failed input', {timeout: 15000}, () => {
+  withNativeFormatter(`setInterval(() => {}, 1000);\n`, calls => {
+    assert.throws(() => buildClientHostWire(registry, protocol), error =>
+      error.code === 'ETIMEDOUT' && error.signal === 'SIGTERM');
+    const [call] = calls();
+    assert.throws(() => process.kill(call.pid, 0), {code: 'ESRCH'});
+    assert.equal(calls().length, 1);
+  });
+});
 
 test('Native schema discovery preserves the full registered Program schema', async () => {
   const output = nativeProgramSchema(protocol);
