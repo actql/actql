@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {hash} from './inventory.mjs';
-import {selectedBeforeCleanupContinuation, selectedBeforeBoundedChainQuote,
+import {selectedBeforeCleanupContinuation, selectedBeforeRowCleanupContinuation, selectedBeforeBoundedChainQuote,
   managedBeforeCleanupContinuation} from './capacity/parent-control/provider-construction-source-review.mjs';
 import {providerConstructionBound, retainedProviderConstructionBound, inspectProviderConstruction} from './capacity/parent-control/provider-construction.mjs';
 import {adoptedConstructionReview, beforeAdoptedConstructionSource, retainedConstructionRead} from './capacity/parent-control/provider-construction-adopted-review.mjs';
@@ -70,7 +70,8 @@ test('current five-field candidate component derives 2432 without promoting hist
   // Property borrowing changes only an execution predicate before the
   // selected factory. Its entire constructor/callback tail remains exact.
   const selectedBytes = Buffer.from(selectedBeforeBoundedChainQuote(
-    selectedBeforeCleanupContinuation(read('src/connectors/local/selected_relation_provider.mbt').toString())));
+    selectedBeforeCleanupContinuation(selectedBeforeRowCleanupContinuation(
+      read('src/connectors/local/selected_relation_provider.mbt').toString()))));
   assert.equal(hash(selectedBytes),
     'e42963ae653cff94ddd089a2c33a5f02d5da1a56efde8567f9a0caf7fbc20d55',
     'Execution cleanup observer and bounded quote must preserve the complete prior Source');

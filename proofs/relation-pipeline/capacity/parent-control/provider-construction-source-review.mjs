@@ -32,6 +32,15 @@ const replaceOnce = (source, from, to = '') => {
 
 // The added execution-owner observer is separate from candidate construction.
 // Reverse only its exact guarded callback, never an arbitrary map or function.
+export function selectedBeforeRowCleanupContinuation(source) {
+  return replaceOnce(source, `  ).map(owner => {
+    owner.cleanup_continuation = Some(() => {
+      @execution.bounded_binding_rows_cleanup_continuation(active)
+    })
+    owner
+  })`, '  )');
+}
+
 export function selectedBeforeCleanupContinuation(source) {
   return replaceOnce(source, `  ).map(active => {
     active.cleanup_continuation = Some(fn() {
