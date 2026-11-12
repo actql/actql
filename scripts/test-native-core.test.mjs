@@ -2284,14 +2284,14 @@ test('Native checkpoint and full child keep the selected backend and explicit co
   }
 });
 
-test('Core Native prepares existing scoped producer dependencies before expensive consumers', () => {
+test('Core Native prepares existing producer dependencies only for its scoped consumer', () => {
   const steps = workflow.jobs.core.steps;
   const dependencies = steps.find(step => step.name === 'Install existing scoped component producer dependencies');
   assert(dependencies, 'the Native scoped component producer imports the pinned Python dependencies');
   const existing = workflow.jobs['native-macos-workloads'].steps.find(step => step.name === dependencies.name);
   assert(existing);
   assert.equal(dependencies.run, existing.run, 'use the same existing pinned selection, not another version list');
-  assert.equal(dependencies.if, "${{ matrix.target == 'native' }}");
+  assert.equal(dependencies.if, "${{ matrix.target == 'native' && matrix.partition == 'scoped' }}");
   assert.equal(dependencies['continue-on-error'], undefined);
   const setup = steps.find(step => step.uses === './.github/actions/setup-toolchain');
   assert.equal(setup.with.python, 'true');
@@ -2302,10 +2302,18 @@ test('Core Native prepares existing scoped producer dependencies before expensiv
     'Test common core']) {
     assert(preparation < steps.findIndex(step => step.name === name), name);
   }
+  const selected = [];
   for (const target of ['js', 'wasm', 'native']) {
-    assert.equal(runInNewContext(dependencies.if.slice(3, -2), {matrix: {target}}, {timeout: 100}),
-      target === 'native');
+    for (const partition of workflow.jobs.core.strategy.matrix.partition) {
+      const matrix = {target, partition};
+      if (workflow.jobs.core.strategy.matrix.exclude.some(value =>
+        value.target === target && value.partition === partition)) continue;
+      const required = runInNewContext(dependencies.if.slice(3, -2), {matrix}, {timeout: 100});
+      assert.equal(required, target === 'native' && partition === 'scoped', JSON.stringify(matrix));
+      if (required) selected.push(matrix);
+    }
   }
+  assert.deepEqual(selected, [{target: 'native', partition: 'scoped'}]);
 });
 
 test('Native Core routes Content, target lineage and original file receipts with nonzero selected execution', t => {

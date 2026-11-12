@@ -399,7 +399,7 @@ jobs:
           test "$(uname -s)" = Darwin
           test "$(uname -m)" = arm64
       - name: Install existing scoped component producer dependencies
-        if: ${{ matrix.target == 'native' }}
+        if: ${{ matrix.target == 'native' && matrix.partition == 'scoped' }}
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Check common core
         run: moon check --target "${{ matrix.target }}" --deny-warn
