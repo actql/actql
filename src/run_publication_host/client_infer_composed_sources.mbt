@@ -483,23 +483,30 @@ fn client_infer_composed_source_precedes(
 }
 
 ///|
+// The existing checked inheritance relation, without Source-current callbacks.
+// Scope admission owns live tuple validation; publication only borrows this
+// original Program/occurrence correspondence and its retained observations.
+fn client_infer_composed_source_origin_matches(
+  original : ClientInferOccurrence,
+  occurrence : ClientInferOccurrence,
+) -> Bool {
+  client_infer_occurrence_matches(original, occurrence.owner) &&
+  client_infer_occurrence_matches(occurrence, occurrence.owner) &&
+  (client_infer_occurrence_coordinates(original) ==
+    client_infer_occurrence_coordinates(occurrence) ||
+    client_infer_composed_source_origin(occurrence).map(source => {
+      client_infer_occurrence_coordinates(source) ==
+      client_infer_occurrence_coordinates(original)
+    }) == Some(true))
+}
+
+///|
 pub fn client_infer_composed_sources_matches(
   value : ClientInferComposedSources,
   occurrence : ClientInferOccurrence,
 ) -> Bool {
   let original = value.occurrence
-  let same_occurrence = client_infer_occurrence_coordinates(original) ==
-    client_infer_occurrence_coordinates(occurrence)
-  if !client_infer_occurrence_matches(original, occurrence.owner) ||
-    !client_infer_occurrence_matches(occurrence, occurrence.owner) ||
-    (
-      !same_occurrence &&
-      client_infer_composed_source_origin(occurrence).map(source => {
-        client_infer_occurrence_coordinates(source) ==
-        client_infer_occurrence_coordinates(original)
-      }) !=
-      Some(true)
-    ) ||
+  if !client_infer_composed_source_origin_matches(original, occurrence) ||
     value.inputs.length() !=
     (if value.inputs.any(input => input.original is Whole(_)) {
       select_client_direct_acquisition_occurrences(occurrence.owner, 1000000)

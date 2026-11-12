@@ -178,3 +178,36 @@ fn model_effect_imported_source(
   }
   false
 }
+
+///|
+// Only a checked Result port carrying this exact keyed Source can retain its
+// earlier lookup transitively. The existing import issuer binds the actual
+// captured producer/Artifact and Run; a Source label or equal CID cannot do so.
+// This is immutable metadata and never calls Source-current or reopens a read.
+fn model_effect_imported_keyed(
+  imports : ClientEffectImportedEvidence,
+  sources : ClientInferComposedSources,
+) -> Bool {
+  guard sources.keyed is Some((_, observed, _)) else { return false }
+  let check = observed.lookup.left.acquisition.check
+  let program = @checked.effect_program_static_checked_computation(
+    imports.owner.candidate,
+  )
+  for imported in imports.observations {
+    let interface = @strategy.captured_effect_result_import_interface(
+      imported.captured,
+    )
+    guard model_effect_result_port_policy(program, interface) is Some(policy) else {
+      continue
+    }
+    for index in 0..<@checked.publication_policy_source_count(policy) {
+      if @checked.publication_policy_source_at(policy, index).map(original => {
+          physical_equal(original, check)
+        }) ==
+        Some(true) {
+        return true
+      }
+    }
+  }
+  false
+}

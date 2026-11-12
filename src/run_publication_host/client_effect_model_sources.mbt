@@ -22,7 +22,8 @@ pub fn issue_single_model_client_effect_direct_source_evidence(
   // admission/current callbacks here. The Model original and later raw-body
   // borrow retain their own actual current boundaries.
   if !physical_equal(scope.owner, sources.occurrence.owner) ||
-    !client_infer_occurrence_matches_plan(sources.occurrence, scope.plan) {
+    !client_infer_occurrence_matches_plan(scope.plan.occurrence, scope.plan) ||
+    !client_infer_composed_source_origin_matches(sources.occurrence, scope.plan.occurrence) {
     return Err(Invocation(ForeignCapturedInput))
   }
   for input in sources.inputs {

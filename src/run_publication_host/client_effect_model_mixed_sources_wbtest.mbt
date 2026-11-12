@@ -3,6 +3,7 @@
 // and explicit read ports do not establish a Host, Model call or Store ACK.
 fn mixed_model_source_fixture(
   following? : Bool = false,
+  live? : Ref[Bool]? = None,
 ) -> (
   PreparedClientEffectComputation,
   ClientInferOccurrence,
@@ -97,8 +98,17 @@ fn mixed_model_source_fixture(
     Err(_) => fail("mixed fixture other preparation")
   }
   let occurrence = prepared_client_effect_infer_occurrences(prepared).unwrap()[0]
-  let imported = combined_unit_whole_capture(prepared, Ref(true), 0)
-  let inline = combined_unit_whole_capture(prepared, Ref(true), 0, stage=1)
+  let imported = combined_unit_whole_capture(
+    prepared,
+    live.unwrap_or(Ref(true)),
+    0,
+  )
+  let inline = combined_unit_whole_capture(
+    prepared,
+    live.unwrap_or(Ref(true)),
+    0,
+    stage=1,
+  )
   (prepared, occurrence, [imported, inline])
 }
 
@@ -206,5 +216,43 @@ test "inline Source and original import closure survives the following Model bou
     .unwrap()
     .map(value => value.0),
     ["rows", "inline"],
+  )
+}
+
+///|
+test "publication origin projection retains checked inheritance without another Source current observation" {
+  let live = Ref(true)
+  let (_, first, originals) = mixed_model_source_fixture(
+    following=true,
+    live=Some(live),
+  )
+  let sources = admit_client_infer_composed_whole_sources(
+    first,
+    originals.map(value => value.0),
+    originals.map(value => value.1),
+    originals.map(value => value.2),
+    originals.map(value => value.4),
+    originals.map(value => value.3),
+    "sha256:" + "a".repeat(64),
+    "2026-11-11T00:00:01.000Z",
+    "2026-11-11T00:00:02.000Z",
+  ).unwrap()
+  let second = prepared_client_composed_infer_occurrences(first.owner).unwrap()[1]
+  assert_true(
+    client_infer_composed_source_origin_matches(sources.occurrence, first),
+  )
+  assert_true(
+    client_infer_composed_source_origin_matches(sources.occurrence, second),
+  )
+  assert_false(client_infer_composed_source_origin_matches(second, first))
+  let (_, foreign, _) = mixed_model_source_fixture(following=true)
+  assert_false(client_infer_composed_source_origin_matches(foreign, second))
+  assert_false(client_infer_composed_source_origin_matches(first, foreign))
+  // The live boundary still refuses a retired Source. The publication metadata
+  // projection does not descend to that callback or turn its answer into Allow.
+  live.val = false
+  assert_false(client_infer_composed_sources_matches(sources, second))
+  assert_true(
+    client_infer_composed_source_origin_matches(sources.occurrence, second),
   )
 }

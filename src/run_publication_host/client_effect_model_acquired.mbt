@@ -34,7 +34,14 @@ pub fn issue_single_model_client_effect_acquired_evidence(
 ] {
   if !physical_equal(compiled.owner, call_scope.owner) ||
     !physical_equal(sources.occurrence.owner, call_scope.owner) ||
-    !client_infer_occurrence_matches_plan(sources.occurrence, call_scope.plan) {
+    !client_infer_occurrence_matches_plan(
+      call_scope.plan.occurrence,
+      call_scope.plan,
+    ) ||
+    !client_infer_composed_source_origin_matches(
+      sources.occurrence,
+      call_scope.plan.occurrence,
+    ) {
     return Err(Invocation(ForeignCapturedInput))
   }
   if call_scope.named_sources.length() !=
@@ -48,7 +55,7 @@ pub fn issue_single_model_client_effect_acquired_evidence(
       return Err(Invocation(ForeignSourceObservation))
     }
   }
-  let keyed = match sources.keyed {
+  let retained_keyed = match sources.keyed {
     None => {
       if call_scope.plan.keyed is Some(_) {
         return Err(Invocation(MissingCapturedInput))
@@ -66,7 +73,7 @@ pub fn issue_single_model_client_effect_acquired_evidence(
       }
       guard lookup.left.composed is Some(original) &&
         physical_equal(original.compiled, compiled) &&
-        physical_equal(original.plan, call_scope.plan) else {
+        client_infer_occurrence_matches_plan(sources.occurrence, original.plan) else {
         return Err(Invocation(ForeignCapturedInput))
       }
       guard call_scope.named_sources.any(entry => {
@@ -76,8 +83,28 @@ pub fn issue_single_model_client_effect_acquired_evidence(
         physical_equal(observation.input, completed.input) else {
         return Err(Invocation(ForeignSourceObservation))
       }
+      if client_infer_occurrence_coordinates(sources.occurrence) ==
+        client_infer_occurrence_coordinates(call_scope.plan.occurrence) {
+        guard physical_equal(original.plan, call_scope.plan) else {
+          return Err(Invocation(ForeignCapturedInput))
+        }
+      } else {
+        // The prior Model's complete lookup is transitive provenance of the
+        // actual imported Result, not this Model's own lookup, root or scope.
+        guard call_scope.plan.keyed is None &&
+          imports.map(value => model_effect_imported_keyed(value, sources)) ==
+          Some(true) else {
+          return Err(Invocation(ForeignResultImport))
+        }
+      }
       Some((lookup, completed))
     }
+  }
+  let keyed = if client_infer_occurrence_coordinates(sources.occurrence) ==
+    client_infer_occurrence_coordinates(call_scope.plan.occurrence) {
+    retained_keyed
+  } else {
+    None
   }
   let invocation = match
     issue_model_effect_local_invocation(
@@ -102,7 +129,7 @@ pub fn issue_single_model_client_effect_acquired_evidence(
   }
   // Static request encoding may invoke a Ref observer. Preserve the original
   // closure after that boundary; immutable equal-CID replacements do not win.
-  if keyed is Some((lookup, completed)) &&
+  if retained_keyed is Some((lookup, completed)) &&
     (
       lookup.closed ||
       lookup.left.lookup_issue is Some(_) ||
