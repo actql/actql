@@ -9,6 +9,33 @@ const series = () => ({mode: 'final', sourceSha, fixtureSha256, runnerSha256,
   samples: Array.from({length: 30}, (_, iteration) => ({iteration, sourceSha, fixtureSha256,
     runnerSha256, wallNs: 4000000000, cpuUserUs: 1000, cpuSystemUs: 1000, cpuScope: 'synthetic OS sample', peakRssBytes: 4096, rssScope: 'synthetic OS sample', completed: true, verified: true}))});
 
+test('authenticated Host subject consumes its original control header without parsing it again', () => {
+  const controlSource = readFileSync(new URL('../src/platform_native/client_host/local_initial_signing_original.mbt', import.meta.url), 'utf8');
+  const subjectSource = readFileSync(new URL('../src/platform_native/client_host/local_initial_host_signing_subject.mbt', import.meta.url), 'utf8');
+  const body = (source, name) => {
+    const start = source.indexOf('fn ' + name + '(');
+    assert(start >= 0, 'Missing actual control reader: ' + name);
+    const end = source.indexOf('\n///|', start);
+    return source.slice(start, end < 0 ? undefined : end);
+  };
+  const control = body(controlSource, 'read_local_initial_signing_control_with_host_key');
+  const independent = body(subjectSource, 'read_initial_host_signing_subject');
+  const selected = control.includes('read_initial_host_signing_subject_after_header(')
+    ? body(subjectSource, 'read_initial_host_signing_subject_after_header') : independent;
+  const parses = value => [...value.matchAll(/local_initial_signing_control_header\(/gu)].length;
+  assert.equal(parses(control) + parses(selected), 1,
+    'The same authenticated control must not run the canonical header codec twice');
+  assert.match(control, /read_initial_host_signing_subject_after_header\(\n\s+host,\n\s+header,\n\s+host_key,/u);
+  assert.equal(parses(independent), 1, 'Independent callers retain complete closed-header admission');
+  assert.match(independent, /read_initial_host_signing_subject_after_header\(\s*host,\s*header,\s*fields,\s*signing_original~,?\s*\)/u);
+  assert.doesNotMatch(selected, /\.transaction\(|\.check_binding\(|\.authorize\(|\.now\(|mut /u);
+  assert.match(selected, /read_local_installation_authenticated_payload\(/u);
+  assert.match(selected, /local_adoption_fields\(payload,/u);
+  for (const original of ['fields.public_key.cid()', 'host.session.intent_cid', 'fields.issuer', 'fields.policy.cid()']) {
+    assert(selected.includes(original), 'Missing original subject correspondence: ' + original);
+  }
+});
+
 test('Native approval target requires thirty verified samples on the same source fixture and runner', () => {
   assert.equal(assessNativeApproval(series()).status, 'passed');
   const short = series(); short.samples.pop();

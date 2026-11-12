@@ -48,6 +48,24 @@ fn read_initial_host_signing_subject(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  read_initial_host_signing_subject_after_header(
+    host,
+    header,
+    fields,
+    signing_original~,
+  )
+}
+
+///|
+// Immediate DATA handoff from this same control's closed canonical reader.
+// This reuses no HMAC result: the original packet, subject and role checks below
+// still run. Independent callers retain complete header admission above.
+fn read_initial_host_signing_subject_after_header(
+  host : NativeLocalHostConnection,
+  header : Array[String],
+  fields : NativeLocalInitialSigningFields,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
+) -> Result[(String, String, String)?, NativeLocalAdoptionIssue] {
   if header.length() != 4 {
     return Ok(None)
   }

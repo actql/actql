@@ -357,9 +357,9 @@ fn read_local_initial_signing_control_with_host_key(
       }
       let subject = if header.length() == 4 {
         guard local_initial_signing_value(
-            read_initial_host_signing_subject(
+            read_initial_host_signing_subject_after_header(
               host,
-              body,
+              header,
               host_key,
               signing_original~,
             ),
