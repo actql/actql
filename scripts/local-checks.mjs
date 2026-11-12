@@ -60,6 +60,7 @@ function commands(name, target, raw = false) {
     const plan = JSON.parse(readFileSync(join(root, 'scripts/ci-native-background-groups.json'), 'utf8')).native;
     const prepare = steps.findIndex(step => step.id === 'native-preparation');
     const http = workflow.jobs['native-http']?.steps.find(step => step.id === 'native-http');
+    const retained = steps.find(step => step.name === 'Verify registered Native retained product path');
     if (prepare < 0 || !http) fail('Incomplete local Native composition; retain all original consumers');
     const environment = {
       ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION: join(scratch, 'native-scoped-preparation'),
@@ -68,8 +69,10 @@ function commands(name, target, raw = false) {
     // Hosted background bookkeeping is not needed locally. Keep every original
     // case serially in this same process tree, with one original preparation.
     steps = [...steps.slice(0, prepare + 1), http,
-      ...steps.slice(prepare + 1).filter(step => !['native-background-start', 'native-background'].includes(step.id)),
-      ...plan.flatMap(group => group.steps.map(step => ({...step, 'timeout-minutes': step.timeoutMinutes})))];
+      ...steps.slice(prepare + 1).filter(step => step !== retained &&
+        !['native-background-start', 'native-background'].includes(step.id)),
+      ...plan.flatMap(group => group.steps.map(step => ({...step, 'timeout-minutes': step.timeoutMinutes}))),
+      ...(retained ? [retained] : [])];
     steps = steps.map(step => ({...step, env: {...environment, ...step.env}}));
   }
   if (name === 'session-evidence' && !raw && workflow.jobs['session-controls']) {
@@ -109,6 +112,12 @@ function commands(name, target, raw = false) {
       // One local runner keeps the complete original campaign, rather than
       // silently selecting only one hosted partition or physical profile.
       return [key, ''];
+    }
+    if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS') {
+      if (value !== "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}") {
+        fail('Unsupported Native Core scheduling expression; local CI must retain the serial scoped profile');
+      }
+      return [key, '1'];
     }
     return [key, resolve(value)];
   };

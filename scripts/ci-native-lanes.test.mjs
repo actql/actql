@@ -95,4 +95,6 @@ test('local Native route retains every original case serially with one preparati
   assert.equal(output.split('node scripts/prepare-native-runtime-bundle-fixture.mjs').length - 1, 1);
   assert(!output.includes('ci-native-background-groups.mjs'));
   assert(!output.includes('native-ci-artifact.py'));
+  assert(output.indexOf('== native: Verify registered Native retained product path\n') >
+    output.indexOf('== native: Test packed Output report custody and ACK crash boundaries\n'));
 });

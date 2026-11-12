@@ -412,3 +412,25 @@ test('unrelated and similarly named changes do not claim an INFER dependency', t
   assert.doesNotMatch(result.stdout, /INFER admission dependency|infer-host-fixtures|client_infer_host/u);
   unchangedFixture(f);
 });
+
+test('local Core keeps the original serial scoped profile despite hosted parallel scheduling and inherited jobs', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs.core.steps = [{name: 'original local scoped configuration',
+    env: {ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS:
+      "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}"},
+    run: 'node -e "require(\'node:assert/strict\').equal(process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,\'1\')"; printf "%s\\n" "$ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS" >> calls'}];
+  writeFileSync(path, JSON.stringify(workflow));
+  for (const target of ['native', 'js', 'wasm']) {
+    const result = f.run(['run', 'core', '--target', target, '--allow-heavy'],
+      {ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2'});
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), '1\n1\n1\n');
+  for (const value of ['2', '${{ matrix.scoped_jobs }}', '']) {
+    workflow.jobs.core.steps[0].env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS = value;
+    writeFileSync(path, JSON.stringify(workflow));
+    const result = f.run(['run', 'core', '--target', 'native', '--allow-heavy']);
+    assert.equal(result.status, 2); assert.match(result.stderr, /serial scoped profile/u);
+  }
+});
