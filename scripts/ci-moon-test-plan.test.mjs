@@ -109,7 +109,7 @@ test('a source-bound Moon plan narrows execution without omitting whole checks o
   const {plan} = fixture();
   const selected = validateSelection(selectTargets(['src/a/code.mbt'], {moonTests:plan}));
   assert.equal(selected.moonTests, plan); assert.deepEqual(selected.targets, ['js', 'wasm', 'native']);
-  for (const name of ['core', 'host', 'client', 'native', 'native-macos', 'python-wheels', 'session-evidence', 'pipeline-evidence'])
+  for (const name of ['core', 'host', 'client', 'native', 'native-macos', 'python-wheels', 'session-evidence', 'session-controls', 'pipeline-evidence'])
     assert.equal(gateJobRequired(selected, name), true, name);
   assert.equal(deepProofRequired(selected), true);
   assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan, targetSensitiveDiff:true}).moonTests, undefined);
