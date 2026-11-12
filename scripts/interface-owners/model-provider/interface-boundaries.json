@@ -5108,7 +5108,7 @@
     },
     {
       "module": "src/run_publication_host/client_infer_call_scope.mbt",
-      "sha256": "a1988dc6b5e135caf8dbd7bfad4efb9868e3106aeba307e60d4da45245de6ebf",
+      "sha256": "0dbacaf8c0874a620a8bc42e13ee46c5fbbc6037e03987917b669ac11a612ee3",
       "exports": [],
       "operations": [
         {
@@ -5126,6 +5126,10 @@
         {
           "name": "client_infer_call_scope_input",
           "declaration": "client_infer_call_scope_input ( value : ClientInferCallScope , ) - > @ execution . CompletedOutput ?"
+        },
+        {
+          "name": "client_infer_call_scope_local_coordinate",
+          "declaration": "client_infer_call_scope_local_coordinate ( value : ClientInferCallScope , ) - > ( String , Int )"
         },
         {
           "name": "client_infer_call_scope_matches",
@@ -5150,6 +5154,10 @@
         {
           "name": "client_infer_call_scope_unit_id",
           "declaration": "client_infer_call_scope_unit_id ( value : ClientInferCallScope ) - > String ?"
+        },
+        {
+          "name": "client_infer_result_input_inventory_current",
+          "declaration": "client_infer_result_input_inventory_current ( value : ClientInferCallScope , ) - > Bool"
         },
         {
           "name": "client_infer_saved_call_scope_matches_occurrence",
@@ -5223,12 +5231,14 @@
             "client_infer_call_scope_artifact",
             "client_infer_call_scope_generation_available",
             "client_infer_call_scope_input",
+            "client_infer_call_scope_local_coordinate",
             "client_infer_call_scope_matches",
             "client_infer_call_scope_matches_rows",
             "client_infer_call_scope_model_execution",
             "client_infer_call_scope_snapshot",
             "client_infer_call_scope_source_observations",
             "client_infer_call_scope_unit_id",
+            "client_infer_result_input_inventory_current",
             "client_infer_saved_call_scope_matches_occurrence",
             "client_infer_saved_call_scope_matches_originals",
             "client_infer_saved_call_scope_matches_run",
@@ -5236,13 +5246,13 @@
             "infer_saved_call_scope_run_originals",
             "infer_scope_evidence",
             "infer_scope_expected_sources",
+            "infer_scope_expected_whole_sources",
             "infer_scope_string",
             "issue_client_infer_call_slot",
             "issue_client_infer_occurrence_call_scope",
             "issue_prepared_client_infer_call_scope",
             "read_client_infer_saved_call_scope",
-            "restore_client_infer_call_scope",
-            "infer_scope_expected_whole_sources"
+            "restore_client_infer_call_scope"
           ],
           "exports": [],
           "attributes": {

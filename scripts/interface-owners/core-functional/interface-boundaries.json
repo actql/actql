@@ -1782,8 +1782,10 @@
             "publicationControl/init:bindCheckedClientInferRun/init:bindCheckedClientInferRun",
             "publicationControl/init:bindCheckedClientSerializationCapture/init:bindCheckedClientSerializationCapture",
             "publicationControl/init:bindCheckedClientSerializationInputIdentity/init:bindCheckedClientSerializationInputIdentity",
+            "publicationControl/init:bindInferOriginalResultArtifact/init:bindInferOriginalResultArtifact",
             "publicationControl/init:bindInstalledModelRawCapturePolicy/init:bindInstalledModelRawCapturePolicy",
             "publicationControl/init:bindIssuedClientInferInvocation/init:bindIssuedClientInferInvocation",
+            "publicationControl/init:bindOriginalEffectUnitArtifact/init:bindOriginalEffectUnitArtifact",
             "publicationControl/init:bindRecoveredTablePreview/init:bindRecoveredTablePreview",
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
@@ -1940,7 +1942,9 @@
             "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value#2",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
@@ -1948,8 +1952,11 @@
             "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/direct/direct",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#2",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#3",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#4",
             "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
             "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
@@ -1968,6 +1975,10 @@
             "publicationControl/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact/init:issueSourceFreeLocalEffectResultArtifact",
             "publicationControl/init:issueSourceFreeLocalEffectTableArtifact/init:issueSourceFreeLocalEffectTableArtifact",
             "publicationControl/init:issueSucceededRunState/init:issueSucceededRunState",
+            "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
+            "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
+            "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
+            "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
             "publicationControl/init:localEffectResultPayloadBinding/init:localEffectResultPayloadBinding",
             "publicationControl/init:localEffectSourceMatches/init:localEffectSourceMatches",
             "publicationControl/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
@@ -1980,6 +1991,7 @@
             "publicationControl/init:modelScopedPrivateHoldingCid/init:modelScopedPrivateHoldingCid",
             "publicationControl/init:nextResultDeliveryRow/init:nextResultDeliveryRow",
             "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
+            "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
             "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
             "publicationControl/init:prepareCheckedClientAcquiredSerializationComponent/init:prepareCheckedClientAcquiredSerializationComponent",
             "publicationControl/init:prepareCheckedClientAcquiredSerializationGraph/init:prepareCheckedClientAcquiredSerializationGraph",
@@ -1995,13 +2007,34 @@
             "publicationControl/init:prepareCheckedClientSerializationComponent/init:prepareCheckedClientSerializationComponent",
             "publicationControl/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
             "publicationControl/init:prepareCheckedClientSerializedInferGraph/init:prepareCheckedClientSerializedInferGraph",
+            "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
+            "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
+            "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
+            "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#3",
             "publicationControl/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
             "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
+            "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
+            "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
+            "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2",
+            "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage",
+            "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage/exported/exported",
+            "publicationControl/init:prepareKeyedLookupRawCapture/init:prepareKeyedLookupRawCapture",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/exported/exported",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
+            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence",
+            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies",
+            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies#2",
+            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies/bodies",
+            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/extent/extent",
+            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
+            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
             "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
             "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
@@ -2054,7 +2087,12 @@
             "publicationControl/init:resultRetentionClockContractCid/init:resultRetentionClockContractCid",
             "publicationControl/init:resultSerializationContractCid/init:resultSerializationContractCid",
             "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
+            "publicationControl/init:retainResultReadMetadata/init:retainResultReadMetadata",
             "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
+            "publicationControl/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
+            "publicationControl/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
+            "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
+            "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained",
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed",
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
@@ -2387,21 +2425,7 @@
             "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
-            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
-            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#3",
-            "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
-            "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
-            "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
-            "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
-            "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage",
-            "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage/exported/exported",
-            "publicationControl/init:prepareKeyedLookupRawCapture/init:prepareKeyedLookupRawCapture",
-            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
-            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/exported/exported",
-            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata"
+            "usageKeys/usageKeys/usageKeys"
           ],
           "exports": [
             "contentCaptureControl",
@@ -3018,7 +3042,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4092,7 +4116,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6601,7 +6625,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9143,6 +9167,16 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:bindInferOriginalResultArtifact/init:bindInferOriginalResultArtifact",
+          "parameters": [
+            "active",
+            "index",
+            "artifact",
+            "manifest"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:bindInstalledModelRawCapturePolicy/init:bindInstalledModelRawCapturePolicy",
           "parameters": [
             "policy",
@@ -9160,6 +9194,16 @@
             "execution",
             "definition",
             "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:bindOriginalEffectUnitArtifact/init:bindOriginalEffectUnitArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "artifact",
+            "context"
           ],
           "async": false
         },
@@ -9258,7 +9302,8 @@
             "issued",
             "scan",
             "receipt",
-            "limits"
+            "limits",
+            "preconsumer"
           ],
           "async": false
         },
@@ -10983,12 +11028,19 @@
         {
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#2",
           "parameters": [
-            "source"
+            "body"
           ],
           "async": false
         },
         {
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#3",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#4",
           "parameters": [
             "body"
           ],
@@ -11426,6 +11478,13 @@
           "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
           "parameters": [
             "writer"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
+          "parameters": [
+            "artifact"
           ],
           "async": false
         },
@@ -12013,6 +12072,43 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
+          "parameters": [
+            "plan",
+            "checkedEffect",
+            "request",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "sourceEvidence",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareClientQueryTime/init:prepareClientQueryTime",
           "parameters": [
             "prepared",
@@ -12079,6 +12175,33 @@
           "name": "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
+          "parameters": [
+            "managedRun",
+            "plan",
+            "request",
+            "inputs",
+            "unit",
+            "retention",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -12159,6 +12282,87 @@
         },
         {
           "name": "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence",
+          "parameters": [
+            "managedRun",
+            "plan",
+            "request",
+            "held",
+            "compiled",
+            "definition",
+            "graph",
+            "unit",
+            "retention",
+            "catalogBodies",
+            "operation",
+            "limits",
+            "retained",
+            "current",
+            "retainedBase",
+            "executionBase"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies/bodies",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/extent/extent",
+          "parameters": [
+            "quote"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+          "parameters": [
+            "managedRun",
+            "plan",
+            "request",
+            "captured",
+            "dependency",
+            "admission",
+            "definition",
+            "limits",
+            "retained",
+            "current",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
           "parameters": [
             "value"
           ],
@@ -12789,9 +12993,55 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:retainResultReadMetadata/init:retainResultReadMetadata",
+          "parameters": [
+            "parent",
+            "input",
+            "slot",
+            "original",
+            "mode"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
           "parameters": [
             "capturedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
+          "parameters": [
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "artifact",
+            "exported",
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
+          "parameters": [
+            "owner",
+            "invocation",
+            "artifacts",
+            "manifest"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained",
+          "parameters": [
+            "artifact"
           ],
           "async": false
         },
@@ -15578,7 +15828,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "d2773e2d2ff03558840a2b67cb8c0dfc6ad6d9c0292ced7fa2d9b19a3b47cd75"
+      "sha256": "e04340ae667e51f3466947230b2794624c1bbc38a63758620622c0cd74c99d41"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -16332,6 +16582,7 @@
             "openNodeInferOperation/operation/init:beginOriginalResourceInvalidation/init:beginOriginalResourceInvalidation",
             "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture",
             "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture",
+            "openNodeInferOperation/operation/init:bindOriginalResultArtifact/init:bindOriginalResultArtifact",
             "openNodeInferOperation/operation/init:cancelOriginalCurrentStateWriter/init:cancelOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:completeOriginalJournalInvalidation/init:completeOriginalJournalInvalidation",
             "openNodeInferOperation/operation/init:finishOriginalCurrentStateWriter/init:finishOriginalCurrentStateWriter",
@@ -17730,6 +17981,16 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:bindOriginalResultArtifact/init:bindOriginalResultArtifact",
+          "parameters": [
+            "control",
+            "index",
+            "artifact",
+            "manifest"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:cancelOriginalCurrentStateWriter/init:cancelOriginalCurrentStateWriter",
           "parameters": [
             "writer"
@@ -18503,7 +18764,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6f6f920fe499a4de21713a73dda1592690a2c9bd00add91f68f4a92c3ce6158a"
+      "sha256": "dd13cfe78076b727002b87f8bf6286c088db7ba2a0f4ae8db447b013873575e7"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -33092,7 +33353,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -34662,7 +34923,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -34900,7 +35161,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -36316,7 +36577,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -36604,7 +36865,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -38592,7 +38853,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -45057,7 +45318,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d8e740dccd3d0a750667187cf843da4b39b26ff3b188cd20d8a0e8e2e519ac10",
+      "sha256": "a558ca289aa468b3a27564ed183a5c9281d0218e471d9bb848ef785d3e2bc59f",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -48137,7 +48398,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48233,7 +48494,7 @@
       "sha256": "b23029703c7b693dabddff6c743ac56aec41e3caadf2e00cd40b23702b3d5fd7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48537,7 +48798,7 @@
       "sha256": "b0ee315db4a6b98f045dfee9d15d7ca13d283ae073aa9597f9e9cf7639faa8a9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -51927,7 +52188,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -52061,7 +52322,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -52318,7 +52579,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -52416,7 +52677,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -52784,7 +53045,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -53045,7 +53306,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -53218,7 +53479,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -53331,7 +53592,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -54561,7 +54822,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -55192,7 +55453,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -57926,7 +58187,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -64050,7 +64311,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -77392,7 +77653,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "c535c31e37cd8c40911824df7726d1712883a06fb65a2b7c3d9fe1f8e7619480",
+      "sha256": "7f84d67f8111e58c8e6c2afca9f515801404c5af84691e55309b41f50658a158",
       "exports": [],
       "operations": [
         {
@@ -77404,8 +77665,56 @@
           "declaration": "borrow_installed_managed_dispatch_preparation ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] ? , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "effect_unit_publication_body",
+          "declaration": "effect_unit_publication_body ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . PreparationBodyBorrow [ ClientInstalledEffectManagedPlan ] , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "effect_unit_publication_capacity",
+          "declaration": "effect_unit_publication_capacity ( bodies : Array [ ( String , @ encode . EncodingConstructionGeometry ) ] , identity : String , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_unit_sealed_geometry",
+          "declaration": "effect_unit_sealed_geometry ( name : String , body : @ encode . EncodingConstructionGeometry , identity : String , ) - > @ encode . EncodingConstructionGeometry ?"
+        },
+        {
+          "name": "installed_effect_model_unit_parent",
+          "declaration": "installed_effect_model_unit_parent ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "installed_managed_preparation_usage_isolated",
           "declaration": "installed_managed_preparation_usage_isolated ( value : ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , captured : @ strategy . CapturedDAG , ) - > Bool"
+        },
+        {
+          "name": "pin_installed_effect_model_unit_results",
+          "declaration": "pin_installed_effect_model_unit_results ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , unit : Int , ) - > Result [ @ strategy . CapturedEffectLocalUnitInputs , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_model_source_unit",
+          "declaration": "prepare_installed_effect_model_source_unit ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , sources : @ publication_host . ClientEffectSourceUnitInputs , unit : Int , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectCombinedSourceUnit , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_model_source_unit_artifact",
+          "declaration": "prepare_installed_effect_model_source_unit_artifact ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , inputs : @ strategy . CapturedEffectLocalUnitInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_model_source_unit_catalog",
+          "declaration": "prepare_installed_effect_model_source_unit_catalog ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , sources : @ publication_host . ClientEffectSourceUnitInputs , unit : @ publication_host . ClientEffectCombinedSourceUnit , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Array [ ( String , String , String ) ] , ClientEffectUnitPreparationIssue ]"
+        },
+        {
+          "name": "prepare_installed_effect_model_unit_manifest",
+          "declaration": "prepare_installed_effect_model_unit_manifest ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , invocation : @ publication_host . ClientEffectLocalInvocation , artifacts : Array [ @ publication_host . ClientEffectLocalResultArtifact ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalManifest , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_model_unit_result_export",
+          "declaration": "prepare_installed_effect_model_unit_result_export ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedEffectRunDAG , inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , ) - > Result [ @ strategy . CapturedEffectLocalResultExport , ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "reserve_effect_unit_publication_capacity",
+          "declaration": "reserve_effect_unit_publication_capacity ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "reserve_installed_effect_model_unit_body",
+          "declaration": "reserve_installed_effect_model_unit_body ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , kind : String , shape : @ encode . EncodingConstructionGeometry , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -77417,7 +77726,19 @@
             "<module>",
             "borrow_installed_effect_dispatch_preparation",
             "borrow_installed_managed_dispatch_preparation",
-            "installed_managed_preparation_usage_isolated"
+            "effect_unit_publication_body",
+            "effect_unit_publication_capacity",
+            "effect_unit_sealed_geometry",
+            "installed_effect_model_unit_parent",
+            "installed_managed_preparation_usage_isolated",
+            "pin_installed_effect_model_unit_results",
+            "prepare_installed_effect_model_source_unit",
+            "prepare_installed_effect_model_source_unit_artifact",
+            "prepare_installed_effect_model_source_unit_catalog",
+            "prepare_installed_effect_model_unit_manifest",
+            "prepare_installed_effect_model_unit_result_export",
+            "reserve_effect_unit_publication_capacity",
+            "reserve_installed_effect_model_unit_body"
           ],
           "exports": [],
           "attributes": {
@@ -86332,7 +86653,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -86785,7 +87106,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -89288,12 +89609,16 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing client_local_host Request preparation and Resource owners; original READ phase and projection only",
-      "sha256": "0ae67cea82a75c9c65c569e529195c1a727d3c09178495c9f61cbca4b05fc022",
+      "sha256": "5aa5613aae363abeef516e16ad88eb1f530edd3b0ee8cc230d07bc1698f8928e",
       "exports": [],
       "operations": [
         {
           "name": "[I]grow_request_result_read_row",
           "declaration": "[ I ] grow_request_result_read_row ( owner : ClientRequestPreparation [ I ] , input : I , units : Int , ) - > Result [ ( Int , Int ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reconcile_request_result_read_serializer",
+          "declaration": "[ I ] reconcile_request_result_read_serializer ( owner : ClientRequestPreparation [ I ] , input : I , serializer : @ publication . ResultDeliverySerializer , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]reserve_request_result_read",
@@ -89313,6 +89638,7 @@
           "operations": [
             "<module>",
             "[I]grow_request_result_read_row",
+            "[I]reconcile_request_result_read_serializer",
             "[I]reserve_request_result_read",
             "result_read_data_cost",
             "result_read_window_cost"
@@ -89429,24 +89755,54 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing client_local_host Request preparation and Resource owners; original READ phase and projection only",
-      "sha256": "dda28255a7903a7e21437b573b38032b43cb25fba8232e23a7636ec2d9476237",
+      "sha256": "d39e68e22d6e13b46d21ce80eb569a818f23307730ffcac2def5c86ad8782203",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_finish_request_result_metadata",
+          "declaration": "client_program_finish_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
         {
           "name": "client_program_grow_request_result_read_row",
           "declaration": "client_program_grow_request_result_read_row ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , units : Int , ) - > Result [ ( Int , Int ) , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reconcile_request_result_read_serializer",
+          "declaration": "client_program_reconcile_request_result_read_serializer ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , serializer : @ publication . ResultDeliverySerializer , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_release_request_result_metadata",
+          "declaration": "client_program_release_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , slot : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reserve_request_result_metadata",
+          "declaration": "client_program_reserve_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , bytes : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_result_read",
           "declaration": "client_program_reserve_request_result_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_row : Int , frame : Int , schema_units : Int , max_nodes : Int , desired_window : Int , ) - > Result [ Int , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_retain_request_result_metadata_contract",
+          "declaration": "client_program_retain_request_result_metadata_contract ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , slot : Int , contract : @ publication . PublicationContract , mode : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_retain_request_result_metadata_data",
+          "declaration": "client_program_retain_request_result_metadata_data ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , slot : Int , nodes : Int , text_units : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
+            "client_program_finish_request_result_metadata",
             "client_program_grow_request_result_read_row",
-            "client_program_reserve_request_result_read"
+            "client_program_reconcile_request_result_read_serializer",
+            "client_program_release_request_result_metadata",
+            "client_program_reserve_request_result_metadata",
+            "client_program_reserve_request_result_read",
+            "client_program_retain_request_result_metadata_contract",
+            "client_program_retain_request_result_metadata_data"
           ],
           "exports": [],
           "attributes": {
@@ -89560,24 +89916,54 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing client_local_host Request preparation and Resource owners; original READ phase and projection only",
-      "sha256": "fd722a36ab4fcf586e359a54e4dc394c57567a6673f1c0f3f35ba1f8ddee65da",
+      "sha256": "dbd5a4ca0c416b4661998d0c6f9aeed83c1b35f9b12d668fac25c8a2c8de0866",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_finish_request_result_metadata",
+          "declaration": "client_program_finish_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
         {
           "name": "client_program_grow_request_result_read_row",
           "declaration": "client_program_grow_request_result_read_row ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , units : Int , ) - > Result [ ( Int , Int ) , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reconcile_request_result_read_serializer",
+          "declaration": "client_program_reconcile_request_result_read_serializer ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , serializer : @ publication . ResultDeliverySerializer , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_release_request_result_metadata",
+          "declaration": "client_program_release_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , slot : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_reserve_request_result_metadata",
+          "declaration": "client_program_reserve_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , bytes : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_result_read",
           "declaration": "client_program_reserve_request_result_read ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_row : Int , frame : Int , schema_units : Int , max_nodes : Int , desired_window : Int , ) - > Result [ Int , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_retain_request_result_metadata_contract",
+          "declaration": "client_program_retain_request_result_metadata_contract ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , slot : Int , contract : @ publication . PublicationContract , mode : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_retain_request_result_metadata_data",
+          "declaration": "client_program_retain_request_result_metadata_data ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , slot : Int , nodes : Int , text_units : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
+            "client_program_finish_request_result_metadata",
             "client_program_grow_request_result_read_row",
-            "client_program_reserve_request_result_read"
+            "client_program_reconcile_request_result_read_serializer",
+            "client_program_release_request_result_metadata",
+            "client_program_reserve_request_result_metadata",
+            "client_program_reserve_request_result_read",
+            "client_program_retain_request_result_metadata_contract",
+            "client_program_retain_request_result_metadata_data"
           ],
           "exports": [],
           "attributes": {

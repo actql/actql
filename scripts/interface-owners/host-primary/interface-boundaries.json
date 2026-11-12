@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "f00eff18ce2c7880ca8325616192d13ef8f9c808378058a08902cae133e96645",
+      "sha256": "59c346b2fd653877643ccee4a0f6bdf822b76fb9dd971a26931270172bd48294",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -36,7 +36,9 @@
             "sourceContinuation",
             "faultInjection",
             "current",
-            "sourcePlan"
+            "sourcePlan",
+            "managedRun",
+            "originalHost"
           ],
           "async": false
         },
@@ -134,7 +136,9 @@
         },
         {
           "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind",
-          "parameters": [],
+          "parameters": [
+            "child"
+          ],
           "async": false
         },
         {
@@ -145,6 +149,37 @@
         {
           "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:bind#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/artifact/artifact",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/catalogs/catalogs",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/producer/producer",
+          "parameters": [
+            "member"
+          ],
           "async": false
         },
         {
@@ -312,6 +347,18 @@
           "async": false
         },
         {
+          "name": "acquiredEffectModelGroup/releaseUnitOutputs",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/releaseUnitOutputs/releaseUnitOutputs",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "acquiredEffectModelGroup/retainCompleted/retainCompleted",
           "parameters": [
             "child"
@@ -352,6 +399,18 @@
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/unitPinsPending/unitPinsPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/unitPinsPending/unitPinsPending/unitPinsPending",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -519,7 +578,7 @@
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#11",
           "parameters": [
-            "task"
+            "value"
           ],
           "async": false
         },
@@ -545,6 +604,13 @@
           "async": false
         },
         {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#15",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
           "parameters": [
             "record"
@@ -553,23 +619,21 @@
         },
         {
           "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
           "parameters": [
             "slot"
           ],
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
+          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#5",
           "parameters": [
             "value",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/openAcquiredEffectComputation#5",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -784,61 +848,29 @@
         },
         {
           "operations": [
-            "openAcquiredEffectComputation",
-            "openAcquiredEffectComputation/capacities/capacities",
-            "openAcquiredEffectComputation/cleanupInfer/cleanupInfer",
-            "openAcquiredEffectComputation/configurations/configurations",
-            "openAcquiredEffectComputation/current/current",
-            "openAcquiredEffectComputation/custody/custody",
-            "openAcquiredEffectComputation/custody/init:cleanup/init:cleanup",
-            "openAcquiredEffectComputation/custody/init:close/init:close",
-            "openAcquiredEffectComputation/handleModelPause",
-            "openAcquiredEffectComputation/handleModelPause/cleanupHandle/cleanupHandle",
-            "openAcquiredEffectComputation/inferCleanupPending/inferCleanupPending",
-            "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
-            "openAcquiredEffectComputation/init:retain/init:retain",
-            "openAcquiredEffectComputation/init:retainExecution/init:retainExecution",
-            "openAcquiredEffectComputation/observeUsage/observeUsage",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#10",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#11",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#5",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#6",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#7",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#8",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#9",
-            "openAcquiredEffectComputation/originalCurrent/originalCurrent",
-            "openAcquiredEffectComputation/originalCurrent/originalCurrent/changed/changed",
-            "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#2",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#3",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/sourceEvidence/sourceEvidence",
             "acquiredEffectModelGroup",
             "acquiredEffectModelGroup/acquiredEffectModelGroup",
-            "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup",
-            "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup#2",
-            "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup#3",
             "acquiredEffectModelGroup/acquiredEffectModelGroup#2",
             "acquiredEffectModelGroup/acquiredEffectModelGroup#3",
             "acquiredEffectModelGroup/acquiredEffectModelGroup#4",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup#2",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup#3",
             "acquiredEffectModelGroup/children/children",
             "acquiredEffectModelGroup/children/children/init:observeAccount/init:observeAccount",
             "acquiredEffectModelGroup/cleanup",
             "acquiredEffectModelGroup/handlePause",
             "acquiredEffectModelGroup/handlePause/child/child",
             "acquiredEffectModelGroup/init:bind/init:bind",
+            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
             "acquiredEffectModelGroup/init:bind/init:bind/init:bind",
             "acquiredEffectModelGroup/init:bind/init:bind/init:bind#2",
             "acquiredEffectModelGroup/init:bind/init:bind/init:bind#3",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:bind#4",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/artifact/artifact",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/catalogs/catalogs",
+            "acquiredEffectModelGroup/init:bind/init:bind/init:prepareOriginalResults/init:prepareOriginalResults/producer/producer",
             "acquiredEffectModelGroup/init:bind/init:bind/init:retainOperation/init:retainOperation",
             "acquiredEffectModelGroup/init:bind/init:bind/sourceEvidence/sourceEvidence",
             "acquiredEffectModelGroup/init:failure/init:failure",
@@ -858,26 +890,68 @@
             "acquiredEffectModelGroup/init:restore/init:restore",
             "acquiredEffectModelGroup/pending/pending",
             "acquiredEffectModelGroup/pending/pending/pending",
-            "acquiredEffectModelGroup/retainCompleted/retainCompleted",
-            "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted",
-            "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
-            "acquiredEffectModelGroup/same/same",
-            "acquiredEffectModelGroup/same/same/same",
-            "acquiredEffectModelGroup/init:bind/init:bind/inherited/inherited",
-            "acquiredEffectModelGroup/retirePublication",
-            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
-            "openAcquiredEffectComputation/retireUnenteredCompute/retireUnenteredCompute",
-            "openAcquiredEffectComputation/wholeInputs/wholeInputs",
-            "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
-            "openAcquiredEffectComputation/retainPreflightCleanup/retainPreflightCleanup",
             "acquiredEffectModelGroup/persistPublication",
             "acquiredEffectModelGroup/persistPublication/persistPublication",
+            "acquiredEffectModelGroup/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/persistPublication/persistPublication/init:retainBinding/init:retainBinding",
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication",
             "acquiredEffectModelGroup/persistPublication/persistPublication/persistPublication#2",
-            "acquiredEffectModelGroup/persistPublication/persistPublication#2",
             "acquiredEffectModelGroup/publicationCurrent/publicationCurrent",
-            "acquiredEffectModelGroup/retirePublication/retirePublication"
+            "acquiredEffectModelGroup/releaseUnitOutputs",
+            "acquiredEffectModelGroup/releaseUnitOutputs/releaseUnitOutputs",
+            "acquiredEffectModelGroup/retainCompleted/retainCompleted",
+            "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted",
+            "acquiredEffectModelGroup/retainCompleted/retainCompleted/retainCompleted#2",
+            "acquiredEffectModelGroup/retirePublication",
+            "acquiredEffectModelGroup/retirePublication/retirePublication",
+            "acquiredEffectModelGroup/same/same",
+            "acquiredEffectModelGroup/same/same/same",
+            "acquiredEffectModelGroup/unitPinsPending/unitPinsPending",
+            "acquiredEffectModelGroup/unitPinsPending/unitPinsPending/unitPinsPending",
+            "openAcquiredEffectComputation",
+            "openAcquiredEffectComputation/capacities/capacities",
+            "openAcquiredEffectComputation/cleanupInfer/cleanupInfer",
+            "openAcquiredEffectComputation/configurations/configurations",
+            "openAcquiredEffectComputation/current/current",
+            "openAcquiredEffectComputation/custody/custody",
+            "openAcquiredEffectComputation/custody/init:cleanup/init:cleanup",
+            "openAcquiredEffectComputation/custody/init:close/init:close",
+            "openAcquiredEffectComputation/handleModelPause",
+            "openAcquiredEffectComputation/handleModelPause/cleanupHandle/cleanupHandle",
+            "openAcquiredEffectComputation/inferCleanupPending/inferCleanupPending",
+            "openAcquiredEffectComputation/init:observeAccount/init:observeAccount",
+            "openAcquiredEffectComputation/init:retain/init:retain",
+            "openAcquiredEffectComputation/init:retainExecution/init:retainExecution",
+            "openAcquiredEffectComputation/observeUsage/observeUsage",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#10",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#11",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#12",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#13",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#15",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#2",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#3",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#4",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#5",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#6",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#7",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#8",
+            "openAcquiredEffectComputation/openAcquiredEffectComputation#9",
+            "openAcquiredEffectComputation/originalCurrent/originalCurrent",
+            "openAcquiredEffectComputation/originalCurrent/originalCurrent/changed/changed",
+            "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#2",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#3",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/sourceEvidence/sourceEvidence",
+            "openAcquiredEffectComputation/retainPreflightCleanup/retainPreflightCleanup",
+            "openAcquiredEffectComputation/retireInferPublication/retireInferPublication",
+            "openAcquiredEffectComputation/retireUnenteredCompute/retireUnenteredCompute",
+            "openAcquiredEffectComputation/wholeInputs/wholeInputs"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -4888,7 +4962,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "fe4d8e8a21cb147913abd25e744eecd7cec29f82e916162a00db58ff0712a51d",
+      "sha256": "25f1d934cf65cf4756a6cf025440192c1ba6be3cdaf7b36a8ebc6077564ae9df",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -4999,6 +5073,13 @@
           "parameters": [
             "left",
             "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareDependentEffectSourceSet/originalArtifact/originalArtifact",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -5461,6 +5542,7 @@
             "exportPinnedResult/exportPinnedResult#2",
             "prepareDependentEffectSourceSet",
             "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
+            "prepareDependentEffectSourceSet/originalArtifact/originalArtifact",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#2",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet#3",
@@ -24798,7 +24880,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "ebf7bc159272f432fddce531514d24716321c28833f09a3cf32846961b6482d4",
+      "sha256": "a397cd27fefadc13418dc34183abb7be4d956fca6c56b174257e1890f5516610",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24815,6 +24897,7 @@
         "localContractLimits",
         "localOutputLimits",
         "openSourceFreeEffectComputation",
+        "prepareAcquiredEffectSourceUnits",
         "prepareTimedClientInvocation",
         "restoreInferTaskRunAdmission",
         "selectInstalledSerializationGraph",
@@ -24874,6 +24957,8 @@
             "keyedSource",
             "signal",
             "sourcePlan",
+            "managedRun",
+            "sourceUnitsOriginal",
             "fundingOperation",
             "current",
             "retainBinding"
@@ -24895,6 +24980,28 @@
           "async": false
         },
         {
+          "name": "acquiredInferEffectPublicationPlan/earlier/earlier",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredInferEffectPublicationPlan/earlierUnits/earlierUnits",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredInferEffectPublicationPlan/executionBase/executionBase",
+          "parameters": [
+            "sum",
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "acquiredInferEffectPublicationPlan/generations/generations",
           "parameters": [
             "original"
@@ -24908,6 +25015,14 @@
             "receipt",
             "retainedBytes",
             "executionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredInferEffectPublicationPlan/retainedBase/retainedBase",
+          "parameters": [
+            "sum",
+            "entry"
           ],
           "async": false
         },
@@ -24944,7 +25059,9 @@
             "modelOriginals",
             "modelEvidence",
             "keyedSource",
-            "sourcePlan"
+            "sourcePlan",
+            "managedRun",
+            "sourceUnitsOriginal"
           ],
           "async": false
         },
@@ -24999,6 +25116,21 @@
         },
         {
           "name": "acquiredMultiEffectPublicationPlan/modelContribution/modelContribution",
+          "parameters": [
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/needsSourceUnits/needsSourceUnits",
+          "parameters": [
+            "unit",
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiEffectPublicationPlan/needsSourceUnits/needsSourceUnits/needsSourceUnits",
           "parameters": [
             "model"
           ],
@@ -25132,7 +25264,8 @@
             "moon",
             "modelEvidence",
             "outputLimits",
-            "retentionSelection"
+            "retentionSelection",
+            "originalRetention"
           ],
           "async": false
         },
@@ -25265,6 +25398,15 @@
           "async": false
         },
         {
+          "name": "issueLocalResultRetention",
+          "parameters": [
+            "control",
+            "dataPolicyCid",
+            "selection"
+          ],
+          "async": false
+        },
+        {
           "name": "keyedInputRetentionSelection",
           "parameters": [
             "acquired"
@@ -25299,6 +25441,32 @@
           "name": "policyCid/policyCid",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareAcquiredEffectSourceUnits",
+          "parameters": [
+            "acquired",
+            "sources",
+            "sourcePlan",
+            "managedRun",
+            "modelUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareAcquiredEffectSourceUnits/evidence/evidence",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareAcquiredEffectSourceUnits/selected/selected",
+          "parameters": [
+            "unit",
+            "count"
           ],
           "async": false
         },
@@ -25531,12 +25699,26 @@
             "acquiredEffectPublicationPlan",
             "acquiredEffectPublicationPlan/acquiredEffectPublicationPlan",
             "acquiredInferEffectPublicationPlan",
+            "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan",
+            "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan#2",
+            "acquiredInferEffectPublicationPlan/earlier/earlier",
+            "acquiredInferEffectPublicationPlan/earlierUnits/earlierUnits",
+            "acquiredInferEffectPublicationPlan/executionBase/executionBase",
+            "acquiredInferEffectPublicationPlan/generations/generations",
+            "acquiredInferEffectPublicationPlan/model/model",
+            "acquiredInferEffectPublicationPlan/retainedBase/retainedBase",
             "acquiredKeyedTaskPublicationPlan",
             "acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#2",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#3",
+            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#4",
+            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#5",
+            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#6",
             "acquiredMultiEffectPublicationPlan/direct/direct",
+            "acquiredMultiEffectPublicationPlan/modelContribution/modelContribution",
+            "acquiredMultiEffectPublicationPlan/needsSourceUnits/needsSourceUnits",
+            "acquiredMultiEffectPublicationPlan/needsSourceUnits/needsSourceUnits/needsSourceUnits",
             "acquiredMultiEffectPublicationPlan/sourceEvidence/sourceEvidence",
             "acquiredMultiEffectPublicationPlan/whole/whole",
             "acquiredMultiTaskPublicationPlan",
@@ -25551,11 +25733,18 @@
             "checkedTaskRunAdmission",
             "cid/cid",
             "effectPublicationAdmission",
+            "effectPublicationAdmission/selectRetention/selectRetention",
             "inferTaskPublicationPlan",
             "inferTaskRunAdmission",
             "instant/instant",
+            "issueLocalResultRetention",
+            "keyedInputRetentionSelection",
             "localPublicationPlan",
+            "localRetentionTimes",
             "policyCid/policyCid",
+            "prepareAcquiredEffectSourceUnits",
+            "prepareAcquiredEffectSourceUnits/evidence/evidence",
+            "prepareAcquiredEffectSourceUnits/selected/selected",
             "retainOriginalPlan",
             "retentionDependencies/retentionDependencies",
             "selectInstalledSerializationGraph",
@@ -25564,22 +25753,11 @@
             "serializationTaskRunAdmission",
             "sourceFreeEffectPublicationPlan",
             "sourceFreeInferEffectPublicationPlan",
+            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
             "sourceFreePlanOriginal",
             "sourceFreeTaskPlan",
             "sourceFreeValuesAdmissionEvidence",
-            "sourceFreeValuesPlan",
-            "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan",
-            "acquiredInferEffectPublicationPlan/acquiredInferEffectPublicationPlan#2",
-            "acquiredInferEffectPublicationPlan/generations/generations",
-            "acquiredInferEffectPublicationPlan/model/model",
-            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#4",
-            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#5",
-            "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#6",
-            "acquiredMultiEffectPublicationPlan/modelContribution/modelContribution",
-            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
-            "keyedInputRetentionSelection",
-            "localRetentionTimes",
-            "effectPublicationAdmission/selectRetention/selectRetention"
+            "sourceFreeValuesPlan"
           ],
           "exports": [
             "acquiredEffectPublicationAdmission",
@@ -25592,8 +25770,10 @@
             "acquiredTaskRunAdmission",
             "inferTaskPublicationPlan",
             "inferTaskRunAdmission",
+            "keyedInputRetentionSelection",
             "localContractLimits",
             "localOutputLimits",
+            "prepareAcquiredEffectSourceUnits",
             "selectInstalledSerializationGraph",
             "serializationTaskPublicationPlan",
             "serializationTaskRunAdmission",
@@ -25602,8 +25782,7 @@
             "sourceFreePlanOriginal",
             "sourceFreeTaskPlan",
             "sourceFreeValuesAdmissionEvidence",
-            "sourceFreeValuesPlan",
-            "keyedInputRetentionSelection"
+            "sourceFreeValuesPlan"
           ],
           "attributes": {
             "responsibility": [

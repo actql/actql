@@ -9870,7 +9870,7 @@
     {
       "module": "adapters/host-common/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "24d847c15fc9cd16eec41dcfe64e2fc21a92d0040ea7d5e9c929c7ba8ce25e6a",
+      "sha256": "99a5ee355db346e226fe7d6c768510315b1a8cce73e7c402aa3e7fb13d1eda88",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -9904,6 +9904,50 @@
           "parameters": [
             "units"
           ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/deliverAuthorizedResult#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand#2",
+          "parameters": [
+            "slot",
+            "original",
+            "mode"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand#3",
+          "parameters": [
+            "slot",
+            "nodes",
+            "textUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand#4",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand#5",
+          "parameters": [],
           "async": false
         },
         {
@@ -10044,7 +10088,8 @@
           "name": "readSelectedPublication",
           "parameters": [
             "installed",
-            "indexKey"
+            "indexKey",
+            "readDemand"
           ],
           "async": true
         },
@@ -10104,6 +10149,12 @@
           "operations": [
             "ResultAccessError/constructor:constructor/constructor:constructor",
             "deliverAuthorizedResult",
+            "deliverAuthorizedResult/deliverAuthorizedResult#3",
+            "deliverAuthorizedResult/demand/demand",
+            "deliverAuthorizedResult/demand/demand#2",
+            "deliverAuthorizedResult/demand/demand#3",
+            "deliverAuthorizedResult/demand/demand#4",
+            "deliverAuthorizedResult/demand/demand#5",
             "deliverPreparedAuthorizedResult/authorize/authorize",
             "deliverPreparedAuthorizedResult/availability/availability",
             "deliverPreparedAuthorizedResult/requireAction/requireAction",
@@ -10120,13 +10171,13 @@
             "observedAt",
             "ownedResultRequest",
             "positive/positive",
+            "readSelectedPublication",
             "sampleTrustedClock",
             "sampleTrustedClock/at/at",
             "validateAdmission",
             "validateAuthority",
             "validateRequest",
-            "validateServiceConfiguration",
-            "readSelectedPublication"
+            "validateServiceConfiguration"
           ],
           "exports": [
             "ResultAccessError",
@@ -10170,7 +10221,7 @@
               },
               {
                 "path": "adapters/host-common/result-access.mjs",
-                "anchor": "async function readSelectedPublication(installed, indexKey) {"
+                "anchor": "async function readSelectedPublication(installed, indexKey, readDemand) {"
               }
             ],
             "identity": [
@@ -10354,7 +10405,7 @@
               },
               {
                 "path": "adapters/host-common/result-access.mjs",
-                "anchor": "async function readSelectedPublication(installed, indexKey) {"
+                "anchor": "async function readSelectedPublication(installed, indexKey, readDemand) {"
               }
             ],
             "identity": [
@@ -10622,7 +10673,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "91111bf056967158b54be369208cd19489b8e771868ae4819006175512a46e57",
+      "sha256": "0478ba34581d12f94d9796ff3760756fe59802a859d56c930cb70fd8ad7f07ad",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -14169,7 +14220,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await requireCommittedMetadataInventory(original.entry);"
+                "anchor": "await requireCommittedMetadataInventory(original.entry, readDemand);"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -14469,7 +14520,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await requireCommittedMetadataInventory(original.entry);"
+                "anchor": "await requireCommittedMetadataInventory(original.entry, readDemand);"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -28489,7 +28540,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28652,7 +28703,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -29284,7 +29335,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -109215,7 +109266,7 @@
     {
       "module": "packages/run-host-core/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b84ea6ab27510283db0ec3fc476d217a867f24156594c27dc29380405ccc0055",
+      "sha256": "e8823b4b618ca30f6285cdff526819edb590d0ee885bbc383ad9181f42e6e19f",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -109249,6 +109300,50 @@
           "parameters": [
             "units"
           ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/deliverAuthorizedResult#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand#2",
+          "parameters": [
+            "slot",
+            "original",
+            "mode"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand#3",
+          "parameters": [
+            "slot",
+            "nodes",
+            "textUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand#4",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/demand/demand#5",
+          "parameters": [],
           "async": false
         },
         {
@@ -109389,7 +109484,8 @@
           "name": "readSelectedPublication",
           "parameters": [
             "installed",
-            "indexKey"
+            "indexKey",
+            "readDemand"
           ],
           "async": true
         },
@@ -109449,6 +109545,12 @@
           "operations": [
             "ResultAccessError/constructor:constructor/constructor:constructor",
             "deliverAuthorizedResult",
+            "deliverAuthorizedResult/deliverAuthorizedResult#3",
+            "deliverAuthorizedResult/demand/demand",
+            "deliverAuthorizedResult/demand/demand#2",
+            "deliverAuthorizedResult/demand/demand#3",
+            "deliverAuthorizedResult/demand/demand#4",
+            "deliverAuthorizedResult/demand/demand#5",
             "deliverPreparedAuthorizedResult/authorize/authorize",
             "deliverPreparedAuthorizedResult/availability/availability",
             "deliverPreparedAuthorizedResult/requireAction/requireAction",
@@ -109465,13 +109567,13 @@
             "observedAt",
             "ownedResultRequest",
             "positive/positive",
+            "readSelectedPublication",
             "sampleTrustedClock",
             "sampleTrustedClock/at/at",
             "validateAdmission",
             "validateAuthority",
             "validateRequest",
-            "validateServiceConfiguration",
-            "readSelectedPublication"
+            "validateServiceConfiguration"
           ],
           "exports": [
             "ResultAccessError",
@@ -109515,7 +109617,7 @@
               },
               {
                 "path": "adapters/host-common/result-access.mjs",
-                "anchor": "async function readSelectedPublication(installed, indexKey) {"
+                "anchor": "async function readSelectedPublication(installed, indexKey, readDemand) {"
               }
             ],
             "identity": [
@@ -109699,7 +109801,7 @@
               },
               {
                 "path": "adapters/host-common/result-access.mjs",
-                "anchor": "async function readSelectedPublication(installed, indexKey) {"
+                "anchor": "async function readSelectedPublication(installed, indexKey, readDemand) {"
               }
             ],
             "identity": [
@@ -109967,7 +110069,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "91111bf056967158b54be369208cd19489b8e771868ae4819006175512a46e57",
+      "sha256": "0478ba34581d12f94d9796ff3760756fe59802a859d56c930cb70fd8ad7f07ad",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -127117,7 +127219,7 @@
       "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -128346,7 +128448,7 @@
       "sha256": "92bc4f4758a19e9f165252a5030b063ba46f403a532f138f8868bda11182c2a5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -129426,7 +129528,7 @@
       "sha256": "c1acdbea2f3e351174b436ef0e91fcce41fb8ded7b341aebdb63639232695290",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -136095,7 +136197,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -136321,7 +136423,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -136963,7 +137065,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -137085,7 +137187,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "a18dbfc5618cec173b04385123ba4880b0cb49c209bee1ded4e5a494aa9afaeb",
+      "sha256": "31437405bfada60d38af7e6301248144909fb5641c11b553beef4aded36cfd60",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -137120,12 +137222,20 @@
         {
           "name": "createLocalResultReadWorkspace/init:begin/init:begin",
           "parameters": [
-            "request"
+            "request",
+            "control"
           ],
           "async": false
         },
         {
           "name": "createLocalResultReadWorkspace/init:begin/init:begin/init:begin",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:begin/init:begin/init:begin#2",
           "parameters": [],
           "async": false
         },
@@ -137150,6 +137260,49 @@
           "async": true
         },
         {
+          "name": "createLocalResultReadWorkspace/init:metadata/init:metadata",
+          "parameters": [
+            "request",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:metadataData/init:metadataData",
+          "parameters": [
+            "request",
+            "slot",
+            "nodes",
+            "textUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:metadataFinish/init:metadataFinish",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:metadataRelease/init:metadataRelease",
+          "parameters": [
+            "request",
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:metadataRetain/init:metadataRetain",
+          "parameters": [
+            "request",
+            "slot",
+            "originalContract",
+            "mode"
+          ],
+          "async": false
+        },
+        {
           "name": "createLocalResultReadWorkspace/init:prepare/init:prepare",
           "parameters": [
             "request",
@@ -137164,6 +137317,14 @@
           "parameters": [
             "request",
             "units"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:serializer/init:serializer",
+          "parameters": [
+            "request",
+            "value"
           ],
           "async": false
         },
@@ -137211,6 +137372,7 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/result-delivery.mjs",
+        "../host-common/runtime-result.mjs",
         "../local-node/request-preparation-adapter.mjs",
         "../store-local/publication-store.mjs"
       ],
@@ -137226,11 +137388,18 @@
             "createLocalResultReadWorkspace/cleanupFailure/error/error#2",
             "createLocalResultReadWorkspace/init:begin/init:begin",
             "createLocalResultReadWorkspace/init:begin/init:begin/init:begin",
+            "createLocalResultReadWorkspace/init:begin/init:begin/init:begin#2",
             "createLocalResultReadWorkspace/init:close/init:close",
             "createLocalResultReadWorkspace/init:close/init:close/init:close",
             "createLocalResultReadWorkspace/init:closeAll/init:closeAll",
+            "createLocalResultReadWorkspace/init:metadata/init:metadata",
+            "createLocalResultReadWorkspace/init:metadataData/init:metadataData",
+            "createLocalResultReadWorkspace/init:metadataFinish/init:metadataFinish",
+            "createLocalResultReadWorkspace/init:metadataRelease/init:metadataRelease",
+            "createLocalResultReadWorkspace/init:metadataRetain/init:metadataRetain",
             "createLocalResultReadWorkspace/init:prepare/init:prepare",
             "createLocalResultReadWorkspace/init:row/init:row",
+            "createLocalResultReadWorkspace/init:serializer/init:serializer",
             "createLocalResultReadWorkspace/original/original",
             "createLocalResultReadWorkspace/pending/pending",
             "createLocalResultReadWorkspace/pending/pending/pending",
