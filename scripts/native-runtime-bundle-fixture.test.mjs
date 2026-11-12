@@ -131,7 +131,7 @@ test('Native Effect portable preparation verifies transfer before any runtime im
   const f = portablePreparationFixture(t); f.prepare();
   const source = readFileSync(new URL('./test-native-resident-site.mjs', import.meta.url), 'utf8');
   const modeStart = source.indexOf('const effectComputationMode = ');
-  const modeEnd = source.indexOf('const retainedCoordinatorReconstruction = ', modeStart);
+  const modeEnd = source.indexOf('const retainedCoordinatorReconstruction =', modeStart);
   assert(modeStart >= 0 && modeEnd > modeStart);
   const retainedConsumerMode = runInNewContext(source.slice(modeStart, modeEnd) + 'retainedConsumerMode;', {
     retainedChainMode: false, process: {argv: ['node', 'resident', '--effect-computation-only'], env: {}},
