@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "deac72eb970847dde1b10ad2e269e9f111a7ee1f08c3be4c97a0aa7291b98514",
+      "sha256": "234be70c42a38b95e84abac9748387b1a5906b202889a6cb01695a3165a06ee2",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -4827,7 +4827,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "a47756971780da475caa2f1800829dd34ef3ce41b572bec9285e0468187ceb1e",
+      "sha256": "1e2f6682e99daaeaeae5ce14b30ffba67f2dad95985a6879c8411c8e54a1fc59",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

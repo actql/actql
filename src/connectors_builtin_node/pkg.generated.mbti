@@ -1112,6 +1112,8 @@ pub fn client_program_effect_model_unit_export_receipt(@physical_strategy_host.C
 
 pub fn client_program_effect_model_unit_managed_export_owner(@physical_strategy_host.CapturedEffectLocalUnitInputs, Int, ClientEffectManagedInputImport) -> Result[@physical_strategy_host.CapturedEffectLocalResultExport, @client_local_host.ClientEffectUnitPreparationIssue]
 
+pub fn client_program_effect_model_unit_result_artifact_issue_kind(Result[@run_publication_host.ClientEffectLocalResultArtifact, @client_local_host.ClientEffectUnitPreparationIssue]) -> String?
+
 pub fn client_program_effect_model_unit_result_count(@physical_strategy_host.CapturedEffectLocalUnitInputs) -> Int
 
 pub fn client_program_effect_model_unit_result_export_issue_kind(Result[@physical_strategy_host.CapturedEffectLocalResultExport, @client_local_host.ClientEffectUnitPreparationIssue]) -> String?
