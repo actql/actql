@@ -62,6 +62,10 @@ function fixture() {
     clientProgramOriginalModelAcquiredLookupDependencyBodies(original) {
       assert.strictEqual(original,rawAcquired);return ok([]);
     },
+    clientProgramOriginalModelAcquiredScopeImportBodies(original) {
+      assert.strictEqual(original,rawAcquired);
+      return [{_0:'result_import_observation',_1:'scope-import-cid',_2:'{"import":"original"}'}];
+    },
     clientProgramOriginalModelAcquiredEffectInvocation:()=>rawInvocation,
     clientProgramOriginalModelAcquiredEffectScope:()=> '{"sources":[]}',
     clientProgramAcquiredEffectInvocation:()=>({}),
@@ -130,6 +134,8 @@ test('same Model binding and typed Whole contribution reach complete Model Artif
     ['model-cid','input-cid','outcome-cid','outcome-schema']);
   const dependency=f.control.issueOriginalModelEffectEvidence(model,f.run,undefined,f.limits);
   assert.equal(dependency.bodies.some(value=>value.wire==='{"kind":"Whole"}'),true);
+  assert.deepEqual(dependency.bodies.filter(value=>value.kind==='result_import_observation'),
+    [{kind:'result_import_observation',cid:'scope-import-cid',wire:'{"import":"original"}'}]);
   const artifact=f.control.issueDependentLocalEffectResultArtifact(f.owner,f.inputs,
     f.exported,dependency,f.definition,f.receipt,f.run,{admission:f.compiled.admission,
       runDefinition:f.run,runInvocation:f.issued.invocation,observation:f.issued.observation},f.limits);
