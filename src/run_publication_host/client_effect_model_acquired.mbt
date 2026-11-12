@@ -114,12 +114,18 @@ pub fn issue_single_model_client_effect_acquired_evidence(
   }
   let scopes = []
   for index, source in direct {
-    if imports.map(original => model_effect_imported_source(original, sources.inputs[index])).unwrap_or(false) {
+    if imports
+      .map(original => {
+        model_effect_imported_source(original, sources.inputs[index])
+      })
+      .unwrap_or(false) {
       continue
     }
     scopes.push(source.scope)
   }
-  if imports is Some(original) { scopes.push(original.scope) }
+  if imports is Some(original) {
+    scopes.push(original.scope)
+  }
   if keyed is Some((lookup, _)) {
     guard lookup.publication_identity is Some(identity) else {
       return Err(Invocation(ForeignSourceObservation))

@@ -149,9 +149,7 @@ test "one original Result import and one inline Source retain both Model source 
 
 ///|
 test "inline Source and original import closure survives the following Model boundary" {
-  let (_, occurrence, originals) = mixed_model_source_fixture(
-    following=true,
-  )
+  let (_, occurrence, originals) = mixed_model_source_fixture(following=true)
   let accepted = admit_client_infer_composed_whole_sources(
     occurrence,
     originals.map(value => value.0),
