@@ -1913,19 +1913,41 @@ jobs:
       - name: Retain exact official component archives
         run: |
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, urllib.request
+          import hashlib, json, os, pathlib, time, urllib.error, urllib.request
+          def retain_original(original, destination):
+              # Retry the same immutable GET within its original input budget.
+              assert 0 < original['bytes'] <= 5 * 1024 * 1024
+              deadline = time.monotonic() + 60
+              last_failure = None
+              for attempt in range(3):
+                  remaining = deadline - time.monotonic()
+                  if remaining <= 0:
+                      if last_failure is not None:
+                          raise last_failure
+                      raise TimeoutError('Original component download budget exhausted')
+                  try:
+                      with urllib.request.urlopen(original['url'], timeout=remaining) as response:
+                          data = response.read(original['bytes'] + 1)
+                      break
+                  except (urllib.error.URLError, ConnectionResetError, TimeoutError) as error:
+                      reason = error.reason if isinstance(error, urllib.error.URLError) else error
+                      delay = attempt + 1
+                      if (isinstance(error, urllib.error.HTTPError)
+                              or not isinstance(reason, (ConnectionResetError, TimeoutError))
+                              or attempt == 2 or delay >= deadline - time.monotonic()):
+                          raise
+                      last_failure = error
+                      time.sleep(delay)
+              assert len(data) == original['bytes'] and hashlib.sha256(data).hexdigest() == original['sha256']
+              with destination.open('xb') as output:
+                  output.write(data)
           root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'native-cli-linux-local'
           inputs = root / 'inputs'
           inputs.mkdir(parents=True, exist_ok=False)
           sqlite = json.loads(pathlib.Path('packages/python-local-runtime/native/sqlite-component/source.json').read_text())['upstream']
           crypto = json.loads(pathlib.Path('packages/python-local-runtime/native/crypto-component/source.json').read_text())['source_targets']['x86_64-unknown-linux-gnu']
           for name, original in [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]:
-              assert 0 < original['bytes'] <= 5 * 1024 * 1024
-              with urllib.request.urlopen(original['url'], timeout=60) as response:
-                  data = response.read(original['bytes'] + 1)
-              assert len(data) == original['bytes'] and hashlib.sha256(data).hexdigest() == original['sha256']
-              with (inputs / name).open('xb') as output:
-                  output.write(data)
+              retain_original(original, inputs / name)
           PY
       - name: Produce normal selected Linux Local artifact
         run: |

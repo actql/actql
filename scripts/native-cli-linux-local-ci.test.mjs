@@ -3,6 +3,7 @@ import {chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} 
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
 import {parse} from 'yaml';
 import {gateJobs} from './ci-targets.mjs';
@@ -90,6 +91,18 @@ test('CI downloads original hash-bounded archives and retains exact production a
     assert(retain.with.path.includes(path), path);
   }
   assert(!retain.with.path.includes('mock-consumers/**'), 'Do not upload private project state or keys');
+});
+
+test('CI pinned component downloader keeps bounded reset retries and original refusals', () => {
+  const command = job.steps.find(step => step.name === 'Retain exact official component archives').run;
+  const inline = command.match(/^python3 - <<'PY'\n([\s\S]+)\nPY\n?$/u);
+  assert(inline, 'Exercise the actual workflow caller, not a duplicate downloader');
+  const fixture = fileURLToPath(new URL('./fixtures/native-component-archive-retry.py', import.meta.url));
+  const result = spawnSync('python3', [fixture], {input:inline[1], encoding:'utf8', timeout:20000});
+  assert.equal(result.error, undefined);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^Pinned component archive controls: 10\/10$/mu);
 });
 
 
