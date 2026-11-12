@@ -84,9 +84,12 @@ Separate output guards and work, cell, value and byte ceilings still apply.
 `installation: {sourceFreeMaxWork: 30000000}` explicitly selects finite
 source-free ordinary Local Compute work. Omission keeps the Core 20,000,000
 limit. The positive signed 32-bit value bounds each applicable cumulative
-fragment/sequence counter, not total Run/Host lifetime work. It does not increase
-compiler/check, acquired Source/Model/Effect budgets or the independent 512 MiB
-retained/workspace budgets. A finite work selection is not sufficient workload admission.
+fragment/sequence counter across polls, not the per-poll yield quantum or total
+Run/Host lifetime work. The same selection also bounds the runtime Fragment's
+Root/Demand preparation; it does not issue a second preparation allowance.
+Program parsing and checking retain their separate compiler limits. It does not
+increase acquired Source/Model/Effect budgets or the independent 512 MiB retained/workspace
+budgets. A finite work selection is not sufficient workload admission.
 
 `installation: {valuesMaxRows: 2000}` selects the configurable **single-task**
 Values profile. The option accepts a positive signed 32-bit integer; this is a

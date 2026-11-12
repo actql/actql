@@ -2604,6 +2604,8 @@ pub fn duckdb_registration(@connectors_builtin.ConfiguredComputeHost[@physical_s
 
 pub fn local_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_host_dispatch.PreparedTaskDispatch) -> @actql/actql/connectors/local/driver.LocalDispatchOperations raise NodeHostFailure
 
+pub fn local_managed_advance_failure_kind(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> String?
+
 pub fn local_managed_capacity(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
 
 pub fn local_managed_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure

@@ -54,6 +54,8 @@ pub(all) enum BoundedCrossJoinIssue {
   Capture(CaptureIssue)
   Completion(TrustedOutputIssue)
   Execution(@bounded.Issue)
+  // Only an exhausted cumulative ControlBudget; never row/workspace capacity.
+  ControlWorkLimit
 }
 
 ///|
@@ -199,7 +201,7 @@ fn bounded_cross_join_step(
             return bounded_cross_join_failure(InputLimit, progress, used + 1)
           Err(ControlLimit) =>
             return bounded_cross_join_failure(
-              Rows(RowLimit),
+              ControlWorkLimit,
               progress,
               used + 1,
             )
@@ -236,7 +238,7 @@ fn bounded_cross_join_step(
         let name = @schema.reference_name(field.output)
         if !spend_control(state.control, 1) ||
           !spend_control_text(state.control, name) {
-          return bounded_cross_join_failure(Rows(RowLimit), progress, used)
+          return bounded_cross_join_failure(ControlWorkLimit, progress, used)
         }
         state.output_name = name
         state.source_name = @schema.reference_name(source)
@@ -261,7 +263,7 @@ fn bounded_cross_join_step(
         }
         if !spend_control(state.control, 1) ||
           !spend_control_text(state.control, state.source_name) {
-          return bounded_cross_join_failure(Rows(RowLimit), progress, used)
+          return bounded_cross_join_failure(ControlWorkLimit, progress, used)
         }
         if @schema.reference_name(candidate.name) == state.source_name {
           if !reserve_slots(state.workspace, 3) {
@@ -290,9 +292,13 @@ fn bounded_cross_join_step(
           state.right_row = 0
           continue
         }
-        if state.emitted >= state.output_ceiling ||
-          !spend_control(state.control, 1) ||
-          !reserve_slots(state.workspace, 2) {
+        if state.emitted >= state.output_ceiling {
+          return bounded_cross_join_failure(Rows(RowLimit), progress, used)
+        }
+        if !spend_control(state.control, 1) {
+          return bounded_cross_join_failure(ControlWorkLimit, progress, used)
+        }
+        if !reserve_slots(state.workspace, 2) {
           return bounded_cross_join_failure(Rows(RowLimit), progress, used)
         }
         state.checked_row = []
@@ -341,8 +347,10 @@ fn bounded_cross_join_step(
           @schema.field_at(state.output_schema, state.column) is Some(field) else {
           return bounded_cross_join_failure(InvalidExecution, progress, used)
         }
-        if !spend_control(state.control, 1) ||
-          !reserve_slots(state.workspace, 1) {
+        if !spend_control(state.control, 1) {
+          return bounded_cross_join_failure(ControlWorkLimit, progress, used)
+        }
+        if !reserve_slots(state.workspace, 1) {
           return bounded_cross_join_failure(Rows(RowLimit), progress, used)
         }
         if bounded_small_output_value(value) {

@@ -54,6 +54,8 @@ pub fn local_dispatch_rejection(LocalDispatchModule, Int) -> String?
 
 pub fn local_dispatch_work_slots() -> Int
 
+pub fn local_managed_advance_failure_kind(LocalDispatchIssue) -> String?
+
 pub fn[T] local_managed_captured_relation_input() -> LocalManagedAvailableOutput[T]
 
 pub fn[T] local_managed_carrier_output(@execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.Material) -> LocalManagedAvailableOutput[T]

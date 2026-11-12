@@ -2328,6 +2328,7 @@ pub fn client_program_keyed_lookup_publication_input(@run_publication_host.Clien
 
 pub fn client_program_keyed_lookup_raw_store_binding(@run_publication_host.ClientKeyedNativeRawResponse) -> Result[(String, String, String, String, Int64), @run_publication_host.ClientKeyedRequestIssue]
 
+
 pub fn client_program_keyed_lookup_read(@run_publication_host.ClientKeyedLookupInput) -> Result[@execution_relation.SuppliedRelationRead, @run_publication_host.ClientKeyedRequestIssue]
 
 pub fn client_program_keyed_lookup_request_advance(@run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequestPreparation) -> (Int, Int, @run_publication_host.ClientKeyedRequest?, @run_publication_host.ClientKeyedRequestIssue?)
@@ -4477,6 +4478,8 @@ pub fn execution_authorization_prepare(AuthorizationEvaluation, String, String, 
 pub fn execution_authorization_request_json(AuthorizationRequest) -> String
 
 pub fn local_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_host_dispatch.PreparedTaskDispatch) -> @actql/actql/connectors/local/driver.LocalDispatchOperations raise NodeHostFailure
+
+pub fn local_managed_advance_failure_kind(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> String?
 
 pub fn local_managed_capacity(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> (Int64, Int64)?
 

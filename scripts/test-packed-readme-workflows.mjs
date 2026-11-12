@@ -25,7 +25,7 @@ export const packedCompositionCases = Object.freeze([
 // SAME completed original Result. This helper installs nothing and submits no
 // replacement Run. Its caller owns software/fixture correspondence and alias cleanup.
 export async function runCollectionPhase({collection, command, record, capturePid}) {
-  assert(['budget', 'capture', 'saved'].includes(record.phase));
+  assert(['budget', 'memory-recovery', 'work-recovery', 'capture', 'saved'].includes(record.phase));
   if (record.phase === 'saved') assert(Number.isSafeInteger(capturePid) && capturePid > 0);
   const members = ['scripts/fixtures/packed-result-collection.mjs'];
   const {phase} = record;
@@ -40,12 +40,12 @@ export async function runCollectionPhase({collection, command, record, capturePi
     const actual = JSON.parse(observed.stdout.trim()); record.actual = actual;
     assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
     if (phase === 'saved') assert.notEqual(actual.pid, capturePid);
-    assert.equal(actual.sourceFreeMaxWork, 30000000);
-    const memory = phase === 'budget' ? 32768 : 1073741824;
+    assert.equal(actual.sourceFreeMaxWork, phase === 'work-recovery' ? 100000 : 30000000);
+    const memory = phase === 'budget' ? 32768 : phase === 'memory-recovery' ? 268435456 : 1073741824;
     assert.deepEqual(actual.requestMemory, {retainedBytes: memory, executionBytes: memory});
     assert(actual.complete); assert.equal(actual.firstClose, 'returned');
     assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
-    assert.equal(actual.submits, phase === 'capture' ? 5 : phase === 'budget' ? 1 : 0);
+    assert.equal(actual.submits, phase === 'capture' ? 5 : phase === 'budget' ? 1 : phase.endsWith('-recovery') ? 3 : 0);
     if (phase === 'budget') {
       assert.equal(actual.budgetRefusal?.verified, true);
       assert.equal(actual.budgetDisposition, 'pre_send_capture');
@@ -65,6 +65,34 @@ export async function runCollectionPhase({collection, command, record, capturePi
       assert.deepEqual(actual.budgetInput, {utf8Bytes: 40017, utf16Units: 40017,
         arrayElements: 20000, original: 'budget-input-before-submit.json'});
       assert.deepEqual(actual.cases, [{inputUtf8Bytes: 40017, expectedRefusal: 'request_snapshot', complete: true}]);
+    } else if (phase.endsWith('-recovery')) {
+      assert.deepEqual(actual.resourceRecovery, {complete: true, rows: [{n: 7}], submits: 1});
+      assert.equal(actual.previousSavedCreated, true);
+      assert.deepEqual(actual.previousSaved, {complete: true, rows: [{n: 41}], submits: 0});
+      assert.equal(actual.cleanup?.length, 0);
+      if (phase === 'memory-recovery') {
+        assert.equal(actual.memoryRefusal?.verified, true);
+        assert.equal(actual.memoryRefusal.phase, 'request_snapshot');
+        assert.equal(actual.memoryRefusal.classification, 'resource_limit');
+        assert.equal(actual.memoryRefusal.outcome, 'pre_send_capture');
+        const amounts = ['requiredRetentionBytes', 'requiredExecutionBytes',
+          'availableRetentionBytes', 'availableExecutionBytes'].map(key => {
+          const text = actual.memoryRefusal[key];
+          assert(typeof text === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(text));
+          const value = BigInt(text); assert(value <= 9223372036854775807n); return value;
+        });
+        assert(amounts[2] <= BigInt(memory) && amounts[3] <= BigInt(memory));
+        assert(actual.memoryRefusal.dimension === 'retention' ? amounts[0] > amounts[2]
+          : actual.memoryRefusal.dimension === 'execution' && amounts[0] <= amounts[2] && amounts[1] > amounts[3]);
+        assert.deepEqual(actual.cases, [{expectedRefusal: 'request_snapshot', complete: true}]);
+      } else {
+        const data = actual.workRefusal;
+        assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'task', 'verified']);
+        assert.equal(data.verified, true); assert.equal(data.code, 'MoonBitHostFailure');
+        assert.equal(data.phase, 'local_managed_advance'); assert.equal(data.kind, 'control_work');
+        assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
+        assert.deepEqual(actual.cases, [{expectedRefusal: 'control_work', complete: true}]);
+      }
     } else if (phase === 'capture') {
       assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
       assert.deepEqual(actual.fullStream, {rows: 100000, complete: true});
@@ -186,7 +214,7 @@ export async function runPackedReadmeWorkflows(root) {
   const raw = join(root, 'raw'); await mkdir(raw);
   const report = {source, node: process.version, platform: process.platform,
     architecture: process.arch, requiredCases: packedReadmeCases, requiredCompositions: packedCompositionCases,
-    collection: ['budget', 'capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
+    collection: ['budget', 'memory-recovery', 'work-recovery', 'capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires verified unchanged normal packages'})),

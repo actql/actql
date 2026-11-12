@@ -474,10 +474,13 @@ async function collectionBudgetPorts() {
   // Execute the actual fixture with explicit public/diagnostic ports, not a
   // substitute Core, Ledger, installed acceptance, or successful budget run.
   return {project: load('originalBudgetRefusal'), program: load('collectionProgram'), budgetProgram: load('oversizedRowProgram'),
+    memoryProgram: load('memoryRecoveryProgram'), workProject: load('originalControlWorkRefusal'),
+    recovery: load('sameHostSmallResult'), createPrevious: load('createPreviousSavedResult'), readPrevious: load('readPreviousSavedResult'),
     run: Function('ports', `return (async () => {
       const {assert,report,span,open,phase,stateDir,capacityObservations,
         originalBudgetRefusal,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
-        collectionProgram,oversizedRowProgram,save}=ports;
+        collectionProgram,oversizedRowProgram,memoryRecoveryProgram,originalControlWorkRefusal,
+        sameHostSmallResult,createPreviousSavedResult,readPreviousSavedResult,workObservations,save}=ports;
       let client; ${source.slice(body.start, body.end)}; return client;
     })();`)};
 }
@@ -582,7 +585,7 @@ test('packed collection persists Program-removal failure after FIRST close and n
   const finalizer = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'})
     .body.find(value => value.type === 'TryStatement').finalizer;
   const runFinalizer = Function('client', 'span', 'report', 'cleanup', 'failed', 'phase', 'programs',
-    'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert',
+    'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert', 'progress',
     `return (async () => ${source.slice(finalizer.start, finalizer.end)})();`);
   for (const phase of ['budget', 'capture', 'saved']) {
     const events = [], cleanup = [], report = {firstClose: 'unobserved'}, observations = [];
@@ -591,7 +594,7 @@ test('packed collection persists Program-removal failure after FIRST close and n
       async (_name, action) => action(), report, cleanup, false, phase, ['first.sql', 'second.sql'],
       async path => {events.push(path); if (path === 'second.sql') throw failure;},
       async (path, value) => observations.push({path, value: structuredClone(value)}),
-      async () => ({openPaths: []}), async () => {}, '/authored-test-state', assert);
+      async () => ({openPaths: []}), async () => {}, '/authored-test-state', assert, async () => {});
     assert.equal(observations.length, 3);
     assert.equal(observations[0].path, `${phase}.pending.json`);
     assert.equal(observations[0].value.firstClose, 'pending');
@@ -616,7 +619,7 @@ test('collection saves its original primary before pending close and diagnostic 
   const finalizer = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'})
     .body.find(value => value.type === 'TryStatement').finalizer;
   const invoke = Function('client', 'span', 'report', 'cleanup', 'failed', 'phase', 'programs',
-    'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert', 'primary', 'console',
+    'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert', 'primary', 'console', 'progress',
     `return (async () => {${source.slice(finalizer.start + 1, finalizer.end - 1)}
       ${source.slice(finalizer.end)}})();`);
   for (const writeFails of [false, true]) {
@@ -633,7 +636,7 @@ test('collection saves its original primary before pending close and diagnostic 
       async (path, value) => {
         events.push('save'); stored.push({path, value: structuredClone(value)});
         if (writeFails) throw Object.assign(new Error('DiagnosticWriteRefused'), {code: 'EACCES'});
-      }, async () => ({openPaths: []}), async () => {}, '/authored-state', assert, primary, {log() {}});
+      }, async () => ({openPaths: []}), async () => {}, '/authored-state', assert, primary, {log() {}}, async () => {});
     // Install rejection handling before releasing the controlled close.
     const rejected = assert.rejects(result, error => error === primary);
     await started;
@@ -982,7 +985,7 @@ test('failed shared package preparation records every dependent as unexecuted an
     verifyNodeBenchmarkPackages: async () => assert.fail('No successful prepared input')});
   await assert.rejects(run(output), error => error === failure);
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
-  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'capture', 'saved']);
+  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'memory-recovery', 'work-recovery', 'capture', 'saved']);
   assert.equal(report.complete, false);
   assert([...report.collection, ...report.cases, ...report.compositions, ...report.controls].every(value =>
     value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
@@ -1275,4 +1278,192 @@ test('normal Effect control timeout retains only the same child primary and neve
       assert.deepEqual(result.partialObservation.firstClose, {attempted: false, returned: false});
     } else assert.equal(result.partialObservation, undefined);
   }
+});
+
+test('normal resource work evidence refuses generic unpublished memory row and foreign-run causes', async () => {
+  const {workProject} = await collectionBudgetPorts(), ref = {original: 'same-run'};
+  const terminal = {status: 'failed', result_available: false};
+  const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3};
+  const event = {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data};
+  assert.deepEqual(workProject([event], ref, terminal), {...data, verified: true});
+  for (const events of [[], [event, event], [{...event, ref: {original: 'foreign'}}],
+    [{...event, primaryCode: 'ClientHostFailure'}], [{...event, primaryDiagnostic: undefined}],
+    ...['execution', 'retention', 'row', 'workspace'].map(kind => [{...event, primaryDiagnostic: {...data, kind}}]),
+    [{...event, primaryDiagnostic: {...data, unit: 0}}], [{...event, primaryDiagnostic: {...data, task: -1}}]]) {
+    assert.throws(() => workProject(events, ref, terminal));
+  }
+  assert.throws(() => workProject([event], ref, {...terminal, status: 'succeeded'}));
+  assert.throws(() => workProject([event], ref, {...terminal, result_available: true}));
+});
+
+test('normal resource fixture reuses the SAME finite-policy Host for a later independently fitting Result', async () => {
+  const {project, program, memoryProgram, workProject, recovery, createPrevious, readPrevious, run} = await collectionBudgetPorts();
+  for (const phase of ['memory-recovery', 'work-recovery']) {
+    const report = {phase, cases: [], submits: 0}, observations = [], work = [], events = [];
+    const primary = new Error('Original snapshot refusal'), failedRef = {original: 'work-run'};
+    let opens = 0, starts = 0, selected;
+    const client = {async startSource(document, options) {
+      assert.strictEqual(this, client); starts++;
+      assert.deepEqual(options, {format: 'sql'});
+      if (starts === 1) {
+        assert.equal(document, 'SELECT 41 AS n'); events.push('previous-Saved');
+        return {ref: {original: 'previous-Saved'}, async wait() {return {status: 'succeeded', next_action: {results: ['prior']}};},
+          result(name) {assert.equal(name, 'prior'); return {async all() {return [{n: 41}];}};}};
+      }
+      if (starts === 2) {
+        if (phase === 'memory-recovery') {
+          assert.equal(document, memoryProgram());
+          selected.authorization.observe('preparation_capacity_refused', {phase: 'request_snapshot', dimension: 'retention',
+            requiredRetentionBytes: '536870912', requiredExecutionBytes: '536870912',
+            availableRetentionBytes: '268435456', availableExecutionBytes: '268435456'});
+          throw primary;
+        }
+        assert.equal(document, program(100000));
+        return {ref: failedRef, async wait() {
+          selected.authorization.observe('dispatch_failed', {ref: failedRef, code: 'CapturedRunExecutionFailed',
+            primaryCode: 'MoonBitHostFailure', primaryDiagnostic: {code: 'MoonBitHostFailure',
+              phase: 'local_managed_advance', kind: 'control_work', task: 3}});
+          events.push('refused'); return {status: 'failed', result_available: false};
+        }};
+      }
+      assert.equal(starts, 3); assert.equal(document, 'SELECT 7 AS n'); events.push('later-small');
+      return {ref: {original: 'new-small'}, async wait() {return {status: 'succeeded', next_action: {results: ['answer']}};},
+        result(name) {assert.equal(name, 'answer'); return {async all() {return [{n: 7}];}};}};
+    }, async attach(ref) {
+      assert.equal(starts, 3); assert.deepEqual(ref, {original: 'previous-Saved'}); events.push('attach-prior');
+      let read = false;
+      return {result(name) {assert.equal(name, 'prior'); return {async all() {read = true;return [{n: 41}];}};},
+        async status() {assert.equal(read, true);return {status: 'succeeded'};}};
+    }};
+    const original = await run({assert, report, phase, stateDir: '/fresh-resource',
+      capacityObservations: observations, workObservations: work,
+      originalBudgetRefusal: project, originalControlWorkRefusal: workProject,
+      collectionProgram: program, memoryRecoveryProgram: memoryProgram, sameHostSmallResult: recovery,
+      createPreviousSavedResult: createPrevious, readPreviousSavedResult: readPrevious,
+      span: async (_name, action) => action(), save: async () => {},
+      async open(options) {opens++; selected = options.installation;
+        assert.equal(selected.sourceFreeMaxWork, phase === 'work-recovery' ? 100000 : 30000000);
+        const bytes = phase === 'memory-recovery' ? 268435456 : 1073741824;
+        assert.deepEqual(selected.requestMemory, {retainedBytes: bytes, executionBytes: bytes}); return client;},
+      getSubmissionOutcome: () => undefined, getSubmissionInput: () => undefined, getSubmissionAttempt: () => undefined});
+    assert.strictEqual(original, client); assert.equal(opens, 1); assert.equal(starts, 3); assert.equal(report.submits, 3);
+    assert.deepEqual(report.resourceRecovery, {complete: true, rows: [{n: 7}], submits: 1});
+    assert.equal(report.previousSavedCreated, true);
+    assert.deepEqual(report.previousSaved, {complete: true, rows: [{n: 41}], submits: 0});
+    assert.deepEqual(events, phase === 'work-recovery' ? ['previous-Saved', 'refused', 'later-small', 'attach-prior'] : ['previous-Saved', 'later-small', 'attach-prior']);
+  }
+});
+
+test('normal resource small recovery refuses missing wrong or failed Result without reopening the Host', async () => {
+  const {recovery} = await collectionBudgetPorts();
+  for (const mode of ['failed', 'missing', 'wrong-rows']) {
+    let starts = 0; const report = {phase: 'work-recovery', submits: 1};
+    const client = {async startSource() {starts++;return {ref: {},
+      async wait() {return {status: mode === 'failed' ? 'failed' : 'succeeded',
+        next_action: {results: mode === 'missing' ? [] : ['answer']}};},
+      result() {return {async all() {return [{n: 8}];}};}};}};
+    await assert.rejects(recovery(client, report, async (_name, action) => action(), async () => {}));
+    assert.equal(starts, 1); assert.equal(report.submits, 2); assert.equal(report.resourceRecovery, undefined);
+  }
+});
+
+test('normal resource parent rejects missing recovery wrong policies misclassification and unclosed ownership', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  for (const phase of ['memory-recovery', 'work-recovery']) for (const mode of [
+    'exact', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup']) {
+    const bytes = phase === 'memory-recovery' ? 268435456 : 1073741824;
+    const actual = {phase, pid: 12345, complete: true, firstClose: 'returned', cleanup: [],
+      aliveScopedFD: {before: 0, after: 0}, submits: 3,
+      previousSavedCreated: true, previousSaved: {complete: true, rows: [{n: 41}], submits: 0},
+      sourceFreeMaxWork: phase === 'work-recovery' ? 100000 : 30000000,
+      requestMemory: {retainedBytes: bytes, executionBytes: bytes},
+      resourceRecovery: {complete: true, rows: [{n: 7}], submits: 1},
+      cases: [{expectedRefusal: phase === 'memory-recovery' ? 'request_snapshot' : 'control_work', complete: true}],
+      memoryRefusal: {verified: true, phase: 'request_snapshot', classification: 'resource_limit', outcome: 'pre_send_capture',
+        dimension: 'retention', requiredRetentionBytes: '536870912', requiredExecutionBytes: '536870912',
+        availableRetentionBytes: '268435456', availableExecutionBytes: '268435456'},
+      workRefusal: {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, verified: true}};
+    if (mode === 'missing-recovery') delete actual.resourceRecovery;
+    if (mode === 'wrong-rows') actual.resourceRecovery.rows = [{n: 8}];
+    if (mode === 'missing-prior') delete actual.previousSaved;
+    if (mode === 'changed-prior') actual.previousSaved.rows = [{n: 7}];
+    if (mode === 'wrong-policy') actual.sourceFreeMaxWork++;
+    if (mode === 'wrong-kind') {actual.workRefusal.kind = 'execution'; actual.memoryRefusal.phase = 'source_free_plan';}
+    if (mode === 'extra-submit') actual.submits++;
+    if (mode === 'pending-close') actual.firstClose = 'pending';
+    if (mode === 'open-fd') actual.aliveScopedFD.after = 1;
+    if (mode === 'cleanup') actual.cleanup = [{code: 'Pending'}];
+    const record = {phase, completed: false};
+    const promise = run({collection: root, record, async command() {return {pid: 12345, code: 0, stdout: JSON.stringify(actual)};}});
+    if (mode === 'exact') {await promise; assert.equal(record.completed, true);}
+    else {await assert.rejects(promise); assert.equal(record.completed, false);}
+  }
+});
+
+
+test('collection progress persists START and original ref before a blocked wait without claiming completion', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const first = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(value => value.type !== 'ImportDeclaration');
+  const invoke = Function('ports', `return (async () => {
+    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
+      observeRecordApprovalDescriptors,process,console}=ports;
+    ${source.slice(first.start)}
+  })();`);
+  const entered = Promise.withResolvers(), waiting = Promise.withResolvers();
+  const stored = new Map(), events = [], ref = {original: 'same-waiting-run'};
+  const primary = new Error('Original wait failure'); let closes = 0, submits = 0;
+  const running = invoke({assert,join,
+    process: {argv: ['node', 'fixture', 'capture', '/fresh-progress/handoff.json'],
+      pid: 12000, cwd: () => '/fresh-progress', hrtime: process.hrtime, cpuUsage: process.cpuUsage},
+    console: {log() {}}, setTimeout: async () => {},
+    getSubmissionOutcome: () => undefined, getSubmissionInput: () => undefined, getSubmissionAttempt: () => undefined,
+    observeRecordApprovalDescriptors: async () => ({openPaths: []}),
+    unlink: () => assert.fail('No failed Program may be removed'),
+    async readFile(path) {return stored.get(path);},
+    async writeFile(path, wire) {stored.set(path, wire); events.push(path);},
+    async open() {return {async startSource() {submits++;return {ref, async wait() {
+      entered.resolve(); return waiting.promise;
+    }};}, async close() {closes++;}};}});
+  const rejected = assert.rejects(running, error => error === primary);
+  await entered.promise;
+  const progress = JSON.parse(stored.get('capture.progress.json'));
+  assert.equal(progress.event, 'start'); assert.equal(progress.step, 'wait-9999');
+  assert.equal(progress.complete, false); assert.equal(progress.firstClose, 'unobserved');
+  assert.equal(progress.pid, 12000); assert(progress.elapsedNs >= 0);
+  assert.deepEqual(progress.currentRunResult, {kind: 'run', ref, count: 9999, complete: false});
+  assert(progress.phases.length <= 64);
+  assert.equal(progress.phases.at(-1).endedAt, undefined);
+  assert.deepEqual(JSON.parse(stored.get('ref-before-wait-9999.json')), ref);
+  assert(events.indexOf('ref-before-wait-9999.json') < events.lastIndexOf('capture.progress.json'));
+  assert.equal(closes, 0); assert.equal(submits, 1);
+  waiting.reject(primary); await rejected;
+  const final = JSON.parse(stored.get('capture.progress.json'));
+  assert.equal(final.complete, false); assert.equal(final.firstClose, 'returned'); assert.equal(closes, 1);
+});
+
+test('collection progress bounds history and preserves original diagnostic failure without an ACK', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = tree.body.flatMap(node => node.type === 'VariableDeclaration' ? node.declarations : [])
+    .find(node => node.id.name === 'progress');
+  const load = ports => Function(...Object.keys(ports), `return (${source.slice(declaration.init.start, declaration.init.end)});`)
+    (...Object.values(ports));
+  const report = {pid: 1, complete: false, firstClose: 'pending', phases: new Array(100).fill({name: 'own-phase'})};
+  let record;
+  await load({report,phase:'capture',process,started:process.hrtime.bigint(),
+    save:async (_path, value) => {record = value;}})('start', {name: 'FIRST-close'});
+  assert.equal(record.phases.length, 64); assert.equal(record.complete, false); assert.equal(record.firstClose, 'pending');
+  const refusal = new Error('progress writer refusal');
+  const failed = load({report,phase:'capture',process,started:process.hrtime.bigint(), save:async () => {throw refusal;}});
+  for (let n = 0; n < 10; n++) await failed('start', {name: 'FIRST-close'});
+  assert.equal(report.diagnosticErrors.length, 4); assert.equal(report.firstClose, 'pending');
+});
+
+test('collection CI always retains bounded progress and original pre-wait references without raising timeout', () => {
+  const upload = job.steps.find(step => step.name === 'Preserve actual functional outcomes and failures');
+  assert.equal(upload.if, 'always()');
+  assert(upload.with.path.includes('/collection/*.progress.json'));
+  assert(upload.with.path.includes('/collection/*ref-before-wait*.json'));
 });

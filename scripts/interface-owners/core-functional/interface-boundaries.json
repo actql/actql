@@ -23275,7 +23275,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "00af230cc170c337350d94c73c73b4b8eedbf4719ae5b87d5849bcbd9ade3a4d",
+      "sha256": "464d062ab4243079928835c390eb1d75e0a69e01aacb38c03b1de59209003560",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -23637,7 +23637,8 @@
             "faultInjection",
             "task",
             "handlePause",
-            "checkpointPause"
+            "checkpointPause",
+            "moon"
           ],
           "async": true
         },
@@ -23820,6 +23821,10 @@
               {
                 "path": "docs/design/physical-strategy-execution.md",
                 "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -23860,6 +23865,10 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
               }
             ]
           }
@@ -23982,6 +23991,7 @@
         "../host-common/managed-failure.mjs",
         "../store-local/managed-memory-representations.mjs",
         "./carrier-snapshot.mjs",
+        "./managed-advance-diagnostic.mjs",
         "./managed-output-custody.mjs",
         "./retained-input.mjs",
         "./retained-output.mjs",
@@ -88513,6 +88523,427 @@
               {
                 "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
                 "anchor": "test('canonical Effect lookup retains every original request before the first physical grant'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/local-node/managed-advance-diagnostic.mjs",
+      "sha256": "68edd7bbf4ef945dba7801c53d28bbbd847a46ed59d36187e1378fde1a89b8f2",
+      "exports": [
+        "checkedLocalManagedAdvance"
+      ],
+      "operations": [
+        {
+          "name": "checkedLocalManagedAdvance",
+          "parameters": [
+            "moon",
+            "result",
+            "checked",
+            "task"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Local managed execution and original dispatch failure owner; diagnostic DATA grants no authority or cleanup acknowledgement",
+      "referenceQualification": "Original control-work diagnostic source/component correspondence only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkedLocalManagedAdvance"
+          ],
+          "exports": [
+            "checkedLocalManagedAdvance"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.mjs",
+                "anchor": "export function checkedLocalManagedAdvance("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+                "anchor": "test \"bounded cross join charges exact metadata and pair work\""
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+      "sha256": "c391916e59dbb7793231312325a88e8cede490c03bb1380cd9852f5795bf9746",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_managed_advance_failure_kind",
+          "declaration": "local_managed_advance_failure_kind ( issue : LocalDispatchIssue , ) - > String ?"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Local managed execution and original dispatch failure owner; diagnostic DATA grants no authority or cleanup acknowledgement",
+      "referenceQualification": "Original control-work diagnostic source/component correspondence only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_managed_advance_failure_kind"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
+                "anchor": "pub fn local_managed_advance_failure_kind("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+                "anchor": "test \"bounded cross join charges exact metadata and pair work\""
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+      "sha256": "24396ee78c3d1f99932f8d94f4b328bfb114aba65cfbc52df5fa052e25df9a81",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_managed_advance_failure_kind",
+          "declaration": "local_managed_advance_failure_kind ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Local managed execution and original dispatch failure owner; diagnostic DATA grants no authority or cleanup acknowledgement",
+      "referenceQualification": "Original control-work diagnostic source/component correspondence only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_managed_advance_failure_kind"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "#export_name(\"strategyModule_local_ManagedAdvanceFailureKind\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+                "anchor": "test \"bounded cross join charges exact metadata and pair work\""
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+      "sha256": "24396ee78c3d1f99932f8d94f4b328bfb114aba65cfbc52df5fa052e25df9a81",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_managed_advance_failure_kind",
+          "declaration": "local_managed_advance_failure_kind ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
+        }
+      ],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Local managed execution and original dispatch failure owner; diagnostic DATA grants no authority or cleanup acknowledgement",
+      "referenceQualification": "Original control-work diagnostic source/component correspondence only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_managed_advance_failure_kind"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "#export_name(\"strategyModule_local_ManagedAdvanceFailureKind\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
+                "anchor": "test \"bounded cross join charges exact metadata and pair work\""
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
               }
             ]
           }

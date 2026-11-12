@@ -37862,6 +37862,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -37918,6 +37922,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "required dispatch preparation never skips a missing or legacy None borrow"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
               }
             ]
           }
@@ -39402,7 +39410,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "1a028f307be476149cff35307d3cb5c55d9d457f581eaac1da38d329b8e31641",
+      "sha256": "1e4f79f96646ce4bc8283e283a5ea805c9bd31f2a8f7904122b800fd3797901e",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -104343,7 +104351,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "00af230cc170c337350d94c73c73b4b8eedbf4719ae5b87d5849bcbd9ade3a4d",
+      "sha256": "464d062ab4243079928835c390eb1d75e0a69e01aacb38c03b1de59209003560",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -104706,7 +104714,8 @@
             "faultInjection",
             "task",
             "handlePause",
-            "checkpointPause"
+            "checkpointPause",
+            "moon"
           ],
           "async": true
         },
@@ -105100,6 +105109,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -105144,6 +105157,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
               }
             ]
           }
@@ -105715,6 +105732,7 @@
         "../host-common/managed-failure.mjs",
         "../store-local/managed-memory-representations.mjs",
         "./carrier-snapshot.mjs",
+        "./managed-advance-diagnostic.mjs",
         "./managed-output-custody.mjs",
         "./retained-input.mjs",
         "./retained-output.mjs",

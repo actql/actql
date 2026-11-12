@@ -1706,6 +1706,7 @@ pub(all) enum BoundedCrossJoinIssue {
   Capture(CaptureIssue)
   Completion(TrustedOutputIssue)
   Execution(@bounded_execution.Issue)
+  ControlWorkLimit
 }
 
 pub enum BoundedCrossJoinPoll {

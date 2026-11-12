@@ -43,10 +43,13 @@ function dispatchFailureSnapshot(error) {
           validOrdinals = false;
         }
       }
+      const localWork = data.phase === 'local_managed_advance' && data.kind === 'control_work' &&
+        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step');
       if (data.code === 'MoonBitHostFailure' &&
-          data.phase === 'original_model_acquired_effect_evidence' &&
+          (data.phase === 'original_model_acquired_effect_evidence' && validOrdinals || localWork) &&
           typeof data.kind === 'string' && data.kind.length <= 96 &&
-          /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind) && validOrdinals) {
+          /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {
         primaryDiagnostic = Object.freeze(data);
       }
     }

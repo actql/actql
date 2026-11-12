@@ -9,23 +9,38 @@ import {getSubmissionOutcome, getSubmissionInput, getSubmissionAttempt} from '@a
 import {observeRecordApprovalDescriptors} from './record-approval/scoped-fds.fixture.mjs';
 
 const [phase, handoffPath] = process.argv.slice(2);
-assert(['budget', 'capture', 'saved'].includes(phase));
+assert(['budget', 'memory-recovery', 'work-recovery', 'capture', 'saved'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
-const stateDir = join(process.cwd(), phase === 'budget' ? 'budget-state' : 'state');
+const stateDir = join(process.cwd(), phase === 'budget' || phase.endsWith('-recovery') ? phase + '-state' : 'state');
 const counts = [9999, 10000, 10001, 100000];
 const report = {phase, pid: process.pid, cases: [], submits: 0,
   firstClose: 'unobserved', complete: false, phases: []};
 const save = (name, value) => writeFile(name, JSON.stringify(value, null, 2) + '\n', {mode: 0o600});
+const started = process.hrtime.bigint();
+const progress = async (event, current) => {
+  try {
+    await save(`${phase}.progress.json`, {phase, pid: report.pid, event,
+      step: current?.name ?? null, elapsedNs: Number(process.hrtime.bigint() - started),
+      complete: report.complete, firstClose: report.firstClose,
+      currentRunResult: report.currentRunResult ?? null,
+      phases: report.phases.slice(-64)});
+  } catch (error) {
+    const failures = report.diagnosticErrors ??= [];
+    if (failures.length < 4) failures.push({name: error?.name, code: error?.code});
+  }
+};
 const span = async (name, action) => {
   const value = {name, startedAt: new Date().toISOString()}; report.phases.push(value);
   const started = process.hrtime.bigint(), cpu = process.cpuUsage();
-  try {return await action();}
-  catch (error) {report.firstFailedStep ??= name; throw error;}
+  await progress('start', value);
+  try {const result = await action(); value.complete = true; return result;}
+  catch (error) {value.complete = false; report.firstFailedStep ??= name; throw error;}
   finally {
     const used = process.cpuUsage(cpu);
     Object.assign(value, {endedAt: new Date().toISOString(), wallNs: Number(process.hrtime.bigint() - started),
       cpuUserUs: used.user, cpuSystemUs: used.system,
       scope: 'Same collection child, inclusive operation interval; observation overhead included'});
+    await progress('end', value);
   }
 };
 function collectionProgram(count) {
@@ -35,6 +50,68 @@ function collectionProgram(count) {
 }
 function oversizedRowProgram() {
   return `SELECT [${new Array(20000).fill('0').join(',')}] AS cells`;
+}
+// A long comment has no data rows or execution work. Its original request
+// snapshot alone outgrows this phase's fixed 256MiB while the later query fits.
+function memoryRecoveryProgram() {
+  return '/*' + 'x'.repeat(8 * 1024 * 1024) + '*/ SELECT 7 AS n';
+}
+function originalControlWorkRefusal(observations, ref, terminal) {
+  assert.equal(terminal.status, 'failed');
+  assert.equal(terminal.result_available, false);
+  assert.equal(observations.length, 1);
+  const original = observations[0];
+  assert.deepEqual(original.ref, ref);
+  assert.equal(original.code, 'CapturedRunExecutionFailed');
+  assert.equal(original.primaryCode, 'MoonBitHostFailure');
+  const data = original.primaryDiagnostic;
+  assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'task']);
+  assert.equal(data.code, 'MoonBitHostFailure');
+  assert.equal(data.phase, 'local_managed_advance');
+  assert.equal(data.kind, 'control_work');
+  assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
+  return {...data, verified: true};
+}
+async function sameHostSmallResult(client, report, span, save) {
+  report.currentRunResult = {kind: 'source', purpose: 'small-after-refusal'};
+  report.submits++;
+  const run = await span('submit-small-after-refusal', () => client.startSource('SELECT 7 AS n', {format: 'sql'}));
+  await save(report.phase + '-small-ref-before-wait.json', run.ref);
+  report.currentRunResult = {kind: 'run', ref: run.ref, purpose: 'small-after-refusal', complete: false};
+  const terminal = await span('wait-small-after-refusal', () => run.wait());
+  assert.equal(terminal.status, 'succeeded');
+  const names = terminal.next_action?.results;
+  assert(Array.isArray(names) && names.length === 1);
+  report.currentRunResult = {...report.currentRunResult, resultName: names[0]};
+  const rows = await span('all-small-after-refusal', () => run.result(names[0]).all());
+  assert.deepEqual(rows, [{n: 7}]);
+  report.currentRunResult.complete = true;
+  return {complete: true, rows, submits: 1};
+}
+async function createPreviousSavedResult(client, report, span, save) {
+  report.currentRunResult = {kind: 'source', purpose: 'previous-Saved'};
+  report.submits++;
+  const run = await span('submit-previous-Saved', () => client.startSource('SELECT 41 AS n', {format: 'sql'}));
+  await save(report.phase + '-previous-Saved-ref-before-wait.json', run.ref);
+  report.currentRunResult = {kind: 'run', ref: run.ref, purpose: 'previous-Saved', complete: false};
+  const terminal = await span('wait-previous-Saved', () => run.wait());
+  assert.equal(terminal.status, 'succeeded');
+  const names = terminal.next_action?.results;
+  assert(Array.isArray(names) && names.length === 1);
+  report.currentRunResult.resultName = names[0];
+  assert.deepEqual(await span('all-previous-Saved-before-refusal', () => run.result(names[0]).all()), [{n: 41}]);
+  report.currentRunResult.complete = true;
+  report.previousSavedCreated = true;
+  return {ref: run.ref, resultName: names[0]};
+}
+async function readPreviousSavedResult(client, previous, report, span) {
+  report.currentRunResult = {kind: 'saved', ref: previous.ref, resultName: previous.resultName, complete: false};
+  const run = await span('attach-previous-Saved-after-refusal', () => client.attach(previous.ref));
+  const rows = await span('previous-Saved-FIRST-after-refusal', () => run.result(previous.resultName).all());
+  assert.deepEqual(rows, [{n: 41}]);
+  assert.equal((await span('previous-Saved-status-AFTER-read', () => run.status())).status, 'succeeded');
+  report.currentRunResult.complete = true;
+  return {complete: true, rows, submits: 0};
 }
 function exactRows(rows, count) {
   assert.equal(rows.length, count);
@@ -80,21 +157,23 @@ function originalBudgetRefusal(observations, receipt, memory) {
 let client, failed = false, primary;
 const cleanup = [], programs = [];
 const capacityObservations = report.capacityObservations = [];
+const workObservations = report.workObservations = [];
 try {
   // Explicit finite policy for this authored SQL's measured semantic work.
   // Both capture and the same-original Saved process select the same Host input.
-  report.sourceFreeMaxWork = 30000000;
-  const memory = phase === 'budget' ? 32768 : 1073741824;
+  report.sourceFreeMaxWork = phase === 'work-recovery' ? 100000 : 30000000;
+  const memory = phase === 'budget' ? 32768 : phase === 'memory-recovery' ? 268435456 : 1073741824;
   report.requestMemory = {retainedBytes: memory, executionBytes: memory};
   client = await span('open', () => open({stateDir, installation: {
     sourceFreeMaxWork: report.sourceFreeMaxWork,
     requestMemory: report.requestMemory,
-    ...(phase === 'budget' ? {authorization: {observe(name, detail) {
+    ...(['budget', 'memory-recovery', 'work-recovery'].includes(phase) ? {authorization: {observe(name, detail) {
       // A second delivery already fails the exact-one requirement. Bound the
       // retained diagnostic input even if an implementation repeats it.
       if (name === 'preparation_capacity_refused' && capacityObservations.length < 2) {
         capacityObservations.push(detail);
       }
+      if (name === 'dispatch_failed' && workObservations.length < 2) workObservations.push(detail);
     }}} : {}),
   }}));
   if (phase === 'budget') {
@@ -131,23 +210,60 @@ try {
       report.cases.push({inputUtf8Bytes: report.budgetInput.utf8Bytes,
         expectedRefusal: 'request_snapshot', complete: true});
     });
+  } else if (phase === 'memory-recovery') {
+    const previous = await createPreviousSavedResult(client, report, span, save);
+    const document = memoryRecoveryProgram();
+    report.memoryInput = {utf8Bytes: Buffer.byteLength(document), commentBytes: 8 * 1024 * 1024};
+    let original, refused = false;
+    report.submits++;
+    await span('submit-memory-refusal', async () => {
+      try {
+        const run = await client.startSource(document, {format: 'sql'});
+        await save('memory-unexpected-ref-before-close.json', run.ref);
+      } catch (error) {original = error; refused = true;}
+    });
+    assert(refused, 'Require actual original memory refusal before a Run');
+    const receipt = {outcome: getSubmissionOutcome(original), input: getSubmissionInput(original),
+      attempt: getSubmissionAttempt(original)};
+    try {report.memoryRefusal = originalBudgetRefusal(capacityObservations, receipt, report.requestMemory);}
+    catch {throw original;}
+    assert.equal(workObservations.length, 0);
+    report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
+    report.previousSaved = await readPreviousSavedResult(client, previous, report, span);
+    report.cases.push({expectedRefusal: 'request_snapshot', complete: true});
+  } else if (phase === 'work-recovery') {
+    const previous = await createPreviousSavedResult(client, report, span, save);
+    report.submits++;
+    const run = await span('submit-work-refusal', () => client.startSource(collectionProgram(100000), {format: 'sql'}));
+    await save('work-ref-before-wait.json', run.ref);
+    report.currentRunResult = {kind: 'run', ref: run.ref, purpose: 'work-refusal', complete: false};
+    const terminal = await span('wait-work-refusal', () => run.wait());
+    report.workRefusal = originalControlWorkRefusal(workObservations, run.ref, terminal);
+    assert.equal(capacityObservations.length, 0, 'Do not relabel memory refusal as control work');
+    report.resourceRecovery = await sameHostSmallResult(client, report, span, save);
+    report.previousSaved = await readPreviousSavedResult(client, previous, report, span);
+    report.cases.push({expectedRefusal: 'control_work', complete: true});
   } else if (phase === 'capture') {
     for (const count of counts) {
       const programPath = join(process.cwd(), `collection-${count}.sql`);
       await writeFile(programPath, collectionProgram(count), {flag: 'wx'}); programs.push(programPath);
       const document = await readFile(programPath, 'utf8');
+      report.currentRunResult = {kind: 'source', count};
       report.submits++;
       const run = await span(`submit-${count}`, () => client.startSource(
         document, {format: 'sql'}));
       // Persist the actual original before wait, even if that wait later fails.
       await save(`ref-before-wait-${count}.json`, run.ref);
+      report.currentRunResult = {kind: 'run', ref: run.ref, count, complete: false};
       const state = await span(`wait-${count}`, () => run.wait());
       assert.equal(state.status, 'succeeded');
       const names = state.next_action?.results;
       assert(Array.isArray(names) && names.length === 1, 'Require the actual sole Named Result');
+      report.currentRunResult.resultName = names[0];
       const result = run.result(names[0]);
       exactRows(await span(`all-${count}`, () => count === 10001
         ? result.all({maxRows: count}) : result.all()), count);
+      report.currentRunResult.complete = true;
       report.cases.push({count, ref: run.ref, resultName: names[0], complete: true});
       if (count === 100000) {
         report.fullStream = await span('rows-100000-FULL', () => drainOriginalRows(result, count));
@@ -195,28 +311,34 @@ try {
     await writeFile(oversizedProgram, oversizedRowProgram(), {flag: 'wx'});
     programs.push(oversizedProgram); report.submits++;
     const document = await readFile(oversizedProgram, 'utf8');
+    report.currentRunResult = {kind: 'source', purpose: 'oversized-row'};
     const run = await span('submit-oversized-row', () => client.startSource(document, {format: 'sql'}));
     await save('ref-before-wait-oversized-row.json', run.ref);
+    report.currentRunResult = {kind: 'run', ref: run.ref, purpose: 'oversized-row', complete: false};
     const state = await span('wait-oversized-row', () => run.wait());
     assert.equal(state.status, 'succeeded');
     const names = state.next_action?.results;
     assert(Array.isArray(names) && names.length === 1, 'Require the actual sole oversized-row Named Result');
-    await assert.rejects(run.result(names[0]).all(), {code: 'ResultRowRetainedLimit'});
+    report.currentRunResult.resultName = names[0];
+    await span('all-oversized-row-refusal', () => assert.rejects(run.result(names[0]).all(), {code: 'ResultRowRetainedLimit'}));
+    report.currentRunResult.complete = true;
     report.oversizedRow = {rows: 1, arrayElements: 20000, expectedRefusal: 'ResultRowRetainedLimit', complete: true};
   } else {
     const original = JSON.parse(await readFile(handoffPath, 'utf8'));
     assert.equal(original.count, 100000);
+    report.currentRunResult = {kind: 'saved', ref: original.ref, resultName: original.resultName, count: original.count, complete: false};
     const run = await span('attach', () => client.attach(original.ref));
     exactRows(await span('original-Saved-FIRST', () => run.result(original.resultName).all()), original.count);
     assert.equal((await span('status-AFTER-Saved', () => run.status())).status, 'succeeded');
     assert.equal(report.submits, 0);
+    report.currentRunResult.complete = true;
     report.cases.push({count: original.count, complete: true});
   }
 } catch (error) {failed = true; primary = error; report.primary = {name: error?.name, code: error?.code};}
 finally {
   // Persist the original failure before close can wait indefinitely. This is
   // diagnostic DATA, never a physical stop/cleanup acknowledgement.
-  report.diagnosticErrors = [];
+  report.diagnosticErrors ??= [];
   report.firstClose = client ? 'pending' : 'not-attempted';
   const persist = async (path, value) => {
     try {await save(path, value);}
@@ -247,6 +369,8 @@ finally {
   report.complete = !failed && cleanup.length === 0 && report.diagnosticErrors.length === 0;
   await persist(`${phase}.pending.json`, {...report,
     firstFailedStep: report.firstFailedStep ?? null, complete: false});
+  report.complete &&= report.diagnosticErrors.length === 0;
+  await progress('complete');
   report.complete &&= report.diagnosticErrors.length === 0;
   await persist(`${phase}.observation.json`, report);
   report.complete &&= report.diagnosticErrors.length === 0;

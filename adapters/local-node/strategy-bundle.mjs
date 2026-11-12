@@ -1,5 +1,6 @@
 // Local connector's Node driver. The kernel and reservation authority stay in
 // MoonBit; this wrapper never evaluates an expression or synthesizes a result.
+import {checkedLocalManagedAdvance} from './managed-advance-diagnostic.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {readLocalRetainedInput} from './retained-input.mjs';
 import {localComputeFaultInjection, localRetainedStore,
@@ -57,7 +58,7 @@ const stopBoundedExecution = (operations, checked) => {
 // Local computation is bounded on every path: there is no synchronous
 // whole-task execute fallback.
 const runManagedExecution = async (
-  operations, checked, signal, faultInjection, task, handlePause, checkpointPause,
+  operations, checked, signal, faultInjection, task, handlePause, checkpointPause, moon,
 ) => {
   if (typeof operations.advance !== 'function') {
     throw new Error('MissingBoundedLocalExecution');
@@ -68,7 +69,7 @@ const runManagedExecution = async (
       signal.throwIfAborted();
     }
     const observation = validateManagedAdvance(
-      checked(operations.advance(managedWorkQuantum)),
+      checkedLocalManagedAdvance(moon, operations.advance(managedWorkQuantum), checked, task),
       managedWorkQuantum,
       'InvalidLocalManagedAdvance',
       true,
@@ -363,7 +364,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             for (const transfer of transfers) checked(transfer.finish());
             await runManagedExecution(operations, checked, signal,
               faultInjection, prepared.task, handlePause,
-              decision => { checkpointPause = decision; });
+              decision => { checkpointPause = decision; }, moon);
           },
           signal,
           undefined,
@@ -538,7 +539,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         await runManagedExecution(operations, checked, signal,
           faultInjection,
           typeof moon.strategyHostTask === 'function' ? moon.strategyHostTask(task) : undefined, handlePause,
-          decision => { checkpointPause = decision; });
+          decision => { checkpointPause = decision; }, moon);
         const exported = output ? await output.write() : {};
         checked(operations.settle());
         recordManagedFailureExecutionSettled(failureProgress);
