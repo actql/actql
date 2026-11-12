@@ -60,11 +60,12 @@ async function executeCase(control, directory, group, step, index) {
   const startedAt = Date.now(), remaining = control.deadline - startedAt;
   if (remaining <= 0) return {name: step.name, id: step.id, group, status: 'unexecuted', outputs: {}};
   const output = join(directory, `${group}-${index}.outputs`);
+  const summary = join(directory, `${group}-${index}.summary`);
   const log = openSync(join(directory, group + '.log'), 'a', 0o600);
   const substitute = text => text.replaceAll('${{ runner.temp }}', process.env.RUNNER_TEMP ?? '')
     .replaceAll('${{ github.workspace }}', control.root);
   const env = {...process.env, ...Object.fromEntries(Object.entries(step.env ?? {})
-    .map(([key, value]) => [key, substitute(value)])), GITHUB_OUTPUT: output};
+    .map(([key, value]) => [key, substitute(value)])), GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary};
   let code, signal, failure;
   try {
     const child = spawn('/bin/bash', ['-e', '-o', 'pipefail', '-c', step.run], {
@@ -116,7 +117,7 @@ export async function runNativeGroups(directory) {
   return result;
 }
 
-export async function waitNativeGroups(directory, {report = value => process.stdout.write(value)} = {}) {
+export async function waitNativeGroups(directory, {report = value => process.stdout.write(value), summaryFile} = {}) {
   const control = JSON.parse(readFileSync(join(directory, 'control.json'), 'utf8'));
   const worker = JSON.parse(readFileSync(join(directory, 'worker.json'), 'utf8'));
   assert.equal(worker.token, control.token);
@@ -147,6 +148,9 @@ export async function waitNativeGroups(directory, {report = value => process.std
       }
       failed ||= item.status !== 'success';
       if (item.id && item.outputs['evidence-directory']) outputs[item.id + '-evidence-directory'] = item.outputs['evidence-directory'];
+      const summary = join(directory, `${group.name}-${ordinal}.summary`);
+      if (summaryFile && existsSync(summary)) for await (const chunk of createReadStream(summary))
+        appendFileSync(summaryFile, chunk);
       report('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({phase: 'consumer', group: group.name,
         name: item.name, milliseconds: item.completedAt === undefined ? null : item.completedAt - item.startedAt,
         outcome: item.status}) + '\n');
@@ -167,7 +171,7 @@ if (process.argv[1] && resolve(process.argv[1]) === entry) {
     startNativeGroups({root, directory, groups: plan[value], deadline: Number(process.env.ACTQL_NATIVE_CI_DEADLINE)});
     appendFileSync(process.env.GITHUB_OUTPUT, 'directory=' + directory + '\n');
   } else if (operation === 'wait') {
-    const result = await waitNativeGroups(value);
+    const result = await waitNativeGroups(value, {summaryFile: process.env.GITHUB_STEP_SUMMARY});
     for (const [key, value] of Object.entries(result.outputs)) appendFileSync(process.env.GITHUB_OUTPUT, key + '=' + value + '\n');
     process.exitCode = result.status;
   } else throw new Error('Expected Native groups start, wait or internal worker');

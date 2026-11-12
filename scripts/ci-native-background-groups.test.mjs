@@ -23,11 +23,12 @@ test('two background slots retain original per-group order, complete census and 
   const f = fixture(t), messages = [];
   const groups = ['runtime', 'controls', 'product'].map(name => ({name, steps: [
     f.step(name + '-first', "setTimeout(() => console.log('original'), 200);"),
-    f.step(name + '-second', "require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'evidence-directory=' + process.cwd() + '\\n');",
+    f.step(name + '-second', "require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'evidence-directory=' + process.cwd() + '\\n');require('fs').appendFileSync(process.env.GITHUB_STEP_SUMMARY, " + JSON.stringify(name + ' original summary\n') + ");",
       {id: name + '-evidence', env: {ORIGINAL: 'retained'}}),
   ]}));
   const directory = f.start(groups);
-  const result = await waitNativeGroups(directory, {report: value => messages.push(value)});
+  const summaryFile = join(f.root, 'joined-summary.md');
+  const result = await waitNativeGroups(directory, {report: value => messages.push(value), summaryFile});
   assert.equal(result.status, 0);
   assert.deepEqual(result.result.groups.map(group => group.cases.map(item => item.name)),
     groups.map(group => group.steps.map(item => item.name)));
@@ -37,6 +38,8 @@ test('two background slots retain original per-group order, complete census and 
   assert(third[0].startedAt >= Math.min(first[1].completedAt, second[1].completedAt));
   for (const group of result.result.groups) assert(group.cases[1].startedAt >= group.cases[0].completedAt);
   assert.deepEqual(Object.values(result.outputs), [f.root, f.root, f.root]);
+  assert.equal(readFileSync(summaryFile, 'utf8'), ['runtime', 'controls', 'product']
+    .map(name => name + ' original summary\n').join(''));
   assert.equal(messages.filter(value => value.startsWith('ACTQL_NATIVE_CI_PHASE ')).length, 6);
 });
 
