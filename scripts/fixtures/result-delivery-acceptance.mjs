@@ -143,17 +143,18 @@ function fixture(api, control, options = {}) {
   });
   const service = api.installResultAccessService({store, control, authority,
     now: () => state.now, limits,
-    frameLimits: {maxRowBytes: 4096, maxDepth: 32, maxFrameBytes: 4096},
+    frameLimits: options.frameLimits ?? {maxRowBytes: 4096, maxDepth: 32, maxFrameBytes: 4096},
+    ...(options.readWorkspace === undefined ? {} : {readWorkspace: options.readWorkspace}),
     createDigest() {
       const digest = createHash('sha256');
       return {update: bytes => digest.update(bytes), finish: () => digest.digest('hex')};
     },
   });
-  return {state, service, index, manifest, store, deliver: () => api.deliverAuthorizedResult(service, {
+  return {state, service, index, manifest, store, deliver: (sink, signal) => api.deliverAuthorizedResult(service, {
     indexKey: {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')},
-    principalId: 'principal', purpose: 'download', resultName: 'answer', format: 'json',
+    principalId: 'principal', purpose: 'download', resultName: 'answer', format: options.format ?? 'json',
     attemptId: 'same-logical-attempt',
-  }, {async write(bytes) {
+  }, sink ?? {async write(bytes) {
     state.chunks.push(new TextDecoder().decode(bytes));
     await options.afterWrite?.(state);
     return {confirmedBytes: bytes.byteLength};
@@ -161,7 +162,7 @@ function fixture(api, control, options = {}) {
     state.finishes++;
     await options.afterFinish?.(state);
     return {confirmed: true};
-  }})};
+  }}, signal)};
 }
 
 export {fixture as createResultDeliveryFixture};

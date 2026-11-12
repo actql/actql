@@ -6,6 +6,7 @@ import {createInstalledHostServices, installedSourceConfigurationReader,
 import {openHostInitializationPreparation, closeHostInitializationPreparation}
   from '../local-node/request-preparation-adapter.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
+import {createLocalResultReadWorkspace} from './local-result-read-workspace.mjs';
 import {runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 // Private selected-namespace DATA reader. Exporting this pure operation does
@@ -2570,6 +2571,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   });
   const resultService = installNodeResultAccessService({store, control,
     authority: resultAuthority, now, limits: localContractLimits,
+    ...(preparation === undefined ? {} : {readWorkspace: preparation.resultReadWorkspace(moon)}),
     frameLimits: {maxRowBytes: 1024 * 1024, maxDepth: 64,
       maxFrameBytes: 1024 * 1024}});
   const stateService = installRunStateService({store, control,
@@ -6654,6 +6656,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
   let moon, project, projectProfile, mockPreparation, projectSourcePreparation, sourceManaged, sourceManagedClose;
   let computeManaged, computeManagedClose, computeManagedFlight;
   let resultPublication, resultPublicationClose, resultPublicationFlight;
+  let resultReadWorkspace;
   let hostJournal, hostJournalClose, hostJournalOpen, hostJournalOwnership, hostJournalFlight;
   let hostJournalAdmitRootFormat;
   let hostJournalOpenAttempted = false;
@@ -6766,6 +6769,12 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       computeManaged = computeManagedClose = computeManagedFlight = undefined;
       record.computeManaged = undefined;
+    }
+    if (resultReadWorkspace !== undefined) {
+      if ((await resultReadWorkspace.closeAll()).pending !== false) {
+        throw clientOperationError('ResultReadCleanupPending');
+      }
+      resultReadWorkspace = undefined;
     }
     if (resultPublication !== undefined) {
       resultPublicationClose ??= resultPublication.close;
@@ -7022,6 +7031,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
         return original;
       });
       return resultPublicationFlight;
+    },
+    resultReadWorkspace(runtime) {
+      assertInitialControlHostPreparation(originals);
+      if (runtime !== moon) throw clientOperationError('ForeignInstalledHostPreparation');
+      resultReadWorkspace ??= createLocalResultReadWorkspace({runtime,
+        requestMemory: originalInstallation.requestMemory,
+        // The same original remains recognizable during cleanup. New READs
+        // are fenced by the workspace owner before it retires its children.
+        assertCurrent: () => assertRetainedSourceManagedHost(originals)});
+      return resultReadWorkspace;
     },
     assertResultPublicationCurrent() {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');

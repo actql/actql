@@ -372,6 +372,43 @@ foreign Account state cannot reuse the prior Allow. This count is neither a
 permission nor a durable receipt, and does not change the original delivery
 claim, quota, byte exposure, COMMIT Unknown, non-resend or cleanup duties.
 
+### Bounded installed READ workspace and physical writes
+
+An installed Local Result READ admits one original ClientRequestPreparation
+using the installation's existing requestMemory policy and physical supplier.
+It does not borrow the retired producing Run, initialization spare capacity or
+a Host-wide RAM pool. Concurrent reads of the same Result retain distinct
+Request originals. The existing fixed Common controls cover this exclusive
+READ phase. After the Store supplies metadata, that same capacity reserves its
+retained schema and subsequent frame, row and output overlap before their
+constructors. A refused reservation remains a failed READ, without falling
+back to an unfunded delivery. The Store's preceding bounded metadata reads and
+schema admission are not established as numerically funded by this later
+reservation; their original construction accounting remains a separate duty.
+
+The selected output window is bounded by actual payload, frame and wire
+limits and the original Resource ledger's available retention and execution
+capacity. Raw-row demand grows geometrically before parse and serialization;
+rows within the acquired high-water use local counters. Staged immutable text
+is flushed before growth. A larger row may reduce the output window or use a
+single funded write; neither path reserves a whole Result or assumes a managed
+heap allocation corresponds exactly to the Common representation tariff.
+
+Several canonical rows may share one physical sink write. Their concatenated
+bytes, digest and confirmed prefix remain unchanged. Each actual write and
+finish retains the original current Account, grant, expiry, cancellation and
+exposure checks. A callback can change authority before the next protected
+write; there is no authorization cache spanning that callback. Outgoing byte
+backing is not reused while a callback can retain it.
+
+The READ owner retires only after delivery and its original physical-reader
+and terminal-record cleanup duties have settled. A completed record alone
+cannot release pending reader custody; a throwing or unknown cleanup status
+keeps the same parent retained. Completed entries leave the owner map. Raw or
+manual services without an installed workspace retain their one-row route.
+This resource connection does not replace the original claim, receipt,
+durability, non-resend or cleanup owners.
+
 ### Selected publication metadata observation
 
 The initial Result resolution already acquires and admits one selected Index

@@ -9870,7 +9870,7 @@
     {
       "module": "adapters/host-common/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f5cdaa61e11831eebb81d8a21350c940e1b43edb8a09ffb44c39444809f75e26",
+      "sha256": "24d847c15fc9cd16eec41dcfe64e2fc21a92d0040ea7d5e9c929c7ba8ce25e6a",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -9893,21 +9893,46 @@
           "async": true
         },
         {
-          "name": "deliverAuthorizedResult/authorize/authorize",
+          "name": "deliverAuthorizedResult/deliverAuthorizedResult",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/deliverAuthorizedResult#2",
+          "parameters": [
+            "units"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverPreparedAuthorizedResult",
+          "parameters": [
+            "installed",
+            "request",
+            "sink",
+            "signal",
+            "workspace"
+          ],
+          "async": true
+        },
+        {
+          "name": "deliverPreparedAuthorizedResult/authorize/authorize",
           "parameters": [
             "facts"
           ],
           "async": true
         },
         {
-          "name": "deliverAuthorizedResult/availability/availability",
+          "name": "deliverPreparedAuthorizedResult/availability/availability",
           "parameters": [
             "observed"
           ],
           "async": false
         },
         {
-          "name": "deliverAuthorizedResult/requireAction/requireAction",
+          "name": "deliverPreparedAuthorizedResult/requireAction/requireAction",
           "parameters": [
             "expected"
           ],
@@ -9983,6 +10008,13 @@
           "name": "installResultAccessService",
           "parameters": [
             "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "installResultAccessService/installResultAccessService",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -10072,9 +10104,9 @@
           "operations": [
             "ResultAccessError/constructor:constructor/constructor:constructor",
             "deliverAuthorizedResult",
-            "deliverAuthorizedResult/authorize/authorize",
-            "deliverAuthorizedResult/availability/availability",
-            "deliverAuthorizedResult/requireAction/requireAction",
+            "deliverPreparedAuthorizedResult/authorize/authorize",
+            "deliverPreparedAuthorizedResult/availability/availability",
+            "deliverPreparedAuthorizedResult/requireAction/requireAction",
             "describeAuthorizedResult",
             "describeAuthorizedResult/authorize/authorize",
             "describeAuthorizedResult/checkRetained/checkRetained",
@@ -10466,6 +10498,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "deliverAuthorizedResult/deliverAuthorizedResult",
+            "deliverAuthorizedResult/deliverAuthorizedResult#2",
+            "deliverPreparedAuthorizedResult",
+            "installResultAccessService/installResultAccessService"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -10479,7 +10622,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e032cc69d1f487e90f937e7a1e14c581f1738dd27962c92f542d61ccc542d0a5",
+      "sha256": "91111bf056967158b54be369208cd19489b8e771868ae4819006175512a46e57",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -10506,7 +10649,8 @@
           "name": "deliverPublishedResult",
           "parameters": [
             "options",
-            "resolvedPublication"
+            "resolvedPublication",
+            "workspace"
           ],
           "async": true
         },
@@ -10530,6 +10674,18 @@
             "row"
           ],
           "async": false
+        },
+        {
+          "name": "deliverPublishedResult/deliverPublishedResult/deliverPublishedResult#2",
+          "parameters": [
+            "row"
+          ],
+          "async": true
+        },
+        {
+          "name": "deliverPublishedResult/deliverPublishedResult/flush/flush",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "deliverPublishedResult/deliverPublishedResult#2",
@@ -11311,6 +11467,115 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "deliverPublishedResult/deliverPublishedResult/deliverPublishedResult#2",
+            "deliverPublishedResult/deliverPublishedResult/flush/flush"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
               }
             ]
           }
@@ -28224,7 +28489,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28387,7 +28652,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -29019,7 +29284,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -92901,7 +93166,7 @@
     {
       "module": "adapters/host-node/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "87d26b49cddeb5c2bb0caa7d42c0c88a556b0f18a4ffc376dd3932c3a5f71ea6",
+      "sha256": "f8bf149d9bdbbc7cb3bfc5accd7840902c908b83e04eab0e670793ddc8391658",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -108950,7 +109215,7 @@
     {
       "module": "packages/run-host-core/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cf878653eb944b27cd573bc4960221545e49263dfd0385ea07413d1f46d52189",
+      "sha256": "b84ea6ab27510283db0ec3fc476d217a867f24156594c27dc29380405ccc0055",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -108973,21 +109238,46 @@
           "async": true
         },
         {
-          "name": "deliverAuthorizedResult/authorize/authorize",
+          "name": "deliverAuthorizedResult/deliverAuthorizedResult",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverAuthorizedResult/deliverAuthorizedResult#2",
+          "parameters": [
+            "units"
+          ],
+          "async": false
+        },
+        {
+          "name": "deliverPreparedAuthorizedResult",
+          "parameters": [
+            "installed",
+            "request",
+            "sink",
+            "signal",
+            "workspace"
+          ],
+          "async": true
+        },
+        {
+          "name": "deliverPreparedAuthorizedResult/authorize/authorize",
           "parameters": [
             "facts"
           ],
           "async": true
         },
         {
-          "name": "deliverAuthorizedResult/availability/availability",
+          "name": "deliverPreparedAuthorizedResult/availability/availability",
           "parameters": [
             "observed"
           ],
           "async": false
         },
         {
-          "name": "deliverAuthorizedResult/requireAction/requireAction",
+          "name": "deliverPreparedAuthorizedResult/requireAction/requireAction",
           "parameters": [
             "expected"
           ],
@@ -109063,6 +109353,13 @@
           "name": "installResultAccessService",
           "parameters": [
             "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "installResultAccessService/installResultAccessService",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -109152,9 +109449,9 @@
           "operations": [
             "ResultAccessError/constructor:constructor/constructor:constructor",
             "deliverAuthorizedResult",
-            "deliverAuthorizedResult/authorize/authorize",
-            "deliverAuthorizedResult/availability/availability",
-            "deliverAuthorizedResult/requireAction/requireAction",
+            "deliverPreparedAuthorizedResult/authorize/authorize",
+            "deliverPreparedAuthorizedResult/availability/availability",
+            "deliverPreparedAuthorizedResult/requireAction/requireAction",
             "describeAuthorizedResult",
             "describeAuthorizedResult/authorize/authorize",
             "describeAuthorizedResult/checkRetained/checkRetained",
@@ -109546,6 +109843,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "deliverAuthorizedResult/deliverAuthorizedResult",
+            "deliverAuthorizedResult/deliverAuthorizedResult#2",
+            "deliverPreparedAuthorizedResult",
+            "installResultAccessService/installResultAccessService"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-access.mjs",
+                "anchor": "export function installResultAccessAuthority(configuration) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -109559,7 +109967,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e032cc69d1f487e90f937e7a1e14c581f1738dd27962c92f542d61ccc542d0a5",
+      "sha256": "91111bf056967158b54be369208cd19489b8e771868ae4819006175512a46e57",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -109586,7 +109994,8 @@
           "name": "deliverPublishedResult",
           "parameters": [
             "options",
-            "resolvedPublication"
+            "resolvedPublication",
+            "workspace"
           ],
           "async": true
         },
@@ -109610,6 +110019,18 @@
             "row"
           ],
           "async": false
+        },
+        {
+          "name": "deliverPublishedResult/deliverPublishedResult/deliverPublishedResult#2",
+          "parameters": [
+            "row"
+          ],
+          "async": true
+        },
+        {
+          "name": "deliverPublishedResult/deliverPublishedResult/flush/flush",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "deliverPublishedResult/deliverPublishedResult#2",
@@ -110271,6 +110692,115 @@
               {
                 "path": "adapters/host-node/local-result-authorization.test.mjs",
                 "anchor": "test('actual Result callbacks retain one heavy evaluation for unchanged Account and separate the next operation'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "deliverPublishedResult/deliverPublishedResult/deliverPublishedResult#2",
+            "deliverPublishedResult/deliverPublishedResult/flush/flush"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "export class ResultDeliveryError extends Error {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
               }
             ]
           }
@@ -126587,7 +127117,7 @@
       "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -127816,7 +128346,7 @@
       "sha256": "92bc4f4758a19e9f165252a5030b063ba46f403a532f138f8868bda11182c2a5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -128896,7 +129426,7 @@
       "sha256": "c1acdbea2f3e351174b436ef0e91fcce41fb8ded7b341aebdb63639232695290",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -135565,7 +136095,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -135791,7 +136321,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -136433,7 +136963,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -136549,6 +137079,273 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/local-result-read-workspace.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
+      "sha256": "a18dbfc5618cec173b04385123ba4880b0cb49c209bee1ded4e5a494aa9afaeb",
+      "exports": [
+        "createLocalResultReadWorkspace"
+      ],
+      "operations": [
+        {
+          "name": "createLocalResultReadWorkspace",
+          "parameters": [
+            "runtime",
+            "requestMemory",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/cleanupFailure",
+          "parameters": [
+            "entry",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/cleanupFailure/error/error",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/cleanupFailure/error/error#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:begin/init:begin",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:begin/init:begin/init:begin",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:close/init:close",
+          "parameters": [
+            "request",
+            "failure"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:close/init:close/init:close",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:closeAll/init:closeAll",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:prepare/init:prepare",
+          "parameters": [
+            "request",
+            "metadata",
+            "limits",
+            "frames"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:row/init:row",
+          "parameters": [
+            "request",
+            "units"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/original/original",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/pending/pending",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/pending/pending/pending",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/retire",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/retry",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "createLocalResultReadWorkspace/unavailable/unavailable",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/result-delivery.mjs",
+        "../local-node/request-preparation-adapter.mjs",
+        "../store-local/publication-store.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createLocalResultReadWorkspace",
+            "createLocalResultReadWorkspace/cleanupFailure",
+            "createLocalResultReadWorkspace/cleanupFailure/error/error",
+            "createLocalResultReadWorkspace/cleanupFailure/error/error#2",
+            "createLocalResultReadWorkspace/init:begin/init:begin",
+            "createLocalResultReadWorkspace/init:begin/init:begin/init:begin",
+            "createLocalResultReadWorkspace/init:close/init:close",
+            "createLocalResultReadWorkspace/init:close/init:close/init:close",
+            "createLocalResultReadWorkspace/init:closeAll/init:closeAll",
+            "createLocalResultReadWorkspace/init:prepare/init:prepare",
+            "createLocalResultReadWorkspace/init:row/init:row",
+            "createLocalResultReadWorkspace/original/original",
+            "createLocalResultReadWorkspace/pending/pending",
+            "createLocalResultReadWorkspace/pending/pending/pending",
+            "createLocalResultReadWorkspace/retire",
+            "createLocalResultReadWorkspace/retry",
+            "createLocalResultReadWorkspace/unavailable/unavailable"
+          ],
+          "exports": [
+            "createLocalResultReadWorkspace"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source ownership and selected component correspondence only; not a normal artifact, global RAM reservation or ordinary execution acceptance."
     }
   ],
   "generated": [],

@@ -459,6 +459,8 @@ pub fn[I] finish_request_submitted_intent(ClientRequestPreparation[I], I) -> Res
 
 pub fn grow_installed_effect_operation_input(ClientInstalledEffectOperationBorrow, ClientInstalledEffectOperationExtent) -> Result[Unit, ClientInstalledManagedRunIssue]
 
+pub fn[I] grow_request_result_read_row(ClientRequestPreparation[I], I, Int) -> Result[(Int, Int), ClientRequestPreparationIssue]
+
 pub fn[I, P] inspect_program_check_source_collection(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
 
 pub fn[I, P] inspect_program_check_source_local_index(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
@@ -1162,6 +1164,8 @@ pub fn[I] reserve_request_native_static_observation(ClientRequestPreparation[I],
 pub fn[I] reserve_request_program_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_query_time_invocation(ClientRequestPreparation[I], I, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramPlanIssue]
+
+pub fn[I] reserve_request_result_read(ClientRequestPreparation[I], I, Int, Int, Int, Int, Int) -> Result[Int, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_retained_intent_source(ClientRequestPreparation[I], I) -> Result[@source_value.ParseLimits, ClientRequestPreparationIssue]
 

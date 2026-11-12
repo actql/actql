@@ -1,6 +1,7 @@
 ///|
 priv enum ClientRequestPreparationPhase {
   Open
+  ResultRead
   Selecting
   QuerySyntaxQuoted
   QuerySyntaxParsed
@@ -122,6 +123,7 @@ struct ClientRequestPreparation[I] {
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
   mut snapshot_base : (Int64, Int64)?
+  mut result_read : ClientRequestResultReadBudget?
   mut snapshot_units : Int64
   mut snapshot_values : Int64
   snapshot_key_units : Ref[Int]
@@ -293,6 +295,8 @@ pub fn client_request_preparation_control_capacity(
   // Optional Native scalar diagnostics retain only bounded before/after tuples
   // and the SAME light parent, plus parser/lowerer Ref/Some call observations
   // (together under 512 bytes), within this fixed 4096 group.
+  // The exclusive ResultRead phase retains its bounded budget/control tuple
+  // in this same group; variable frames/rows/output reserve separately.
   let growth = @resources.preparation_inventory_growth_entry_construction()
   guard @execution.preparation_representation_cost({
       record_headers: growth.record_headers,
@@ -379,6 +383,7 @@ fn[I] begin_request_preparation_original(
     capacity,
     input: Some(input),
     snapshot_base: None,
+    result_read: None,
     snapshot_units: 0L,
     snapshot_values: 0L,
     snapshot_key_units: Ref(-1),
@@ -753,6 +758,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   clear_request_source_input(owner)
   owner.submitted_intent = None
   owner.snapshot_base = None
+  owner.result_read = None
   owner.snapshot_key_units.val = -1
   owner.intent_base = None
   owner.intent_source_quote = None

@@ -217,6 +217,7 @@ function validateServiceConfiguration(configuration) {
   if (!exactKeys(configuration, [
     'store', 'control', 'authority', 'now', 'createDigest', 'limits',
     'frameLimits',
+    ...(Object.hasOwn(configuration ?? {}, 'readWorkspace') ? ['readWorkspace'] : []),
   ]) || configuration.store === null ||
       typeof configuration.store !== 'object' ||
       typeof configuration.store.confirmCommittedIndex !== 'function' ||
@@ -266,6 +267,20 @@ function validateServiceConfiguration(configuration) {
 
 export function installResultAccessService(configuration) {
   validateServiceConfiguration(configuration);
+  let readWorkspace;
+  if (configuration.readWorkspace !== undefined) {
+    const receiver = configuration.readWorkspace;
+    if (receiver === null || typeof receiver !== 'object') fail('InvalidResultAccessWorkspace');
+    const callbacks = {};
+    for (const name of ['begin', 'prepare', 'row', 'close']) {
+      const field = Object.getOwnPropertyDescriptor(receiver, name);
+      if (field === undefined || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') {
+        fail('InvalidResultAccessWorkspace');
+      }
+      callbacks[name] = (...args) => Reflect.apply(field.value, receiver, args);
+    }
+    readWorkspace = Object.freeze(callbacks);
+  }
   const readCommittedPublication = configuration.store.readCommittedPublication;
   if (readCommittedPublication !== undefined && typeof readCommittedPublication !== 'function') {
     fail('InvalidResultAccessService');
@@ -280,6 +295,7 @@ export function installResultAccessService(configuration) {
     createDigest: configuration.createDigest,
     limits: Object.freeze({...configuration.limits}),
     frameLimits: Object.freeze({...configuration.frameLimits}),
+    readWorkspace,
   }));
   return service;
 }
@@ -417,6 +433,27 @@ export async function deliverAuthorizedResult(
   const installed = services.get(service) ?? fail('ForeignResultAccessService');
   const request = ownedResultRequest(input, true);
   validateRequest(request);
+  const workspace = installed.readWorkspace;
+  if (workspace === undefined) {
+    return deliverPreparedAuthorizedResult(installed, request, sink, signal);
+  }
+  // One real READ Request owns its constructors, including early refusal.
+  // Its resource identity is distinct from the retired producing Run.
+  workspace.begin(request);
+  let failure;
+  try {
+    return await deliverPreparedAuthorizedResult(installed, request, sink, signal,
+      Object.freeze({
+        prepare: metadata => workspace.prepare(request, metadata, installed.limits, installed.frameLimits),
+        row: units => workspace.row(request, units),
+      }));
+  } catch (cause) {
+    failure = cause;
+    throw cause;
+  } finally { workspace.close(request, failure); }
+}
+
+async function deliverPreparedAuthorizedResult(installed, request, sink, signal, workspace) {
   if (sink === null || typeof sink !== 'object' ||
       typeof sink.write !== 'function' ||
       typeof sink.finish !== 'function' || signal !== undefined &&
@@ -613,5 +650,5 @@ export async function deliverAuthorizedResult(
     signal,
   }, Object.isFrozen(index) && Object.isFrozen(manifest)
     ? Object.freeze({store: installed.store, control: installed.control,
-      index, manifest}) : undefined);
+      index, manifest}) : undefined, workspace);
 }

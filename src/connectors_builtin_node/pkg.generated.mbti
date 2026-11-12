@@ -1358,6 +1358,8 @@ pub fn client_program_grow_captured_content_workspace(@physical_resources.Ledger
 
 pub fn client_program_grow_original_infer_publication_capacity(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
 
+pub fn client_program_grow_request_result_read_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Int, Int), @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_hubspot_account_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_hubspot_effect_constructor_capacity(Int, Array[Int], Array[Int], Array[Int]) -> @execution_relation.ExecutionCapacity?
@@ -3633,6 +3635,8 @@ pub fn client_program_reserve_request_effect_original_material(@client_local_hos
 pub fn client_program_reserve_request_model_recovery_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, (Int) -> String, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_query_time_invocation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_reserve_request_result_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Int) -> Result[Int, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_retained_program_material(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 

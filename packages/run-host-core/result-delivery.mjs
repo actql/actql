@@ -277,7 +277,7 @@ async function finishSink(sink, signal) {
   }
 }
 
-export async function deliverPublishedResult(options, resolvedPublication) {
+export async function deliverPublishedResult(options, resolvedPublication, workspace) {
   validateRequest(options);
   validateStore(options.store);
   validateControl(options.control);
@@ -543,6 +543,11 @@ export async function deliverPublishedResult(options, resolvedPublication) {
           rowCount: metadata.rowCount,
           payloadBytes: metadata.payloadBytes,
         }, sinkCallbackCount);
+        let window = workspace?.prepare(metadata);
+        if (window !== undefined && (!Number.isSafeInteger(window) || window < 1 ||
+            window > frameLimits.maxFrameBytes || window > limits.maxWireBytes)) {
+          fail('InvalidResultDeliveryWorkspace');
+        }
         const serializer = control.prepareResultDeliverySerializer(
           format,
           metadata.resultSchemaWire,
@@ -550,8 +555,44 @@ export async function deliverPublishedResult(options, resolvedPublication) {
           limits,
         );
         await write(control.beginResultDelivery(serializer));
-        await readRows(row =>
-          write(control.nextResultDeliveryRow(serializer, row)));
+        if (workspace === undefined) {
+          // Independent raw/manual services retain their original one-row
+          // path. A failed installed resource claim never reaches this branch.
+          await readRows(row => write(control.nextResultDeliveryRow(serializer, row)));
+        } else {
+          let staged = '', stagedBytes = 0, rowUnits = 0;
+          const flush = async () => {
+            if (stagedBytes === 0) return;
+            const text = staged;
+            staged = ''; stagedBytes = 0;
+            // The original write owns current authority, grant/expiry/bytes,
+            // cancellation, sink-confirmed progress and each callback count.
+            await write(text);
+          };
+          try {
+            await readRows(async row => {
+              signal?.throwIfAborted();
+              if (row.length > rowUnits) {
+                await flush();
+                const admitted = workspace.row(row.length);
+                if (!Number.isSafeInteger(admitted?.units) || admitted.units < row.length ||
+                    !Number.isSafeInteger(admitted.window) || admitted.window < 1 ||
+                    admitted.window > window) fail('InvalidResultDeliveryWorkspace');
+                rowUnits = admitted.units; window = admitted.window;
+              }
+              const text = control.nextResultDeliveryRow(serializer, row);
+              const bytes = encoder.encode(text).byteLength;
+              if (bytes > window) {
+                await flush();
+                await write(text);
+              } else {
+                if (bytes > window - stagedBytes) await flush();
+                staged += text; stagedBytes += bytes;
+              }
+            });
+            await flush();
+          } finally { staged = ''; stagedBytes = 0; }
+        }
         await write(control.finishResultDelivery(serializer));
       },
       control,
