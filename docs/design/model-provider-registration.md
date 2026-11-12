@@ -434,6 +434,15 @@ the retained overlap of successive scan/writer projections; no child issues a
 second publication reservation. Pending preparation or Store work is not a
 physical cleanup acknowledgement.
 
+Returning that same publication reservation checks its original Model, Scope,
+startup rows, Ledger, capacity token and outstanding use/counters. It remains
+possible after the input or Artifact dependencies have retired: their live-use
+availability is required for reserving, growing and consuming publication
+capacity, not for returning its already-admitted original token. The caller
+must first retire its funded aliases and physical publication children. A
+parked Ledger, foreign original or unconfirmed cleanup keeps the existing
+responsibility; returning capacity grants no new use or physical-stop ACK.
+
 Retiring a partial private holding uses that same holding's abort operation,
 never a new commit. Abort awaits an already running write and reconciles its
 original Store observation; a never-started holding is not published after
