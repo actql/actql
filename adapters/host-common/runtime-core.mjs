@@ -2230,7 +2230,8 @@ function publicationControl(moon) {
           throw new TypeError('Invalid original snapshot progress');
         }
         if (progress[0]) break;
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => typeof setImmediate === 'function'
+          ? setImmediate(resolve) : setTimeout(resolve, 0));
       }
       signal?.throwIfAborted();
       const captured = inspectSnapshot(checked(moon.clientProgramFinishSnapshot(snapshot)));
