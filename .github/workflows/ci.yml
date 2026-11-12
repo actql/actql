@@ -255,7 +255,7 @@ jobs:
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
       - name: Test collection budget and required packed README selection
-        run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs scripts/packed-readme-ci.test.mjs
+        run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs
       - name: Test original Model failure and workflow observation
         run: node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs
       - name: Test compiler-owned package selection and non-Moon input boundaries

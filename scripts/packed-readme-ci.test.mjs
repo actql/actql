@@ -1126,6 +1126,8 @@ test('small policy and oracle units run during Draft while normal required gates
   const collection = steps.find(value => value.name === 'Test collection budget and required packed README selection');
   for (const file of ['local-result-read-policy', 'client-result-collection-policy', 'request-memory-policy'])
     assert(collection.run.includes(`adapters/host-node/${file}.test.mjs`));
+  assert.equal(collection.run.split(/\s+/u).filter(file =>
+    file === 'adapters/local-node/managed-advance-diagnostic.test.mjs').length, 1);
   const policy = steps.find(value => value.name === 'Test ordinary operation performance policy oracles');
   const rest = steps.find(value => value.name === 'Test ordinary operation performance assessment');
   assert(rest.if.includes('draft'));
