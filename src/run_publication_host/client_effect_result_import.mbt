@@ -275,6 +275,21 @@ fn issue_scope_model_result_import_observations(
     @checked.unit_definition_cid(program, occurrence.stage) is Some(consumer) else {
     return Err(IncompleteResultImports)
   }
+  for index in 0..<count {
+    guard @checked.unit_result_import_at(program, occurrence.stage, index)
+      is Some(interface) else {
+      return Err(IncompleteResultImports)
+    }
+    let mut matches = 0
+    for original in scope.original_result_inputs {
+      if physical_equal(original.interface, interface) {
+        matches += 1
+      }
+    }
+    if matches != 1 {
+      return Err(IncompleteResultImports)
+    }
+  }
   let observations : Array[ClientScopeResultImportObservation] = []
   for original in scope.result_inputs {
     // The original opaque Scope just checked its complete kernel-bound input
@@ -304,6 +319,9 @@ fn issue_scope_model_result_import_observations(
       }
       if !back("result_import_observation", shape) {
         return Err(Encoding)
+      }
+      if !client_infer_result_input_inventory_current(scope) {
+        return Err(ForeignResultImport)
       }
     }
     let hash = @encode.hashing_writer(max_bytes, max_nodes, max_depth) catch {

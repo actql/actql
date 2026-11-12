@@ -4400,13 +4400,19 @@ function publicationControl(moon) {
       return Object.freeze({observation: issued.observation, invocation: issued.invocation,
         owner: token(issued.invocation)});
     },
-    captureCheckedClientInferModelObservation(issued, scan, receipt, limits) {
+    captureCheckedClientInferModelObservation(issued, scan, receipt, limits, preconsumer) {
       issuanceLimits(limits, 'Original Model observation');
       if (!inferInvocationTokens.has(issued)) {
         throw new TypeError('Foreign Model observation Invocation');
       }
-      const original = moon.clientProgramIssueInferInvocationBindingOriginalModelObservation(
-        issued.binding, receipt, limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
+      const prior = preconsumer === undefined ? undefined : localEffectDependencyTokens.get(preconsumer);
+      if (preconsumer !== undefined && prior?.kind !== 'preconsumer_model') {
+        throw new TypeError('ForeignPreconsumerModelOriginal');
+      }
+      const original = prior === undefined
+        ? moon.clientProgramIssueInferInvocationBindingOriginalModelObservation(
+          issued.binding, receipt, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : checked(moon.clientProgramBindPreconsumerModelUnitObservation(issued.binding, prior.original));
       if (original === undefined) throw new TypeError('Foreign Model outcome receipt');
       const body = moon.clientProgramOriginalModelObservationBody(original);
       const coordinates = moon.clientProgramOriginalModelObservationCoordinates(original);
@@ -4682,11 +4688,81 @@ function publicationControl(moon) {
       localEffectDependencyTokens.set(value, {kind: 'combined_source', issued: prepared, unit});
       return value;
     },
+    prepareOriginalEffectModelUnitEvidence(managedRun, plan, request, held, compiled, definition,
+      graph, unit, retention, catalogBodies, operation, limits, retained, current, retainedBase, executionBase) {
+      issuanceLimits(limits, 'Original completed Model Unit');
+      const originalCompiled = compiledRunTokens.get(compiled);
+      if (originalCompiled === undefined || compiled.kind !== 'infer' || retained.modelScan !== undefined ||
+          typeof current !== 'function' || typeof operation?.growOriginalPublicationCapacity !== 'function' ||
+          !Number.isSafeInteger(unit) || unit < 0 || !Array.isArray(catalogBodies)) {
+        throw new TypeError('ForeignPreconsumerModelOriginal');
+      }
+      const extent = quote => {
+        const r = runtimeOptionalField(quote, 0), e = runtimeOptionalField(quote, 1);
+        if (typeof r !== 'bigint' || typeof e !== 'bigint' || r < 0n || e < 0n) {
+          throw new TypeError('PreconsumerModelConstructionCapacityUnavailable');
+        }
+        return [r, e];
+      };
+      const rawDefinition = token(definition);
+      let [r, e] = extent(moon.clientProgramPreconsumerModelUnitIdentityStartCapacity(
+        held, originalCompiled, rawDefinition, graph));
+      operation.growOriginalPublicationCapacity(retainedBase + r, executionBase + e);
+      current();
+      retained.modelScan = checked(moon.clientProgramPreconsumerModelUnitIdentityStart(
+        held, originalCompiled, rawDefinition, graph));
+      current();
+      for (;;) {
+        const [nextR, nextE] = extent(moon.clientProgramInferModelIdentityNextCapacity(retained.modelScan));
+        r = nextR > r ? nextR : r; e = nextE > e ? nextE : e;
+        operation.growOriginalPublicationCapacity(retainedBase + r, executionBase + e);
+        current();
+        const progress = checked(moon.clientProgramInferModelIdentityAdvance(retained.modelScan, 256, nextR, nextE));
+        current();
+        if (runtimeField(progress, 0)) break;
+      }
+      retained.modelReceipt = checked(moon.clientProgramInferModelIdentityFinish(retained.modelScan));
+      current();
+      const [writerR, writerE] = extent(moon.clientProgramPreconsumerModelUnitObservationCapacity(
+        held, originalCompiled, rawDefinition, graph, retained.modelReceipt, limits.maxWireBytes));
+      retained.identityRetainedBytes = r + writerR;
+      retained.identityExecutionBytes = e + writerE;
+      operation.growOriginalPublicationCapacity(retainedBase + retained.identityRetainedBytes,
+        executionBase + retained.identityExecutionBytes);
+      current();
+      retained.modelOriginal = checked(moon.clientProgramPrepareInstalledEffectModelUnitEvidence(
+        managedRun, plan, request, held, originalCompiled, rawDefinition, graph, retained.modelReceipt,
+        token(retention), limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      current();
+      const acquired = checked(moon.clientProgramPreconsumerModelUnitAcquiredEvidence(retained.modelOriginal));
+      const originals = checked(moon.clientProgramPreconsumerModelUnitDependencyBodies(retained.modelOriginal))
+        .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}));
+      const direct = moon.clientProgramOriginalModelAcquiredEffectSources(acquired);
+      const bodies = [
+        ...originals,
+        ...direct.flatMap(source => moon.clientProgramAcquiredEffectDependencyBodies(source)
+          .map(pair => Object.freeze({kind: runtimeField(pair, 0), wire: runtimeField(pair, 1),
+            ...(runtimeField(pair, 0) === 'request_values' ? {cid: moon.clientProgramAcquiredEffectRequestCid(source)} : {})}))),
+        ...moon.clientProgramOriginalModelAcquiredScopeImportBodies(acquired)
+          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)})),
+        Object.freeze({kind: 'acquisition_scope', wire: moon.clientProgramOriginalModelAcquiredEffectScope(acquired)}),
+        Object.freeze({kind: 'relation_value', cid: moon.clientProgramEffectInputExportLogicalCid(retained.modelReceipt),
+          wire: moon.clientProgramInferModelIdentityBody(retained.modelScan, retained.modelReceipt)}),
+        Object.freeze({kind: 'relation_schema', cid: moon.clientProgramEffectInputExportSchemaCid(retained.modelReceipt),
+          wire: moon.clientProgramEffectInputExportSchemaWire(retained.modelReceipt)}),
+      ];
+      const value = Object.freeze({invocation: moon.clientProgramOriginalModelAcquiredEffectInvocation(acquired),
+        bodies: Object.freeze(bodies), catalogBodies: Object.freeze([...catalogBodies])});
+      localEffectDependencyTokens.set(value, {kind: 'preconsumer_model', issued: acquired,
+        original: retained.modelOriginal, unit});
+      current();
+      return value;
+    },
     prepareOriginalEffectSourceUnitResults(managedRun, plan, request, captured, dependency,
-      admission, definition, limits, retained, current) {
+      admission, definition, limits, retained, current, prepared) {
       issuanceLimits(limits, 'Original preconsumer Effect Unit Results');
       const owned = localEffectDependencyTokens.get(dependency);
-      if (owned?.kind !== 'combined_source' || retained === null || typeof retained !== 'object' ||
+      if (!['combined_source', 'preconsumer_model'].includes(owned?.kind) || retained === null || typeof retained !== 'object' ||
           retained.pins !== undefined || !Array.isArray(retained.exports) || retained.exports.length !== 0 ||
           !Array.isArray(retained.receipts) || retained.receipts.length !== 0 ||
           !Array.isArray(retained.artifacts) || retained.artifacts.length !== 0 || typeof current !== 'function') {
@@ -4704,9 +4780,14 @@ function publicationControl(moon) {
         retained.exports.push(exported); current();
         const receipt = checked(moon.clientProgramEffectModelUnitExportReceipt(exported));
         retained.receipts.push(receipt); current();
-        const issued = checked(moon.clientProgramPrepareInstalledEffectModelSourceUnitArtifact(
-          managedRun, plan, request, retained.pins, exported, owned.issued, receipt,
-          admissionToken(admission), definition, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+        const issued = owned.kind === 'combined_source'
+          ? checked(moon.clientProgramPrepareInstalledEffectModelSourceUnitArtifact(
+            managedRun, plan, request, retained.pins, exported, owned.issued, receipt,
+            admissionToken(admission), definition, limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
+          : checked(moon.clientProgramPrepareInstalledEffectModelUnitArtifact(
+            managedRun, plan, request, prepared,
+            owned.original, retained.pins, exported, receipt, admissionToken(admission),
+            limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
         const artifact = inspectLocalEffectArtifact(issued);
         const name = moon.clientProgramEffectModelUnitResultName(retained.pins, index);
         if (typeof name !== 'string') throw new TypeError('OriginalEffectUnitResultUnavailable');
@@ -4722,6 +4803,34 @@ function publicationControl(moon) {
       retained.manifest = manifest; current();
       return retained;
     },
+    bindOriginalEffectUnitArtifact(owner, inputs, artifact, context) {
+      const original = localEffectArtifactTokens.get(artifact);
+      if (original === undefined) throw new TypeError('ForeignOriginalEffectUnitArtifact');
+      checked(moon.clientProgramBindOriginalEffectUnitArtifactRunContext(
+        owner, inputs, original, ...localEffectContext(context)));
+    },
+    originalEffectUnitArtifactDefinition(artifact) {
+      const original = localEffectArtifactTokens.get(artifact);
+      if (original === undefined) throw new TypeError('ForeignOriginalEffectUnitArtifact');
+      return checked(moon.clientProgramOriginalEffectUnitArtifactDefinition(original));
+    },
+    reuseOriginalEffectUnitArtifact(owner, inputs, artifact, exported, receipt) {
+      const original = localEffectArtifactTokens.get(artifact);
+      if (original === undefined) throw new TypeError('ForeignOriginalEffectUnitArtifact');
+      checked(moon.clientProgramCheckOriginalEffectUnitArtifactExport(owner, inputs, original, exported, receipt));
+      return artifact;
+    },
+    reuseOriginalEffectUnitManifest(owner, invocation, artifacts, manifest) {
+      const original = localEffectManifestTokens.get(manifest);
+      const retained = artifacts.map(artifact => {
+        const value = localEffectArtifactTokens.get(artifact);
+        if (value === undefined) throw new TypeError('ForeignOriginalEffectUnitArtifact');
+        return value;
+      });
+      if (original === undefined || !moon.clientProgramOriginalEffectUnitManifestMatches(
+          original, owner, invocation, retained)) throw new TypeError('ForeignOriginalEffectUnitManifest');
+      return manifest;
+    },
     bindInferOriginalResultArtifact(active, index, artifact, manifest) {
       const result = localEffectArtifactTokens.get(artifact), complete = localEffectManifestTokens.get(manifest);
       if (result === undefined || complete === undefined) throw new TypeError('ForeignInferResultArtifact');
@@ -4734,12 +4843,15 @@ function publicationControl(moon) {
       for (const exported of retained.exports) moon.clientProgramEffectInputExportCancelPreparation(
         moon.clientProgramEffectLocalResultExportPreparation(exported));
       for (const receipt of retained.receipts) moon.clientProgramEffectInputExportReleaseReceipt(receipt);
+      if (retained.modelReceipt !== undefined) moon.clientProgramInferModelIdentityReceiptCancel(retained.modelReceipt);
+      if (retained.modelScan !== undefined) moon.clientProgramInferModelIdentityCancel(retained.modelScan);
       if (retained.pins !== undefined) {
         if (moon.clientProgramReleaseEffectModelUnitResults(retained.pins) !== true) return false;
         retained.pins = undefined;
       }
       retained.exports.length = 0; retained.receipts.length = 0;
       retained.artifacts.length = 0; retained.manifest = undefined;
+      retained.modelScan = retained.modelReceipt = retained.modelOriginal = undefined;
       return true;
     },
     issueSourceFreeEffectEvidence(owner, unit, limits) {

@@ -577,9 +577,16 @@ pub fn issue_original_local_model_effect_invocation(
 pub fn original_local_model_observation_input_bodies(
   value : LocalModelObservation,
 ) -> Array[(String, String)]? {
-  guard original_local_model_observation_current(value.held, value.issued) &&
-    value.held.owner.identity is Some(scan) &&
-    value.held.owner.call_scope is Some(scope) &&
+  if !original_local_model_observation_current(value.held, value.issued) {
+    return None
+  }
+  original_model_input_bodies(value.held)
+}
+
+///|
+fn original_model_input_bodies(held : OutputUse) -> Array[(String, String)]? {
+  guard held.owner.identity is Some(scan) &&
+    held.owner.call_scope is Some(scope) &&
     @relation.completed_relation_identity_scan_body_receipt(scan)
     is Some(receipt) &&
     @relation.completed_relation_identity_scan_body(scan, receipt) is Some(body) &&

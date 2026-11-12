@@ -646,3 +646,87 @@ test('original upstream Result facade preserves partial custody when current thr
   f.release(); assert.equal(f.retire(f.retained), true);
   assert.equal(f.retained.pins, undefined);
 });
+
+
+// Execute the actual preconsumer control method with explicit nominal ports.
+// The original output/scan/proof stand for Core handles, not fabricated normal
+// execution, installed ABI, Source/Model work or physical cleanup evidence.
+function earlierModelUnitFacadeFixture() {
+  const run = {}, plan = {}, request = {}, held = {}, compiled = {kind: 'infer'},
+    rawCompiled = {}, definition = {}, graph = {}, retention = {}, scan = {}, receipt = {},
+    proof = {}, acquired = {}, invocation = {}, dependencies = new WeakMap(), events = [];
+  const retained = {pins: undefined, exports: [], receipts: [], artifacts: [], manifest: undefined};
+  const quote = (r, e) => ({_0: BigInt(r), _1: BigInt(e)});
+  const moon = {
+    clientProgramPreconsumerModelUnitIdentityStartCapacity(h, c, d, g) {
+      assert.strictEqual(h, held); assert.strictEqual(c, rawCompiled);
+      assert.strictEqual(d, definition); assert.strictEqual(g, graph); return quote(3, 4);
+    },
+    clientProgramPreconsumerModelUnitIdentityStart() {events.push('start'); return {ok: scan};},
+    clientProgramInferModelIdentityNextCapacity(actual) {assert.strictEqual(actual, scan); return quote(5, 6);},
+    clientProgramInferModelIdentityAdvance(actual, quantum, r, e) {
+      assert.strictEqual(actual, scan); assert.equal(quantum, 256); assert.equal(r, 5n); assert.equal(e, 6n);
+      events.push('advance'); return {ok: {_0: true}};
+    },
+    clientProgramInferModelIdentityFinish(actual) {assert.strictEqual(actual, scan); events.push('receipt'); return {ok: receipt};},
+    clientProgramPreconsumerModelUnitObservationCapacity(h, c, d, g, original) {
+      assert.strictEqual(original, receipt); assert.strictEqual(h, held); return quote(7, 8);
+    },
+    clientProgramPrepareInstalledEffectModelUnitEvidence(r, p, q, h, c, d, g, original, originalRetention) {
+      assert.strictEqual(r, run); assert.strictEqual(p, plan); assert.strictEqual(q, request); assert.strictEqual(h, held);
+      assert.strictEqual(c, rawCompiled); assert.strictEqual(d, definition); assert.strictEqual(g, graph);
+      assert.strictEqual(original, receipt); assert.strictEqual(originalRetention, retention);
+      events.push('metadata'); return {ok: proof};
+    },
+    clientProgramPreconsumerModelUnitAcquiredEvidence(original) {assert.strictEqual(original, proof); return {ok: acquired};},
+    clientProgramPreconsumerModelUnitDependencyBodies(original) {
+      assert.strictEqual(original, proof);
+      return {ok: [{_0: 'local_model_observation', _1: 'model', _2: 'original-model'}]};
+    },
+    clientProgramOriginalModelAcquiredEffectSources: () => [],
+    clientProgramOriginalModelAcquiredScopeImportBodies: () => [{_0: 'result_import_observation', _1: 'input', _2: 'original-input'}],
+    clientProgramOriginalModelAcquiredEffectScope: () => 'original-scope',
+    clientProgramEffectInputExportLogicalCid: () => 'outcome', clientProgramEffectInputExportSchemaCid: () => 'schema',
+    clientProgramInferModelIdentityBody(actual, original) {assert.strictEqual(actual, scan); assert.strictEqual(original, receipt); return 'original-outcomes';},
+    clientProgramEffectInputExportSchemaWire: () => 'original-schema',
+    clientProgramOriginalModelAcquiredEffectInvocation: () => invocation,
+    clientProgramInferModelIdentityReceiptCancel(original) {assert.strictEqual(original, receipt); events.push('retire-receipt');},
+    clientProgramInferModelIdentityCancel(original) {assert.strictEqual(original, scan); events.push('retire-scan'); return false;},
+  };
+  const ports = {moon, checked: value => value.ok, issuanceLimits() {}, compiledRunTokens: new WeakMap([[compiled, rawCompiled]]),
+    token: value => value, runtimeField: (value, index) => value[`_${index}`],
+    runtimeOptionalField: (value, index) => value?.[`_${index}`], localEffectDependencyTokens: dependencies};
+  const prepare = originalRuntimeControlMethod('prepareOriginalEffectModelUnitEvidence', ports);
+  const retire = originalRuntimeControlMethod('retireOriginalEffectUnitResults', ports);
+  const growth = [];
+  const operation = {growOriginalPublicationCapacity(r, e) {growth.push([r, e]); events.push('grow');}};
+  return {events, scan, receipt, proof, invocation, retained, dependencies, growth, retire,
+    prepare(current = () => {}) {return prepare(run, plan, request, held, compiled, definition,
+      graph, 1, retention, [], operation, {maxWireBytes: 16384}, retained, current, 10n, 20n);}};
+}
+
+test('earlier Model facade backs and retains original scan receipt and semantic body before its later Unit', () => {
+  const f = earlierModelUnitFacadeFixture(), value = f.prepare();
+  assert.strictEqual(value.invocation, f.invocation);
+  assert.strictEqual(f.retained.modelScan, f.scan); assert.strictEqual(f.retained.modelReceipt, f.receipt);
+  assert.strictEqual(f.retained.modelOriginal, f.proof);
+  assert.deepEqual(f.growth, [[13n, 24n], [15n, 26n], [22n, 34n]]);
+  assert.strictEqual(f.dependencies.get(value).original, f.proof);
+  assert.equal(f.dependencies.get(value).kind, 'preconsumer_model');
+  assert(value.bodies.some(body => body.kind === 'relation_value' && body.wire === 'original-outcomes'));
+  assert(value.bodies.some(body => body.kind === 'result_import_observation' && body.wire === 'original-input'));
+  assert.equal(f.retire(f.retained), true);
+  assert.deepEqual(f.events.slice(-2), ['retire-receipt', 'retire-scan']);
+  assert.equal(f.retained.modelOriginal, undefined);
+});
+
+test('earlier Model facade keeps the same partial scan and receipt when current throws undefined', () => {
+  const f = earlierModelUnitFacadeFixture(); let failed = false, cause;
+  try { f.prepare(() => {if (f.retained.modelReceipt !== undefined) throw undefined;}); }
+  catch (error) {failed = true; cause = error;}
+  assert.equal(failed, true); assert.strictEqual(cause, undefined);
+  assert.strictEqual(f.retained.modelScan, f.scan); assert.strictEqual(f.retained.modelReceipt, f.receipt);
+  assert.equal(f.retained.modelOriginal, undefined); assert.equal(f.events.includes('metadata'), false);
+  assert.equal(f.retire(f.retained), true);
+  assert.deepEqual(f.events.slice(-2), ['retire-receipt', 'retire-scan']);
+});

@@ -171,11 +171,30 @@ fn model_effect_imports_match(
   if imports is None &&
     scope_imports.length() == count &&
     scope.result_inputs.length() == count {
-    return scope_imports.all(observed => {
-      scope.result_inputs.any(original => {
-        physical_equal(original, observed.input)
-      })
-    })
+    if !client_infer_result_input_inventory_current(scope) {
+      return false
+    }
+    // Every checked port appears exactly once, including repeated imports of
+    // the same producer Result under distinct original input labels.
+    for index in 0..<count {
+      guard @checked.unit_result_import_at(program, occurrence.stage, index)
+        is Some(interface) else {
+        return false
+      }
+      let mut matches = 0
+      for observed in scope_imports {
+        if physical_equal(observed.input.interface, interface) &&
+          scope.original_result_inputs.any(original => {
+            physical_equal(original, observed.input)
+          }) {
+          matches += 1
+        }
+      }
+      if matches != 1 {
+        return false
+      }
+    }
+    return true
   }
   guard scope_imports.is_empty() &&
     imports is Some((original, sources)) &&

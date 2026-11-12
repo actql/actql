@@ -596,3 +596,39 @@ test('plural existing input path requires no replacement Result API without an o
   }
   assert.equal(f.events.includes('prepare'), false);
 });
+
+
+test('final plural publication reuses an earlier Model original scan and body under the actual final binding', async () => {
+  const operations = [{}, {}], issued = [{binding: {}}, {binding: {}}], originals = [{unit: 1}, {unit: 2}];
+  const scan = {}, receipt = {}, dependency = {}, proof = {}, events = [];
+  operations.forEach((operation, index) => {operation.bindIssuedInvocation = () => issued[index];});
+  const sourceUnitsOriginal = {byUnit: new Map([[1, {modelOperation: operations[0], value: dependency,
+    results: {modelOriginal: proof, modelScan: scan, modelReceipt: receipt,
+      identityRetainedBytes: 12n, identityExecutionBytes: 14n}}]])};
+  const final = {};
+  const acquired = {moon: {}, runDefinition: {}, control: {
+    captureCheckedClientInferModelObservation(actual, actualScan, actualReceipt, actualLimits, earlier) {
+      if (actual === issued[0]) {
+        assert.strictEqual(actualScan, scan); assert.strictEqual(actualReceipt, receipt); assert.strictEqual(earlier, dependency);
+        events.push('reuse'); return originals[0];
+      }
+      assert.strictEqual(actual, issued[1]); assert.equal(earlier, undefined); events.push('later'); return originals[1];
+    },
+  }};
+  const ports = {limits, async withOriginalInferModelObservation(facts) {
+    assert.strictEqual(facts.binding, issued[1].binding);
+    assert.equal(facts.retainedBase, 12n); assert.equal(facts.executionBase, 14n); events.push('scan-later');
+    return facts.consume({scan: {}, receipt: {}, retainedBytes: 3n, executionBytes: 4n});
+  }, acquiredMultiEffectPublicationPlan(facts) {
+    assert.deepEqual(facts.modelOriginals, originals); assert.strictEqual(facts.sourceUnitsOriginal, sourceUnitsOriginal);
+    return final;
+  }};
+  const prepare = new Function(...Object.keys(ports), `return (${body('acquiredInferEffectPublicationPlan')});`)(...Object.values(ports));
+  const bindings = [];
+  const publication = await prepare({acquired, sources: [{}], compiled: {}, operations, operation: operations[0],
+    sourceUnitsOriginal, retainBinding: binding => bindings.push(binding)});
+  assert.deepEqual(events, ['reuse', 'scan-later', 'later']);
+  assert.deepEqual(bindings, issued.map(value => value.binding)); assert.strictEqual(publication.plan, final);
+  assert.strictEqual(sourceUnitsOriginal.byUnit.get(1).results.modelReceipt, receipt,
+    'the existing group still owns its original receipt until retirement');
+});

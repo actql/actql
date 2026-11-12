@@ -163,6 +163,7 @@ fn combined_source_unit_completed_fixture(
   early_unit? : Bool = false,
   consumer_model? : Bool = false,
   late_run_binding? : Bool = false,
+  reuse_export? : Bool = false,
   saved_artifact_scope? : Bool = false,
   saved_artifact_controls? : Bool = false,
   shared_ancestry? : Bool = false,
@@ -172,6 +173,7 @@ fn combined_source_unit_completed_fixture(
   artifact_geometry? : Bool = false,
   model_scope_imports? : Bool = false,
   model_scope_backing? : Bool = false,
+  two_result_ports? : Bool = false,
 ) -> Unit raise {
   let document =
     #|{"version":"actql/0.1","id":"combined-source-unit","stages":[{"id":"joined","inputs":{"left_rows":{"connector":"crm/main","resource":"r"},"right_rows":{"connector":"crm/right","resource":"r"}},"from":"left_rows","steps":[{"join":{"with":"right_rows","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":4,"select":{"value":"left.id"}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"joined":{"from":{"stage":"joined","result":"out"}}}}
@@ -224,6 +226,19 @@ fn combined_source_unit_completed_fixture(
       derived["text"] = @json.parse(
         "{\"concat\":[{\"cast\":{\"value\":{\"field\":\"value\"},\"target\":{\"type\":\"string\"}}},{\"literal\":\"|\"},{\"cast\":{\"value\":{\"field\":\"other\"},\"target\":{\"type\":\"string\"}}}]}",
       )
+    }
+    if two_result_ports {
+      next_fields["inputs"] = @json.parse(
+        "{\"rows\":{\"result\":{\"stage\":\"joined\",\"result\":\"out\"}},\"other_rows\":{\"result\":{\"stage\":\"joined\",\"result\":\"out\"}}}",
+      )
+      next_fields["from"] = Json::string("rows")
+      guard next_fields["steps"] is Array(steps) else {
+        fail("two original ports")
+      }
+      let joined = @json.parse(
+        "{\"join\":{\"with\":\"other_rows\",\"kind\":\"inner\",\"on\":[{\"left\":\"value\",\"right\":\"value\"}],\"max_output_rows\":4,\"select\":{\"value\":\"left.value\"}},\"as\":\"paired\"}",
+      )
+      next_fields["steps"] = Json::array([joined] + steps)
     }
     next_fields["effects"] = effects
     stages.push(next)
@@ -811,7 +826,28 @@ fn combined_source_unit_completed_fixture(
         10000,
         20000,
       ).unwrap()
+      let other_read = if two_result_ports {
+        let original = @execution.bind_completed_input(
+          occurrence.preparation,
+          1,
+          root,
+          producer,
+        ).unwrap()
+        Some(
+          @execution.prepare_producer_read(
+            occurrence.preparation,
+            original,
+            10000,
+            20000,
+          ).unwrap(),
+        )
+      } else {
+        None
+      }
       let receiving_inputs = [@local.managed_provider_relation_input(read)]
+      if other_read is Some(original) {
+        receiving_inputs.push(@local.managed_provider_relation_input(original))
+      }
       let prefix_child = @local_query_time.start_client_composed_infer_input(
         occurrence,
         prefix,
@@ -849,6 +885,9 @@ fn combined_source_unit_completed_fixture(
       }
       let input = input.unwrap()
       let bindings = [(0, 0, read)]
+      if other_read is Some(original) {
+        bindings.push((0, 1, original))
+      }
       let proof = @execution.retain_completed_segment_inputs(
         input, prefix, bindings, 100000,
       ).unwrap()
@@ -877,20 +916,41 @@ fn combined_source_unit_completed_fixture(
         ).unwrap(),
         client_infer_result_artifact_input_binding(imported, occurrence, input).unwrap(),
       )
-      assert_true(
-        @local_query_time.client_infer_completed_result_artifact_input(
-          prefix_child,
-          occurrence,
-          infers[0],
-          1,
-          artifact,
-          manifest.unwrap(),
+      let second_import = if two_result_ports {
+        Some(
+          @local_query_time.client_infer_completed_result_artifact_input(
+            prefix_child,
+            occurrence,
+            infers[0],
+            1,
+            artifact,
+            manifest.unwrap(),
+          ).unwrap(),
         )
-        is Err(ForeignInput),
-      )
+      } else {
+        assert_true(
+          @local_query_time.client_infer_completed_result_artifact_input(
+            prefix_child,
+            occurrence,
+            infers[0],
+            1,
+            artifact,
+            manifest.unwrap(),
+          )
+          is Err(ForeignInput),
+        )
+        None
+      }
       assert_eq(
         client_infer_result_artifact_input_binding(imported, occurrence, input).unwrap(),
-        ("rows", client_effect_local_result_artifact_cid(artifact)),
+        (
+          if two_result_ports {
+            "other_rows"
+          } else {
+            "rows"
+          },
+          client_effect_local_result_artifact_cid(artifact),
+        ),
       )
       let model_wire : @execution.RowWireLimits = {
         max_columns: 10,
@@ -972,9 +1032,116 @@ fn combined_source_unit_completed_fixture(
         100000,
         10000,
         100,
-        result_inputs=[imported],
+        result_inputs=if second_import is Some(original) {
+          [imported, original]
+        } else {
+          [imported]
+        },
         sources=ancestry,
       ).unwrap()
+      if second_import is Some(second) {
+        let observed = issue_scope_model_result_import_observations(
+          prepared, scope, 100000, 10000, 100,
+        ).unwrap()
+        assert_eq(observed.length(), 2)
+        assert_true(
+          model_effect_imports_match(
+            prepared,
+            scope,
+            occurrence,
+            None,
+            observed,
+          ),
+        )
+        // Both inputs were issued through the real completed prefix/Kernel
+        // proof. Mutating the public view cannot replace the sealed originals.
+        scope.result_inputs[1] = imported
+        assert_false(client_infer_call_scope_generation_available(scope))
+        assert_true(
+          issue_scope_model_result_import_observations(
+            prepared, scope, 100000, 10000, 100,
+          )
+          is Err(_),
+        )
+        assert_false(
+          model_effect_imports_match(
+            prepared,
+            scope,
+            occurrence,
+            None,
+            observed,
+          ),
+        )
+        scope.result_inputs[1] = second
+        assert_true(client_infer_call_scope_generation_available(scope))
+        assert_false(
+          model_effect_imports_match(prepared, scope, occurrence, None, [
+            observed[0],
+            observed[0],
+          ]),
+        )
+        scope.result_inputs.clear()
+        scope.result_inputs.push(imported)
+        assert_false(client_infer_call_scope_generation_available(scope))
+        assert_true(
+          issue_scope_model_result_import_observations(
+            prepared, scope, 100000, 10000, 100,
+          )
+          is Err(_),
+        )
+        scope.result_inputs.push(second)
+        let replacement = prepare_client_infer_result_artifact_input(
+          occurrence,
+          infers[0],
+          1,
+          input,
+          prefix,
+          bindings,
+          proof,
+          artifact,
+          manifest.unwrap(),
+        ).unwrap()
+        assert_false(physical_equal(replacement, second))
+        scope.result_inputs[1] = replacement
+        assert_false(client_infer_call_scope_generation_available(scope))
+        assert_true(
+          issue_scope_model_result_import_observations(
+            prepared, scope, 100000, 10000, 100,
+          )
+          is Err(_),
+        )
+        scope.result_inputs[1] = second
+        let entered = Ref(0)
+        assert_true(
+          issue_scope_model_result_import_observations(
+            prepared,
+            scope,
+            100000,
+            10000,
+            100,
+            before_body=Some(fn(_, _) {
+              entered.val += 1
+              scope.result_inputs[1] = imported
+              true
+            }),
+          )
+          is Err(ForeignResultImport),
+        )
+        assert_eq(entered.val, 1)
+        scope.result_inputs[1] = second
+        assert_true(client_infer_call_scope_generation_available(scope))
+        assert_true(
+          model_effect_imports_match(
+            prepared,
+            scope,
+            occurrence,
+            None,
+            issue_scope_model_result_import_observations(
+              prepared, scope, 100000, 10000, 100,
+            ).unwrap(),
+          ),
+        )
+      }
       if model_scope_imports || model_scope_backing {
         let observations = issue_scope_model_result_import_observations(
           prepared, scope, 100000, 10000, 100,
@@ -1147,7 +1314,7 @@ fn combined_source_unit_completed_fixture(
         effective["input_artifacts"] is Object(upstream) else {
         fail("original upstream effective inputs")
       }
-      assert_eq(upstream.length(), 1)
+      assert_eq(upstream.length(), if two_result_ports { 2 } else { 1 })
       assert_eq(
         upstream["rows"],
         Json::string(client_effect_local_result_artifact_cid(artifact)),
@@ -1157,7 +1324,7 @@ fn combined_source_unit_completed_fixture(
         snapshot["result_inputs"] is Array(stored) else {
         fail("original upstream snapshot")
       }
-      assert_eq(stored.length(), 1)
+      assert_eq(stored.length(), if two_result_ports { 2 } else { 1 })
       if model_columns {
         let calls = Ref(0)
         let original_inputs = Ref(false)
@@ -1349,9 +1516,11 @@ fn combined_source_unit_completed_fixture(
       )
     } else {
       let final_inputs = @strategy.pin_captured_effect_sources(run, 10).unwrap()
-      if late_run_binding {
+      if late_run_binding || reuse_export {
         let cid = client_effect_local_result_artifact_cid(artifact)
-        let wire = @publication.publication_contract_json(artifact.artifact)
+        let artifact_wire = @publication.publication_contract_json(
+          artifact.artifact,
+        )
         assert_true(
           client_effect_local_artifact_run_invocation_cid(artifact) is None,
         )
@@ -1411,9 +1580,52 @@ fn combined_source_unit_completed_fixture(
         ).unwrap()
         assert_eq(cid, client_effect_local_result_artifact_cid(artifact))
         assert_eq(
-          wire,
+          artifact_wire,
           @publication.publication_contract_json(artifact.artifact),
         )
+        if reuse_export {
+          let original_receipt = artifact.export_receipt
+          let physical = @strategy.start_captured_effect_local_result_export(
+            final_inputs,
+            0,
+            {
+              max_fields: 2,
+              max_mapping_work: 1000,
+              max_order_work: 10000,
+              max_workspace_entries: 20,
+            },
+            10,
+            execution.rows.input_values,
+            wire,
+            wire,
+            { max_fields: 2, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+            1000,
+          ).unwrap()
+          let physical_receipt = combined_unit_finish_export(physical)
+          assert_false(physical_equal(original_receipt, physical_receipt))
+          check_client_effect_unit_artifact_export(
+            prepared, final_inputs, artifact, physical, physical_receipt,
+          ).unwrap()
+          assert_true(
+            check_client_effect_unit_artifact_export(
+              prepared, final_inputs, artifact, exported, receipt,
+            )
+            is Err(ForeignExport),
+          )
+          assert_true(physical_equal(artifact.export_receipt, original_receipt))
+          assert_true(
+            physical_equal(
+              client_effect_unit_artifact_original_definition(artifact).unwrap(),
+              local_definition,
+            ),
+          )
+          assert_eq(client_effect_local_result_artifact_cid(artifact), cid)
+          assert_eq(
+            @publication.publication_contract_json(artifact.artifact),
+            artifact_wire,
+          )
+          @execution.cancel_completed_relation_export_receipt(physical_receipt)
+        }
         let copied = @publication.issue_run_invocation(
           client_effect_compilation_template(compilation),
           original.observation,
@@ -1732,5 +1944,23 @@ test "Model Scope semantic body backing refuses before each actual original emit
     consumer_model=true,
     shared_ancestry=true,
     model_scope_backing=true,
+  )
+}
+
+///|
+test "original Unit Artifact survives a separately checked final physical export without receipt or Definition reissue" {
+  combined_source_unit_completed_fixture(
+    early_unit=true,
+    late_run_binding=true,
+    reuse_export=true,
+  )
+}
+
+///|
+test "original two Result ports refuse duplicate missing replacement and reentrant mutable Scope inputs" {
+  combined_source_unit_completed_fixture(
+    early_unit=true,
+    consumer_model=true,
+    two_result_ports=true,
   )
 }

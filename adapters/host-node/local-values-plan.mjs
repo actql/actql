@@ -719,6 +719,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence: acquiredEvidenceByUnit[0],
       acquiredEvidenceByUnit: Object.freeze(acquiredEvidenceByUnit),
+      ...(sourceUnitsOriginal === undefined ? {} : {originalUnitResults: sourceUnitsOriginal.byUnit}),
       ...(modelOriginals.length === 0 ? {} : {
         modelOriginalByUnit: Object.freeze(Object.fromEntries(modelOriginals.map(model => [model.unit, model]))),
         modelRetention: retention,
@@ -744,7 +745,12 @@ export async function acquiredInferEffectPublicationPlan({acquired, sources,
     throw new TypeError('OriginalEffectModelInventoryRequired');
   }
   const issuedModels = [], modelOriginals = [];
-  let retainedBase = 0n, executionBase = 0n;
+  // Earlier Model scans stay in this group's original custody; count that
+  // retained overlap before constructing any later final-issuer metadata.
+  const earlierUnits = [...(sourceUnitsOriginal?.byUnit.values() ?? [])]
+    .filter(entry => entry.results?.modelOriginal !== undefined);
+  let retainedBase = earlierUnits.reduce((sum, entry) => sum + entry.results.identityRetainedBytes, 0n);
+  let executionBase = earlierUnits.reduce((sum, entry) => sum + entry.results.identityExecutionBytes, 0n);
   try {
     for (const originalOperation of operations) {
       current?.(); signal?.throwIfAborted();
@@ -752,14 +758,16 @@ export async function acquiredInferEffectPublicationPlan({acquired, sources,
         compiled, runDefinition: acquired.runDefinition, issued: issuance});
       issuedModels.push(issued);
       retainBinding?.(issued.binding);
-      const model = await withOriginalInferModelObservation({
+      const earlier = earlierUnits.find(entry => entry.modelOperation === originalOperation);
+      const model = earlier === undefined ? await withOriginalInferModelObservation({
         moon: acquired.moon, operation: fundingOperation, binding: issued.binding, signal, retainedBase, executionBase,
         consume: ({scan, receipt, retainedBytes, executionBytes}) => {
           const original = acquired.control.captureCheckedClientInferModelObservation(issued, scan, receipt, limits);
           retainedBase += retainedBytes; executionBase += executionBytes;
           return original;
         },
-      });
+      }) : acquired.control.captureCheckedClientInferModelObservation(issued,
+        earlier.results.modelScan, earlier.results.modelReceipt, limits, earlier.value);
       current?.(); signal?.throwIfAborted();
       if (!Number.isSafeInteger(model?.unit) || model.unit < 0 ||
           modelOriginals.some(original => original.unit === model.unit)) {

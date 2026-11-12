@@ -11,6 +11,7 @@ pub struct ClientInferCallScope {
   sources : Array[@publication.ModelSourceObservation]
   named_sources : Array[(String, @publication.ModelSourceObservation)]
   result_inputs : Array[ClientInferResultArtifactInput]
+  priv original_result_inputs : Array[ClientInferResultArtifactInput]
   priv saved_result_scope : ClientInferSavedCallScope?
   generation : ClientSerializationGeneration?
   unit_definition_cid : String
@@ -82,6 +83,9 @@ pub fn issue_client_infer_occurrence_call_scope(
   generation? : ClientSerializationGeneration? = None,
   result_inputs? : Array[ClientInferResultArtifactInput] = [],
 ) -> Result[ClientInferCallScope, ClientInferCallScopeIssue] {
+  // Freeze the same original pointer inventory before any fallible callback.
+  // The public Array view is not an immutable proof after this issuance.
+  let result_inputs = result_inputs.copy()
   let owner = occurrence.owner
   let step = occurrence.step
   let prefix = occurrence.preparation
@@ -307,6 +311,7 @@ pub fn issue_client_infer_occurrence_call_scope(
         }
     },
     result_inputs: result_inputs.copy(),
+    original_result_inputs: result_inputs,
     saved_result_scope: None,
     unit_definition_cid,
     source_ordinal: step,
@@ -327,9 +332,30 @@ pub fn client_infer_call_scope_matches(
 }
 
 ///|
+// Pure original-inventory fence. External Array mutation cannot replace,
+// duplicate, remove or reorder an already sealed Scope's Kernel-bound ports.
+// This is an existing per-input control, not a new authority/token owner.
+fn client_infer_result_input_inventory_current(
+  value : ClientInferCallScope,
+) -> Bool {
+  if value.result_inputs.length() != value.original_result_inputs.length() {
+    return false
+  }
+  for index, original in value.original_result_inputs {
+    if !physical_equal(value.result_inputs[index], original) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 fn client_infer_call_scope_generation_available(
   value : ClientInferCallScope,
 ) -> Bool {
+  if !client_infer_result_input_inventory_current(value) {
+    return false
+  }
   if value.saved_result_scope is Some(saved) &&
     (
       !value.result_inputs.is_empty() ||
@@ -1312,6 +1338,7 @@ pub fn restore_client_infer_call_scope(
     },
     named_sources: value.named_sources.copy(),
     result_inputs: [],
+    original_result_inputs: [],
     saved_result_scope: if value.result_inputs.is_empty() {
       None
     } else {

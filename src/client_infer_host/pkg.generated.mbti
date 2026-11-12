@@ -76,6 +76,8 @@ pub fn bind_original_model_preparation(Execution, @run_publication_host.ClientMo
 
 pub fn bind_physical_preflight(Execution, (@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue]) -> Result[Unit, Issue]
 
+pub fn bind_preconsumer_model_unit_observation(InvocationBinding, PreconsumerModelUnitEvidence) -> LocalModelObservation?
+
 pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity) -> Result[Unit, Issue]
 
 pub fn bind_result_artifact_input(Execution, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalManifest) -> Result[Unit, Issue]
@@ -221,6 +223,8 @@ pub fn poll_issue(Poll) -> Issue?
 pub fn poll_kind(Poll) -> String
 
 pub fn preconsumer_model_unit_acquired_evidence(PreconsumerModelUnitEvidence) -> @run_publication_host.ClientEffectModelAcquiredEvidence?
+
+pub fn preconsumer_model_unit_dependency_bodies(PreconsumerModelUnitEvidence) -> Array[(String, String, String)]?
 
 pub fn preconsumer_model_unit_identity_start_capacity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> @execution_relation.ExecutionCapacity?
 

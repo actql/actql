@@ -544,7 +544,11 @@ pub fn client_program_bind_issued_infer_invocation(@client_infer_host.Execution,
 
 pub fn client_program_bind_model_raw_capture_policy(@run_publication.RunEvidenceValue, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Result[@run_publication.BoundModelRawCapturePolicy, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_bind_original_effect_unit_artifact_run_context(@run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[Unit, @run_publication_host.ClientEffectLocalResultArtifactIssue]
+
 pub fn client_program_bind_original_mock_answers(@model_execution.ModelMockInstallation, @model_execution.ModelMockAnswers) -> Result[Unit, @model_execution.ModelMockInstallationIssue]
+
+pub fn client_program_bind_preconsumer_model_unit_observation(@client_infer_host.InvocationBinding, @client_infer_host.PreconsumerModelUnitEvidence) -> Result[@client_infer_host.LocalModelObservation, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_bind_query_time(@run_publication_host.ClientQueryTimePreparation, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity) -> Result[@run_publication.QueryEvaluationTime, @run_publication_host.ClientQueryTimeIssue]
 
@@ -685,6 +689,8 @@ pub fn client_program_check_infer_original_pre_restore_origin(@run_publication_h
 pub fn client_program_check_logical_map_binding(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_check_original_composed_infer_preparation(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, @client_infer_host.Issue]
+
+pub fn client_program_check_original_effect_unit_artifact_export(@run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @run_publication_host.ClientEffectLocalResultArtifact, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Result[Unit, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
@@ -3026,6 +3032,10 @@ pub fn client_program_original_composed_keyed_prefix_advance(@client_local_host.
 
 pub fn client_program_original_composed_keyed_prefix_execution(@client_local_host.ClientOriginalComposedKeyedPrefix) -> @client_local_host.ClientSerializationPrefix
 
+pub fn client_program_original_effect_unit_artifact_definition(@run_publication_host.ClientEffectLocalResultArtifact) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultArtifactIssue]
+
+pub fn client_program_original_effect_unit_manifest_matches(@run_publication_host.ClientEffectLocalManifest, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact]) -> Bool
+
 pub fn client_program_original_mock_declaration(@model_execution.ModelMockInstallation) -> Result[@check_environment.NormalizedPublicModelTask, @model_execution.ModelMockInstallationIssue]
 
 pub fn client_program_original_mock_provider(@model_execution.ModelMockInstallation) -> Result[@model_execution.ModelProvider, @model_execution.ModelMockInstallationIssue]
@@ -3070,7 +3080,9 @@ pub fn client_program_plan_fact_manifest_cid(@run_publication_host.PlanFactManif
 
 pub fn client_program_plan_fact_manifest_wire(@run_publication_host.PlanFactManifestIdentity) -> String
 
-pub fn client_program_preconsumer_model_unit_acquired_evidence(@client_infer_host.PreconsumerModelUnitEvidence) -> @run_publication_host.ClientEffectModelAcquiredEvidence?
+pub fn client_program_preconsumer_model_unit_acquired_evidence(@client_infer_host.PreconsumerModelUnitEvidence) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectLocalResultArtifactIssue]
+
+pub fn client_program_preconsumer_model_unit_dependency_bodies(@client_infer_host.PreconsumerModelUnitEvidence) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_preconsumer_model_unit_identity_start(@client_infer_host.OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[@execution_relation.CompletedRelationIdentityScan, @execution_relation.CompletedExportIssue]
 

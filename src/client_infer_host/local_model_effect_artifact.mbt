@@ -332,3 +332,56 @@ pub fn issue_preconsumer_original_model_unit_artifact(
   }
   result
 }
+
+///|
+/// Borrow the original semantic body and FIRST input scan without rebuilding
+/// either. The outcome relation body is supplied by its caller's retained scan.
+pub fn preconsumer_model_unit_dependency_bodies(
+  value : PreconsumerModelUnitEvidence,
+) -> Array[(String, String, String)]? {
+  guard preconsumer_model_unit_acquired_evidence(value) is Some(_) &&
+    original_model_input_bodies(value.held) is Some(inputs) &&
+    value.held.owner.identity is Some(scan) &&
+    @relation.completed_relation_identity_scan_body_receipt(scan)
+    is Some(receipt) else {
+    return None
+  }
+  let logical = @relation.logical_relation_cid(
+    @relation.completed_relation_export_identity(receipt),
+  )
+  let schema = @relation.relation_schema_cid(
+    @relation.completed_relation_export_schema_identity(receipt),
+  )
+  let bodies = [
+    (
+      "local_model_observation",
+      @publication.captured_effect_dependency_body_cid(value.body),
+      @publication.captured_effect_dependency_body_json(value.body),
+    ),
+  ]
+  for (kind, wire) in inputs {
+    bodies.push(
+      (kind, if kind == "relation_value" { logical } else { schema }, wire),
+    )
+  }
+  Some(bodies)
+}
+
+///|
+/// Attach the already retained local observation to the real final issuer.
+/// The binding must own the SAME original Model; no receipt/body/issuer is
+/// reissued and no preconsumer token can stand in for the whole Run proof.
+pub fn bind_preconsumer_model_unit_observation(
+  binding : InvocationBinding,
+  value : PreconsumerModelUnitEvidence,
+) -> LocalModelObservation? {
+  guard preconsumer_model_unit_acquired_evidence(value) is Some(_) &&
+    binding.issuance is Some(issued) &&
+    physical_equal(binding.output_use.owner, value.held.owner) &&
+    physical_equal(issued.state.compiled, value.compiled) &&
+    physical_equal(issued.state.definition, value.definition) &&
+    original_local_model_observation_current(value.held, issued) else {
+    return None
+  }
+  Some({ held: value.held, issued, body: value.body, })
+}

@@ -752,3 +752,81 @@ pub fn bind_client_effect_unit_artifact_run_context(
     }
   }
 }
+
+///|
+/// Borrow the actual original local Definition. Table inputs keep their own
+/// separate namespace and cannot enter a named Result entrance.
+pub fn client_effect_unit_artifact_original_definition(
+  value : ClientEffectLocalResultArtifact,
+) -> ClientEffectLocalResultDefinition? {
+  match value.source {
+    ResultSource(_, definition) => Some(definition)
+    _ => None
+  }
+}
+
+///|
+/// A later physical Store export must still be this SAME captured Unit and
+/// named Result. Check its actual completed export plus physical content and
+/// logical/schema identity against the retained original; never replace the
+/// original semantic Artifact/receipt with an equal caller-created object.
+pub fn check_client_effect_unit_artifact_export(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  artifact : ClientEffectLocalResultArtifact,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Result[Unit, ClientEffectLocalResultArtifactIssue] {
+  guard artifact.custody is AcquiredUnit(_) &&
+    artifact.run_invocation is Some(_) &&
+    client_effect_local_artifact_matches_inputs(artifact, inputs) &&
+    @strategy.captured_effect_inputs_match_computation(inputs, owner.graph) &&
+    physical_equal(artifact.invocation.owner, owner) &&
+    client_effect_computed_result_matches_invocation(
+      owner,
+      artifact.invocation,
+      exported,
+    ) &&
+    @strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, exported, receipt,
+    ) &&
+    artifact.source is ResultSource(_, definition) else {
+    return Err(ForeignExport)
+  }
+  let result = @strategy.captured_effect_local_result_export_result(exported)
+  let name = @execution.managed_result_occurrence_name(
+    @strategy.captured_any_result_borrow_occurrence(
+      @strategy.captured_effect_local_result_borrow(result),
+    ),
+  )
+  guard client_effect_local_result_definition_matches(
+    definition,
+    owner,
+    @strategy.captured_effect_local_result_stage(result),
+    name,
+  ) else {
+    return Err(ForeignDefinition)
+  }
+  let (cid, bytes, _, _) = @execution.output_stream_identity(
+    @execution.completed_relation_export_content(receipt),
+  )
+  guard cid == artifact.physical_cid &&
+    bytes == artifact.physical_bytes &&
+    @execution.logical_relation_cid(
+      @execution.completed_relation_export_identity(receipt),
+    ) ==
+    @execution.logical_relation_cid(
+      @execution.completed_relation_export_identity(artifact.export_receipt),
+    ) &&
+    @execution.relation_schema_cid(
+      @execution.completed_relation_export_schema_identity(receipt),
+    ) ==
+    @execution.relation_schema_cid(
+      @execution.completed_relation_export_schema_identity(
+        artifact.export_receipt,
+      ),
+    ) else {
+    return Err(ForeignExport)
+  }
+  Ok(())
+}

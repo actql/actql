@@ -460,8 +460,14 @@ pub fn client_program_prepare_installed_effect_model_unit_evidence(
 #export_name("clientProgramPreconsumerModelUnitAcquiredEvidence")
 pub fn client_program_preconsumer_model_unit_acquired_evidence(
   original : @infer_host.PreconsumerModelUnitEvidence,
-) -> @publication_host.ClientEffectModelAcquiredEvidence? {
-  @infer_host.preconsumer_model_unit_acquired_evidence(original)
+) -> Result[
+  @publication_host.ClientEffectModelAcquiredEvidence,
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  match @infer_host.preconsumer_model_unit_acquired_evidence(original) {
+    Some(value) => Ok(value)
+    None => Err(ForeignOwner)
+  }
 }
 
 ///|
@@ -528,4 +534,33 @@ pub fn client_program_prepare_installed_effect_model_unit_artifact(
     original, owner, inputs, exported, definition, receipt, admission, max_bytes,
     max_nodes, max_depth,
   ).map_err(issue => Artifact(issue))
+}
+
+///|
+#export_name("clientProgramPreconsumerModelUnitDependencyBodies")
+pub fn client_program_preconsumer_model_unit_dependency_bodies(
+  value : @infer_host.PreconsumerModelUnitEvidence,
+) -> Result[
+  Array[(String, String, String)],
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  match @infer_host.preconsumer_model_unit_dependency_bodies(value) {
+    Some(bodies) => Ok(bodies)
+    None => Err(ForeignOwner)
+  }
+}
+
+///|
+#export_name("clientProgramBindPreconsumerModelUnitObservation")
+pub fn client_program_bind_preconsumer_model_unit_observation(
+  binding : @infer_host.InvocationBinding,
+  original : @infer_host.PreconsumerModelUnitEvidence,
+) -> Result[
+  @infer_host.LocalModelObservation,
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  match @infer_host.bind_preconsumer_model_unit_observation(binding, original) {
+    Some(value) => Ok(value)
+    None => Err(ForeignOwner)
+  }
 }

@@ -235,6 +235,9 @@ pub fn issue_single_model_client_effect_acquired_evidence(
     Ok(value) => value
     Err(issue) => return Err(Relation(issue))
   }
+  if !client_infer_result_input_inventory_current(call_scope) {
+    return Err(Invocation(ForeignResultImport))
+  }
   Ok({
     compiled,
     call_scope,
@@ -261,7 +264,8 @@ pub fn client_effect_model_acquired_matches(
 ) -> Bool {
   physical_equal(value.compiled, compiled) &&
   physical_equal(value.call_scope, scope) &&
-  physical_equal(value.model, model)
+  physical_equal(value.model, model) &&
+  client_infer_result_input_inventory_current(scope)
 }
 
 ///|

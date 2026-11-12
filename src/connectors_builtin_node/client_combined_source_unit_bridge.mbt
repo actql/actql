@@ -448,3 +448,61 @@ pub fn client_program_effect_model_unit_result_name(
     )
   })
 }
+
+///|
+#export_name("clientProgramBindOriginalEffectUnitArtifactRunContext")
+pub fn client_program_bind_original_effect_unit_artifact_run_context(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+) -> Result[Unit, @publication_host.ClientEffectLocalResultArtifactIssue] {
+  @publication_host.bind_client_effect_unit_artifact_run_context(
+    owner, inputs, artifact, admission, definition, invocation, observation,
+  )
+}
+
+///|
+#export_name("clientProgramOriginalEffectUnitArtifactDefinition")
+pub fn client_program_original_effect_unit_artifact_definition(
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+) -> Result[
+  @publication_host.ClientEffectLocalResultDefinition,
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  match
+    @publication_host.client_effect_unit_artifact_original_definition(artifact) {
+    Some(value) => Ok(value)
+    None => Err(ForeignDefinition)
+  }
+}
+
+///|
+#export_name("clientProgramCheckOriginalEffectUnitArtifactExport")
+pub fn client_program_check_original_effect_unit_artifact_export(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Result[Unit, @publication_host.ClientEffectLocalResultArtifactIssue] {
+  @publication_host.check_client_effect_unit_artifact_export(
+    owner, inputs, artifact, exported, receipt,
+  )
+}
+
+///|
+#export_name("clientProgramOriginalEffectUnitManifestMatches")
+pub fn client_program_original_effect_unit_manifest_matches(
+  manifest : @publication_host.ClientEffectLocalManifest,
+  owner : @publication_host.PreparedClientEffectComputation,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+) -> Bool {
+  @publication_host.client_effect_local_manifest_matches(
+    manifest, owner, invocation, artifacts,
+  )
+}

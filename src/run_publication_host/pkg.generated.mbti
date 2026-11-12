@@ -323,6 +323,8 @@ pub fn charge_client_keyed_lookup_verification(ClientKeyedLookupInput, ClientKey
 
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
 
+pub fn check_client_effect_unit_artifact_export(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, ClientEffectLocalResultArtifact, @physical_strategy_host.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Result[Unit, ClientEffectLocalResultArtifactIssue]
+
 pub fn check_client_effectful_static_plan_view_binding(PreparedClientEffectComputation, ClientEffectCompilation, String, Int, Int, Int) -> Result[Unit, ClientEffectfulStaticPlanIssue]
 
 pub fn check_client_infer_dispatch_current(ClientInferDispatchAdmission) -> Result[Unit, ClientInferDispatchIssue]
@@ -744,6 +746,8 @@ pub fn client_effect_target_selection_members_current(ClientEffectUpdateTargetSe
 pub fn client_effect_target_selection_original(PreparedClientEffectComputation) -> Array[ClientEffectUpdateTargetSelections]
 
 pub fn client_effect_target_selection_wire(ClientEffectUpdateTargetSelections) -> String
+
+pub fn client_effect_unit_artifact_original_definition(ClientEffectLocalResultArtifact) -> ClientEffectLocalResultDefinition?
 
 pub fn client_effectful_static_plan_view(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, max_members? : Int, max_work? : Int) -> Result[String, ClientEffectfulStaticPlanIssue]
 

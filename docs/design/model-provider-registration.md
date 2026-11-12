@@ -1018,3 +1018,36 @@ full original/current checks and can consume completed outcomes without new
 answer input or invocation. Task/Scope metadata admission alone grants neither
 that live dispatch nor an Account decision. Existing policy ceilings, parser
 bounds, physical IO purposes and Model stepping remain unchanged.
+
+
+### Original Result inputs and earlier Model Unit publication
+
+A receiving Model retains each upstream Result through its original completed
+prefix and Kernel input binding. A Source contribution, matching row values or
+a logical CID alone cannot replace that Result Artifact and complete local
+Manifest. Multiple Source ancestors may contribute to one Result import port;
+Source count and import-port count are distinct checked inventories.
+
+The CallScope privately retains the original Result-input pointer inventory.
+Its public Array view is checked against that inventory, and complete Model
+publication matches every checked import interface exactly once. Reentrant
+resource callbacks cannot replace, duplicate or remove an input after the Scope
+has been sealed. Authentication of a restored Scope stays with its existing
+Saved owner.
+
+A completed earlier Model may supply its local Unit before later Models finish.
+Its original OutputUse, unfiltered outcome scan and semantic observation remain
+in the existing group custody. Actual emitter geometry is funded on the same
+Request preparation parent before variable metadata construction. This local
+association is not a completed whole-Run observation or a new cleanup owner.
+After the real joint issuer completes, the same observation is bound to that
+issuer rather than scanned or issued again. The final physical Store export
+must match the same captured Unit, Result, logical/schema identities and payload;
+the original semantic Artifact, Definition, Manifest and receipt remain intact.
+
+Pending preparation, persistence and retirement share their original group
+phase. Cancellation fences publication, preserves the first failure including
+thrown undefined, and returns only the group's original exports, scans and
+pins. Resource release and physical cleanup acknowledgements stay with their
+existing owners; closed metadata controls do not imply a physical stop or refund
+consumed Model work.

@@ -903,6 +903,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   const publicationBindings = [];
   let captures, evidence, captureStartedAt, captureCompletedAt, keyedFamily, restoredHost, restoredKeyed, sourceUnitsOriginal;
   let sourceUnitsAttempted = false, sourceUnitsFailed = false, sourceUnitsFailure;
+  let earlyIdentityRetained = 0n, earlyIdentityExecution = 0n;
   const runId = acquired.control.runDefinitionRunId(plan.runDefinition);
   const same = () => {
     current();
@@ -935,7 +936,8 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     return true;
   };
   const unitPinsPending = () => sourceUnitsOriginal !== undefined && [...sourceUnitsOriginal.byUnit.values()]
-    .some(entry => entry.resultPreparing || entry.results?.pins !== undefined);
+    .some(entry => entry.resultPreparing || entry.results?.pins !== undefined ||
+      entry.results?.modelScan !== undefined || entry.results?.modelOriginal !== undefined);
   const pending = () => unitPinsPending() || children.some(child => child.capture !== undefined && !child.captureReleased ||
     child.continuation !== undefined && !child.continuationReleased || child.output !== undefined);
   const publicationCurrent = () => {
@@ -970,7 +972,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         let pending = false;
         for (const child of children) if (child.operation !== undefined && !child.operation.physicalStopped()) await child.operation.stop();
         for (const child of children) if (child.capture !== undefined && !await child.capture.custody.retirePublication()) pending = true;
-        if (pending || !publicationOwner.releaseOriginalPublicationCapacity()) return false;
+        if (pending || !releaseUnitOutputs() || !publicationOwner.releaseOriginalPublicationCapacity()) return false;
         publicationOwner = undefined;
       }
       return true;
@@ -1088,6 +1090,10 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       }
       for (const entry of sourceUnitsOriginal?.byUnit.values() ?? []) {
         if (entry.results !== undefined && !acquired.control.retireOriginalEffectUnitResults(entry.results)) return false;
+        // Completed Unit consumers have stopped. Drop this group's borrowed
+        // Model metadata/scan aliases before returning its publication borrow.
+        // Final Store/Run children retain and retire their own original data.
+        if (entry.modelProducer !== undefined) entry.value = undefined;
       }
       // Only our aliases/pins returned. Enclosing physical.cleanup and the
       // original Run retirement still decide their separate ACK/Unknown facts.
@@ -1177,8 +1183,16 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
             const bound = [];
             for (const [index, imported] of imports.entries()) {
               const unit = runtimeField(imported, 0), name = runtimeField(imported, 1);
-              const entry = sourceUnitsOriginal?.byUnit.get(unit);
-              if (entry === undefined) throw new Error('OriginalEffectProducerUnitUnavailable');
+              let entry = sourceUnitsOriginal.byUnit.get(unit);
+              if (entry === undefined) {
+                const producer = children.find(member =>
+                  runtimeField(moon.clientProgramInferOccurrenceCoordinates(member.selection.occurrence), 1) === unit);
+                if (producer?.completed !== true || producer.operation === undefined) {
+                  throw new Error('OriginalEffectProducerUnitUnavailable');
+                }
+                entry = {preparing: false, value: undefined, modelProducer: producer};
+                sourceUnitsOriginal.byUnit.set(unit, entry);
+              }
               if (entry.resultFailed) throw entry.resultFailure;
               if (entry.resultPreparing) throw new Error('EffectProducerUnitPreparationPending');
               if (!entry.resultAttempted) {
@@ -1187,9 +1201,26 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
                 try {
                   const host = originalHost?.();
                   if (host === undefined) throw new Error('OriginalEffectProducerHostUnavailable');
+                  if (entry.modelProducer !== undefined) {
+                    const producer = entry.modelProducer;
+                    producer.output ??= producer.operation.acquireOutput();
+                    if (producer.output === undefined || publicationOwner === undefined) {
+                      throw new Error('OriginalCompletedModelOutputUnavailable');
+                    }
+                    const catalogs = [...sourceUnitsOriginal.byUnit.values()]
+                      .flatMap(original => original.value?.catalogBodies ?? []);
+                    entry.modelOperation = producer.operation;
+                    entry.value = acquired.control.prepareOriginalEffectModelUnitEvidence(managedRun,
+                      sourcePlan, acquired.requestIdentity, producer.output, plan.compiled, plan.runDefinition,
+                      producer.selection.graph, unit, sourceUnitsOriginal.retention, catalogs,
+                      publicationOwner, localContractLimits, entry.results, publicationCurrent,
+                      earlyIdentityRetained, earlyIdentityExecution);
+                    earlyIdentityRetained += entry.results.identityRetainedBytes;
+                    earlyIdentityExecution += entry.results.identityExecutionBytes;
+                  }
                   acquired.control.prepareOriginalEffectSourceUnitResults(managedRun, sourcePlan, acquired.requestIdentity,
                     moon.clientProgramLocalEffectHostRun(host), entry.value, acquired.admission, acquired.definition,
-                    localContractLimits, entry.results, publicationCurrent);
+                    localContractLimits, entry.results, publicationCurrent, acquired.prepared);
                 } catch (cause) {
                   entry.resultFailed = true; entry.resultFailure = cause; throw cause;
                 } finally {entry.resultPreparing = false;}

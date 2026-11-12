@@ -93,6 +93,7 @@ fn model_local_invocation_for(
     source: None,
     sources: [],
     result_inputs: [],
+    original_result_inputs: [],
     saved_result_scope: None,
     named_sources: [],
     generation: None,
