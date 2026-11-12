@@ -984,18 +984,24 @@ test('independent normal consumers continue after collection and variant failure
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
   assert.equal(report.complete, false);
   assert.deepEqual(report.cases.map(value => value.status), ['failed', 'passed', 'passed']);
-  assert.deepEqual(report.compositions.map(value => value.status), ['passed']);
+  assert.deepEqual(report.compositions.map(value => value.status), ['passed', 'passed', 'passed']);
   const saved = report.collection.find(value => value.phase === 'saved');
   assert.equal(saved.status, 'unexecuted');
   assert.match(saved.unexecutedReason, /completed original 100000 Result/u);
   assert.equal(report.failures.length, 2); assert.equal(report.cleanup.length, 1);
 });
 
-test('required mixed Model Whole is distinct from README three and cannot pass failed or unexecuted', async t => {
+test('each required Model composition is distinct from README three and cannot pass failed or unexecuted', async t => {
   assert.equal(packedReadmeCases.length, 3);
-  assert.deepEqual(packedCompositionCases, [{template: 'deal-review-mock', variant: 'two-models-whole'}]);
-  assert(!packedReadmeCases.some(value => value.variant === 'two-models-whole'));
-  for (const mode of ['passed', 'failed', 'unexecuted']) {
+  assert.deepEqual(packedCompositionCases, [
+    {template: 'deal-review-mock', variant: 'two-models-whole'},
+    {template: 'deal-review-mock', variant: 'two-models-joined-inputs'},
+    {template: 'deal-review-mock', variant: 'two-models-joined-whole'},
+  ]);
+  assert(packedCompositionCases.every(selected => !packedReadmeCases.some(value => value.variant === selected.variant)));
+  const scenarios = [{mode: 'passed'}, ...packedCompositionCases.flatMap(({variant}) =>
+    ['failed', 'unexecuted'].map(mode => ({mode, selected: variant})))];
+  for (const {mode, selected} of scenarios) {
     const {root, consumer} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions(), calls = [];
     const failure = new Error('OriginalMixedCompositionFailed'), prepared = {consumer, manifest: {}, manifestPath: '/exact-original'};
     const verifyNodeBenchmarkPackages = async (manifest, manifestPath, actual) => {
@@ -1005,7 +1011,7 @@ test('required mixed Model Whole is distinct from README three and cannot pass f
     const runCases = load('runReadmeCases', {verifyNodeBenchmarkPackages, assert, writeFile, join,
       nodeBenchmarkFailure, async mockWorkflowMetrics({template, variant, onMetric, prepared: actual}) {
         assert.strictEqual(actual, prepared); calls.push({template, variant});
-        const failed = mode === 'failed' && variant === 'two-models-whole';
+        const failed = mode === 'failed' && variant === selected;
         await onMetric({samples: [{completed: !failed, verified: !failed}]});
         if (failed) throw failure;
       }});
@@ -1020,15 +1026,19 @@ test('required mixed Model Whole is distinct from README three and cannot pass f
       execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => prepared,
       runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true; row.status = 'passed';}),
       runReadmeCases: async options => {
-        if (mode === 'unexecuted' && options.cases === options.report.compositions) return;
-        await runCases(options);
+        await runCases({...options, cases: (options.cases ?? options.report.cases).filter(value =>
+          mode !== 'unexecuted' || value.variant !== selected)});
       }, verifyNodeBenchmarkPackages});
     if (mode === 'passed') assert.equal((await run(output)).complete, true);
     else await assert.rejects(run(output), error => mode === 'failed' ? error === failure : error.code === 'ERR_ASSERTION');
-    assert.deepEqual(calls, mode === 'unexecuted' ? packedReadmeCases : [...packedReadmeCases, ...packedCompositionCases]);
+    assert.deepEqual(calls, [...packedReadmeCases, ...packedCompositionCases].filter(value =>
+      mode !== 'unexecuted' || value.variant !== selected));
     const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
     assert.equal(report.complete, mode === 'passed');
-    assert.equal(report.compositions[0].status, mode);
+    for (const composition of report.compositions) {
+      assert.equal(composition.status, composition.variant === selected ? mode : 'passed');
+      assert.equal(composition.completed, composition.status === 'passed');
+    }
     assert(report.cases.every(value => value.completed));
   }
 });
@@ -1971,3 +1981,126 @@ test('required accepted Compute parent rejects generic Unknown incomplete recove
     else {await assert.rejects(promise); assert.equal(record.completed, false);}
   }
 });
+
+test('joined Whole composition has one genuine six-field Result and preserves both Source inputs for Model binding', async () => {
+  const files = twoModelJoinedWholeDealReviewFiles();
+  const program = JSON.parse(files['deal-review.program.json']);
+  const [source, model] = program.stages;
+  assert.deepEqual(Object.keys(source.inputs), ['opportunities', 'files']);
+  assert.equal(source.steps.length, 1);
+  assert.equal(source.steps[0].join.with, 'files');
+  assert.deepEqual(Object.keys(source.results), ['rows']);
+  assert.deepEqual(source.results.rows.fields, ['id', 'name', 'StageName', 'NextStep', 'resource', 'version']);
+  assert.deepEqual(model.inputs.joined, {result: {stage: source.id, result: 'rows'}});
+  assert.equal(model.from, 'joined');
+  assert.equal(model.steps[0].join.with, 'contents');
+  assert.equal(model.steps[0].join.select.StageName, 'left.StageName');
+  assert.equal(model.steps[0].join.select.notes, 'right.content');
+  const infer = model.steps.find(step => step.infer).infer;
+  assert.deepEqual(infer.input.StageName, {field: 'StageName'});
+  assert.deepEqual(infer.input.notes, {field: 'notes'});
+  assert.deepEqual(program.results.answer, {from: {stage: source.id, result: 'rows'}});
+  assert.deepEqual(Object.keys(program.results), ['answer', 'main', 'updates']);
+  const workflow = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
+  const node = parseJavaScript(workflow, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(value => value.id?.name === 'checkJoinedSourceRows');
+  const check = Function('assert', 'createHash', `return (${workflow.slice(node.start, node.end)});`)(assert, createHash);
+  const resource = identity => ({$actql_ref: 'resource', version: 'actql-resource-ref/0.1',
+    provider_namespace: 'drive', resource_kind: 'file', provider_identity_cid: 'sha256:' + 'a'.repeat(64),
+    authority_scope_cid: 'sha256:' + 'b'.repeat(64), boundary_cid: 'sha256:' + 'a'.repeat(64),
+    identity_cid: 'sha256:' + createHash('sha256').update(JSON.stringify({collection: 'files', identity,
+      scope: 'sha256:' + 'a'.repeat(64)})).digest('hex')});
+  const rows = [
+    {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null,
+      resource: resource('file-acme-notes'), version: 'mock-revision-acme-1'},
+    {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review',
+      resource: resource('file-globex-notes'), version: 'mock-revision-globex-1'},
+  ];
+  check(rows);
+  for (const change of [row => ({...row, version: 'wrong'}), row => ({...row, StageName: 'wrong'}),
+    row => ({...row, resource: rows[1].resource}), row => ({...row, resource: 'synthetic'})]) {
+    assert.throws(() => check([change(rows[0]), rows[1]]));
+  }
+  assert.throws(() => check(rows.slice(0, 1)));
+  assert.throws(() => check([rows[0], rows[0]]));
+  assert.throws(() => check([{...rows[0], extra: 'undeclared'}, rows[1]]));
+  const reader = parseJavaScript(workflow, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(value => value.id?.name === 'readJoinedWholeResults');
+  const read = Function('assert', 'checkJoinedSourceRows', `return (${workflow.slice(reader.start, reader.end)});`)(assert, check);
+  const updates = rows.map(({id, StageName, NextStep}) => ({id, StageName, NextStep,
+    review: {outcome: 'ok', value: {}}, confirmation: {outcome: 'ok', value: {confirmed: true}}}));
+  const reviewed = updates.map(({confirmation, ...row}) => row);
+  const roots = {answer: rows, main: reviewed}, calls = [];
+  const execution = {result(name) {calls.push(name); return {all: async () => roots[name]};}};
+  assert.deepEqual(await read(execution, updates), roots);
+  assert.deepEqual(calls, ['answer', 'main']);
+  roots.answer = [{...rows[0], version: 'wrong'}, rows[1]];
+  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+  roots.answer = rows; roots.main = reviewed.slice(0, 1);
+  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+});
+
+for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
+  test(`existing normal collector routes ${variant} through capture approval and cold original`, async t => {
+    const {root, consumer} = await scratch(t), phases = [];
+    const files = variant === 'two-models-joined-inputs' ? twoModelJoinedInputsDealReviewFiles()
+      : twoModelJoinedWholeDealReviewFiles();
+    const metric = await mockWorkflowMetrics({prepared: {consumer}, root, repository,
+      counts: {coldSamples: 1}, template: 'deal-review-mock', variant, onMetric() {},
+      async command(executable, args, options) {
+        const phase = args[1]; phases.push(phase);
+        assert.equal(executable, process.execPath);
+        assert.equal(args.at(-1), variant);
+        assert.equal(options.timeout, 30_000, 'Keep the original whole-child bound');
+        const input = join(options.cwd, 'deal-review.program.json');
+        const answers = Object.values(JSON.parse(files['actql.config.json']).mock.answers)
+          .map(path => path.replace(/^\.\//u, ''));
+        if (phase === 'capture') {
+          for (const [path, bytes] of Object.entries(files)) assert.equal(await readFile(join(options.cwd, path), 'utf8'), bytes);
+        } else {
+          for (const path of ['deal-review.program.json', ...answers]) {
+            await assert.rejects(readFile(join(options.cwd, path)), {code: 'ENOENT'});
+          }
+        }
+        return {pid: 21000 + phases.length, code: 0, signal: null, wallNs: 100,
+          stdout: [...Array.from({length: {capture: 10, approve: 11, recover: 7}[phase]},
+            (_, index) => explicitStep(phase, `explicit-${index}`)),
+            {phase, status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
+              workObservation: explicitWork(phase, variant)}].map(value => JSON.stringify(value)).join('\n')};
+      }});
+    assert.deepEqual(phases, ['capture', 'approve', 'recover']);
+    assert.equal(metric.variant, variant);
+    assert.equal(metric.samples[0].verified, true);
+    for (const record of metric.samples[0].phases) {
+      assert.equal(record.completed, true);
+      assert.equal(record.summary.firstClose.returned, true);
+      assert.deepEqual(record.summary.workObservation, explicitWork(record.phase, variant));
+    }
+  });
+
+  test(`${variant} refuses reexecuted Source or Model and an unreturned first close`, async t => {
+    for (const phase of ['approve', 'recover']) for (const failure of ['source', 'model', 'close']) {
+      const {root, consumer} = await scratch(t), phases = [];
+      await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+        counts: {coldSamples: 1}, template: 'deal-review-mock', variant, onMetric() {},
+        async command(_executable, args) {
+          const current = args[1]; phases.push(current);
+          const work = explicitWork(current, variant);
+          if (current === phase && failure !== 'close') {
+            work[failure === 'source' ? 'sourceAcquisitionStarts' : 'modelCallStarts'] = 1;
+          }
+          return {pid: 22000 + phases.length, code: 0, signal: null, wallNs: 100,
+            stdout: [...Array.from({length: {capture: 10, approve: 11, recover: 7}[current]},
+              (_, index) => explicitStep(current, `explicit-${index}`)),
+              {phase: current, status: 'passed', firstFailedStep: null, workObservation: work,
+                firstClose: {attempted: true, returned: current !== phase || failure !== 'close'}}]
+              .map(value => JSON.stringify(value)).join('\n')};
+        }}), {code: 'ERR_ASSERTION'});
+      assert.deepEqual(phases, phase === 'approve' ? ['capture', 'approve'] : ['capture', 'approve', 'recover']);
+      const record = JSON.parse(await readFile(join(root,
+        `mock-project-deal-review-mock-${variant}-0/${phase}.observation.json`), 'utf8'));
+      assert.equal(record.completed, false);
+      assert.equal(record.exitCode, 0, 'A zero child exit does not override the actual failed oracle');
+    }
+  });
+}

@@ -15,10 +15,12 @@ export const packedReadmeCases = Object.freeze([
   Object.freeze({template: 'deal-review-mock', variant: 'readme'}),
   Object.freeze({template: 'deal-review-mock', variant: 'two-models'}),
 ]);
-// The genuine mixed-Model/Whole fixture is a separate required regression,
-// rather than a fourth README label or a manual-only performance selection.
+// Genuine completed Unit/Model compositions are separate required regressions,
+// not extra README labels or manual-only performance selections.
 export const packedCompositionCases = Object.freeze([
   Object.freeze({template: 'deal-review-mock', variant: 'two-models-whole'}),
+  Object.freeze({template: 'deal-review-mock', variant: 'two-models-joined-inputs'}),
+  Object.freeze({template: 'deal-review-mock', variant: 'two-models-joined-whole'}),
 ]);
 
 // The existing phase and its complete oracles, independently invocable for the
