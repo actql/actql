@@ -256,3 +256,72 @@ test "publication origin projection retains checked inheritance without another 
     client_infer_composed_source_origin_matches(sources.occurrence, second),
   )
 }
+
+///|
+test "inherited keyed observation rejects a foreign or released original response holding" {
+  let (compiled, definition, plan) = client_model_read_test_run(
+    "retained-keyed",
+  )
+  let limits : @resources.LedgerLimits = {
+    planning_work: 3,
+    attempts: 2,
+    holdings: 3,
+    transfer_bytes: 11L,
+    retained_bytes: 10L,
+    execution_bytes: 7L,
+  }
+  let ledger = @resources.create_ledger(limits).unwrap()
+  let foreign = @resources.create_ledger(limits).unwrap()
+  let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+  let scope = begin_client_model_read_scope(
+    compiled, definition, plan, ledger, bootstrap, 2, 1, 0,
+  ).unwrap()
+  let reservation = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  let holding = @resources.retain_allocation(ledger, reservation, 0L).unwrap()
+  let other_reservation = @resources.reserve_attempt(foreign, 0L, 0L, 0L).unwrap()
+  let other_holding = @resources.retain_allocation(
+    foreign, other_reservation, 0L,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    client_composed_keyed_retained_scope_current(
+      scope, compiled, definition, plan, ledger, holding,
+    ),
+  )
+  assert_false(
+    client_composed_keyed_retained_scope_current(
+      scope, compiled, definition, plan, ledger, other_holding,
+    ),
+  )
+  assert_false(
+    client_composed_keyed_retained_scope_current(
+      scope, compiled, definition, plan, foreign, other_holding,
+    ),
+  )
+  let (other, other_definition, other_plan) = client_model_read_test_run(
+    "foreign-retained-keyed",
+  )
+  assert_false(
+    client_composed_keyed_retained_scope_current(
+      scope, other, other_definition, other_plan, ledger, holding,
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  @resources.release_allocation(ledger, holding).unwrap()
+  assert_false(
+    client_composed_keyed_retained_scope_current(
+      scope, compiled, definition, plan, ledger, holding,
+    ),
+  )
+  @resources.settle_reservation(ledger, reservation).unwrap()
+  @resources.release_allocation(foreign, other_holding).unwrap()
+  @resources.settle_reservation(foreign, other_reservation).unwrap()
+  assert_true(
+    finish_client_model_read_scope(scope, compiled, definition, plan, true).unwrap(),
+  )
+  assert_false(
+    client_composed_keyed_retained_scope_current(
+      scope, compiled, definition, plan, ledger, holding,
+    ),
+  )
+}

@@ -550,28 +550,43 @@ pub fn client_infer_composed_sources_matches(
         _ => return false
       }
     Some((_, keyed, _)) => {
-      let acquisition = keyed.lookup.left.acquisition
-      let composed = client_composed_keyed_lookup_sources_match(
-        keyed.lookup,
-        original,
-        value.inputs.map(input => input.source),
-      )
-      if (
-          !composed &&
-          (
-            value.inputs.length() != 1 ||
-            !client_keyed_acquisition_matches_program(
-              acquisition,
-              occurrence.owner,
-            ) ||
-            !client_keyed_left_single_source_matches(
-              keyed.lookup.left,
-              value.inputs[0].source,
+      let inherited_host = client_infer_occurrence_coordinates(original) !=
+        client_infer_occurrence_coordinates(occurrence) &&
+        keyed.lookup.left.composed
+        .map(value => value.host is Some(_))
+        .unwrap_or(false)
+      if inherited_host {
+        if !client_composed_keyed_retained_observation_sources_match(
+            keyed,
+            original,
+            value.inputs.map(input => input.source),
+          ) {
+          return false
+        }
+      } else {
+        let acquisition = keyed.lookup.left.acquisition
+        let composed = client_composed_keyed_lookup_sources_match(
+          keyed.lookup,
+          original,
+          value.inputs.map(input => input.source),
+        )
+        if (
+            !composed &&
+            (
+              value.inputs.length() != 1 ||
+              !client_keyed_acquisition_matches_program(
+                acquisition,
+                occurrence.owner,
+              ) ||
+              !client_keyed_left_single_source_matches(
+                keyed.lookup.left,
+                value.inputs[0].source,
+              )
             )
-          )
-        ) ||
-        client_keyed_lookup_observation_wires(keyed) is None {
-        return false
+          ) ||
+          client_keyed_lookup_observation_wires(keyed) is None {
+          return false
+        }
       }
     }
   }

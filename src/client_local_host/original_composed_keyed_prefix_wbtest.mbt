@@ -314,7 +314,9 @@ fn original_composed_keyed_consumer(
       fail("first Content JOIN")
     }
     first["from"] = Json::string("a")
-    program["stages"] = Json::array([producer, stages[2]])
+    program["stages"] = Json::array(
+      [producer, stages[2]] + stages[3:].to_owned(),
+    )
     document = Json::object(program).stringify()
   }
   if mixed_plan_only {
@@ -657,16 +659,43 @@ fn original_composed_keyed_consumer(
     )
     .unwrap()
     .unwrap()
+  let installed_model = if shared_source_producers && graphs.length() > 1 {
+    prepare_installed_effect_models_demand(
+      graphs.map(graph => {
+        if physical_equal(graph, model.graph) {
+          model
+        } else {
+          prepare_installed_effect_model_demand(
+            prepared,
+            model.compiled,
+            model._compilation,
+            model.definition,
+            graph.occurrence,
+            graph,
+            model.model_limits,
+            model.read_retained_bytes,
+            model.read_execution_bytes,
+            model.max_reservations,
+            model.max_holdings,
+            model.max_delegations,
+          ).unwrap()
+        }
+      }),
+    ).unwrap()
+  } else {
+    model
+  }
   let shared_plan = if shared_source_producers {
     Some(
       original_composed_keyed_installed_plan(
         prepared,
         request,
         contracts,
-        model,
+        installed_model,
         declaration,
         whole_roots=true,
-        effect_stage=if joined_input_direct { 1 } else { 2 },
+        effect_stage=(if joined_input_direct { 1 } else { 2 }) +
+          (if following { 1 } else { 0 }),
       ),
     )
   } else {
@@ -1545,6 +1574,22 @@ fn original_composed_keyed_consumer(
         fail("mixed fixture Source observation: " + @debug.to_string(issue))
       Err(_) => fail("mixed fixture Source closure: other")
     }
+    if following {
+      assert_eq(graphs.length(), 2)
+      let second = graphs[1].occurrence
+      assert_true(
+        @publication_host.client_infer_composed_sources_matches(
+          source_closure, second,
+        ),
+      )
+      // This selection carries provenance, never the spent keyed read.
+      assert_true(
+        @publication_host.client_infer_composed_keyed_lookup(
+          source_closure, second,
+        )
+        is None,
+      )
+    }
     let model_wire = {
       ..wire,
       max_columns: @schema.field_count(
@@ -1657,6 +1702,14 @@ fn original_composed_keyed_consumer(
       @publication_host.cleanup_client_keyed_lookup_input(lookup, 10000)
       is Ok(true),
     )
+    if following {
+      assert_false(
+        @publication_host.client_infer_composed_sources_matches(
+          source_closure,
+          graphs[1].occurrence,
+        ),
+      )
+    }
     @local.cancel_managed_provider(child) |> ignore
     assert_true(@local.cleanup_managed_provider(child) is Ok(true))
     return
@@ -4659,6 +4712,17 @@ test "joined producer Result is the direct Input left of the first keyed Content
 ///|
 test "first keyed JOIN borrows the same completed two-Source Result without a prefix attempt" {
   original_composed_keyed_consumer(
+    joined_input_direct=true,
+    joined_input_consume=true,
+    whole=true,
+    shared_source_producers=true,
+  )
+}
+
+///|
+test "inherited Whole keyed Source observation retains original custody without granting its read" {
+  original_composed_keyed_consumer(
+    following=true,
     joined_input_direct=true,
     joined_input_consume=true,
     whole=true,

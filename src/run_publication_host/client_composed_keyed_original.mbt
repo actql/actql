@@ -818,6 +818,84 @@ pub fn client_composed_keyed_lookup_sources_match(
 }
 
 ///|
+// The already-admitted observation is provenance for a later Model, never an
+// execution read of the earlier keyed prefix. Its original Scope, response
+// holding and Source custody must still be retained after that task commits.
+fn client_composed_keyed_retained_observation_sources_match(
+  observed : ClientKeyedLookupObservation,
+  occurrence : ClientInferOccurrence,
+  sources : Array[@query.CapturedInputSource],
+) -> Bool {
+  let lookup = observed.lookup
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.left.source is None &&
+    lookup.left.composed is Some(original) &&
+    original.host is Some(host) &&
+    physical_equal(original.keyed, lookup.left.acquisition) &&
+    physical_equal(lookup.ledger, original.scope.ledger) &&
+    client_infer_occurrence_matches_plan(occurrence, original.plan) &&
+    sources.length() == original.sources.length() &&
+    lookup.identity is Some(_) &&
+    lookup.holding is Some(holding) &&
+    !@resources.reservation_open(lookup.reservation) &&
+    client_composed_keyed_retained_scope_current(
+      original.scope,
+      original.compiled,
+      original.definition,
+      original.plan,
+      lookup.ledger,
+      holding,
+    ) else {
+    return false
+  }
+  for index, source in sources {
+    if !physical_equal(source, original.sources[index]) {
+      return false
+    }
+  }
+  if !client_composed_keyed_host_source_inventory_match(
+      host,
+      original.plan,
+      lookup.ledger,
+      sources,
+      original.host_sources,
+    ) {
+    return false
+  }
+  // Source current callbacks may reenter retirement. Retain this SAME holding
+  // and original scope afterwards, without asking a consumed port for a read.
+  !lookup.closed &&
+  lookup.left.lookup_issue is None &&
+  lookup.holding.map(actual => physical_equal(actual, holding)).unwrap_or(false) &&
+  client_composed_keyed_retained_scope_current(
+    original.scope,
+    original.compiled,
+    original.definition,
+    original.plan,
+    lookup.ledger,
+    holding,
+  )
+}
+
+///|
+// Exact existing response holding on its original live Model census. This is
+// only retained provenance: zero bytes do not erase a live holding, and a
+// foreign Ledger or released holding cannot replace this original obligation.
+fn client_composed_keyed_retained_scope_current(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  ledger : @resources.Ledger,
+  holding : @resources.Holding,
+) -> Bool {
+  physical_equal(scope.ledger, ledger) &&
+  @resources.holding_available(ledger, holding) &&
+  client_model_read_scope_live(scope, compiled, definition, plan)
+}
+
+///|
 // Same-package Source closure borrows a Root only through the lookup that
 // consumed that exact provider result. A matching Source observation alone
 // cannot discharge its pending enclosing Stage.
@@ -1407,6 +1485,32 @@ pub fn client_composed_keyed_host_inputs_match(
   originals : Array[@acquisition.SourceAcquisition],
   inputs : Array[(Int, Int, @execution.ProducerRead)],
 ) -> Bool {
+  !inputs.is_empty() &&
+  client_composed_keyed_host_source_inventory_match(
+    host, plan, ledger, sources, originals,
+  ) &&
+  inputs.all(input => {
+    @strategy.captured_effect_keyed_prefix_input_matches(
+      host,
+      plan.task,
+      input.0,
+      input.1,
+      input.2,
+    )
+  })
+}
+
+///|
+// The original Source slots remain custody after a consumer commits and clears
+// its execution-read cache. This observes the same Source owners, not another
+// keyed read or a reconstructed Result.
+fn client_composed_keyed_host_source_inventory_match(
+  host : @strategy.CapturedEffectRunDAG,
+  plan : ClientInferPlanGraph,
+  ledger : @resources.Ledger,
+  sources : Array[@query.CapturedInputSource],
+  originals : Array[@acquisition.SourceAcquisition],
+) -> Bool {
   let run = @strategy.captured_effect_run_dag(host)
   guard @strategy.captured_effect_run_matches_preparation(
       host,
@@ -1414,7 +1518,6 @@ pub fn client_composed_keyed_host_inputs_match(
       plan.owner.graph,
     ) &&
     physical_equal(@strategy.captured_dag_ledger(run), ledger) &&
-    !inputs.is_empty() &&
     select_client_direct_acquisition_occurrences(plan.owner, 1000000)
     is Ok(direct) &&
     client_direct_acquisition_occurrence_count(direct) == sources.length() &&
@@ -1437,15 +1540,7 @@ pub fn client_composed_keyed_host_inputs_match(
       return false
     }
   }
-  inputs.all(input => {
-    @strategy.captured_effect_keyed_prefix_input_matches(
-      host,
-      plan.task,
-      input.0,
-      input.1,
-      input.2,
-    )
-  })
+  true
 }
 
 ///|
