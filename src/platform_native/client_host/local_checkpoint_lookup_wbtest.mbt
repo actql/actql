@@ -459,3 +459,108 @@ test "Native saved State reads original Checkpoint lifecycle without a completed
   assert_eq(saved.control_revision(), state.control_revision())
   cold.close().unwrap()
 }
+
+///|
+// Actual original rows and SQLite calls with explicit fixture authorization.
+// This is not a normal installed Host/Read or a resource-funding qualification.
+test "closed Checkpoint metadata keeps one epoch clock ACK without another metadata transaction" {
+  let (host, reference, request, artifact) = local_checkpoint_lookup_fixture(
+    "checkpoint-metadata-closed-original",
+  )
+  let original = host.journal
+    .transaction(() => host.journal.retained(request))
+    .unwrap()
+    .unwrap()
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(host.database, calls)
+  host.epoch.begin_operation(false)
+  host.journal.operation_active = true
+  host.journal.operation_record = Some(original)
+  for _ in 0..<3 {
+    let value = host
+      .lookup_submitted_checkpoint_metadata_with_operations(
+        epoch_test_crypto(),
+        "operator",
+        "cli",
+        reference,
+        request,
+        1003.0,
+        operations=Some(operations),
+      )
+      .unwrap()
+      .unwrap()
+    assert_eq(value.checkpoint_cid, artifact.checkpoint_cid)
+    assert_eq(value.revision, original.revision)
+    assert_eq(value.cancellation_requested, original.cancellation_requested)
+    assert_eq(value.state, original.checkpoint.unwrap().state)
+  }
+  // Epoch authentication still owns its real initial clock/CAS COMMIT.
+  assert_eq(calls.filter(value => value == "begin").length(), 1)
+  assert_eq(calls.filter(value => value == "commit").length(), 1)
+  host.epoch.end_operation()
+  host.journal.operation_active = false
+  host.journal.invalidate_operation_record()
+  host.close().unwrap()
+}
+
+///|
+test "invalidated Checkpoint metadata retains actual COMMIT failure and original transaction fence" {
+  let (host, reference, request, _) = local_checkpoint_lookup_fixture(
+    "checkpoint-metadata-closed-invalidated",
+  )
+  let original = host.journal
+    .transaction(() => host.journal.retained(request))
+    .unwrap()
+    .unwrap()
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(host.database, calls)
+  host.epoch.begin_operation(false)
+  host.journal.operation_active = true
+  host.journal.operation_record = Some(original)
+  host
+  .lookup_submitted_checkpoint_metadata_with_operations(
+    epoch_test_crypto(),
+    "operator",
+    "cli",
+    reference,
+    request,
+    1003.0,
+    operations=Some(operations),
+  )
+  .unwrap()
+  |> ignore
+  host.journal.invalidate_operation_record()
+  calls.clear()
+  let failed = {
+    ..operations,
+    reads: {
+      ..operations.reads,
+      transaction: operation => {
+        if operation is JournalCommit {
+          // Fail this exact metadata COMMIT, after the epoch clock ACK.
+          client_test_fail_commit(host.database, 1)
+        }
+        (operations.reads.transaction)(operation)
+      },
+    },
+  }
+  assert_true(
+    host.lookup_submitted_checkpoint_metadata_with_operations(
+      epoch_test_crypto(),
+      "operator",
+      "cli",
+      reference,
+      request,
+      1003.0,
+      operations=Some(failed),
+    )
+    is Err(Journal(TransactionUnknown)),
+  )
+  assert_eq(calls.filter(value => value == "begin").length(), 1)
+  assert_true(host.journal.fenced)
+  host.database.rollback().unwrap()
+  host.epoch.end_operation()
+  host.journal.operation_active = false
+  host.journal.invalidate_operation_record()
+  host.close().unwrap()
+}

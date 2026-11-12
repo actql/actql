@@ -124,6 +124,78 @@ fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata_with_operatio
     @host.SameRequest {
     return Err(Journal(ChangedIntent))
   }
+  let project = fn(
+    record : NativeClientRunRecord,
+  ) -> Result[
+    NativeClientOriginalCheckpointMetadata?,
+    NativeClientRunJournalIssue,
+  ] {
+    let run_definition_cid = @publication.publication_contract_identity(
+      record.definition,
+    )
+    if run_definition_cid != admission.run_definition_cid {
+      return Err(ForeignRun)
+    }
+    match record.checkpoint {
+      None => Ok(None)
+      Some(checkpoint) =>
+        Ok(
+          Some({
+            checkpoint_cid: checkpoint.artifact.checkpoint_cid,
+            run_definition_cid,
+            revision: record.revision,
+            cancellation_requested: record.cancellation_requested,
+            state: checkpoint.state,
+          }),
+        )
+    }
+  }
+  // Same admitted record after current; this is a projection, not a new
+  // read, Allow or transaction ACK. OriginalRead supplies reads~ unchanged.
+  let journal = self.journal
+  if journal.operation_active && journal.operation_record is Some(_) {
+    match journal.check_transaction_context(reads~) {
+      Ok(_) => ()
+      Err(issue) => return Err(Journal(issue))
+    }
+    if !authority.current_for(journal, request) {
+      journal.invalidate_operation_record()
+      return Err(Journal(AuthorizationDenied))
+    }
+    // Current ports can leave/reenter the original Read. Select its record
+    // only after that callback, never retain a candidate across invalidation.
+    if journal.operation_active &&
+      !journal.fenced &&
+      !journal.transaction_active &&
+      !journal.publication_read_locked &&
+      journal.operation_record is Some(record) &&
+      @host.client_request_identity_relation(record.request, request) ==
+      @host.SameRequest {
+      let result = project(record)
+      // Preserve both current observations, including error/empty disclosure.
+      if !authority.current_for(journal, request) {
+        journal.invalidate_operation_record()
+        return Err(Journal(AuthorizationDenied))
+      }
+      match journal.check_transaction_context(reads~) {
+        Ok(_) => ()
+        Err(issue) => return Err(Journal(issue))
+      }
+      if journal.operation_active &&
+        !journal.fenced &&
+        !journal.transaction_active &&
+        !journal.publication_read_locked &&
+        journal.operation_record is Some(current) &&
+        physical_equal(current, record) {
+        return result.map_err(issue => {
+          journal.invalidate_operation_record()
+          Journal(issue)
+        })
+      }
+    }
+    // A missing/replaced record after either callback keeps the full owned
+    // transaction below, including its original COMMIT/rollback/Unknown.
+  }
   self.journal
   .transaction_with_reads(
     () => {
@@ -139,25 +211,7 @@ fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata_with_operatio
           Ok(None) => return Err(CustodyLost)
           Err(issue) => return Err(issue)
         }
-        let run_definition_cid = @publication.publication_contract_identity(
-          record.definition,
-        )
-        if run_definition_cid != admission.run_definition_cid {
-          return Err(ForeignRun)
-        }
-        match record.checkpoint {
-          None => Ok(None)
-          Some(checkpoint) =>
-            Ok(
-              Some({
-                checkpoint_cid: checkpoint.artifact.checkpoint_cid,
-                run_definition_cid,
-                revision: record.revision,
-                cancellation_requested: record.cancellation_requested,
-                state: checkpoint.state,
-              }),
-            )
-        }
+        project(record)
       }
       let result = read()
       // Current authorization also precedes disclosure of a custody refusal or

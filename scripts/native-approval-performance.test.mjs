@@ -299,3 +299,34 @@ test('closed Reviewer snapshot reuses only its admitted original record without 
     '9336a0966131f03eb5edf76e766cc825c8e735408983ed055395a79c6aed3f13',
     'All original Request/definition/checkpoint/kind/Run/status/cancellation/Unknown facts remain exact');
 });
+
+test('same original Checkpoint metadata projects its live record without an extra transaction', () => {
+  const source = readFileSync(new URL('../src/platform_native/client_host/local_checkpoint_lookup.mbt', import.meta.url), 'utf8');
+  const entry = signingMethod(source, 'NativeLocalHostConnection', 'lookup_submitted_checkpoint_metadata_with_operations');
+  const fast = entry.indexOf('  // Same admitted record after current');
+  assert(fast >= 0, 'The same-record metadata path must avoid the original unconditional read transaction');
+  const prefix = entry.slice(0, entry.indexOf('  let project ='));
+  assert.equal(createHash('sha256').update(prefix).digest('hex'),
+    '39f323df5f2729c32dc8fdaebca423d29ec388c172fb164e55876c6deacbb96d',
+    'Original role selection, monotonic epoch/CAS and Submission/Run identity admission stay exact');
+  const fallback = entry.indexOf('  self.journal\n  .transaction_with_reads(', fast);
+  assert(fallback > fast);
+  const closed = entry.slice(fast, fallback);
+  assert.doesNotMatch(closed, /\.transaction(?:_with_reads)?\(/u);
+  assert.equal([...closed.matchAll(/authority\.current_for\(journal, request\)/gu)].length, 2);
+  assert.equal([...closed.matchAll(/journal\.check_transaction_context\(reads~\)/gu)].length, 2);
+  assert.match(closed, /physical_equal\(current, record\)/u,
+    'Post-callback reentry cannot disclose an invalidated or replaced original record');
+  for (const guard of ['journal.operation_active', '!journal.fenced', '!journal.transaction_active',
+    '!journal.publication_read_locked', 'journal.operation_record is Some(record)', '@host.SameRequest'])
+    assert(closed.includes(guard));
+  const cold = entry.slice(fallback);
+  assert.equal([...cold.matchAll(/authority\.current_for\(self\.journal, request\)/gu)].length, 2);
+  assert.match(cold, /self\.journal\.retained\(request, reads~\)/u);
+  assert.match(cold, /reads~,\n  \)/u);
+  for (const [path, expected] of [
+    ['local_reviewer_binding.mbt', '709c3b409ce032cf441867898a3d3bac8ab0e2167ec5d9c4256ef2b18fdb07c5'],
+    ['local_reviewer_proof_materials.mbt', 'af4737cae23d7e7d320bd96c2d4be5609e43b2236b4fb72440359df833c04508'],
+  ]) assert.equal(createHash('sha256').update(readFileSync(new URL('../src/platform_native/client_host/' + path, import.meta.url))).digest('hex'), expected,
+    'Existing clock, key generation, OriginalRead, role and revision/cancellation fences stay exact');
+});
