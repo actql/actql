@@ -176,6 +176,7 @@ export async function waitNativeGroups(directory, {report = value => process.std
       if (summaryFile && existsSync(summary)) for await (const chunk of createReadStream(summary))
         appendFileSync(summaryFile, chunk);
       report('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({phase: 'consumer', group: group.name,
+        startedAt: item.startedAt ?? null, completedAt: item.completedAt ?? null,
         name: item.name, milliseconds: item.completedAt === undefined ? null : item.completedAt - item.startedAt,
         outcome: item.status}) + '\n');
     }
