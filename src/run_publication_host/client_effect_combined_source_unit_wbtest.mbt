@@ -121,17 +121,26 @@ fn combined_unit_whole_capture(
 ///|
 fn combined_source_unit_completed_fixture(
   foreign_controls? : Bool = false,
+  canonical_request? : Bool = false,
 ) -> Unit raise {
   let document =
     #|{"version":"actql/0.1","id":"combined-source-unit","stages":[{"id":"joined","inputs":{"left_rows":{"connector":"crm/main","resource":"r"},"right_rows":{"connector":"crm/right","resource":"r"}},"from":"left_rows","steps":[{"join":{"with":"right_rows","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":4,"select":{"value":"left.id"}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"joined":{"from":{"stage":"joined","result":"out"}}}}
-  let environment = admit_client_check_environment(
-    bound_effect_source_environment,
-    "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-  ).unwrap()
+  let environment = if canonical_request {
+    canonical_source_request_test_environment()
+  } else {
+    admit_client_check_environment(
+      bound_effect_source_environment,
+      "sha256:e3da0e91ef758728bdf6e58957c09fe044d97d1fa2a21c9c19e3bdf5109bf45b",
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    ).unwrap()
+  }
   let prepared = prepare_client_effect_computation(
-    document,
+    if canonical_request {
+      canonical_source_request_test_document(document)
+    } else {
+      document
+    },
     Json,
     environment,
     None,
@@ -208,6 +217,11 @@ fn combined_source_unit_completed_fixture(
   let combined = prepare_client_effect_combined_source_unit(
     publication, 0, retention, 100000, 10000, 100,
   ).unwrap()
+  if canonical_request {
+    for part in combined.contributions {
+      assert_canonical_source_request_test_body(part.request, part.request_cid)
+    }
+  }
   assert_eq(combined.contributions.length(), 2)
   assert_eq(combined.contributions.map(value => value.slot), [0, 1])
   assert_true(
@@ -513,4 +527,9 @@ test "combined Source Unit keeps both original inputs and requires its actual co
 ///|
 test "combined Source Unit refuses a foreign Run and another actual export receipt" {
   combined_source_unit_completed_fixture(foreign_controls=true)
+}
+
+///|
+test "combined Source Unit publishes canonical Request bodies from original noncanonical fields" {
+  combined_source_unit_completed_fixture(canonical_request=true)
 }

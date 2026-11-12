@@ -21,9 +21,11 @@ fn row_input_phase_capacity(
   geometry : @source.JsonSourceGeometry?,
 ) -> @execution.ExecutionCapacity? {
   let request = @sourcequery.source_acquisition_request(preparation.original)
+  let fields = @sourcequery.parameterized_request_field_count(request)
+  let ordering_fields = if fields > 1 { fields.to_int64() } else { 0L }
   let mut paths = 0L
   let mut pattern = 0L
-  for index in 0..<@sourcequery.parameterized_request_field_count(request) {
+  for index in 0..<fields {
     let field = @sourcequery.parameterized_request_field_at(request, index).unwrap()
     let value = match field.value {
       CheckedLiteral(value) => value.value
@@ -47,8 +49,14 @@ fn row_input_phase_capacity(
       records: 32L + 2L * pattern,
       record_references: 56L + pattern,
       record_words: 59L + pattern,
-      reference_arrays: observations + 3L,
-      reference_items: slots + width * 4L,
+      // One synchronous publication Request writer borrows a sorted field
+      // reference array. Reserve it on THIS Source before its first callback,
+      // retain it through page growth and reuse it only after a writer returns.
+      // Neither the original transport fields nor their binding indices move.
+      reference_arrays: observations +
+      3L +
+      (if ordering_fields > 0L { 1L } else { 0L }),
+      reference_items: slots + width * 4L + ordering_fields,
       scalar_arrays: 4L,
       scalar_items: paths + 3L * (pattern + 1L) + width * 3L,
       maps: 1L,

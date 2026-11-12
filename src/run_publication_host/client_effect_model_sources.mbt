@@ -121,18 +121,9 @@ fn build_model_effect_direct_sources(
         )
       }
       Whole(original) =>
-        @acquisition.parameterized_request_document(
-          @acquisition.source_acquisition_request(original),
-          max_bytes,
-          max_nodes,
-          max_depth,
+        client_effect_whole_source_request_material(
+          original, max_bytes, max_nodes, max_depth,
         )
-        .map_err(_ => ClientEffectLocalInvocationIssue::Encoding)
-        .bind(document => {
-          @sha.text_hex(@encode.document_text(document))
-          .map(hash => (document, "sha256:" + hash))
-          .map_err(_ => ClientEffectLocalInvocationIssue::Encoding)
-        })
     }
     let (request, request_cid) = match material {
       Ok(value) => value

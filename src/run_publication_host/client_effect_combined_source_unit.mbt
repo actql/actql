@@ -105,18 +105,9 @@ pub fn prepare_client_effect_combined_source_unit(
         )
       }
       WholeSourceOriginal(acquisition) =>
-        @acquisition.parameterized_request_document(
-          @acquisition.source_acquisition_request(acquisition),
-          max_bytes,
-          max_nodes,
-          max_depth,
+        client_effect_whole_source_request_material(
+          acquisition, max_bytes, max_nodes, max_depth,
         )
-        .map_err(_ => ClientEffectLocalInvocationIssue::Encoding)
-        .bind(document => {
-          @sha.text_hex(@encode.document_text(document))
-          .map(hash => (document, "sha256:" + hash))
-          .map_err(_ => ClientEffectLocalInvocationIssue::Encoding)
-        })
     }
     let (request, request_cid) = match material {
       Ok(value) => value
