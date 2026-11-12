@@ -18134,7 +18134,19 @@
             "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
             "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources"
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#3",
+            "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
+            "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
+            "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
+            "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
+            "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage",
+            "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage/exported/exported",
+            "publicationControl/init:prepareKeyedLookupRawCapture/init:prepareKeyedLookupRawCapture",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/exported/exported",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata"
           ],
           "exports": [],
           "attributes": {
@@ -27348,6 +27360,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value",
           "parameters": [
             "source"
@@ -27358,6 +27377,13 @@
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#2",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#3",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -27549,6 +27575,54 @@
           "name": "publicationControl/init:issueSucceededRunState/init:issueSucceededRunState",
           "parameters": [
             "request",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
+          "parameters": [
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
+          "parameters": [
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "graph",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
+          "parameters": [
+            "page",
+            "keyedRequest",
+            "request",
+            "compiled",
+            "definition",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
+          "parameters": [
+            "page",
+            "keyedRequest",
+            "request",
+            "compiled",
+            "definition",
+            "graph",
             "limits"
           ],
           "async": false
@@ -28398,6 +28472,72 @@
           "name": "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage",
+          "parameters": [
+            "keyedRequest",
+            "capture",
+            "raw",
+            "at",
+            "outputLimits",
+            "maxWork",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage/exported/exported",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupRawCapture/init:prepareKeyedLookupRawCapture",
+          "parameters": [
+            "keyedRequest",
+            "compiled",
+            "definition",
+            "retention",
+            "storage",
+            "contentCid",
+            "bytes",
+            "at",
+            "nowMs",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
+          "parameters": [
+            "lookup",
+            "request",
+            "captures",
+            "sources",
+            "retentionSelection",
+            "outputLimits",
+            "maxWork",
+            "limits",
+            "fileReadDeclarations"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/exported/exported",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
+          "parameters": [
+            "captured",
+            "index"
           ],
           "async": false
         },
@@ -31831,7 +31971,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "04388af264c52555bd5d9096985d95c54289696441f1e6b55c64214cd6b864ad"
+      "sha256": "d2773e2d2ff03558840a2b67cb8c0dfc6ad6d9c0292ced7fa2d9b19a3b47cd75"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -32457,7 +32597,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f48bd080e46208e4046e54a7d7d368cbe422248dd340a9f7c176ab84fae0d86a",
+      "sha256": "f00eff18ce2c7880ca8325616192d13ef8f9c808378058a08902cae133e96645",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32855,7 +32995,9 @@
             "originalModelSelection",
             "originalContent",
             "sourceSelection",
-            "sourceSelectionPlan"
+            "sourceSelectionPlan",
+            "requestJournal",
+            "runRef"
           ],
           "async": true
         },
@@ -64463,7 +64605,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "bc4d9d5ac4d5022ebb4be872b073b1d01f14808e0716fc1439bfbc354dea9213"
+      "sha256": "3dbdb30c19ec26ed8f0ccea3830dad42789a3e8d29410ba14ef73c0eb6d995d3"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -73582,7 +73724,7 @@
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8f9da3d997159dcf3e3129c465ba7fcbacfdecab15562f47c13dae09a312fbad",
+      "sha256": "b913c09775d86a4fcd10ad55b7c64206003bd09bcee4671c243d59113c8539c3",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -89928,7 +90070,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c0ab83379bf767e1c1ff844b6196da92feb7352149eadfa280ecf1becd500bb9",
+      "sha256": "e27d345c77e7b971d4c8e4218ea7400c0cbdb44dee3b7e7a58525f437d19d4ac",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -90358,6 +90500,8 @@
             "chargeVerification",
             "capturedResourcePath",
             "keyedContent",
+            "lookupPublication",
+            "lookupOriginal",
             "access"
           ],
           "async": true
@@ -90384,7 +90528,9 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed",
-          "parameters": [],
+          "parameters": [
+            "bytes"
+          ],
           "async": true
         },
         {
@@ -90394,14 +90540,14 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#10",
-          "parameters": [
-            "lookup"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#11",
-          "parameters": [],
+          "parameters": [
+            "lookup"
+          ],
           "async": false
         },
         {
@@ -90410,10 +90556,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#13",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/openKeyed/openKeyed#2",
-          "parameters": [
-            "bytes"
-          ],
+          "parameters": [],
           "async": true
         },
         {
@@ -90426,7 +90575,7 @@
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#4",
           "parameters": [
-            "body"
+            "bytes"
           ],
           "async": true
         },
@@ -90435,26 +90584,28 @@
           "parameters": [
             "body"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#6",
           "parameters": [
-            "charge"
+            "body"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#7",
           "parameters": [
-            "rows",
             "charge"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#8",
-          "parameters": [],
+          "parameters": [
+            "rows",
+            "charge"
+          ],
           "async": false
         },
         {
@@ -90481,6 +90632,7 @@
             "originalCaptures",
             "managedRun",
             "keyedContent",
+            "publication",
             "access",
             "maxWork",
             "quantum"
@@ -92215,7 +92367,8 @@
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/mismatch/mismatch",
-            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
+            "createInstalledRowSource/openKeyed/openKeyed#13"
           ],
           "exports": [
             "createInstalledRowSource"
@@ -97248,7 +97401,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "018dbf6cfc1cee4a3128977e791d9262ce9a9422442e2799ada5c407eb2771cf",
+      "sha256": "93b515c1d64c0d5dea79f9f7611e969ac5f9e5d2bb76f281633376f515d2718c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -97263,6 +97416,7 @@
         "checkedLocalOutputLimits",
         "inferTaskPublicationPlan",
         "inferTaskRunAdmission",
+        "keyedInputRetentionSelection",
         "localContractLimits",
         "localOutputLimits",
         "openSourceFreeEffectComputation",
@@ -97710,9 +97864,24 @@
           "async": false
         },
         {
+          "name": "keyedInputRetentionSelection",
+          "parameters": [
+            "acquired"
+          ],
+          "async": false
+        },
+        {
           "name": "localPublicationPlan",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "localRetentionTimes",
+          "parameters": [
+            "now",
+            "retainUntil"
           ],
           "async": false
         },
@@ -98508,10 +98677,12 @@
         },
         {
           "operations": [
-            "acquiredKeyedTaskPublicationPlan"
+            "acquiredKeyedTaskPublicationPlan",
+            "keyedInputRetentionSelection"
           ],
           "exports": [
-            "acquiredKeyedTaskPublicationPlan"
+            "acquiredKeyedTaskPublicationPlan",
+            "keyedInputRetentionSelection"
           ],
           "attributes": {
             "responsibility": [
@@ -99988,7 +100159,8 @@
         },
         {
           "operations": [
-            "instant/instant"
+            "instant/instant",
+            "localRetentionTimes"
           ],
           "exports": [],
           "attributes": {
@@ -157459,13 +157631,93 @@
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6f5703f754d5327e1941daae18cf0f46c633179b42010976ff7072ee36c236eb",
+      "sha256": "228c01bf203e52ed808bc9f66e480e622f7205ced1fafbc9de1801d3092c1d3f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareAcquiredEffectKeyedPrefix"
       ],
       "operations": [
+        {
+          "name": "originalKeyedLookupPublication",
+          "parameters": [
+            "moon",
+            "acquired",
+            "plan",
+            "infer",
+            "captures",
+            "sources",
+            "requestJournal",
+            "runRef",
+            "capacity",
+            "signal",
+            "now",
+            "current",
+            "store",
+            "fileReadDeclarations"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:activate/init:activate",
+          "parameters": [
+            "original",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:adopt/init:adopt",
+          "parameters": [
+            "original",
+            "request",
+            "attempt",
+            "capture",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:finishInput/init:finishInput",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:finishInput/init:finishInput/init:finishInput",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:initialize/init:initialize",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
+          "parameters": [
+            "original",
+            "request",
+            "attempt",
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalKeyedLookupPublication/originalCurrent/originalCurrent",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "prepareAcquiredEffectKeyedPrefix",
           "parameters": [
@@ -157477,6 +157729,7 @@
             "originalPreparation",
             "plan",
             "captures",
+            "sources",
             "sourceProfile",
             "ledger",
             "contentRun",
@@ -157485,7 +157738,9 @@
             "signal",
             "now",
             "current",
-            "retain"
+            "retain",
+            "requestJournal",
+            "runRef"
           ],
           "async": true
         },
@@ -157528,7 +157783,16 @@
             "prepareAcquiredEffectKeyedPrefix/frame/frame",
             "prepareAcquiredEffectKeyedPrefix/frame/frame#2",
             "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix",
-            "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix#2"
+            "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix#2",
+            "originalKeyedLookupPublication",
+            "originalKeyedLookupPublication/init:activate/init:activate",
+            "originalKeyedLookupPublication/init:adopt/init:adopt",
+            "originalKeyedLookupPublication/init:cleanup/init:cleanup",
+            "originalKeyedLookupPublication/init:finishInput/init:finishInput",
+            "originalKeyedLookupPublication/init:finishInput/init:finishInput/init:finishInput",
+            "originalKeyedLookupPublication/init:initialize/init:initialize",
+            "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
+            "originalKeyedLookupPublication/originalCurrent/originalCurrent"
           ],
           "exports": [
             "prepareAcquiredEffectKeyedPrefix"
@@ -157636,8 +157900,12 @@
       "imports": [
         "../host-common/acquisition-outcome.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/private-publication-holding.mjs",
         "../host-common/runtime-result.mjs",
         "./installed-source.mjs",
+        "./local-account-config.mjs",
+        "./local-values-plan.mjs",
+        "node:perf_hooks",
         "node:timers/promises"
       ],
       "compilerFields": [],

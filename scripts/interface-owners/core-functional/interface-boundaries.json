@@ -2389,7 +2389,19 @@
             "usageKeys/usageKeys",
             "usageKeys/usageKeys/usageKeys",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
-            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources"
+            "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/sources/sources",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
+            "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#3",
+            "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
+            "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
+            "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
+            "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
+            "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage",
+            "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage/exported/exported",
+            "publicationControl/init:prepareKeyedLookupRawCapture/init:prepareKeyedLookupRawCapture",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/exported/exported",
+            "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata"
           ],
           "exports": [
             "contentCaptureControl",
@@ -3006,7 +3018,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4080,7 +4092,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -6589,7 +6601,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -10955,6 +10967,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value",
           "parameters": [
             "source"
@@ -10965,6 +10984,13 @@
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#2",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#3",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -11156,6 +11182,54 @@
           "name": "publicationControl/init:issueSucceededRunState/init:issueSucceededRunState",
           "parameters": [
             "request",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupActivationJournalCurrent/init:keyedLookupActivationJournalCurrent",
+          "parameters": [
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
+          "parameters": [
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "graph",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
+          "parameters": [
+            "page",
+            "keyedRequest",
+            "request",
+            "compiled",
+            "definition",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
+          "parameters": [
+            "page",
+            "keyedRequest",
+            "request",
+            "compiled",
+            "definition",
+            "graph",
             "limits"
           ],
           "async": false
@@ -12005,6 +12079,72 @@
           "name": "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage",
+          "parameters": [
+            "keyedRequest",
+            "capture",
+            "raw",
+            "at",
+            "outputLimits",
+            "maxWork",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupCapturedPage/init:prepareKeyedLookupCapturedPage/exported/exported",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupRawCapture/init:prepareKeyedLookupRawCapture",
+          "parameters": [
+            "keyedRequest",
+            "compiled",
+            "definition",
+            "retention",
+            "storage",
+            "contentCid",
+            "bytes",
+            "at",
+            "nowMs",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
+          "parameters": [
+            "lookup",
+            "request",
+            "captures",
+            "sources",
+            "retentionSelection",
+            "outputLimits",
+            "maxWork",
+            "limits",
+            "fileReadDeclarations"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/exported/exported",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
+          "parameters": [
+            "captured",
+            "index"
           ],
           "async": false
         },
@@ -15438,7 +15578,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "04388af264c52555bd5d9096985d95c54289696441f1e6b55c64214cd6b864ad"
+      "sha256": "d2773e2d2ff03558840a2b67cb8c0dfc6ad6d9c0292ced7fa2d9b19a3b47cd75"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -32942,7 +33082,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -34512,7 +34652,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -34750,7 +34890,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -36166,7 +36306,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -36454,7 +36594,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -38442,7 +38582,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -47987,7 +48127,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48083,7 +48223,7 @@
       "sha256": "b23029703c7b693dabddff6c743ac56aec41e3caadf2e00cd40b23702b3d5fd7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48387,7 +48527,7 @@
       "sha256": "b0ee315db4a6b98f045dfee9d15d7ca13d283ae073aa9597f9e9cf7639faa8a9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -51777,7 +51917,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -51911,7 +52051,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -52168,7 +52308,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -52266,7 +52406,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -52634,7 +52774,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -52895,7 +53035,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -53068,7 +53208,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -53181,7 +53321,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -54395,7 +54535,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -55026,7 +55166,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -57760,7 +57900,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -59334,7 +59474,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "1bb3afef8f3858148fb886635276bae1b281e48fb493796f62ec5f68c44ec95c",
+      "sha256": "dcaf38b76ea35a2213b2c726c0328faa7ae7ed068695a5950a938ac4eee7c57c",
       "exports": [],
       "operations": [
         {
@@ -63884,7 +64024,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -86166,7 +86306,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -86619,7 +86759,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -88114,6 +88254,265 @@
               {
                 "path": "src/run_publication_host/client_values_row_limit_wbtest.mbt",
                 "anchor": "test \"selected Values row limit preserves checker identity"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+      "sha256": "bf288f4092d88e5afb60c5fc29124c42b941d09a225c5419c84f9c135088ef3d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_keyed_lookup_activation_fields",
+          "declaration": "client_program_keyed_lookup_activation_fields ( original : @ publication_host . ClientKeyedNativeActivation , ) - > ( String , String , Int , Int )"
+        },
+        {
+          "name": "client_program_keyed_lookup_activation_matches",
+          "declaration": "client_program_keyed_lookup_activation_matches ( original : @ publication_host . ClientKeyedNativeActivation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "client_program_keyed_lookup_bind_declared_file_physical_source",
+          "declaration": "client_program_keyed_lookup_bind_declared_file_physical_source ( lookup : @ publication_host . ClientKeyedLookupInput , declarations : Array [ @ client_row_source_host . RowDeclaration ] , ) - > Result [ Unit , @ publication_host . ClientKeyedRequestIssue ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_bind_query_source_metadata",
+          "declaration": "client_program_keyed_lookup_bind_query_source_metadata ( lookup : @ publication_host . ClientKeyedLookupInput , index : Int , requirement : @ planning . QueryRequirement , identity : @ query . CapturedSourceRelationIdentity , logical : @ publication . RunEvidenceValue , observation : @ publication . RunEvidenceValue , request : @ publication_host . ClientRequestIdentity , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ publication_host . ClientKeyedRequestIssue ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_bind_whole_source_metadata",
+          "declaration": "client_program_keyed_lookup_bind_whole_source_metadata ( lookup : @ publication_host . ClientKeyedLookupInput , index : Int , identity : @ query . CapturedSourceRelationIdentity , logical : @ publication . RunEvidenceValue , observation : @ publication . RunEvidenceValue , request : @ publication_host . ClientRequestIdentity , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ publication_host . ClientKeyedRequestIssue ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_captured_page_fields",
+          "declaration": "client_program_keyed_lookup_captured_page_fields ( page : @ publication_host . ClientKeyedNativeCapturedPage , ) - > ( String , String , String , Int )"
+        },
+        {
+          "name": "client_program_keyed_lookup_captured_page_matches",
+          "declaration": "client_program_keyed_lookup_captured_page_matches ( page : @ publication_host . ClientKeyedNativeCapturedPage , keyed_request : @ publication_host . ClientKeyedRequest , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "client_program_keyed_lookup_declared_file_activation_record",
+          "declaration": "client_program_keyed_lookup_declared_file_activation_record ( original : @ publication_host . ClientKeyedNativeActivation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , max_bytes : Int , ) - > Result [ String , @ publication_host . ClientKeyedRequestIssue ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_declared_file_page_record",
+          "declaration": "client_program_keyed_lookup_declared_file_page_record ( page : @ publication_host . ClientKeyedNativeCapturedPage , keyed_request : @ publication_host . ClientKeyedRequest , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , graph : @ publication_host . ClientInferPlanGraph , max_bytes : Int , ) - > Result [ String , @ publication_host . ClientKeyedRequestIssue ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_declared_file_publication_input",
+          "declaration": "client_program_keyed_lookup_declared_file_publication_input ( lookup : @ publication_host . ClientKeyedLookupInput , recorded_at : String , now_ms : Int64 , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ execution . SuppliedRelationRead , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_prepare_activation",
+          "declaration": "client_program_keyed_lookup_prepare_activation ( lookup : @ publication_host . ClientKeyedLookupInput , keyed_request : @ publication_host . ClientKeyedRequest , request : @ publication_host . ClientRequestIdentity , issuer : String , recorded_at : String , now_ms : Int64 , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientKeyedNativeActivation , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_prepare_captured_page",
+          "declaration": "client_program_keyed_lookup_prepare_captured_page ( request : @ publication_host . ClientKeyedRequest , capture : @ client_row_source_host . RowKeyedSourceCapture , raw : @ publication_host . ClientKeyedNativeRawResponse , recorded_at : String , limits : @ publication_host . PublicationOutputExportLimits , max_work : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientKeyedNativeCapturedPage , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_prepare_declared_file_raw_capture",
+          "declaration": "client_program_keyed_lookup_prepare_declared_file_raw_capture ( compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ publication_host . ClientKeyedRequest , retention : @ publication . PublicationContract , store_id : String , store_cid : String , availability_cid : String , issuer_cid : String , content_cid : String , size_bytes : Int , captured_at : String , now_ms : Int64 , max_bytes : Int , max_nodes : Int , max_depth : Int , max_text_units : Int , ) - > Result [ @ publication_host . ClientKeyedNativeRawResponse , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_prepare_left_identity",
+          "declaration": "client_program_keyed_lookup_prepare_left_identity ( lookup : @ publication_host . ClientKeyedLookupInput , limits : @ publication_host . PublicationOutputExportLimits , max_work : Int , ) - > Result [ Unit , @ publication_host . ClientKeyedRequestIssue ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_prepare_left_relation",
+          "declaration": "client_program_keyed_lookup_prepare_left_relation ( lookup : @ publication_host . ClientKeyedLookupInput , request : @ publication_host . ClientRequestIdentity , retention : @ publication . PublicationContract , issuer : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , @ publication_host . ClientKeyedRequestIssue ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_prepare_retention",
+          "declaration": "client_program_keyed_lookup_prepare_retention ( lookup : @ publication_host . ClientKeyedLookupInput , request : @ publication_host . ClientRequestIdentity , retention_contract : String , available_until : String , delete_by : String , metadata_delete_by : String , metadata_policy : String , clock_contract : String , max_bytes : Int , ) - > Result [ @ publication . PublicationContract , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_raw_store_binding",
+          "declaration": "client_program_keyed_lookup_raw_store_binding ( raw : @ publication_host . ClientKeyedNativeRawResponse , ) - > Result [ ( String , String , String , String , Int64 ) , @ publication_host . ClientKeyedRequestIssue , ]"
+        },
+        {
+          "name": "client_program_keyed_lookup_start_declared_file_request_plan",
+          "declaration": "client_program_keyed_lookup_start_declared_file_request_plan ( lookup : @ publication_host . ClientKeyedLookupInput , at : String , now_ms : Int64 , issuer : String , ) - > Result [ Unit , @ publication_host . ClientKeyedRequestIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
+      "referenceQualification": "Selected original row configuration and typed failure forwarding only; not ordinary matching-artifact or full funding acceptance",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_keyed_lookup_activation_fields",
+            "client_program_keyed_lookup_activation_matches",
+            "client_program_keyed_lookup_bind_declared_file_physical_source",
+            "client_program_keyed_lookup_bind_query_source_metadata",
+            "client_program_keyed_lookup_bind_whole_source_metadata",
+            "client_program_keyed_lookup_captured_page_fields",
+            "client_program_keyed_lookup_captured_page_matches",
+            "client_program_keyed_lookup_declared_file_activation_record",
+            "client_program_keyed_lookup_declared_file_page_record",
+            "client_program_keyed_lookup_declared_file_publication_input",
+            "client_program_keyed_lookup_prepare_activation",
+            "client_program_keyed_lookup_prepare_captured_page",
+            "client_program_keyed_lookup_prepare_declared_file_raw_capture",
+            "client_program_keyed_lookup_prepare_left_identity",
+            "client_program_keyed_lookup_prepare_left_relation",
+            "client_program_keyed_lookup_prepare_retention",
+            "client_program_keyed_lookup_raw_store_binding",
+            "client_program_keyed_lookup_start_declared_file_request_plan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              },
+              {
+                "path": "docs/spec/protocols/artifacts.md",
+                "anchor": "The installed Node declared-file keyed Content reader uses the separate"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              },
+              {
+                "path": "docs/spec/protocols/artifacts.md",
+                "anchor": "original logical declaration to the original physical declaration, item/key"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              },
+              {
+                "path": "docs/spec/protocols/artifacts.md",
+                "anchor": "The lookup identity registry fixes the five references in the existing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              },
+              {
+                "path": "docs/spec/protocols/artifacts.md",
+                "anchor": "Raw capture is an authenticated Host byte-store envelope, not a published Result"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              },
+              {
+                "path": "docs/spec/protocols/artifacts.md",
+                "anchor": "slot's ownership. Persist activation and reservations before dispatch. A crash"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              },
+              {
+                "path": "docs/spec/protocols/artifacts.md",
+                "anchor": "does not permit reusing a network_attempt number or erasing an unresolved call."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              },
+              {
+                "path": "docs/spec/protocols/artifacts.md",
+                "anchor": "raw-capture, page-adoption, accounting and five-reference evidence obligations."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_keyed_publication_bridge.mbt",
+                "anchor": "/// Borrow the original completed prefix under the caller's already selected"
+              },
+              {
+                "path": "docs/spec/protocols/artifacts.md",
+                "anchor": "Neither implementation profile substitutes for the other."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"declared-file original activation record binds the same Request and Model Plan before dispatch\" {"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"declared-file raw Store backing and original page record precede assembly without a new attempt\" {"
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"declared-file completed lookup retains its full original dependency closure before Model\" {"
+              },
+              {
+                "path": "adapters/host-node/client-keyed-lookup-journal.test.mjs",
+                "anchor": "test('original keyed activation commits before caller dispatch and cold duplicate cannot authorize another attempt'"
+              },
+              {
+                "path": "adapters/store-local/lookup-raw-evidence.test.mjs",
+                "anchor": "test('lookup raw holding encrypts original bytes and restores the same descriptor after cold reopen'"
+              },
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "test('canonical Effect lookup retains every original request before the first physical grant'"
               }
             ]
           }

@@ -9373,7 +9373,7 @@
     {
       "module": "adapters/host-common/private-publication-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "493b47cae61e4982affd1a9b2dd09aae3bdcb7b50e6a0c498d16f1d10942f70e",
+      "sha256": "ade994faaabca439fe903e74f9cb54b522ca694de32272c5147304312d215736",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -29149,7 +29149,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3ab5df70d1c1e3aa508e587d0f0082a6c41b66a7686253d574c454a7345b0698",
+      "sha256": "6bf9bcecaec55afb5988a1bd4377e5b40dcce71b72ab22e758f790e5f0392a78",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -30280,6 +30280,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#10",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#2",
           "parameters": [],
           "async": false
@@ -30653,6 +30658,76 @@
           "parameters": [
             "key"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
+          "parameters": [
+            "ref",
+            "activation",
+            "identity",
+            "preparedEffect",
+            "compilation",
+            "compiled",
+            "runDefinition",
+            "graph",
+            "limits",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
+          "parameters": [
+            "ref",
+            "page",
+            "keyedRequest",
+            "identity",
+            "preparedEffect",
+            "compilation",
+            "compiled",
+            "runDefinition",
+            "graph",
+            "limits",
+            "activationRecord",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -31679,7 +31754,15 @@
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#3",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
-            "validateSourceInventory/validateSourceInventory"
+            "validateSourceInventory/validateSourceInventory",
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/current/current",
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation",
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation#2",
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/current/current",
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -34178,7 +34261,8 @@
             "openClientRequestJournal/initializeFeature/initializeFeature",
             "openClientRequestJournal/initializeSchema/initializeSchema",
             "openClientRequestJournal/publishFormatMarker/publishFormatMarker",
-            "openClientRequestJournal/writeFormatMarker/writeFormatMarker"
+            "openClientRequestJournal/writeFormatMarker/writeFormatMarker",
+            "openClientRequestJournal/initializeSchema/initializeSchema/initializeSchema#10"
           ],
           "exports": [],
           "attributes": {
@@ -47925,7 +48009,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "0ab22360fd986e787e357735c5964d98b574fc49a0cc05b943a56a55b34b4534",
+      "sha256": "41dd49e52a9e2e3de6cf60649f92373451be06591ebaf2d91cbc412bd8cfc8ee",
       "exports": [
         "commonjs:sql"
       ],
@@ -47958,7 +48042,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/host-journal-schema-support.test.mjs",
-                "anchor": "assert.deepEqual(actual, [...support.sql].sort());"
+                "anchor": "assert.deepEqual(actual, [...selectedSql].sort());"
               }
             ],
             "ownership": [
@@ -48034,7 +48118,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/host-journal-schema-support.test.mjs",
-                "anchor": "assert.deepEqual(actual, [...support.sql].sort());"
+                "anchor": "assert.deepEqual(actual, [...selectedSql].sort());"
               }
             ],
             "ownership": [
@@ -72696,7 +72780,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "3ac7d64d7941b65ef915b2bfa5659c5f9a59c77f0cddf4ac92d05c6b83006e77",
+      "sha256": "5ef79b38a87d4f823e4cfc56c6d830d876a070710ed3d8973a4cea6f89904e93",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -72921,6 +73005,13 @@
           "name": "installPreparedProjectMockSources/fileSuppliers/fileSuppliers",
           "parameters": [
             "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/fileSuppliers/fileSuppliers/contentView/contentView",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -74580,7 +74671,8 @@
             "installPreparedProjectMockSources/referenceIssuer/referenceIssuer",
             "installPreparedProjectMockSources/referenceIssuer/referenceIssuer#2",
             "prepareProjectMockDeclarations/targets/targets",
-            "prepareProjectMockDeclarations/targets/targets/targets"
+            "prepareProjectMockDeclarations/targets/targets/targets",
+            "installPreparedProjectMockSources/fileSuppliers/fileSuppliers/contentView/contentView"
           ],
           "exports": [],
           "attributes": {
@@ -78878,7 +78970,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55682adfd94578ab841ef8023a7ede3202a22b9dd9869d5784c46843d6feb967",
+      "sha256": "77498c5973d717839a1083a619ebe6dd6ee92fef9ba1a42051d76fda75a69e82",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -78889,6 +78981,7 @@
         "createLocalAuthorizationGate",
         "localAuthorizationContext",
         "observeInstalledAccount",
+        "originalLocalContentStoragePolicy",
         "readAccountConfiguration",
         "sourceReadAccountConfiguration"
       ],
@@ -79014,6 +79107,16 @@
           "async": false
         },
         {
+          "name": "originalLocalContentStoragePolicy",
+          "parameters": [
+            "storeAuthorityCid",
+            "authorityScopeCid",
+            "runDefinitionCid",
+            "expiresAt"
+          ],
+          "async": false
+        },
+        {
           "name": "readAccountConfiguration",
           "parameters": [
             "path"
@@ -79050,7 +79153,8 @@
             "localAuthorizationContext",
             "normalizedText",
             "readAccountConfiguration",
-            "sourceReadAccountConfiguration"
+            "sourceReadAccountConfiguration",
+            "originalLocalContentStoragePolicy"
           ],
           "exports": [
             "ACCOUNT_CONFIG_INVALID",
@@ -79060,7 +79164,8 @@
             "createLocalAuthorizationGate",
             "localAuthorizationContext",
             "readAccountConfiguration",
-            "sourceReadAccountConfiguration"
+            "sourceReadAccountConfiguration",
+            "originalLocalContentStoragePolicy"
           ],
           "attributes": {
             "responsibility": [
@@ -117656,7 +117761,8 @@
             "occurrence",
             "execution",
             "serializationGraph",
-            "constructSerialized"
+            "constructSerialized",
+            "fileReadDeclarations"
           ],
           "async": false
         },
@@ -118227,7 +118333,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "d21d987619c0685e2d0eff548d7f3bf1c246b9034aa906700601bd50d957580a"
+      "sha256": "05a3ef20e5b3b09f27681c8c5b91b1a63e3147cb7907ab9a4511d23a75d53ca6"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

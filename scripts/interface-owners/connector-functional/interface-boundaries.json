@@ -14208,7 +14208,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "c0ab83379bf767e1c1ff844b6196da92feb7352149eadfa280ecf1becd500bb9",
+      "sha256": "e27d345c77e7b971d4c8e4218ea7400c0cbdb44dee3b7e7a58525f437d19d4ac",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14625,6 +14625,8 @@
             "chargeVerification",
             "capturedResourcePath",
             "keyedContent",
+            "lookupPublication",
+            "lookupOriginal",
             "access"
           ],
           "async": true
@@ -14651,7 +14653,9 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed",
-          "parameters": [],
+          "parameters": [
+            "bytes"
+          ],
           "async": true
         },
         {
@@ -14661,14 +14665,14 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#10",
-          "parameters": [
-            "lookup"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#11",
-          "parameters": [],
+          "parameters": [
+            "lookup"
+          ],
           "async": false
         },
         {
@@ -14677,10 +14681,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#13",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/openKeyed/openKeyed#2",
-          "parameters": [
-            "bytes"
-          ],
+          "parameters": [],
           "async": true
         },
         {
@@ -14693,7 +14700,7 @@
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#4",
           "parameters": [
-            "body"
+            "bytes"
           ],
           "async": true
         },
@@ -14702,26 +14709,28 @@
           "parameters": [
             "body"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#6",
           "parameters": [
-            "charge"
+            "body"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#7",
           "parameters": [
-            "rows",
             "charge"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#8",
-          "parameters": [],
+          "parameters": [
+            "rows",
+            "charge"
+          ],
           "async": false
         },
         {
@@ -14748,6 +14757,7 @@
             "originalCaptures",
             "managedRun",
             "keyedContent",
+            "publication",
             "access",
             "maxWork",
             "quantum"
@@ -16196,7 +16206,8 @@
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
             "text/text",
-            "valueCid/valueCid"
+            "valueCid/valueCid",
+            "createInstalledRowSource/openKeyed/openKeyed#13"
           ],
           "exports": [
             "createInstalledRowSource",

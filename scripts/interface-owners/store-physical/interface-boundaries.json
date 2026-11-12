@@ -6935,7 +6935,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "04c2ae3cf8dcd2b04b205bce01f4b8ad340dd7bcc0a2fdfa8a176346d9f3e9c1",
+      "sha256": "2e0b5f787d1ccf5e9205ee8024417bb0211f4a4c56541dfe0959a3726f608a7b",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7988,6 +7988,23 @@
             "suppliedWire"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
@@ -9474,12 +9491,20 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/prepareLookupRawEvidence/prepareLookupRawEvidence",
+          "parameters": [
+            "binding",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
           "parameters": [
             "binding",
             "bytes"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
@@ -9506,6 +9531,15 @@
             "input",
             "semanticCid",
             "isWire"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/preparePrivateRawEvidence/preparePrivateRawEvidence",
+          "parameters": [
+            "binding",
+            "bytes",
+            "kind"
           ],
           "async": true
         },
@@ -10072,6 +10106,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/readLookupRawEvidence/readLookupRawEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
           "parameters": [
             "keyHash"
@@ -10155,7 +10196,7 @@
             "binding",
             "confirm"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
@@ -10245,6 +10286,15 @@
             "chunk"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readPrivateRawEvidenceOriginal/readPrivateRawEvidenceOriginal",
+          "parameters": [
+            "binding",
+            "kind",
+            "confirm"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readResultDeletion/readResultDeletion",
@@ -12479,7 +12529,14 @@
             "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
-            "writeExclusive"
+            "writeExclusive",
+            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence",
+            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
+            "openOriginalLocalPublicationStore/prepareLookupRawEvidence/prepareLookupRawEvidence",
+            "openOriginalLocalPublicationStore/preparePrivateRawEvidence/preparePrivateRawEvidence",
+            "openOriginalLocalPublicationStore/readLookupRawEvidence/readLookupRawEvidence",
+            "openOriginalLocalPublicationStore/readPrivateRawEvidenceOriginal/readPrivateRawEvidenceOriginal"
           ],
           "exports": [
             "PublicationStoreError",

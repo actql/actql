@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "f48bd080e46208e4046e54a7d7d368cbe422248dd340a9f7c176ab84fae0d86a",
+      "sha256": "f00eff18ce2c7880ca8325616192d13ef8f9c808378058a08902cae133e96645",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -404,7 +404,9 @@
             "originalModelSelection",
             "originalContent",
             "sourceSelection",
-            "sourceSelectionPlan"
+            "sourceSelectionPlan",
+            "requestJournal",
+            "runRef"
           ],
           "async": true
         },
@@ -23700,7 +23702,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "bc4d9d5ac4d5022ebb4be872b073b1d01f14808e0716fc1439bfbc354dea9213"
+      "sha256": "3dbdb30c19ec26ed8f0ccea3830dad42789a3e8d29410ba14ef73c0eb6d995d3"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -23935,7 +23937,7 @@
     },
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
-      "sha256": "8f9da3d997159dcf3e3129c465ba7fcbacfdecab15562f47c13dae09a312fbad",
+      "sha256": "b913c09775d86a4fcd10ad55b7c64206003bd09bcee4671c243d59113c8539c3",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -24650,7 +24652,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "018dbf6cfc1cee4a3128977e791d9262ce9a9422442e2799ada5c407eb2771cf",
+      "sha256": "93b515c1d64c0d5dea79f9f7611e969ac5f9e5d2bb76f281633376f515d2718c",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -24663,6 +24665,7 @@
         "checkedLocalOutputLimits",
         "inferTaskPublicationPlan",
         "inferTaskRunAdmission",
+        "keyedInputRetentionSelection",
         "localContractLimits",
         "localOutputLimits",
         "openSourceFreeEffectComputation",
@@ -25110,9 +25113,24 @@
           "async": false
         },
         {
+          "name": "keyedInputRetentionSelection",
+          "parameters": [
+            "acquired"
+          ],
+          "async": false
+        },
+        {
           "name": "localPublicationPlan",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "localRetentionTimes",
+          "parameters": [
+            "now",
+            "retainUntil"
           ],
           "async": false
         },
@@ -25406,7 +25424,9 @@
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#5",
             "acquiredMultiEffectPublicationPlan/acquiredMultiEffectPublicationPlan#6",
             "acquiredMultiEffectPublicationPlan/modelContribution/modelContribution",
-            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan"
+            "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan",
+            "keyedInputRetentionSelection",
+            "localRetentionTimes"
           ],
           "exports": [
             "acquiredEffectPublicationAdmission",
@@ -25429,7 +25449,8 @@
             "sourceFreePlanOriginal",
             "sourceFreeTaskPlan",
             "sourceFreeValuesAdmissionEvidence",
-            "sourceFreeValuesPlan"
+            "sourceFreeValuesPlan",
+            "keyedInputRetentionSelection"
           ],
           "attributes": {
             "responsibility": [
@@ -27492,11 +27513,91 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
-      "sha256": "6f5703f754d5327e1941daae18cf0f46c633179b42010976ff7072ee36c236eb",
+      "sha256": "228c01bf203e52ed808bc9f66e480e622f7205ced1fafbc9de1801d3092c1d3f",
       "exports": [
         "prepareAcquiredEffectKeyedPrefix"
       ],
       "operations": [
+        {
+          "name": "originalKeyedLookupPublication",
+          "parameters": [
+            "moon",
+            "acquired",
+            "plan",
+            "infer",
+            "captures",
+            "sources",
+            "requestJournal",
+            "runRef",
+            "capacity",
+            "signal",
+            "now",
+            "current",
+            "store",
+            "fileReadDeclarations"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:activate/init:activate",
+          "parameters": [
+            "original",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:adopt/init:adopt",
+          "parameters": [
+            "original",
+            "request",
+            "attempt",
+            "capture",
+            "raw"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:cleanup/init:cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:finishInput/init:finishInput",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:finishInput/init:finishInput/init:finishInput",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:initialize/init:initialize",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
+          "parameters": [
+            "original",
+            "request",
+            "attempt",
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "originalKeyedLookupPublication/originalCurrent/originalCurrent",
+          "parameters": [],
+          "async": false
+        },
         {
           "name": "prepareAcquiredEffectKeyedPrefix",
           "parameters": [
@@ -27508,6 +27609,7 @@
             "originalPreparation",
             "plan",
             "captures",
+            "sources",
             "sourceProfile",
             "ledger",
             "contentRun",
@@ -27516,7 +27618,9 @@
             "signal",
             "now",
             "current",
-            "retain"
+            "retain",
+            "requestJournal",
+            "runRef"
           ],
           "async": true
         },
@@ -27562,7 +27666,16 @@
             "prepareAcquiredEffectKeyedPrefix/frame/frame",
             "prepareAcquiredEffectKeyedPrefix/frame/frame#2",
             "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix",
-            "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix#2"
+            "prepareAcquiredEffectKeyedPrefix/prepareAcquiredEffectKeyedPrefix#2",
+            "originalKeyedLookupPublication",
+            "originalKeyedLookupPublication/init:activate/init:activate",
+            "originalKeyedLookupPublication/init:adopt/init:adopt",
+            "originalKeyedLookupPublication/init:cleanup/init:cleanup",
+            "originalKeyedLookupPublication/init:finishInput/init:finishInput",
+            "originalKeyedLookupPublication/init:finishInput/init:finishInput/init:finishInput",
+            "originalKeyedLookupPublication/init:initialize/init:initialize",
+            "originalKeyedLookupPublication/init:retainRawResponse/init:retainRawResponse",
+            "originalKeyedLookupPublication/originalCurrent/originalCurrent"
           ],
           "exports": [
             "prepareAcquiredEffectKeyedPrefix"
@@ -27670,8 +27783,12 @@
       "imports": [
         "../host-common/acquisition-outcome.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/private-publication-holding.mjs",
         "../host-common/runtime-result.mjs",
         "./installed-source.mjs",
+        "./local-account-config.mjs",
+        "./local-values-plan.mjs",
+        "node:perf_hooks",
         "node:timers/promises"
       ],
       "compilerFields": [],
