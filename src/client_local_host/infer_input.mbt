@@ -6,6 +6,7 @@ struct ClientInferInputExecution {
   mut prefix : @local.ManagedProviderExecution?
   mut retained_input : ClientInferRetainedInput?
   mut sequence : @execution.GeneratedSequence?
+  producer_inputs : Array[@local.ManagedProviderInput]
   infer_step : Int
   owner : @lower.BoundPrepared
   target : @pipeline.Target
@@ -219,6 +220,9 @@ fn start_client_infer_input_sequence(
     is Some(provider) else {
     return Err(UnsupportedProgram)
   }
+  // Retain the exact snapshot passed to the provider before its start can
+  // reenter. Later caller mutation cannot replace this completed input proof.
+  let inputs = inputs.copy()
   let prefix = match
     @local.start_managed_provider_with_inputs_and_execution(
       provider,
@@ -235,6 +239,7 @@ fn start_client_infer_input_sequence(
     prefix: Some(prefix),
     retained_input: None,
     sequence: Some(sequence),
+    producer_inputs: inputs,
     infer_step: step,
     owner,
     target,
@@ -460,6 +465,7 @@ pub fn start_client_completed_infer_input(
     prefix: None,
     retained_input: None,
     sequence: None,
+    producer_inputs: [],
     infer_step: step,
     owner,
     target,
@@ -585,6 +591,82 @@ pub fn client_infer_completed_input(
     return None
   }
   Some(output)
+}
+
+///|
+/// Seal the exact external reads retained by this prefix owner after it has
+/// completed. The caller cannot supply substitute reads or completed rows.
+/// The copied per-input control inventory uses the existing input allowance;
+/// Artifact bodies remain borrowed from their original publication owner.
+pub fn client_infer_completed_result_artifact_input(
+  active : ClientInferInputExecution,
+  occurrence : @publication_host.ClientInferOccurrence,
+  plan : @publication_host.ClientInferPlanGraph,
+  import_index : Int,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  manifest : @publication_host.ClientEffectLocalManifest,
+) -> Result[
+  @publication_host.ClientInferResultArtifactInput,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  guard !active.reclaimed &&
+    !active.cancelled &&
+    active.prefix_done &&
+    active.sequence is Some(sequence) &&
+    client_infer_completed_input(active) is Some(output) else {
+    return Err(@publication_host.ForeignInput)
+  }
+  let bindings : Array[(Int, Int, @execution.ProducerRead)] = []
+  let count = @execution.generated_sequence_step_count(sequence)
+  let mut work = 0
+  for position in 0..<count {
+    guard @execution.generated_sequence_step_index_at(sequence, position)
+      is Some(step) &&
+      @lower.node_at(@lower.bound_preparation(active.owner), step) is Some(node) else {
+      return Err(@publication_host.ForeignInput)
+    }
+    for port in 0..<@lower.node_input_count(node) {
+      if work >= active.limits.max_work {
+        return Err(@publication_host.ForeignInput)
+      }
+      work += 1
+      let mut selected = None
+      for input in active.producer_inputs {
+        if work >= active.limits.max_work {
+          return Err(@publication_host.ForeignInput)
+        }
+        work += 1
+        if input is @local.RelationInput(read) &&
+          @execution.producer_read_matches_operation_input(
+            read,
+            active.owner,
+            step,
+            port,
+          ) {
+          if selected is Some(_) {
+            return Err(@publication_host.ForeignInput)
+          }
+          selected = Some(read)
+        }
+      }
+      if selected is Some(read) {
+        bindings.push((step, port, read))
+      }
+    }
+  }
+  guard @execution.retain_completed_segment_inputs(
+      output,
+      sequence,
+      bindings,
+      active.limits.max_work,
+    )
+    is Some(proof) else {
+    return Err(@publication_host.ForeignInput)
+  }
+  @publication_host.prepare_client_infer_result_artifact_input(
+    occurrence, plan, import_index, output, sequence, bindings, proof, artifact,
+    manifest,
+  )
 }
 
 ///|
@@ -754,6 +836,7 @@ pub fn cleanup_client_infer_input(
   active.prefix = None
   active.retained_input = None
   active.sequence = None
+  active.producer_inputs.clear()
   active.reclaimed = true
   active.completed_input = None
   Ok(true)

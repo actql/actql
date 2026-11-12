@@ -4561,6 +4561,21 @@ function publicationControl(moon) {
       return Object.freeze({observation: inspectEvidence(observation),
         invocation: inspect(invocation), owner: invocation, sourcePublication: issued});
     },
+    prepareCheckedInstalledEffectSourceUnits(plan, checkedEffect, request,
+      compilation, admission, definition, sources, sourceEvidence, context, limits) {
+      issuanceLimits(limits, 'Client original Effect Source Units');
+      if (!Array.isArray(sources) || sources.length < 1 ||
+          !Array.isArray(sourceEvidence) || sourceEvidence.length !== sources.length) {
+        throw new TypeError('Incomplete Effect Source coverage');
+      }
+      return checked(moon.clientProgramPrepareInstalledEffectSourceUnitInputs(
+        plan, checkedEffect, request, compilation, admissionToken(admission), definition,
+        sources.map(({captured}) => captured.capture.source()),
+        sources.map(({captured}) => captured.identity), sourceEvidence.map(evidenceToken),
+        sources.map(({captured}) => captured.logicalInput),
+        context.authorityScopeCid, context.dataPolicyCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
     issueCheckedClientEffectMultiCapturedInvocation(checkedEffect, compilation,
       admission, definition, sources, context, limits) {
       issuanceLimits(limits, 'Client plural Effect Invocation');
@@ -4641,6 +4656,24 @@ function publicationControl(moon) {
       });
       // This is semantic preparation, not a completed producer. Only the
       // actual Result export/receipt issuer below can mint its Artifact.
+      localEffectDependencyTokens.set(value, {kind: 'combined_source', issued: prepared});
+      return value;
+    },
+    preparePreconsumerEffectSourceUnit(inputs, unit, retention, limits) {
+      issuanceLimits(limits, 'Preconsumer Effect Source Unit');
+      if (!Number.isSafeInteger(unit) || unit < 0) {
+        throw new TypeError('Invalid acquired Effect Unit');
+      }
+      const prepared = checked(moon.clientProgramPreparePreconsumerEffectSourceUnit(
+        inputs, unit, token(retention), limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const value = Object.freeze({
+        invocation: moon.clientProgramCombinedEffectSourceUnitInvocation(prepared),
+        bodies: Object.freeze(moon.clientProgramCombinedEffectSourceUnitDependencyBodies(prepared)
+          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
+        catalogBodies: Object.freeze(checked(moon.clientProgramCombinedEffectSourceUnitCatalogBodies(
+          prepared, limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
+          .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
+      });
       localEffectDependencyTokens.set(value, {kind: 'combined_source', issued: prepared});
       return value;
     },

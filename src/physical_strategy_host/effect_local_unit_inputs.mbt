@@ -10,7 +10,7 @@ struct CapturedEffectLocalUnitInputs {
 }
 
 ///|
-/// Capture a completed acquisition-prefix Unit before its consumer executes.
+/// Capture a completed acquisition or computed Unit before its consumer executes.
 /// The existing checked Effect ancestry selects all declared local Results;
 /// a caller cannot provide a subset or borrow an unrelated Unit. No downstream
 /// completion, Preview readiness or approval is inferred from this inventory.
@@ -21,14 +21,37 @@ pub fn pin_captured_effect_acquired_unit_results(
   max_dependency_work? : Int = 65536,
   max_dependency_depth? : Int = 64,
 ) -> Result[CapturedEffectLocalUnitInputs, RunIssue] {
-  if unit < 0 || unit >= run.captured.graph.captured_prefix_value() {
+  let graph = run.captured.graph
+  if unit < 0 || unit >= graph.stage_tasks_count() {
     return Err(ForeignCandidate)
+  }
+  // All original tasks of the selected Unit must have completed. A Whole
+  // input graph has no captured-prefix tasks; its actual completed JOIN is
+  // still the producer. Neither an individual Source nor a future Model can
+  // substitute for that whole original Unit's Result inventory.
+  guard graph.stage_tasks_count_at(unit) is Some(task_count) &&
+    graph.stage_tasks_iter_at(unit) is Some(tasks) else {
+    return Err(ForeignCandidate)
+  }
+  if task_count > max_dependency_work {
+    return Err(PreviewWorkLimit)
+  }
+  for task in tasks {
+    if !task_done(run.captured, task) {
+      return Err(
+        if unit >= graph.captured_prefix_value() {
+          ForeignCandidate
+        } else {
+          NotReady
+        },
+      )
+    }
   }
   let all = match
     effect_dependency_ports(
       run.checked.computation,
       4096,
-      max_dependency_work,
+      max_dependency_work - task_count,
       max_dependency_depth,
     ) {
     Ok(value) => value
@@ -60,6 +83,35 @@ pub fn captured_effect_local_unit_inputs_match_computation(
   inputs.live &&
   !inputs.run.captured.stopped &&
   physical_equal(inputs.run.checked.computation, computation)
+}
+
+///|
+/// The retained Unit and final input inventory must come from the SAME Run.
+/// This reads only original aliases/lifetime flags; it grants no new pin.
+pub fn captured_effect_local_unit_inputs_match_inputs(
+  unit : CapturedEffectLocalUnitInputs,
+  inputs : CapturedEffectInputs,
+) -> Bool {
+  unit.live &&
+  inputs.live &&
+  !unit.run.captured.stopped &&
+  physical_equal(unit.run, inputs.run)
+}
+
+///|
+/// Callback-free original export fence after physical availability checks.
+pub fn captured_effect_local_unit_result_export_retained(
+  inputs : CapturedEffectLocalUnitInputs,
+  exported : CapturedEffectLocalResultExport,
+) -> Bool {
+  match exported.owner {
+    LocalUnit(original) =>
+      physical_equal(original, inputs) &&
+      inputs.live &&
+      inputs.pins.live &&
+      captured_any_result_borrow_retained(exported.result.borrow)
+    EffectInputs(_) => false
+  }
 }
 
 ///|

@@ -564,6 +564,16 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
       context,
       limits) : control.checkedClientEffectInferInvocation(prepared,
         compilation, runDefinition, issuedModel);
+  // Source Unit semantics remain available with later Models present. This
+  // retains only original Source inputs, never a fake complete Run observation.
+  const needsSourceUnits = issuedModel !== undefined && [...sourceUnits].some(([unit, count]) =>
+    count > 1 && !modelOriginals.some(model => model.unit === unit));
+  if (needsSourceUnits && (sourcePlan === undefined || acquired.requestIdentity === undefined)) {
+    throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+  }
+  const sourceUnitInputs = !needsSourceUnits ? undefined :
+    control.prepareCheckedInstalledEffectSourceUnits(sourcePlan, prepared,
+      acquired.requestIdentity, compilation, admission, definition, sources, sourceEvidence, context, limits);
   if (keyedSource !== undefined) {
     if (issuedModel === undefined || keyedSource.source === undefined ||
         typeof keyedSource.logicalRelationCid !== 'string') throw new TypeError('IncompleteAcquiredEffectSources');
@@ -598,11 +608,16 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     const modelContribution = issuedModel !== undefined && modelOriginals.some(model => model.unit === unit);
     if (!modelContribution && sourceUnits.get(unit) > 1) {
       if (acquiredEvidenceByUnit[unit] === undefined) {
-        if (sourcePublication === undefined) {
-          throw new TypeError('CombinedEffectProducerUnitOriginalRequired');
+        if (sourceUnitInputs !== undefined) {
+          acquiredEvidenceByUnit[unit] = control.preparePreconsumerEffectSourceUnit(
+            sourceUnitInputs, unit, retention, limits);
+        } else {
+          if (sourcePublication === undefined) {
+            throw new TypeError('CombinedEffectProducerUnitOriginalRequired');
+          }
+          acquiredEvidenceByUnit[unit] = control.prepareCombinedEffectSourceUnit(
+            sourcePublication, unit, retention, limits);
         }
-        acquiredEvidenceByUnit[unit] = control.prepareCombinedEffectSourceUnit(
-          sourcePublication, unit, retention, limits);
       }
     } else if (!modelContribution) {
       if (acquiredEvidenceByUnit[unit] !== undefined) {

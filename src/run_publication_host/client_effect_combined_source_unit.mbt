@@ -1,15 +1,30 @@
 ///|
 // Original Source observations admitted once by the existing Run invocation
 // owner. Retaining them issues no completed Unit or right to read again.
-priv struct ClientDirectSourceObservation {
+priv struct ClientDirectSourceInputs {
   occurrences : ClientDirectAcquisitionOccurrences
   captures : Array[@query.CapturedInputSource]
   identities : Array[@query.CapturedSourceRelationIdentity]
   originals : Array[ClientDirectSourceOriginal]
   sources : Array[@publication.RunEvidenceValue]
   inputs : Array[@publication.RunEvidenceValue]
+  data_policy_cid : String
+}
+
+///|
+priv struct ClientDirectSourceObservation {
+  original : ClientDirectSourceInputs
   observation : @publication.RunEvidenceValue
   invocation : @publication.PublicationContract
+}
+
+///|
+/// Original Source inputs for completed Units, before later Model observations
+/// exist. This is not a Run Invocation or a completed publication.
+struct ClientEffectSourceUnitInputs {
+  owner : PreparedClientEffectComputation
+  source : ClientDirectSourceInputs
+  run_definition_cid : String
 }
 
 ///|
@@ -34,7 +49,11 @@ priv struct ClientEffectSourceUnitContribution {
 /// Semantic preparation for all original Sources in one checked Unit. A
 /// completed producer is required separately at the Result Artifact issuer.
 struct ClientEffectCombinedSourceUnit {
-  publication : ClientEffectDirectSourcesPublication
+  original : ClientEffectSourceUnitInputs
+  final_context : (
+    @publication.PublicationContract,
+    @publication.RunEvidenceValue,
+  )?
   invocation : ClientEffectLocalInvocation
   contributions : Array[ClientEffectSourceUnitContribution]
   relations : Array[@publication.PublicationContract]
@@ -61,6 +80,55 @@ pub fn client_effect_direct_sources_publication_observation(
 /// individual Source contribution enters the old single-producer issuer.
 pub fn prepare_client_effect_combined_source_unit(
   value : ClientEffectDirectSourcesPublication,
+  unit : Int,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientEffectCombinedSourceUnit, ClientEffectAcquiredEvidenceIssue] {
+  prepare_client_effect_source_unit_body(
+    {
+      owner: value.owner,
+      source: value.source.original,
+      run_definition_cid: value.run_definition_cid,
+    },
+    Some((value.source.invocation, value.source.observation)),
+    unit,
+    retention,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Prepare the same Unit semantics without synthesizing a whole-Run observation.
+pub fn prepare_client_effect_source_unit(
+  value : ClientEffectSourceUnitInputs,
+  unit : Int,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientEffectCombinedSourceUnit, ClientEffectAcquiredEvidenceIssue] {
+  prepare_client_effect_source_unit_body(
+    value,
+    None,
+    unit,
+    retention,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn prepare_client_effect_source_unit_body(
+  value : ClientEffectSourceUnitInputs,
+  final_context : (
+    @publication.PublicationContract,
+    @publication.RunEvidenceValue,
+  )?,
   unit : Int,
   retention : @publication.PublicationContract,
   max_bytes : Int,
@@ -205,7 +273,8 @@ pub fn prepare_client_effect_combined_source_unit(
     return Err(Invocation(ForeignCapturedInput))
   }
   Ok({
-    publication: value,
+    original: value,
+    final_context,
     invocation,
     contributions,
     relations,
@@ -227,7 +296,7 @@ pub fn client_effect_combined_source_unit_invocation(
 pub fn client_effect_combined_source_unit_dependency_bodies(
   value : ClientEffectCombinedSourceUnit,
 ) -> Array[(String, String, String)] {
-  let source = value.publication.source
+  let source = value.original.source
   let bodies = [
     (
       "acquisition_scope",
@@ -287,7 +356,7 @@ pub fn client_effect_combined_source_unit_catalog_bodies(
   max_depth : Int,
 ) -> Result[Array[(String, String, String)], ClientEffectAcquiredEvidenceIssue] {
   let program = @checked.effect_program_static_checked_computation(
-    value.publication.owner.candidate,
+    value.original.owner.candidate,
   )
   let bodies = []
   let seen : Map[String, Bool] = Map([])
@@ -295,7 +364,7 @@ pub fn client_effect_combined_source_unit_catalog_bodies(
   for part in value.contributions {
     let references = match
       @publication.source_effect_catalog_dependencies(
-        value.publication.source.sources[part.slot],
+        value.original.source.sources[part.slot],
       ) {
       Ok(value) => value
       Err(_) => return Err(Dependency(MissingDependency))
@@ -350,9 +419,91 @@ pub fn issue_combined_source_client_effect_local_result_artifact(
   ClientEffectLocalResultArtifact,
   ClientEffectLocalResultArtifactIssue,
 ] {
-  let source = combined.publication.source
-  if !physical_equal(combined.publication.owner, owner) ||
-    !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
+  build_combined_source_client_effect_result_artifact(
+    owner,
+    EffectInputs(inputs),
+    exported,
+    combined,
+    definition,
+    receipt,
+    admission,
+    run_definition,
+    Some((run_invocation, observation)),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Same checked Artifact issuer with the existing pre-consumer Unit custody.
+/// No Unit/Result is reissued and no final Effect input owner is synthesized.
+pub fn issue_combined_source_client_effect_unit_result_artifact(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  combined : ClientEffectCombinedSourceUnit,
+  definition : ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientEffectLocalResultArtifact,
+  ClientEffectLocalResultArtifactIssue,
+] {
+  build_combined_source_client_effect_result_artifact(
+    owner,
+    AcquiredUnit(inputs),
+    exported,
+    combined,
+    definition,
+    receipt,
+    admission,
+    run_definition,
+    Some((run_invocation, observation)),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn build_combined_source_client_effect_result_artifact(
+  owner : PreparedClientEffectComputation,
+  custody : ClientEffectLocalArtifactCustody,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  combined : ClientEffectCombinedSourceUnit,
+  definition : ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  final_context : (
+    @publication.PublicationContract,
+    @publication.RunEvidenceValue,
+  )?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientEffectLocalResultArtifact,
+  ClientEffectLocalResultArtifactIssue,
+] {
+  let source = combined.original.source
+  if !physical_equal(combined.original.owner, owner) ||
+    !(match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_inputs_match_computation(inputs, owner.graph)
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_inputs_match_computation(
+          inputs,
+          owner.graph,
+        )
+    }) ||
     !@strategy.captured_effect_local_result_export_matches_computed_unit(
       exported,
       owner.graph,
@@ -360,17 +511,32 @@ pub fn issue_combined_source_client_effect_local_result_artifact(
     ) ||
     !combined.contributions.all(part => {
       @query.captured_source_available(source.captures[part.slot]) &&
-      @strategy.captured_effect_inputs_acquired_source_matches(
-        inputs,
-        combined.invocation.unit,
-        source.identities[part.slot],
-      )
+      (match custody {
+        EffectInputs(inputs) =>
+          @strategy.captured_effect_inputs_acquired_source_matches(
+            inputs,
+            combined.invocation.unit,
+            source.identities[part.slot],
+          )
+        AcquiredUnit(inputs) =>
+          @strategy.captured_effect_local_unit_acquired_source_matches(
+            inputs,
+            source.identities[part.slot],
+          )
+      })
     }) {
     return Err(ForeignOwner)
   }
-  if !@strategy.captured_effect_local_result_export_matches_receipt(
-      inputs, exported, receipt,
-    ) {
+  if !(match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_local_result_export_matches_receipt(
+          inputs, exported, receipt,
+        )
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_result_export_matches_receipt(
+          inputs, exported, receipt,
+        )
+    }) {
     return Err(ForeignExport)
   }
   let result = @strategy.captured_effect_local_result_export_result(exported)
@@ -385,12 +551,15 @@ pub fn issue_combined_source_client_effect_local_result_artifact(
     ) {
     return Err(ForeignDefinition)
   }
-  if combined.publication.run_definition_cid !=
+  if combined.original.run_definition_cid !=
     @publication.publication_contract_identity(run_definition) ||
-    @strategy.captured_effect_inputs_run_definition_cid(inputs) !=
-    Some(combined.publication.run_definition_cid) ||
-    !physical_equal(run_invocation, source.invocation) ||
-    !physical_equal(observation, source.observation) ||
+    (match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_inputs_run_definition_cid(inputs)
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_inputs_run_definition_cid(inputs)
+    }) !=
+    Some(combined.original.run_definition_cid) ||
     @publication.check_run_publication_program_binding(
       admission,
       run_definition,
@@ -401,22 +570,69 @@ pub fn issue_combined_source_client_effect_local_result_artifact(
     is Err(_) {
     return Err(ForeignRun)
   }
-  let (_, policy, authority) = match
-    @publication.resolve_run_local_result_evidence_refs(
-      admission,
-      run_definition,
-      run_invocation,
-      observation,
-      combined.retention,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Context(issue))
+  let (run_invocation, policy, authority) = match final_context {
+    Some((invocation, observation)) => {
+      if combined.final_context
+        is Some((original_invocation, original_observation)) &&
+        (
+          !physical_equal(invocation, original_invocation) ||
+          !physical_equal(observation, original_observation)
+        ) {
+        return Err(ForeignInvocation)
+      }
+      // A pre-consumer Source Unit has no final observation yet. Its original
+      // checked Run/custody above and the complete context below must still
+      // match; no Model observation is synthesized from Source contributions.
+      let (_, policy, authority) = match
+        @publication.resolve_run_local_result_evidence_refs(
+          admission,
+          run_definition,
+          invocation,
+          observation,
+          combined.retention,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Context(issue))
+      }
+      (Some(invocation), policy, authority)
+    }
+    None => {
+      // Only the actual pre-consumer Unit custody may precede the final Run
+      // observation. Its semantic Artifact will not acquire publication rights.
+      guard custody is AcquiredUnit(_) && combined.final_context is None else {
+        return Err(ForeignInvocation)
+      }
+      let policy = source.data_policy_cid
+      let same_retention = match
+        @publication.issue_result_retention_for_data_policy(
+          combined.retention,
+          policy,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Context(@publication.ForeignRetention))
+      }
+      if @publication.publication_contract_identity(same_retention) !=
+        @publication.publication_contract_identity(combined.retention) {
+        return Err(Context(@publication.ForeignRetention))
+      }
+      (None, policy, @publication.run_publication_execution_context(admission))
+    }
   }
-  if !@strategy.captured_effect_local_result_export_retained(inputs, exported) {
+  if !(match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_local_result_export_retained(inputs, exported)
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_result_export_retained(
+          inputs, exported,
+        )
+    }) {
     return Err(ForeignExport)
   }
   build_client_effect_local_result_artifact(
-    EffectInputs(inputs),
+    custody,
     ResultSource(borrow, definition),
     combined.invocation,
     receipt,
@@ -430,5 +646,40 @@ pub fn issue_combined_source_client_effect_local_result_artifact(
     max_nodes,
     max_depth,
     scope=Some(combined.scope),
+  )
+}
+
+///|
+/// Complete semantic Artifact of the original producer Unit before its later
+/// Model consumer. Final Run publication is deliberately unbound here.
+pub fn issue_preconsumer_client_effect_unit_result_artifact(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  combined : ClientEffectCombinedSourceUnit,
+  definition : ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientEffectLocalResultArtifact,
+  ClientEffectLocalResultArtifactIssue,
+] {
+  build_combined_source_client_effect_result_artifact(
+    owner,
+    AcquiredUnit(inputs),
+    exported,
+    combined,
+    definition,
+    receipt,
+    admission,
+    run_definition,
+    None,
+    max_bytes,
+    max_nodes,
+    max_depth,
   )
 }

@@ -534,6 +534,8 @@ pub fn client_program_bind_infer_physical_preflight_current(@client_infer_host.E
 
 pub fn client_program_bind_infer_quantity_capacity(@client_infer_host.Execution, Int64, Int64, Int64, Int64, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
 
+pub fn client_program_bind_infer_result_artifact_input(@client_infer_host.Execution, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalManifest) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_bind_infer_run(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
 pub fn client_program_bind_infer_slot_capture(@model_execution.VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, @model_execution.ModelExecutionIssue]
@@ -3132,6 +3134,8 @@ pub fn client_program_prepare_installed_effect_capture_recovery(@client_local_ho
 
 pub fn client_program_prepare_installed_effect_direct_sources_publication(@client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectDirectSourcesPublication, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_prepare_installed_effect_source_unit_inputs(@client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectSourceUnitInputs, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_prepare_installed_managed_source_free_with_contracts(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> Result[@client_local_host.ClientInstalledManagedSourceFreePreparation, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_prepare_installed_managed_whole_source_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, Int64, Int64, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
@@ -3175,6 +3179,8 @@ pub fn client_program_prepare_multi_captured_local_installed_ledger(@run_publica
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_original_mock(@check_environment.ModelMockProfile, @check_environment.PublicModelTaskDeclaration, @check_environment.NormalizedPublicModelTask, () -> String) -> Result[@model_execution.ModelMockInstallation, @model_execution.ModelMockInstallationIssue]
+
+pub fn client_program_prepare_preconsumer_effect_source_unit(@run_publication_host.ClientEffectSourceUnitInputs, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectCombinedSourceUnit, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_prepare_program_check_carriers(@client_local_host.ClientProgramCheckPreparation[ClientLocalPreparationInputOriginal, Unit]) -> Result[@program_check.ParsedCheckRegistry, @client_local_host.ClientProgramCheckPreparationIssue]
 

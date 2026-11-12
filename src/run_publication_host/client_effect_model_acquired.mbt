@@ -376,7 +376,7 @@ pub fn issue_model_client_effect_local_result_artifact(
     ResultSource(borrow, definition),
     invocation,
     receipt,
-    run_invocation,
+    Some(run_invocation),
     retention,
     @publication.publication_contract_identity(acquired.scope),
     policy,
@@ -456,8 +456,8 @@ pub fn client_effect_model_public_result_evidence_refs(
   }
   if client_effect_local_artifact_run_definition_cid(artifact) !=
     Some(@publication.publication_contract_identity(materials.run_definition)) ||
-    @publication.publication_contract_identity(artifact.run_invocation) !=
-    @publication.publication_contract_identity(invocation) {
+    client_effect_local_artifact_run_invocation_cid(artifact) !=
+    Some(@publication.publication_contract_identity(invocation)) {
     return Err(ForeignRun)
   }
   let (_, policy, authority) = match

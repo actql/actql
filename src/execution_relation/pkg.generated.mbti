@@ -616,6 +616,8 @@ pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completed_segment_inputs_construction_inventory(Int) -> PreparationRepresentationUnits?
 
+pub fn completed_segment_inputs_has_original_pipeline_input(CompletedSegmentInputs, @lowering_relation.BoundPrepared, Int, CompletedOutput) -> Bool
+
 pub fn completed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, ProducerRead)]) -> CompletedOutput?
 
 pub fn completed_source_input_matches_read(CompletedOutput, SuppliedRelationRead) -> Bool

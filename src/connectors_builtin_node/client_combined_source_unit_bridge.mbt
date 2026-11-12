@@ -23,43 +23,19 @@ pub fn client_program_prepare_installed_effect_direct_sources_publication(
   @publication_host.ClientEffectDirectSourcesPublication,
   @publication.RunEvidenceValueIssue,
 ] {
-  let direct = match
-    @client_local_host.prepared_installed_effect_source_occurrences(
-      plan, prepared, request,
+  let (direct, originals) = match
+    client_program_installed_effect_source_originals(
+      plan,
+      prepared,
+      request,
+      captures.length(),
+      identities.length(),
+      sources.length(),
+      inputs.length(),
+      max_nodes,
     ) {
-    Ok(Some(value)) => value
-    _ => return Err(@publication.RunEvidenceReferenceMismatch("effect_run"))
-  }
-  let count = @publication_host.client_direct_acquisition_occurrence_count(
-    direct,
-  )
-  if count < 1 ||
-    count > max_nodes ||
-    captures.length() != count ||
-    identities.length() != count ||
-    sources.length() != count ||
-    inputs.length() != count {
-    return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
-  }
-  let originals : Array[@publication_host.ClientDirectSourceOriginal] = []
-  for slot in 0..<count {
-    match
-      @client_local_host.prepared_installed_effect_managed_whole_source(
-        plan, slot,
-      ) {
-      Ok((acquisition, _, _)) =>
-        originals.push(@publication_host.WholeSourceOriginal(acquisition))
-      Err(_) =>
-        match
-          @client_local_host.prepared_installed_effect_managed_query_requirement(
-            plan, slot,
-          ) {
-          Ok(requirement) =>
-            originals.push(@publication_host.QuerySourceOriginal(requirement))
-          Err(_) =>
-            return Err(@publication.RunEvidenceReferenceMismatch("source_task"))
-        }
-    }
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   @publication_host.prepare_client_effect_direct_sources_publication(
     prepared, compilation, admission, definition, direct, captures, identities, originals,
@@ -157,5 +133,126 @@ pub fn client_program_issue_combined_source_effect_local_result_artifact(
   @publication_host.issue_combined_source_client_effect_local_result_artifact(
     owner, inputs, exported, source, definition, receipt, admission, run_definition,
     run_invocation, observation, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Both publication phases select the same installed originals and coverage.
+fn client_program_installed_effect_source_originals(
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  capture_count : Int,
+  identity_count : Int,
+  source_count : Int,
+  input_count : Int,
+  max_nodes : Int,
+) -> Result[
+  (
+    @publication_host.ClientDirectAcquisitionOccurrences,
+    Array[@publication_host.ClientDirectSourceOriginal],
+  ),
+  @publication.RunEvidenceValueIssue,
+] {
+  let direct = match
+    @client_local_host.prepared_installed_effect_source_occurrences(
+      plan, prepared, request,
+    ) {
+    Ok(Some(value)) => value
+    _ => return Err(@publication.RunEvidenceReferenceMismatch("effect_run"))
+  }
+  let count = @publication_host.client_direct_acquisition_occurrence_count(
+    direct,
+  )
+  if count < 1 ||
+    count > max_nodes ||
+    capture_count != count ||
+    identity_count != count ||
+    source_count != count ||
+    input_count != count {
+    return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
+  }
+  let originals : Array[@publication_host.ClientDirectSourceOriginal] = []
+  for slot in 0..<count {
+    match
+      @client_local_host.prepared_installed_effect_managed_whole_source(
+        plan, slot,
+      ) {
+      Ok((acquisition, _, _)) =>
+        originals.push(@publication_host.WholeSourceOriginal(acquisition))
+      Err(_) =>
+        match
+          @client_local_host.prepared_installed_effect_managed_query_requirement(
+            plan, slot,
+          ) {
+          Ok(requirement) =>
+            originals.push(@publication_host.QuerySourceOriginal(requirement))
+          Err(_) =>
+            return Err(@publication.RunEvidenceReferenceMismatch("source_task"))
+        }
+    }
+  }
+  Ok((direct, originals))
+}
+
+///|
+/// Source-only Unit custody, without claiming unfinished Model observations.
+#export_name("clientProgramPrepareInstalledEffectSourceUnitInputs")
+pub fn client_program_prepare_installed_effect_source_unit_inputs(
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  compilation : @publication_host.ClientEffectCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  sources : Array[@publication.RunEvidenceValue],
+  inputs : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectSourceUnitInputs,
+  @publication.RunEvidenceValueIssue,
+] {
+  let (direct, originals) = match
+    client_program_installed_effect_source_originals(
+      plan,
+      prepared,
+      request,
+      captures.length(),
+      identities.length(),
+      sources.length(),
+      inputs.length(),
+      max_nodes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @publication_host.prepare_client_effect_source_unit_inputs(
+    prepared, compilation, admission, definition, direct, captures, identities, originals,
+    sources, inputs, authority_scope_cid, data_policy_cid, max_bytes, max_nodes,
+    max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramPreparePreconsumerEffectSourceUnit")
+pub fn client_program_prepare_preconsumer_effect_source_unit(
+  inputs : @publication_host.ClientEffectSourceUnitInputs,
+  unit : Int,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectCombinedSourceUnit,
+  @publication_host.ClientEffectAcquiredEvidenceIssue,
+] {
+  @publication_host.prepare_client_effect_source_unit(
+    inputs, unit, retention, max_bytes, max_nodes, max_depth,
   )
 }

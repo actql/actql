@@ -92,6 +92,8 @@ fn model_local_invocation_for(
     effective: artifact,
     source: None,
     sources: [],
+    result_inputs: [],
+    saved_result_scope: None,
     named_sources: [],
     generation: None,
     unit_definition_cid: unit,

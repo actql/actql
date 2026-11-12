@@ -47,9 +47,10 @@ fn client_effect_local_artifact_matches_inputs(
   artifact : ClientEffectLocalResultArtifact,
   inputs : @strategy.CapturedEffectInputs,
 ) -> Bool {
-  match client_effect_local_artifact_inputs(artifact) {
-    Some(owner) => physical_equal(owner, inputs)
-    None => false
+  match artifact.custody {
+    EffectInputs(owner) => physical_equal(owner, inputs)
+    AcquiredUnit(owner) =>
+      @strategy.captured_effect_local_unit_inputs_match_inputs(owner, inputs)
   }
 }
 
@@ -93,7 +94,7 @@ struct ClientEffectLocalResultArtifact {
   custody : ClientEffectLocalArtifactCustody
   source : ClientEffectLocalRelationSource
   invocation : ClientEffectLocalInvocation
-  run_invocation : @publication.PublicationContract
+  mut run_invocation : @publication.PublicationContract?
   evidence : @publication.ResultOrderingEvidence
   artifact : @publication.PublicationContract
   retention : @publication.PublicationContract
@@ -211,7 +212,7 @@ pub fn issue_source_free_client_effect_local_result_artifact(
     ResultSource(@strategy.captured_effect_input_borrow(input), definition),
     invocation,
     receipt,
-    run_invocation,
+    Some(run_invocation),
     retention,
     scope_cid,
     effective_data_policy_cid,
@@ -308,7 +309,7 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(
     ResultSource(borrow, definition),
     invocation,
     receipt,
-    run_invocation,
+    Some(run_invocation),
     retention,
     @publication.publication_contract_identity(scope),
     policy,
@@ -327,7 +328,7 @@ fn build_client_effect_local_result_artifact(
   source : ClientEffectLocalRelationSource,
   invocation : ClientEffectLocalInvocation,
   receipt : @execution.CompletedRelationExportReceipt,
-  run_invocation : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract?,
   retention : @publication.PublicationContract,
   scope_cid : String,
   effective_data_policy_cid : String,
@@ -686,5 +687,68 @@ pub fn client_effect_local_result_artifact_matches_public_result(
         owner, definition, result,
       )
     TableSource(_, _) => false
+  }
+}
+
+///|
+fn client_effect_local_artifact_run_invocation_cid(
+  artifact : ClientEffectLocalResultArtifact,
+) -> String? {
+  artifact.run_invocation.map(@publication.publication_contract_identity)
+}
+
+///|
+/// Bind an early producer's unchanged semantic Artifact to the final original
+/// Run context once. This does not reissue its Artifact, receipt, pin or input
+/// owner and grants no publication or Effect permission.
+pub fn bind_client_effect_unit_artifact_run_context(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  artifact : ClientEffectLocalResultArtifact,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+) -> Result[Unit, ClientEffectLocalResultArtifactIssue] {
+  if !physical_equal(artifact.invocation.owner, owner) ||
+    !client_effect_local_artifact_matches_inputs(artifact, inputs) ||
+    !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
+    !(artifact.custody is AcquiredUnit(_)) {
+    return Err(ForeignOwner)
+  }
+  if client_effect_local_artifact_run_definition_cid(artifact) !=
+    Some(@publication.publication_contract_identity(definition)) ||
+    @publication.check_run_publication_program_binding(
+      admission,
+      definition,
+      prepared_client_effect_computation_definition_cid(owner),
+      prepared_client_effect_computation_semantics_cid(owner),
+      prepared_client_effect_computation_environment_cid(owner),
+    )
+    is Err(_) {
+    return Err(ForeignRun)
+  }
+  match
+    @publication.resolve_run_local_result_evidence_refs(
+      admission,
+      definition,
+      invocation,
+      observation,
+      artifact.retention,
+    ) {
+    Err(issue) => return Err(Context(issue))
+    Ok(_) => ()
+  }
+  match artifact.run_invocation {
+    Some(original) =>
+      if physical_equal(original, invocation) {
+        Ok(())
+      } else {
+        Err(ForeignInvocation)
+      }
+    None => {
+      artifact.run_invocation = Some(invocation)
+      Ok(())
+    }
   }
 }

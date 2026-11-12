@@ -231,3 +231,62 @@ fn model_effect_keyed_policy_matches(
   }
   false
 }
+
+///|
+// Distinct original Source ancestors may feed ONE checked Result port. This
+// is ancestry membership, never a second completed input or a read grant.
+fn model_effect_checks_share_result_port(
+  program : @checked.CheckedProgram,
+  unit : Int,
+  name : String,
+  left : @checked.SourceExecution,
+  right : @checked.SourceExecution,
+) -> Bool {
+  if physical_equal(left, right) {
+    return false
+  }
+  for index in 0..<@checked.unit_result_import_count(program, unit).unwrap_or(0) {
+    let interface = @checked.unit_result_import_at(program, unit, index).unwrap()
+    if interface.input_name != name {
+      continue
+    }
+    guard model_effect_result_port_policy(program, interface) is Some(policy) else {
+      return false
+    }
+    let mut a = false
+    let mut b = false
+    for slot in 0..<@checked.publication_policy_source_count(policy) {
+      let original = @checked.publication_policy_source_at(policy, slot).unwrap()
+      a = a || physical_equal(original, left)
+      b = b || physical_equal(original, right)
+    }
+    return a && b
+  }
+  false
+}
+
+///|
+fn model_effect_originals_share_result_port(
+  program : @checked.CheckedProgram,
+  unit : Int,
+  name : String,
+  left : ClientInferSourceOriginal,
+  right : ClientInferSourceOriginal,
+) -> Bool {
+  let mut a = None
+  let mut b = None
+  for slot in 0..<@checked.source_execution_count(program) {
+    let original = @checked.source_execution_at(program, slot).unwrap()
+    if model_effect_source_original_matches_check(left, original) {
+      a = Some(original)
+    }
+    if model_effect_source_original_matches_check(right, original) {
+      b = Some(original)
+    }
+  }
+  match (a, b) {
+    (Some(a), Some(b)) =>
+      model_effect_checks_share_result_port(program, unit, name, a, b)
+    _ => false
+  }
+}

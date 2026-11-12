@@ -421,6 +421,29 @@ fn issue_local_model_observation_body(
   max_nodes : Int,
   max_depth : Int,
 ) -> LocalModelObservation? {
+  guard build_local_model_observation_body(
+      scope, input_logical, input_schema, outcome_receipt, max_wire_bytes, max_nodes,
+      max_depth,
+    )
+    is Some(body) &&
+    original_local_model_observation_current(held, issued) else {
+    return None
+  }
+  Some({ held, issued, body, })
+}
+
+///|
+// One semantic codec for final-Run and pre-consumer Unit observations. The
+// caller owns its original Model currentness and variable writer backing.
+fn build_local_model_observation_body(
+  scope : @publication_host.ClientInferCallScope,
+  input_logical : String,
+  input_schema : String,
+  outcome_receipt : @relation.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedEffectDependencyBody? {
   let (unit, ordinal) = @publication_host.client_infer_call_scope_local_coordinate(
     scope,
   )
@@ -471,11 +494,10 @@ fn issue_local_model_observation_body(
     guard @publication.admit_local_effect_dependency_body(
         "local_model_observation", wire, max_wire_bytes, max_nodes, max_depth,
       )
-      is Ok(body) &&
-      original_local_model_observation_current(held, issued) else {
+      is Ok(body) else {
       return None
     }
-    Some({ held, issued, body, })
+    Some(body)
   } catch {
     _ => None
   }
@@ -627,4 +649,43 @@ pub fn issue_original_local_model_direct_source_evidence(
     return Err(Invocation(ForeignCapturedInput))
   }
   result
+}
+
+///|
+/// A local Unit contribution may be needed before the remaining Models run.
+/// The SAME complete outcome and first input Scope supply this semantic body;
+/// no whole-Run observation, invocation binding, new output or authority is issued.
+/// Its caller reserves the variable writer material on the original parent.
+pub fn prepare_preconsumer_model_unit_observation(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  outcome_receipt : @relation.CompletedRelationExportReceipt,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedEffectDependencyBody? {
+  guard borrow_original_model_observation_relations(
+      held, compiled, definition, plan,
+    )
+    is Some((_, outcomes)) &&
+    held.owner.call_scope is Some(scope) &&
+    @relation.completed_relation_export_matches_output(
+      outcome_receipt, outcomes,
+    ) &&
+    @publication.model_input_artifact_relation_identities(
+      @publication_host.client_infer_call_scope_artifact(scope),
+    )
+    is Some((logical, schema)) else {
+    return None
+  }
+  let body = build_local_model_observation_body(
+    scope, logical, schema, outcome_receipt, max_bytes, max_nodes, max_depth,
+  )
+  if original_host_output_matches(held, compiled, definition, plan) {
+    body
+  } else {
+    None
+  }
 }

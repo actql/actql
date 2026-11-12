@@ -18,6 +18,7 @@ fn saved_model_imported_scope_test_fixture(
     artifact: scope.artifact,
     effective: scope.effective,
     named_sources: scope.named_sources.copy(),
+    result_inputs: [],
     available,
   }
   (compiled, scope, saved)

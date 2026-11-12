@@ -468,3 +468,43 @@ for (const units of [[0, 0], [0, 0, 2]]) {
     assert.equal(plan.localEvidenceContext.acquisitionDependencies.length, sources.length * 2);
   });
 }
+
+// A final Model observation does not erase an upstream Unit's original Source
+// context. These explicit ports exercise the actual consumer, not a provider.
+test('combined upstream Source Unit publication remains available when later Models exist', () => {
+  const sourcePlan = {}, unitInputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
+  const sources = [0, 1].map(slot => ({captured: {inputKind: 'whole-input',
+    occurrence: {stage: 0}, identity: {slot}, capture: {source: () => ({slot})}, logicalInput: {}},
+    sourceEvidence: {slot}}));
+  const model = {unit: 1}, calls = [];
+  const acquired = {prepared: {}, requestIdentity: {}, compilation: {}, admission: {}, definition: {},
+    runDefinition: {wire: '{"created_at":"2026-11-12T00:00:00.000Z"}'}, compiledPlan: {identity: 'same-plan'}};
+  acquired.moon = {clientProgramEffectPublicationDataPolicyCid: () => 'original-policy',
+    clientProgramEffectDefinitionCid: () => 'original-definition', clientProgramEffectCompilationResultNames: () => ['joined'],
+    clientProgramCapturedSourceLogicalCid: identity => 'logical-' + identity.slot,
+    clientProgramCapturedSourceSchemaCid: () => 'original-schema',
+    clientProgramCapturedSourceDependencyBodies: identity => ['rows-' + identity.slot, 'schema'],
+    clientProgramEffectPublicationPolicyBodies: () => ({ok: []})};
+  acquired.control = {checkedClientEffectInferInvocation() {calls.push('complete-model'); return {
+    observation: {}, invocation: {}, owner: {}};},
+    issueCheckedInstalledEffectDirectSourcesInvocation() {assert.fail('no Source-only whole-Run observation');},
+    prepareCheckedInstalledEffectSourceUnits(plan, prepared, request, compilation, admission, definition, actual, evidence) {
+      assert.strictEqual(plan, sourcePlan); assert.strictEqual(prepared, acquired.prepared);
+      assert.strictEqual(request, acquired.requestIdentity); assert.strictEqual(actual, sources);
+      assert.equal(evidence.length, 2); calls.push('original-source-units'); return unitInputs;
+    }, preparePreconsumerEffectSourceUnit(original, unit, policy) {
+      assert.strictEqual(original, unitInputs); assert.equal(unit, 0); assert.strictEqual(policy, retention);
+      calls.push('combined-0'); return combined;
+    }};
+  const run = composedSourceFunction('./local-values-plan.mjs', 'acquiredMultiEffectPublicationPlan', {
+    limits: {}, runtimeField: (value, index) => value[index], runtimeOptionalField: (value, index) => value[index],
+    checked: value => value.ok, buildLocalPublicationPlan: () => ({plan: {}, retention, retentionDependencies: []}),
+  });
+  const plan = run({acquired, sources, sourcePlan, issuedModel: {}, modelOriginals: [model]});
+  assert.deepEqual(calls, ['complete-model', 'original-source-units', 'combined-0']);
+  assert.strictEqual(plan.localEvidenceContext.acquiredEvidenceByUnit[0], combined);
+  assert.strictEqual(plan.localEvidenceContext.modelOriginalByUnit[1], model);
+  assert.equal(plan.localEvidenceContext.acquisitionDependencies.length, 4);
+  assert.throws(() => run({acquired, sources, issuedModel: {}, modelOriginals: [model]}),
+    /WholeEffectProducerUnitOriginalRequired/u);
+});

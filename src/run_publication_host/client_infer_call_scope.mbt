@@ -10,6 +10,8 @@ pub struct ClientInferCallScope {
   source : @publication.ModelSourceObservation?
   sources : Array[@publication.ModelSourceObservation]
   named_sources : Array[(String, @publication.ModelSourceObservation)]
+  result_inputs : Array[ClientInferResultArtifactInput]
+  priv saved_result_scope : ClientInferSavedCallScope?
   generation : ClientSerializationGeneration?
   unit_definition_cid : String
   source_ordinal : Int
@@ -78,6 +80,7 @@ pub fn issue_client_infer_occurrence_call_scope(
   captured? : ClientInferCapturedInput? = None,
   sources? : ClientInferComposedSources? = None,
   generation? : ClientSerializationGeneration? = None,
+  result_inputs? : Array[ClientInferResultArtifactInput] = [],
 ) -> Result[ClientInferCallScope, ClientInferCallScopeIssue] {
   let owner = occurrence.owner
   let step = occurrence.step
@@ -108,10 +111,46 @@ pub fn issue_client_infer_occurrence_call_scope(
     client_infer_captured_input_source(value, owner, step) is None {
     return Err(ForeignInput)
   }
+  // These issuer-owned bindings retain actual completed producer Artifacts,
+  // not the raw Sources contributing to those Results.
+  let result_bindings : Array[(String, String)] = []
+  for original in result_inputs {
+    let binding = match
+      client_infer_result_artifact_input_binding(original, occurrence, input) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if result_bindings.any(value => value.0 == binding.0) {
+      return Err(ForeignInput)
+    }
+    result_bindings.push(binding)
+  }
+  let all_result_inputs = !result_bindings.is_empty() &&
+    result_bindings.length() ==
+    @checked.unit_result_import_count(
+      @strategy.graph_program(owner.graph),
+      occurrence.stage,
+    ).unwrap_or(-1) &&
+    result_bindings.length() ==
+    @pipeline.input_count(@lower.pipeline(@lower.bound_preparation(prefix)))
+  if sources is Some(value) && !all_result_inputs {
+    for index in 0..<value.inputs.length() {
+      let source = value.inputs[index]
+      if value.inputs
+        .iter()
+        .take(index)
+        .any(previous => previous.name == source.name) &&
+        !result_bindings.any(binding => binding.0 == source.name) {
+        // Ancestry alone cannot supply rows under a shared Result name.
+        return Err(ForeignInput)
+      }
+    }
+  }
   if client_infer_occurrence_has_captured_sources(occurrence) &&
     captured is None &&
     sources is None &&
-    generated_sources is None {
+    generated_sources is None &&
+    !all_result_inputs {
     // An imported Source path needs its complete capture closure; it cannot
     // silently take the no-external-sources identity route.
     return Err(ForeignInput)
@@ -156,15 +195,24 @@ pub fn issue_client_infer_occurrence_call_scope(
     )
     @encode.key(writer, "input_artifacts")
     @encode.begin_object(writer)
-    if captured is Some(value) {
+    for (name, cid) in result_bindings {
+      @encode.key(writer, name)
+      @encode.string_value(writer, cid)
+    }
+    if !all_result_inputs &&
+      captured is Some(value) &&
+      !result_bindings.any(binding => binding.0 == value.name) {
       @encode.key(writer, value.name)
       @encode.string_value(
         writer,
         @publication.run_evidence_value_identity(value.logical),
       )
     }
-    if sources is Some(value) {
+    if !all_result_inputs && sources is Some(value) {
       for input in value.inputs {
+        if result_bindings.any(binding => binding.0 == input.name) {
+          continue
+        }
         @encode.key(writer, input.name)
         @encode.string_value(
           writer,
@@ -179,7 +227,7 @@ pub fn issue_client_infer_occurrence_call_scope(
         )
       }
     }
-    if generated_sources is Some(originals) {
+    if !all_result_inputs && generated_sources is Some(originals) {
       for (name, observation) in originals {
         let (_, logical, _, _) = @publication.model_source_observation_originals(
           observation,
@@ -258,6 +306,8 @@ pub fn issue_client_infer_occurrence_call_scope(
             .unwrap_or([])
         }
     },
+    result_inputs: result_inputs.copy(),
+    saved_result_scope: None,
     unit_definition_cid,
     source_ordinal: step,
     generation,
@@ -280,6 +330,26 @@ pub fn client_infer_call_scope_matches(
 fn client_infer_call_scope_generation_available(
   value : ClientInferCallScope,
 ) -> Bool {
+  if value.saved_result_scope is Some(saved) &&
+    (
+      !value.result_inputs.is_empty() ||
+      !physical_equal(value.plan, saved.plan) ||
+      !physical_equal(value.artifact, saved.artifact) ||
+      !physical_equal(value.effective, saved.effective) ||
+      !(saved.available)()
+    ) {
+    return false
+  }
+  if !value.result_inputs.all(original => {
+      client_infer_result_artifact_input_binding(
+        original,
+        value.plan.occurrence,
+        value.input,
+      )
+      is Ok(_)
+    }) {
+    return false
+  }
   value.generation
   .map(generation => {
     client_serialization_generation_source_observations_for(
@@ -475,10 +545,55 @@ pub fn client_infer_call_scope_snapshot(
       @encode.end_object(writer)
     }
     @encode.end_array(writer)
+    if !value.result_inputs.is_empty() ||
+      value.saved_result_scope
+      .map(saved => !saved.result_inputs.is_empty())
+      .unwrap_or(false) {
+      @encode.key(writer, "result_inputs")
+      @encode.begin_array(writer)
+      for original in value.result_inputs {
+        let (name, artifact) = match
+          client_infer_result_artifact_input_binding(
+            original,
+            value.plan.occurrence,
+            value.input,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(ForeignInput)
+        }
+        @encode.begin_object(writer)
+        @encode.key(writer, "name")
+        @encode.string_value(writer, name)
+        @encode.key(writer, "result_artifact_cid")
+        @encode.string_value(writer, artifact)
+        @encode.key(writer, "producer_local_manifest_cid")
+        @encode.string_value(writer, original.manifest.cid)
+        @encode.end_object(writer)
+      }
+      if value.saved_result_scope is Some(saved) {
+        for (name, artifact, manifest) in saved.result_inputs {
+          @encode.begin_object(writer)
+          @encode.key(writer, "name")
+          @encode.string_value(writer, name)
+          @encode.key(writer, "result_artifact_cid")
+          @encode.string_value(writer, artifact)
+          @encode.key(writer, "producer_local_manifest_cid")
+          @encode.string_value(writer, manifest)
+          @encode.end_object(writer)
+        }
+      }
+      @encode.end_array(writer)
+    }
     @encode.end_object(writer)
     @encode.finish(writer)
   } catch {
     _ => return Err(Encoding)
+  }
+  // The completed input's availability observer can call out after the first
+  // saved-custody observation. Keep the same receiving owner across that cut.
+  if value.saved_result_scope is Some(_) &&
+    !client_infer_call_scope_generation_available(value) {
+    return Err(ForeignInput)
   }
   guard parse_plan_identity_value(body, 1000000, 100000, 100) is Some(parsed) else {
     return Err(Encoding)
@@ -499,6 +614,9 @@ pub struct ClientInferSavedCallScope {
   artifact : @publication.RunEvidenceValue
   effective : @publication.RunEvidenceValue
   named_sources : Array[(String, @publication.ModelSourceObservation)]
+  // Authenticated historical identities only. These never become live
+  // producer reads, Result Artifacts or a Model/Source dispatch permission.
+  priv result_inputs : Array[(String, String, String)]
   available : () -> Bool
 }
 
@@ -735,6 +853,7 @@ fn infer_scope_expected_whole_sources(
     return infer_scope_expected_whole_sources(first)
   }
   let expected : Array[(String, @planning.QuerySourceEvidenceFacts)] = []
+  let expected_checks : Array[(String, @checked.SourceExecution)] = []
   let mut invalid_port = false
   let mut whole = 0
   for slot in 0..<client_direct_acquisition_occurrence_count(direct) {
@@ -764,8 +883,18 @@ fn infer_scope_expected_whole_sources(
     )
     if name is Some(name) &&
       facts is Some(facts) &&
-      !expected.any(entry => entry.0 == name) {
+      !expected_checks.any(entry => {
+        entry.0 == name &&
+        !model_effect_checks_share_result_port(
+          @strategy.graph_program(owner.graph),
+          occurrence.stage,
+          name,
+          entry.1,
+          direct.checks[slot],
+        )
+      }) {
       expected.push((name, facts))
+      expected_checks.push((name, direct.checks[slot]))
     } else {
       invalid_port = true
     }
@@ -830,7 +959,14 @@ pub fn read_client_infer_saved_call_scope(
   }
   guard parse_plan_identity_value(snapshot_wire, 1000000, 100000, 100)
     is Some(snapshot) &&
-    @canonical.object_field_count(snapshot) == Some(4) &&
+    @canonical.object_field_count(snapshot) ==
+    Some(
+      if @canonical.object_field(snapshot, "result_inputs") is Some(_) {
+        5
+      } else {
+        4
+      },
+    ) &&
     infer_scope_string(snapshot, "version") ==
     Some("actql-host-model-input-scope/0.1") &&
     infer_scope_string(snapshot, "input_artifact_wire") is Some(artifact_wire) &&
@@ -856,12 +992,62 @@ pub fn read_client_infer_saved_call_scope(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let expected = match
-    infer_scope_expected_sources(occurrence, plan=Some(plan)) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let result_inputs : Array[(String, String, String)] = []
+  let result_names : Map[String, Bool] = Map([])
+  match @canonical.object_field(snapshot, "result_inputs") {
+    None => ()
+    Some(@canonical.Array(values)) => {
+      let entries = @canonical.array_values(values)
+      let program = @strategy.graph_program(occurrence.owner.graph)
+      guard @checked.unit_result_import_count(program, occurrence.stage)
+        is Some(count) &&
+        !entries.is_empty() &&
+        entries.length() == count else {
+        return Err(ForeignInput)
+      }
+      let ports : Map[String, Bool] = Map([])
+      for index in 0..<count {
+        guard @checked.unit_result_import_at(program, occurrence.stage, index)
+          is Some(port) &&
+          !ports.contains(port.input_name) else {
+          return Err(ForeignInput)
+        }
+        ports[port.input_name] = true
+      }
+      for entry in entries {
+        guard @canonical.object_field_count(entry) == Some(3) &&
+          infer_scope_string(entry, "name") is Some(name) &&
+          ports.contains(name) &&
+          !result_names.contains(name) &&
+          infer_scope_string(entry, "result_artifact_cid") is Some(artifact) &&
+          valid_client_request_cid(artifact) &&
+          infer_scope_string(entry, "producer_local_manifest_cid")
+          is Some(manifest) &&
+          valid_client_request_cid(manifest) else {
+          return Err(ForeignInput)
+        }
+        result_names[name] = true
+        result_inputs.push((name, artifact, manifest))
+      }
+    }
+    Some(_) => return Err(ForeignInput)
   }
   let sources = @canonical.array_values(source_values)
+  // This mirrors the live Scope's all-Result input arm. The authenticated
+  // snapshot supplies the original semantic identities, not fresh Sources.
+  let all_result_ports = !result_inputs.is_empty() &&
+    result_inputs.length() ==
+    @pipeline.input_count(
+      @lower.pipeline(@lower.bound_preparation(occurrence.preparation)),
+    )
+  let expected = if all_result_ports && sources.is_empty() {
+    []
+  } else {
+    match infer_scope_expected_sources(occurrence, plan=Some(plan)) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  }
   if sources.length() != expected.length() {
     return Err(ForeignInput)
   }
@@ -922,12 +1108,28 @@ pub fn read_client_infer_saved_call_scope(
     Some(@publication.run_evidence_value_identity(bindings)) &&
     @canonical.object_field(effective_value, "input_artifacts")
     is Some(input_map) &&
-    @canonical.object_field_count(input_map) == Some(logicals.length()) else {
+    @canonical.object_field_count(input_map) ==
+    Some(
+      (if all_result_ports {
+        0
+      } else {
+        logicals.iter().filter(entry => !result_names.contains(entry.0)).count()
+      }) +
+      result_inputs.length(),
+    ) else {
     return Err(ForeignInput)
   }
   for (name, input) in logicals {
+    if all_result_ports || result_names.contains(name) {
+      continue
+    }
     if infer_scope_string(input_map, name) !=
       Some(@publication.run_evidence_value_identity(input)) {
+      return Err(ForeignInput)
+    }
+  }
+  for (name, artifact, _) in result_inputs {
+    if infer_scope_string(input_map, name) != Some(artifact) {
       return Err(ForeignInput)
     }
   }
@@ -969,6 +1171,7 @@ pub fn read_client_infer_saved_call_scope(
     artifact,
     effective,
     named_sources,
+    result_inputs,
     available: custody_available,
   })
 }
@@ -1108,6 +1311,12 @@ pub fn restore_client_infer_call_scope(
       value.named_sources.map(item => item.1)
     },
     named_sources: value.named_sources.copy(),
+    result_inputs: [],
+    saved_result_scope: if value.result_inputs.is_empty() {
+      None
+    } else {
+      Some(value)
+    },
     unit_definition_cid,
     source_ordinal: occurrence.step,
     generation: None,

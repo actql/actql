@@ -160,3 +160,58 @@ pub fn issue_original_local_model_effect_artifact_with_context(
   }
   result
 }
+
+///|
+/// A completed Model Unit may precede later Models in the SAME compiled Run.
+/// Borrow its genuine CallScope and unfiltered outcome receipt; this is a local
+/// semantic contribution, never a completed whole-Run ObservationSet or grant.
+/// The existing parent backs and retains this constructor before entry.
+pub fn issue_preconsumer_original_model_acquired_evidence(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  receipt : @relation.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  imports? : @publication_host.ClientEffectImportedEvidence? = None,
+  source_originals? : Array[@publication_host.ClientEffectAcquiredEvidence] = [],
+) -> Result[
+  @publication_host.ClientEffectModelAcquiredEvidence,
+  @publication_host.ClientEffectAcquiredEvidenceIssue,
+] {
+  guard prepare_preconsumer_model_unit_observation(
+      held, compiled, definition, plan, receipt, max_bytes, max_nodes, max_depth,
+    )
+    is Some(body) &&
+    held.owner.call_scope is Some(scope) else {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  let result = match
+    (held.owner.saved_call_scope, held.owner.composed_sources, imports) {
+    (Some(saved), None, Some(original)) =>
+      @publication_host.issue_restored_model_client_effect_imported_evidence(
+        compiled, scope, saved, body, retention, max_bytes, max_nodes, max_depth,
+        original, source_originals,
+      )
+    (None, Some(sources), _) =>
+      @publication_host.issue_single_model_client_effect_acquired_evidence(
+        compiled,
+        scope,
+        body,
+        sources,
+        retention,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        imports~,
+      )
+    _ => Err(Invocation(ForeignCapturedInput))
+  }
+  if !original_host_output_matches(held, compiled, definition, plan) {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  result
+}

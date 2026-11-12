@@ -814,3 +814,16 @@ pub fn client_program_refresh_acquired_effect_cleanup(
   let run = @strategy.captured_effect_run_dag(value.run)
   @strategy.retire_captured_task_outputs(run)
 }
+
+///|
+#export_name("clientProgramBindInferResultArtifactInput")
+pub fn client_program_bind_infer_result_artifact_input(
+  active : @infer_host.Execution,
+  import_index : Int,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  manifest : @publication_host.ClientEffectLocalManifest,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_result_artifact_input(
+    active, import_index, artifact, manifest,
+  )
+}

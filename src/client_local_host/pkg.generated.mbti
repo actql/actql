@@ -289,6 +289,8 @@ pub fn client_effect_local_ledger_limits(@run_publication_host.PreparedClientEff
 
 pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
 
+pub fn client_infer_completed_result_artifact_input(ClientInferInputExecution, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, Int, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalManifest) -> Result[@run_publication_host.ClientInferResultArtifactInput, @run_publication_host.ClientInferCallScopeIssue]
+
 pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?
 
 pub fn client_infer_retained_input_export_binding(ClientInferRetainedInputExport) -> String
