@@ -48,6 +48,11 @@ const span = async (name, action) => {
 function collectionProgram(count) {
   // Small Program, 100k small rows: no enormous VALUES text.
   const digits = Array.from({length: 10}, (_, n) => `SELECT ${n} AS n`).join(' UNION ALL ');
+  // These two output boundaries fit four decimal digits. Keep the original
+  // larger statements unchanged rather than filtering 100k candidates twice.
+  if (count === 9999 || count === 10000) {
+    return `WITH d AS (${digits}) SELECT 0 AS n FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e WHERE a.n + 10*b.n + 100*c.n + 1000*e.n < ${count}`;
+  }
   return `WITH d AS (${digits}) SELECT 0 AS n FROM d a CROSS JOIN d b CROSS JOIN d c CROSS JOIN d e CROSS JOIN d f WHERE a.n + 10*b.n + 100*c.n + 1000*e.n + 10000*f.n < ${count}`;
 }
 function oversizedRowProgram() {

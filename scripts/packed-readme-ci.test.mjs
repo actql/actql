@@ -3,6 +3,7 @@ import test from 'node:test';
 import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {join, dirname} from 'node:path';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
@@ -484,6 +485,25 @@ async function collectionBudgetPorts() {
       let client; ${source.slice(body.start, body.end)}; return client;
     })();`)};
 }
+
+test('collection boundary fixtures keep all required rows and the original larger SQL statements', async () => {
+  const {program} = await collectionBudgetPorts();
+  // Independently authored SQL preimages: the two small boundaries use four
+  // decimal digits. The 10001 and 100000 preimages are the unchanged originals.
+  const vectors = [
+    [9999, 3, '8b3ac12a23adcd04de6e233b7af641877c850828a2cd7ad63542aadbf1b8d732'],
+    [10000, 3, 'd69db9da997b604154532e813d456d7fdb451d9c437a34a47e48c8fb8fccfc1c'],
+    [10001, 4, 'e08621d979f5d66165dde28775aa1223a2e87fec1c149434bc2dfe01b43da368'],
+    [100000, 4, 'c52de9923d4708bd3b27efe171fcbbc5d44566a8c23a1d42d1644647dc0804b0'],
+  ];
+  for (const [count, joins, expected] of vectors) {
+    const sql = program(count);
+    assert.equal(createHash('sha256').update(sql).digest('hex'), expected);
+    assert.equal([...sql.matchAll(/ CROSS JOIN /gu)].length, joins);
+    assert(sql.endsWith(` < ${count}`));
+    assert(sql.includes('SELECT 0 AS n FROM'));
+  }
+});
 
 test('normal budget evidence requires the original pre-send snapshot and exact exceeded Core quantities', async () => {
   const {project} = await collectionBudgetPorts();
