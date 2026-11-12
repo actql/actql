@@ -57,8 +57,18 @@ function fixture(api, control, options = {}) {
     return value;
   };
   const store = {
-    async confirmCommittedIndex() { return JSON.parse(index.wire); },
-    async readPublicationContract(identity, name) { return read(identity, name); },
+    async confirmCommittedIndex(_key, readDemand) {
+      readDemand?.(Buffer.byteLength(index.wire));
+      const value = JSON.parse(index.wire);
+      readDemand?.retain(5, index, 0);
+      readDemand?.finish();
+      return value;
+    },
+    async readPublicationContract(identity, name, readDemand) {
+      const original = read(identity, name);
+      readDemand?.(Buffer.byteLength(original.wire));
+      return original;
+    },
     async readCommittedResultRetentionExtension() {},
     ...(typeof options.lookup === 'function' ? {async lookupDeliveryAttempt(request) {
       if (!state.selected) return undefined;
@@ -114,15 +124,19 @@ function fixture(api, control, options = {}) {
       const value = control.admit(name, wire, limits);
       contracts.set(value.identity, value);
     },
-    async withCommittedResultRows(_key, definition, authorize, _limits, use, _control, attempt) {
+    async withCommittedResultRows(_key, definition, authorize, _limits, use, _control, attempt, readDemand) {
       assert.equal(definition, cid('1'));
       assert.equal(attempt, state.selected.identity, 'reader must use canonical attempt');
       assert.equal(await authorize({resultDefinitionCid: definition}), true);
       state.readers++;
+      const resultSchemaWire = '{"value":{"nullable":false,"type":"integer"}}';
+      readDemand?.(Buffer.byteLength(resultSchemaWire));
+      readDemand?.data(9, 3, resultSchemaWire.length + 5);
+      readDemand?.finish();
       return use({durableResultBindingCid: cid('d'), logicalResultCid: cid('3'),
-        resultSchemaCid: cid('4'), resultSchemaWire: '{"value":{"nullable":false,"type":"integer"}}',
+        resultSchemaCid: cid('4'), resultSchemaWire,
         resultFields: ['value'], rowCount: rows.length,
-        payloadBytes: Buffer.byteLength(rows.join('\n'))},
+        payloadBytes: rows.reduce((bytes, row) => bytes + Buffer.byteLength(row), Math.max(0, rows.length - 1))},
       options.readRows ?? (async accept => {
         for (const row of rows) await accept(row);
       }));

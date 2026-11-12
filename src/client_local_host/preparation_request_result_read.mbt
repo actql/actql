@@ -2,8 +2,9 @@
 // Read-only variable workspace on the existing original Request capacity.
 // No new Ledger, permission, serialized token or Host-wide quota is issued.
 priv struct ClientRequestResultReadBudget {
-  base_retention : Int64
-  base_execution : Int64
+  mut base_retention : Int64
+  mut base_execution : Int64
+  mut schema_cost : Int64
   max_row : Int
   max_nodes : Int
   mut window : Int
@@ -47,7 +48,9 @@ pub fn[I] reserve_request_result_read(
   max_nodes : Int,
   desired_window : Int,
 ) -> Result[Int, ClientRequestPreparationIssue] {
-  guard owner.phase == Open && owner.result_read is None else {
+  guard owner.phase == Open &&
+    owner.result_read is None &&
+    !result_read_metadata_active(owner) else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
@@ -132,6 +135,7 @@ pub fn[I] reserve_request_result_read(
       owner.result_read = Some({
         base_retention: base_r,
         base_execution: base_e,
+        schema_cost: schema,
         max_row,
         max_nodes,
         window,
@@ -151,7 +155,9 @@ pub fn[I] grow_request_result_read_row(
   input : I,
   units : Int,
 ) -> Result[(Int, Int), ClientRequestPreparationIssue] {
-  guard owner.phase == ResultRead && owner.result_read is Some(read) else {
+  guard owner.phase == ResultRead &&
+    owner.result_read is Some(read) &&
+    !result_read_metadata_active(owner) else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
@@ -226,6 +232,77 @@ pub fn[I] grow_request_result_read_row(
       read.row_units = high
       read.window = window
       Ok((high, window))
+    }
+  }
+}
+
+///|
+/// The same serializer has finished its schema constructor. Replace its decode
+/// peak by actual immutable representation observations; the Store's distinct
+/// schema wire/fields remain on their existing metadata role.
+pub fn[I] reconcile_request_result_read_serializer(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  serializer : @publication.ResultDeliverySerializer,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == ResultRead &&
+    owner.result_read is Some(read) &&
+    !result_read_metadata_active(owner) else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  let extent = match
+    @publication.result_delivery_serializer_extent(serializer) {
+    Ok(value) => value
+    Err(_) => return Err(Policy)
+  }
+  let tree = extent.schema
+  let retained = match
+    @execution.preparation_representation_cost({
+      record_headers: 2L +
+      3L * tree.nodes +
+      tree.strings +
+      tree.arrays +
+      tree.objects +
+      2L * tree.object_backing_slots,
+      reference_slots: 8L +
+      2L * tree.nodes +
+      tree.array_backing_slots +
+      3L * tree.object_backing_slots +
+      extent.field_backing_slots,
+      scalar_words: 6L + 2L * tree.nodes,
+      owned_utf16_units: tree.text_utf16_units + extent.field_text_utf16_units,
+      owned_wire_bytes: 0L,
+    }) {
+    Some(value) => value
+    None => return Err(Policy)
+  }
+  if retained > read.schema_cost {
+    return Err(Policy)
+  }
+  let old = match
+    @resources.preparation_capacity_working_extents(owner.capacity, input) {
+    Ok(value) => value
+    Err(issue) => return Err(Capacity(issue))
+  }
+  let delta = read.schema_cost - retained
+  owner.phase = Selecting
+  let result = @resources.reconcile_working_preparation_phase(
+    owner.capacity,
+    input,
+    old.0 - delta,
+    old.1 - delta,
+  )
+  owner.phase = ResultRead
+  match result {
+    Err(issue) => Err(Capacity(issue))
+    Ok(_) => {
+      read.schema_cost = retained
+      read.base_retention -= delta
+      read.base_execution -= delta
+      Ok(())
     }
   }
 }

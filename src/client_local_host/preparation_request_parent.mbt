@@ -124,6 +124,7 @@ struct ClientRequestPreparation[I] {
   mut input : I?
   mut snapshot_base : (Int64, Int64)?
   mut result_read : ClientRequestResultReadBudget?
+  mut result_read_metadata : ClientRequestResultMetadataBudget?
   mut snapshot_units : Int64
   mut snapshot_values : Int64
   snapshot_key_units : Ref[Int]
@@ -384,6 +385,7 @@ fn[I] begin_request_preparation_original(
     input: Some(input),
     snapshot_base: None,
     result_read: None,
+    result_read_metadata: None,
     snapshot_units: 0L,
     snapshot_values: 0L,
     snapshot_key_units: Ref(-1),
@@ -759,6 +761,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.submitted_intent = None
   owner.snapshot_base = None
   owner.result_read = None
+  owner.result_read_metadata = None
   owner.snapshot_key_units.val = -1
   owner.intent_base = None
   owner.intent_source_quote = None

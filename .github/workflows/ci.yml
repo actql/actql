@@ -992,7 +992,7 @@ jobs:
         run: node scripts/test-packed-run-host-core.mjs
       - name: Test original Local result authorization
         if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
-        run: node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs
+        run: node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs
       - name: Build runtime packages without prebuilt bundles
         id: cold-runtime-preparation
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}

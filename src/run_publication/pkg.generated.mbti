@@ -1024,6 +1024,8 @@ pub fn result_definition_name(ResultDefinition) -> String
 
 pub fn result_definition_program_cid(ResultDefinition) -> String
 
+pub fn result_delivery_serializer_extent(ResultDeliverySerializer) -> Result[ResultDeliverySerializerExtent, DeliverySerializationIssue]
+
 pub fn result_export_issuer_id() -> String
 
 pub fn result_material_holds_binding(ResultMaterialHolds) -> String
@@ -2297,6 +2299,12 @@ pub(all) enum ResultDefinitionIssue {
 } derive(Eq, @debug.Debug)
 
 type ResultDeliverySerializer
+
+pub(all) struct ResultDeliverySerializerExtent {
+  schema : @canonical_json.CanonicalRepresentationExtent
+  field_backing_slots : Int64
+  field_text_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ResultEvidenceIssuanceIssue {
   IssuanceWrongDefinition

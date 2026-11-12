@@ -458,6 +458,8 @@ pub fn[I] finish_request_computation_preparation(ClientRequestPreparation[I], I,
 
 pub fn[I] finish_request_native_intake_wire(ClientRequestPreparation[I], I, @run_publication_host.ClientSubmittedIntent) -> Result[Unit, ClientRequestPreparationIssue]
 
+pub fn[I] finish_request_result_metadata(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] finish_request_submitted_intent(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn grow_installed_effect_operation_input(ClientInstalledEffectOperationBorrow, ClientInstalledEffectOperationExtent) -> Result[Unit, ClientInstalledManagedRunIssue]
@@ -1108,6 +1110,10 @@ pub fn[I, P] reconcile_program_check_views(ClientProgramCheckPreparation[I, P]) 
 
 pub fn[I, P] reconcile_program_json_preparation_structure(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
+pub fn[I] reconcile_request_result_read_serializer(ClientRequestPreparation[I], I, @run_publication.ResultDeliverySerializer) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn[I] release_request_result_metadata(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn render_installed_catalog_source_sql(ClientInstalledWholeSourceCapacity, String, String, Int) -> Result[String, @client_row_source_host.RowHostIssue]
 
 pub fn[I] request_computation_policy_subject(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, Int) -> Result[String, ClientRequestTerminalIssue]
@@ -1186,6 +1192,8 @@ pub fn[I] reserve_request_query_time_invocation(ClientRequestPreparation[I], I, 
 
 pub fn[I] reserve_request_result_read(ClientRequestPreparation[I], I, Int, Int, Int, Int, Int) -> Result[Int, ClientRequestPreparationIssue]
 
+pub fn[I] reserve_request_result_read_metadata(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] reserve_request_retained_intent_source(ClientRequestPreparation[I], I) -> Result[@source_value.ParseLimits, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_retained_program_material(ClientRequestPreparation[I], I, String) -> Result[Unit, ClientRequestPreparationIssue]
@@ -1209,6 +1217,10 @@ pub fn retain_installed_effect_operation_construction(ClientInstalledManagedRun,
 pub fn retain_installed_effect_operation_controls_before_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
 pub fn retain_installed_effect_recovered_input_inventory(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn[I] retain_request_result_metadata_contract(ClientRequestPreparation[I], I, Int, @run_publication.PublicationContract, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn[I] retain_request_result_metadata_data(ClientRequestPreparation[I], I, Int, Int, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] retain_request_submitted_intent(ClientRequestPreparation[I], I, @run_publication_host.ClientSubmittedIntent) -> Result[Unit, ClientRequestPreparationIssue]
 

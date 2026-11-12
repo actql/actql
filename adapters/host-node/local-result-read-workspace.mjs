@@ -1,8 +1,9 @@
-import {openRequestPreparation, cleanupRequestInput, checkedPreparation}
+import {openRequestPreparation, cleanupRequestInput}
   from '../local-node/request-preparation-adapter.mjs';
 import {physicalContentReadWindowBytes} from '../store-local/publication-store.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {ResultDeliveryError} from '../host-common/result-delivery.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 // The installed Result owner supplies the original runtime/policy. A READ is
 // one existing Request admission, independent of its retired producing Run.
@@ -10,6 +11,11 @@ import {ResultDeliveryError} from '../host-common/result-delivery.mjs';
 export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {
   const reserve = runtime.clientProgramReserveRequestResultRead;
   const grow = runtime.clientProgramGrowRequestResultReadRow;
+  const metadata = runtime.clientProgramReserveRequestResultMetadata;
+  const retainData = runtime.clientProgramRetainRequestResultMetadataData;
+  const releaseMetadata = runtime.clientProgramReleaseRequestResultMetadata;
+  const finishMetadata = runtime.clientProgramFinishRequestResultMetadata;
+  const reconcileSerializer = runtime.clientProgramReconcileRequestResultReadSerializer;
   if (typeof assertCurrent !== 'function') {
     throw Object.assign(new Error('ResultReadCapacityUnavailable'), {code: 'ResultReadCapacityUnavailable'});
   }
@@ -51,15 +57,16 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
     return error;
   }
   return Object.freeze({
-    begin(request) {
+    begin(request, control) {
       if (closing || reads.has(request)) unavailable();
-      if (typeof reserve !== 'function' || typeof grow !== 'function') {
+      if ([reserve, grow, metadata, retainData, releaseMetadata, finishMetadata, reconcileSerializer].some(method => typeof method !== 'function')) {
         throw Object.assign(new Error('ResultReadCapacityUnavailable'), {code: 'ResultReadCapacityUnavailable'});
       }
       assertCurrent();
       // Retain the original before any fallible platform/Core constructor.
-      const entry = {request, state: {context}, active: true, rowUnits: 0,
-        prepared: false, physical: [], unknownPhysical: false};
+      const retained = control === undefined ? undefined : Object.getOwnPropertyDescriptor(control, 'retainResultReadMetadata')?.value;
+      const entry = {request, state: {context}, control, retained, active: true, rowUnits: 0,
+        prepared: false, metadataActive: false, physical: [], unknownPhysical: false};
       reads.set(request, entry);
       try {
         openRequestPreparation(entry.state, request, assertCurrent, () => pending(entry));
@@ -68,6 +75,38 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
         try {retire(entry);} catch {throw cleanupFailure(entry, cause);}
         throw cause;
       }
+    },
+    metadata(request, bytes) {
+      const entry = original(request);
+      if (!entry.active || !Number.isSafeInteger(bytes) || bytes < 0 || bytes > 2147483647) unavailable();
+      assertCurrent();
+      checked(Reflect.apply(metadata, runtime,
+        [entry.state.parent, request, bytes]));
+      entry.metadataActive = true;
+    },
+    metadataRetain(request, slot, originalContract, mode) {
+      const entry = original(request);
+      if (!entry.active || typeof entry.retained !== 'function') unavailable();
+      Reflect.apply(entry.retained, entry.control, [entry.state.parent, request, slot, originalContract, mode]);
+    },
+    metadataData(request, slot, nodes, textUnits) {
+      const entry = original(request);
+      if (!entry.active) unavailable();
+      checked(Reflect.apply(retainData, runtime,
+        [entry.state.parent, request, slot, nodes, textUnits]));
+    },
+    metadataRelease(request, slot) {
+      const entry = original(request);
+      if (!entry.active) unavailable();
+      checked(Reflect.apply(releaseMetadata, runtime,
+        [entry.state.parent, request, slot]));
+    },
+    metadataFinish(request) {
+      const entry = original(request);
+      if (!entry.active) unavailable();
+      if (!entry.metadataActive) return;
+      checked(Reflect.apply(finishMetadata, runtime, [entry.state.parent, request]));
+      entry.metadataActive = false;
     },
     prepare(request, metadata, limits, frames) {
       const entry = original(request);
@@ -82,12 +121,17 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       if (!Number.isSafeInteger(schemaUnits) || schemaUnits > 2147483647) unavailable();
       const desired = Math.max(1, Math.min(physicalContentReadWindowBytes,
         frames.maxFrameBytes, limits.maxWireBytes, payload));
-      const window = checkedPreparation(runtime, Reflect.apply(reserve, runtime,
+      const window = checked(Reflect.apply(reserve, runtime,
         [entry.state.parent, request, maxRow, frame, schemaUnits, limits.maxNodes, desired]));
       if (!Number.isSafeInteger(window) || window < 1 || window > desired) unavailable();
       entry.prepared = true;
       entry.window = window;
       return window;
+    },
+    serializer(request, value) {
+      const entry = original(request);
+      if (!entry.active || !entry.prepared) unavailable();
+      checked(Reflect.apply(reconcileSerializer, runtime, [entry.state.parent, request, value]));
     },
     row(request, units) {
       const entry = original(request);
@@ -95,7 +139,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       // Pure local counters consume an already acquired window. Core/current
       // is crossed only at a new geometric high-water constructor boundary.
       if (units <= entry.rowUnits) return {units: entry.rowUnits, window: entry.window};
-      const admitted = checkedPreparation(runtime, Reflect.apply(grow, runtime,
+      const admitted = checked(Reflect.apply(grow, runtime,
         [entry.state.parent, request, units]));
       const high = runtimeField(admitted, 0), window = runtimeField(admitted, 1);
       if (!Number.isSafeInteger(high) || high < units || !Number.isSafeInteger(window) ||

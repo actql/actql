@@ -962,6 +962,8 @@ pub fn client_program_finish_request_computation(@client_local_host.ClientReques
 
 pub fn client_program_finish_request_policy_subjects(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue]
 
+pub fn client_program_finish_request_result_metadata(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_finish_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_gcs_collection_mapping_construction_capacity(String, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
@@ -1994,6 +1996,8 @@ pub fn client_program_reconcile_program_check_views(@client_local_host.ClientPro
 
 pub fn client_program_reconcile_program_json_preparation_structure(@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit]) -> Result[Unit, @client_local_host.ClientProgramJsonPreparationIssue]
 
+pub fn client_program_reconcile_request_result_read_serializer(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication.ResultDeliverySerializer) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_recover_effect_command_content(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, String, Int, Int, Int, String, @run_publication.StoredGeneratedContentReference, @value_admission.CheckedValue, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientEffectCommandContent, @run_publication_host.ClientEffectCommandContentIssue]
 
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
@@ -2056,6 +2060,8 @@ pub fn client_program_release_effect_input(@physical_strategy_host.CapturedEffec
 
 pub fn client_program_release_effect_inputs(@physical_strategy_host.CapturedEffectInputs) -> Bool
 
+pub fn client_program_release_request_result_metadata(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_program_request_model_recovery_ledger(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract) -> Result[@physical_resources.Ledger, @client_local_host.ClientRequestPreparationIssue]
@@ -2110,6 +2116,8 @@ pub fn client_program_reserve_request_model_recovery_materials(@client_local_hos
 
 pub fn client_program_reserve_request_query_time_invocation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
 
+pub fn client_program_reserve_request_result_metadata(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_reserve_request_result_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int, Int) -> Result[Int, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_retained_program_material(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
@@ -2151,6 +2159,10 @@ pub fn client_program_result_row_contract_name(@run_publication_host.ClientResul
 pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientResultRowContractIdentity) -> String
 
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
+
+pub fn client_program_retain_request_result_metadata_contract(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, @run_publication.PublicationContract, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_retain_request_result_metadata_data(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_retain_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientSubmittedIntent) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 

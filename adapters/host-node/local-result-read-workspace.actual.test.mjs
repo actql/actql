@@ -132,7 +132,7 @@ test('actual READ capacity refusal precedes output without an unfunded fallback'
   const f = createResultDeliveryFixture(access, control, {rows, maxBytes: 16384, readWorkspace: o.workspace});
   await assert.rejects(f.deliver());
   assert.deepEqual(f.state.chunks, []);assert.equal(f.state.finishes, 0);
-  assert.equal(o.calls.prepare, 1);
+  assert.equal(o.calls.prepare, 0, 'metadata construction refuses before row/serializer preparation');
   assert.deepEqual(o.reserved(o.parents[0]), [0n, 0n]);
 });
 

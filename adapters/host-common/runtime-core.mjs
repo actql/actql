@@ -2381,6 +2381,13 @@ function publicationControl(moon) {
         limits.maxDepth,
       )), limits);
     },
+    // SAME private opaque contract and original READ capacity. These are
+    // representation observations, not copied DATA admission or authority.
+    retainResultReadMetadata(parent, input, slot, original, mode) {
+      const value = tokens.get(original);
+      if (value === undefined) throw new TypeError('Foreign publication contract');
+      return checked(moon.clientProgramRetainRequestResultMetadataContract(parent, input, slot, value, mode));
+    },
     admitOriginal(original, limits) {
       const retained = contractBounds.get(original);
       if (retained === undefined || !tokens.has(original)) return undefined;

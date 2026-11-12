@@ -319,7 +319,7 @@ async function writeExclusive(path, bytes) {
   }
 }
 
-async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
+async function readBounded(path, maximum, closed, signal, ownerOnly = false, readDemand) {
   if (!quantity(maximum)) {
     fail('InvalidPublicationStoreObject');
   }
@@ -369,6 +369,10 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
     }
     signal?.throwIfAborted();
     const size = Number(before.size);
+    // The SAME original FD supplies actual demand before output/text/JSON.
+    // A refused installed reservation cannot allocate and then fall back.
+    if (readDemand !== undefined && (typeof readDemand !== 'function' ||
+        readDemand(size) !== undefined)) fail('InvalidPublicationMetadataDemand');
     // Avoid pooled backing and growth/concatenation. The one-byte probe is a
     // separate bounded allocation; neither buffer is a byte-capacity grant.
     const bytes = Buffer.allocUnsafeSlow(size);
@@ -1937,9 +1941,18 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const readPhysicalHoldingAt = async (path, holdingCid) => {
+  const closedMetadataObjectExtent = value => {
+    let nodes = 1, textUnits = 0;
+    for (const key of Object.keys(value)) {
+      nodes++; textUnits += key.length;
+      if (typeof value[key] === 'string') textUnits += value[key].length;
+    }
+    return {nodes, textUnits};
+  };
+
+  const readPhysicalHoldingAt = async (path, holdingCid, readDemand) => {
     let bytes;
-    try { bytes = await readBounded(path, configuration.maxObjectBytes); }
+    try { bytes = await readBounded(path, configuration.maxObjectBytes, undefined, undefined, false, readDemand); }
     catch (error) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
@@ -1948,14 +1961,23 @@ async function openOriginalLocalPublicationStore(
     if (record.holding_cid !== holdingCid) {
       fail('InvalidPublicationPhysicalHoldingStore');
     }
+    if (readDemand !== undefined) {
+      const extent = closedMetadataObjectExtent(record);
+      for (const object of record.objects) {
+        const child = closedMetadataObjectExtent(object);
+        extent.nodes += child.nodes; extent.textUnits += child.textUnits;
+      }
+      readDemand.data(10, extent.nodes, extent.textUnits);
+      readDemand.finish();
+    }
     return record;
   };
 
-  const readPhysicalHolding = holdingCid =>
-    readPhysicalHoldingAt(physicalHoldingPath(holdingCid), holdingCid);
+  const readPhysicalHolding = (holdingCid, readDemand) =>
+    readPhysicalHoldingAt(physicalHoldingPath(holdingCid), holdingCid, readDemand);
 
-  const readPhysicalHoldingDeletion = holdingCid =>
-    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid), holdingCid);
+  const readPhysicalHoldingDeletion = (holdingCid, readDemand) =>
+    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid), holdingCid, readDemand);
 
   const parseMetadataInventory = bytes => {
     let value;
@@ -2002,14 +2024,14 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const readMetadataInventory = async publicIndexEntryCid => {
-    const native = deliveryIndex?.nativePublicationInventory(publicIndexEntryCid);
+  const readMetadataInventory = async (publicIndexEntryCid, readDemand) => {
+    const native = deliveryIndex?.nativePublicationInventory(publicIndexEntryCid, readDemand);
     if (native !== undefined) return publicationRecoveryValue(native);
     let bytes;
     try {
       bytes = await readBounded(
         metadataInventoryPath(publicIndexEntryCid),
-        configuration.maxObjectBytes,
+        configuration.maxObjectBytes, undefined, undefined, false, readDemand,
       );
     } catch (error) {
       if (error?.code === 'ENOENT') return undefined;
@@ -2022,8 +2044,8 @@ async function openOriginalLocalPublicationStore(
     return inventory;
   };
 
-  const readCommittedMetadataInventory = async entry => {
-    const inventory = await readMetadataInventory(entry.public_index_entry_cid);
+  const readCommittedMetadataInventory = async (entry, readDemand) => {
+    const inventory = await readMetadataInventory(entry.public_index_entry_cid, readDemand);
     if (inventory === undefined ||
         inventory.namespace_id !== entry.namespace_id ||
         inventory.authority_scope_cid !== entry.authority_scope_cid ||
@@ -2031,19 +2053,34 @@ async function openOriginalLocalPublicationStore(
         inventory.publication_attempt_cid !== entry.publication_attempt_cid) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
+    if (readDemand !== undefined) {
+      const extent = closedMetadataObjectExtent(inventory);
+      for (const object of inventory.contract_objects) {
+        const child = closedMetadataObjectExtent(object);
+        extent.nodes += child.nodes; extent.textUnits += child.textUnits;
+      }
+      extent.nodes += inventory.physical_holding_cids.length;
+      for (const cid of inventory.physical_holding_cids) extent.textUnits += cid.length;
+      readDemand.data(8, extent.nodes, extent.textUnits);
+      readDemand.finish();
+    }
     return inventory;
   };
 
-  const requireCommittedMetadataInventory = async entry => {
-    const inventory = await readCommittedMetadataInventory(entry);
-    // Only this selected publication's owner links belong to the read.
-    // Payload availability remains the actual Result consumer's duty.
+  const requireCommittedMetadataInventory = async (entry, readDemand) => {
+    const inventory = await readCommittedMetadataInventory(entry, readDemand);
+    // Every selected holding is a distinct returned original while examined.
+    // The READ caller consumes only presence, then releases that finite role.
     for (const holdingCid of inventory.physical_holding_cids) {
-      if (await readPhysicalHoldingDeletion(holdingCid) !== undefined ||
-          await readPhysicalHolding(holdingCid) === undefined) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
+      const deletion = await readPhysicalHoldingDeletion(holdingCid, readDemand);
+      if (deletion !== undefined) fail('InvalidPublicationMetadataInventoryStore');
+      const holding = await readPhysicalHolding(holdingCid, readDemand);
+      if (holding === undefined) fail('InvalidPublicationMetadataInventoryStore');
+      readDemand?.release(10);
     }
+    // These normal READ callers do not retain the inventory result. Other
+    // existing callers omit readDemand and retain their established lifetime.
+    readDemand?.release(8);
     return inventory;
   };
 
@@ -2204,11 +2241,11 @@ async function openOriginalLocalPublicationStore(
     return restoreMetadataInventory(original,value);
   };
 
-  const readMetadataDeletion = async keyHash => {
+  const readMetadataDeletion = async (keyHash, readDemand) => {
     let bytes;
     try {
       bytes = await readBounded(
-        metadataDeletionPath(keyHash), configuration.maxObjectBytes,
+        metadataDeletionPath(keyHash), configuration.maxObjectBytes, undefined, undefined, false, readDemand,
       );
     } catch (error) {
       if (error?.code === 'ENOENT') {
@@ -2481,7 +2518,7 @@ async function openOriginalLocalPublicationStore(
     return operation;
   };
 
-  const verifyObject = async cid => {
+  const verifyObject = async (cid, readDemand) => {
     const path = objectPath(cid);
     active();
     // Borrow the same Store's existing private reader-duty collection. The
@@ -2517,7 +2554,10 @@ async function openOriginalLocalPublicationStore(
       // Nothing escapes this verifier's synchronous hash update. Reuse this
       // dedicated backing for short reads instead of a stream's shrink copy
       // or queued next backing; only the same original read is in flight.
-      const buffer = Buffer.allocUnsafeSlow(before.size < physicalContentReadWindowBytes ? before.size + 1 : physicalContentReadWindowBytes);
+      const window = before.size < physicalContentReadWindowBytes ? before.size + 1 : physicalContentReadWindowBytes;
+      if (readDemand !== undefined && (typeof readDemand !== 'function' ||
+          readDemand(window) !== undefined)) fail('InvalidPublicationMetadataDemand');
+      const buffer = Buffer.allocUnsafeSlow(window);
       for (;;) {
         const remaining = before.size - bytes;
         const requested = remaining < buffer.byteLength ? remaining + 1 : buffer.byteLength;
@@ -4098,14 +4138,14 @@ async function openOriginalLocalPublicationStore(
   const nativeDeliveryContract = (cid, name, retained) =>
     admitNativeContract(deliveryIndex?.contract(cid), cid, name, retained);
 
-  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true, retainGeneration = false, retained) {
+  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true, retainGeneration = false, retained, readDemand) {
     const path = contractPath(cid);
     active();
     // A typed publication read already selected its table. A missing row may
     // fall back to the original file, without probing unrelated deliveries.
     const nativeRecord = includeNative === 'publication'
-      ? deliveryIndex?.publicationContract(cid)
-      : includeNative ? deliveryIndex?.contract(cid) : undefined;
+      ? deliveryIndex?.publicationContract(cid, readDemand)
+      : includeNative ? deliveryIndex?.contract(cid, readDemand) : undefined;
     // A commit may already hold this same immutable issued contract. Compare
     // the actual selected row before asking its original control to reuse it;
     // changed rows and unknown/copy/legacy originals keep full admission.
@@ -4137,6 +4177,8 @@ async function openOriginalLocalPublicationStore(
       // The original FD extent bounds both acquisition and the private output
       // before copying. A small contract must not acquire a default64KiB
       // stream backing or return an unrelated pooled backing.
+      if (readDemand !== undefined && (typeof readDemand !== 'function' ||
+          readDemand(before.size) !== undefined)) fail('InvalidPublicationMetadataDemand');
       const bytes = Buffer.allocUnsafeSlow(before.size);
       const hash = createHash('sha256');
       let size = 0;
@@ -4228,8 +4270,8 @@ async function openOriginalLocalPublicationStore(
 
   // Public callers receive their own mutable bytes. The private observation
   // also retains the digest of this exact allocation after its real FD close.
-  const readSemanticBytes = async (cid, includeNative = true) =>
-    (await readSemanticOriginal(cid, includeNative)).bytes;
+  const readSemanticBytes = async (cid, includeNative = true, readDemand) =>
+    (await readSemanticOriginal(cid, includeNative, false, undefined, readDemand)).bytes;
 
   // Private evidence uses the prepared-object and physical-holding custody
   // already used by Transfer. A semantic alias before a durable owner would
@@ -4685,7 +4727,7 @@ async function openOriginalLocalPublicationStore(
   const readJsonObject = async (cid, contractName) =>
     (await readContract(cid, contractName)).value;
 
-  const verifyDurableResultBinding = async (contract, readOriginal = readSemanticOriginal, retainedBinding) => {
+  const verifyDurableResultBinding = async (contract, readOriginal = readSemanticOriginal, retainedBinding, readDemand) => {
     if (contract.name !== 'durable_result_binding') {
       fail('InvalidPublicationCommitEvidence');
     }
@@ -4696,7 +4738,8 @@ async function openOriginalLocalPublicationStore(
         binding.physical_sha256 !== cidHex(binding.material_generation_cid)) {
       fail('PublicationDurableBindingMismatch');
     }
-    const physical = await verifyObject(binding.material_generation_cid);
+    const physical = await verifyObject(binding.material_generation_cid, readDemand);
+    readDemand?.finish();
     if (physical.bytes !== binding.byte_count) {
       fail('PublicationDurableBindingMismatch');
     }
@@ -4718,6 +4761,14 @@ async function openOriginalLocalPublicationStore(
           typeof field !== 'string' ||
           !Object.prototype.hasOwnProperty.call(schema, field))) {
       fail('PublicationDurableBindingMismatch');
+    }
+    if (readDemand !== undefined) {
+      let units = schemaWire.length;
+      for (const field of binding.result_fields) units += field.length;
+      // The temporary JS schema tree is not part of the returned metadata.
+      // Its exact wire and the field-name holding survive until use completes.
+      readDemand.data(9, 2 + binding.result_fields.length, units);
+      readDemand.finish();
     }
     return Object.freeze({
       binding,
@@ -5836,10 +5887,10 @@ async function openOriginalLocalPublicationStore(
     return {entry,bytes:Buffer.from(native.body.wire,'utf8'),contract:admitted,native};
   };
 
-  const readCommittedIndexRaw = async (key, original) => {
+  const readCommittedIndexRaw = async (key, original, readDemand) => {
     active();
     const keyHash = indexKey(key), path = resolve(indexesDirectory, `${keyHash}.json`);
-    const native = deliveryIndex.nativePublicationIndex(keyHash);
+    const native = deliveryIndex.nativePublicationIndex(keyHash, readDemand);
     if (native !== undefined) {
       try {await lstat(path);}
       catch (error) {
@@ -5849,7 +5900,7 @@ async function openOriginalLocalPublicationStore(
       fail('PublicIndexBindingMismatch');
     }
     let bytes;
-    try { bytes = await readBounded(path, configuration.maxObjectBytes); }
+    try { bytes = await readBounded(path, configuration.maxObjectBytes, undefined, undefined, false, readDemand); }
     catch (error) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
@@ -5864,7 +5915,7 @@ async function openOriginalLocalPublicationStore(
         entry.run_definition_cid !== key.runDefinitionCid) {
       fail('PublicIndexBindingMismatch');
     }
-    const semantic = await readSemanticBytes(entry.public_index_entry_cid, false);
+    const semantic = await readSemanticBytes(entry.public_index_entry_cid, false, readDemand);
     // The selected Index and its immutable contract alias describe the same
     // fact. Reuse its admission for identical bytes, without skipping the
     // alias's real FD/inode/digest checks or admitting a changed spelling as
@@ -5886,11 +5937,11 @@ async function openOriginalLocalPublicationStore(
     return entry;
   };
 
-  const confirmCommittedIndexOriginal = async key => {
+  const confirmCommittedIndexOriginal = async (key, readDemand) => {
     active();
     const keyHash = indexKey(key);
-    if (await readMetadataDeletion(keyHash) !== undefined) return undefined;
-    const original = await readCommittedIndexRaw(key);
+    if (await readMetadataDeletion(keyHash, readDemand) !== undefined) return undefined;
+    const original = await readCommittedIndexRaw(key, undefined, readDemand);
     if (original === undefined) return undefined;
     const {entry} = original;
     const durableCid = durablyConfirmedIndexes.get(keyHash);
@@ -5909,8 +5960,8 @@ async function openOriginalLocalPublicationStore(
       // directory and then ensure that the same immutable entry is still
       // installed before reporting a durable commit.
       await syncDirectory(indexesDirectory);
-      const confirmed = await readMetadataDeletion(keyHash) === undefined
-        ? (await readCommittedIndexRaw(key, original))?.entry : undefined;
+      const confirmed = await readMetadataDeletion(keyHash, readDemand) === undefined
+        ? (await readCommittedIndexRaw(key, original, readDemand))?.entry : undefined;
       if (confirmed?.public_index_entry_cid !==
           entry.public_index_entry_cid) {
         fail('PublicIndexDurabilityMismatch');
@@ -5920,22 +5971,30 @@ async function openOriginalLocalPublicationStore(
     return original;
   };
 
-  const confirmCommittedIndex = async key =>
-    (await confirmCommittedIndexOriginal(key))?.entry;
+  const confirmCommittedIndex = async (key, readDemand, slot = 5) => {
+    const original = await confirmCommittedIndexOriginal(key, readDemand);
+    if (original === undefined) return undefined;
+    readDemand?.retain(slot, original.contract, 0);
+    readDemand?.finish();
+    return original.entry;
+  };
 
-  const confirmSelectedCommittedIndex = async key => {
-    const entry = await confirmCommittedIndex(key);
-    if (entry !== undefined) await requireCommittedMetadataInventory(entry);
+  const confirmSelectedCommittedIndex = async (key, readDemand) => {
+    const entry = await confirmCommittedIndex(key, readDemand, 6);
+    if (entry !== undefined) await requireCommittedMetadataInventory(entry, readDemand);
     return entry;
   };
 
   const selectedPublicationReads = new WeakMap();
-  const readCommittedPublication = async key => {
+  const readCommittedPublication = async (key, readDemand) => {
     // The selected body's nominal admission already belongs to this read.
     // Return that original, not another public raw-wire read/admission.
-    const original = await confirmCommittedIndexOriginal(Object.freeze({...key}));
+    const original = await confirmCommittedIndexOriginal(Object.freeze({...key}), readDemand);
     if (original === undefined) return undefined;
-    await requireCommittedMetadataInventory(original.entry);
+    readDemand?.retain(0, original.contract, 0);
+    readDemand?.retain(1, original.contract, 1);
+    readDemand?.finish();
+    await requireCommittedMetadataInventory(original.entry, readDemand);
     Object.freeze(original.entry.durable_result_binding_cids);
     const selected = Object.freeze({entry: Object.freeze(original.entry), index: original.contract});
     // One nested metadata lookup may consume this same Store acquisition.
@@ -5960,6 +6019,7 @@ async function openOriginalLocalPublicationStore(
   const readResultRetentionExtension = async (
     keyHash,
     resultDefinitionCid,
+    readDemand,
   ) => {
     const directory = retentionExtensionResultDirectory(
       keyHash, resultDefinitionCid,
@@ -5992,7 +6052,7 @@ async function openOriginalLocalPublicationStore(
       }
       const bytes = await readBounded(
         resolve(directory, records[index].name),
-        configuration.maxObjectBytes,
+        configuration.maxObjectBytes, undefined, undefined, false, readDemand,
       );
       let value;
       try { value = JSON.parse(bytes.toString('utf8')); }
@@ -6020,18 +6080,23 @@ async function openOriginalLocalPublicationStore(
         fail('InvalidPublicationRetentionExtensionStore');
       }
       previous = Object.freeze(value);
+      if (readDemand !== undefined) {
+        const extent = closedMetadataObjectExtent(previous);
+        readDemand.data(11, extent.nodes, extent.textUnits);
+        readDemand.finish();
+      }
     }
     return previous;
   };
 
-  const readResultDeletion = async (keyHash, resultDefinitionCid) => {
+  const readResultDeletion = async (keyHash, resultDefinitionCid, readDemand) => {
     let directory;
     try {directory = await lstat(resultDeletionDirectory(keyHash));}
     catch (error) {if (error?.code === 'ENOENT') return undefined; throw error;}
     if (!directory.isDirectory() || directory.isSymbolicLink()) fail('InvalidPublicationDeletionStore');
     const path = resultDeletionPath(keyHash, resultDefinitionCid);
     let bytes;
-    try { bytes = await readBounded(path, configuration.maxObjectBytes); }
+    try { bytes = await readBounded(path, configuration.maxObjectBytes, undefined, undefined, false, readDemand); }
     catch (error) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
@@ -6055,10 +6120,11 @@ async function openOriginalLocalPublicationStore(
     key,
     resultDefinitionCid,
     publication,
+    readDemand,
   ) => {
     cidHex(resultDefinitionCid);
     let entry;
-    if (publication === undefined) entry = await confirmSelectedCommittedIndex(key);
+    if (publication === undefined) entry = await confirmSelectedCommittedIndex(key, readDemand);
     else {
       active();
       entry = selectedPublicationReads.get(publication);
@@ -6075,10 +6141,14 @@ async function openOriginalLocalPublicationStore(
     for (const bindingCid of entry.durable_result_binding_cids) {
       const {contract, value} = await readContract(
         bindingCid, 'durable_result_binding',
+        (cid, includeNative) => readSemanticOriginal(cid, includeNative, false, undefined, readDemand),
       );
       if (value.result_definition_cid === resultDefinitionCid) {
+        if (matches.length !== 0) fail('PublicationLookupDenied');
         matches.push({contract, value});
+        readDemand?.retain(7, contract, 2);
       }
+      readDemand?.finish();
     }
     if (matches.length !== 1) fail('PublicationLookupDenied');
     return Object.freeze({entry, ...matches[0]});
@@ -6088,9 +6158,10 @@ async function openOriginalLocalPublicationStore(
     keyHash,
     selected,
     resultDefinitionCid,
+    readDemand,
   ) => {
     const deletion = await readResultDeletion(
-      keyHash, resultDefinitionCid,
+      keyHash, resultDefinitionCid, readDemand,
     );
     if (deletion === undefined) return;
     if (deletion.public_index_entry_cid !==
@@ -6941,6 +7012,7 @@ async function openOriginalLocalPublicationStore(
     resultDefinitionCid,
     authorize,
     use,
+    readDemand,
   ) => {
     active();
     cidHex(resultDefinitionCid);
@@ -6950,11 +7022,11 @@ async function openOriginalLocalPublicationStore(
     const request = Object.freeze({...key, resultDefinitionCid});
     if (authorize(request) !== true) fail('PublicationLookupDenied');
     const selected = await requireCommittedResultBinding(
-      key, resultDefinitionCid,
+      key, resultDefinitionCid, undefined, readDemand,
     );
     const keyHash = indexKey(key);
     await requireResultNotDeleted(
-      keyHash, selected, resultDefinitionCid,
+      keyHash, selected, resultDefinitionCid, readDemand,
     );
     const authorization = Object.freeze({
       ...request,
@@ -6976,9 +7048,10 @@ async function openOriginalLocalPublicationStore(
       else activeResultReaders.set(materialCid, remaining);
     };
     try {
-      const verified = await verifyDurableResultBinding(selected.contract, undefined, selected.value);
+      const verified = await verifyDurableResultBinding(selected.contract,
+        (cid, includeNative) => readSemanticOriginal(cid, includeNative, false, undefined, readDemand), selected.value, readDemand);
       await requireResultNotDeleted(
-        keyHash, selected, resultDefinitionCid,
+        keyHash, selected, resultDefinitionCid, readDemand,
       );
       const metadata = Object.freeze({
         durableResultBindingCid: selected.contract.identity,
@@ -7043,6 +7116,8 @@ async function openOriginalLocalPublicationStore(
     frameLimits,
     use,
     frameControl,
+    _attemptIdentity,
+    readDemand,
   ) => {
     if (!exactKeys(frameLimits, [
       'maxRowBytes', 'maxDepth', 'maxFrameBytes',
@@ -7099,6 +7174,7 @@ async function openOriginalLocalPublicationStore(
         try { return await use(metadata, readRows); }
         finally { scopeOpen = false; }
       },
+      readDemand,
     );
   };
 
@@ -7107,25 +7183,28 @@ async function openOriginalLocalPublicationStore(
     resultDefinitionCid,
     metadataOnly = false,
     publication,
+    readDemand,
   ) => {
     active();
     const selected = await requireCommittedResultBinding(
-      key, resultDefinitionCid, publication,
+      key, resultDefinitionCid, publication, readDemand,
     );
     const keyHash = indexKey(key);
     if (!metadataOnly) {
-      await requireResultNotDeleted(keyHash, selected, resultDefinitionCid);
+      await requireResultNotDeleted(keyHash, selected, resultDefinitionCid, readDemand);
     }
-    return readSelectedResultRetentionExtension(
-      selected, keyHash, resultDefinitionCid,
+    const result = await readSelectedResultRetentionExtension(
+      selected, keyHash, resultDefinitionCid, readDemand,
     );
+    readDemand?.release(7);
+    return result;
   };
 
   const readSelectedResultRetentionExtension = async (
-    selected, keyHash, resultDefinitionCid,
+    selected, keyHash, resultDefinitionCid, readDemand,
   ) => {
     const record = await readResultRetentionExtension(
-      keyHash, resultDefinitionCid,
+      keyHash, resultDefinitionCid, readDemand,
     );
     if (record === undefined) return undefined;
     if (record.public_index_entry_cid !==
@@ -7137,12 +7216,15 @@ async function openOriginalLocalPublicationStore(
     const extension = await readContract(
       record.extension_retention_policy_cid,
       'result_retention_policy',
+      (cid, includeNative) => readSemanticOriginal(cid, includeNative, false, undefined, readDemand),
     );
+    readDemand?.retain(4, extension.contract, 1);
+    readDemand?.finish();
     return Object.freeze({record, extension: extension.contract});
   };
 
-  const readCommittedResultRetentionExtension = (key, resultDefinitionCid, publication) =>
-    readRetainedResultExtension(key, resultDefinitionCid, false, publication);
+  const readCommittedResultRetentionExtension = (key, resultDefinitionCid, publication, readDemand) =>
+    readRetainedResultExtension(key, resultDefinitionCid, false, publication, readDemand);
 
   // Inspect the retained immutable schema and binding inventory. Payload
   // deletion does not delete publication metadata; no generation is opened,
@@ -9245,12 +9327,13 @@ async function openOriginalLocalPublicationStore(
     recoverRetiredResults,
     recoverRetiredMetadata,
     readJsonObject,
-    async readPublicationContract(cid, name) {
+    async readPublicationContract(cid, name, readDemand) {
       active();
       if (typeof name !== 'string' || name.length === 0) {
         fail('InvalidPublicationContractName');
       }
-      return (await readContract(cid, name)).contract;
+      return (await readContract(cid, name,
+        (semanticCid, includeNative) => readSemanticOriginal(semanticCid, includeNative, false, undefined, readDemand))).contract;
     },
     createAttempt,
     beginPublicationAttempt,

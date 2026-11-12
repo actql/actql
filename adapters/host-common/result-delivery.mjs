@@ -286,6 +286,8 @@ export async function deliverPublishedResult(options, resolvedPublication, works
   // Existing delivery-local state identifies actual application output
   // callbacks, not internal awaits or another public authorization frame.
   let sinkCallbackCount = 0;
+  const readDemand = workspace?.metadata;
+  const demandArgument = readDemand === undefined ? [] : [readDemand];
   const appendCompletion = store.appendDeliveryCompletion;
   if (appendCompletion !== undefined && typeof appendCompletion !== 'function') {
     fail('InvalidResultDeliveryStore');
@@ -317,16 +319,16 @@ export async function deliverPublishedResult(options, resolvedPublication, works
   }
   signal?.throwIfAborted();
 
-  const entry = await store.confirmCommittedIndex(indexKey);
+  const entry = await store.confirmCommittedIndex(indexKey, ...demandArgument);
   if (entry === undefined) fail('ResultDeliveryDenied');
   if (retainedIndex !== undefined &&
       (entry.public_index_entry_cid !== indexCid ||
        entry.result_manifest_cid !== manifestCid)) fail('ResultDeliveryDenied');
   const index = retainedIndex ?? await store.readPublicationContract(
-    entry.public_index_entry_cid, 'public_index_entry',
+    entry.public_index_entry_cid, 'public_index_entry', ...demandArgument,
   );
   const manifest = retainedManifest ?? await store.readPublicationContract(
-    entry.result_manifest_cid, 'result_manifest',
+    entry.result_manifest_cid, 'result_manifest', ...demandArgument,
   );
   const requestedAt = trustedNow(now);
   const authorizationFacts = Object.freeze({
@@ -554,6 +556,7 @@ export async function deliverPublishedResult(options, resolvedPublication, works
           metadata.resultFields,
           limits,
         );
+        workspace?.serializer(serializer);
         await write(control.beginResultDelivery(serializer));
         if (workspace === undefined) {
           // Independent raw/manual services retain their original one-row
@@ -597,6 +600,7 @@ export async function deliverPublishedResult(options, resolvedPublication, works
       },
       control,
       attempt.identity,
+      ...demandArgument,
     );
     const finishedAt = trustedNow(now);
     await requireCurrentAuthorization(authorize, {
