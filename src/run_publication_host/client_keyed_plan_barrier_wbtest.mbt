@@ -1,7 +1,9 @@
 ///|
 // Fresh authored compiler input; no Source IO, rows, physical authority or
 // expected output is supplied by declaration generation.
-fn client_keyed_plan_test_inputs() -> (
+fn client_keyed_plan_test_inputs(
+  plural? : Bool = false,
+) -> (
   ClientInferOccurrence,
   ClientKeyedAcquisition,
   @publication.PublicationContract,
@@ -53,8 +55,12 @@ fn client_keyed_plan_test_inputs() -> (
   ).unwrap()
   let profile = @publication.seal_publication_contract(
     "native_file_content_read",
-    "{\"physical_source_view_contract_cid\":\"sha256:" +
-    "b".repeat(64) +
+    "{\"physical_source_view_contract_cid\":\"" +
+    (if plural {
+      declaration.views.filter(view => view.resource == "files")[0].view_cid
+    } else {
+      "sha256:" + "b".repeat(64)
+    }) +
     "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"id\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
     request +
     "\",\"response_schema_cid\":\"" +
@@ -133,6 +139,27 @@ fn client_keyed_plan_test_inputs() -> (
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"keyed-first-plan","stages":[{"id":"capture","inputs":{"files":{"connector":"lookup-fixture","resource":"files"}},"steps":[{"from":"files","filter":"id <> ''"},{"select":["id","text","mime","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","text","mime","version"]}}},{"id":"main","inputs":{"remote":{"connector":"lookup-fixture","resource":"contents","request":{"tenant":"original"}},"left_rows":{"result":{"stage":"capture","result":"rows"}}},"steps":[{"from":"left_rows","filter":"id <> ''","as":"left"},{"from":"left","join":{"with":"remote","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","text":"right.text"}},"as":"joined"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let document = if plural {
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) else {
+      fail("original keyed authored stages")
+    }
+    stages.push(
+      @json.parse(
+        (
+          #|{"id":"confirm","inputs":{"reviewed":{"result":{"stage":"main","result":"rows"}}},"from":"reviewed","steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"literal":"confirm original"}}},"as":"confirmed"}],"results":{"rows":{"from":"confirmed","fields":["id","outcome","value"]}}}
+        ),
+      ),
+    )
+    fields["results"] = @json.parse(
+      (
+        #|{"answer":{"from":{"stage":"confirm","result":"rows"}}}
+      ),
+    )
+    Json::object(fields).stringify()
+  } else {
+    document
+  }
   let prepared = match
     prepare_effect_free_client_program(
       document,
@@ -151,7 +178,13 @@ fn client_keyed_plan_test_inputs() -> (
     Err(NeedsInputs(_)) => fail("original keyed missing input")
     Err(_) => fail("original keyed compiler preparation")
   }
-  let occurrence = prepared_client_composed_infer_occurrence(prepared).unwrap()
+  let occurrence = if plural {
+    let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+    assert_eq(occurrences.length(), 2)
+    occurrences[0]
+  } else {
+    prepared_client_composed_infer_occurrence(prepared).unwrap()
+  }
   let (stage, input, step) = client_composed_keyed_source_coordinates(prepared)
     .unwrap()
     .unwrap()

@@ -104,6 +104,16 @@ ordinary installed inverse, and custom dependency graphs refuse before emitting
 an unrestorable bundle. Other compositions retain their distinct original-material
 paths; this is not a language restriction or permission to discard them.
 
+A keyed entry additionally retains its original `native_read_profile` contract
+JSON. Projection reissues the graph with the same retained acquisition/profile
+and still compares the complete original wire. Restoration admits the bounded
+contract and reconstructs the exact checked stage/input/join before the existing
+issuer checks Source/schema/catalog correspondence. A profile cannot move to a
+different Model occurrence. Entries without this optional field keep the prior
+representation; absence supplies no default native profile. Removing a profile
+changes the compiled graph and remains subject to the complete saved Plan/Run
+identity fences. This material transfer grants no currentness, read or send.
+
 A single keyed Native Effect Model also retains its original selected
 `native_file_content_read` contract in `infer_native_read_profile_json`.
 Restoration admits that exact contract and binds it to the same checked
