@@ -413,7 +413,9 @@ test('Host grant dispatch forwards its original checked Submission without anoth
   assert.match(independent, /original\.grant is SigningGrant\(grant\) &&\n    original\.initial_issue is Some\(_\)/u);
   assert.match(continuation, /original\.grant is SigningGrant\(grant\) &&\n    original\.initial_issue is Some\(_\)/u);
   assert.doesNotMatch(continuation, /check_signing_grant_submission_locked|\.transaction\(|@env\.now|\.authorize\(/u);
-  assert.equal(createHash('sha256').update(dispatch.replace('check_initial_host_attestation_grant_after_submission_locked(\n      original,',
+  // Reverse only the already-approved configuration projection before the original whole-body pin.
+  const originalConfigurationDispatch = dispatch.replace('    file.content_cid == metadata.host_configuration_cid else {\n    return Err(CustodyLost)\n  }\n  // The scope check above already joined this SAME Host/Library/Read. Select\n  // its admitted bytes without another full Source/package walk; the final\n  // physical/current fence after key-generation checks remains below.\n  let body = match capture {\n    Some(owner) => owner.selected_configuration_in_original_read(file.name)\n    None => self.selected_configuration(file.name)\n  }\n  guard body is Ok(body) &&', '    file.content_cid == metadata.host_configuration_cid &&\n    self.selected_configuration(file.name) is Ok(body) &&');
+  assert.equal(createHash('sha256').update(originalConfigurationDispatch.replace('check_initial_host_attestation_grant_after_submission_locked(\n      original,',
     'check_initial_host_attestation_grant_original_locked(\n      original,\n      expected_run,')).digest('hex'),
     'f0dcdc74d816b3cb47f6e2dbfccc060bf93305712b0caf06f58c88bfbd5332fb', 'The dispatcher keeps every original check and every independent Reviewer obligation');
 });
