@@ -20,20 +20,38 @@ fn NativeLocalHostConnection::check_initial_host_attestation_grant_original_lock
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  self.check_initial_host_attestation_grant_after_submission_locked(
+    original,
+    capture~,
+  )
+}
+
+///|
+// Private continuation of the SAME grant/Request's just-checked Submission.
+// Only pure purpose selection may separate that check from this historical
+// control read. Independent callers keep the complete entry above.
+fn NativeLocalHostConnection::check_initial_host_attestation_grant_after_submission_locked(
+  self : NativeLocalHostConnection,
+  original : NativeLocalGrantOriginal,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  guard original.grant is SigningGrant(grant) &&
+    original.initial_issue is Some(_) else {
+    return Err(CustodyLost)
+  }
   let scope = @credential.local_signing_credential_grant_scope(grant)
   let control = match
     self.database.read("client_local_installation_custody", "host") {
     Ok(value) if value.revision == 0L => value
     _ => return Err(CustodyLost)
   }
-  let fields = match
-    read_local_initial_host_signing_control(self, control.body) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let reviewer = match read_local_initial_signing_control(self, control.body) {
-    Ok(Some(value)) => value
-    _ => return Err(CustodyLost)
+  // One authenticated control admission already contains both original roles
+  // and the optional Host subject. Do not discard and admit the Reviewer again.
+  guard read_local_initial_signing_control_with_host_key(self, control.body)
+    is Ok(Some((reviewer, Some((fields, _))))) &&
+    fields.policy.cid() == reviewer.policy.cid() &&
+    fields.issuer == reviewer.issuer else {
+    return Err(CustodyLost)
   }
   let metadata = match
     read_local_initial_signing_issue_record(self, original, fields) {

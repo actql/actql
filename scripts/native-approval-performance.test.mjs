@@ -379,3 +379,40 @@ test('same original Checkpoint metadata projects its live record without an extr
   ]) assert.equal(createHash('sha256').update(readFileSync(new URL('../src/platform_native/client_host/' + path, import.meta.url))).digest('hex'), expected,
     'Existing clock, key generation, OriginalRead, role and revision/cancellation fences stay exact');
 });
+
+
+test('Host grant history authenticates the same control role packets once in its original transaction', () => {
+  const host = readFileSync(new URL('../src/platform_native/client_host/local_initial_host_attestation_original.mbt', import.meta.url), 'utf8');
+  const entry = signingMethod(host, 'NativeLocalHostConnection', 'check_initial_host_attestation_grant_original_locked');
+  const current = entry.includes('self.check_initial_host_attestation_grant_after_submission_locked(')
+    ? signingMethod(host, 'NativeLocalHostConnection', 'check_initial_host_attestation_grant_after_submission_locked') : entry;
+  const admissions = [...current.matchAll(/read_local_initial_(?:host_)?signing_control(?:_with_host_key)?\(/gu)].length;
+  assert.equal(admissions, 1,
+    'The Host control reader already authenticates the same Reviewer packet and Host subject');
+  assert.match(current, /is Ok\(Some\(\(reviewer, Some\(\(fields, _\)\)\)\)\)/u);
+  assert.match(current, /fields\.policy\.cid\(\) == reviewer\.policy\.cid\(\)/u);
+  assert.match(current, /fields\.issuer == reviewer\.issuer/u);
+  assert.equal(createHash('sha256').update(current.slice(current.indexOf('  let metadata ='))).digest('hex'),
+    '095c61f6f0edc180e278abcd679320ef2e172917f798702bbbdbf42daf888ddd',
+    'All original issue/policy/Account/configuration/key separation/generation and final Host checks stay exact');
+});
+
+test('Host grant dispatch forwards its original checked Submission without another epoch traversal', () => {
+  const issue = readFileSync(new URL('../src/platform_native/client_host/local_initial_signing_issue_record.mbt', import.meta.url), 'utf8');
+  const host = readFileSync(new URL('../src/platform_native/client_host/local_initial_host_attestation_original.mbt', import.meta.url), 'utf8');
+  const dispatch = signingMethod(issue, 'NativeLocalHostConnection', 'check_initial_signing_grant_original_locked');
+  const independent = signingMethod(host, 'NativeLocalHostConnection', 'check_initial_host_attestation_grant_original_locked');
+  const handedOff = dispatch.includes('self.check_initial_host_attestation_grant_after_submission_locked(');
+  const continuation = handedOff
+    ? signingMethod(host, 'NativeLocalHostConnection', 'check_initial_host_attestation_grant_after_submission_locked') : independent;
+  const submissions = body => [...body.matchAll(/self\.check_signing_grant_submission_locked\(/gu)].length;
+  assert.equal(submissions(dispatch) + submissions(continuation), 1,
+    'One unchanged Submission/epoch admission is sufficient before the pure purpose dispatch');
+  assert.equal(submissions(independent), 1, 'The separate Host entry retains its own actual Submission/epoch admission');
+  assert.match(independent, /original\.grant is SigningGrant\(grant\) &&\n    original\.initial_issue is Some\(_\)/u);
+  assert.match(continuation, /original\.grant is SigningGrant\(grant\) &&\n    original\.initial_issue is Some\(_\)/u);
+  assert.doesNotMatch(continuation, /check_signing_grant_submission_locked|\.transaction\(|@env\.now|\.authorize\(/u);
+  assert.equal(createHash('sha256').update(dispatch.replace('check_initial_host_attestation_grant_after_submission_locked(\n      original,',
+    'check_initial_host_attestation_grant_original_locked(\n      original,\n      expected_run,')).digest('hex'),
+    'f0dcdc74d816b3cb47f6e2dbfccc060bf93305712b0caf06f58c88bfbd5332fb', 'The dispatcher keeps every original check and every independent Reviewer obligation');
+});

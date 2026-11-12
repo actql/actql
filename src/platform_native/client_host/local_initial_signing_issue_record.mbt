@@ -157,9 +157,8 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
   }
   let scope = @credential.local_signing_credential_grant_scope(grant)
   if scope.purpose == @credential.HostAttestation {
-    return self.check_initial_host_attestation_grant_original_locked(
+    return self.check_initial_host_attestation_grant_after_submission_locked(
       original,
-      expected_run,
       capture~,
     )
   }
