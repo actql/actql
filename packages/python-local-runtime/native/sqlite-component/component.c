@@ -319,7 +319,8 @@ static const actql_sqlite_component_api component_api = {
     sqlite3_errmsg, sqlite3_exec, sqlite3_free, sqlite3_prepare_v2,
     sqlite3_bind_text, sqlite3_bind_blob, sqlite3_bind_int64, sqlite3_step,
     sqlite3_column_int64, sqlite3_column_blob, sqlite3_column_bytes,
-    sqlite3_finalize, sqlite3_changes64, sqlite3_busy_timeout, sqlite3_get_autocommit
+    sqlite3_finalize, sqlite3_changes64, sqlite3_busy_timeout, sqlite3_get_autocommit,
+    sqlite3_reset, sqlite3_clear_bindings
 };
 
 __attribute__((visibility("default")))

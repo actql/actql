@@ -79,6 +79,16 @@ borrows the table once; the pointer/instance field is physical lifetime metadata
 not serialized identity or Host authorization. The trusted caller holds the
 original current scope and serial Library ownership around all table calls.
 
+Private ABI 3 adds the original `sqlite3_reset` and `sqlite3_clear_bindings`
+ports. The same Database may retain one fixed ordinary-record SELECT in its
+existing finite SQLite heap. Each call binds both original parameters, checks
+the same row/body bounds, then resets and clears bindings before returning.
+Failed reset/clear retires that statement; a primary read error remains primary.
+Exact-extent reads retain their independent prepare/finalize path. Checked
+Database close finalizes the retained statement before closing SQLite, and a
+failed finalization keeps the same Database pending without reusing the spent
+statement alias. This retains no rows, snapshot, authorization or current result.
+
 The private C acquisition in `src/platform_native/sqlite/sqlite_selected_component.inc`
 connects the original Native Library/Database structures to that table. It checks
 actual component entry/data/function origins and exact source ID; retains its own

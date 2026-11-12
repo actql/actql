@@ -133,7 +133,7 @@ def verify_bundle(directory: Path, *, source: str, provider_source: str,
             and _hex(source, 40) and body['source_sha'] == source
             and _hex(provider_source, 40) and body['provider_source_sha'] == provider_source
             and body['platform'] == 'darwin-arm64' and body['deployment_target'] == '11.0'
-            and type(body['component_api_abi']) is int and body['component_api_abi'] == 2
+            and type(body['component_api_abi']) is int and body['component_api_abi'] == 3
             and body['normal_profile'] is None and body['loaded'] is False
             and body['initialized'] is False and type(body['cohort_compatible']) is bool
             and body['cohort_compatible'] == (source == provider_source),
@@ -230,7 +230,7 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
     item = identity(library, 128 * 1024 * 1024)
     body = {'version': 'actql-python-sqlite-component-candidate/0.1', 'source_sha': source,
             'provider_source_sha': provider_record['source'], 'platform': 'darwin-arm64',
-            'deployment_target': '11.0', 'component_api_abi': 2,
+            'deployment_target': '11.0', 'component_api_abi': 3,
             'upstream_source_id': staged['upstream']['source_id'],
             'recipe_sha256': staged['recipe_sha256'], 'library': {'file': LIBRARY, **item},
             'provider': {'file': PROVIDER, 'bytes': provider_item['bytes'], 'sha256': provider_item['sha256']},
