@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
@@ -83,13 +84,19 @@ test('portable and Native packed parts preserve both original complete campaigns
   const end = source.indexOf("if (process.argv.includes('--quickstart-only'))", start);
   assert(start > 0 && end > start);
   for (const [ciPart, args, expected] of [
-    ['native', [], ['install', false]], ['portable', [], []],
+    ['native', [], ['install', 'prepare', false]], ['portable', [], []],
     [undefined, [], []], [undefined, ['--graph-native-only'], ['install', true]],
   ]) {
     const calls = [];
     await runInNewContext(`(async () => { ${source.slice(start, end)} })()`, {
       process: {argv: args}, ciPart,
       installDuckDB: async () => calls.push('install'),
+      console: {log() {}}, root: '/original-install', runtimeEnvironment: {original: 'environment'},
+      run: (command, args, directory, environment) => {
+        assert.deepEqual(Array.from(args), ['acceptance.mjs', '--prepare-native-graph-fixture']);
+        assert.equal(directory, '/original-install'); assert.equal(environment.original, 'environment');
+        calls.push('prepare'); return '';
+      },
       exerciseNativeGraphSource: async value => calls.push(value),
     });
     assert.deepEqual(calls, expected);
@@ -101,4 +108,49 @@ test('portable and Native packed parts preserve both original complete campaigns
     assert.equal(calls, expected);
   }
   assert(source.includes("ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'"));
+});
+
+test('Native fixture preparation uses original database/profile construction before returning without a Host', async () => {
+  const source = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('const canonical = value =>');
+  const end = source.indexOf('// Observe actual native execution, never a diagnostic notification.', start);
+  assert(start > 0 && end > start);
+  assert(source.includes("if (prepareNativeGraph && profileName !== 'standard') continue;"));
+  assert(source.includes("assert.equal(prepareNativeGraph, false, 'Standard Native Graph fixture was not prepared')"));
+  const calls = [], writes = [];
+  const environment = {source_views: [{contract_cid: 'original-view', output: {schema: {cid: 'original-schema'}}}],
+    connector_capabilities: [{}], evidence_bundle_cid: 'old'};
+  const connection = {run: async (...args) => calls.push(args), closeSync: () => calls.push('connection-close')};
+  const body = source.slice(start, end).replaceAll('import.meta.url', 'fixtureUrl');
+  await runInNewContext(`(async () => { ${body} throw new Error('Native preparation did not return'); })()`, {
+    assert, createHash, prepareNativeGraph: true, scopeOnly: true, profileName: 'standard', transport: undefined,
+    analyticCapacity: {max_original: 41}, sourceRows: [{id: 1, amount: 2}], worker: undefined,
+    fixtureUrl: new URL('./fixtures/packed-public-query.mjs', import.meta.url).href, URL,
+    readFile: async path => JSON.stringify(path === 'source-environment.json' ? environment :
+      path === 'base-environment.json' ? {host_policy_profile: {capacity: {max_base: 7}}} : assert.fail(path)),
+    sourceFixturePaths: () => ({database: '/original/records.duckdb', sourceProfilePath: '/original/source-profile.json'}),
+    createRequire: () => name => {
+      assert.equal(name, '@duckdb/node-api');
+      return {DuckDBInstance: {create: async path => {
+        assert.equal(path, '/original/records.duckdb');
+        return {connect: async () => connection, closeSync: () => calls.push('instance-close')};
+      }}};
+    },
+    writeFile: async (path, wire) => {
+      assert.deepEqual(calls.slice(-2), ['connection-close', 'instance-close']);
+      writes.push({path, profile: JSON.parse(wire)});
+    },
+    console: {log() {}},
+  });
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].path, '/original/source-profile.json');
+  const profile = writes[0].profile;
+  assert.equal(profile.database, '/original/records.duckdb');
+  assert.equal(profile.sourceRef, 'connector://crm/main/r#v');
+  assert.equal(profile.queryAliases[0].sourceViewContractCid, 'original-view');
+  assert.deepEqual(JSON.parse(profile.checkEnvironmentWire).host_policy_profile.capacity,
+    {max_base: 7, max_original: 41});
+  assert.equal(JSON.parse(profile.accountConfigurationWire).account_id, 'packed-query');
+  assert.deepEqual(calls[0], ['CREATE TABLE records(id DOUBLE, amount DOUBLE)']);
+  assert.deepEqual(Array.from(calls[1][1]), [1, 2]);
 });
