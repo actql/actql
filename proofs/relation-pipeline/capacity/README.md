@@ -144,6 +144,14 @@ the execution census distinguish preparation, running, closed and unexecuted
 cases, including abnormal exits or incomplete results. Timings separate serial
 preparation from worker loading, union construction and validation.
 
+Within one physical evidence reader, repeated capacity-binary references share
+only a digest and nanosecond file-identity metadata for an unchanged read-only
+regular original. Every receipt still compares its own expected digest; changed
+identity refuses reuse. Writable, linked or virtual inputs keep full hashing,
+and independent negative readers share neither digests nor validation results.
+The CLI and per-worker timings report successful hash calls/bytes and reuse
+separately from semantic validation; these counters are not a latency claim.
+
 ```
 node --test proofs/relation-pipeline/capacity.test.mjs
 node proofs/relation-pipeline/capacity/check.mjs

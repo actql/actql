@@ -10,10 +10,11 @@ import {validate} from './evidence.mjs';
 import {fixedCorpus} from './corpus.mjs';
 import {baseRegistry, registry} from './registry.mjs';
 import {registrations} from './obligations.mjs';
-import {canonicalJson, canonicalExecutionReceipt, maxCapacityReportBytes, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
+import {canonicalJson, canonicalExecutionReceipt, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
 import {partIds, planDigest, partFamily} from './proof-parts.mjs';
 import {validateCapacityPart, unionCapacityParts} from './capacity/parts.mjs';
 import {inspectMutationPart, joinMutationParts} from './mutation-parts.mjs';
+import {pipelineEvidenceReader as reader} from './evidence-reader.mjs';
 
 export const partSchema = 'actql-pipeline-ci-part/0.1';
 export const partJobs = Object.freeze({'L-C0':'pipeline-capacity', 'L-C1':'pipeline-capacity-mutants',
@@ -26,19 +27,7 @@ const targets = ['js','wasm','native'], prefix = '.artifacts/relation-pipeline/'
 const encode = value => `${JSON.stringify(value, null, 2)}\n`;
 const hex = /^[0-9a-f]{64}$/u;
 const receiptPattern = /^(L-[CM][01])-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\.json$/u;
-function reader(directory) {
-  const local = path => {
-    assert(path.startsWith(prefix), 'Non-local evidence reference');
-    return join(directory, safePath(path.slice(prefix.length)));
-  };
-  const read = path => readFileSync(path.startsWith(prefix) ? local(path) : join(fileURLToPath(new URL('../../',import.meta.url)),safePath(path)));
-  // Native inspection tools need the SAME verified physical input that this
-  // reader opens, including before relocated parts have been joined.
-  Object.defineProperty(read,'resolveArtifact',{value:local});
-  const report = path => canonicalJson(join(directory, safePath(path)),
-    /^capacity\/parts\/L-C[01]\.json$/u.test(path) ? maxCapacityReportBytes : 32 * 1024 ** 2);
-  return {local, read, report};
-}
+
 export function partState(root, env = process.env) {
   const state = sourceState(root);
   assert(typeof env.GITHUB_WORKFLOW_REF === 'string' && env.GITHUB_WORKFLOW_REF.length > 0, 'Missing workflow identity');

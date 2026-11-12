@@ -20,6 +20,11 @@ import { rejectParentSubstitutions } from './parent-control/regression.mjs';
 import { capacityObligationsByPart } from '../proof-parts.mjs';
 import { resolveCapacityUnion, validateCapacityOwners } from './parts.mjs';
 import { auditCustody, auditCustodyMutations } from './parent-control/custody.mjs';
+import { pipelineEvidenceReader } from '../evidence-reader.mjs';
+export function auditCapacityArtifact(archive, digest, read) {
+  const actual = read.artifactDigest ? read.artifactDigest(archive) : hash(read(archive));
+  assert.equal(actual, digest, 'Executed capacity artifact changed');
+}
 export function validateCapacityPart(report, current, targets, read) {
   validateCapacityOwners(report);
   return validate(report, current, targets, read);
@@ -146,7 +151,7 @@ export function validate(report, current, targets, read) {
       assert(path.startsWith(`_build/${run.target}/debug/test/query_integration/`));
       const archive = execution.capacityArchives[path];
       assert(archive.startsWith(`.artifacts/relation-pipeline/capacity/binaries/${run.target}/`));
-      assert.equal(hash(read(archive)), digest, 'Executed capacity artifact changed');
+      auditCapacityArtifact(archive, digest, read);
     }
     for (const c of run.cases) {
       assert(!observationIds.has(c.id), 'Duplicate capacity observation identity'); observationIds.add(c.id);
@@ -275,9 +280,17 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   checkCensus(root);
   const report = JSON.parse(readFileSync(process.argv[2] ?? join(root, '.artifacts/relation-pipeline/capacity/all.json')));
   assert.notEqual(report.kind, 'capacity-part', 'Whole capacity audit requires a complete union');
-  const result = validate(report, snapshot(root), ['js', 'wasm', 'native'], path => {
-    assert(!path.includes('..') && !path.startsWith('/'), 'Non-local evidence path');
-    return readFileSync(join(root, path));
-  });
+  const { read: original } = pipelineEvidenceReader(join(root, '.artifacts/relation-pipeline'), root);
+  const checkPath = path => assert(!path.includes('..') && !path.startsWith('/'), 'Non-local evidence path');
+  const read = path => {
+    checkPath(path);
+    return original(path);
+  };
+  Object.defineProperty(read, 'artifactDigest', { value: path => {
+    checkPath(path);
+    return original.artifactDigest(path);
+  } });
+  const result = validate(report, snapshot(root), ['js', 'wasm', 'native'], read);
+  console.error(`Capacity artifact digest work: ${JSON.stringify(original.artifactDigestWork())}`);
   console.log(JSON.stringify(result));
 }
