@@ -200,13 +200,33 @@ fn model_effect_imported_keyed(
     guard model_effect_result_port_policy(program, interface) is Some(policy) else {
       continue
     }
-    for index in 0..<@checked.publication_policy_source_count(policy) {
-      if @checked.publication_policy_source_at(policy, index).map(original => {
-          physical_equal(original, check)
-        }) ==
-        Some(true) {
-        return true
-      }
+    if model_effect_keyed_policy_matches(policy, check) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn model_effect_keyed_policy_matches(
+  policy : @checked.PublicationSourcePolicy,
+  check : @checked.SourceExecution,
+) -> Bool {
+  guard @checked.source_execution_kind(check) is @checked.KeyedRequest(request) else {
+    return false
+  }
+  // Publication retains the response gate; acquisition selects its request
+  // gate. Their shared original binding identifies the same keyed occurrence,
+  // without interchanging the two phases or admitting another lookup.
+  for index in 0..<@checked.publication_policy_source_count(policy) {
+    if @checked.publication_policy_source_at(policy, index).map(original => {
+        match @checked.source_execution_kind(original) {
+          @checked.KeyedResponse(response) => physical_equal(response, request)
+          _ => false
+        }
+      }) ==
+      Some(true) {
+      return true
     }
   }
   false
