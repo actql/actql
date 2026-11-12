@@ -43,3 +43,31 @@ second current review. Tests reject its reuse and removal, renaming or
 retargeting of the new selector, unknown imports/options, and foreign
 target/toolchain inputs. This extends only the exact source-configuration
 review; it does not qualify new runtime or scientific experiment results.
+
+
+## READ Request fixture successor
+
+The descriptor at `5d46f7839bab1146ce3763d6e8b08f57f5daab6c` contains
+10,836 bytes with SHA-256
+`f6711ed47a6251f7f3c6bc75191c1f4b4215b050ee05594b24f70a683aa1972b`.
+Removing exactly these two literal JS selectors restores the complete
+10,706-byte `705b8689c5a75e1c1a52aa33f178237bc7f2df3d` descriptor above:
+
+- `preparation_request_result_metadata_js_wbtest.mbt`.
+- `preparation_request_result_read_js_wbtest.mbt`.
+
+Both existing test files call `request_parent_fixture`, whose original supplier
+is the explicitly JS-selected `preparation_request_parent_js_wbtest.mbt`.
+That fixture uses `extern "js"` to retain the actual original Node resource
+supplier through `ordinary-node-resource-runtime.cjs`. The two READ tests
+therefore belong to the same JS target. Their bodies, assertions, fixture and
+all production code remain unchanged. The common READ implementation and every
+other test selector remain shared exactly as before.
+
+The current review accepts only this exact descriptor and the existing pinned
+JS toolchain. The prior revision and digest remain historical inputs, not
+current evidence. Regression checks reconstruct the complete prior descriptor,
+retain complete source membership, and reject either selector's removal,
+renaming or retargeting together with unrelated import/option changes.
+This source-selection correction supplies no new runtime, ordinary package,
+performance or release qualification.
