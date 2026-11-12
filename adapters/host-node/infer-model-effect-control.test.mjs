@@ -59,6 +59,9 @@ function fixture() {
     },
     clientProgramOriginalModelAcquiredEffectSources:()=>[direct],
     clientProgramOriginalModelAcquiredEffectLookupBarrier:()=>undefined,
+    clientProgramOriginalModelAcquiredLookupDependencyBodies(original) {
+      assert.strictEqual(original,rawAcquired);return ok([]);
+    },
     clientProgramOriginalModelAcquiredEffectInvocation:()=>rawInvocation,
     clientProgramOriginalModelAcquiredEffectScope:()=> '{"sources":[]}',
     clientProgramAcquiredEffectInvocation:()=>({}),
