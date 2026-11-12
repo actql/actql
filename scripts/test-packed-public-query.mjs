@@ -801,6 +801,8 @@ async function installDuckDB() {
 }
 if (process.argv.includes('--graph-native-only') || ciPart === 'native') {
   await installDuckDB();
+  if (ciPart === 'native') console.log(run(process.execPath,
+    ['acceptance.mjs', '--prepare-native-graph-fixture'], root, runtimeEnvironment).trimEnd());
   // The CI split retains the complete original Native campaign, including its
   // source-free control. The developer's authored-only selector is unchanged.
   await exerciseNativeGraphSource(ciPart !== 'native');

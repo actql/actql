@@ -226,7 +226,11 @@ import {graphDiagnosticSourceSuccesses, graphDiagnosticSourceRefusals, graphDiag
 
 import {transportWorker, requireCompleteInventory, sourceFixturePaths,
   observePackedSubmissionCause, createPackedHostFailureDiagnostics} from './packed-query-transport-owner.mjs';
+async function executePackedQueryFixture() {
+const prepareNativeGraph = process.argv.includes('--prepare-native-graph-fixture');
+if (prepareNativeGraph) assert.equal(process.argv.length, 3, 'Native fixture preparation cannot select cases');
 const transport = process.env.ACTQL_TEST_QUERY_TRANSPORT;
+if (prepareNativeGraph) assert.equal(transport, undefined, 'Native fixture owns its preparation');
 assert.ok(transport === undefined || ['local', 'remote', 'tail'].includes(transport));
 const worker = transport === 'local' || transport === 'remote' ? transportWorker() : undefined;
 if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
@@ -954,6 +958,7 @@ const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executio
 for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs}
   of publicQueryProfiles(scopeInputs)) {
 if (transport === 'tail' && profileName !== 'standard') continue;
+if (prepareNativeGraph && profileName !== 'standard') continue;
 const completedOffsets = {};
 const scopeInputs = profileInputs;
 const cohorts = graphRemainingOperationsOnly
@@ -1073,6 +1078,12 @@ await writeFile(sourceProfilePath, canonical({
       connection: {all: true}, resource: {all: true},
       operation: {any_of: ['read']}, exclusions: []}]}),
 }));
+// Reuse exactly this original database/profile initialization for the split
+// Native campaign, without executing any portable case or creating a Host.
+if (prepareNativeGraph) {
+  console.log('Prepared original standard DuckDB fixture for Native Graph');
+  return;
+}
 // Observe actual native execution, never a diagnostic notification.
 let sourceIo = 0, sourceReads = 0, sourceReadSessions = 0;
 const sourceReadCommands = [];
@@ -1535,6 +1546,7 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 
 }
 }
+assert.equal(prepareNativeGraph, false, 'Standard Native Graph fixture was not prepared');
 if (transport !== 'tail') {
   if (graphArgumentChecksSelected) assert.deepEqual([...graphArgumentCheckModes],
     transport === undefined ? ['local', 'remote'] : [transport]);
@@ -1565,3 +1577,6 @@ if (transport !== 'tail') {
 if (!scopeOnly && (transport === undefined || transport === 'tail'))
   await import('./packed-two-source-public-query.mjs');
 }
+
+}
+await executePackedQueryFixture();
