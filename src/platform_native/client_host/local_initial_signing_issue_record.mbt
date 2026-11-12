@@ -203,8 +203,17 @@ fn NativeLocalHostConnection::check_initial_signing_grant_original_locked(
     .iter()
     .find_first(file => file.name == metadata.host_configuration_file)
     is Some(file) &&
-    file.content_cid == metadata.host_configuration_cid &&
-    self.selected_configuration(file.name) is Ok(body) &&
+    file.content_cid == metadata.host_configuration_cid else {
+    return Err(CustodyLost)
+  }
+  // The scope check above already joined this SAME Host/Library/Read. Select
+  // its admitted bytes without another full Source/package walk; the final
+  // physical/current fence after key-generation checks remains below.
+  let body = match capture {
+    Some(owner) => owner.selected_configuration_in_original_read(file.name)
+    None => self.selected_configuration(file.name)
+  }
+  guard body is Ok(body) &&
     body == file.body &&
     initial_reviewer_host_configuration(body) else {
     return Err(CustodyLost)

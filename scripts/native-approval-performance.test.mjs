@@ -392,7 +392,8 @@ test('Host grant history authenticates the same control role packets once in its
   assert.match(current, /is Ok\(Some\(\(reviewer, Some\(\(fields, _\)\)\)\)\)/u);
   assert.match(current, /fields\.policy\.cid\(\) == reviewer\.policy\.cid\(\)/u);
   assert.match(current, /fields\.issuer == reviewer\.issuer/u);
-  assert.equal(createHash('sha256').update(current.slice(current.indexOf('  let metadata ='))).digest('hex'),
+  const unchangedTail = current.slice(current.indexOf('  let metadata =')).replace('    file.content_cid == metadata.host_configuration_cid else {\n    return Err(CustodyLost)\n  }\n  // The scope check above already joined this SAME Host/Library/Read. Select\n  // its admitted bytes without another full Source/package walk; the final\n  // physical/current fence after key-generation checks remains below.\n  let body = match capture {\n    Some(owner) => owner.selected_configuration_in_original_read(file.name)\n    None => self.selected_configuration(file.name)\n  }\n  guard body is Ok(body) &&', '    file.content_cid == metadata.host_configuration_cid &&\n    self.selected_configuration(file.name) is Ok(body) &&');
+  assert.equal(createHash('sha256').update(unchangedTail).digest('hex'),
     '095c61f6f0edc180e278abcd679320ef2e172917f798702bbbdbf42daf888ddd',
     'All original issue/policy/Account/configuration/key separation/generation and final Host checks stay exact');
 });
@@ -415,4 +416,41 @@ test('Host grant dispatch forwards its original checked Submission without anoth
   assert.equal(createHash('sha256').update(dispatch.replace('check_initial_host_attestation_grant_after_submission_locked(\n      original,',
     'check_initial_host_attestation_grant_original_locked(\n      original,\n      expected_run,')).digest('hex'),
     'f0dcdc74d816b3cb47f6e2dbfccc060bf93305712b0caf06f58c88bfbd5332fb', 'The dispatcher keeps every original check and every independent Reviewer obligation');
+});
+
+
+test('same original-read grant history selects its admitted configuration without another full binding walk', () => {
+  for (const [path, name] of [
+    ['local_initial_host_attestation_original.mbt', 'check_initial_host_attestation_grant_after_submission_locked'],
+    ['local_initial_signing_issue_record.mbt', 'check_initial_signing_grant_original_locked'],
+  ]) {
+    const source = readFileSync(new URL('../src/platform_native/client_host/' + path, import.meta.url), 'utf8');
+    const method = signingMethod(source, 'NativeLocalHostConnection', name);
+    const start = method.indexOf('  let body = match capture {');
+    const end = method.indexOf('  guard body is Ok(body)', start);
+    const branch = start < 0 ? method : method.slice(start, end);
+    const scoped = start < 0 ? branch : branch.slice(0, branch.indexOf('    None =>'));
+    const directWalks = [...scoped.matchAll(/self\.(?:selected_configuration|check_binding)\(/gu)].length;
+    const terminalWalks = start < 0 ? 0 : [...method.slice(end).matchAll(/self\.check_binding\(/gu)].length;
+    assert.equal(directWalks + terminalWalks, 1,
+      path + ': scoped configuration is DATA; the original final physical/current fence remains required');
+    assert(start >= 0 && end > start);
+    assert.match(scoped, /Some\(owner\) => owner\.selected_configuration_in_original_read\(file\.name\)/u);
+    assert.match(branch, /None => self\.selected_configuration\(file\.name\)/u,
+      'Legacy independent entry retains its complete binding check');
+    assert.doesNotMatch(scoped, /Err\(|unwrap_or|pub fn|\.read_callback_active|\.read_facts_valid|\.authorize\(/u);
+    assert(method.indexOf('    self.authority_scope_cid(') < start,
+      'The existing same Host/Library/Read scope check must precede the projection');
+    assert.match(method.slice(end), /body == file\.body &&\n    initial_reviewer_host_configuration\(body\)/u);
+    assert.match(method.slice(end), /self\.session\.root\.restore_private_file_projection\(fields\.exported\)/u);
+    assert.match(method.slice(end), /self\.check_binding\(\)\.map_err\(_ => CustodyLost\)/u);
+  }
+  const settings = readFileSync(new URL('../src/platform_native/client_host/local_settings.mbt', import.meta.url), 'utf8');
+  const scope = signingMethod(settings, 'NativeLocalHostConnection', 'authority_scope_cid');
+  assert.match(scope, /owner\.opening is JournalAcquired\(host\) &&\n      physical_equal\(host, self\) &&\n      physical_equal\(owner\.crypto, crypto\)/u);
+  const read = readFileSync(new URL('../src/platform_native/client_host/local_journal_preparation_read.mbt', import.meta.url), 'utf8');
+  const projection = signingMethod(read, 'NativeLocalJournalCapture', 'selected_configuration_in_original_read');
+  assert.match(projection, /self\.check_current_in_original_read\(\)/u);
+  assert.match(projection, /if self\.read_callback_active && self\.read_facts_valid/u);
+  assert.match(projection, /Some\(file\) => Ok\(file\.body\)/u);
 });
