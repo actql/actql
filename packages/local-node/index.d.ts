@@ -93,6 +93,10 @@ export type HostInstallation = Readonly<{
   verifyRequestValuePolicy?: HostRequestValuePolicyVerifier;
   resultDataPolicy?: Readonly<Record<string, unknown>>;
   inferEvidence?: Readonly<{
+    /** Select only original logical Model inputs; omitted keeps full physical Evidence.
+     * Requires live prepared originals and parent publication funding; otherwise incomplete.
+     * Partial/restored calls do not reconstruct unavailable input originals. */
+    kind?: 'typed-input';
     target: string | readonly string[]; destination: string; maxBytes: number;
     authorize: (binding: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>;
     sink: Readonly<{

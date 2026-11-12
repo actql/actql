@@ -39,7 +39,9 @@ function preparedEvidenceBytes(item, maxBytes) {
 export function configureInferEvidence(configuration) {
   if (configuration === undefined) return undefined;
   if (configuration === null || typeof configuration !== 'object' ||
-    Object.keys(configuration).sort().join(',') !== 'authorize,destination,maxBytes,sink,target' ||
+    !['authorize,destination,maxBytes,sink,target', 'authorize,destination,kind,maxBytes,sink,target']
+      .includes(Object.keys(configuration).sort().join(',')) ||
+    configuration.kind !== undefined && configuration.kind !== 'typed-input' ||
     !(typeof configuration.target === 'string' || Array.isArray(configuration.target)) ||
     typeof configuration.destination !== 'string' ||
     !configuration.destination || configuration.destination.length > 1024 ||
@@ -69,7 +71,8 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
   const configured = configurations.get(configuration);
   const target = selected.occurrence === undefined ? undefined
     : moon.clientProgramInferOccurrenceTargetName(selected.occurrence);
-  if (configured === undefined || !configured.targets.includes(target) || configured.pending ||
+  if (configured === undefined || configured.kind === 'typed-input' ||
+      !configured.targets.includes(target) || configured.pending ||
       typeof retainCopy !== 'function') return consume(undefined);
   let copy, copying = true, inputs;
   const release = () => {
@@ -119,10 +122,11 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
 
 export async function projectInferEvidence({configuration, moon, control, preparedProgram,
   plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainCopy, partial = false,
-  copyFunding, current}) {
+  copyFunding, current, programDefinitionCid}) {
   if (configuration === undefined) return;
   const configured = configurations.get(configuration);
   if (configured === undefined) throw new TypeError('ForeignInferEvidenceConfiguration');
+  const typedInputOnly = configured.kind === 'typed-input';
   const subject = Object.freeze({runDefinitionCid: plan.runDefinition.identity, authorityScopeCid});
   let manifest, copy, copying = true, target;
   let currentUnavailable = false;
@@ -143,6 +147,10 @@ export async function projectInferEvidence({configuration, moon, control, prepar
       ? moon.clientProgramInferTargetName(preparedProgram, selected.step)
       : moon.clientProgramInferOccurrenceTargetName(selected.occurrence);
     if (!configured.targets.includes(target)) return;
+    if (typedInputOnly && typeof copyFunding !== 'function') throw Object.assign(new Error('RequiredEvidenceUnavailable'),
+      {code: 'RequiredEvidenceUnavailable'});
+    if (typedInputOnly && partial) throw Object.assign(new Error('RequiredEvidenceUnavailable'),
+      {code: 'RequiredEvidenceUnavailable'});
     const bundle = partial ? undefined : captureOwner.evaluationBundle();
     const inventory = partial ? continuation?.evaluationInventory() : bundle;
     if (inventory === undefined || !Number.isSafeInteger(inventory.count) || inventory.count < 1 ||
@@ -162,7 +170,8 @@ export async function projectInferEvidence({configuration, moon, control, prepar
         configured.pending = true;
         try {
           if (partial || bundle === undefined) throw new Error('RequiredEvidenceUnavailable');
-          copyFunding(bundle);
+          if (typedInputOnly) copyFunding(bundle, 'typed-input');
+          else copyFunding(bundle);
           copy = Object.freeze({});
         } catch (cause) {configured.pending = false; throw cause;}
       }
@@ -193,7 +202,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
         // Existing Effect-free callers retain their original eager lookup.
         // Only this Effect boundary defers lookup until its supplied current
         // fence succeeds; it must not inspect a later call after close.
-        let physical = current === undefined ? operation.evaluationRequest(slot) : undefined;
+        let physical = !typedInputOnly && current === undefined ? operation.evaluationRequest(slot) : undefined;
         if (policy === undefined || typeof call.callWire !== 'string' ||
             entry !== undefined && entry.slotCid !== call.slotCid) {
           items.push(Object.freeze({...identity, ...missing('RequiredEvidenceUnavailable')}));
@@ -201,7 +210,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
         }
         try {
           checkOriginalCurrent();
-          if (current !== undefined) physical = operation.evaluationRequest(slot);
+          if (!typedInputOnly && current !== undefined) physical = operation.evaluationRequest(slot);
           const callBody = JSON.parse(call.callWire);
           if (partial) {
             const authorized = await configured.authorize({subject, attemptCid: entry?.attemptCid,
@@ -236,6 +245,42 @@ export async function projectInferEvidence({configuration, moon, control, prepar
             if (originalBundle.count !== 1 || !Array.isArray(originals) || originals.length !== 1 ||
                 originals[0].model_call_slot_cid !== call.slotCid) throw Object.assign(new Error('EvidenceSubjectMismatch'), {code: 'EvidenceSubjectMismatch'});
             record = originals[0];
+          }
+          if (typedInputOnly) {
+            const logical = operation.evaluationInput?.(slot);
+            if (call.outcome !== 'ok' || entry === undefined || logical === undefined ||
+                record?.evidence?.model_call_slot_cid !== call.slotCid || logical.callWire !== call.callWire) {
+              items.push(Object.freeze({...identity, ...missing('RequiredEvidenceUnavailable')}));
+              continue;
+            }
+            const original = Object.freeze({captureBundleCid: originalBundle.cid,
+              modelCallSlotCid: record.model_call_slot_cid,
+              semanticRequestCid: record.semantic_request_cid,
+              modelTaskCid: record.evidence.model_task_contract_cid});
+            const binding = Object.freeze({kind: 'typed-input', subject, attemptCid: entry.attemptCid,
+              original, policy, target, destination: configured.destination, purpose: 'capture'});
+            const authorized = await configured.authorize(binding);
+            checkOriginalCurrent();
+            if (authorized !== true) {
+              items.push(Object.freeze({...identity, ...missing('EvidenceReadDenied')}));
+              continue;
+            }
+            const retained = operation.evaluationInput?.(slot);
+            if (retained === undefined || retained.request !== logical.request || retained.callWire !== logical.callWire) {
+              items.push(Object.freeze({...identity, ...missing('RequiredEvidenceUnavailable')}));
+              continue;
+            }
+            const typedInput = moon.clientProgramModelRequestInputFrameBounded(logical.request,
+              Math.min(65536, configured.maxBytes - copiedBytes));
+            if (typeof typedInput !== 'string' || Buffer.byteLength(typedInput) > configured.maxBytes - copiedBytes) {
+              items.push(Object.freeze({...identity, ...missing('EvaluationBudgetExceeded')}));
+              continue;
+            }
+            copiedBytes += Buffer.byteLength(typedInput);
+            const captured = await configured.sink.capture({...binding, wires: {typedInput}});
+            items.push(Object.freeze({...captured, ...identity}));
+            try {checkOriginalCurrent();} catch { /* Keep the returned receipt; do not inspect a later call. */ }
+            continue;
           }
           if (call.outcome !== 'ok' || physical === undefined || entry === undefined ||
               record?.evidence?.model_call_slot_cid !== call.slotCid) {
@@ -283,7 +328,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
       const unavailable = items.find(item => item.status !== 'complete');
       manifest = Object.freeze({status: unavailable === undefined ? 'complete' : 'incomplete',
         ...(unavailable === undefined ? {} : {reason: unavailable.reason}), subject, target,
-        programCid: moon.clientProgramDefinitionCid(preparedProgram),
+        programCid: programDefinitionCid ?? moon.clientProgramDefinitionCid(preparedProgram),
         modelTaskCid: JSON.parse(inventory.calls[0].callWire).model_task_cid,
         ...(partial ? {policy} : {}),
         providerBindingCid: selected.providerBinding.identity, items: Object.freeze(items)});
@@ -295,6 +340,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
   }
   // An optional evidence receipt records capture availability, not execution
   // completion. Sink errors cannot overwrite the already published Run.
+  if (typedInputOnly) manifest = Object.freeze({...manifest, kind: 'typed-input'});
   try {await configured.sink.record({subject, target, manifest});}
   catch { /* The sink remains responsible for reporting its own unavailable receipt. */ }
 }

@@ -449,6 +449,18 @@ enclosing Host then requires its actual physical cleanup and pending-state
 confirmation. Returning an output borrow alone is no stop or cleanup ACK.
 Restored outputs keep their original parent's separate retirement requirement.
 
+The optional `inferEvidence` owner can explicitly select `kind: 'typed-input'`
+to project only an original logical Model request. The same prepared call,
+executed invocation and Store-confirmed outcome bind its slot and subject;
+the existing parent publication capacity funds the copy before encoding.
+Its binding and manifest carry that kind, and its wires contain only
+`typedInput`. It asserts neither a rendered prompt nor physical context.
+Omitting the kind retains the full physical Evidence projection. A Mock path
+without those physical originals still has incomplete full Evidence.
+Typed-input projection requires the same live prepared originals and parent
+funding; partial or restored calls without them remain incomplete. Saved rows
+or equal request bytes cannot reconstruct those originals or authorize a send.
+
 Retiring a partial private holding uses that same holding's abort operation,
 never a new commit. Abort awaits an already running write and reconciles its
 original Store observation; a never-started holding is not published after

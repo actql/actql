@@ -30,16 +30,18 @@ const originalDeal = Object.freeze({
   '006Acme': {StageName: 'Proposal', NextStep: null},
   '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
 });
-// A bounded consumer of the existing optional Evidence handoff. It neither
+// A bounded typed-input consumer of the existing optional Evidence handoff. It neither
 // invokes a Model nor reads the Journal. Raw input stays inside this fixture;
 // only the completed comparison/count is reported after the first public close.
 function joinedModelInputEvidence(selectedVariant) {
   assert(['two-models-joined-inputs', 'two-models-joined-whole'].includes(selectedVariant));
+  // Independent literal-row SHA256 vectors for the opaque fixture-provider version.
+  // See docs/guides/mock-models.md; the raw declared revision is not this version.
   const originals = {
-    '006Acme': {StageName: 'Proposal', NextStep: null, fileVersion: 'mock-revision-acme-1',
+    '006Acme': {StageName: 'Proposal', NextStep: null, fileVersion: 'sha256:3fdf0d901072bf1f3660dc0dfdbf5f6161cec18c459fdac7fed8b4c47d0fdd4e',
       notes: 'Acme renewal meeting: move the deal to Negotiation. Send revised pricing by Friday.\n',
       confirmation: {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'}},
-    '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review', fileVersion: 'mock-revision-globex-1',
+    '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review', fileVersion: 'sha256:ee260c4ffcd3129c8950438225a62d46fa6078f63464ba4aed6f0d034f7ebdb2',
       notes: 'Globex expansion meeting: the deal is Closed Lost for this year. Revisit next fiscal year.\n',
       confirmation: {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}},
   };
@@ -52,16 +54,18 @@ function joinedModelInputEvidence(selectedVariant) {
   const subjectMatches = (left, right) => left.runDefinitionCid === right.runDefinitionCid &&
     left.authorityScopeCid === right.authorityScopeCid;
   const configuration = {
-    target: 'assessment', destination, maxBytes: 262144,
+    kind: 'typed-input', target: 'assessment', destination, maxBytes: 262144,
     authorize(binding) {
-      return binding.destination === destination && binding.target === 'assessment' && binding.purpose === 'capture' &&
+      return binding.kind === 'typed-input' && binding.destination === destination &&
+        binding.target === 'assessment' && binding.purpose === 'capture' &&
         C.test(binding.subject?.runDefinitionCid) && C.test(binding.subject?.authorityScopeCid) &&
         JSON.parse(binding.policy.wire).unknown_provenance === true;
     },
     sink: {
-      async capture({subject, target, original, attemptCid, wires}) {
+      async capture({kind, subject, target, original, attemptCid, wires}) {
         return checked(() => {
           assert.equal(target, 'assessment');
+          assert.equal(kind, 'typed-input'); assert.deepEqual(Object.keys(wires), ['typedInput']);
           assert(C.test(subject.runDefinitionCid) && C.test(subject.authorityScopeCid));
           assert(C.test(attemptCid));
           assert.equal(typeof wires.typedInput, 'string');
@@ -90,7 +94,14 @@ function joinedModelInputEvidence(selectedVariant) {
       },
       async record({subject, target, manifest}) {
         return checked(() => {
-          assert.equal(target, 'assessment'); assert.equal(manifest.status, 'complete');
+          assert.equal(target, 'assessment'); assert.equal(manifest.kind, 'typed-input');
+          const code = value => typeof value === 'string' ? value.slice(0, 80) : undefined;
+          assert.equal(manifest.status, 'complete', 'Incomplete typed-input Evidence: ' + JSON.stringify({
+            kind: code(manifest.kind), status: code(manifest.status), reason: code(manifest.reason),
+            items: Array.isArray(manifest.items) ? manifest.items.slice(0, 2).map(item =>
+              ({status: code(item.status), reason: code(item.reason)})) : undefined,
+            captures: inputs.size,
+          }));
           assert(subjectMatches(subject, manifest.subject));
           assert(C.test(manifest.modelTaskCid));
           assert(!manifests.has(manifest.modelTaskCid));
@@ -262,13 +273,14 @@ async function readWholeResults(execution, updates) {
 }
 
 // Independent authored oracle for the separately named joined-Unit fixture.
+// Version goldens bind the literal physical row and its declared revision.
 // Opaque authority CIDs are checked as nominal DATA, never recreated as grants.
 function checkJoinedSourceRows(rows) {
   const expected = [
     {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null,
-      version: 'mock-revision-acme-1'},
+      version: 'sha256:3fdf0d901072bf1f3660dc0dfdbf5f6161cec18c459fdac7fed8b4c47d0fdd4e'},
     {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review',
-      version: 'mock-revision-globex-1'},
+      version: 'sha256:ee260c4ffcd3129c8950438225a62d46fa6078f63464ba4aed6f0d034f7ebdb2'},
   ];
   const fileIds = ['file-acme-notes', 'file-globex-notes'];
   const ordered = [...rows].sort((left, right) => left.id.localeCompare(right.id));

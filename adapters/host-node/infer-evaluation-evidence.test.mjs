@@ -4,12 +4,12 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {configureInferEvidence, projectInferEvidence, withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 
-function fixture({authorize = () => true, capture = async () => ({status: 'complete', references: {}}), releaseFails = false, maxBytes = 4096,
+function fixture({kind, authorize = () => true, capture = async () => ({status: 'complete', references: {}}), releaseFails = false, maxBytes = 4096,
   structuredResponse = {risk: 'high'}} = {}) {
   const trace = [], retained = [], manifests = [];
   const record = {model_call_slot_cid: 'slot', semantic_request_cid: 'request', structured_response: structuredResponse,
     evidence: {model_call_slot_cid: 'slot', model_task_contract_cid: 'task', validated_structured_output_cid: 'output'}};
-  const config = configureInferEvidence({target: 'named', destination: 'local:evaluator', maxBytes, authorize,
+  const config = configureInferEvidence({...(kind === undefined ? {} : {kind}), target: 'named', destination: 'local:evaluator', maxBytes, authorize,
     sink: {capture: async input => {trace.push('copy handed to sink'); return capture(input);}, record: async input => manifests.push(input)}});
   const moon = {clientProgramInferTargetName: () => 'named',
     clientProgramReserveInferEvidenceCopy: () => {trace.push('reserved'); return {$tag: 1, _0: {_0: 'ledger', _1: 'reservation'}};},
@@ -453,4 +453,153 @@ test('named occurrence capture supports two explicit targets without acquiring a
   assert.throws(() => configureInferEvidence({target: ['first', 'first'], destination: 'local:evaluator',
     maxBytes: 4096, authorize: () => true, sink: {capture() {}, record() {}}}),
   {name: 'TypeError', message: 'InvalidInferEvidenceConfiguration'});
+});
+
+
+function typedInputFixture(options = {}) {
+  const f = fixture({kind: 'typed-input', ...options});
+  const bundle = f.facts.captureOwner.evaluationBundle(), request = {};
+  f.facts.captureOwner.evaluationBundle = () => bundle;
+  f.facts.operation.evaluationRequest = () => assert.fail('Typed input is no physical request evidence');
+  f.facts.operation.evaluationInput = slot => {
+    assert.equal(slot, 0); return {request, callWire: bundle.calls[0].callWire};
+  };
+  f.facts.moon.clientProgramModelRequestInputFrameBounded = (actual, limit) => {
+    assert.strictEqual(actual, request); assert(limit > 0);
+    f.trace.push('typed serialize'); return '{"actual":"logical input"}';
+  };
+  f.facts.copyFunding = (actual, kind) => {
+    assert.strictEqual(actual, bundle); assert.equal(kind, 'typed-input'); f.trace.push('original funding');
+  };
+  f.facts.moon.clientProgramReserveInferEvidenceCopy = () => assert.fail('No new destination Ledger');
+  f.facts.moon.clientProgramReleaseInferEvidenceCopy = () => assert.fail('No unrelated reservation');
+  return {...f, bundle, request};
+}
+
+test('typed-input projection funds and binds same logical request without physical evidence', async () => {
+  const captured = [], f = typedInputFixture({capture: async input => {captured.push(input);return {status: 'complete'};}});
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.trace, ['original funding', 'typed serialize', 'copy handed to sink']);
+  assert.equal(captured.length, 1);
+  assert.equal(captured[0].kind, 'typed-input');
+  assert.deepEqual(captured[0].wires, {typedInput: '{"actual":"logical input"}'});
+  assert.equal(captured[0].attemptCid, 'attempt');
+  assert.equal(captured[0].original.modelCallSlotCid, 'slot');
+  assert.equal(captured[0].original.semanticRequestCid, 'request');
+  assert.equal(f.manifests[0].manifest.kind, 'typed-input');
+  assert.equal(f.manifests[0].manifest.status, 'complete');
+  assert.equal(f.retained[0].cleanupPending(), false);
+});
+
+test('typed-input projection refuses missing foreign denied and revoked originals before encoding', async () => {
+  for (const mode of ['missing', 'foreign-call', 'denied', 'revoked', 'changed-request', 'partial']) {
+    const f = typedInputFixture({capture: () => assert.fail('No foreign or unqualified input')});
+    if (mode === 'missing') f.facts.operation.evaluationInput = () => undefined;
+    if (mode === 'foreign-call') f.facts.operation.evaluationInput = () => ({request: f.request, callWire: 'foreign'});
+    if (mode === 'partial') f.facts.partial = true;
+    if (mode === 'denied' || mode === 'revoked' || mode === 'changed-request') {
+      let current = true;
+      f.facts.current = () => {if (!current) throw new Error('OriginalCurrentLost');};
+      f.facts.configuration = configureInferEvidence({kind: 'typed-input', target: 'named',
+        destination: 'local:evaluator', maxBytes: 4096,
+        authorize: async () => {
+          if (mode === 'revoked') current = false;
+          if (mode === 'changed-request') f.facts.operation.evaluationInput = () => ({request: {}, callWire: f.bundle.calls[0].callWire});
+          return mode !== 'denied';
+        }, sink: {capture: () => assert.fail('No capture after original changed'), record: async value => f.manifests.push(value)}});
+    }
+    await projectInferEvidence(f.facts);
+    assert.equal(f.trace.includes('typed serialize'), false, mode);
+    assert.equal(f.manifests[0].manifest.kind, 'typed-input');
+    assert.equal(f.manifests[0].manifest.status, 'incomplete');
+  }
+});
+
+test('typed-input projection retains pending Sink copy and skips physical-only snapshot preservation', async () => {
+  let resolve, entered;
+  const started = new Promise(yes => {entered = yes;});
+  const f = typedInputFixture({capture: () => {entered();return new Promise(yes => {resolve = yes;});}});
+  const flight = projectInferEvidence(f.facts);
+  await started;
+  assert.equal(await f.retained[0].close(), false);
+  resolve({status: 'complete'}); await flight;
+  assert.equal(f.retained[0].cleanupPending(), false);
+  let retained = 0;
+  f.facts.operation.preparedPhysicalRequest = () => assert.fail('No invented Mock physical snapshot');
+  await withPreparedInferEvidence({...f.facts, selected: {occurrence: {}},
+    moon: {...f.facts.moon, clientProgramInferOccurrenceTargetName: () => 'named'},
+    consume(value) {assert.equal(value, undefined);retained++;}});
+  assert.equal(retained, 1);
+});
+
+test('default physical projection stays incomplete when physical originals are missing', async () => {
+  const f = fixture({capture: () => assert.fail('No physical original, no complete capture')});
+  f.facts.operation.evaluationRequest = () => undefined;
+  await projectInferEvidence(f.facts);
+  assert.equal(f.manifests[0].manifest.status, 'incomplete');
+  assert.equal(f.manifests[0].manifest.items[0].reason, 'RequiredEvidenceUnavailable');
+  assert.equal(Object.hasOwn(f.manifests[0].manifest, 'kind'), false);
+});
+
+test('typed-input projection requires its existing parent funding and explicit supported kind', async () => {
+  const f = typedInputFixture();
+  f.facts.copyFunding = undefined;
+  await projectInferEvidence(f.facts);
+  assert.deepEqual(f.manifests[0].manifest, {kind: 'typed-input', status: 'incomplete', reason: 'RequiredEvidenceUnavailable'});
+  assert.deepEqual(f.trace, []);
+  assert.throws(() => configureInferEvidence({kind: 'physical-reconstruction', target: 'named',
+    destination: 'local:test', maxBytes: 100, authorize: () => true,
+    sink: {capture: async () => ({}), record: async () => {}}}), {name: 'TypeError'});
+});
+
+test('typed logical getter retains only original prepared call and executed invocation before cleanup', () => {
+  const source = readFileSync(new URL('./infer-operation.mjs', import.meta.url), 'utf8');
+  let property;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.key.name === 'evaluationInput') property = node;
+    for (const value of Object.values(node)) {
+      for (const child of Array.isArray(value) ? value : [value]) visit(child);
+    }
+  };
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(property);
+  const active = {}, prepared = {}, request = {}, call = {};
+  for (const mode of ['original', 'reclaimed', 'no-prepared', 'no-invocation', 'no-request', 'no-call']) {
+    const seen = [];
+    const moon = {
+      clientProgramInferInvocationEvidence(owner, slot) {
+        assert.strictEqual(owner, active);assert.equal(slot, 1);seen.push('invocation');
+        return mode === 'no-invocation' ? undefined : {};
+      },
+      clientProgramInferPreparedRequest(owner, slot) {
+        assert.strictEqual(owner, prepared);assert.equal(slot, 1);seen.push('request');
+        return mode === 'no-request' ? undefined : request;
+      },
+      clientProgramInferPreparedCallAt(owner, slot) {
+        assert.strictEqual(owner, prepared);assert.equal(slot, 1);seen.push('call');
+        return mode === 'no-call' ? undefined : call;
+      },
+      strategyRunEvidenceJson(owner) {assert.strictEqual(owner, call);return 'original-call';},
+    };
+    const get = new Function('moon', 'active', 'reclaimed', 'originalPreparedCallSet',
+      `return (${source.slice(property.value.start, property.value.end)});`)(moon, active,
+        mode === 'reclaimed', mode === 'no-prepared' ? undefined : prepared);
+    const actual = get(1);
+    if (mode === 'original') {
+      assert.strictEqual(actual.request, request); assert.equal(actual.callWire, 'original-call'); assert(Object.isFrozen(actual));
+    } else assert.equal(actual, undefined);
+    if (mode === 'reclaimed' || mode === 'no-prepared') assert.deepEqual(seen, []);
+    if (mode === 'no-invocation') assert.deepEqual(seen, ['invocation']);
+  }
+});
+
+
+test('typed-input Effect manifest preserves the original Effect definition without a pure Program cast', async () => {
+  const f = typedInputFixture();
+  f.facts.programDefinitionCid = 'original-effect-program';
+  f.facts.moon.clientProgramDefinitionCid = () => {throw new TypeError('EffectRunIsNotPreparedClientProgram');};
+  await projectInferEvidence(f.facts);
+  assert.equal(f.manifests[0].manifest.status, 'complete');
+  assert.equal(f.manifests[0].manifest.programCid, 'original-effect-program');
+  assert.equal(f.manifests[0].manifest.providerBindingCid, 'provider');
 });

@@ -18,3 +18,14 @@ const invalid: EmbeddedHostInstallation = {...installation, inferEvidence: {
   target: ['first_assessment', 1],
 }};
 void invalid;
+
+const typedInput: EmbeddedHostInstallation = {...installation, inferEvidence: {
+  ...installation.inferEvidence!, kind: 'typed-input',
+}};
+void connect({mode: 'local', owner: 'local', installation: typedInput});
+const invalidKind: EmbeddedHostInstallation = {...installation, inferEvidence: {
+  ...installation.inferEvidence!,
+  // @ts-expect-error Only an explicit typed-input projection extends the full default.
+  kind: 'reconstructed-physical',
+}};
+void invalidKind;

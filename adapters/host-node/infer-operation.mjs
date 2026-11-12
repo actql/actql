@@ -708,6 +708,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (reclaimed) return undefined;
       return control.inspectInferInvocationEvidence(moon, active, slot);
     },
+    evaluationInput: slot => {
+      if (reclaimed || originalPreparedCallSet === undefined ||
+          moon.clientProgramInferInvocationEvidence(active, slot) === undefined) return undefined;
+      const request = moon.clientProgramInferPreparedRequest(originalPreparedCallSet, slot);
+      const call = moon.clientProgramInferPreparedCallAt(originalPreparedCallSet, slot);
+      if (request === undefined || call === undefined) return undefined;
+      return Object.freeze({request, callWire: moon.strategyRunEvidenceJson(call)});
+    },
     evaluationRequest: slot => {
       if (reclaimed) return undefined;
       const physical = moon.clientProgramInferEvaluationRequest(active, slot);
