@@ -334,6 +334,48 @@ pub fn client_program_prepare_installed_effect_model_unit_result_export(
 }
 
 ///|
+/// Bounded technical DATA from the original returned export Result only.
+/// No compiler constructor names, body fields or current checks cross this port.
+#export_name("clientProgramEffectModelUnitResultExportIssueKind")
+pub fn client_program_effect_model_unit_result_export_issue_kind(
+  result : Result[
+    @strategy.CapturedEffectLocalResultExport,
+    @client_local_host.ClientEffectUnitPreparationIssue,
+  ],
+) -> String? {
+  match result {
+    Ok(_) => None
+    Err(Run(_)) => Some("run")
+    Err(Evidence(_)) => Some("evidence")
+    Err(Pin(_)) => Some("pin")
+    Err(Artifact(_)) => Some("artifact")
+    Err(Manifest(_)) => Some("manifest")
+    Err(Export(issue)) =>
+      Some(
+        match issue {
+          MissingResult => "export.missing_result"
+          ForeignOutput => "export.foreign_output"
+          Export(issue) =>
+            match issue {
+              Unavailable => "export.completed.unavailable"
+              NotCellRepresentation =>
+                "export.completed.not_cell_representation"
+              InvalidTarget => "export.completed.invalid_target"
+              NotFinished => "export.completed.not_finished"
+              Closed => "export.completed.closed"
+              ForeignMaterial => "export.completed.foreign_material"
+              Admission(_) => "export.completed.admission"
+              Wire(_) => "export.completed.wire"
+              Schema(_) => "export.completed.schema"
+              ResultView(_) => "export.completed.result_view"
+              CanonicalRow => "export.completed.canonical_row"
+            }
+        },
+      )
+  }
+}
+
+///|
 #export_name("clientProgramEffectModelUnitResultCount")
 pub fn client_program_effect_model_unit_result_count(
   inputs : @strategy.CapturedEffectLocalUnitInputs,

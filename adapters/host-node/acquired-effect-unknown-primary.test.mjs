@@ -165,3 +165,20 @@ test('dispatch copies only inert typed primary diagnostic DATA without invoking 
   assert.equal(dispatchFailureSnapshot(missing).primaryDiagnostic,undefined);
   assert.equal(primary.code,'MoonBitHostFailure');assert.strictEqual(primary.primaryDiagnostic,data);
 });
+
+
+test('dispatch admits only explicit Source Unit export phase with inert real occurrence DATA', () => {
+  const data = {code: 'MoonBitHostFailure', phase: 'original_effect_source_unit_result_export',
+    kind: 'export.completed.unavailable', task: 4, unit: 2, step: 5};
+  const primary = Object.assign(new Error('private'), {primaryDiagnostic: data});
+  assert.deepEqual(dispatchFailureSnapshot(primary).primaryDiagnostic, data);
+  for (const invalid of [{...data, phase: 'arbitrary_new_phase'}, {...data, task: -1},
+    {...data, unit: 2147483648}, {...data, step: undefined}, {...data, kind: 'private payload'}]) {
+    assert.equal(dispatchFailureSnapshot({primaryDiagnostic: invalid}).primaryDiagnostic, undefined);
+  }
+  const accessor = Object.defineProperty({...data}, 'unit', {get() {assert.fail('No getter invocation');}});
+  assert.equal(dispatchFailureSnapshot({primaryDiagnostic: accessor}).primaryDiagnostic, undefined);
+  const cleanup = Object.assign(new Error('cleanup'), {primaryFailure: primary});
+  assert.deepEqual(dispatchFailureSnapshot(cleanup).primaryDiagnostic, data);
+  assert.strictEqual(cleanup.primaryFailure, primary);
+});

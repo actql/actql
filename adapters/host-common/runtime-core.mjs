@@ -4781,7 +4781,7 @@ function publicationControl(moon) {
       return value;
     },
     prepareOriginalEffectSourceUnitResults(managedRun, plan, request, captured, dependency,
-      admission, definition, limits, retained, current, prepared) {
+      admission, definition, limits, retained, current, prepared, consumerOccurrence) {
       issuanceLimits(limits, 'Original preconsumer Effect Unit Results');
       const owned = localEffectDependencyTokens.get(dependency);
       if (!['combined_source', 'preconsumer_model'].includes(owned?.kind) || retained === null || typeof retained !== 'object' ||
@@ -4797,8 +4797,27 @@ function publicationControl(moon) {
       current();
       const count = moon.clientProgramEffectModelUnitResultCount(retained.pins);
       for (let index = 0; index < count; index++) {
-        const exported = checked(moon.clientProgramPrepareInstalledEffectModelUnitResultExport(
-          managedRun, plan, request, captured, retained.pins, index));
+        const result = moon.clientProgramPrepareInstalledEffectModelUnitResultExport(
+          managedRun, plan, request, captured, retained.pins, index);
+        let exported;
+        try { exported = checked(result); }
+        catch (cause) {
+          try {
+            const kind = moon.clientProgramEffectModelUnitResultExportIssueKind?.(result);
+            const coordinates = consumerOccurrence === undefined ? undefined
+              : moon.clientProgramInferOccurrenceCoordinates(consumerOccurrence);
+            const task = runtimeField(coordinates, 0), unit = runtimeField(coordinates, 1),
+              step = runtimeField(coordinates, 2);
+            if (typeof kind === 'string' && [task, unit, step].every(value =>
+                Number.isSafeInteger(value) && value >= 0 && value <= 2147483647)) {
+              Object.defineProperty(cause, 'primaryDiagnostic', {
+                value: Object.freeze({code: 'MoonBitHostFailure',
+                  phase: 'original_effect_source_unit_result_export', kind, task, unit, step}),
+              });
+            }
+          } catch { /* Optional DATA cannot replace the original export failure. */ }
+          throw cause;
+        }
         retained.exports.push(exported); current();
         const receipt = checked(moon.clientProgramEffectModelUnitExportReceipt(exported));
         retained.receipts.push(receipt); current();

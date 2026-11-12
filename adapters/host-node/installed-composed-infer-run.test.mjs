@@ -579,9 +579,10 @@ function originalRuntimeControlMethod(name, ports) {
 
 // Original runtime facade with explicit nominal Core ports. These are source
 // handoff/retirement controls, not Common ABI, provider or physical-close proof.
-function originalUnitResultFacadeFixture() {
+function originalUnitResultFacadeFixture({failure, projectKind, coordinates = {_0: 4, _1: 2, _2: 5}} = {}) {
   const run = {}, plan = {}, request = {}, captured = {}, dependency = {invocation: {}}, source = {}, admission = {}, definition = {};
   const pins = {}, exported = {}, receipt = {}, artifact = {}, manifest = {}, events = [];
+  const failedResult = {}, occurrence = {};
   const dependencies = new WeakMap([[dependency, {kind: 'combined_source', issued: source, unit: 0}]]);
   const artifacts = new WeakMap(), manifests = new WeakMap();
   let release = false;
@@ -593,7 +594,7 @@ function originalUnitResultFacadeFixture() {
     clientProgramPrepareInstalledEffectModelUnitResultExport(actualRun, actualPlan, actualRequest, actualCaptured, actualPins, index) {
       assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
       assert.strictEqual(actualCaptured, captured); assert.strictEqual(actualPins, pins); assert.equal(index, 0);
-      events.push('export'); return {ok: exported};
+      events.push('export'); return failure === undefined ? {ok: exported} : failedResult;
     }, clientProgramEffectModelUnitExportReceipt(actual) {assert.strictEqual(actual, exported); events.push('receipt'); return {ok: receipt};},
     clientProgramPrepareInstalledEffectModelSourceUnitArtifact(actualRun, actualPlan, actualRequest, actualPins, actualExport, actualSource, actualReceipt, actualAdmission, actualDefinition) {
       assert.strictEqual(actualRun, run); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualRequest, request);
@@ -613,7 +614,14 @@ function originalUnitResultFacadeFixture() {
       assert.equal(index, 0); assert.strictEqual(actualArtifact, artifact); assert.strictEqual(actualManifest, manifest); events.push('bind'); return {ok: undefined};
     },
   };
-  const ports = {moon, checked: value => value.ok, issuanceLimits() {},
+  if (projectKind !== undefined) moon.clientProgramEffectModelUnitResultExportIssueKind = result => {
+    assert.strictEqual(result, failedResult); events.push('project-kind'); return projectKind();
+  };
+  moon.clientProgramInferOccurrenceCoordinates = actual => {
+    assert.strictEqual(actual, occurrence); events.push('consumer-coordinates'); return coordinates;
+  };
+  const ports = {moon, checked: value => {if (value === failedResult) throw failure; return value.ok;}, issuanceLimits() {},
+    runtimeField: (value, index) => value?.['_' + index],
     localEffectDependencyTokens: dependencies, localEffectArtifactTokens: artifacts, localEffectManifestTokens: manifests,
     admissionToken: value => {assert.strictEqual(value, admission); return admission;},
     inspectLocalEffectArtifact: actual => {const value = Object.freeze({}); artifacts.set(value, actual); return value;}};
@@ -622,7 +630,7 @@ function originalUnitResultFacadeFixture() {
   const bind = originalRuntimeControlMethod('bindInferOriginalResultArtifact', ports);
   const retained = {pins: undefined, exports: [], receipts: [], artifacts: [], manifest: undefined};
   return {events, pins, retained, retire, bind, release() {release = true;},
-    prepare(current = () => {}) {return prepare(run, plan, request, captured, dependency, admission, definition, {}, retained, current);}};
+    prepare(current = () => {}) {return prepare(run, plan, request, captured, dependency, admission, definition, {}, retained, current, undefined, occurrence);}};
 }
 
 test('original upstream Result facade retains every issued original before the next fallible boundary', () => {
@@ -635,6 +643,40 @@ test('original upstream Result facade retains every issued original before the n
   assert.strictEqual(f.retained.pins, f.pins, 'pending original pin remains with this same record');
   f.release(); assert.equal(f.retire(f.retained), true);
   assert.equal(f.retained.pins, undefined); assert.equal(f.retained.artifacts.length, 0);
+});
+
+test('original Source Unit export failure retains same cause and pins with actual consumer diagnostic', () => {
+  const cause = Object.assign(new Error('private message'), {code: 'MoonBitHostFailure', cause: {privateBody: true}});
+  const f = originalUnitResultFacadeFixture({failure: cause, projectKind: () => 'export.completed.unavailable'});
+  assert.throws(() => f.prepare(), actual => actual === cause);
+  assert.deepEqual(cause.primaryDiagnostic, {code: 'MoonBitHostFailure',
+    phase: 'original_effect_source_unit_result_export', kind: 'export.completed.unavailable', task: 4, unit: 2, step: 5});
+  assert(Object.isFrozen(cause.primaryDiagnostic));
+  assert.deepEqual(f.events, ['pin', 'export', 'project-kind', 'consumer-coordinates']);
+  assert.strictEqual(f.retained.pins, f.pins);
+  assert.deepEqual(f.retained.exports, []);
+  assert.equal(f.retire(f.retained), false);
+  f.release(); assert.equal(f.retire(f.retained), true);
+});
+
+test('optional Source Unit export diagnostic never masks primary failure or invents occurrence', () => {
+  for (const mode of ['missing-projector', 'throwing-projector', 'missing-kind', 'invalid-task', 'invalid-unit', 'invalid-step']) {
+    const cause = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+    const coordinates = {_0: 4, _1: 2, _2: 5};
+    if (mode === 'invalid-task') coordinates._0 = -1;
+    if (mode === 'invalid-unit') coordinates._1 = 0.5;
+    if (mode === 'invalid-step') coordinates._2 = 2147483648;
+    const projectKind = mode === 'missing-projector' ? undefined : () => {
+      if (mode === 'throwing-projector') throw new Error('optional');
+      return mode === 'missing-kind' ? undefined : 'export.completed.unavailable';
+    };
+    const f = originalUnitResultFacadeFixture({failure: cause, projectKind, coordinates});
+    assert.throws(() => f.prepare(), actual => actual === cause);
+    assert.equal(Object.hasOwn(cause, 'primaryDiagnostic'), false);
+    assert.strictEqual(f.retained.pins, f.pins);
+    assert.deepEqual(f.retained.exports, []);
+    assert.equal(f.retire(f.retained), false);
+  }
 });
 
 test('original upstream Result facade preserves partial custody when current throws undefined after pinning', () => {

@@ -1331,7 +1331,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
                   }
                   acquired.control.prepareOriginalEffectSourceUnitResults(managedRun, sourcePlan, acquired.requestIdentity,
                     moon.clientProgramLocalEffectHostRun(host), entry.value, acquired.admission, acquired.definition,
-                    localContractLimits, entry.results, publicationCurrent, acquired.prepared);
+                    localContractLimits, entry.results, publicationCurrent, acquired.prepared, child.selection.occurrence);
                 } catch (cause) {
                   entry.resultFailed = true; entry.resultFailure = cause; throw cause;
                 } finally {entry.resultPreparing = false;}
