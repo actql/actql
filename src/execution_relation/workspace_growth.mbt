@@ -53,6 +53,21 @@ fn grow_workspace(
   let slot_peak = Int::max(growth.slot_peak, slots)
   let logical_peak = Int64::max(growth.logical_peak, logical)
   let text_peak = Int64::max(growth.text_peak, text)
+  if slot_peak == growth.slot_peak &&
+    logical_peak == growth.logical_peak &&
+    text_peak == growth.text_peak &&
+    growth.retained_outputs == Some(retained) &&
+    growth.used <= growth.funded &&
+    (growth.reserve_retained is None || retained <= growth.retained_funded) {
+    // The same metered output total and workspace peaks already own this exact
+    // quote, including direct output charges within its funded page. Releases
+    // change live extents, never that quote. Unmetered callers may supply an
+    // explicit retained amount, so None always keeps the full checked recipe.
+    growth.slots = slots
+    growth.logical = logical
+    growth.text = text
+    return true
+  }
   guard execution_capacity_inventory_add(
       0L,
       CursorRootSlots,
