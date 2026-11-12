@@ -21,7 +21,10 @@ fn transfer_manifest() -> @manifest.PhysicalManifest {
 }
 
 ///|
-fn transfer_request(route : RemoteTransferRoute) -> RemoteTransferRequest {
+fn transfer_request(
+  route : RemoteTransferRoute,
+  physical? : @manifest.PhysicalManifest = transfer_manifest(),
+) -> RemoteTransferRequest {
   prepare_request(
     "coordinator-a",
     "transfer-1",
@@ -31,7 +34,7 @@ fn transfer_request(route : RemoteTransferRoute) -> RemoteTransferRequest {
     "destination-b",
     9,
     "material-source-1",
-    transfer_manifest(),
+    physical,
     16L,
     2000000000000L,
     transfer_cid("4"),
@@ -124,6 +127,81 @@ test "canonical request and manifest wire are re-admitted together" {
   assert_eq(request_row_count(restored), 2)
   assert_true(request_active_at(restored, 1999999999999L))
   assert_false(request_active_at(restored, 2000000000000L))
+}
+
+///|
+test "Transfer Request isolates input aliases and rechecks every exposed chunk value" {
+  for route in [DirectStream, TransferStore] {
+    let physical = transfer_manifest()
+    let request = transfer_request(route, physical~)
+    let original_body = request_json(request).unwrap()
+    let original_manifest_body = request_manifest_json(request).unwrap()
+    let incoming = physical.chunks[0]
+    physical.chunks[0] = { ..incoming, byte_length: 6L, }
+    assert_eq(request_json(request), Ok(original_body))
+    let exposed = request_manifest(request)
+    let first = exposed.chunks[0]
+    let second = exposed.chunks[1]
+    for
+      changed in [
+        { ..first, cid: transfer_cid("f"), },
+        { ..first, byte_length: 6L, },
+        { ..first, row_count: 0, },
+      ] {
+      exposed.chunks[0] = changed
+      assert_true(request_json(request) is Err(InvalidTransfer))
+      assert_true(request_journal_identity(request) is Err(InvalidTransfer))
+      assert_true(request_manifest_json(request) is Err(InvalidTransfer))
+    }
+    exposed.chunks[0] = second
+    exposed.chunks[1] = first
+    assert_true(request_json(request) is Err(InvalidTransfer))
+    exposed.chunks[0] = first
+    exposed.chunks[1] = second
+    exposed.chunks.push(second)
+    assert_true(request_json(request) is Err(InvalidTransfer))
+    exposed.chunks.pop() |> ignore
+    exposed.chunks.pop() |> ignore
+    assert_true(request_json(request) is Err(InvalidTransfer))
+    exposed.chunks.push(second)
+    assert_eq(request_json(request), Ok(original_body))
+    assert_eq(request_manifest_json(request), Ok(original_manifest_body))
+  }
+}
+
+///|
+test "Transfer decoder retains exact original contract bindings" {
+  for route in [DirectStream, TransferStore] {
+    let request = transfer_request(route)
+    let body = request_json(request).unwrap()
+    let manifest_body = request_manifest_json(request).unwrap()
+    let manifest_cid = request_manifest(request).manifest_cid
+    for
+      (field, original) in [
+        ("schema_contract_cid", request_schema_contract_cid(request)),
+        ("view_contract_cid", request_view_contract_cid(request)),
+        ("codec_contract_cid", request_codec_contract_cid(request)),
+        ("physical_manifest_cid", manifest_cid),
+      ] {
+      let changed = body.replace(
+        old="\"" + field + "\":\"" + original + "\"",
+        new="\"" + field + "\":\"" + transfer_cid("f") + "\"",
+      )
+      assert_not_eq(changed, body)
+      assert_true(
+        admit_request_json(
+          changed,
+          manifest_body,
+          request_cid(request),
+          manifest_cid,
+          2,
+          4096,
+          12L,
+        )
+        is Err(InvalidTransfer),
+      )
+    }
+  }
 }
 
 ///|
