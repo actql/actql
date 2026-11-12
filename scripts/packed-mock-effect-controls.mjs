@@ -6,7 +6,7 @@ import {join, dirname} from 'node:path';
 import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
-export const packedEffectControlCases = Object.freeze(['approve-deny', 'paused-cancel', 'changed-current']);
+export const packedEffectControlCases = Object.freeze(['approve-deny', 'paused-cancel', 'changed-current', 'publication-io-failure']);
 
 export function assertMockEffectControlOutcome(actual, mode, pid) {
   assert(packedEffectControlCases.includes(mode));
@@ -14,6 +14,24 @@ export function assertMockEffectControlOutcome(actual, mode, pid) {
   assert.equal(actual.status, 'passed'); assert.equal(actual.primaryCode, undefined);
   assert.deepEqual(actual.firstClose, {attempted: true, returned: true});
   assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
+  if (mode === 'publication-io-failure') {
+    assert.equal(actual.cleanupCode, undefined); assert.equal(actual.reportCode, undefined);
+    assert.equal(actual.originalRun, true); assert.equal(actual.targetUnchanged, true);
+    assert.deepEqual(actual.counts, {sourceStarts: 2, modelStarts: 4, modelResponses: 4, modelSuccesses: 4, effectWrites: 0});
+    assert.equal(actual.modelUnits, 2); assert.equal(actual.modelOccurrences, 4);
+    assert.equal(actual.state?.status, 'failed'); assert.equal(actual.state.resultAvailable, false);
+    assert.equal(actual.state.physicalStop, 'confirmed');
+    assert.deepEqual(actual.fault, {armed: true, restored: true, failed: false, probeCode: 'EACCES'});
+    assert.equal(actual.observationComplete, true);
+    const status = actual.observationStatus;
+    assert.equal(status?.closed, true); assert.equal(status.cleanupPending, false);
+    assert(Number.isSafeInteger(status.repeated) && status.repeated >= 0);
+    for (const name of ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed',
+      'limited', 'queued', 'active', 'activeSegments']) assert.equal(status[name], 0, name);
+    assert(status.loss !== undefined && status.loss !== null);
+    assert(Object.values(status.loss).every(value => value === 0));
+    return;
+  }
   const work = actual.workObservation;
   assert.equal(work?.complete, true, 'Missing or lossy observation cannot prove zero writes');
   assert.equal(work.sourceAcquisitionStarts, 0);
@@ -52,6 +70,8 @@ async function runControl({prepared, root, repository, command, record}) {
     ['scripts/fixtures/mock-project-effect-control-capture.mjs', 'capture.mjs'],
     ['scripts/fixtures/mock-project-effect-cancel-public.mjs', 'control.mjs'],
     ['scripts/fixtures/record-approval/scoped-fds.fixture.mjs', 'record-approval/scoped-fds.fixture.mjs'],
+    ...(mode === 'publication-io-failure'
+      ? [['scripts/fixtures/mock-project-publication-io-failure.mjs', 'publication-failure.mjs']] : []),
   ]) {
     await mkdir(dirname(join(project, target)), {recursive: true});
     await copyFile(join(repository, source), join(project, target));
@@ -61,13 +81,14 @@ async function runControl({prepared, root, repository, command, record}) {
   let failed = false, primary;
   try {
     const handoff = join(project, 'handoff.json');
-    for (const phase of ['capture', 'control']) {
+    for (const phase of mode === 'publication-io-failure' ? ['publication-failure'] : ['capture', 'control']) {
       const observation = {phase, completed: false, startedAt: new Date().toISOString()};
       record.phases.push(observation);
       const path = join(project, `${phase}.observation.json`);
       await writeFile(path, JSON.stringify(observation, null, 2) + '\n', {flag: 'wx'});
       try {
-        const result = await command(process.execPath, phase === 'capture'
+        const result = await command(process.execPath, phase === 'publication-failure'
+          ? [join(project, 'publication-failure.mjs'), handoff] : phase === 'capture'
           ? [join(project, 'capture.mjs'), 'capture', handoff, 'deal-review-mock', 'two-models', 'original-run-control']
           : [join(project, 'control.mjs'), handoff, mode],
         {cwd: project, name: `effect-control-${mode}-${phase}`, timeout: 30_000});
@@ -97,13 +118,14 @@ async function runControl({prepared, root, repository, command, record}) {
           Object.assign(observation, {pid: result.pid, exitCode: result.code ?? null, signal: result.signal ?? null});
           try {
             const actual = JSON.parse(result.stdout.trim().split('\n').at(-1));
-            if (phase === 'control' && actual.pid === result.pid && actual.mode === mode) observation.actual = actual;
+            if (phase !== 'capture' && actual.pid === result.pid && actual.mode === mode) observation.actual = actual;
           } catch { /* An absent final observation is not a successful close. */ }
         }
         // Keep an actual same-child pre-close primary when the final result or
         // first close is unobserved. Never infer success from process exit.
-        if (phase === 'control') try {
-          const partial = JSON.parse(await readFile(handoff + '.cancel.before-close.json', 'utf8'));
+        if (phase !== 'capture') try {
+          const partial = JSON.parse(await readFile(handoff + (phase === 'publication-failure'
+            ? '.before-close.json' : '.cancel.before-close.json'), 'utf8'));
           assert.equal(partial.pid, error.commandResult?.pid);
           observation.partialObservation = partial;
         } catch { /* The original failure remains primary. */ }

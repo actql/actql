@@ -14,16 +14,39 @@ const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
 const workText = readFileSync(new URL('./fixtures/work-observation.fixture.mjs', import.meta.url), 'utf8');
 const workAst = parse(workText, {ecmaVersion: 'latest', sourceType: 'module'});
 const declaration = name => {
-  const source = name === 'workflowWorkObservation' ? workText : text;
-  const body = name === 'workflowWorkObservation' ? workAst.body : ast.body;
+  const isWork = ['workflowWorkObservation', 'workflowObservationComplete'].includes(name);
+  const source = isWork ? workText : text;
+  const body = isWork ? workAst.body : ast.body;
   const node = body.map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
     .find(node => node?.type === 'FunctionDeclaration' && node.id.name === name);
-  assert.ok(node);return source.slice(node.start, node.end);
+  assert.ok(node);
+  return (name === 'workflowWorkObservation' ? declaration('workflowObservationComplete') + ';' : '') +
+    source.slice(node.start, node.end);
 };
 const observe = new Function(`${declaration('publicRunObservation')};return publicRunObservation;`)();
 const main = ast.body.find(node => node.type === 'TryStatement');
 const branch = main.block.body.find(node => node.type === 'IfStatement');
 const captureBody = text.slice(branch.consequent.start, branch.consequent.end);
+
+test('workflow completeness allows suppressed Owner facts but refuses actual loss or unfinished cleanup', () => {
+  const complete = new Function(`${declaration('workflowObservationComplete')};return workflowObservationComplete;`)();
+  const status = () => ({closed: true, cleanupPending: false, repeated: 31, dropped: 0,
+    budgetUnavailable: 0, queueOverflow: 0, deliveryFailed: 0, limited: 0,
+    queued: 0, active: 0, activeSegments: 0, loss: {}});
+  for (const repeated of [0, 1, 31, Number.MAX_SAFE_INTEGER]) assert.equal(complete({...status(), repeated}), true);
+  for (const repeated of [undefined, -1, NaN, Infinity, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.equal(complete({...status(), repeated}), false);
+  }
+  for (const name of ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed',
+    'limited', 'queued', 'active', 'activeSegments']) {
+    assert.equal(complete({...status(), [name]: 1}), false, name);
+    const missing = status(); delete missing[name]; assert.equal(complete(missing), false, name);
+  }
+  for (const changed of [undefined, null, {...status(), closed: false}, {...status(), cleanupPending: true},
+    {...status(), loss: {delivery_failed: 1}}, {...status(), loss: undefined}, {...status(), loss: null}]) {
+    assert.equal(complete(changed), false);
+  }
+});
 
 test('authored README Source and Model call bounds reject duplicated and missing starts', () => {
   const check = new Function('assert', `${declaration('checkWorkflowWork')};return checkWorkflowWork;`)(assert);

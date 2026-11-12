@@ -1225,14 +1225,20 @@ const explicitEffectControl = (mode, pid = 7000) => ({mode, pid, status: 'passed
   workObservation: {complete: true, sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0},
   ...(mode === 'approve-deny' ? {runStatus: 'waiting_checkpoint',
     refusal: {code: 'ExecutionAuthorizationDenied', action: 'deny', operation: 'sign'}}
+    : mode === 'publication-io-failure' ? {
+      counts: {sourceStarts: 2, modelStarts: 4, modelResponses: 4, modelSuccesses: 4, effectWrites: 0},
+      modelUnits: 2, modelOccurrences: 4, state: {status: 'failed', resultAvailable: false, physicalStop: 'confirmed'},
+      fault: {armed: true, restored: true, failed: false, probeCode: 'EACCES'}, observationComplete: true,
+      observationStatus: {closed: true, cleanupPending: false, repeated: 31, dropped: 0, budgetUnavailable: 0,
+        queueOverflow: 0, deliveryFailed: 0, limited: 0, queued: 0, active: 0, activeSegments: 0, loss: {}}}
     : mode === 'paused-cancel' ? {cancellationKind: 'accepted', runStatus: 'cancelled', physicalStop: 'confirmed', resultAvailable: false}
       : {currentChanged: true, staleApprovalRefused: true, runStatus: 'failed',
         refusal: {available: true, code: 'EffectTargetVersionMismatch',
           kind: 'target_version_mismatch', phase: 'effect_apply_preflight'}})});
 
 test('normal Effect controls require original current refusals, zero actual writes and FIRST close', () => {
-  assert.deepEqual(packedEffectControlCases, ['approve-deny', 'paused-cancel', 'changed-current']);
-  for (const mode of packedEffectControlCases) {
+  assert.deepEqual(packedEffectControlCases, ['approve-deny', 'paused-cancel', 'changed-current', 'publication-io-failure']);
+  for (const mode of packedEffectControlCases.filter(mode => mode !== 'publication-io-failure')) {
     assertMockEffectControlOutcome(explicitEffectControl(mode), mode, 7000);
     for (const mutate of [value => value.workObservation.complete = false,
       value => value.workObservation.effectReplacementReturns++, value => value.workObservation.modelCallStarts++,
@@ -1249,6 +1255,119 @@ test('normal Effect controls require original current refusals, zero actual writ
   assert.throws(() => assertMockEffectControlOutcome(deny, deny.mode, deny.pid));
 });
 
+test('publication I/O control requires real refusal after all Model responses and separate FIRST close', () => {
+  const mode = 'publication-io-failure';
+  assertMockEffectControlOutcome(explicitEffectControl(mode), mode, 7000);
+  for (const mutate of [
+    value => value.counts.sourceStarts--, value => value.counts.modelStarts--,
+    value => value.counts.modelResponses--, value => value.counts.modelSuccesses--,
+    value => value.counts.effectWrites++, value => value.modelUnits--, value => value.modelOccurrences--,
+    value => value.fault.armed = false, value => value.fault.restored = false,
+    value => value.fault.failed = true, value => value.fault.probeCode = 'ENOENT',
+    value => value.state.status = 'needs_reconciliation', value => value.state.resultAvailable = true,
+    value => value.state.physicalStop = 'unknown', value => value.primaryCode = 'ClientHostFailure',
+    value => value.cleanupCode = 'ClientCleanupPending', value => value.reportCode = 'EIO',
+    value => value.observationComplete = false, value => value.observationStatus.closed = false,
+    value => value.observationStatus.cleanupPending = true, value => value.observationStatus.repeated = -1,
+    value => value.observationStatus.loss = {delivery_failed: 1},
+    value => value.firstClose.returned = false, value => value.aliveScopedFD.after++,
+    value => value.originalRun = false, value => value.targetUnchanged = false,
+    value => value.status = 'failed', value => value.pid++,
+    ...['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed', 'limited',
+      'queued', 'active', 'activeSegments'].map(name => value => value.observationStatus[name]++),
+  ]) {
+    const value = explicitEffectControl(mode); mutate(value);
+    assert.throws(() => assertMockEffectControlOutcome(value, mode, 7000));
+  }
+});
+
+test('publication I/O fixture restores the SAME directory before FIRST close and preserves its original primary', async () => {
+  const source = await readFile(new URL('./fixtures/mock-project-publication-io-failure.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const body = source.slice(tree.body.find(node => node.type !== 'ImportDeclaration').start);
+  const load = await runnerFunctions('../adapters/host-node/fixtures/work-observation.fixture.mjs');
+  const complete = load('workflowObservationComplete', {});
+  for (const scenario of ['passed', 'wait-refusal-and-close-pending', 'probe-not-EACCES']) {
+    const saved = new Map(), events = [], rows = [];
+    let deliver, mode = 0o700, closes = 0, fdChecks = 0;
+    const primary = Object.assign(new Error('Original wait failure'), {code: 'OriginalWaitFailure'});
+    const terminal = {run_id: 'explicit-original', status: 'failed', result_available: false,
+      control: {physical_stop: 'confirmed'}, terminal_error: {code: 'OriginalPublicationFailure'}};
+    const ports = {assert, resolve: (...parts) => '/explicit/' + parts.join('/'),
+      process: {argv: ['node', 'fixture', '/explicit/receipt'], pid: 7000, getuid: () => 501},
+      console: {log: text => rows.push(JSON.parse(text))},
+      mkdir: async () => {}, readFile: async name => name === 'deal-review.program.json' ? 'explicit-program' : 'unchanged-target',
+      lstat: async () => ({dev: 1n, ino: 2n, size: 16n, mtimeNs: 3n}),
+      writeFile: async (path, bytes, options) => {
+        assert.equal(options.flag, 'wx'); assert(!saved.has(path)); saved.set(path, JSON.parse(bytes));
+        if (path.endsWith('.before-close.json')) events.push('primary-before-close');
+      },
+      lstatSync: () => ({dev: 1, ino: 9, uid: 501, mode, isDirectory: () => true, isSymbolicLink: () => false}),
+      realpathSync: path => path,
+      chmodSync(_path, selected) {mode = selected; events.push(selected === 0o700 ? 'restore-same-directory' : 'arm');},
+      openSync(_path, flag, permissions) {
+        assert.equal(mode, 0o500); assert.equal(flag, 'wx'); assert.equal(permissions, 0o600);
+        events.push('probe'); throw Object.assign(new Error('Explicit I/O refusal'),
+          {code: scenario === 'probe-not-EACCES' ? 'ENOENT' : 'EACCES'});
+      },
+      closeSync: () => assert.fail('A refused probe has no descriptor'),
+      unlinkSync: () => assert.fail('A refused probe has no file'),
+      createHostObservationConnection(options) {
+        deliver = options.deliver;
+        return {status: () => ({closed: closes === 1, cleanupPending: scenario === 'wait-refusal-and-close-pending',
+          repeated: 31, dropped: 0, budgetUnavailable: 0, queueOverflow: 0, deliveryFailed: 0,
+          limited: 0, queued: 0, active: 0, activeSegments: 0, loss: {}})};
+      },
+      workflowObservationComplete: complete,
+      observeRecordApprovalDescriptors: async () => {fdChecks++; return {openPaths: []};},
+      connect: async () => ({
+        async startSource(program, options) {
+          assert.equal(program, 'explicit-program'); assert.deepEqual(options, {format: 'json', stopBefore: 'commit'});
+          return {ref: {original: 'explicit-only'},
+            async wait() {
+              assert(saved.has('/explicit/receipt.started.json'), 'Original reference precedes first wait');
+              for (let i = 0; i < 2; i++) deliver({operation: 'source', event: 'attempt_started'});
+              for (let i = 0; i < 4; i++) {
+                deliver({operation: 'infer', event: 'attempt_started'});
+                deliver({operation: 'infer', event: 'attempt_observed', attributes: {'actql.outcome': 'succeeded',
+                  'actql.task.ordinal': Math.floor(i / 2), 'actql.model.slot.ordinal': i % 2, 'actql.attempt.ordinal': 0}});
+              }
+              if (scenario === 'wait-refusal-and-close-pending') throw primary;
+              return terminal;
+            },
+            async status() {return terminal;},
+          };
+        },
+        async close() {
+          closes++; events.push('first-close'); assert.equal(mode, 0o700);
+          if (scenario === 'wait-refusal-and-close-pending') {
+            throw Object.assign(new Error('Original close pending'), {code: 'ClientCleanupPending'});
+          }
+        },
+      }),
+    };
+    await Function(...Object.keys(ports), `return (async () => {${body}})();`)(...Object.values(ports));
+    assert.equal(closes, 1); assert.equal(fdChecks, 2); assert.equal(rows.length, 1);
+    assert.deepEqual(events, ['arm', 'probe', 'restore-same-directory', 'primary-before-close', 'first-close']);
+    const actual = rows[0], beforeClose = saved.get('/explicit/receipt.before-close.json');
+    assert.equal(beforeClose.pid, 7000); assert.deepEqual(beforeClose.firstClose, {attempted: false, returned: false});
+    assert.equal(actual.fault.restored, true); assert.equal(actual.targetUnchanged, true);
+    if (scenario === 'passed') {
+      assertMockEffectControlOutcome(actual, 'publication-io-failure', 7000);
+      assert.equal(ports.process.exitCode, undefined);
+    } else {
+      assert.equal(actual.status, 'failed'); assert.equal(ports.process.exitCode, 1);
+      assert.throws(() => assertMockEffectControlOutcome(actual, 'publication-io-failure', 7000));
+      if (scenario === 'wait-refusal-and-close-pending') {
+        assert.equal(beforeClose.primaryCode, primary.code); assert.equal(actual.primaryCode, primary.code);
+        assert.equal(actual.cleanupCode, 'ClientCleanupPending'); assert.equal(actual.firstClose.returned, false);
+      } else {
+        assert.equal(actual.fault.probeCode, 'ENOENT'); assert.equal(actual.fault.failed, true);
+      }
+    }
+  }
+});
+
 test('normal Effect driver selects each fresh two-Model capture and public control exactly once', async t => {
   const {root, consumer} = await scratch(t), load = await runnerFunctions('./packed-mock-effect-controls.mjs');
   const prepared = {consumer, manifest: {}, manifestPath: '/exact-unchanged-normal-input'}, calls = [];
@@ -1261,12 +1380,17 @@ test('normal Effect driver selects each fresh two-Model capture and public contr
     await run({prepared, root, repository, record, async command(_exe, args, options) {
       assert.equal(options.timeout, 30000);
       assert.equal(await readlink(join(options.cwd, 'node_modules')), join(consumer, 'node_modules'));
-      const capture = args[1] === 'capture'; calls.push([mode, capture ? 'capture' : 'control']);
+      const capture = args[1] === 'capture', publication = mode === 'publication-io-failure';
+      calls.push([mode, publication ? 'publication-failure' : capture ? 'capture' : 'control']);
       assert.equal((await readFile(join(options.cwd, 'capture-original.mjs'), 'utf8')), workflowSource);
       if (capture) {
         assert.deepEqual(args.slice(1), ['capture', join(options.cwd, 'handoff.json'), 'deal-review-mock', 'two-models', 'original-run-control']);
         assert.equal(JSON.parse(await readFile(join(options.cwd, 'model-tasks.json'), 'utf8')).tasks['model-task:deal-review-confirm.v1'],
           './model-tasks/deal-review-confirm.v1.yaml');
+      } else if (publication) {
+        assert.deepEqual(args, [join(options.cwd, 'publication-failure.mjs'), join(options.cwd, 'handoff.json')]);
+        assert.equal(await readFile(args[0], 'utf8'),
+          await readFile(join(repository, 'scripts/fixtures/mock-project-publication-io-failure.mjs'), 'utf8'));
       } else assert.deepEqual(args.slice(1), [join(options.cwd, 'handoff.json'), mode]);
       const rows = capture ? [...Array.from({length: 10}, (_, i) => explicitStep('capture', String(i))),
         {phase: 'capture', status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
@@ -1278,7 +1402,8 @@ test('normal Effect driver selects each fresh two-Model capture and public contr
     assert(record.phases.every(phase => phase.completed));
     await assert.rejects(readlink(join(root, `mock-effect-control-${mode}`, 'node_modules')), {code: 'ENOENT'});
   }
-  assert.deepEqual(calls, packedEffectControlCases.flatMap(mode => [[mode, 'capture'], [mode, 'control']]));
+  assert.deepEqual(calls, packedEffectControlCases.flatMap(mode => mode === 'publication-io-failure'
+    ? [[mode, 'publication-failure']] : [[mode, 'capture'], [mode, 'control']]));
 });
 
 test('normal Effect driver retains failed capture and does not dispatch its public action', async t => {
@@ -1301,7 +1426,7 @@ test('required normal controls preserve original errors and cannot pass an unexe
   const run = load('runMockEffectControls', {assert, packedEffectControlCases, nodeBenchmarkFailure,
     runControl: async ({record}) => {if (record.mode === 'approve-deny') throw failure;}});
   await run({records, failures});
-  assert.deepEqual(failures, [failure]); assert.deepEqual(records.map(value => value.status), ['failed', 'passed', 'passed']);
+  assert.deepEqual(failures, [failure]); assert.deepEqual(records.map(value => value.status), ['failed', 'passed', 'passed', 'passed']);
   assert.equal(records[0].completed, false);
   const {root, consumer} = await scratch(t), output = join(root, 'out'), runner = await runnerFunctions();
   const before = {clean: true, revision: 'a'.repeat(40)};
@@ -1312,10 +1437,14 @@ test('required normal controls preserve original errors and cannot pass an unexe
     execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => ({consumer}),
     runCollectionConsumer: async ({report}) => report.collection.forEach(row => row.completed = true),
     runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
-    runMockEffectControls: async () => {}, verifyNodeBenchmarkPackages: async () => {}});
+    runMockEffectControls: async ({records}) => records.filter(row => row.mode !== 'publication-io-failure')
+      .forEach(row => {row.completed = true; row.status = 'passed';}), verifyNodeBenchmarkPackages: async () => {}});
   await assert.rejects(execute(output), {code: 'ERR_ASSERTION'});
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
-  assert.equal(report.complete, false); assert(report.controls.every(value => !value.completed && value.status === 'unexecuted'));
+  assert.equal(report.complete, false);
+  assert(report.controls.filter(row => row.mode !== 'publication-io-failure').every(row => row.completed));
+  assert.deepEqual(report.controls.filter(row => !row.completed).map(row => [row.mode, row.status]),
+    [['publication-io-failure', 'unexecuted']]);
 });
 
 test('normal Effect control timeout retains only the same child primary and never calls close an ACK', async t => {
@@ -1352,6 +1481,39 @@ test('normal Effect control timeout retains only the same child primary and neve
       assert.equal(result.partialObservation.primaryCode, 'OriginalCurrentRefusal');
       assert.deepEqual(result.partialObservation.firstClose, {attempted: false, returned: false});
     } else assert.equal(result.partialObservation, undefined);
+  }
+});
+
+test('publication I/O driver retains same-child failure and timeout without inferring FIRST close', async t => {
+  const {root, consumer} = await scratch(t), load = await runnerFunctions('./packed-mock-effect-controls.mjs');
+  const run = load('runControl', {assert, mkdir, writeFile, readFile, copyFile, symlink, readlink, unlink, join, dirname,
+    twoModelDealReviewFiles, packedEffectControlCases, assertMockEffectControlOutcome, process, nodeBenchmarkFailure,
+    verifyNodeBenchmarkPackages: async () => {}});
+  for (const [code, partialPid] of [[1, 7000], [124, 7000], [124, 7001]]) {
+    const parent = join(root, `${code}-${partialPid}`); await mkdir(parent);
+    const final = {...explicitEffectControl('publication-io-failure'), status: 'failed', primaryCode: 'OriginalStoreRefusal',
+      firstClose: {attempted: true, returned: false}};
+    const failure = Object.assign(new Error('Original publication failure'),
+      {commandResult: {pid: 7000, code, signal: code === 124 ? 'SIGTERM' : null, stdout: JSON.stringify(final)}});
+    const record = {mode: 'publication-io-failure', phases: []};
+    let calls = 0;
+    await assert.rejects(run({prepared: {consumer}, root: parent, repository, record,
+      async command(_exe, args, options) {
+        calls++; assert.equal(options.timeout, 30000);
+        assert.deepEqual(args, [join(options.cwd, 'publication-failure.mjs'), join(options.cwd, 'handoff.json')]);
+        await writeFile(join(options.cwd, 'handoff.json.before-close.json'), JSON.stringify({
+          phase: 'publication-io-failure', pid: partialPid, failed: true, primaryCode: 'OriginalStoreRefusal',
+          firstClose: {attempted: false, returned: false}}));
+        throw failure;
+      }}), error => error === failure);
+    assert.equal(calls, 1); assert.equal(record.phases.length, 1);
+    const result = record.phases[0]; assert.equal(result.completed, false); assert.equal(result.exitCode, code);
+    assert.equal(result.actual.primaryCode, 'OriginalStoreRefusal'); assert.equal(result.actual.firstClose.returned, false);
+    if (partialPid === 7000) {
+      assert.equal(result.partialObservation.primaryCode, 'OriginalStoreRefusal');
+      assert.deepEqual(result.partialObservation.firstClose, {attempted: false, returned: false});
+    } else assert.equal(result.partialObservation, undefined);
+    await assert.rejects(readlink(join(parent, 'mock-effect-control-publication-io-failure', 'node_modules')), {code: 'ENOENT'});
   }
 });
 

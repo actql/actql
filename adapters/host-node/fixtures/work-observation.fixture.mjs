@@ -3,6 +3,15 @@
 import {createHostObservationConnection} from '@actql/local-node/observation';
 import assert from 'node:assert/strict';
 
+export function workflowObservationComplete(status) {
+  // Suppressed repeats of the same charged Owner fact are not lost delivery.
+  return status !== undefined && status !== null && status.closed === true && status.cleanupPending === false &&
+    Number.isSafeInteger(status.repeated) && status.repeated >= 0 &&
+    ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed', 'limited',
+      'queued', 'active', 'activeSegments'].every(name => status[name] === 0) &&
+    status.loss !== undefined && status.loss !== null && Object.values(status.loss).every(value => value === 0);
+}
+
 // Authored no-Model fixture expectations, established by their checked Source
 // occurrences and the one-start-per-selected-Source dispatch boundary. Counts
 // from a previous execution never supply these expectations.
@@ -98,10 +107,7 @@ export function workflowWorkObservation({trackOriginal = false} = {}) {
     return {...counts, primaryFailure: primaryFailure ?? {available: false},
       ...(effectPreflightFailure === undefined ? {} : {effectPreflightFailure}),
       scope: 'Actual starts and returned Mock replacements; not durability ACK', status,
-      complete: status !== undefined && status.closed === true && status.cleanupPending === false &&
-        ['dropped', 'budgetUnavailable', 'queueOverflow', 'deliveryFailed', 'limited', 'repeated',
-          'queued', 'active', 'activeSegments'].every(name => status[name] === 0) &&
-        status.loss !== undefined && Object.values(status.loss).every(value => value === 0)};
+      complete: workflowObservationComplete(status)};
   }
   return {connection, snapshot,
     forOriginal(ref) {
