@@ -171,29 +171,15 @@ fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata_with_operatio
       journal.operation_record is Some(record) &&
       @host.client_request_identity_relation(record.request, request) ==
       @host.SameRequest {
-      let result = project(record)
-      // Preserve both current observations, including error/empty disclosure.
-      if !authority.current_for(journal, request) {
+      // Only immutable fields and a stored identity getter follow current.
+      // There is no callback/IO here to require another authority traversal
+      // or another physical Read exchange before returning the projection.
+      return project(record).map_err(issue => {
         journal.invalidate_operation_record()
-        return Err(Journal(AuthorizationDenied))
-      }
-      match journal.check_transaction_context(reads~) {
-        Ok(_) => ()
-        Err(issue) => return Err(Journal(issue))
-      }
-      if journal.operation_active &&
-        !journal.fenced &&
-        !journal.transaction_active &&
-        !journal.publication_read_locked &&
-        journal.operation_record is Some(current) &&
-        physical_equal(current, record) {
-        return result.map_err(issue => {
-          journal.invalidate_operation_record()
-          Journal(issue)
-        })
-      }
+        Journal(issue)
+      })
     }
-    // A missing/replaced record after either callback keeps the full owned
+    // A missing/replaced record after current keeps the full owned
     // transaction below, including its original COMMIT/rollback/Unknown.
   }
   self.journal
