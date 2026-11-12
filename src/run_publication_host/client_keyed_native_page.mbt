@@ -69,8 +69,20 @@ pub fn prepare_client_keyed_native_captured_page(
   max_depth : Int,
 ) -> Result[ClientKeyedNativeCapturedPage, ClientKeyedRequestIssue] {
   prepare_client_keyed_captured_page_owned(
-    request, capture, raw, recorded_at, max_rows, values, payload_wire,
-    logical_wire, schema, max_work, Some(workspace), max_bytes, max_nodes, max_depth,
+    request,
+    capture,
+    raw,
+    recorded_at,
+    max_rows,
+    values,
+    payload_wire,
+    logical_wire,
+    schema,
+    max_work,
+    Some(workspace),
+    max_bytes,
+    max_nodes,
+    max_depth,
   )
 }
 
@@ -89,9 +101,20 @@ pub fn prepare_client_keyed_captured_page(
   max_depth : Int,
 ) -> Result[ClientKeyedNativeCapturedPage, ClientKeyedRequestIssue] {
   prepare_client_keyed_captured_page_owned(
-    request, capture, raw, recorded_at, limits.max_rows, limits.values,
-    limits.payload_wire, limits.logical_wire, limits.schema, max_work, None,
-    max_bytes, max_nodes, max_depth,
+    request,
+    capture,
+    raw,
+    recorded_at,
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    max_work,
+    None,
+    max_bytes,
+    max_nodes,
+    max_depth,
   )
 }
 
@@ -289,7 +312,8 @@ fn build_client_keyed_native_captured_page(
     None => {
       guard @execution.completed_relation_identity_scan_workspace_slots(
           output, values, payload_wire, logical_wire,
-        ) is Some(slots) else {
+        )
+        is Some(slots) else {
         return Err(Assembly("native_page_workspace_geometry"))
       }
       slots
