@@ -1276,7 +1276,7 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
     'node --test scripts/source-read-current-control.test.mjs',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
     'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs',
-    'node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs scripts/packed-readme-ci.test.mjs',
+    'node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs',
     'node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs',
     'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs',
     'node --test scripts/native-cli-default-numeric.test.mjs']);
