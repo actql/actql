@@ -341,3 +341,38 @@ test('shared Ledger review keeps Node paths siblings and hidden dependencies rej
     'export {};', modules), /WorkersDynamicDependency/);
   }
 });
+
+test('managed advance diagnostic has one exact import-free pure Workers classification', async () => {
+  const root = new URL('../../', import.meta.url);
+  const module = 'adapters/local-node/managed-advance-diagnostic.mjs';
+  const source = readFileSync(new URL(module, root), 'utf8');
+  checkPureRuntime(source);
+  const result = await build({absWorkingDir: fileURLToPath(root), entryPoints: [module],
+    bundle: true, platform: 'browser', format: 'esm', metafile: true, write: false});
+  assert.deepEqual(Object.keys(result.metafile.inputs), [module]);
+  assert.deepEqual(result.metafile.inputs[module].imports, []);
+  checkPureRuntime(result.outputFiles[0].text);
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert.equal(modules.filter(path => path === module).length, 1);
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
+});
+
+test('managed advance diagnostic classification grants no sibling builtin or dynamic allowance', () => {
+  const module = 'adapters/local-node/managed-advance-diagnostic.mjs';
+  const sibling = 'adapters/local-node/managed-advance-diagnostic-unreviewed.mjs';
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert.throws(() => checkWorkersArtifact({inputs: {[sibling]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: []}}}, 'export {};', modules), /WorkersModuleRejected/);
+    for (const dependency of [sibling, 'node:fs']) {
+      assert.throws(() => checkWorkersArtifact({
+        inputs: {[module]: {imports: [{path: dependency, kind: 'import-statement'}]}},
+        outputs: {'bundle.mjs': {imports: []}},
+      }, 'export {};', modules), /WorkersDependencyRejected/);
+    }
+    assert.throws(() => checkWorkersArtifact({
+      inputs: {[module]: {imports: [{path: module, kind: 'dynamic-import'}]}},
+      outputs: {'bundle.mjs': {imports: []}},
+    }, 'export {};', modules), /WorkersDynamicDependency/);
+  }
+});
