@@ -21,6 +21,8 @@ priv enum CompletedExportRowPhase {
 priv struct CompletedExportRowProgress {
   workspace : RowWorkspace
   mut column : Int
+  mut wire_bound : Int
+  mut wire_fits_batch : Bool
   mut phase : CompletedExportRowPhase
   mut closed : Bool
 }
@@ -228,6 +230,19 @@ fn advance_completed_export_row_frame(
           Ok(true) => {
             let (bytes, nodes, depth) = @encode.finish_measurement_usage(writer)
             let column = cursor.column
+            // Reuse this actual cell's existing wire measurement. Six bytes
+            // per UTF-16 key unit bounds escaping without walking it again;
+            // quotes, colon and a separator add four. Saturate at the SAME
+            // batch ceiling instead of overflowing or admitting a larger row.
+            if stream.batch_mode == 2 && cursor.wire_fits_batch {
+              let room = stream.max_batch_bytes - cursor.wire_bound
+              let units = stream.order.columns[column].0.length()
+              if room < 4 || bytes > room - 4 || units > (room - 4 - bytes) / 6 {
+                cursor.wire_fits_batch = false
+              } else {
+                cursor.wire_bound += bytes + 4 + 6 * units
+              }
+            }
             if bytes > 2147483647 - stream.column_bytes[column] ||
               nodes > 2147483647 - stream.column_nodes[column] {
               return Err(Admission(CaptureLimit))
@@ -334,6 +349,7 @@ pub fn advance_completed_output_export(
   stream : CompletedOutputExport,
   quantum : Int,
   max_workspace_slots : Int,
+  batch? : Bool = false,
 ) -> Result[CompletedOutputExportAdvance, CompletedExportIssue] {
   if stream.reading {
     return Err(Closed)
@@ -357,28 +373,58 @@ pub fn advance_completed_output_export(
     if stream.source is None {
       return Err(Closed)
     }
+    let mode = if batch { 2 } else { 1 }
+    if stream.batch_mode != 0 && stream.batch_mode != mode {
+      return Err(Closed)
+    }
+    stream.batch_mode = mode
     if stream.row == IndexedRows::row_count(stream.rows) {
       return Ok({ batch: None, complete: true, steps: 0, })
-    }
-    if stream.pending_row is None {
-      let workspace = row_workspace(max_workspace_slots)
-      if !reserve_slots(workspace, 1) {
-        return Err(Admission(CaptureLimit))
-      }
-      stream.pending_row = Some({
-        workspace,
-        column: 0,
-        phase: Begin,
-        closed: false,
-      })
-    }
-    let cursor = stream.pending_row.unwrap()
-    if max_workspace_slots != cursor.workspace.limit {
-      return Err(Admission(InvalidCaptureLimits))
     }
     for step in 0..<quantum {
       if stream.source is None {
         return Err(Closed)
+      }
+      if stream.pending_row is None {
+        // A batch must retain the original per-row availability fence even
+        // when the next row starts within this same finite poll.
+        if step > 0 && !completed_output_available(source) {
+          return Err(Unavailable)
+        }
+        if stream.source is None {
+          return Err(Closed)
+        }
+        let workspace = row_workspace(max_workspace_slots)
+        if !reserve_slots(workspace, 1) {
+          return Err(Admission(CaptureLimit))
+        }
+        stream.pending_row = Some({
+          workspace,
+          column: 0,
+          wire_bound: 3,
+          wire_fits_batch: stream.max_batch_bytes >= 3,
+          phase: Begin,
+          closed: false,
+        })
+      }
+      let cursor = stream.pending_row.unwrap()
+      if max_workspace_slots != cursor.workspace.limit {
+        return Err(Admission(InvalidCaptureLimits))
+      }
+      if batch && cursor.phase is BeginPayload && stream.row > 0 {
+        let pending = @encode.observed_writer_usage(stream.writer).0 -
+          stream.drained_bytes
+        if pending > 0 &&
+          (
+            !cursor.wire_fits_batch ||
+            cursor.wire_bound > stream.max_batch_bytes - pending
+          ) {
+          let part = @encode.drain_hash_output(stream.writer) catch {
+            issue => return Err(Wire(Encoding(issue)))
+          }
+          stream.drained_bytes = @encode.observed_writer_usage(stream.writer).0
+          return Ok({ batch: Some(part), complete: false, steps: step, })
+        }
       }
       // Record entry before a frame can fail and clear its private cursor.
       // This is traversal progress, not another logical value-admission charge.
@@ -391,13 +437,19 @@ pub fn advance_completed_output_export(
         return Err(Closed)
       }
       if cursor.phase is Complete {
-        let batch = @encode.drain_hash_output(stream.writer) catch {
-          issue => return Err(Wire(Encoding(issue)))
-        }
         close_completed_export_row(cursor)
         stream.pending_row = None
         stream.row += 1
-        return Ok({ batch: Some(batch), complete: false, steps: step + 1, })
+        let bytes = @encode.observed_writer_usage(stream.writer).0
+        if !batch ||
+          stream.row == IndexedRows::row_count(stream.rows) ||
+          bytes - stream.drained_bytes == stream.max_batch_bytes {
+          let part = @encode.drain_hash_output(stream.writer) catch {
+            issue => return Err(Wire(Encoding(issue)))
+          }
+          stream.drained_bytes = bytes
+          return Ok({ batch: Some(part), complete: false, steps: step + 1, })
+        }
       }
     }
     Ok({ batch: None, complete: false, steps: quantum, })

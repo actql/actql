@@ -458,11 +458,12 @@ pub fn PublicationOutputReplay::cancel(self : PublicationOutputReplay) -> Unit {
 ///|
 pub fn PublicationOutputExport::next(
   self : PublicationOutputExport,
+  batch? : Bool = false,
 ) -> Result[String?, PublicationOutputExportIssue] {
   if self.receipt is Some(_) {
     return Err(InvalidState)
   }
-  @execution.next_completed_output_export(self.stream).map_err(issue => {
+  @execution.next_completed_output_export(self.stream, batch~).map_err(issue => {
     Output(issue)
   })
 }
@@ -474,6 +475,7 @@ pub fn PublicationOutputExport::next(
 pub fn PublicationOutputExport::advance(
   self : PublicationOutputExport,
   quantum : Int,
+  batch? : Bool = false,
 ) -> (
   @execution.CompletedOutputExportAdvance?,
   Int,
@@ -493,6 +495,7 @@ pub fn PublicationOutputExport::advance(
     self.stream,
     quantum,
     slots,
+    batch~,
   )
   let used = @execution.completed_output_export_poll_steps(self.stream)
   match result {

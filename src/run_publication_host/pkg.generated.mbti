@@ -5390,7 +5390,7 @@ type PreparedClientProgram
 
 type PublicationOutputExport
 pub fn PublicationOutputExport::admit_captured_snapshot(Self, Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, PublicationOutputExportIssue]
-pub fn PublicationOutputExport::advance(Self, Int) -> (@execution_relation.CompletedOutputExportAdvance?, Int, PublicationOutputExportIssue?)
+pub fn PublicationOutputExport::advance(Self, Int, batch? : Bool) -> (@execution_relation.CompletedOutputExportAdvance?, Int, PublicationOutputExportIssue?)
 pub fn PublicationOutputExport::cancel(Self) -> Unit
 pub fn PublicationOutputExport::codec_contract_cid(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::content_bytes(Self) -> Result[Int, PublicationOutputExportIssue]
@@ -5406,7 +5406,7 @@ pub fn PublicationOutputExport::issue_sealed_durable_binding(Self, @run_publicat
 pub fn PublicationOutputExport::logical_relation_cid(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::matches_captured_run(Self, @physical_strategy_host.CapturedDAG) -> Bool
 pub fn PublicationOutputExport::measurement(Self) -> Result[@execution_relation.CompletedRelationExportMeasurement, PublicationOutputExportIssue]
-pub fn PublicationOutputExport::next(Self) -> Result[String?, PublicationOutputExportIssue]
+pub fn PublicationOutputExport::next(Self, batch? : Bool) -> Result[String?, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::ordering(Self) -> Result[@run_publication.PublicationContract, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::prepare_payload_request(Self, String, String, String, Int64) -> Result[@publication_payload.PublicationPayloadRequest, PublicationOutputPayloadIssue]
 pub fn PublicationOutputExport::replay(Self) -> Result[PublicationOutputReplay, PublicationOutputExportIssue]
