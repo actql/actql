@@ -30,6 +30,8 @@ fn combined_unit_whole_capture(
   live : Ref[Bool],
   input_index : Int,
   stage? : Int = 0,
+  availability_checks? : Ref[Int]? = None,
+  original_catalog? : Bool = false,
 ) -> (
   @query.CapturedInputSource,
   @query.CapturedSourceRelationIdentity,
@@ -77,7 +79,12 @@ fn combined_unit_whole_capture(
     owner,
     input_slot,
     rows,
-    () => live.val,
+    () => {
+      if availability_checks is Some(count) {
+        count.val += 1
+      }
+      live.val
+    },
   ).unwrap()
   let proof = Ref(original)
   let port = @query.prepare_trusted_source_input_capture_port(
@@ -126,12 +133,19 @@ fn combined_unit_whole_capture(
   ).unwrap()
   let facts = @planning.source_acquisition_evidence_facts(acquisition).unwrap()
   let authority = "sha256:" + "a".repeat(64)
+  let (schema_evidence, capability_evidence) = if original_catalog {
+    @environment.connector_source_evidence_member_cids(
+      @planning.source_acquisition_evidence_members(acquisition).unwrap(),
+    )
+  } else {
+    (facts.carrier_schema_contract_cid, "sha256:" + "b".repeat(64))
+  }
   let observation = @publication.seal_completed_source_observation({
     input,
     source_ref: facts.source_ref,
     source_contract_cid: facts.source_contract_cid,
-    schema_evidence_cid: facts.carrier_schema_contract_cid,
-    capability_evidence_cid: "sha256:" + "b".repeat(64),
+    schema_evidence_cid: schema_evidence,
+    capability_evidence_cid: capability_evidence,
     authority_scope_cid: authority,
     source_data_policy_cid: facts.source_data_policy_cid,
     data_classification: facts.data_classification,
@@ -153,6 +167,8 @@ fn combined_source_unit_completed_fixture(
   saved_artifact_controls? : Bool = false,
   shared_ancestry? : Bool = false,
   model_columns? : Bool = false,
+  construction_geometry? : Bool = false,
+  catalog_guard? : Bool = false,
 ) -> Unit raise {
   let document =
     #|{"version":"actql/0.1","id":"combined-source-unit","stages":[{"id":"joined","inputs":{"left_rows":{"connector":"crm/main","resource":"r"},"right_rows":{"connector":"crm/right","resource":"r"}},"from":"left_rows","steps":[{"join":{"with":"right_rows","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":4,"select":{"value":"left.id"}},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"joined":{"from":{"stage":"joined","result":"out"}}}}
@@ -297,8 +313,29 @@ fn combined_source_unit_completed_fixture(
   assert_eq(direct.coordinates, [(0, 0, 0), (0, 1, 0)])
   let left_live = Ref(true)
   let right_live = Ref(true)
-  let left = combined_unit_whole_capture(prepared, left_live, 0)
-  let right = combined_unit_whole_capture(prepared, right_live, 1)
+  let availability_checks = Ref(0)
+  let left = combined_unit_whole_capture(
+    prepared,
+    left_live,
+    0,
+    original_catalog=catalog_guard,
+    availability_checks=if construction_geometry {
+      Some(availability_checks)
+    } else {
+      None
+    },
+  )
+  let right = combined_unit_whole_capture(
+    prepared,
+    right_live,
+    1,
+    original_catalog=catalog_guard,
+    availability_checks=if construction_geometry {
+      Some(availability_checks)
+    } else {
+      None
+    },
+  )
   let captures = [left.0, right.0]
   let identities = [left.1, right.1]
   let originals = [WholeSourceOriginal(left.2), WholeSourceOriginal(right.2)]
@@ -351,11 +388,21 @@ fn combined_source_unit_completed_fixture(
     )
     is Err(Invocation(MissingUnit)),
   )
+  let mut construction = None
   let combined = if consumer_model || late_run_binding {
     let originals = prepare_client_effect_source_unit_inputs(
       prepared, compilation, admission, definition, direct, captures, identities,
       originals, sources, logical, authority, policy, 100000, 10000, 100,
     ).unwrap()
+    if construction_geometry {
+      let before = availability_checks.val
+      construction = Some(
+        client_effect_source_unit_construction_geometry(
+          originals, 0, retention, 100000, 10000, 100,
+        ).unwrap(),
+      )
+      assert_eq(availability_checks.val, before)
+    }
     prepare_client_effect_source_unit(
       originals, 0, retention, 100000, 10000, 100,
     ).unwrap()
@@ -368,6 +415,93 @@ fn combined_source_unit_completed_fixture(
       10000,
       100,
     ).unwrap()
+  }
+  if catalog_guard {
+    let calls = Ref(0)
+    let declined = client_effect_combined_source_unit_catalog_bodies(
+      combined,
+      100000,
+      10000,
+      100,
+      before_body=Some(fn(_, _, _) {
+        calls.val += 1
+        false
+      }),
+    )
+    assert_true(declined is Err(Dependency(BudgetExceeded)))
+    assert_eq(calls.val, 1)
+    let geometries : Array[(Int, Int, Int)] = []
+    let body_result = client_effect_combined_source_unit_catalog_bodies(
+      combined,
+      100000,
+      10000,
+      100,
+      before_body=Some(fn(bytes, nodes, depth) {
+        geometries.push((bytes, nodes, depth))
+        true
+      }),
+    )
+    let bodies = match body_result {
+      Ok(value) => value
+      Err(issue) =>
+        fail("original Catalog body issue: " + @debug.to_string(issue))
+    }
+    assert_true(bodies.length() > 0)
+    assert_eq(bodies.length(), geometries.length())
+    for index in 0..<bodies.length() {
+      assert_eq(@utf8.encode(bodies[index].2).length(), geometries[index].0)
+      assert_true(geometries[index].1 > 0 && geometries[index].2 > 0)
+    }
+  }
+  if construction is Some(shapes) {
+    let expected : Map[String, Int] = Map([])
+    for (kind, geometry) in shapes {
+      let extra = if kind == "request_values" || kind == "local_computation" {
+        0
+      } else {
+        let field = @publication.publication_contract_identity_field_for_name(
+          kind,
+        ).unwrap()
+        @utf8.encode(
+          ",\"" +
+          field +
+          "\":\"" +
+          @publication.publication_contract_identity(definition) +
+          "\"",
+        ).length()
+      }
+      expected[kind] = expected.get(kind).unwrap_or(0) + geometry.bytes + extra
+    }
+    let actual : Map[String, Int] = Map([])
+    let append = (kind : String, wire : String) => {
+      actual[kind] = actual.get(kind).unwrap_or(0) + @utf8.encode(wire).length()
+    }
+    append(
+      "acquisition_scope",
+      @publication.publication_contract_json(combined.scope),
+    )
+    append("local_computation", combined.invocation.wire)
+    for part in combined.contributions {
+      append("request_values", @encode.document_text(part.request))
+      for
+        (kind, contract) in [
+          ("acquisition_relation", part.relation),
+          ("ordering_evidence", part.ordering),
+          ("acquisition_scope", part.scope),
+        ] {
+        append(kind, @publication.publication_contract_json(contract))
+      }
+      if !physical_equal(part.retention, retention) {
+        append(
+          "result_retention_policy",
+          @publication.publication_contract_json(part.retention),
+        )
+      }
+    }
+    assert_eq(expected.length(), actual.length())
+    for (kind, size) in expected {
+      assert_eq(actual.get(kind), Some(size))
+    }
   }
   if canonical_request {
     for part in combined.contributions {
@@ -1328,5 +1462,23 @@ test "joined original Result delivers both Source columns to actual Model reques
     consumer_model=true,
     shared_ancestry=true,
     model_columns=true,
+  )
+}
+
+///|
+test "Source Unit construction geometry precedes the original bodies without Source current callbacks" {
+  combined_source_unit_completed_fixture(
+    early_unit=true,
+    consumer_model=true,
+    construction_geometry=true,
+  )
+}
+
+///|
+test "Source Unit Catalog wire construction honors the original before-body backing refusal" {
+  combined_source_unit_completed_fixture(
+    early_unit=true,
+    consumer_model=true,
+    catalog_guard=true,
   )
 }

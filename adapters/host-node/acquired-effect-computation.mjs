@@ -2,7 +2,7 @@
 // computes. This does not retry acquisition, Compute, or an Effect dispatch.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
-import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
+import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan, prepareAcquiredEffectSourceUnits,
   acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan,
   sourceFreeContentEffectPublicationPlan, localContractLimits} from './local-values-plan.mjs';
 import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
@@ -352,7 +352,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       modelGroup = acquiredEffectModelGroup({moon, acquired, infer, originalModelComponents,
         originalModelSelection, originalPreparation, plan: modelPlan, store, principalId, signal, now,
         modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
-        sourceContinuation, faultInjection, current, sourcePlan: operationPlan});
+        sourceContinuation, faultInjection, current, sourcePlan: operationPlan, managedRun});
       await modelGroup.prime();
       current();
     }
@@ -472,7 +472,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
               sourceFree ? sourceFreeInferEffectPublicationPlan({acquired,
                 compiled, operation, issuance, modelEvidence}) :
               acquiredInferEffectPublicationPlan({acquired, sources: evidence,
-                compiled, operation, issuance, modelEvidence, sourcePlan: operationPlan,
+                compiled, operation, issuance, modelEvidence, sourcePlan: operationPlan, managedRun,
                 keyedSource: keyedFamily?.evidence ?? restoredKeyedSource,
                 captureStartedAt, captureCompletedAt, signal})});
         },
@@ -878,7 +878,7 @@ function selectRestoredKeyedSource(moon, originals, direct) {
 function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponents,
   originalModelSelection, originalPreparation, plan, store, principalId, signal, now,
   modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
-  sourceContinuation, faultInjection, current, sourcePlan}) {
+  sourceContinuation, faultInjection, current, sourcePlan, managedRun}) {
   const selected = infer.components, originals = originalPreparation?.components;
   if (!Array.isArray(selected) || selected.length < 2 || selected.length > 128 ||
       !Object.isFrozen(selected) || !Array.isArray(originalModelComponents) ||
@@ -900,7 +900,8 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   let publicationPreparation, publicationFailure, publicationFailed = false;
   let retirementRequested = false, publicationRetirement;
   const publicationBindings = [];
-  let captures, evidence, captureStartedAt, captureCompletedAt, keyedFamily, restoredHost, restoredKeyed;
+  let captures, evidence, captureStartedAt, captureCompletedAt, keyedFamily, restoredHost, restoredKeyed, sourceUnitsOriginal;
+  let sourceUnitsAttempted = false, sourceUnitsFailed = false, sourceUnitsFailure;
   const runId = acquired.control.runDefinitionRunId(plan.runDefinition);
   const same = () => {
     current();
@@ -989,7 +990,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         acquired, sources: evidence, compiled: plan.compiled,
         operation: children[0].operation, operations: children.map(child => child.operation), issuance,
         modelEvidence: children.flatMap(child => child.capture.modelEvidence()), keyedSource: keyedFamily?.evidence ?? restoredKeyed,
-        captureStartedAt, captureCompletedAt, sourcePlan, signal, fundingOperation: publicationOwner, current: publicationCurrent,
+        captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceUnitsOriginal, signal, fundingOperation: publicationOwner, current: publicationCurrent,
         retainBinding(binding) {publicationBindings.push(binding);}});
       publicationCurrent();
       for (const original of [publication.observation, publication.invocation]) {
@@ -1034,6 +1035,10 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
           (child.operation === undefined || child.captureReleased)) {
         modelController.release(child.token); child.token = undefined;
       }
+    }
+    if (!pending && includeContinuation) {
+      sourceUnitsOriginal?.byUnit.clear();
+      sourceUnitsOriginal = undefined;
     }
     return !pending;
   }
@@ -1103,6 +1108,18 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     bind(context) {
       ({captures, evidence, captureStartedAt, captureCompletedAt, keyedFamily} = context);
       const sourceEvidence = evidence.map(value => value.sourceEvidence);
+      if (sourceUnitsFailed) throw sourceUnitsFailure;
+      if (sourceUnitsAttempted) throw new Error('EffectSourceUnitsAlreadyBound');
+      sourceUnitsAttempted = true;
+      try {
+        publicationCurrent();
+        if (captures.length > 1) sourceUnitsOriginal = prepareAcquiredEffectSourceUnits({acquired,
+          sources: evidence, sourcePlan, managedRun,
+          modelUnits: children.map(child => runtimeField(moon.clientProgramInferOccurrenceCoordinates(child.selection.occurrence), 1))});
+        publicationCurrent();
+      } catch (cause) {
+        sourceUnitsFailed = true; sourceUnitsFailure = cause; throw cause;
+      }
       const sourceClosures = [];
       for (const child of children) {
         same();

@@ -49,24 +49,9 @@ pub fn issue_result_retention_for_data_policy(
     _ => return Err(InvalidObject)
   }
   try {
-    @encode.begin_object(writer)
-    for
-      field in [
-        "available_until", "clock_contract_cid", "delete_by", "effective_data_policy_cid",
-        "extension_ceiling_at", "metadata_delete_by", "metadata_retention_policy_cid",
-        "retention_contract_cid", "version",
-      ] {
-      @encode.key(writer, field)
-      @encode.string_value(
-        writer,
-        if field == "effective_data_policy_cid" {
-          effective_data_policy_cid
-        } else {
-          contract_string(original, field).unwrap()
-        },
-      )
-    }
-    @encode.end_object(writer)
+    emit_result_retention_for_data_policy(
+      writer, original, effective_data_policy_cid,
+    )
     seal_publication_contract(
       "result_retention_policy",
       @encode.finish(writer),
@@ -77,4 +62,30 @@ pub fn issue_result_retention_for_data_policy(
   } catch {
     _ => Err(InvalidObject)
   }
+}
+
+///|
+fn emit_result_retention_for_data_policy(
+  writer : @encode.Writer,
+  original : PublicationContract,
+  effective_data_policy_cid : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for
+    field in [
+      "available_until", "clock_contract_cid", "delete_by", "effective_data_policy_cid",
+      "extension_ceiling_at", "metadata_delete_by", "metadata_retention_policy_cid",
+      "retention_contract_cid", "version",
+    ] {
+    @encode.key(writer, field)
+    @encode.string_value(
+      writer,
+      if field == "effective_data_policy_cid" {
+        effective_data_policy_cid
+      } else {
+        contract_string(original, field).unwrap()
+      },
+    )
+  }
+  @encode.end_object(writer)
 }

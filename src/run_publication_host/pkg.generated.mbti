@@ -513,11 +513,13 @@ pub fn client_effect_allowed_run_result_names(ClientEffectAllowedRun) -> Array[S
 
 pub fn client_effect_allowed_serialization_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
-pub fn client_effect_combined_source_unit_catalog_bodies(ClientEffectCombinedSourceUnit, Int, Int, Int) -> Result[Array[(String, String, String)], ClientEffectAcquiredEvidenceIssue]
+pub fn client_effect_combined_source_unit_catalog_bodies(ClientEffectCombinedSourceUnit, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[Array[(String, String, String)], ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_effect_combined_source_unit_dependency_bodies(ClientEffectCombinedSourceUnit) -> Array[(String, String, String)]
 
 pub fn client_effect_combined_source_unit_invocation(ClientEffectCombinedSourceUnit) -> ClientEffectLocalInvocation
+
+pub fn client_effect_combined_source_unit_matches_inputs(ClientEffectCombinedSourceUnit, ClientEffectSourceUnitInputs) -> Bool
 
 pub fn client_effect_command_content_current(ClientEffectCommandContent) -> Bool
 
@@ -688,6 +690,10 @@ pub fn client_effect_source_binding_request(@remote_site_protocol.RemoteInputBin
 pub fn client_effect_source_evidence_facts(ClientEffectCompilation, Int, Int) -> @query_planning.QuerySourceEvidenceFacts?
 
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
+
+pub fn client_effect_source_unit_construction_geometry(ClientEffectSourceUnitInputs, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], ClientEffectAcquiredEvidenceIssue]
+
+pub fn client_effect_source_unit_inputs_match(ClientEffectSourceUnitInputs, PreparedClientEffectComputation, @run_publication.PublicationContract) -> Bool
 
 pub fn client_effect_static_computation_plan_view(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int) -> Result[String, ClientInteractivePlanIssue]
 
@@ -1828,6 +1834,8 @@ pub fn issue_installed_client_infer_plan_graph(PreparedClientProgram, Int, @chec
 pub fn issue_model_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_preconsumer_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+
+pub fn issue_preconsumer_model_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_prepared_client_acquired_serialization_plan_component(PreparedClientProgram, Int, Int, Int, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientSerializationPlanGraph, ClientSerializationPlanGraphIssue]
 

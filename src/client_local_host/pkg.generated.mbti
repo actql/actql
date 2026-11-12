@@ -777,6 +777,10 @@ pub fn prepare_installed_effect_managed_source_plan(@run_publication_host.Prepar
 
 pub fn prepare_installed_effect_model_demand(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @physical_resources.LedgerLimits, Int64, Int64, Int, Int, Int, bootstrap? : (Int64, Int64)?, publication? : @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_effect_model_source_unit(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectSourceUnitInputs, Int, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectCombinedSourceUnit, ClientEffectUnitPreparationIssue]
+
+pub fn prepare_installed_effect_model_source_unit_catalog(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientEffectSourceUnitInputs, @run_publication_host.ClientEffectCombinedSourceUnit, Int, Int, Int) -> Result[Array[(String, String, String)], ClientEffectUnitPreparationIssue]
+
 pub fn prepare_installed_effect_models_demand(Array[ClientInstalledEffectModelDemand]) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_operation_demand(@run_publication_host.PreparedClientEffectComputation, Int, String, Array[ClientInstalledEffectOperationExtent], Array[ClientInstalledEffectOperationExtent]) -> Result[ClientInstalledEffectOperationDemand, ClientInstalledManagedRunIssue]
@@ -1432,6 +1436,11 @@ pub(all) enum ClientDuckDBAcquisitionIssue {
 type ClientDuckDBAcquisitionSelection
 
 type ClientDuckDBCaptureCapacity
+
+pub(all) enum ClientEffectUnitPreparationIssue {
+  Run(ClientInstalledManagedRunIssue)
+  Evidence(@run_publication_host.ClientEffectAcquiredEvidenceIssue)
+}
 
 pub(all) enum ClientHostInitializationIssue {
   ForeignOriginal

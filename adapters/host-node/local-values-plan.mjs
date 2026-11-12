@@ -193,16 +193,9 @@ export function keyedInputRetentionSelection(acquired) {
   return acquired.selectRetention();
 }
 
-// Keep the retained input policy available to Effect evidence issuance
-// without extending the closed publication-plan JS bridge used by ordinary Runs.
-function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
-  observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
-  sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
-  dataPolicyCid, createdAt, now, resultCount, retainUntil,
-  compiled, preparedProgram, effectCompilation, preparedEffect, moon,
-  modelEvidence = [], outputLimits = localOutputLimits, retentionSelection}) {
-  const {availableUntil, deleteBy, metadataDeleteBy} = retentionSelection ?? localRetentionTimes(now, retainUntil);
-  const retention = control.seal('result_retention_policy', JSON.stringify({
+function issueLocalResultRetention(control, dataPolicyCid, selection) {
+  const {availableUntil, deleteBy, metadataDeleteBy} = selection;
+  return control.seal('result_retention_policy', JSON.stringify({
     version: 'actql-result-retention-policy/0.1',
     retention_contract_cid: retentionDependencies[0].cid,
     effective_data_policy_cid: dataPolicyCid,
@@ -212,6 +205,19 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
     metadata_delete_by: metadataDeleteBy,
     clock_contract_cid: retentionDependencies[2].cid,
   }), limits);
+}
+
+// Keep the retained input policy available to Effect evidence issuance
+// without extending the closed publication-plan JS bridge used by ordinary Runs.
+function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
+  observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
+  sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
+  dataPolicyCid, createdAt, now, resultCount, retainUntil,
+  compiled, preparedProgram, effectCompilation, preparedEffect, moon,
+  modelEvidence = [], outputLimits = localOutputLimits, retentionSelection, originalRetention}) {
+  const {availableUntil, deleteBy, metadataDeleteBy} = retentionSelection ?? localRetentionTimes(now, retainUntil);
+  const retention = originalRetention ?? issueLocalResultRetention(control, dataPolicyCid,
+    {availableUntil, deleteBy, metadataDeleteBy});
   const normalizationJournal = control.sealRunEvidence(
     'normalization_journal', JSON.stringify({
       version: 'actql-normalization-journal/0.1',
@@ -518,11 +524,52 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       runInvocation: invocation, observation})});
 }
 
+// Retain the actual upstream Unit semantics before opening the first Model.
+// The existing group owns this cache and its dispatch borrow through cleanup;
+// no complete Model/Run observation or physical publication is claimed here.
+export function prepareAcquiredEffectSourceUnits({acquired, sources, sourcePlan, managedRun, modelUnits}) {
+  if (!Array.isArray(sources) || !Array.isArray(modelUnits)) {
+    throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+  }
+  const units = new Map();
+  for (const {captured} of sources) {
+    const unit = captured.occurrence?.stage;
+    if (!Number.isSafeInteger(unit) || unit < 0) throw new TypeError('OriginalEffectSourceCoordinateRequired');
+    units.set(unit, (units.get(unit) ?? 0) + 1);
+  }
+  const selected = [...units].filter(([unit, count]) => count > 1 && !modelUnits.includes(unit));
+  if (selected.length === 0) return undefined;
+  if (managedRun === undefined || sourcePlan === undefined || acquired.requestIdentity === undefined) {
+    throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+  }
+  const {moon, control} = acquired;
+  const policy = moon.clientProgramEffectPublicationDataPolicyCid(acquired.prepared);
+  if (typeof policy !== 'string') throw new TypeError('UnavailableAcquiredEffectPolicy');
+  const retention = issueLocalResultRetention(control, policy, acquired.selectRetention());
+  const evidence = sources.map(source => source.sourceEvidence === undefined
+    ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits) : source.sourceEvidence);
+  const inputs = control.prepareCheckedInstalledEffectSourceUnits(sourcePlan, acquired.prepared,
+    acquired.requestIdentity, acquired.compilation, acquired.admission, acquired.definition,
+    sources, evidence, {authorityScopeCid: acquired.authorityScopeCid, dataPolicyCid: policy}, limits);
+  const byUnit = new Map();
+  for (const [unit] of selected) {
+    // This record is installed before the Resource current/resize callbacks.
+    // Reentry or a failed constructor never obtains a second original body.
+    const entry = {preparing: true, value: undefined};
+    byUnit.set(unit, entry);
+    entry.value = control.prepareInstalledEffectModelSourceUnit(managedRun, sourcePlan,
+      acquired.requestIdentity, inputs, unit, retention, limits);
+    entry.preparing = false;
+  }
+  return Object.freeze({managedRun, sourcePlan, request: acquired.requestIdentity,
+    sources, inputs, retention, byUnit});
+}
+
 // Both acquired tuples remain checked by the common Effect owner. Source
 // input retention carries each original policy; derived publication carries
 // the checked combined policy with exactly the same custody/time bounds.
 export function acquiredMultiEffectPublicationPlan({acquired, sources,
-  captureStartedAt, captureCompletedAt, issuedModel, modelOriginal, modelOriginals = modelOriginal === undefined ? [] : [modelOriginal], modelEvidence = [], keyedSource, sourcePlan}) {
+  captureStartedAt, captureCompletedAt, issuedModel, modelOriginal, modelOriginals = modelOriginal === undefined ? [] : [modelOriginal], modelEvidence = [], keyedSource, sourcePlan, managedRun, sourceUnitsOriginal}) {
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
@@ -568,10 +615,13 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
   // retains only original Source inputs, never a fake complete Run observation.
   const needsSourceUnits = issuedModel !== undefined && [...sourceUnits].some(([unit, count]) =>
     count > 1 && !modelOriginals.some(model => model.unit === unit));
-  if (needsSourceUnits && (sourcePlan === undefined || acquired.requestIdentity === undefined)) {
+  if (needsSourceUnits && (sourcePlan === undefined || managedRun === undefined || acquired.requestIdentity === undefined)) {
     throw new TypeError('WholeEffectProducerUnitOriginalRequired');
   }
-  const sourceUnitInputs = !needsSourceUnits ? undefined :
+  if (sourceUnitsOriginal !== undefined && (sourceUnitsOriginal.managedRun !== managedRun ||
+      sourceUnitsOriginal.sourcePlan !== sourcePlan || sourceUnitsOriginal.request !== acquired.requestIdentity ||
+      sourceUnitsOriginal.sources !== sources)) throw new TypeError('ForeignEffectSourceUnitOriginal');
+  const sourceUnitInputs = !needsSourceUnits ? undefined : sourceUnitsOriginal?.inputs ??
     control.prepareCheckedInstalledEffectSourceUnits(sourcePlan, prepared,
       acquired.requestIdentity, compilation, admission, definition, sources, sourceEvidence, context, limits);
   if (keyedSource !== undefined) {
@@ -594,7 +644,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
     retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared,
-    retentionSelection: acquired.selectRetention?.()});
+    retentionSelection: acquired.selectRetention?.(), originalRetention: sourceUnitsOriginal?.retention});
   const acquisitionDependencies = [];
   const acquiredEvidenceByUnit = [];
   for (const [slot, {captured}] of sources.entries()) {
@@ -609,8 +659,12 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     if (!modelContribution && sourceUnits.get(unit) > 1) {
       if (acquiredEvidenceByUnit[unit] === undefined) {
         if (sourceUnitInputs !== undefined) {
-          acquiredEvidenceByUnit[unit] = control.preparePreconsumerEffectSourceUnit(
-            sourceUnitInputs, unit, retention, limits);
+          const original = sourceUnitsOriginal?.byUnit.get(unit);
+          if (sourceUnitsOriginal !== undefined && (original === undefined || original.preparing || original.value === undefined)) {
+            throw new TypeError('OriginalEffectSourceUnitUnavailable');
+          }
+          acquiredEvidenceByUnit[unit] = original?.value ?? control.prepareInstalledEffectModelSourceUnit(
+            managedRun, sourcePlan, acquired.requestIdentity, sourceUnitInputs, unit, retention, limits);
         } else {
           if (sourcePublication === undefined) {
             throw new TypeError('CombinedEffectProducerUnitOriginalRequired');
@@ -684,7 +738,7 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
 // original Effect Run. Its live binding remains held by capture custody.
 export async function acquiredInferEffectPublicationPlan({acquired, sources,
   compiled, operation, operations = [operation], issuance, modelEvidence,
-  captureStartedAt, captureCompletedAt, keyedSource, signal, sourcePlan, fundingOperation = operation, current, retainBinding}) {
+  captureStartedAt, captureCompletedAt, keyedSource, signal, sourcePlan, managedRun, sourceUnitsOriginal, fundingOperation = operation, current, retainBinding}) {
   if (!Array.isArray(operations) || operations.length === 0 || operations[0] !== operation ||
       new Set(operations).size !== operations.length) {
     throw new TypeError('OriginalEffectModelInventoryRequired');
@@ -718,7 +772,7 @@ export async function acquiredInferEffectPublicationPlan({acquired, sources,
       ? sourceFreeInferEffectPublicationPlan({acquired, compiled, operation, issuance,
         issuedModel: issued, modelOriginals, modelEvidence}).plan
       : acquiredMultiEffectPublicationPlan({acquired, sources,
-        captureStartedAt, captureCompletedAt, issuedModel: issued, modelOriginals, modelEvidence, keyedSource, sourcePlan});
+        captureStartedAt, captureCompletedAt, issuedModel: issued, modelOriginals, modelEvidence, keyedSource, sourcePlan, managedRun, sourceUnitsOriginal});
     const generations = operations.flatMap(original => original.contentGenerations?.() ?? []);
     const completePlan = generations.length === 0 ? plan : Object.freeze({...plan,
       receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations: generations}),

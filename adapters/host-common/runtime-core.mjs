@@ -4659,19 +4659,21 @@ function publicationControl(moon) {
       localEffectDependencyTokens.set(value, {kind: 'combined_source', issued: prepared});
       return value;
     },
-    preparePreconsumerEffectSourceUnit(inputs, unit, retention, limits) {
-      issuanceLimits(limits, 'Preconsumer Effect Source Unit');
+    prepareInstalledEffectModelSourceUnit(managedRun, plan, request, inputs, unit, retention, limits) {
+      issuanceLimits(limits, 'Installed preconsumer Effect Source Unit');
       if (!Number.isSafeInteger(unit) || unit < 0) {
         throw new TypeError('Invalid acquired Effect Unit');
       }
-      const prepared = checked(moon.clientProgramPreparePreconsumerEffectSourceUnit(
-        inputs, unit, token(retention), limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const prepared = checked(moon.clientProgramPrepareInstalledEffectModelSourceUnit(
+        managedRun, plan, request, inputs, unit, token(retention),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       const value = Object.freeze({
         invocation: moon.clientProgramCombinedEffectSourceUnitInvocation(prepared),
         bodies: Object.freeze(moon.clientProgramCombinedEffectSourceUnitDependencyBodies(prepared)
           .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
-        catalogBodies: Object.freeze(checked(moon.clientProgramCombinedEffectSourceUnitCatalogBodies(
-          prepared, limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
+        catalogBodies: Object.freeze(checked(moon.clientProgramPrepareInstalledEffectModelSourceUnitCatalog(
+          managedRun, plan, request, inputs, prepared,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth))
           .map(body => Object.freeze({kind: runtimeField(body, 0), cid: runtimeField(body, 1), wire: runtimeField(body, 2)}))),
       });
       localEffectDependencyTokens.set(value, {kind: 'combined_source', issued: prepared});

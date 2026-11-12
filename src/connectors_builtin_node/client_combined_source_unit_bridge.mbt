@@ -256,3 +256,44 @@ pub fn client_program_prepare_preconsumer_effect_source_unit(
     inputs, unit, retention, max_bytes, max_nodes, max_depth,
   )
 }
+
+///|
+#export_name("clientProgramPrepareInstalledEffectModelSourceUnit")
+pub fn client_program_prepare_installed_effect_model_source_unit(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  inputs : @publication_host.ClientEffectSourceUnitInputs,
+  unit : Int,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectCombinedSourceUnit,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  @client_local_host.prepare_installed_effect_model_source_unit(
+    run, plan, request, inputs, unit, retention, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareInstalledEffectModelSourceUnitCatalog")
+pub fn client_program_prepare_installed_effect_model_source_unit_catalog(
+  run : @client_local_host.ClientInstalledManagedRun,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  inputs : @publication_host.ClientEffectSourceUnitInputs,
+  unit : @publication_host.ClientEffectCombinedSourceUnit,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, String, String)],
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  @client_local_host.prepare_installed_effect_model_source_unit_catalog(
+    run, plan, request, inputs, unit, max_bytes, max_nodes, max_depth,
+  )
+}

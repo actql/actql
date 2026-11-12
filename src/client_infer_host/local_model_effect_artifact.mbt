@@ -179,7 +179,7 @@ pub fn issue_preconsumer_original_model_acquired_evidence(
   imports? : @publication_host.ClientEffectImportedEvidence? = None,
   source_originals? : Array[@publication_host.ClientEffectAcquiredEvidence] = [],
 ) -> Result[
-  @publication_host.ClientEffectModelAcquiredEvidence,
+  PreconsumerModelUnitEvidence,
   @publication_host.ClientEffectAcquiredEvidenceIssue,
 ] {
   guard prepare_preconsumer_model_unit_observation(
@@ -210,8 +210,116 @@ pub fn issue_preconsumer_original_model_acquired_evidence(
       )
     _ => Err(Invocation(ForeignCapturedInput))
   }
-  if !original_host_output_matches(held, compiled, definition, plan) {
+  guard original_host_output_matches(held, compiled, definition, plan) &&
+    borrow_original_model_observation_relations(
+      held, compiled, definition, plan,
+    )
+    is Some((_, outcomes)) else {
     return Err(Invocation(ForeignCapturedInput))
+  }
+  result.map(acquired => {
+    held,
+    compiled,
+    definition,
+    plan,
+    body,
+    receipt,
+    outcomes,
+    acquired,
+  })
+}
+
+///|
+/// A borrowed association of an existing OutputUse and its one semantic body.
+/// It owns no Resource, publication permission or independent cleanup duty.
+struct PreconsumerModelUnitEvidence {
+  held : OutputUse
+  compiled : @publication_host.ClientCompiledRun
+  definition : @publication.PublicationContract
+  plan : @publication_host.ClientInferPlanGraph
+  body : @publication.CapturedEffectDependencyBody
+  receipt : @relation.CompletedRelationExportReceipt
+  outcomes : @relation.CompletedOutput
+  acquired : @publication_host.ClientEffectModelAcquiredEvidence
+}
+
+///|
+pub fn preconsumer_model_unit_acquired_evidence(
+  value : PreconsumerModelUnitEvidence,
+) -> @publication_host.ClientEffectModelAcquiredEvidence? {
+  guard original_host_output_matches(
+      value.held,
+      value.compiled,
+      value.definition,
+      value.plan,
+    ) &&
+    value.held.owner.call_scope is Some(scope) &&
+    @publication_host.client_effect_model_acquired_matches(
+      value.acquired,
+      value.compiled,
+      scope,
+      value.body,
+    ) &&
+    @relation.completed_relation_export_matches_output(
+      value.receipt,
+      value.outcomes,
+    ) else {
+    return None
+  }
+  if !original_host_output_matches(
+      value.held,
+      value.compiled,
+      value.definition,
+      value.plan,
+    ) {
+    return None
+  }
+  Some(value.acquired)
+}
+
+///|
+/// Use the one original Model semantic body for its actual completed Unit
+/// Result/suffix. Neither a global Model ObservationSet nor final Run binding
+/// is synthesized before the remaining Models execute.
+pub fn issue_preconsumer_original_model_unit_artifact(
+  value : PreconsumerModelUnitEvidence,
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  definition : @publication_host.ClientEffectLocalResultDefinition,
+  receipt : @relation.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  guard preconsumer_model_unit_acquired_evidence(value) is Some(acquired) else {
+    return Err(ForeignOwner)
+  }
+  let result = @publication_host.issue_preconsumer_model_client_effect_unit_result_artifact(
+    owner,
+    inputs,
+    exported,
+    acquired,
+    value.held.output,
+    definition,
+    receipt,
+    admission,
+    value.definition,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+  if !original_host_output_matches(
+      value.held,
+      value.compiled,
+      value.definition,
+      value.plan,
+    ) {
+    return Err(ForeignOwner)
   }
   result
 }

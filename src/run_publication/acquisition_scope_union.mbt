@@ -48,22 +48,136 @@ pub fn issue_combined_acquisition_scope(
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "sources")
-    @encode.begin_array(writer)
+  emit_acquisition_scope_body(writer, writer => {
     for key in keys {
       @json.emit_value(entries[key], writer)
     }
-    @encode.end_array(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-acquisition-scope/0.1")
-    @encode.end_object(writer)
-  } catch {
+  }) catch {
     _ => return Err(Encoding)
   }
   let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
   seal_publication_contract(
     "acquisition_scope", body, max_bytes, max_nodes, max_depth,
   ).map_err(issue => AcquisitionRelationIssue::Contract(issue))
+}
+
+///|
+/// Before-construction body facts for the SAME Source Unit metadata emitters.
+/// Source/read/Request/Run provenance stays with the calling original owner.
+/// The final union is bounded by all original entries before deduplication;
+/// future CID positions use an admitted CID's fixed width, never a new identity.
+pub fn source_unit_metadata_construction_geometry(
+  sources : Array[RunEvidenceValue],
+  inputs : Array[RunEvidenceValue],
+  rows : Array[Int],
+  retention : PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  AcquisitionRelationIssue,
+] {
+  if sources.is_empty() ||
+    sources.length() > max_nodes ||
+    sources.length() != inputs.length() ||
+    sources.length() != rows.length() ||
+    retention.name != "result_retention_policy" {
+    return Err(WrongEvidence)
+  }
+  let bodies : Array[(String, @encode.EncodingConstructionGeometry)] = []
+  let mut active : @encode.Writer? = None
+  try {
+    for index, source in sources {
+      let input = inputs[index]
+      if source.name != "source_evidence" ||
+        input.name != "source_input_logical" ||
+        rows[index] < 0 {
+        return Err(WrongEvidence)
+      }
+      let producer = evidence_string(source.value, "source_contract_cid").unwrap()
+      let policy = evidence_string(source.value, "effective_data_policy_cid").unwrap()
+      if contract_string(retention, "effective_data_policy_cid") != Some(policy) {
+        let writer = @encode.construction_measuring_writer(
+          max_bytes, max_nodes, max_depth,
+        )
+        active = Some(writer)
+        emit_result_retention_for_data_policy(writer, retention, policy)
+        bodies.push(
+          (
+            "result_retention_policy",
+            @encode.finish_construction_measurement(writer),
+          ),
+        )
+      }
+      let writer = @encode.construction_measuring_writer(
+        max_bytes, max_nodes, max_depth,
+      )
+      active = Some(writer)
+      emit_acquisition_scope_body(writer, writer => {
+        emit_acquisition_scope_entry(writer, producer, Some(producer), None)
+      })
+      bodies.push(
+        ("acquisition_scope", @encode.finish_construction_measurement(writer)),
+      )
+      let writer = @encode.construction_measuring_writer(
+        max_bytes, max_nodes, max_depth,
+      )
+      active = Some(writer)
+      emit_occurrence_ordering_evidence_body(
+        producer,
+        source.identity,
+        "source",
+        writer,
+      )
+      bodies.push(
+        ("ordering_evidence", @encode.finish_construction_measurement(writer)),
+      )
+      let writer = @encode.construction_measuring_writer(
+        max_bytes, max_nodes, max_depth,
+      )
+      active = Some(writer)
+      emit_acquisition_relation_body(
+        writer,
+        producer,
+        evidence_string(input.value, "logical_relation_cid").unwrap(),
+        evidence_string(input.value, "relation_schema_cid").unwrap(),
+        producer,
+        producer,
+        retention.identity,
+        policy,
+        rows[index].to_int64(),
+        "complete",
+        "source",
+        source.identity,
+      )
+      bodies.push(
+        (
+          "acquisition_relation",
+          @encode.finish_construction_measurement(writer),
+        ),
+      )
+    }
+    let writer = @encode.construction_measuring_writer(
+      max_bytes, max_nodes, max_depth,
+    )
+    active = Some(writer)
+    emit_acquisition_scope_body(writer, writer => {
+      for source in sources {
+        let producer = evidence_string(source.value, "source_contract_cid").unwrap()
+        emit_acquisition_scope_entry(writer, producer, Some(producer), None)
+      }
+    })
+    bodies.push(
+      ("acquisition_scope", @encode.finish_construction_measurement(writer)),
+    )
+    Ok(bodies)
+  } catch {
+    _ => {
+      if active is Some(writer) {
+        @encode.cancel_writer(writer)
+      }
+      Err(Encoding)
+    }
+  }
 }

@@ -129,26 +129,14 @@ fn issue_source_request_acquisition_scope(
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "sources")
-    @encode.begin_array(writer)
-    @encode.begin_object(writer)
-    @encode.key(writer, "request_key_set_cid")
-    match key_set_cid {
-      Some(cid) => @encode.string_value(writer, cid)
-      None => @encode.null_value(writer)
-    }
-    @encode.key(writer, "request_values_cid")
-    @encode.string_value(writer, request_values_cid)
-    @encode.key(writer, "source_contract_cid")
-    @encode.string_value(writer, source_contract_cid)
-    @encode.end_object(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-acquisition-scope/0.1")
-    @encode.end_object(writer)
-  } catch {
+  emit_acquisition_scope_body(writer, writer => {
+    emit_acquisition_scope_entry(
+      writer,
+      source_contract_cid,
+      Some(request_values_cid),
+      key_set_cid,
+    )
+  }) catch {
     _ => return Err(Encoding)
   }
   let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
@@ -269,42 +257,20 @@ fn seal_input_relation(
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "actual_completeness")
-    @encode.string_value(writer, completeness)
-    @encode.key(writer, "actual_row_count")
-    @encode.number_value(writer, rows.to_double())
-    @encode.key(writer, "effective_data_policy_cid")
-    @encode.string_value(
-      writer,
-      contract_string(retention, "effective_data_policy_cid").unwrap(),
-    )
-    @encode.key(writer, "effective_retention_policy_cid")
-    @encode.string_value(writer, retention.identity)
-    @encode.key(writer, "logical_value_cid")
-    @encode.string_value(writer, logical)
-    @encode.key(writer, "observation_scope_cid")
-    @encode.string_value(writer, scope.identity)
-    @encode.key(writer, "ordering_evidence_cid")
-    @encode.string_value(writer, ordering)
-    @encode.key(writer, "producer_contract_cid")
-    @encode.string_value(writer, producer)
-    @encode.key(writer, "provenance_evidence")
-    @encode.begin_array(writer)
-    @encode.begin_object(writer)
-    @encode.key(writer, "cid")
-    @encode.string_value(writer, provenance)
-    @encode.key(writer, "kind")
-    @encode.string_value(writer, provenance_kind)
-    @encode.end_object(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "relation_schema_cid")
-    @encode.string_value(writer, schema)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-acquisition-relation/0.1")
-    @encode.end_object(writer)
-  } catch {
+  emit_acquisition_relation_body(
+    writer,
+    producer,
+    logical,
+    schema,
+    ordering,
+    scope.identity,
+    retention.identity,
+    contract_string(retention, "effective_data_policy_cid").unwrap(),
+    rows,
+    completeness,
+    provenance_kind,
+    provenance,
+  ) catch {
     _ => return Err(Encoding)
   }
   let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
@@ -365,28 +331,12 @@ pub fn issue_captured_source_input_relation(
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "kind")
-    @encode.string_value(writer, "occurrence")
-    @encode.key(writer, "producer_contract_cid")
-    @encode.string_value(writer, producer)
-    @encode.key(writer, "terms")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-acquisition-ordering/0.1")
-    @encode.key(writer, "witness_evidence")
-    @encode.begin_array(writer)
-    @encode.begin_object(writer)
-    @encode.key(writer, "cid")
-    @encode.string_value(writer, source.identity)
-    @encode.key(writer, "kind")
-    @encode.string_value(writer, "source")
-    @encode.end_object(writer)
-    @encode.end_array(writer)
-    @encode.end_object(writer)
-  } catch {
+  emit_occurrence_ordering_evidence_body(
+    producer,
+    source.identity,
+    "source",
+    writer,
+  ) catch {
     _ => return Err(Encoding)
   }
   let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
@@ -417,4 +367,90 @@ pub fn issue_captured_source_input_relation(
     Err(issue) => return Err(issue)
   }
   Ok((relation, ordering, scope))
+}
+
+///|
+fn emit_acquisition_scope_body(
+  writer : @encode.Writer,
+  emit_entries : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "sources")
+  @encode.begin_array(writer)
+  emit_entries(writer)
+  @encode.end_array(writer)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-acquisition-scope/0.1")
+  @encode.end_object(writer)
+}
+
+///|
+fn emit_acquisition_scope_entry(
+  writer : @encode.Writer,
+  source_contract_cid : String,
+  request_values_cid : String?,
+  key_set_cid : String?,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "request_key_set_cid")
+  match key_set_cid {
+    Some(cid) => @encode.string_value(writer, cid)
+    None => @encode.null_value(writer)
+  }
+  @encode.key(writer, "request_values_cid")
+  match request_values_cid {
+    Some(cid) => @encode.string_value(writer, cid)
+    None => @encode.null_value(writer)
+  }
+  @encode.key(writer, "source_contract_cid")
+  @encode.string_value(writer, source_contract_cid)
+  @encode.end_object(writer)
+}
+
+///|
+fn emit_acquisition_relation_body(
+  writer : @encode.Writer,
+  producer : String,
+  logical : String,
+  schema : String,
+  ordering : String,
+  scope_cid : String,
+  retention_cid : String,
+  policy : String,
+  rows : Int64,
+  completeness : String,
+  provenance_kind : String,
+  provenance : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "actual_completeness")
+  @encode.string_value(writer, completeness)
+  @encode.key(writer, "actual_row_count")
+  @encode.number_value(writer, rows.to_double())
+  @encode.key(writer, "effective_data_policy_cid")
+  @encode.string_value(writer, policy)
+  @encode.key(writer, "effective_retention_policy_cid")
+  @encode.string_value(writer, retention_cid)
+  @encode.key(writer, "logical_value_cid")
+  @encode.string_value(writer, logical)
+  @encode.key(writer, "observation_scope_cid")
+  @encode.string_value(writer, scope_cid)
+  @encode.key(writer, "ordering_evidence_cid")
+  @encode.string_value(writer, ordering)
+  @encode.key(writer, "producer_contract_cid")
+  @encode.string_value(writer, producer)
+  @encode.key(writer, "provenance_evidence")
+  @encode.begin_array(writer)
+  @encode.begin_object(writer)
+  @encode.key(writer, "cid")
+  @encode.string_value(writer, provenance)
+  @encode.key(writer, "kind")
+  @encode.string_value(writer, provenance_kind)
+  @encode.end_object(writer)
+  @encode.end_array(writer)
+  @encode.key(writer, "relation_schema_cid")
+  @encode.string_value(writer, schema)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-acquisition-relation/0.1")
+  @encode.end_object(writer)
 }

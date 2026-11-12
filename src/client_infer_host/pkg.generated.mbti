@@ -166,7 +166,9 @@ pub fn issue_original_local_model_observation(OutputUse, ObservationIssuance, @e
 
 pub fn issue_original_local_model_observation_from_scope(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
 
-pub fn issue_preconsumer_original_model_acquired_evidence(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, Int, Int, Int, imports? : @run_publication_host.ClientEffectImportedEvidence?, source_originals? : Array[@run_publication_host.ClientEffectAcquiredEvidence]) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+pub fn issue_preconsumer_original_model_acquired_evidence(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, Int, Int, Int, imports? : @run_publication_host.ClientEffectImportedEvidence?, source_originals? : Array[@run_publication_host.ClientEffectAcquiredEvidence]) -> Result[PreconsumerModelUnitEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+
+pub fn issue_preconsumer_original_model_unit_artifact(PreconsumerModelUnitEvidence, @run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn issued_attachment_admission(Execution, Int) -> Result[@run_publication.RunEvidenceValue?, @model_execution.ModelExecutionIssue]
 
@@ -217,6 +219,8 @@ pub fn park_original_model_resources_for_state_write(Execution, @run_publication
 pub fn poll_issue(Poll) -> Issue?
 
 pub fn poll_kind(Poll) -> String
+
+pub fn preconsumer_model_unit_acquired_evidence(PreconsumerModelUnitEvidence) -> @run_publication_host.ClientEffectModelAcquiredEvidence?
 
 pub fn prepare_original_model_current_state_writer(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int, Int, Int) -> Result[OriginalModelCurrentStateWriter, @physical_resources.OriginalStateWriteIssue]
 
@@ -484,6 +488,8 @@ pub enum Poll {
   Failed(Issue, work~ : Int64)
   Stopped(work~ : Int64)
 }
+
+type PreconsumerModelUnitEvidence
 
 pub struct ResultPublication {
   binding : InvocationBinding

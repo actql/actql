@@ -472,7 +472,7 @@ for (const units of [[0, 0], [0, 0, 2]]) {
 // A final Model observation does not erase an upstream Unit's original Source
 // context. These explicit ports exercise the actual consumer, not a provider.
 test('combined upstream Source Unit publication remains available when later Models exist', () => {
-  const sourcePlan = {}, unitInputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
+  const managedRun = {}, sourcePlan = {}, unitInputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
   const sources = [0, 1].map(slot => ({captured: {inputKind: 'whole-input',
     occurrence: {stage: 0}, identity: {slot}, capture: {source: () => ({slot})}, logicalInput: {}},
     sourceEvidence: {slot}}));
@@ -492,7 +492,9 @@ test('combined upstream Source Unit publication remains available when later Mod
       assert.strictEqual(plan, sourcePlan); assert.strictEqual(prepared, acquired.prepared);
       assert.strictEqual(request, acquired.requestIdentity); assert.strictEqual(actual, sources);
       assert.equal(evidence.length, 2); calls.push('original-source-units'); return unitInputs;
-    }, preparePreconsumerEffectSourceUnit(original, unit, policy) {
+    }, prepareInstalledEffectModelSourceUnit(actualRun, actualPlan, request, original, unit, policy) {
+      assert.strictEqual(actualRun, managedRun); assert.strictEqual(actualPlan, sourcePlan);
+      assert.strictEqual(request, acquired.requestIdentity);
       assert.strictEqual(original, unitInputs); assert.equal(unit, 0); assert.strictEqual(policy, retention);
       calls.push('combined-0'); return combined;
     }};
@@ -500,11 +502,61 @@ test('combined upstream Source Unit publication remains available when later Mod
     limits: {}, runtimeField: (value, index) => value[index], runtimeOptionalField: (value, index) => value[index],
     checked: value => value.ok, buildLocalPublicationPlan: () => ({plan: {}, retention, retentionDependencies: []}),
   });
-  const plan = run({acquired, sources, sourcePlan, issuedModel: {}, modelOriginals: [model]});
+  const plan = run({acquired, sources, sourcePlan, managedRun, issuedModel: {}, modelOriginals: [model]});
   assert.deepEqual(calls, ['complete-model', 'original-source-units', 'combined-0']);
   assert.strictEqual(plan.localEvidenceContext.acquiredEvidenceByUnit[0], combined);
   assert.strictEqual(plan.localEvidenceContext.modelOriginalByUnit[1], model);
   assert.equal(plan.localEvidenceContext.acquisitionDependencies.length, 4);
   assert.throws(() => run({acquired, sources, issuedModel: {}, modelOriginals: [model]}),
     /WholeEffectProducerUnitOriginalRequired/u);
+});
+
+
+test('upstream Source Unit preparation retains original bodies before Models and final publication reuses them', () => {
+  const managedRun = {}, sourcePlan = {}, request = {}, inputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
+  const sources = [0, 1].map(slot => ({captured: {inputKind: 'whole-input', occurrence: {stage: 0},
+    identity: {slot}, capture: {source: () => ({slot})}, logicalInput: {}}, sourceEvidence: {slot}}));
+  const calls = [];
+  const moon = {clientProgramEffectPublicationDataPolicyCid: () => 'original-policy',
+    clientProgramEffectDefinitionCid: () => 'original-definition', clientProgramEffectCompilationResultNames: () => ['joined'],
+    clientProgramCapturedSourceLogicalCid: identity => 'logical-' + identity.slot,
+    clientProgramCapturedSourceSchemaCid: () => 'schema',
+    clientProgramCapturedSourceDependencyBodies: identity => ['rows-' + identity.slot, 'schema'],
+    clientProgramEffectPublicationPolicyBodies: () => ({ok: []})};
+  const acquired = {moon, prepared: {}, requestIdentity: request, compilation: {}, admission: {}, definition: {},
+    runDefinition: {wire: '{"created_at":"2026-11-12T00:00:00.000Z"}'}, compiledPlan: {identity: 'same-plan'},
+    selectRetention: () => Object.freeze({availableUntil: 'available', deleteBy: 'delete', metadataDeleteBy: 'metadata'})};
+  acquired.control = {
+    seal(kind, wire) {assert.equal(kind, 'result_retention_policy'); assert.equal(JSON.parse(wire).effective_data_policy_cid, 'original-policy');
+      calls.push('retention'); return retention;},
+    prepareCheckedInstalledEffectSourceUnits(plan, prepared, actualRequest, compilation, admission, definition, actualSources) {
+      assert.strictEqual(plan, sourcePlan); assert.strictEqual(prepared, acquired.prepared); assert.strictEqual(actualRequest, request);
+      assert.strictEqual(actualSources, sources); calls.push('source-inputs'); return inputs;
+    },
+    prepareInstalledEffectModelSourceUnit(run, plan, actualRequest, actualInputs, unit, policy) {
+      assert.strictEqual(run, managedRun); assert.strictEqual(plan, sourcePlan); assert.strictEqual(actualRequest, request);
+      assert.strictEqual(actualInputs, inputs); assert.equal(unit, 0); assert.strictEqual(policy, retention);
+      calls.push('before-model-unit'); return combined;
+    },
+    checkedClientEffectInferInvocation() {calls.push('completed-models'); return {observation: {}, invocation: {}, owner: {}};},
+  };
+  const issueRetention = composedSourceFunction('./local-values-plan.mjs', 'issueLocalResultRetention', {
+    retentionDependencies: [{cid: 'retention'}, {cid: 'metadata'}, {cid: 'clock'}], limits: {},
+  });
+  const prepare = composedSourceFunction('./local-values-plan.mjs', 'prepareAcquiredEffectSourceUnits', {
+    issueLocalResultRetention: issueRetention, limits: {},
+  });
+  const original = prepare({acquired, sources, sourcePlan, managedRun, modelUnits: [1, 2]});
+  assert.deepEqual(calls, ['retention', 'source-inputs', 'before-model-unit']);
+  assert.strictEqual(original.byUnit.get(0).value, combined);
+  const publish = composedSourceFunction('./local-values-plan.mjs', 'acquiredMultiEffectPublicationPlan', {
+    limits: {}, runtimeField: (value, index) => value[index], runtimeOptionalField: (value, index) => value[index], checked: value => value.ok,
+    buildLocalPublicationPlan(options) {assert.strictEqual(options.originalRetention, retention); return {plan: {}, retention, retentionDependencies: []};},
+  });
+  const final = publish({acquired, sources, sourcePlan, managedRun, sourceUnitsOriginal: original,
+    issuedModel: {}, modelOriginals: [{unit: 1}, {unit: 2}]});
+  assert.strictEqual(final.localEvidenceContext.acquiredEvidenceByUnit[0], combined);
+  assert.deepEqual(calls, ['retention', 'source-inputs', 'before-model-unit', 'completed-models']);
+  assert.throws(() => publish({acquired, sources: sources.slice(), sourcePlan, managedRun, sourceUnitsOriginal: original,
+    issuedModel: {}, modelOriginals: [{unit: 1}, {unit: 2}]}), /ForeignEffectSourceUnitOriginal/u);
 });

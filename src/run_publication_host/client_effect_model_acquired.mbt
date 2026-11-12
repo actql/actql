@@ -289,10 +289,95 @@ pub fn issue_model_client_effect_local_result_artifact(
   ClientEffectLocalResultArtifact,
   ClientEffectLocalResultArtifactIssue,
 ] {
+  build_model_client_effect_local_result_artifact(
+    owner,
+    EffectInputs(inputs),
+    exported,
+    acquired,
+    expected_output,
+    definition,
+    receipt,
+    admission,
+    run_definition,
+    Some((run_invocation, observation)),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Semantic Artifact of the actual completed Model Unit, before later Models.
+/// The original Unit pins, full CallScope and output/suffix receipt remain the
+/// issuer's custody. Final Run publication is unbound until its real completion.
+pub fn issue_preconsumer_model_client_effect_unit_result_artifact(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectLocalUnitInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  acquired : ClientEffectModelAcquiredEvidence,
+  expected_output : @execution.CompletedOutput,
+  definition : ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientEffectLocalResultArtifact,
+  ClientEffectLocalResultArtifactIssue,
+] {
+  build_model_client_effect_local_result_artifact(
+    owner,
+    AcquiredUnit(inputs),
+    exported,
+    acquired,
+    expected_output,
+    definition,
+    receipt,
+    admission,
+    run_definition,
+    None,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn build_model_client_effect_local_result_artifact(
+  owner : PreparedClientEffectComputation,
+  custody : ClientEffectLocalArtifactCustody,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  acquired : ClientEffectModelAcquiredEvidence,
+  expected_output : @execution.CompletedOutput,
+  definition : ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  final_context : (
+    @publication.PublicationContract,
+    @publication.RunEvidenceValue,
+  )?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientEffectLocalResultArtifact,
+  ClientEffectLocalResultArtifactIssue,
+] {
   let invocation = acquired.invocation
   let result = @strategy.captured_effect_local_result_export_result(exported)
   if !physical_equal(invocation.owner, owner) ||
-    !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
+    !(match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_inputs_match_computation(inputs, owner.graph)
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_inputs_match_computation(
+          inputs,
+          owner.graph,
+        )
+    }) ||
     !client_effect_computed_result_matches_invocation(
       owner, invocation, exported,
     ) {
@@ -305,22 +390,42 @@ pub fn issue_model_client_effect_local_result_artifact(
   let original_matches = if @execution.completed_relation_export_has_output_identity(
       receipt, expected_output,
     ) {
-    @strategy.captured_effect_local_result_export_matches_receipt(
-      inputs, exported, receipt,
-    ) &&
+    (match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_local_result_export_matches_receipt(
+          inputs, exported, receipt,
+        )
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_result_export_matches_receipt(
+          inputs, exported, receipt,
+        )
+    }) &&
     @execution.completed_relation_export_matches_output(
       receipt, expected_output,
     )
   } else {
-    @strategy.captured_effect_local_result_export_matches_model_suffix(
-      exported,
-      inputs,
-      owner.graph,
-      invocation.unit,
-      model_task,
-      expected_output,
-      receipt,
-    )
+    match custody {
+      EffectInputs(inputs) =>
+        @strategy.captured_effect_local_result_export_matches_model_suffix(
+          exported,
+          inputs,
+          owner.graph,
+          invocation.unit,
+          model_task,
+          expected_output,
+          receipt,
+        )
+      AcquiredUnit(inputs) =>
+        @strategy.captured_effect_local_unit_result_export_matches_model_suffix(
+          exported,
+          inputs,
+          owner.graph,
+          invocation.unit,
+          model_task,
+          expected_output,
+          receipt,
+        )
+    }
   }
   if !original_matches {
     return Err(ForeignExport)
@@ -336,7 +441,6 @@ pub fn issue_model_client_effect_local_result_artifact(
     ) {
     return Err(ForeignDefinition)
   }
-  let custody = EffectInputs(inputs)
   if client_effect_local_custody_run_definition_cid(custody) !=
     Some(@publication.publication_contract_identity(run_definition)) ||
     @publication.check_run_publication_program_binding(
@@ -349,12 +453,25 @@ pub fn issue_model_client_effect_local_result_artifact(
     is Err(_) {
     return Err(ForeignRun)
   }
-  let (_, policy, authority) = match
-    @publication.resolve_run_local_result_context(
-      admission, run_definition, run_invocation, observation,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Context(issue))
+  let (run_invocation, policy, authority) = match final_context {
+    Some((invocation, observation)) => {
+      let (_, policy, authority) = match
+        @publication.resolve_run_local_result_context(
+          admission, run_definition, invocation, observation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Context(issue))
+      }
+      (Some(invocation), policy, authority)
+    }
+    None => {
+      guard custody is AcquiredUnit(_) &&
+        prepared_client_effect_publication_data_policy_cid(owner)
+        is Some(policy) else {
+        return Err(ForeignOwner)
+      }
+      (None, policy, @publication.run_publication_execution_context(admission))
+    }
   }
   let retention = match
     @publication.issue_result_retention_for_data_policy(
@@ -376,7 +493,7 @@ pub fn issue_model_client_effect_local_result_artifact(
     ResultSource(borrow, definition),
     invocation,
     receipt,
-    Some(run_invocation),
+    run_invocation,
     retention,
     @publication.publication_contract_identity(acquired.scope),
     policy,

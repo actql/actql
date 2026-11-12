@@ -140,18 +140,10 @@ fn prepare_client_effect_source_unit_body(
   let program = @checked.effect_program_static_checked_computation(
     owner.candidate,
   )
-  guard client_direct_acquisition_occurrences_match_effect_program(
-      source.occurrences,
-      owner,
-    ) &&
-    @checked.unit_definition_cid(program, unit) is Some(definition) &&
-    @checked.unit_used_values_cid(program, unit) is Some(values) &&
-    @checked.unit_contracts_cid(program, unit) is Some(contracts) &&
-    @checked.unit_pipeline(program, unit) is Some(pipeline) &&
-    client_effect_source_unit_without_model(pipeline) &&
-    @checked.unit_result_import_count(program, unit) == Some(0) &&
-    @checked.unit_import_cid_count(program, unit) == Some(0) else {
-    return Err(Invocation(MissingUnit))
+  let (definition, values, contracts) = match
+    client_effect_source_unit_definition(value, unit) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let contributions : Array[ClientEffectSourceUnitContribution] = []
   let scopes : Array[@publication.PublicationContract] = []
@@ -354,6 +346,7 @@ pub fn client_effect_combined_source_unit_catalog_bodies(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((Int, Int, Int) -> Bool)? = None,
 ) -> Result[Array[(String, String, String)], ClientEffectAcquiredEvidenceIssue] {
   let program = @checked.effect_program_static_checked_computation(
     value.original.owner.candidate,
@@ -383,6 +376,7 @@ pub fn client_effect_combined_source_unit_catalog_bodies(
           remaining,
           max_nodes,
           max_depth,
+          before_body~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Dependency(issue))
@@ -682,4 +676,151 @@ pub fn issue_preconsumer_client_effect_unit_result_artifact(
     max_nodes,
     max_depth,
   )
+}
+
+///|
+fn client_effect_source_unit_definition(
+  value : ClientEffectSourceUnitInputs,
+  unit : Int,
+) -> Result[(String, String, String), ClientEffectAcquiredEvidenceIssue] {
+  let owner = value.owner
+  let source = value.source
+  let program = @checked.effect_program_static_checked_computation(
+    owner.candidate,
+  )
+  guard client_direct_acquisition_occurrences_match_effect_program(
+      source.occurrences,
+      owner,
+    ) &&
+    @checked.unit_definition_cid(program, unit) is Some(definition) &&
+    @checked.unit_used_values_cid(program, unit) is Some(values) &&
+    @checked.unit_contracts_cid(program, unit) is Some(contracts) &&
+    @checked.unit_pipeline(program, unit) is Some(pipeline) &&
+    client_effect_source_unit_without_model(pipeline) &&
+    @checked.unit_result_import_count(program, unit) == Some(0) &&
+    @checked.unit_import_cid_count(program, unit) == Some(0) else {
+    return Err(Invocation(MissingUnit))
+  }
+  Ok((definition, values, contracts))
+}
+
+///|
+/// Original Unit body sizes from its actual Request and semantic emitters.
+/// The original parent must admit the returned variable backings BEFORE the
+/// corresponding Source Unit constructor. Fixed controls remain Common-owned.
+/// `request_values` and `local_computation` are wire-only borrowed definitions;
+/// other names select their existing PublicationContract constructor layout.
+pub fn client_effect_source_unit_construction_geometry(
+  value : ClientEffectSourceUnitInputs,
+  unit : Int,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  ClientEffectAcquiredEvidenceIssue,
+] {
+  let (definition, values, contracts) = match
+    client_effect_source_unit_definition(value, unit) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let source = value.source
+  let bodies : Array[(String, @encode.EncodingConstructionGeometry)] = []
+  let sources = []
+  let inputs = []
+  let rows = []
+  let observations = []
+  for slot, coordinate in source.occurrences.coordinates {
+    if coordinate.0 != unit {
+      continue
+    }
+    match source.originals[slot] {
+      QuerySourceOriginal(_) => () // SAME admitted Query document is borrowed.
+      WholeSourceOriginal(acquisition) => {
+        let geometry = match
+          @acquisition.parameterized_request_canonical_geometry(
+            @acquisition.source_acquisition_request(acquisition),
+            max_bytes,
+            max_nodes,
+            max_depth,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Invocation(Encoding))
+        }
+        bodies.push(("request_values", geometry))
+      }
+    }
+    sources.push(source.sources[slot])
+    inputs.push(source.inputs[slot])
+    rows.push(
+      @query.captured_source_relation_row_count(source.identities[slot]),
+    )
+    observations.push(
+      @publication.run_evidence_value_identity(source.sources[slot]),
+    )
+  }
+  if sources.length() < 2 {
+    return Err(Invocation(MissingCapturedInput))
+  }
+  let metadata = match
+    @publication.source_unit_metadata_construction_geometry(
+      sources, inputs, rows, retention, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Relation(issue))
+  }
+  for body in metadata {
+    bodies.push(body)
+  }
+  let writer = @encode.construction_measuring_writer(
+    max_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Invocation(Encoding))
+  }
+  let geometry = try {
+    emit_client_effect_local_invocation(
+      writer,
+      definition,
+      values,
+      contracts,
+      @checked.checked_local_policy_cid(
+        @checked.effect_program_static_checked_computation(
+          value.owner.candidate,
+        ),
+      ),
+      observations,
+      Some(definition),
+    )
+    @encode.finish_construction_measurement(writer)
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      return Err(Invocation(Encoding))
+    }
+  }
+  bodies.push(("local_computation", geometry))
+  Ok(bodies)
+}
+
+///|
+/// Pure same-parent/Run binding for the constructor's existing installing owner.
+pub fn client_effect_source_unit_inputs_match(
+  value : ClientEffectSourceUnitInputs,
+  owner : PreparedClientEffectComputation,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  physical_equal(value.owner, owner) &&
+  value.run_definition_cid ==
+  @publication.publication_contract_identity(definition)
+}
+
+///|
+/// Alias correspondence only; no current callback or new evidence issuance.
+pub fn client_effect_combined_source_unit_matches_inputs(
+  value : ClientEffectCombinedSourceUnit,
+  inputs : ClientEffectSourceUnitInputs,
+) -> Bool {
+  physical_equal(value.original, inputs)
 }

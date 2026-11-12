@@ -229,6 +229,8 @@ pub fn captured_effect_local_unit_result_at(CapturedEffectLocalUnitInputs, Int) 
 
 pub fn captured_effect_local_unit_result_count(CapturedEffectLocalUnitInputs) -> Int
 
+pub fn captured_effect_local_unit_result_export_matches_model_suffix(CapturedEffectLocalResultExport, CapturedEffectLocalUnitInputs, @physical_strategy.CheckedEffectComputationDAG, Int, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt) -> Bool
+
 pub fn captured_effect_local_unit_result_export_matches_receipt(CapturedEffectLocalUnitInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
 
 pub fn captured_effect_local_unit_result_export_retained(CapturedEffectLocalUnitInputs, CapturedEffectLocalResultExport) -> Bool
