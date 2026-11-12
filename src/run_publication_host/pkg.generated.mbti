@@ -2089,7 +2089,7 @@ pub fn prepare_client_keyed_acquisition(PreparedClientProgram, Int, Int, Int, jo
 
 pub fn prepare_client_keyed_capture_left_read(ClientKeyedAcquisition, @execution_query.CapturedInputSource, Int, Int) -> Result[ClientKeyedLeftRead, ClientKeyedRequestIssue]
 
-pub fn prepare_client_keyed_captured_left_identity(ClientKeyedLookupInput, PublicationOutputExportLimits, Int, Int) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue]
+pub fn prepare_client_keyed_captured_left_identity(ClientKeyedLookupInput, PublicationOutputExportLimits, Int) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_declared_file_activation_record(ClientKeyedNativeActivation, ClientRequestIdentity, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int) -> Result[String, ClientKeyedRequestIssue]
 

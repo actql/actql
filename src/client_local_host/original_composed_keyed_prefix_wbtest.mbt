@@ -76,6 +76,7 @@ fn original_composed_keyed_consumer(
   request_metadata_policy? : Int = 16384,
   native_transport? : Bool = false,
   captured_source_metadata? : Bool = false,
+  identity_wire_nodes? : (Int, Int)? = None,
   declared_activation_record? : Bool = false,
   declared_raw_page? : Bool = false,
   declared_dependency_closure? : Bool = false,
@@ -1200,10 +1201,19 @@ fn original_composed_keyed_consumer(
   }
 
   if captured_source_metadata {
-    let limits = original_keyed_content_workspace().export_limits
+    let original_limits = original_keyed_content_workspace().export_limits
+    let limits = match identity_wire_nodes {
+      None => original_limits
+      Some(nodes) =>
+        {
+          ..original_limits,
+          payload_wire: { ..original_limits.payload_wire, max_nodes: nodes.0, },
+          logical_wire: { ..original_limits.logical_wire, max_nodes: nodes.1, },
+        }
+    }
     let left_identity = if declared_activation_record {
       @publication_host.prepare_client_keyed_captured_left_identity(
-        lookup, limits, 1000000, 100000,
+        lookup, limits, 1000000,
       )
     } else {
       @publication_host.prepare_client_keyed_native_left_identity(
@@ -3805,5 +3815,15 @@ test "declared-file completed lookup retains its full original dependency closur
     source_identity_bodies=true,
     declared_raw_page=true,
     declared_dependency_closure=true,
+  )
+}
+
+///|
+test "original captured keyed left identity selects the existing scan workspace from its exact wire limits" {
+  original_composed_keyed_consumer(
+    whole=true,
+    captured_source_metadata=true,
+    declared_activation_record=true,
+    identity_wire_nodes=Some((1000000, 1000003)),
   )
 }

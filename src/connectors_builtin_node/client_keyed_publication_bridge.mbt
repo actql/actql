@@ -8,7 +8,7 @@ pub fn client_program_keyed_lookup_prepare_left_identity(
   max_work : Int,
 ) -> Result[Unit, @publication_host.ClientKeyedRequestIssue] {
   @publication_host.prepare_client_keyed_captured_left_identity(
-    lookup, limits, max_work, client_installed_source_identity_workspace_slots,
+    lookup, limits, max_work,
   ).map(_ => ())
 }
 
