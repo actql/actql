@@ -30,10 +30,13 @@ def context(repository, environment):
     for key in ['GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT']:
         if not re.fullmatch('[1-9][0-9]*', environment.get(key, '')):
             raise ValueError('Same-run Native artifact context required')
+    image = environment.get('ImageVersion')
+    if not isinstance(image, str) or not image.strip() or image != image.strip():
+        raise ValueError('Exact hosted Native runner image required')
     return {'source': source, 'run': environment['GITHUB_RUN_ID'],
             'attempt': environment['GITHUB_RUN_ATTEMPT'], 'workspace': str(repository.resolve()),
             'target': [platform.system(), platform.machine()],
-            'image': environment.get('ImageVersion'),
+            'image': image,
             'toolchain': digest(repository / 'toolchain.json')}
 
 
