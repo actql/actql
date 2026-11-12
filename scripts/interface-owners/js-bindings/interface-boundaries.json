@@ -18052,7 +18052,9 @@
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies#2",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies/bodies",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/extent/extent",
+            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/lookupBodies/lookupBodies",
             "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
+            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/value/value",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
             "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#2",
@@ -28766,7 +28768,21 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/lookupBodies/lookupBodies",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/value/value",
           "parameters": [
             "body"
           ],
@@ -32286,7 +32302,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dbb8e098caf328d92d5b5e3a67777316f12f5c1897a4c7fd8e46da4621d0ce29"
+      "sha256": "044d40a01bc10ea8c583334f904451b0d08ffe565b7fba1727b5d21c926455cf"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
