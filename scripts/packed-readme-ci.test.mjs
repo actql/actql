@@ -1212,7 +1212,7 @@ test('normal Effect driver selects each fresh two-Model capture and public contr
       const rows = capture ? [...Array.from({length: 10}, (_, i) => explicitStep('capture', String(i))),
         {phase: 'capture', status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
           workObservation: explicitWork('capture', 'two-models')},
-        {phase: 'capture', event: 'after-first-close', pid: 7000, aliveScopedFD: {after: 0}}]
+        {phase: 'capture', event: 'after-original-module', originalImportFailed: false, pid: 7000, aliveScopedFD: {after: 0}}]
         : [explicitEffectControl(mode)];
       return {pid: 7000, code: 0, signal: null, stdout: rows.map(value => JSON.stringify(value)).join('\n')};
     }});
@@ -1282,7 +1282,7 @@ test('normal Effect control timeout retains only the same child primary and neve
         return {pid: 6000, code: 0, stdout: [...Array.from({length: 10}, (_, i) => explicitStep('capture', String(i))),
           {phase: 'capture', status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
             workObservation: explicitWork('capture', 'two-models')},
-          {phase: 'capture', event: 'after-first-close', pid: 6000, aliveScopedFD: {after: 0}}]
+          {phase: 'capture', event: 'after-original-module', originalImportFailed: false, pid: 6000, aliveScopedFD: {after: 0}}]
           .map(value => JSON.stringify(value)).join('\n')};
       }}), error => error === failure);
     const result = record.phases[1]; assert.equal(result.completed, false);
@@ -1545,4 +1545,25 @@ test('normal resource parent preserves exact value capture work evidence through
     if(mode==='exact'){await promise;assert.equal(record.completed,true);}
     else{await assert.rejects(promise);assert.equal(record.completed,false);}
   }
+});
+
+test('capture FD wrapper observes after rejection and rethrows the same original primary without a second close', async () => {
+  const source = await readFile(new URL('./fixtures/mock-project-effect-control-capture.mjs', import.meta.url), 'utf8');
+  const body = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'observeOriginalCapture');
+  const observe = Function('assert', 'process', `return (${source.slice(body.start, body.end)});`)(assert, {pid: 123});
+  for (const primary of [new Error('Original failure'), undefined]) {
+    for (const diagnosticFails of [false, true]) {
+      const calls = [], records = [], diagnostic = new Error('Descriptor observer failed');
+      await assert.rejects(observe(async () => {calls.push('original module settled'); throw primary;},
+        async () => {calls.push('observe after original'); if (diagnosticFails) throw diagnostic; return {openPaths: []};},
+        value => {calls.push('report'); records.push(value);}), error => error === primary);
+      assert.deepEqual(calls, diagnosticFails ? ['original module settled', 'observe after original']
+        : ['original module settled', 'observe after original', 'report']);
+      if (!diagnosticFails) assert.deepEqual(records, [{phase: 'capture', event: 'after-original-module', pid: 123,
+        originalImportFailed: true, aliveScopedFD: {after: 0}}]);
+    }
+  }
+  const diagnostic = new Error('Descriptor failure after successful original');
+  await assert.rejects(observe(async () => {}, async () => {throw diagnostic;}, () => {}), error => error === diagnostic);
 });

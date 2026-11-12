@@ -84,7 +84,8 @@ async function runControl({prepared, root, repository, command, record}) {
           assert.equal(captured.workObservation.sourceAcquisitionStarts, 2);
           assert.equal(captured.workObservation.modelCallStarts, 4);
           assert.equal(captured.workObservation.effectReplacementReturns, 0);
-          assert.equal(observation.actual.event, 'after-first-close');
+          assert.equal(observation.actual.event, 'after-original-module');
+          assert.equal(observation.actual.originalImportFailed, false);
           assert.equal(observation.actual.pid, result.pid);
           assert.deepEqual(observation.actual.aliveScopedFD, {after: 0});
         } else assertMockEffectControlOutcome(observation.actual, mode, result.pid);
