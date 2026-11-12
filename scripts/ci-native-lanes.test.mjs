@@ -29,14 +29,15 @@ test('every original Native command and environment has one same-VM execution ow
   }
 });
 
-test('HTTP remains independent while all other consumers retain the same physical preparation', () => {
+test('Linux HTTP remains independent while macOS HTTP shares the original same-VM preparation', () => {
   const httpSource = readFileSync(new URL('./test-native-http-client.mjs', import.meta.url), 'utf8');
   assert(!httpSource.includes('native-runtime-bundle-fixture.mjs'));
   assert(!httpSource.includes('ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION'));
   for (const family of ['native', 'native-macos']) {
     const workload = workflow.jobs[family + '-workloads'];
     const http = family === 'native' ? 'native-http' : 'native-http-macos';
-    assert.deepEqual(workflow.jobs[http].needs, ['select-targets', 'preflight']);
+    assert.deepEqual(workflow.jobs[http].needs, ['select-targets', 'preflight',
+      ...(family === 'native-macos' ? ['native-macos-workloads'] : [])]);
     assert.deepEqual(workload.needs, ['select-targets', 'preflight']);
     assert.equal(workload.strategy, undefined);
     assert.equal(workload.steps.filter(step => step.run?.includes('prepare-native-runtime-bundle-fixture.mjs')).length, 1);
@@ -60,7 +61,18 @@ test('HTTP remains independent while all other consumers retain the same physica
           joined === 'success', 'A failed or unconfirmed join cannot authorize another compiler');
       assert(!background[family].flatMap(group => group.steps).some(step =>
         step.name === 'Verify registered Native retained product path'));
-    } else assert(workload.steps.slice(join + 1).every(step => step.run === undefined));
+    } else {
+      assert(workload.steps.slice(join + 1).every(step => step.run === undefined));
+      const runtime = background[family].find(group => group.name === 'runtime');
+      const consumer = runtime.steps.findIndex(step => step.id === 'native-http');
+      assert(consumer > runtime.steps.findIndex(step => step.run === 'npm run check:native-retained-task-file'),
+        'The HTTP compiler follows the existing Moon-writing check in the same ordered group');
+      assert.equal(runtime.steps[consumer].timeoutMinutes, 115);
+      assert.equal(workload.outputs['native-http-result'], '${{ steps.native-background.outputs.native-http-result }}');
+      const installer = readFileSync(new URL('./native-application-bundle-fixture.mjs', import.meta.url), 'utf8');
+      assert(installer.includes('const runtimeBundleExecutable = prepareNativeRuntimeBundle(repositoryRoot,'));
+      assert(installer.includes('const runtimeBundleLibraries = prepareNativeRuntimeBundleLibraries(repositoryRoot,'));
+    }
     assert.equal(workload.steps[start].if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
     assert(workload.steps[join].if.includes("steps.native-background-start.outcome == 'success'"));
     assert(workload.steps[join].run.includes('steps.native-background-start.outputs.directory'));

@@ -122,6 +122,15 @@
           "run": "npm run check:native-retained-task-file"
         },
         {
+          "name": "Test Node-free native storage publication and control",
+          "run": "node scripts/test-native-http-client.mjs\n",
+          "id": "native-http",
+          "timeoutMinutes": 115,
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http"
+          }
+        },
+        {
           "name": "Test Native Salesforce Effect preview",
           "run": "node scripts/test-native-salesforce-effect-preview.mjs\n",
           "id": "native-preview",

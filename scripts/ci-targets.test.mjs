@@ -234,14 +234,16 @@ test('Native consumers keep all original commands and collect independent failur
     'exit "$ACTQL_FIXTURE_EXIT"\n');
   chmodSync(join(root, 'node'), 0o755);
   for (const name of ['native', 'native-macos']) {
-    const steps = [jobs[name === 'native' ? 'native-http' : 'native-http-macos'].steps.find(step => step.id === 'native-http'),
-      ...nativeCases(name).filter(step => step.id?.startsWith('native-') && step.name.startsWith('Test '))]
+    const http = name === 'native' ? jobs['native-http'].steps.find(step => step.id === 'native-http')
+      : nativeCases(name).find(step => step.id === 'native-http');
+    const steps = [http,
+      ...nativeCases(name).filter(step => step.id?.startsWith('native-') && step.id !== 'native-http' && step.name.startsWith('Test '))]
       .sort((a, b) => expected.indexOf(a.run.trim().split('\n').at(-1)) - expected.indexOf(b.run.trim().split('\n').at(-1)));
     assert.deepEqual(steps.map(step => step.run.trim().split('\n').at(-1)), expected);
     assert.equal(new Set(steps.map(step => step.env.ACTQL_TEST_SCRATCH_ROOT)).size, expected.length);
     const results = steps.map((step, index) => {
-      assert.equal(step.id === 'native-http' ? step.if : nativeCaseCondition(name, step),
-        step.id === 'native-http' ? undefined : condition);
+      assert.equal(name === 'native' && step.id === 'native-http' ? step.if : nativeCaseCondition(name, step),
+        name === 'native' && step.id === 'native-http' ? undefined : condition);
       assert.equal(step['continue-on-error'], undefined, 'a failed case must still fail the job');
       return spawnSync('bash', ['-eo', 'pipefail', '-c',
         (name === 'native' ? 'ulimit() { test \"$*\" = \"-S -s 65536\"; }\n' : '') + step.run], {

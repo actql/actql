@@ -71,12 +71,13 @@ test('joined Native HTTP outcome comes from its original complete child rather t
 test('the original deadline marks later commands unexecuted instead of accepting a partial group', async t => {
   const f = fixture(t);
   const directory = f.start([{name: 'runtime', steps: [
-    f.step('blocked', 'setTimeout(() => {}, 60000);'), f.step('unexecuted', 'throw new Error("must not execute");'),
+    f.step('blocked', 'setTimeout(() => {}, 60000);'), f.step('unexecuted', 'throw new Error("must not execute");', {id: 'native-http'}),
   ]}], {deadline: Date.now() + 500});
   const result = await waitNativeGroups(directory, {report() {}});
   assert.equal(result.status, 1);
   assert.equal(result.result.groups[0].cases[0].status, 'failure');
   assert.equal(result.result.groups[0].cases[1].status, 'unexecuted');
+  assert.equal(result.outputs['native-http-result'], 'unexecuted');
 });
 
 test('duplicate selection, missing results and foreign result identity remain refusal', async t => {

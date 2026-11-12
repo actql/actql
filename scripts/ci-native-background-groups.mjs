@@ -170,6 +170,7 @@ export async function waitNativeGroups(directory, {report = value => process.std
           item.completedAt >= item.startedAt);
       }
       failed ||= item.status !== 'success';
+      if (item.id === 'native-http') outputs['native-http-result'] = item.status;
       if (item.id && item.outputs['evidence-directory']) outputs[item.id + '-evidence-directory'] = item.outputs['evidence-directory'];
       const summary = join(directory, `${group.name}-${ordinal}.summary`);
       if (summaryFile && existsSync(summary)) for await (const chunk of createReadStream(summary))
