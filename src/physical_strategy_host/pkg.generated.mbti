@@ -237,6 +237,8 @@ pub fn captured_effect_local_unit_result_export_retained(CapturedEffectLocalUnit
 
 pub fn captured_effect_local_unit_result_matches_source(CapturedEffectLocalUnitInputs, CapturedEffectLocalResult, @execution_query.CapturedSourceRelationIdentity) -> Bool
 
+pub fn captured_effect_local_unit_source_ancestor_matches(CapturedEffectLocalUnitInputs, Int, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
 pub fn captured_effect_plan_proof_matches(CapturedEffectPlanProof, CapturedEffectPreviewInputs, Int) -> Bool
 
 pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectInput?
