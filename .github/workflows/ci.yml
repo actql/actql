@@ -402,6 +402,9 @@ jobs:
         if: ${{ matrix.target == 'native' && matrix.partition == 'scoped' }}
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Check common core
+        # The full Native check belongs to the required 1/4 matrix member;
+        # every partition still compiles and executes its original tests.
+        if: ${{ matrix.target != 'native' || matrix.partition == '1/4' }}
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
         run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-publication-values-identity.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs

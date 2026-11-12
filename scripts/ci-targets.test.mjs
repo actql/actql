@@ -714,6 +714,24 @@ test('Native Core matrix owns four ordinary and three physical partitions withou
   assert.equal(core.strategy['fail-fast'], false);
   assert(jobs.check.needs.includes('core'));
   assert.equal(core['continue-on-error'], undefined);
+  const checks = core.steps.filter(step => step.name === 'Check common core');
+  assert.equal(checks.length, 1);
+  const [check] = checks;
+  assert.equal(check.run, 'moon check --target "${{ matrix.target }}" --deny-warn');
+  assert.equal(check.if, "${{ matrix.target != 'native' || matrix.partition == '1/4' }}");
+  assert.equal(check['continue-on-error'], undefined);
+  const checked = selected.filter(matrix => runInNewContext(check.if.slice(3, -2), {matrix}));
+  assert.deepEqual(checked, [{target: 'js', partition: '1/4'},
+    {target: 'wasm', partition: '1/4'}, {target: 'native', partition: '1/4'}]);
+  // The complete matrix above requires this Native owner. The existing final
+  // gate must reject missing, failed, cancelled or skipped Core matrix work.
+  const full = selectTargets(['.github/workflows/ci.yml']);
+  assert(full.targets.includes('native'));
+  assert.equal(gateJobRequired(full, 'core'), true);
+  assert.doesNotThrow(() => verifyGate(plan(full), results(full), context));
+  for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+    assert.throws(() => verifyGate(plan(full), {...results(full), core: {result}}, context));
+  }
   const command = core.steps.find(step => step.name === 'Test common core');
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_PARTITION,
     "${{ matrix.target == 'native' && matrix.partition || '' }}");
