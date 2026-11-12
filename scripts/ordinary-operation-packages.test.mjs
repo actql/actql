@@ -13,7 +13,7 @@ import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {validatePerformancePackageProducer, inspectPerformancePackageProducer,
   prepareOrdinaryPerformanceConsumer, combineOrdinaryPerformanceMeasurements,
   validatePerformanceProcessPackageProducer, prepareOrdinaryNativePerformanceConsumer,
-  validateNativeApprovalSource} from './ordinary-operation-packages.mjs';
+  validateNativeApprovalSource, validatePerformanceBuildSource} from './ordinary-operation-packages.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {nodeOperationProtocol, nodePriorityProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import {assessPerformanceEvidence, calibrateSqliteComparisonProfile} from './operation-performance.mjs';
@@ -22,11 +22,11 @@ import {syntheticSQLiteBaseline, syntheticResultStorageControl} from './fixtures
 const sha = 'a'.repeat(40), hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function provenance() {
   return {repository: 'actql/actql', sourceSha: sha, runId: '17', artifactId: '23',
-    run: {id: 17, run_attempt: 2, repository: {full_name: 'actql/actql'},
+    run: {id: 17, run_attempt: 2, repository: {id: 11, full_name: 'actql/actql'},
       head_sha: sha, path: '.github/workflows/ci.yml', status: 'completed', conclusion: 'failure'},
-    artifact: {id: 23, expired: false, name: `actql-client-packages-17-2-${sha}`,
-      workflow_run: {id: 17, head_sha: sha}},
-    jobs: [{id: 41, name: 'client-packages', status: 'completed', conclusion: 'success', head_sha: sha}]};
+    artifact: {id: 23, expired: false, digest: 'sha256:' + 'e'.repeat(64), name: `actql-client-packages-17-2-${sha}`,
+      workflow_run: {id: 17, head_sha: sha, repository_id: 11, head_repository_id: 11}},
+    jobs: [{id: 41, run_id: 17, run_attempt: 2, name: 'client-packages', status: 'completed', conclusion: 'success', head_sha: sha}]};
 }
 
 test('reuse authenticates one successful original package job without relabeling its other failed jobs', () => {
@@ -98,6 +98,119 @@ function nativeApprovalProvenance({merge = false} = {}) {
     sourceCommit: {sha: built, tree: {sha: tree}, parents: merge ? [{sha: base}, {sha}] : [{sha: base}]}};
 }
 
+function ordinaryBuildProvenance(adapter, merge = true) {
+  const p = nativeApprovalProvenance({merge});
+  Object.assign(p, {adapter, nativeApproval: false, producerJob: adapter === 'node' ? 'client-packages' : `normal-${adapter}`});
+  Object.assign(p.run, {status: 'completed', conclusion: 'failure'});
+  p.jobs[0].name = p.producerJob;
+  p.artifact.name = adapter === 'node' ? `actql-client-packages-17-2-${p.manifest.sourceSha}` : `${adapter}-packages-17-2`;
+  return p;
+}
+
+test('every ordinary adapter separates the reviewed head from its authenticated exact build source', () => {
+  for (const adapter of ['node', 'native', 'python']) for (const merge of [false, true]) {
+    const p = ordinaryBuildProvenance(adapter, merge), original = structuredClone(p);
+    const actual = validatePerformanceBuildSource(p);
+    assert.equal(actual.sourceSha, p.manifest.sourceSha); assert.equal(actual.eventHeadSha, sha);
+    assert.equal(actual.manifestSha256, p.manifestSha256); assert.equal(actual.artifactDigest, p.artifact.digest);
+    assert.equal(actual.relation, merge ? 'pull-request-merge' : 'same-head');
+    assert.deepEqual(p, original);
+    if (adapter === 'node') {
+      assert.equal(p.artifact.name, `actql-client-packages-17-2-${p.manifest.sourceSha}`);
+      const changed = structuredClone(p); changed.artifact.name = `actql-client-packages-17-2-${'f'.repeat(40)}`;
+      assert.throws(() => validatePerformanceBuildSource(changed), 'Archive name must bind the exact manifest build');
+      assert.throws(() => validatePerformancePackageProducer(changed), 'Unrecorded archive source refuses before download');
+    }
+    for (const mutate of [value => value.run.status = 'in_progress', value => value.run.id++,
+      value => value.run.repository.id++, value => value.artifact.id++, value => value.artifact.digest = '',
+      value => value.artifact.workflow_run.id++, value => value.artifact.workflow_run.head_repository_id++,
+      value => value.artifact.workflow_run.head_sha = 'f'.repeat(40), value => value.run.run_attempt++,
+      value => value.jobs[0].run_id++, value => value.jobs[0].run_attempt++,
+      value => value.jobs[0].conclusion = 'failure', value => value.jobs = [],
+      value => value.sourceCommit.tree.sha = 'f'.repeat(40), value => value.manifest.sourceSha = 'f'.repeat(40)]) {
+      const changed = structuredClone(p); mutate(changed);
+      assert.throws(() => validatePerformanceBuildSource(changed), adapter);
+    }
+    if (merge) for (const mutate of [value => value.run.event = 'push', value => value.sourceCommit.parents.reverse(),
+      value => value.run.pull_requests[0].base.repo.id++, value => value.run.pull_requests[0].head.sha = 'f'.repeat(40),
+      value => value.run.referenced_workflows = []]) {
+      const changed = structuredClone(p); mutate(changed); assert.throws(() => validatePerformanceBuildSource(changed));
+    }
+  }
+});
+
+test('ordinary source inspection binds each original manifest bytes before exact Git correspondence', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'ordinary-build-source-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  for (const adapter of ['node', 'native', 'python']) {
+    const packages = join(root, adapter); await mkdir(packages);
+    const p = ordinaryBuildProvenance(adapter), calls = [];
+    const file = {node: 'packed-client-packages.json', native: 'release.json', python: 'cohort.json'}[adapter];
+    const manifest = adapter === 'native' ? p.manifest : adapter === 'python' ? {source_sha: p.manifest.sourceSha}
+      : {revision: p.manifest.sourceSha, tarballs: Object.fromEntries(CLIENT_PACKAGES.map(name => [name, 'e'.repeat(64)]))};
+    const bytes = JSON.stringify(manifest); await writeFile(join(packages, file), bytes);
+    const fetchMetadata = async url => {
+      calls.push(url);
+      const value = url.endsWith('/runs/17') ? p.run : url.endsWith('/artifacts/23') ? p.artifact
+        : url.includes('/jobs?') ? {total_count: 1, jobs: p.jobs}
+        : url.endsWith('/' + sha) ? p.headCommit : p.sourceCommit;
+      return {ok: true, text: async () => JSON.stringify(value)};
+    };
+    const inspect = () => inspectPerformancePackageProducer({...p, packages, token: 'test-only'}, fetchMetadata);
+    const result = await inspect();
+    assert.equal(result.sourceSha, p.sourceCommit.sha); assert.equal(result.manifestSha256, hash(bytes));
+    assert.equal(result.manifestFile, file); assert.equal(result.eventHeadSha, sha);
+    assert.equal(calls.filter(url => url.includes('/git/commits/')).length, 2);
+    await writeFile(join(packages, file), JSON.stringify({...manifest,
+      [adapter === 'node' ? 'revision' : adapter === 'python' ? 'source_sha' : 'sourceSha']: 'f'.repeat(40)}));
+    await assert.rejects(inspect());
+    await writeFile(join(packages, file), bytes); p.jobs = []; calls.length = 0;
+    await assert.rejects(inspect());
+    assert(!calls.some(url => url.includes('/git/commits/')), 'Missing producer cannot select any build source');
+  }
+});
+
+test('all ordinary adapter jobs check out their real build and recheck original manifest bytes before any execution', async t => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+  const root = await mkdtemp(join(tmpdir(), 'ordinary-adapter-checkout-')), repository = join(root, 'repo');
+  t.after(() => rm(root, {recursive: true, force: true})); await mkdir(repository);
+  const git = args => execFileSync('git', args, {cwd: repository, encoding: 'utf8'}).trim();
+  git(['init', '--quiet']); await writeFile(join(repository, 'original'), 'fixed\n'); git(['add', 'original']);
+  git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'fixture']);
+  for (const [name, directory, adapter, manifestFile] of [
+    ['ordinary-operations', 'ordinary-operation', 'node', 'packed-client-packages.json'],
+    ['ordinary-native', 'ordinary-native', 'native', 'release.json'],
+    ['ordinary-python', 'ordinary-python', 'python', 'cohort.json'],
+    ['ordinary-node-priority', 'ordinary-node-priority', 'node', 'packed-client-packages.json'],
+    ['ordinary-python-priority', 'ordinary-python-priority', 'python', 'cohort.json'],
+  ]) {
+    const job = workflow.jobs[name], bind = job.steps.find(step => step.id === 'package-source');
+    const download = job.steps.findIndex(step => step.uses?.startsWith('actions/download-artifact@'));
+    const index = job.steps.indexOf(bind); assert(download < index);
+    assert.equal(bind.env.PACKAGE_ADAPTER, adapter);
+    assert.equal(bind.env.PACKAGE_EVENT_HEAD_SHA, '${{ github.event.pull_request.head.sha || github.sha }}');
+    assert.match(bind.run, /git fetch --no-tags --depth=1 origin "\$source_sha"/u);
+    assert.match(bind.run, /git checkout --detach "\$source_sha"/u); assert(!bind.run.includes('--force'));
+    assert.match(bind.run, /PACKAGE_BUILD_SOURCE_SHA=\$source_sha/u);
+    for (const step of job.steps.slice(index + 1)) assert(!/\$GITHUB_SHA|environ\['GITHUB_SHA'\]/u.test(step.run ?? ''));
+    const base = join(root, directory); await mkdir(join(base, 'packages'), {recursive: true});
+    const bytes = Buffer.from('explicit original manifest\n'), path = join(base, 'packages', manifestFile);
+    await writeFile(path, bytes);
+    const binding = {sourceSha: git(['rev-parse', 'HEAD']), manifestFile, manifestSha256: hash(bytes)};
+    await writeFile(join(base, 'source.json'), JSON.stringify(binding));
+    const body = bind.run.match(/<<'JS'\n([\s\S]*?)\nJS\n/u)[1]
+      .replace("'./scripts/packed-client-packages.mjs'", JSON.stringify(new URL('./packed-client-packages.mjs', import.meta.url).href));
+    const run = () => spawnSync(process.execPath, ['--input-type=module', '-e', body], {
+      cwd: repository, env: {...process.env, RUNNER_TEMP: root}, encoding: 'utf8', timeout: 5000});
+    assert.equal(run().status, 0, name);
+    await writeFile(path, Buffer.concat([bytes, Buffer.from(' ')])); assert.notEqual(run().status, 0, 'Changed original bytes');
+    await writeFile(path, bytes); await writeFile(join(repository, 'original'), 'dirty'); assert.notEqual(run().status, 0);
+    git(['checkout', '--', 'original']);
+    await writeFile(join(base, 'source.json'), JSON.stringify({...binding, sourceSha: 'f'.repeat(40)}));
+    assert.notEqual(run().status, 0, 'Foreign checkout');
+  }
+});
+
 test('Native approval keeps event head and exact same-head or PR-merge build identities separate', () => {
   for (const merge of [false, true]) {
     const p = nativeApprovalProvenance({merge}), before = structuredClone(p);
@@ -115,6 +228,8 @@ test('Native approval keeps event head and exact same-head or PR-merge build ide
 });
 
 test('Native approval rejects foreign runs attempts artifacts and uncompleted producers before collection', () => {
+  assert.throws(() => validateNativeApprovalSource(ordinaryBuildProvenance('node')),
+    'The Native-only entry must never admit a valid general Node producer');
   for (const mutate of [p => {p.runId = '18';}, p => {p.artifactId = '24';},
     p => {p.run.repository.full_name = 'foreign/repo';}, p => {p.run.head_sha = 'f'.repeat(40);},
     p => {p.run.path = '.github/workflows/other.yml';}, p => {p.run.status = 'queued';},
@@ -560,7 +675,8 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   assert(job.steps[init].run.includes('--operation first-init'));
   assert.equal(job.steps[combine].if, 'always()');
   assert(!job.steps.some(s => /setup-toolchain|setup-moonbit/u.test(s.uses ?? '')));
-  assert(!job.steps.some(s => /\b(?:npm pack|moon build|packed-client-packages\.mjs)\b/u.test(s.run ?? '')));
+  // Reading checkoutState from the package module is not invoking its producer.
+  assert(!job.steps.some(s => /\b(?:npm pack|moon build|node (?:\.\/)?scripts\/packed-client-packages\.mjs)\b/u.test(s.run ?? '')));
 });
 
 test('ordinary platform assessment rejects missing, failed and skipped public collectors', () => {
@@ -577,7 +693,7 @@ test('ordinary platform assessment rejects missing, failed and skipped public co
     encoding: 'utf8', env: {...process.env, RESULTS: JSON.stringify(results)},
     timeout: 5000, maxBuffer: 65536,
   });
-  const complete = Object.fromEntries(names.map(name => [name, {result: 'success'}]));
+  const complete = Object.fromEntries(names.map(name => [name, {result: 'success', outputs: {'source-sha': sha}}]));
   assert.equal(run(complete).status, 0);
   for (const name of names) {
     for (const result of ['failure', 'cancelled', 'skipped', 'in_progress', undefined]) {
@@ -586,6 +702,11 @@ test('ordinary platform assessment rejects missing, failed and skipped public co
     }
     const missing = {...complete}; delete missing[name];
     assert.equal(run(missing).status, 1, `Missing ${name} must not pass`);
+  }
+  for (const name of names) {
+    for (const value of [undefined, '', 'f'.repeat(40)]) {
+      assert.equal(run({...complete, [name]: {result: 'success', outputs: {'source-sha': value}}}).status, 1);
+    }
   }
   assert.equal(run({}).status, 1);
   assert.equal(run({...complete, unrelated: {result: 'success'}}).status, 1);
@@ -638,7 +759,7 @@ test('ordinary process jobs execute the tested collector contract and retain ass
     assert.equal(assess.if, adapter === 'native' ? "always() && matrix.operation != 'native-operations'" : 'always()');
     assert.equal(assess['continue-on-error'], undefined);
     const env = {...process.env, PATH: `${bin}:${process.env.PATH}`, RUNNER_TEMP: root,
-      GITHUB_SHA: sha, ARGV: join(root, `${adapter}.json`)};
+      GITHUB_SHA: 'f'.repeat(40), PACKAGE_BUILD_SOURCE_SHA: sha, ARGV: join(root, `${adapter}.json`)};
     const body = collect.run.replaceAll('${{ matrix.operation }}', 'cold-existing')
       .replaceAll('${{ steps.consumer.outputs.path }}', join(root, 'site-packages'));
     const child = spawnSync('bash', ['-eo', 'pipefail', '-c', body], {env, encoding: 'utf8', timeout: 5000});
@@ -709,7 +830,7 @@ test('Native operation artifact row selects its actual collector and refuses mis
     await chmod(path, 0o755);
   }
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`, RUNNER_TEMP: root,
-    GITHUB_SHA: sha, ARGV: join(root, 'args.json'), COMMAND_STATUS: '1'};
+    GITHUB_SHA: 'f'.repeat(40), PACKAGE_BUILD_SOURCE_SHA: sha, ARGV: join(root, 'args.json'), COMMAND_STATUS: '1'};
   const run = step => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {env, encoding: 'utf8', timeout: 5000});
   const collected = run(collect); assert.equal(collected.status, 1, collected.stderr);
   const args = JSON.parse(await readFile(env.ARGV, 'utf8'));
@@ -753,7 +874,7 @@ test('ordinary Python setup validates original wheels before offline binary-only
   const log = join(root, 'commands.json'), output = join(root, 'outputs');
   const harness = `import json,os,subprocess\nfrom unittest.mock import patch\ncommands=[]\ndef run(args,check):\n commands.append(args)\nclass Result: pass\ntry:\n with patch.object(subprocess,'run',run),patch.object(subprocess,'check_output',return_value='/explicit/synthetic/site-packages\\n'):\n  exec(compile(${JSON.stringify(source)},'<actual-workflow-python-setup>','exec'))\nfinally:\n open(os.environ['COMMAND_LOG'],'w').write(json.dumps(commands))\n`;
   const run = () => spawnSync(process.env.ACTQL_PYTHON ?? 'python3', ['-I', '-B', '-c', harness], {
-    env: {...process.env, RUNNER_TEMP: root, GITHUB_SHA: sha, GITHUB_OUTPUT: output, COMMAND_LOG: log},
+    env: {...process.env, RUNNER_TEMP: root, GITHUB_SHA: 'f'.repeat(40), PACKAGE_BUILD_SOURCE_SHA: sha, GITHUB_OUTPUT: output, COMMAND_LOG: log},
     encoding: 'utf8', timeout: 10000,
   });
   let child = run(); assert.equal(child.status, 0, child.stderr);

@@ -233,6 +233,8 @@ jobs:
     name: Required ordinary operation performance
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: ubuntu-24.04
+    outputs:
+      source-sha: ${{ steps.package-source.outputs.source-sha }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -244,11 +246,14 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
+      - name: Install verification tooling without runtime preparation
+        run: npm ci --ignore-scripts
       - name: Validate the original normal package producer
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PACKAGE_RUN_ID: ${{ inputs.package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           mkdir "$RUNNER_TEMP/ordinary-operation"
           node scripts/ordinary-operation-packages.mjs inspect-producer > "$RUNNER_TEMP/ordinary-operation/producer.json"
@@ -260,12 +265,41 @@ jobs:
           artifact-ids: ${{ inputs.package-artifact-id }}
           path: ${{ runner.temp }}/ordinary-operation/packages
           merge-multiple: true
+      - name: Bind the original node build source before collection
+        id: package-source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: node
+          PACKAGE_RUN_ID: ${{ inputs.package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node scripts/ordinary-operation-packages.mjs inspect-source \
+            "$RUNNER_TEMP/ordinary-operation/packages" > "$RUNNER_TEMP/ordinary-operation/source.json"
+          source_sha=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.env.RUNNER_TEMP + "/ordinary-operation/source.json", "utf8")).sourceSha)')
+          git diff --exit-code
+          git diff --cached --exit-code
+          git fetch --no-tags --depth=1 origin "$source_sha"
+          git checkout --detach "$source_sha"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync} from 'node:fs';
+          import {checkoutState} from './scripts/packed-client-packages.mjs';
+          const root = process.env.RUNNER_TEMP + '/ordinary-operation';
+          const binding = JSON.parse(readFileSync(root + '/source.json', 'utf8'));
+          const bytes = readFileSync(root + '/packages/' + binding.manifestFile);
+          assert.equal(createHash('sha256').update(bytes).digest('hex'), binding.manifestSha256);
+          assert.deepEqual(checkoutState(process.cwd()), {revision: binding.sourceSha, clean: true});
+          JS
+          echo "PACKAGE_BUILD_SOURCE_SHA=$source_sha" >> "$GITHUB_ENV"
+          echo "source-sha=$source_sha" >> "$GITHUB_OUTPUT"
       - name: Measure the same-machine local SQLite diagnostic baseline
         run: node scripts/benchmark-node-sqlite.mjs --output "$RUNNER_TEMP/ordinary-operation/sqlite" --warm-samples 100 --cold-samples 5 --load isolated
       - name: Freeze the baseline-only comparison before candidate measurements
         run: node scripts/operation-performance.mjs --calibrate-sqlite "$RUNNER_TEMP/ordinary-operation/sqlite/sqlite-baseline.json" --output "$RUNNER_TEMP/ordinary-operation/comparison.json"
       - name: Install a fresh ordinary consumer without a producer fallback
-        run: node scripts/ordinary-operation-packages.mjs prepare "$RUNNER_TEMP/ordinary-operation/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-operation/prepared" --comparison "$RUNNER_TEMP/ordinary-operation/comparison.json"
+        run: node scripts/ordinary-operation-packages.mjs prepare "$RUNNER_TEMP/ordinary-operation/packages" "$PACKAGE_BUILD_SOURCE_SHA" "$RUNNER_TEMP/ordinary-operation/prepared" --comparison "$RUNNER_TEMP/ordinary-operation/comparison.json"
       - name: Check selected Result material integrity using the installed cohort
         run: |
           mkdir "$RUNNER_TEMP/ordinary-operation/measurement"
@@ -312,6 +346,7 @@ jobs:
           name: ordinary-operation-performance-${{ github.sha }}
           path: |
             ${{ runner.temp }}/ordinary-operation/producer.json
+            ${{ runner.temp }}/ordinary-operation/source.json
             ${{ runner.temp }}/ordinary-operation/packages/ordinary-operation-packages.json
             ${{ runner.temp }}/ordinary-operation/prepared/controls.json
             ${{ runner.temp }}/ordinary-operation/comparison.json
@@ -326,6 +361,8 @@ jobs:
     name: Ordinary native ${{ matrix.operation }}
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: macos-15
+    outputs:
+      source-sha: ${{ steps.package-source.outputs.source-sha }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -352,6 +389,7 @@ jobs:
           PACKAGE_ADAPTER: native
           PACKAGE_RUN_ID: ${{ inputs.native-package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PACKAGE_PRODUCER_JOB: ${{ inputs.native-package-producer-job }}
         run: |
           mkdir "$RUNNER_TEMP/ordinary-native"
@@ -364,15 +402,45 @@ jobs:
           artifact-ids: ${{ inputs.native-package-artifact-id }}
           path: ${{ runner.temp }}/ordinary-native/packages
           merge-multiple: true
+      - name: Bind the original native build source before collection
+        id: package-source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: native
+          PACKAGE_RUN_ID: ${{ inputs.native-package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PACKAGE_PRODUCER_JOB: ${{ inputs.native-package-producer-job }}
+        run: |
+          node scripts/ordinary-operation-packages.mjs inspect-source \
+            "$RUNNER_TEMP/ordinary-native/packages" > "$RUNNER_TEMP/ordinary-native/source.json"
+          source_sha=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.env.RUNNER_TEMP + "/ordinary-native/source.json", "utf8")).sourceSha)')
+          git diff --exit-code
+          git diff --cached --exit-code
+          git fetch --no-tags --depth=1 origin "$source_sha"
+          git checkout --detach "$source_sha"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync} from 'node:fs';
+          import {checkoutState} from './scripts/packed-client-packages.mjs';
+          const root = process.env.RUNNER_TEMP + '/ordinary-native';
+          const binding = JSON.parse(readFileSync(root + '/source.json', 'utf8'));
+          const bytes = readFileSync(root + '/packages/' + binding.manifestFile);
+          assert.equal(createHash('sha256').update(bytes).digest('hex'), binding.manifestSha256);
+          assert.deepEqual(checkoutState(process.cwd()), {revision: binding.sourceSha, clean: true});
+          JS
+          echo "PACKAGE_BUILD_SOURCE_SHA=$source_sha" >> "$GITHUB_ENV"
+          echo "source-sha=$source_sha" >> "$GITHUB_OUTPUT"
       - name: Install only the original Native packages through their fixed registry
-        run: node scripts/ordinary-operation-packages.mjs prepare-native "$RUNNER_TEMP/ordinary-native/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-native/consumer"
+        run: node scripts/ordinary-operation-packages.mjs prepare-native "$RUNNER_TEMP/ordinary-native/packages" "$PACKAGE_BUILD_SOURCE_SHA" "$RUNNER_TEMP/ordinary-native/consumer"
       - name: Measure the supported completed public operation
         if: matrix.operation != 'native-operations'
         run: |
           python3 -I -B scripts/benchmark-ordinary-processes.py \
             --adapter native --manifest "$RUNNER_TEMP/ordinary-native/packages/release.json" \
             --consumer "$RUNNER_TEMP/ordinary-native/consumer/lib/node_modules/actql" \
-            --source "$GITHUB_SHA" --operation '${{ matrix.operation }}' \
+            --source "$PACKAGE_BUILD_SOURCE_SHA" --operation '${{ matrix.operation }}' \
             --mode final --load isolated --output "$RUNNER_TEMP/ordinary-native/measurement"
       - name: Require the actual report assessment including missing coverage
         if: always() && matrix.operation != 'native-operations'
@@ -383,7 +451,7 @@ jobs:
           python3 -I -B scripts/benchmark-ordinary-processes.py \
             --adapter native --manifest "$RUNNER_TEMP/ordinary-native/packages/release.json" \
             --consumer "$RUNNER_TEMP/ordinary-native/consumer/lib/node_modules/actql" \
-            --source "$GITHUB_SHA" --selection native-operations \
+            --source "$PACKAGE_BUILD_SOURCE_SHA" --selection native-operations \
             --mode final --load isolated --output "$RUNNER_TEMP/ordinary-native/measurement"
       - name: Require Native operation identity, completion and timing evidence
         if: always() && matrix.operation == 'native-operations'
@@ -395,6 +463,7 @@ jobs:
           name: ordinary-native-${{ matrix.operation }}-${{ github.sha }}
           path: |
             ${{ runner.temp }}/ordinary-native/producer.json
+            ${{ runner.temp }}/ordinary-native/source.json
             ${{ runner.temp }}/ordinary-native/packages/release.json
             ${{ runner.temp }}/ordinary-native/measurement/
             ${{ runner.temp }}/ordinary-native/assessment.json
@@ -404,6 +473,8 @@ jobs:
     name: Ordinary python ${{ matrix.operation }}
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
     runs-on: macos-15
+    outputs:
+      source-sha: ${{ steps.package-source.outputs.source-sha }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -430,6 +501,7 @@ jobs:
           PACKAGE_ADAPTER: python
           PACKAGE_RUN_ID: ${{ inputs.python-package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.python-package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PACKAGE_PRODUCER_JOB: ${{ inputs.python-package-producer-job }}
         run: |
           mkdir "$RUNNER_TEMP/ordinary-python"
@@ -442,6 +514,36 @@ jobs:
           artifact-ids: ${{ inputs.python-package-artifact-id }}
           path: ${{ runner.temp }}/ordinary-python/packages
           merge-multiple: true
+      - name: Bind the original python build source before collection
+        id: package-source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: python
+          PACKAGE_RUN_ID: ${{ inputs.python-package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.python-package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PACKAGE_PRODUCER_JOB: ${{ inputs.python-package-producer-job }}
+        run: |
+          node scripts/ordinary-operation-packages.mjs inspect-source \
+            "$RUNNER_TEMP/ordinary-python/packages" > "$RUNNER_TEMP/ordinary-python/source.json"
+          source_sha=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.env.RUNNER_TEMP + "/ordinary-python/source.json", "utf8")).sourceSha)')
+          git diff --exit-code
+          git diff --cached --exit-code
+          git fetch --no-tags --depth=1 origin "$source_sha"
+          git checkout --detach "$source_sha"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync} from 'node:fs';
+          import {checkoutState} from './scripts/packed-client-packages.mjs';
+          const root = process.env.RUNNER_TEMP + '/ordinary-python';
+          const binding = JSON.parse(readFileSync(root + '/source.json', 'utf8'));
+          const bytes = readFileSync(root + '/packages/' + binding.manifestFile);
+          assert.equal(createHash('sha256').update(bytes).digest('hex'), binding.manifestSha256);
+          assert.deepEqual(checkoutState(process.cwd()), {revision: binding.sourceSha, clean: true});
+          JS
+          echo "PACKAGE_BUILD_SOURCE_SHA=$source_sha" >> "$GITHUB_ENV"
+          echo "source-sha=$source_sha" >> "$GITHUB_OUTPUT"
       - name: Install the original Python wheelhouse into a fresh local environment
         id: consumer
         run: |
@@ -451,7 +553,7 @@ jobs:
           root = Path(os.environ['RUNNER_TEMP']) / 'ordinary-python'
           packages = root / 'packages'
           manifest = json.loads((packages / 'cohort.json').read_text())
-          assert manifest['source_sha'] == os.environ['GITHUB_SHA']
+          assert manifest['source_sha'] == os.environ['PACKAGE_BUILD_SOURCE_SHA']
           assert {row['distribution'] for row in manifest['wheels']} == {'actql', 'actql-sdk', 'actql-local-runtime'}
           version = manifest['package_version']
           assert isinstance(version, str) and re.fullmatch(r'[A-Za-z0-9.+!-]+', version)
@@ -475,7 +577,7 @@ jobs:
           python3 -I -B scripts/benchmark-ordinary-processes.py \
             --adapter python --manifest "$RUNNER_TEMP/ordinary-python/packages/cohort.json" \
             --consumer "${{ steps.consumer.outputs.path }}" --venv "$RUNNER_TEMP/ordinary-python/venv" \
-            --source "$GITHUB_SHA" --operation '${{ matrix.operation }}' \
+            --source "$PACKAGE_BUILD_SOURCE_SHA" --operation '${{ matrix.operation }}' \
             --mode final --load isolated --output "$RUNNER_TEMP/ordinary-python/measurement"
       - name: Require the actual report assessment including missing coverage
         if: always()
@@ -487,6 +589,7 @@ jobs:
           name: ordinary-python-${{ matrix.operation }}-${{ github.sha }}
           path: |
             ${{ runner.temp }}/ordinary-python/producer.json
+            ${{ runner.temp }}/ordinary-python/source.json
             ${{ runner.temp }}/ordinary-python/packages/cohort.json
             ${{ runner.temp }}/ordinary-python/measurement/
             ${{ runner.temp }}/ordinary-python/assessment.json
@@ -518,6 +621,7 @@ jobs:
           PACKAGE_ADAPTER: python
           PACKAGE_RUN_ID: ${{ inputs.python-package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.python-package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PACKAGE_PRODUCER_JOB: ${{ inputs.python-package-producer-job }}
         run: |
           mkdir "$RUNNER_TEMP/ordinary-python-priority"
@@ -530,6 +634,36 @@ jobs:
           artifact-ids: ${{ inputs.python-package-artifact-id }}
           path: ${{ runner.temp }}/ordinary-python-priority/packages
           merge-multiple: true
+      - name: Bind the original python build source before collection
+        id: package-source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: python
+          PACKAGE_RUN_ID: ${{ inputs.python-package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.python-package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PACKAGE_PRODUCER_JOB: ${{ inputs.python-package-producer-job }}
+        run: |
+          node scripts/ordinary-operation-packages.mjs inspect-source \
+            "$RUNNER_TEMP/ordinary-python-priority/packages" > "$RUNNER_TEMP/ordinary-python-priority/source.json"
+          source_sha=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.env.RUNNER_TEMP + "/ordinary-python-priority/source.json", "utf8")).sourceSha)')
+          git diff --exit-code
+          git diff --cached --exit-code
+          git fetch --no-tags --depth=1 origin "$source_sha"
+          git checkout --detach "$source_sha"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync} from 'node:fs';
+          import {checkoutState} from './scripts/packed-client-packages.mjs';
+          const root = process.env.RUNNER_TEMP + '/ordinary-python-priority';
+          const binding = JSON.parse(readFileSync(root + '/source.json', 'utf8'));
+          const bytes = readFileSync(root + '/packages/' + binding.manifestFile);
+          assert.equal(createHash('sha256').update(bytes).digest('hex'), binding.manifestSha256);
+          assert.deepEqual(checkoutState(process.cwd()), {revision: binding.sourceSha, clean: true});
+          JS
+          echo "PACKAGE_BUILD_SOURCE_SHA=$source_sha" >> "$GITHUB_ENV"
+          echo "source-sha=$source_sha" >> "$GITHUB_OUTPUT"
       - name: Install the original Python wheelhouse into a fresh local environment
         id: consumer
         run: |
@@ -539,7 +673,7 @@ jobs:
           root = Path(os.environ['RUNNER_TEMP']) / 'ordinary-python-priority'
           packages = root / 'packages'
           manifest = json.loads((packages / 'cohort.json').read_text())
-          assert manifest['source_sha'] == os.environ['GITHUB_SHA']
+          assert manifest['source_sha'] == os.environ['PACKAGE_BUILD_SOURCE_SHA']
           assert {row['distribution'] for row in manifest['wheels']} == {'actql', 'actql-sdk', 'actql-local-runtime'}
           version = manifest['package_version']
           assert isinstance(version, str) and re.fullmatch(r'[A-Za-z0-9.+!-]+', version)
@@ -566,7 +700,7 @@ jobs:
           python3 -I -B scripts/benchmark-ordinary-processes.py \
             --adapter python --manifest "$RUNNER_TEMP/ordinary-python-priority/packages/cohort.json" \
             --consumer "$PYTHON_CONSUMER" --venv "$RUNNER_TEMP/ordinary-python-priority/venv" \
-            --source "$GITHUB_SHA" --selection priority-transition \
+            --source "$PACKAGE_BUILD_SOURCE_SHA" --selection priority-transition \
             --mode "$PRIORITY_MODE" --load isolated --output "$RUNNER_TEMP/ordinary-python-priority/measurement"
       - name: Retain raw samples and failed or incomplete assessment
         if: always()
@@ -575,6 +709,7 @@ jobs:
           name: ordinary-python-priority-${{ github.sha }}
           path: |
             ${{ runner.temp }}/ordinary-python-priority/producer.json
+            ${{ runner.temp }}/ordinary-python-priority/source.json
             ${{ runner.temp }}/ordinary-python-priority/packages/cohort.json
             ${{ runner.temp }}/ordinary-python-priority/measurement/
           if-no-files-found: warn
@@ -594,11 +729,14 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
+      - name: Install verification tooling without runtime preparation
+        run: npm ci --ignore-scripts
       - name: Validate the original normal package producer
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PACKAGE_RUN_ID: ${{ inputs.package-run-id }}
           PACKAGE_ARTIFACT_ID: ${{ inputs.package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           mkdir "$RUNNER_TEMP/ordinary-node-priority"
           node scripts/ordinary-operation-packages.mjs inspect-producer > "$RUNNER_TEMP/ordinary-node-priority/producer.json"
@@ -610,12 +748,41 @@ jobs:
           artifact-ids: ${{ inputs.package-artifact-id }}
           path: ${{ runner.temp }}/ordinary-node-priority/packages
           merge-multiple: true
+      - name: Bind the original node build source before collection
+        id: package-source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: node
+          PACKAGE_RUN_ID: ${{ inputs.package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node scripts/ordinary-operation-packages.mjs inspect-source \
+            "$RUNNER_TEMP/ordinary-node-priority/packages" > "$RUNNER_TEMP/ordinary-node-priority/source.json"
+          source_sha=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.env.RUNNER_TEMP + "/ordinary-node-priority/source.json", "utf8")).sourceSha)')
+          git diff --exit-code
+          git diff --cached --exit-code
+          git fetch --no-tags --depth=1 origin "$source_sha"
+          git checkout --detach "$source_sha"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync} from 'node:fs';
+          import {checkoutState} from './scripts/packed-client-packages.mjs';
+          const root = process.env.RUNNER_TEMP + '/ordinary-node-priority';
+          const binding = JSON.parse(readFileSync(root + '/source.json', 'utf8'));
+          const bytes = readFileSync(root + '/packages/' + binding.manifestFile);
+          assert.equal(createHash('sha256').update(bytes).digest('hex'), binding.manifestSha256);
+          assert.deepEqual(checkoutState(process.cwd()), {revision: binding.sourceSha, clean: true});
+          JS
+          echo "PACKAGE_BUILD_SOURCE_SHA=$source_sha" >> "$GITHUB_ENV"
+          echo "source-sha=$source_sha" >> "$GITHUB_OUTPUT"
       - name: Bind the selected priority protocol to a fresh ordinary consumer
         env:
           PRIORITY_MODE: ${{ inputs.priority-node-mode }}
         run: |
           node scripts/ordinary-operation-packages.mjs prepare \
-            "$RUNNER_TEMP/ordinary-node-priority/packages" "$GITHUB_SHA" \
+            "$RUNNER_TEMP/ordinary-node-priority/packages" "$PACKAGE_BUILD_SOURCE_SHA" \
             "$RUNNER_TEMP/ordinary-node-priority/prepared" \
             --selection priority-transition --mode "$PRIORITY_MODE"
       - name: Collect actual varied public priority operations
@@ -672,9 +839,13 @@ jobs:
           import assert from 'node:assert/strict';
           import {readFile, mkdir, writeFile} from 'node:fs/promises';
           import {join} from 'node:path';
-          const sourceSha = process.env.GITHUB_SHA;
-          assert.match(sourceSha, /^[0-9a-f]{40}$/);
           const root = join(process.env.RUNNER_TEMP, 'ordinary-priority');
+          const nodeSource = JSON.parse(await readFile(join(root, 'node', 'source.json'), 'utf8'));
+          const pythonSource = JSON.parse(await readFile(join(root, 'python', 'source.json'), 'utf8'));
+          const sourceSha = nodeSource.sourceSha;
+          assert.match(sourceSha, /^[0-9a-f]{40}$/);
+          assert.equal(pythonSource.sourceSha, sourceSha, 'Different priority adapter build sources');
+          assert.equal(pythonSource.eventHeadSha, nodeSource.eventHeadSha, 'Different priority event heads');
           const input = {sourceSha, platforms: {node: [], python: []}};
           const paths = {
             node: [join(root, 'node', 'measurement', 'measurements.json')],
@@ -717,8 +888,11 @@ jobs:
             const results = JSON.parse(process.env.RESULTS);
             const platforms = ["ordinary-operations", "ordinary-native", "ordinary-python"];
             assert.deepEqual(Object.keys(results).sort(), [...platforms].sort(), "Incomplete platform job inventory");
+            const sourceSha = results["ordinary-operations"]?.outputs?.["source-sha"];
+            assert.match(sourceSha, /^[a-f0-9]{40}$/);
             for (const name of platforms) {
               assert.equal(results[name]?.result, "success", `${name} did not complete its required assessment`);
+              assert.equal(results[name]?.outputs?.["source-sha"], sourceSha, "Different adapter build sources");
             }
           '
   registered-cases:

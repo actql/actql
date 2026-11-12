@@ -16,13 +16,19 @@ function temporary(t) {
 }
 function run(step, root, extra = {}) {
   return spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
-    env: {...process.env, GITHUB_SHA: source, RUNNER_TEMP: root, ...extra},
+    env: {...process.env, GITHUB_SHA: source, PACKAGE_BUILD_SOURCE_SHA: source, RUNNER_TEMP: root, ...extra},
     encoding: 'utf8', timeout: 5000, maxBuffer: 65536,
   });
 }
 function put(path, value) {
   mkdirSync(dirname(path), {recursive: true});
   writeFileSync(path, JSON.stringify(value));
+}
+
+function prioritySources(root, node = source, python = source) {
+  for (const [platform, sourceSha] of [['node', node], ['python', python]]) {
+    put(join(root, 'ordinary-priority', platform, 'source.json'), {sourceSha, eventHeadSha: source});
+  }
 }
 
 test('priority collector lane reuses the package producer and exposes only explicit sample modes', () => {
@@ -309,7 +315,7 @@ test('Native approval accepts only the successful Linux Local producer artifact 
 });
 
 test('priority report join preserves original collector failures and raw metadata', t => {
-  const root = temporary(t);
+  const root = temporary(t); prioritySources(root);
   const node = {sourceSha: source, firstFailure: {step: 'close'}, cleanup: {closed: false},
     packageFailure: {step: 'installed-package'}, samples: [{wallNs: 1}],
     functional: [{passed: true}], controls: {unmatched: true}};
@@ -327,7 +333,7 @@ test('priority report join preserves original collector failures and raw metadat
 });
 
 test('missing reports stay empty and malformed reports cannot become successful input', t => {
-  const root = temporary(t);
+  const root = temporary(t); prioritySources(root);
   const step = workflow.jobs['ordinary-priority-assessment'].steps.find(step => step.name === 'Join unchanged raw platform reports');
   assert.equal(run(step, root).status, 0);
   const path = join(root, 'ordinary-priority/input.json');
@@ -341,7 +347,7 @@ test('missing reports stay empty and malformed reports cannot become successful 
 });
 
 test('unrelated release routes cannot add conditions or substitute priority evidence', t => {
-  const root = temporary(t);
+  const root = temporary(t); prioritySources(root);
   const node = {original: 'warm Node report'};
   const python = {original: 'warm Python select report'};
   put(join(root, 'ordinary-priority/node/measurement/measurements.json'), node);
@@ -358,7 +364,7 @@ test('unrelated release routes cannot add conditions or substitute priority evid
 });
 
 test('full-release Python reports cannot replace a missing varied priority population', t => {
-  const root = temporary(t);
+  const root = temporary(t); prioritySources(root);
   for (const operation of ['warm-select', 'warm-result']) {
     put(join(root, `ordinary-priority/python/ordinary-python-${operation}-${source}/measurement/measurements.json`),
       {original: operation});
@@ -368,6 +374,18 @@ test('full-release Python reports cannot replace a missing varied priority popul
   assert.equal(child.status, 0, child.stderr);
   assert.deepEqual(JSON.parse(readFileSync(join(root, 'ordinary-priority/input.json'))),
     {sourceSha: source, platforms: {node: [], python: []}});
+});
+
+test('priority join rejects different adapter build sources despite matching workflow event identity', t => {
+  const root = temporary(t); prioritySources(root, source, 'b'.repeat(40));
+  const step = workflow.jobs['ordinary-priority-assessment'].steps.find(s => s.name === 'Join unchanged raw platform reports');
+  assert.notEqual(run(step, root).status, 0);
+  assert.throws(() => readFileSync(join(root, 'ordinary-priority/input.json')), {code: 'ENOENT'});
+  prioritySources(root);
+  put(join(root, 'ordinary-priority/python/source.json'), {sourceSha: source, eventHeadSha: 'b'.repeat(40)});
+  assert.notEqual(run(step, root).status, 0);
+  rmSync(join(root, 'ordinary-priority/python/source.json'));
+  assert.notEqual(run(step, root).status, 0, 'Missing Source proof cannot fall back to the workflow event');
 });
 
 test('checkpoint command propagates assessor failure without replacing full release checks', t => {
@@ -389,7 +407,7 @@ test('checkpoint command propagates assessor failure without replacing full rele
 });
 
 test('controlled job executes the composed assessor on missing and failed original reports', t => {
-  const root = temporary(t);
+  const root = temporary(t); prioritySources(root);
   const job = workflow.jobs['ordinary-priority-assessment'];
   const collect = job.steps.find(step => step.name === 'Join unchanged raw platform reports');
   const assess = job.steps.find(step => step.name === 'Require the measured public priority checkpoint');
