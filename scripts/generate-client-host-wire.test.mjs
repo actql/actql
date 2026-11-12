@@ -52,6 +52,34 @@ test('Native wire formatter receives complete source through regular-file stdin'
   });
 });
 
+test('Native wire formatter prepares its configured missing temp parent without fallback', () => {
+  withNativeFormatter(`process.stdout.write(input);\n`, calls => {
+    const originalTemp = process.env.TMPDIR;
+    const parent = join(originalTemp, 'not-created', 'parent');
+    process.env.TMPDIR = parent;
+    try {
+      const output = buildClientHostWire(registry, protocol);
+      const inputs = calls();
+      assert.equal(inputs.length, 2);
+      assert.equal(output.native, inputs[0].input);
+      assert.equal(output.nativeTests, inputs[1].input);
+      assert.deepEqual(readdirSync(parent), []);
+      // An invalid configured parent must still refuse, without using another
+      // temp root or replacing the existing object.
+      const invalid = join(parent, 'regular-file');
+      writeFileSync(invalid, 'retained original');
+      process.env.TMPDIR = invalid;
+      assert.throws(() => buildClientHostWire(registry, protocol), error =>
+        ['EEXIST', 'ENOTDIR'].includes(error.code));
+      assert.equal(readFileSync(invalid, 'utf8'), 'retained original');
+      assert.equal(calls().length, 2);
+    } finally {
+      process.env.TMPDIR = originalTemp;
+      rmSync(join(originalTemp, 'not-created'), {recursive: true, force: true});
+    }
+  });
+});
+
 test('Native wire formatter failure is not replaced by unformatted output', () => {
   withNativeFormatter(`process.stderr.write('selected formatter failure'); process.exit(23);\n`, calls => {
     assert.throws(() => buildClientHostWire(registry, protocol), error =>

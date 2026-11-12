@@ -1,6 +1,6 @@
 import {finiteWireNumberSource, wireNonControlIdPattern} from './client-wire-scalar-rules.mjs';
 import {execFileSync} from 'node:child_process';
-import {closeSync, mkdtempSync, openSync, rmSync, writeFileSync} from 'node:fs';
+import {closeSync, mkdirSync, mkdtempSync, openSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeCheckReportRules} from './client-check-report-rules.mjs';
@@ -240,7 +240,11 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
     // The generated body exceeds ordinary pipe capacity. Supply a finite file
     // as stdin so synchronous formatting needs no concurrent input-pipe writer.
     // Keep the same formatter mode, output checks and execution deadline.
-    const directory = mkdtempSync(join(tmpdir(), 'actql-native-wire-'));
+    // Installed consumers may configure their temp root before creating their
+    // owned scratch. Freshness checks run first and use that same root.
+    const parent = tmpdir();
+    mkdirSync(parent, {recursive: true});
+    const directory = mkdtempSync(join(parent, 'actql-native-wire-'));
     let fd;
     try {
       const path = join(directory, 'stdin.mbt');
