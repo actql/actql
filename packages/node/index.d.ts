@@ -19,7 +19,9 @@ export type EmbeddedHostInstallation = Readonly<{
   valuesMaxRows?: number;
   /** Explicit positive signed-32-bit work limit for each source-free Local
    * Compute fragment/sequence counter. Core supplies the default when omitted.
-   * This is not a global Run/Host quota, memory grant or compiler/check limit. */
+   * The same selection also bounds preparation of those runtime Fragments.
+   * It does not limit original Program parsing/checking and is not a global
+   * Run/Host quota or memory grant. */
   sourceFreeMaxWork?: number;
   /** Finite initial Request/Run Ledger memory limits, selected before admission.
    * Both safe-integer byte quantities are required; Core checks the installed
