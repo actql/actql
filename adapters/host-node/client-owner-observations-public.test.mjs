@@ -6,6 +6,7 @@ import {createServer} from 'node:https';
 import {getCACertificates,setDefaultCACertificates} from 'node:tls';
 import {tmpdir,userInfo} from 'node:os';
 import {join} from 'node:path';
+import {setTimeout as delay} from 'node:timers/promises';
 import {connect as remote, explainOwnerObservations, formatOwnerObservations} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal,openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
@@ -15,6 +16,8 @@ for(const entrance of ['local','https']) {
     const root=await mkdtemp(join(tmpdir(),'actql-owner-observation-public-'));
     const principalId=userInfo().username,keys=generateKeyPairSync('ed25519');
     let computes=0,client,host,server;
+    let releasePhysicalStop;
+    const physicalStopHeld=new Promise(resolve=>{releasePhysicalStop=resolve;});
     const authorization={accountConfiguration:JSON.stringify({version:'actql-execution-account-config/0.1',
       account_id:'owner-observation',entries:[{entry_id:'execution',outcome:'allow',principal:{all:true},
         connection:{all:true},resource:{all:true},operation:{any_of:['write']},exclusions:[]},
@@ -23,10 +26,11 @@ for(const entrance of ['local','https']) {
           operation:{any_of:['read']},exclusions:[]}]}),
       reviewers:[{keyId:'reviewer',reviewerId:'reviewer',principalId,publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
       hostKey:{keyId:'host',privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'})},
-      observe(name){if(name==='computed')computes++;}};
+      observe(name){if(name==='computed')computes++;},
+      async faultInjection(name){if(name==='computed')await physicalStopHeld;}};
     const installation={directory:join(root,'host'),authorization};
     const trust=getCACertificates('default');
-    t.after(async()=>{await client?.close();if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
+    t.after(async()=>{releasePhysicalStop();await client?.close();if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
       await host?.close();setDefaultCACertificates(trust);await rm(root,{recursive:true,force:true});});
     if(entrance==='local')client=await connectEmbeddedLocal({mode:'local',owner:'local',durability:'durable',installation});
     else {
@@ -40,11 +44,15 @@ for(const entrance of ['local','https']) {
     const run=await client.startSource('SELECT 1 AS n',{format:'sql',submissionRef:client.newSubmission({nonce:'observe-original'})});
     const state=await run.wait({signal:AbortSignal.timeout(15000)});
     assert.equal(state.status,'succeeded');assert.deepEqual(await run.result('main').all(),[{n:1}]);
+    // Result publication is terminal before the original physical-stop ACK.
+    // Keep that separate transition held while checking read-only Owner views.
+    assert.equal(state.control.physical_stop,'unknown');
     const first=await run.observeOwners();
     assert.equal(first.consistency,'non_atomic');assert.equal(first.ordering,'owner_local');
     assert.deepEqual(first.ref,run.ref);assert.equal(first.owners.length,1);
     assert.equal(first.owners[0].history.kind,'not_provided');
     assert.equal(first.owners[0].snapshot.value.status,'succeeded');
+    assert.deepEqual(first.owners[0].snapshot.value.control,state.control);
     assert.equal(first.owners[0].snapshot.revision,undefined);
     assert.equal(first.revisionVector[0].snapshotRevision,undefined);
     assert.match(first.revisionVector[0].snapshotCid,/^sha256:[a-f0-9]{64}$/u);
@@ -61,8 +69,25 @@ for(const entrance of ['local','https']) {
     assert.equal(second.owners[0].history.kind,'cursor_mismatch');
     assert.equal(explainOwnerObservations(second).owners[0].history.kind,'cursor_mismatch');
     assert.deepEqual(explainOwnerObservations(first),explanation);
-    assert.equal(second.owners[0].snapshot.value.control.revision,state.control.revision);
-    assert.equal((await run.status()).control.revision,state.control.revision);
+    assert.deepEqual(second.owners[0].snapshot.value.control,state.control);
+    assert.deepEqual((await run.status()).control,state.control);
+    releasePhysicalStop();
+    const signal=AbortSignal.timeout(15000);
+    let stopped;
+    do {
+      signal.throwIfAborted();
+      stopped=await run.status({signal});
+      if(stopped.control.physical_stop==='confirmed')break;
+      await delay(10,undefined,{signal});
+    } while(true);
+    assert.equal(stopped.status,'succeeded');
+    assert.equal(stopped.result_available,true);
+    // This is the original stop transition, not an observation-side mutation.
+    assert.ok(stopped.control.revision>state.control.revision);
+    const after=await run.observeOwners();
+    assert.deepEqual(after.owners[0].snapshot.value.control,stopped.control);
+    assert.deepEqual((await run.status()).control,stopped.control);
+    assert.deepEqual(explainOwnerObservations(first),explanation);
     assert.equal(computes,1);
   });
 }
