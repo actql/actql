@@ -506,6 +506,8 @@ pub fn completed_export_content(CompletedOutputExportReceipt) -> AdmittedOutputS
 
 pub fn completed_export_preparation_workspace_slots(Int) -> Int?
 
+pub fn completed_fixed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, FixedRelationRead)]) -> CompletedOutput?
+
 pub fn completed_has_cell_access(CompletedOutput) -> Bool
 
 pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> CompletedOutput?
@@ -1361,6 +1363,8 @@ pub fn restrict_supplied_relation_read(SuppliedRelationRead, () -> Bool) -> Supp
 pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, Int64, () -> Bool) -> Result[RetainedOutputHandle[T], TrustedOutputIssue]
 
 pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bool) -> RetainedOutputHandle[T]
+
+pub fn retain_completed_fixed_segment_inputs(CompletedOutput, GeneratedSequence, Array[(Int, Int, FixedRelationRead)], Int) -> CompletedSegmentInputs?
 
 pub fn retain_completed_segment_input(CompletedOutput, ProducerRead) -> CompletedOutput?
 

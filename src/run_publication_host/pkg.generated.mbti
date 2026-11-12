@@ -2129,6 +2129,8 @@ pub fn prepare_client_effect_source_unit_inputs(PreparedClientEffectComputation,
 
 pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int, prepared_sequence? : @lowering_relation.PreparedSequence?) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 
+pub fn prepare_client_infer_fixed_result_artifact_input(ClientInferOccurrence, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.FixedRelationRead)], @execution_relation.CompletedSegmentInputs, ClientEffectLocalResultArtifact, ClientEffectLocalManifest) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue]
+
 pub fn prepare_client_infer_item_limit(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[@program_check.InferItemLimit, ClientInferItemLimitIssue]
 
 pub fn prepare_client_infer_result_artifact_input(ClientInferOccurrence, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.GeneratedSequence, Array[(Int, Int, @execution_relation.ProducerRead)], @execution_relation.CompletedSegmentInputs, ClientEffectLocalResultArtifact, ClientEffectLocalManifest) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue]
