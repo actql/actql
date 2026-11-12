@@ -93,7 +93,35 @@ pub fn client_program_original_model_acquired_effect_evidence_issue_kind(
           Encoding => "invocation.encoding"
         },
       )
-    Err(Relation(_)) => Some("relation")
+    Err(Relation(issue)) =>
+      Some(
+        match issue {
+          WrongEvidence => "relation.wrong_evidence"
+          WrongScope => "relation.wrong_scope"
+          WrongRetention => "relation.wrong_retention"
+          KeySetRole(_, _) => "relation.key_set_role"
+          KeySetArity(_) => "relation.key_set_arity"
+          KeySetContract(_, _) => "relation.key_set_contract"
+          KeySetOrder(_, _, _) => "relation.key_set_order"
+          Encoding => "relation.encoding"
+          Contract(issue) =>
+            match issue {
+              UnknownContract => "relation.contract.unknown_contract"
+              InvalidLimits => "relation.contract.invalid_limits"
+              InvalidWire => "relation.contract.invalid_wire"
+              InvalidObject => "relation.contract.invalid_object"
+              MissingField(_) => "relation.contract.missing_field"
+              UnknownField(_) => "relation.contract.unknown_field"
+              InvalidField(_) => "relation.contract.invalid_field"
+              IdentityAlreadyPresent =>
+                "relation.contract.identity_already_present"
+              IdentityMissing => "relation.contract.identity_missing"
+              IdentityMismatch => "relation.contract.identity_mismatch"
+              ConditionalField(_) => "relation.contract.conditional_field"
+              Encoding => "relation.contract.encoding"
+            }
+        },
+      )
     Err(Dependency(_)) => Some("dependency")
   }
 }

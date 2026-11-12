@@ -160,20 +160,23 @@ test('missing original Model receipt/body cannot create a fabricated dependency'
 });
 
 test('original Model publication failure projects the same failed Result and already-read occurrence once',()=>{
-  const f=fixture();let coordinates=0,issued=0,projected=0;
-  f.moon.clientProgramOriginalModelObservationCoordinates=()=>{coordinates++;return {_0:4,_1:2,_2:5};};
-  const model=f.capture(),original={},result={$tag:0,_0:original};
-  f.moon.clientProgramOriginalModelAcquiredEffectEvidence=()=>{issued++;return result;};
-  f.moon.clientProgramOriginalModelAcquiredEffectEvidenceIssueKind=actual=>{
-    projected++;assert.strictEqual(actual,result);return 'invocation.foreign_captured_input';
-  };
-  assert.throws(()=>f.control.issueOriginalModelEffectEvidence(model,f.run,undefined,f.limits),cause=>{
-    assert.equal(cause.code,'MoonBitHostFailure');assert.strictEqual(cause.cause,original);
-    assert.deepEqual(cause.primaryDiagnostic,{code:'MoonBitHostFailure',
-      phase:'original_model_acquired_effect_evidence',kind:'invocation.foreign_captured_input',task:4,unit:2,step:5});
-    assert(Object.isFrozen(cause.primaryDiagnostic));return true;
-  });
-  assert.deepEqual([coordinates,issued,projected],[1,1,1]);
+  for(const kind of ['invocation.foreign_captured_input','relation.wrong_retention',
+    'relation.contract.invalid_field','relation.key_set_order']) {
+    const f=fixture();let coordinates=0,issued=0,projected=0;
+    f.moon.clientProgramOriginalModelObservationCoordinates=()=>{coordinates++;return {_0:4,_1:2,_2:5};};
+    const model=f.capture(),original={},result={$tag:0,_0:original};
+    f.moon.clientProgramOriginalModelAcquiredEffectEvidence=()=>{issued++;return result;};
+    f.moon.clientProgramOriginalModelAcquiredEffectEvidenceIssueKind=actual=>{
+      projected++;assert.strictEqual(actual,result);return kind;
+    };
+    assert.throws(()=>f.control.issueOriginalModelEffectEvidence(model,f.run,undefined,f.limits),cause=>{
+      assert.equal(cause.code,'MoonBitHostFailure');assert.strictEqual(cause.cause,original);
+      assert.deepEqual(cause.primaryDiagnostic,{code:'MoonBitHostFailure',
+        phase:'original_model_acquired_effect_evidence',kind,task:4,unit:2,step:5});
+      assert(Object.isFrozen(cause.primaryDiagnostic));return true;
+    });
+    assert.deepEqual([coordinates,issued,projected],[1,1,1]);
+  }
 });
 
 test('optional Model failure projection cannot replace its actual Core failure or add validation',()=>{
