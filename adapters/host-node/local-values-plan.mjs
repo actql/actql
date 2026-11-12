@@ -190,12 +190,7 @@ function localRetentionTimes(now, retainUntil) {
 }
 
 export function keyedInputRetentionSelection(acquired) {
-  const run = JSON.parse(acquired.runDefinition.wire);
-  return Object.freeze({...localRetentionTimes(acquired.now, run.valid_until),
-    expiresAt: run.valid_until,
-    retentionContractCid: retentionDependencies[0].cid,
-    metadataRetentionPolicyCid: retentionDependencies[1].cid,
-    clockContractCid: retentionDependencies[2].cid});
+  return acquired.selectRetention();
 }
 
 // Keep the retained input policy available to Effect evidence issuance
@@ -205,8 +200,8 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
   sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
   dataPolicyCid, createdAt, now, resultCount, retainUntil,
   compiled, preparedProgram, effectCompilation, preparedEffect, moon,
-  modelEvidence = [], outputLimits = localOutputLimits}) {
-  const {availableUntil, deleteBy, metadataDeleteBy} = localRetentionTimes(now, retainUntil);
+  modelEvidence = [], outputLimits = localOutputLimits, retentionSelection}) {
+  const {availableUntil, deleteBy, metadataDeleteBy} = retentionSelection ?? localRetentionTimes(now, retainUntil);
   const retention = control.seal('result_retention_policy', JSON.stringify({
     version: 'actql-result-retention-policy/0.1',
     retention_contract_cid: retentionDependencies[0].cid,
@@ -280,8 +275,27 @@ function effectPublicationAdmission({moon, control, prepared,
   const runDefinition = control.admit('run_definition',
     moon.strategyPublicationContractJson(definition), limits);
   const dataPolicyCid = policyCid('local-result-data');
+  // Retention is immutable Run DATA, selected at its original first-use
+  // boundary and reused after Model awaits. Keep the live permission/current
+  // clock below unchanged; this selection never grants or extends access.
+  let retentionSelection, retentionFailure, retentionFailed = false;
+  const selectRetention = () => {
+    if (retentionFailed) throw retentionFailure;
+    if (retentionSelection !== undefined) return retentionSelection;
+    try {
+      const run = JSON.parse(runDefinition.wire);
+      retentionSelection = Object.freeze({...localRetentionTimes(now, run.valid_until),
+        expiresAt: run.valid_until,
+        retentionContractCid: retentionDependencies[0].cid,
+        metadataRetentionPolicyCid: retentionDependencies[1].cid,
+        clockContractCid: retentionDependencies[2].cid});
+      return retentionSelection;
+    } catch (cause) {
+      retentionFailed = true; retentionFailure = cause; throw cause;
+    }
+  };
   return Object.freeze({moon, control, prepared, compilation, allowed,
-    definition, authorityScopeCid, namespaceId, storeAuthorityCid, now,
+    definition, authorityScopeCid, namespaceId, storeAuthorityCid, now, selectRetention,
     admission, runDefinition, compiledPlan, dataPolicyCid, resultDataPolicy,
     queryTimePreparation, queryTime, requestIdentity: identity,
     resultDataPolicyLimits: limits});
@@ -320,7 +334,8 @@ export function sourceFreeEffectPublicationPlan(options) {
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
     resultCount, retainUntil: run.valid_until,
-    moon, effectCompilation: compilation, preparedEffect: prepared});
+    moon, effectCompilation: compilation, preparedEffect: prepared,
+    retentionSelection: acquired.selectRetention?.()});
   return Object.freeze({...plan, effectInputRetention: retention, invocationOwner: runtimeField(sourceFree, 1),
     localEvidenceContext: Object.freeze({admission, runDefinition,
       runInvocation: invocation, observation})});
@@ -352,7 +367,8 @@ export function sourceFreeContentEffectPublicationPlan({acquired,compiled,genera
     sourceEvidence:[],authorityScopeCid,namespaceId,storeAuthorityCid,dataPolicyCid:policy.cid,
     createdAt:run.created_at,now,retainUntil:run.valid_until,
     resultCount:moon.clientProgramEffectCompilationResultNames(compilation).length,
-    moon,effectCompilation:compilation,preparedEffect:prepared});
+    moon,effectCompilation:compilation,preparedEffect:prepared,
+    retentionSelection: acquired.selectRetention?.()});
   const contentGenerations=Object.freeze([generation]);
   return Object.freeze({...plan,effectInputRetention:retention,invocationOwner,
     receiptEvidence:Object.freeze({...plan.receiptEvidence,contentGenerations}),
@@ -386,7 +402,8 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
       createdAt: run.created_at, now,
       resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
       retainUntil: run.valid_until,
-      moon, effectCompilation: compilation, preparedEffect: prepared});
+      moon, effectCompilation: compilation, preparedEffect: prepared,
+      retentionSelection: acquired.selectRetention?.()});
     return Object.freeze({...issued, plan: Object.freeze({...plan, effectInputRetention: retention,
       invocationOwner, localEvidenceContext: Object.freeze({admission,
         runDefinition, retentionDependencies: Object.freeze([...retentionDependencies,
@@ -457,7 +474,8 @@ export function acquiredEffectPublicationPlan({acquired, captured,
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid, createdAt: run.created_at,
     now, resultCount, retainUntil: run.valid_until,
-    moon, effectCompilation: compilation, preparedEffect: prepared});
+    moon, effectCompilation: compilation, preparedEffect: prepared,
+    retentionSelection: acquired.selectRetention?.()});
   let sourceRetention = retention;
   if (content !== undefined) {
     const body = JSON.parse(retention.wire);
@@ -565,7 +583,8 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     dataPolicyCid, createdAt: run.created_at, now,
     resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
     retainUntil: run.valid_until,
-    moon, effectCompilation: compilation, preparedEffect: prepared});
+    moon, effectCompilation: compilation, preparedEffect: prepared,
+    retentionSelection: acquired.selectRetention?.()});
   const acquisitionDependencies = [];
   const acquiredEvidenceByUnit = [];
   for (const [slot, {captured}] of sources.entries()) {
