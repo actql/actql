@@ -663,6 +663,7 @@ fn start_client_restored_infer_input_sequence(
   }
   Ok({
     prefix: None,
+    producer_inputs: [],
     retained_input: Some(retained),
     sequence: Some(sequence),
     infer_step: step,

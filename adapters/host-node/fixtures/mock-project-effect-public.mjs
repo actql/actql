@@ -13,9 +13,9 @@ assert.ok(['capture', 'approve', 'recover'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
 assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
 const dealReview = template === 'deal-review-mock';
-assert.ok(variant === 'readme' || ['two-models', 'two-models-whole', 'two-models-joined-whole'].includes(variant) && dealReview);
+assert.ok(variant === 'readme' || ['two-models', 'two-models-whole', 'two-models-joined-whole', 'two-models-joined-inputs'].includes(variant) && dealReview);
 assert.ok(workPurpose === 'workflow' || workPurpose === 'original-run-control' && phase === 'capture');
-const twoModels = variant !== 'readme', joinedWholeProducer = variant === 'two-models-joined-whole';
+const twoModels = variant !== 'readme', joinedWholeProducer = variant === 'two-models-joined-whole' || variant === 'two-models-joined-inputs';
 const wholeProducer = variant === 'two-models-whole' || joinedWholeProducer;
 const C = /^sha256:[0-9a-f]{64}$/u;
 const expected = Object.freeze(dealReview ? {

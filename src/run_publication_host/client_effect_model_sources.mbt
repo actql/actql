@@ -56,6 +56,7 @@ fn build_model_effect_direct_sources(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[
   Array[ClientEffectAcquiredEvidence],
   ClientEffectAcquiredEvidenceIssue,
@@ -109,6 +110,45 @@ fn build_model_effect_direct_sources(
         scope: original.scope,
       })
       continue
+    }
+    if before_body is Some(back) {
+      if input.original is Whole(original) {
+        let shape = match
+          @acquisition.parameterized_request_canonical_geometry(
+            @acquisition.source_acquisition_request(original),
+            max_bytes,
+            max_nodes,
+            max_depth,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(Invocation(Encoding))
+        }
+        if !back("request_values", shape) {
+          return Err(Invocation(Encoding))
+        }
+      }
+      let (source, logical, _, _) = @publication.model_source_observation_originals(
+        input.observation,
+      )
+      let shapes = match
+        @publication.source_unit_metadata_construction_geometry(
+          [source],
+          [logical],
+          [@query.captured_source_relation_row_count(input.identity)],
+          retention,
+          max_bytes,
+          max_nodes,
+          max_depth,
+          include_union=false,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Relation(issue))
+      }
+      for (kind, shape) in shapes {
+        if !back(kind, shape) {
+          return Err(Invocation(Encoding))
+        }
+      }
     }
     let material = match input.original {
       Query(requirement) => {

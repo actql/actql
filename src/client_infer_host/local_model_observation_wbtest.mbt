@@ -80,6 +80,29 @@ test "local Model semantic projection preserves non-success outcomes across dist
     )
     let input_receipt = local_model_observation_test_export(input)
     let outcome_receipt = local_model_observation_test_export(outcomes)
+    let preconsumer = prepare_preconsumer_model_unit_observation(
+      held,
+      binding.compiled,
+      binding.definition,
+      active.plan.unwrap(),
+      outcome_receipt,
+      4096,
+      1024,
+      20,
+    ).unwrap()
+    assert_true(
+      prepare_preconsumer_model_unit_observation(
+        held,
+        binding.compiled,
+        binding.definition,
+        active.plan.unwrap(),
+        input_receipt,
+        4096,
+        1024,
+        20,
+      )
+      is None,
+    )
     // This independent semantic case uses the existing explicit metadata
     // fixture grant. Two physical outcomes already consume the original test
     // Model's retention allowance. The separate test below exercises actual
@@ -100,8 +123,27 @@ test "local Model semantic projection preserves non-success outcomes across dist
         original_local_model_observation_body(projected).unwrap(),
       ),
     )
+    assert_eq(
+      @publication.captured_effect_dependency_body_cid(preconsumer),
+      @publication.captured_effect_dependency_body_cid(
+        original_local_model_observation_body(projected).unwrap(),
+      ),
+    )
     assert_eq(calls.val, 2)
     assert_true(release_output(held))
+    assert_true(
+      prepare_preconsumer_model_unit_observation(
+        held,
+        binding.compiled,
+        binding.definition,
+        active.plan.unwrap(),
+        outcome_receipt,
+        4096,
+        1024,
+        20,
+      )
+      is None,
+    )
     assert_true(original_local_model_observation_body(projected) is None)
     @relation.cancel_completed_relation_export_receipt(input_receipt)
     @relation.cancel_completed_relation_export_receipt(outcome_receipt)

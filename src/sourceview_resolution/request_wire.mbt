@@ -89,16 +89,59 @@ fn canonical_request_fields_document(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@encode.EncodedDocument, RequestWireIssue] {
-  let fields = if original.length() < 2 {
-    original
-  } else {
-    let fields = original.copy()
-    fields.sort_by((a, b) => {
-      @unicode.compare_utf16(a.field.slot.field_name, b.field.slot.field_name)
-    })
-    fields
+  bound_request_fields_document(
+    canonical_request_fields(original),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn canonical_request_fields(
+  original : Array[ParameterizedRequestField],
+) -> Array[ParameterizedRequestField] {
+  if original.length() < 2 {
+    return original
   }
-  bound_request_fields_document(fields, max_bytes, max_nodes, max_depth)
+  let fields = original.copy()
+  fields.sort_by((a, b) => {
+    @unicode.compare_utf16(a.field.slot.field_name, b.field.slot.field_name)
+  })
+  fields
+}
+
+///|
+/// Measure the SAME typed canonical Request emitter before constructing its
+/// publication document. No wire, parse tree, hash, authority or bound is
+/// issued from these facts. Fixed measurement/field controls use the existing
+/// checked-input allowance; the caller funds the variable document separately.
+pub fn parameterized_request_canonical_geometry(
+  request : ParameterizedRequest,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodingConstructionGeometry, RequestWireIssue] {
+  let writer = @encode.construction_measuring_writer(
+    max_bytes, max_nodes, max_depth,
+  ) catch {
+    issue => return Err(Encoding(issue))
+  }
+  match
+    emit_bound_request_fields(canonical_request_fields(request.fields), writer) {
+    Err(issue) => {
+      @encode.cancel_writer(writer)
+      return Err(issue)
+    }
+    Ok(_) => ()
+  }
+  let geometry = @encode.finish_construction_measurement(writer) catch {
+    issue => {
+      @encode.cancel_writer(writer)
+      return Err(Encoding(issue))
+    }
+  }
+  Ok(geometry)
 }
 
 ///|
@@ -111,6 +154,27 @@ fn bound_request_fields_document(
   let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
     issue => return Err(Encoding(issue))
   }
+  match emit_bound_request_fields(fields, writer) {
+    Err(issue) => {
+      @encode.cancel_writer(writer)
+      return Err(issue)
+    }
+    Ok(_) => ()
+  }
+  let document = @encode.finish_document(writer) catch {
+    issue => {
+      @encode.cancel_writer(writer)
+      return Err(Encoding(issue))
+    }
+  }
+  Ok(document)
+}
+
+///|
+fn emit_bound_request_fields(
+  fields : Array[ParameterizedRequestField],
+  writer : @encode.Writer,
+) -> Result[Unit, RequestWireIssue] {
   try {
     @encode.begin_object(writer)
     for field in fields {
@@ -119,18 +183,12 @@ fn bound_request_fields_document(
         CheckedLiteral(value) => @value.emit_checked_wire_value(value, writer)
         BoundParameter(parameter) =>
           @value.emit_checked_wire_value(parameter.value, writer)
-        UnboundHostBinding(_) => {
-          @encode.cancel_writer(writer)
-          return Err(UnboundHostBinding)
-        }
+        UnboundHostBinding(_) => return Err(UnboundHostBinding)
       }
     }
     @encode.end_object(writer)
-    Ok(@encode.finish_document(writer))
+    Ok(())
   } catch {
-    issue => {
-      @encode.cancel_writer(writer)
-      Err(Encoding(issue))
-    }
+    issue => Err(Encoding(issue))
   }
 }

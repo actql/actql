@@ -12,7 +12,7 @@ import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases, packedCompositionCases} from './test-packed-readme-workflows.mjs';
 import {packedEffectControlCases, assertMockEffectControlOutcome} from './packed-mock-effect-controls.mjs';
 import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
-import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
+import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
 import {nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
@@ -55,6 +55,32 @@ test('README call bounds come from authored joined rows and declared per-row Tas
     assert.equal(Object.keys(answers).length, 2);
     assert(Object.values(answers).every(value => value.confirmed === true));
   }
+});
+
+test('additional minimal joined input fixture preserves the broader Content case and both real column bindings', () => {
+  const broader = twoModelJoinedWholeDealReviewFiles();
+  const minimal = twoModelJoinedInputsDealReviewFiles();
+  const original = JSON.parse(broader['deal-review.program.json']);
+  const program = JSON.parse(minimal['deal-review.program.json']);
+  assert.deepEqual(program.stages[0], original.stages[0]);
+  assert.deepEqual(Object.keys(program.stages[0].inputs).sort(), ['files', 'opportunities']);
+  assert.deepEqual(program.stages[0].results.rows.fields,
+    ['id', 'name', 'StageName', 'NextStep', 'resource', 'version']);
+  assert.equal(Object.keys(program.stages[0].results).length, 1);
+  const review = program.stages[1];
+  assert.deepEqual(review.inputs, {joined: {result: {stage: 'source_opportunities', result: 'rows'}}});
+  const infer = review.steps.find(step => step.infer !== undefined).infer;
+  assert.deepEqual(infer.input, {StageName: {field: 'StageName'}, NextStep: {field: 'NextStep'},
+    fileVersion: {field: 'version'}});
+  const task = parse(minimal['model-tasks/deal-review-joined-inputs.v1.yaml']);
+  assert.equal(task.task, infer.contract);
+  assert.deepEqual(Object.keys(task.input).sort(), ['NextStep', 'StageName', 'fileVersion']);
+  assert.equal(parse(minimal['mock/deal-review-joined-inputs.v1.answers.yaml']).task, infer.contract);
+  assert.deepEqual(program.stages.slice(2), original.stages.slice(2));
+  assert.deepEqual(program.results, original.results);
+  assert.equal(original.stages[1].inputs.contents.connector, 'drive');
+  assert(original.stages[1].steps.some(step => step.join?.with === 'contents'));
+  // This is authored-source correspondence, not an observed Model request.
 });
 
 test('distinct Whole producer fixture retains both Model Units and all public Result readers', async () => {

@@ -1659,6 +1659,13 @@ pub fn publication_contract_name(contract : PublicationContract) -> String {
 }
 
 ///|
+/// The existing owned contract registry supplies the identity-field spelling
+/// before a body is constructed. This issues no contract, identity or evidence.
+pub fn publication_contract_identity_field_for_name(name : String) -> String? {
+  contract_spec(name).map(value => value.identity)
+}
+
+///|
 pub fn publication_contract_identity_field(
   contract : PublicationContract,
 ) -> String {

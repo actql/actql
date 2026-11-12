@@ -72,4 +72,5 @@ import {
   "actql/actql/connectors/local",
   "actql/actql/physical_manifest" @cleanup_manifest,
   "actql/actql/client_local_host" @local_query_time,
+  "actql/actql/model_execution" @model,
 } for "wbtest"

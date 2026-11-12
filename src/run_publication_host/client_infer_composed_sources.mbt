@@ -221,7 +221,16 @@ fn admit_client_infer_composed_sources_owned(
         (name, facts)
       }
     }
-    if names.contains(name) ||
+    if inputs.any(previous => {
+        previous.name == name &&
+        !model_effect_originals_share_result_port(
+          @strategy.graph_program(owner.graph),
+          occurrence.stage,
+          name,
+          previous.original,
+          originals[task],
+        )
+      }) ||
       !client_infer_source_tuple_matches(
         owner,
         captures[task],

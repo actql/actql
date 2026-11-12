@@ -514,14 +514,62 @@ pub fn captured_effect_local_result_export_matches_model_suffix(
   receipt : @execution.CompletedRelationExportReceipt,
 ) -> Bool {
   guard value.owner is EffectInputs(originals) &&
-    physical_equal(originals, inputs) &&
-    inputs.live &&
-    captured_effect_local_result_export_matches_computed_unit(
-      value, computation, unit,
-    ) else {
+    physical_equal(originals, inputs) else {
     return false
   }
-  let run = inputs.run.captured
+  captured_effect_local_result_export_matches_model_suffix_owner(
+    value, computation, unit, model_task, original, receipt,
+  )
+}
+
+///|
+/// The same checked suffix proof before downstream Units finish. The original
+/// Unit pin and receipt remain mandatory; no final Effect inventory is forged.
+pub fn captured_effect_local_unit_result_export_matches_model_suffix(
+  value : CapturedEffectLocalResultExport,
+  inputs : CapturedEffectLocalUnitInputs,
+  computation : CheckedEffectComputationDAG,
+  unit : Int,
+  model_task : Int,
+  original : @execution.CompletedOutput,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Bool {
+  guard value.owner is LocalUnit(originals) && physical_equal(originals, inputs) else {
+    return false
+  }
+  captured_effect_local_result_export_matches_model_suffix_owner(
+    value, computation, unit, model_task, original, receipt,
+  )
+}
+
+///|
+fn captured_effect_local_result_export_matches_model_suffix_owner(
+  value : CapturedEffectLocalResultExport,
+  computation : CheckedEffectComputationDAG,
+  unit : Int,
+  model_task : Int,
+  original : @execution.CompletedOutput,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Bool {
+  guard captured_effect_local_result_export_matches_computed_unit(
+    value, computation, unit,
+  ) else {
+    return false
+  }
+  let run = match value.owner {
+    EffectInputs(inputs) => {
+      if !inputs.live {
+        return false
+      }
+      inputs.run.captured
+    }
+    LocalUnit(inputs) => {
+      if !inputs.live {
+        return false
+      }
+      inputs.run.captured
+    }
+  }
   let graph = run.graph
   let result = value.result
   if model_task < graph.captured_prefix_value() ||
@@ -566,13 +614,21 @@ pub fn captured_effect_local_result_export_matches_model_suffix(
       }
       // Original availability can call out. Keep only callback-free exact
       // alias/lifetime fences afterwards; revocation cannot leave a live path.
-      return inputs.live &&
+      return (match value.owner {
+          EffectInputs(inputs) => inputs.live
+          LocalUnit(inputs) => inputs.live
+        }) &&
         !run.stopped &&
         run.lifetimes[model_task].live &&
         run.lifetimes[result.task].live &&
         captured_completed_task_has_original_input(run, consumer, original) &&
         captured_effect_local_result_export_derived_retained(value) &&
-        captured_effect_local_result_export_retained(inputs, value)
+        (match value.owner {
+          EffectInputs(inputs) =>
+            captured_effect_local_result_export_retained(inputs, value)
+          LocalUnit(inputs) =>
+            captured_effect_local_unit_result_export_retained(inputs, value)
+        })
     }
     consumer = producer
   }

@@ -82,6 +82,46 @@ export function twoModelJoinedWholeDealReviewFiles() {
   return Object.freeze(files);
 }
 
+// Additional minimal joined-input consumer. The broader keyed Content fixture
+// stays separate: this task consumes StageName from Opportunity and version
+// from Drive files directly from the same genuine six-field producer Result.
+export function twoModelJoinedInputsDealReviewFiles() {
+  const files = {...twoModelJoinedWholeDealReviewFiles()};
+  const task = 'model-task:deal-review-joined-inputs.v1';
+  const config = JSON.parse(files['actql.config.json']);
+  config.mock.answers[task] = './mock/deal-review-joined-inputs.v1.answers.yaml';
+  files['actql.config.json'] = JSON.stringify(config, null, 2) + '\n';
+  const registry = JSON.parse(files['model-tasks.json']);
+  registry.tasks[task] = './model-tasks/deal-review-joined-inputs.v1.yaml';
+  files['model-tasks.json'] = JSON.stringify(registry, null, 2) + '\n';
+  files['model-tasks/deal-review-joined-inputs.v1.yaml'] = `task: ${task}
+input:
+  StageName: string
+  NextStep: {type: string, nullable: true}
+  fileVersion: string
+instructions: |
+  Review the current Opportunity stage and next step together with the exact
+  joined Drive file version provided in this input. Return the proposed change.
+output:
+  changed: boolean
+  stage: string
+  next_step: string
+`;
+  files['mock/deal-review-joined-inputs.v1.answers.yaml'] =
+    files['mock/deal-review.v1.answers.yaml'].replace('model-task:deal-review.v1', task);
+  const program = JSON.parse(files['deal-review.program.json']);
+  program.id = 'fixture.deal-review-two-source-joined-inputs';
+  const review = program.stages[1];
+  delete review.inputs.contents;
+  review.steps.shift();
+  const infer = review.steps.find(step => step.infer !== undefined).infer;
+  infer.contract = task;
+  infer.input = {StageName: {field: 'StageName'}, NextStep: {field: 'NextStep'},
+    fileVersion: {field: 'version'}};
+  files['deal-review.program.json'] = JSON.stringify(program, null, 2) + '\n';
+  return Object.freeze(files);
+}
+
 // Independently authored structured Program. A Pipe does not create a Unit:
 // the second Model consumes the retained first Stage Result in the SAME Run.
 // The MappingRef is closed declaration DATA under the existing mapping

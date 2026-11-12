@@ -1205,6 +1205,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       : checked(moon.clientProgramStartInferObservationIssuance(active, ledger,
         maxSlots, maxWireBytes, maxWork));
     },
+    bindOriginalResultArtifact(control, index, artifact, manifest) {
+      if (closing || reclaimed || !Number.isSafeInteger(index) || index < 0 ||
+          typeof control?.bindInferOriginalResultArtifact !== 'function') {
+        throw new TypeError('ForeignInferResultArtifact');
+      }
+      control.bindInferOriginalResultArtifact(active, index, artifact, manifest);
+    },
     bindIssuedInvocation: (control, {compiled, runDefinition, issued}) =>
       control.bindIssuedClientInferInvocation(compiled, active, runDefinition,
         issued),
@@ -1302,6 +1309,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let deferredRead = prepareRead !== undefined;
   let readAttempted = false;
   let operation;
+  let prepareOriginalResults;
   let failure;
   let failureRecorded = false;
   const recordFailure = cause => {
@@ -1354,6 +1362,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           computePrefix = runtimeField(segments, 0);
           computeSuffix = runtimeField(segments, 1);
         }
+        const resultArtifacts = restoredInput === undefined ? prepareOriginalResults?.(inputs) : undefined;
         operation = openNodeInferOperation({moon, graph: selected.graph,
           composedInput: generated ? undefined : {occurrence: selected.occurrence,
             prefix: computePrefix, inputs, sources,
@@ -1373,6 +1382,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
             : {restoredPreparation: preparation}), bindComputeSuffix, assertRuntimeCurrent,
           retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
+        for (const original of resultArtifacts ?? []) {
+          operation.bindOriginalResultArtifact(control, original.index, original.artifact, original.manifest);
+        }
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
           principalId, at: now(), observeAccount: selected.observeAccount,
           observeAt: now});
@@ -1430,6 +1442,10 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       sources = read('sources'); control = read('control'); plan = read('plan');
       principalId = read('principalId'); now = read('now'); signal = read('signal');
       retainOperation = read('retainOperation'); retainCompleted = read('retainCompleted');
+      prepareOriginalResults = read('prepareOriginalResults');
+      if (prepareOriginalResults !== undefined && typeof prepareOriginalResults !== 'function') {
+        throw new TypeError('InvalidComposedInferOriginalResults');
+      }
       durableCalls = read('durableCalls') === true; restoredInput = read('restoredInput');
       generatedInput = generatedOriginal;
       capturedInput = read('capturedInput');

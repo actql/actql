@@ -106,6 +106,10 @@ fn check_request_parameters_fixture(
       parameterized_request_wire(bound, 1000000, 10000, 100)
       is Err(UnboundHostBinding),
     )
+    assert_true(
+      parameterized_request_canonical_geometry(bound, 1000000, 10000, 100)
+      is Err(UnboundHostBinding),
+    )
   } else {
     let json_fields = []
     guard @json.parse(wire) is Object(catalog) &&
@@ -126,6 +130,21 @@ fn check_request_parameters_fixture(
       }
     }
     let wire = parameterized_request_wire(bound, 1000000, 10000, 100).unwrap()
+    let geometry = parameterized_request_canonical_geometry(
+      bound, 1000000, 10000, 100,
+    ).unwrap()
+    let canonical = parameterized_request_canonical_document(
+      bound, 1000000, 10000, 100,
+    ).unwrap()
+    assert_eq(
+      @encode.construction_geometry_usage(geometry),
+      @encode.document_usage(canonical),
+    )
+    assert_true(geometry.objects >= 1)
+    assert_true(geometry.fields >= parameterized_request_field_count(bound))
+    assert_true(
+      parameterized_request_canonical_geometry(bound, 1, 10000, 100) is Err(_),
+    )
     // Resolve expectations from authored input and supplied/default values,
     // not from the checked fields or the product encoder's output.
     let expected : Map[String, Json] = Map([])

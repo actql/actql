@@ -159,3 +159,33 @@ pub fn completed_segment_inputs_output(
   }
   Some(value.output)
 }
+
+///|
+/// Immutable receiving-input provenance from the already retained segment.
+/// Liveness is observed by completed_segment_inputs_output at its borrow
+/// boundary; this projection does not repeat any availability callback.
+pub fn completed_segment_inputs_has_original_pipeline_input(
+  value : CompletedSegmentInputs,
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+  original : CompletedOutput,
+) -> Bool {
+  if input_index < 0 ||
+    !physical_equal(generated_sequence_owner(value.sequence), receiver) {
+    return false
+  }
+  let mut found = false
+  for (step, port, read) in value.inputs {
+    guard @lower.node_at(@lower.bound_preparation(receiver), step) is Some(node) else {
+      return false
+    }
+    if @lower.node_input_target(node, port) ==
+      Some(@pipeline.Input(input_index)) {
+      if !bound_producer_input_has_original_completion(read.bound, original) {
+        return false
+      }
+      found = true
+    }
+  }
+  found
+}

@@ -219,6 +219,8 @@ pub fn captured_effect_local_unit_acquired_source_matches(CapturedEffectLocalUni
 
 pub fn captured_effect_local_unit_inputs_match_computation(CapturedEffectLocalUnitInputs, @physical_strategy.CheckedEffectComputationDAG) -> Bool
 
+pub fn captured_effect_local_unit_inputs_match_inputs(CapturedEffectLocalUnitInputs, CapturedEffectInputs) -> Bool
+
 pub fn captured_effect_local_unit_inputs_match_run(CapturedEffectLocalUnitInputs, CapturedEffectRunDAG) -> Bool
 
 pub fn captured_effect_local_unit_inputs_run_definition_cid(CapturedEffectLocalUnitInputs) -> String?
@@ -227,7 +229,11 @@ pub fn captured_effect_local_unit_result_at(CapturedEffectLocalUnitInputs, Int) 
 
 pub fn captured_effect_local_unit_result_count(CapturedEffectLocalUnitInputs) -> Int
 
+pub fn captured_effect_local_unit_result_export_matches_model_suffix(CapturedEffectLocalResultExport, CapturedEffectLocalUnitInputs, @physical_strategy.CheckedEffectComputationDAG, Int, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt) -> Bool
+
 pub fn captured_effect_local_unit_result_export_matches_receipt(CapturedEffectLocalUnitInputs, CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt) -> Bool
+
+pub fn captured_effect_local_unit_result_export_retained(CapturedEffectLocalUnitInputs, CapturedEffectLocalResultExport) -> Bool
 
 pub fn captured_effect_local_unit_result_matches_source(CapturedEffectLocalUnitInputs, CapturedEffectLocalResult, @execution_query.CapturedSourceRelationIdentity) -> Bool
 
