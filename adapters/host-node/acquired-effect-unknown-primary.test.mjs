@@ -215,3 +215,106 @@ test('dispatch admits only explicit Model component phase with inert real occurr
   assert.deepEqual(dispatchFailureSnapshot(cleanup).primaryDiagnostic, data);
   assert.strictEqual(cleanup.primaryFailure, primary);
 });
+
+// Execute the original enclosing custody method with explicit same-owner child
+// ports. This isolates ordering/retention; it is not a physical Host/FD ACK.
+function cleanupOrderFixture({borrowRelease = true, childCleanup = true,
+  hostCleanup = true, hostPending = false, restoredHost = false, restoredOutput = false} = {}) {
+  let selected;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.method && node.key.name === 'cleanup' &&
+        acquired.slice(node.start, node.end).includes('retireUnenteredCompute()')) selected = node;
+    for (const value of Object.values(node)) {
+      for (const child of Array.isArray(value) ? value : [value]) visit(child);
+    }
+  };
+  visit(parse(acquired, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert(selected);
+  const events = [], originalBorrow = {}, originalOutput = {}, originalRun = {}, host = {};
+  let held = originalBorrow, childCleaned = false;
+  const physical = {async cleanup() {
+    events.push('host-cleanup');
+    return !held && childCleaned && hostCleanup;
+  }, cleanupPending() {events.push('host-pending');return hostPending;}};
+  const modelGroup = {
+    async retirePublication() {events.push('retire-publication');return true;},
+    hasUnitPins: () => false,
+    hasOutputPins: () => held !== undefined,
+    outputBorrowsRequireParentRetirement: () => restoredHost,
+    releaseOutputs() {
+      events.push('release-group-borrow');
+      if (!borrowRelease) return false;
+      assert.strictEqual(held, originalBorrow, 'Only the same retained group borrow is returned');
+      held = undefined; return true;
+    },
+  };
+  const ports = {pending: true, closed: true, settled: true, unresolved: false,
+    retireUnenteredCompute: () => true, modelGroup,
+    restoredModelOutput: restoredOutput ? originalOutput : undefined,
+    execution: physical, recovery: undefined, restoredModelHostAttempted: restoredOutput,
+    moon: {clientProgramRetireInstalledEffectCapturedConsumers(run) {
+      assert.strictEqual(run, originalRun);events.push('retire-original-parent');return {value: true};
+    }, clientProgramReleaseInferOutput(output) {
+      assert.strictEqual(output, originalOutput);events.push('release-restored-output');return true;
+    }}, managedRun: originalRun, checked: result => result.value,
+    async cleanupInfer() {
+      events.push('child-cleanup');
+      assert.equal(held, undefined, 'The original child cannot reclaim while its output is borrowed');
+      childCleaned = childCleanup; return childCleaned;
+    }, observeUsage: () => {}, contentFamilyCleanup: undefined, contentFamily: undefined,
+    contentRecovery: undefined, keyedCleanup: undefined,
+    captures: [{close: async () => events.push('source-close')}],
+    originalPreparationRetained: true,
+    originalPreparation: {retire: async () => {events.push('retire-original');return true;}},
+    checkedHost: host, sourceContinuation: {close: async () => events.push('source-continuation-close')},
+    modelToken: undefined, modelController: undefined, recoveryResources: undefined,
+  };
+  ports.moon.clientProgramRefreshAcquiredEffectCleanup = actual => {
+    assert.strictEqual(actual, host);events.push('refresh-cleanup');return true;
+  };
+  const owner = new Function(...Object.keys(ports),
+    `return ({${acquired.slice(selected.start, selected.end)}});`)(...Object.values(ports));
+  return {owner, events, held: () => held !== undefined, childCleaned: () => childCleaned};
+}
+
+test('fresh group returns same output borrow before child and physical cleanup', async () => {
+  const f = cleanupOrderFixture();
+  assert.equal(await f.owner.cleanup(), true);
+  assert.deepEqual(f.events, ['retire-publication', 'release-group-borrow', 'child-cleanup',
+    'host-cleanup', 'host-pending', 'source-close', 'retire-original', 'refresh-cleanup',
+    'source-continuation-close']);
+  assert.equal(f.held(), false);
+});
+
+test('fresh group keeps refused output borrow and pending child or physical cleanup distinct', async () => {
+  for (const options of [{borrowRelease: false}, {childCleanup: false},
+    {hostCleanup: false}, {hostPending: true}]) {
+    const f = cleanupOrderFixture(options);
+    assert.equal(await f.owner.cleanup(), false);
+    assert.equal(f.events.includes('refresh-cleanup'), false);
+    assert.equal(f.events.includes('source-close'), false);
+    if (options.borrowRelease === false) {
+      assert.equal(f.held(), true); assert.equal(f.events.includes('child-cleanup'), false);
+      assert.equal(f.events.includes('host-cleanup'), false);
+    } else if (options.childCleanup === false) {
+      assert.equal(f.held(), false); assert.equal(f.childCleaned(), false);
+      assert.equal(f.events.includes('host-cleanup'), false);
+    } else {
+      assert.equal(f.held(), false); assert.equal(f.childCleaned(), true);
+      assert.equal(f.events.includes('host-cleanup'), true);
+      assert.equal(f.events.includes('host-pending'), options.hostCleanup !== false);
+    }
+  }
+});
+
+test('restored parent duty stays before releasing restored or group output custody', async () => {
+  for (const options of [{restoredHost: true}, {restoredOutput: true}]) {
+    const f = cleanupOrderFixture(options);
+    assert.equal(await f.owner.cleanup(), false);
+    assert.deepEqual(f.events, ['retire-publication', 'host-cleanup']);
+    assert.equal(f.held(), true);
+    assert.equal(f.events.includes('release-restored-output'), false);
+    assert.equal(f.events.includes('retire-original-parent'), false);
+  }
+});

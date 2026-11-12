@@ -218,7 +218,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       }
       if (modelGroup?.hasUnitPins() && !modelGroup.releaseUnitOutputs()) return false;
       if (modelGroup?.hasOutputPins()) {
-        if (physical !== undefined && !physicalRetired) {
+        // Fresh group OutputUses must return before their same Model children
+        // can reclaim. Restored parents retain their separate retirement duty.
+        // Actual Host cleanup is still required below, after cleanupInfer.
+        if (modelGroup.outputBorrowsRequireParentRetirement() &&
+            physical !== undefined && !physicalRetired) {
           if (await physical.cleanup() === false || physical.cleanupPending() !== false) return false;
           physicalRetired = true;
         }
@@ -1418,6 +1422,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     // Keep these bindings until the existing Host/output retirement boundary.
     hasOutputPins: () => unitPinsPending() || publicationBindings.length > 0 || children.some(child => child.output !== undefined),
     hasUnitPins: unitPinsPending,
+    outputBorrowsRequireParentRetirement: () => restoredHost !== undefined,
     releaseUnitOutputs,
     releaseOutputs() {
       if (!releaseUnitOutputs()) return false;

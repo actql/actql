@@ -443,6 +443,12 @@ must first retire its funded aliases and physical publication children. A
 parked Ledger, foreign original or unconfirmed cleanup keeps the existing
 responsibility; returning capacity grants no new use or physical-stop ACK.
 
+For a fresh group, its completed Model output borrows return after publication
+and Unit consumers retire, before their same Model children reclaim. The
+enclosing Host then requires its actual physical cleanup and pending-state
+confirmation. Returning an output borrow alone is no stop or cleanup ACK.
+Restored outputs keep their original parent's separate retirement requirement.
+
 Retiring a partial private holding uses that same holding's abort operation,
 never a new commit. Abort awaits an already running write and reconciles its
 original Store observation; a never-started holding is not published after
