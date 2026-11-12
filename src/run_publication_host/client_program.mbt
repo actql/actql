@@ -1061,6 +1061,7 @@ fn prepare_client_task_pipeline_input(
   prefix_end : Int?,
   acquisition_prefix : Bool,
   limits : @lower.SequenceLimits,
+  original_input? : Int? = None,
   infer_boundary? : Int? = None,
   serialization_input? : @lower.PreparedSerialization? = None,
   completed_serialization? : (Int, Int)? = None,
@@ -1098,7 +1099,7 @@ fn prepare_client_task_pipeline_input(
       serialization=serialization_boundary,
     )
   } else if acquisition_prefix {
-    @lower.prepare_sequence_prefix(owner, end_step, limits)
+    @lower.prepare_sequence_prefix(owner, end_step, limits, original_input~)
   } else if preparation is Some((original, task)) {
     guard @strategy.graph_task_owner(original.graph, task) is Some(selected) &&
       physical_equal(selected, owner) else {

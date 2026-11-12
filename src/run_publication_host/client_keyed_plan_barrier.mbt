@@ -63,14 +63,14 @@ fn prepare_client_keyed_plan_barrier_input(
   }
   let prepared = @lower.bound_preparation(acquisition.owner)
   let pipeline = @lower.pipeline(prepared)
-  guard @lower.node_at(prepared, fragments.left_step) is Some(left) &&
+  guard @lower.preparation_carrier_at(prepared, fragments.left_target)
+    is Some(left) &&
     @pipeline.input_at(
       pipeline,
       @acquisition.keyed_join_input(acquisition.binding.join),
     )
     is Some((_, right)) &&
-    client_keyed_plan_field_names(@lower.node_output_carrier(left), max_nodes)
-    is Some(left_fields) &&
+    client_keyed_plan_field_names(left, max_nodes) is Some(left_fields) &&
     client_keyed_plan_field_names(right, max_nodes) is Some(right_fields) &&
     client_task_carrier_contract(right, max_wire_bytes, max_nodes, max_depth)
     is Some(("relation", output_contract_cid)) else {

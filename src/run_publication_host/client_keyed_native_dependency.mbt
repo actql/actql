@@ -277,11 +277,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       @execution.relation_schema_cid(right_schema),
       right_bodies.1,
     )
-    guard @lower.node_at(
+    guard @lower.preparation_carrier_at(
         @lower.bound_preparation(original.keyed.owner),
-        component.original.fragments.left_step,
+        component.original.fragments.left_target,
       )
-      is Some(left_node) &&
+      is Some(left_carrier) &&
       @pipeline.input_at(
         @lower.pipeline(@lower.bound_preparation(original.keyed.owner)),
         @acquisition.keyed_join_input(original.keyed.binding.join),
@@ -290,7 +290,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       return Err(ForeignInput)
     }
     carrier(
-      @lower.node_output_carrier(left_node),
+      left_carrier,
       component.left.output_contract_cid,
       left_identity.relation_schema_cid,
       left_identity.schema_wire,

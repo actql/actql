@@ -4,6 +4,7 @@
 fn client_keyed_plan_test_inputs(
   plural? : Bool = false,
   declared? : Bool = false,
+  imported_left? : Bool = false,
 ) -> (
   ClientInferOccurrence,
   ClientKeyedAcquisition,
@@ -160,6 +161,14 @@ fn client_keyed_plan_test_inputs(
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"keyed-first-plan","stages":[{"id":"capture","inputs":{"files":{"connector":"lookup-fixture","resource":"files"}},"steps":[{"from":"files","filter":"id <> ''"},{"select":["id","text","mime","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","text","mime","version"]}}},{"id":"main","inputs":{"remote":{"connector":"lookup-fixture","resource":"contents","request":{"tenant":"original"}},"left_rows":{"result":{"stage":"capture","result":"rows"}}},"steps":[{"from":"left_rows","filter":"id <> ''","as":"left"},{"from":"left","join":{"with":"remote","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","text":"right.text"}},"as":"joined"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let document = if imported_left {
+    document.replace(
+      old="{\"from\":\"left_rows\",\"filter\":\"id <> ''\",\"as\":\"left\"},{\"from\":\"left\",\"join\":",
+      new="{\"from\":\"left_rows\",\"join\":",
+    )
+  } else {
+    document
+  }
   let document = if plural {
     guard @json.parse(document) is Object(fields) &&
       fields["stages"] is Array(stages) else {
@@ -404,5 +413,43 @@ fn client_keyed_plan_test_text(
   match @canonical.object_field(value, key) {
     Some(@canonical.String(text)) => Some(text)
     _ => None
+  }
+}
+
+///|
+// The original imported Result is already the left input. No dummy filter or
+// replacement Source is introduced to manufacture a preceding Step.
+test "keyed Model construction retains original imported Result as its direct left input" {
+  let (occurrence, keyed, profile) = client_keyed_plan_test_inputs(
+    imported_left=true,
+  )
+  assert_true(
+    @acquisition.keyed_join_left(keyed.binding.join) is @pipeline.Input(_),
+  )
+  assert_true(
+    client_keyed_plan_metadata_storage(occurrence) is Some(_),
+    msg="original imported Result left metadata must remain measurable",
+  )
+  match
+    prepare_client_keyed_plan_fragment_inputs(
+      occurrence,
+      keyed,
+      client_standard_values_sequence_limits(),
+      100000,
+    ) {
+    Ok(input) => {
+      assert_eq(@lower.sequence_count(input.left.sequence), 0)
+      let (left, joined) = issue_client_keyed_plan_fragments(
+        input, 1000000, 100000, 100,
+      ).unwrap()
+      assert_eq(left.output_port, input.left.output)
+      assert_eq(input.left_sources.length(), 1)
+      let barrier = prepare_client_keyed_plan_barrier_input(
+        input, profile, 1000000, 1000000, 100000, 100,
+      ).unwrap()
+      assert_true(physical_equal(barrier.fragments, input))
+      assert_eq(joined.output_port, input.joined.output)
+    }
+    Err(_) => fail("original imported Result left fragment is unsupported")
   }
 }
