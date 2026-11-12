@@ -92,7 +92,19 @@ fn admitted_manifest(
 
 ///|
 fn valid_request_fields(request : RemoteTransferRequest) -> Bool {
-  let physical = admitted_manifest(request.physical)
+  guard admitted_manifest(request.physical) is Some(physical) else {
+    return false
+  }
+  request_fields_match_manifest(request, physical)
+}
+
+///|
+/// Reuse only a freshly admitted local manifest before the Request escapes.
+/// Public use sites still re-admit the exposed mutable chunk inventory.
+fn request_fields_match_manifest(
+  request : RemoteTransferRequest,
+  physical : @manifest.PhysicalManifest,
+) -> Bool {
   !request.coordinator_authority.is_empty() &&
   !request.transfer_attempt.is_empty() &&
   !request.source_site_key.is_empty() &&
@@ -100,11 +112,10 @@ fn valid_request_fields(request : RemoteTransferRequest) -> Bool {
   !request.destination_site_key.is_empty() &&
   request.destination_site_generation >= 0 &&
   !request.source_material_generation.is_empty() &&
-  physical is Some(value) &&
-  value.manifest_cid == request.physical_manifest_cid &&
-  value.schema_contract_cid == request.schema_contract_cid &&
-  value.view_contract_cid == request.view_contract_cid &&
-  value.codec_contract_cid == request.codec_contract_cid &&
+  physical.manifest_cid == request.physical_manifest_cid &&
+  physical.schema_contract_cid == request.schema_contract_cid &&
+  physical.view_contract_cid == request.view_contract_cid &&
+  physical.codec_contract_cid == request.codec_contract_cid &&
   valid_transfer_cid(request.schema_contract_cid) &&
   valid_transfer_cid(request.view_contract_cid) &&
   valid_transfer_cid(request.codec_contract_cid) &&
@@ -229,7 +240,7 @@ pub fn prepare_request(
     route_capability_cid,
     request_cid: "pending",
   }
-  if !valid_request_fields(pending) {
+  if !request_fields_match_manifest(pending, physical) {
     return Err(InvalidTransfer)
   }
   if physical.referenced_bytes > max_bytes {
@@ -371,7 +382,9 @@ fn admit_request_body(
     transfer_text(object, "schema_contract_cid"),
     transfer_text(object, "view_contract_cid"),
   ]
-  if expected_fields != actual_fields || request_json(request) != Ok(body) {
+  // The same freshly constructed Request has not escaped or crossed a callback.
+  // Its canonical emitter preserves exact wire comparison without re-admission.
+  if expected_fields != actual_fields || emit_request_body(request) != Ok(body) {
     raise RemoteTransferDecodeStop
   }
   request
