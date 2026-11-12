@@ -86,7 +86,7 @@ const effectFunctions = new Map();
 function collectEffectFunctions(node) {
   if (node === null || typeof node !== 'object') return;
   if (node.type === 'VariableDeclarator' &&
-      ['executeEffectComputation', 'openEffectTargetReads'].includes(node.id.name)) {
+      ['executeEffectComputation', 'openEffectTargetReads', 'prepareMockModelInputs'].includes(node.id.name)) {
     assert.equal(effectFunctions.has(node.id.name), false);
     effectFunctions.set(node.id.name, source.slice(node.init.start, node.init.end));
   }
@@ -96,14 +96,14 @@ function collectEffectFunctions(node) {
   }
 }
 collectEffectFunctions(ast);
-assert.equal(effectFunctions.size, 2);
+assert.equal(effectFunctions.size, 3);
 
 function effectCancellationFixture() {
   const ref = Object.freeze({namespaceId: 'namespace', authorityScopeCid: 'scope', runDefinitionCid: 'run'});
   const prepared = {}, identity = {}, managedRun = {}, operationPlan = {};
   const managedEffect = Object.freeze({value: managedRun});
   const work = deferred(), entered = deferred();
-  const counts = {legacyLookups: 0, observers: 0, probes: 0, target: 0, resume: 0};
+  const counts = {legacyLookups: 0, observers: 0, probes: 0, target: 0, resume: 0, mockPreparations: 0};
   let row = Object.freeze({revision: 1, cancellationRequested: false});
   let targetCurrent, sourceCurrent, originalCurrent;
   const read = () => {counts.probes++; if (row instanceof Error) throw row; return row;};
@@ -168,6 +168,15 @@ function effectCancellationFixture() {
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
   const install = name => compileFunction(`return ${effectFunctions.get(name)};`, Object.keys(ports))(...Object.values(ports));
+  // The actual caller now also crosses its original LIVE Mock preparation
+  // helper. These cancellation fixtures have NO selected Model, so execute
+  // that same helper and refuse any unexpected physical answer intake.
+  ports.mockModels = {prepareAnswersForRuntime() {assert.fail('No Model answer input is selected by this fixture');}};
+  const prepareMockModelInputs = install('prepareMockModelInputs');
+  ports.prepareMockModelInputs = selected => {
+    assert.strictEqual(selected, managedEffect.modelSelection); counts.mockPreparations++;
+    return prepareMockModelInputs(selected);
+  };
   ports.openEffectTargetReads = install('openEffectTargetReads');
   const execute = install('executeEffectComputation');
   const facts = Object.freeze({ref, prepared, identity, runDefinition: {}, compilation: {}, preparedExecution: {},
@@ -184,6 +193,7 @@ test('Effect cancellation probes share one original observer through target and 
   const f = effectCancellationFixture(), execution = f.execute();
   try {
     await f.entered;
+    assert.equal(f.counts.mockPreparations, 1, 'The actual no-Model preparation helper ran once');
     assert.equal(f.source(), true); f.target(); f.original();
     assert.equal(f.counts.legacyLookups, 0, 'Cancellation does not readmit the full Run at each internal check');
     assert.equal(f.counts.observers, 1, 'The same continuation owns one Journal observer');
@@ -196,6 +206,7 @@ test('Effect cancellation probes retain changed missing and failed current obser
   const f = effectCancellationFixture(), execution = f.execute();
   try {
     await f.entered;
+    assert.equal(f.counts.mockPreparations, 1, 'The actual no-Model preparation helper ran once');
     for (const row of [Object.freeze({revision: 1, cancellationRequested: true}), undefined]) {
       f.setRow(row); assert.equal(f.source(), false);
       assert.throws(f.target, {code: 'ClientRunCancellationRequested'});
@@ -214,6 +225,7 @@ test('Effect cancellation probes retain pending child lifetime and independent t
   const f = effectCancellationFixture(), execution = f.execute();
   try {
     await f.entered;
+    assert.equal(f.counts.mockPreparations, 1, 'The actual no-Model preparation helper ran once');
     f.original(); assert.equal(f.source(), true);
     await f.independentTarget();
     assert.equal(f.counts.observers, 2, 'An independent target continuation has its own Journal lifetime');
