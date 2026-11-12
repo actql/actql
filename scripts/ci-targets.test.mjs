@@ -309,7 +309,8 @@ test('Native retained verification builds exactly its checked release module inv
   assert.equal(new Set(targets).size, targets.length);
   const commands = step.run.replace(/\\\n\s*/gu, ' ').trim().split('\n').map(line => line.trim().replace(/\s+/gu, ' '));
   assert.deepEqual(commands[0].split(/\s+/u), ['moon', 'build', '--target', 'js', '--release', ...targets]);
-  assert.equal(nativeCaseCondition('native', step), "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+  assert.equal(nativeCaseCondition('native', step),
+    "${{ !cancelled() && steps.native-preparation.outcome == 'success' && steps.native-background.outcome == 'success' }}");
   assert.deepEqual(commands.slice(1), [
     'moon build src/cmd/native_retained_case_probe --target native --release',
     'node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100',
