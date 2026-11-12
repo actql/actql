@@ -93,3 +93,53 @@ test('a successful join requires the original case identity and actual zero exit
     await assert.rejects(waitNativeGroups(directory, {report() {}}));
   }
 });
+
+test('timeout waits for the known TERM-ignoring descendant after its leader exits and cannot accept exit zero', async t => {
+  const f = fixture(t), pidFile = join(f.root, 'original-descendant.pid');
+  let descendant;
+  t.after(() => {
+    if (descendant) try { process.kill(descendant, 'SIGKILL'); } catch (error) {
+      if (error.code !== 'ESRCH') throw error;
+    }
+  });
+  const body = 'process.on("SIGTERM",()=>process.exit(0));' +
+    'require("child_process").spawn(process.execPath,["-e",' + JSON.stringify(
+      'process.on("SIGTERM",()=>{});require("fs").writeFileSync(' + JSON.stringify(pidFile) + ',String(process.pid));setInterval(()=>{},1000);') +
+    '],{stdio:"ignore"});setInterval(()=>{},1000);';
+  const directory = f.start([{name: 'runtime', steps: [f.step('owned-leader', body)]}],
+    {deadline: Date.now() + 1500});
+  const result = await waitNativeGroups(directory, {report() {}});
+  descendant = Number(readFileSync(pidFile, 'utf8'));
+  assert(Number.isSafeInteger(descendant) && descendant > 0);
+  let alive;
+  try { process.kill(descendant, 0); alive = true; } catch (error) {
+    if (error.code !== 'ESRCH') throw error;
+    alive = false;
+  }
+  assert.equal(alive, false, 'Joining the closed leader must not abandon its known live descendant');
+  assert.equal(result.status, 1, 'A timed out leader exiting zero is still a failed original command');
+  const item = result.result.groups[0].cases[0];
+  assert.equal(item.timedOut, true);
+  assert.equal(item.forceStopRequested, true);
+  assert.equal(item.groupStop, 'observed-gone');
+});
+
+test('a failed original leader also closes its known group without changing the original exit code', async t => {
+  const f = fixture(t), pidFile = join(f.root, 'failed-descendant.pid');
+  let descendant;
+  t.after(() => { if (descendant) try { process.kill(descendant, 'SIGKILL'); } catch (error) {
+    if (error.code !== 'ESRCH') throw error;
+  }});
+  const body = 'require("child_process").spawn(process.execPath,["-e",' + JSON.stringify(
+    'process.on("SIGTERM",()=>{});require("fs").writeFileSync(' + JSON.stringify(pidFile) + ',String(process.pid));setInterval(()=>{},1000);') +
+    '],{stdio:"ignore"});setInterval(()=>{if(require("fs").existsSync(' + JSON.stringify(pidFile) + '))process.exit(7)},5);';
+  const directory = f.start([{name: 'runtime', steps: [f.step('failed-owned-leader', body)]}]);
+  const result = await waitNativeGroups(directory, {report() {}});
+  descendant = Number(readFileSync(pidFile, 'utf8'));
+  assert(Number.isSafeInteger(descendant) && descendant > 0);
+  assert.throws(() => process.kill(descendant, 0), {code: 'ESRCH'});
+  assert.equal(result.status, 1);
+  const item = result.result.groups[0].cases[0];
+  assert.equal(item.code, 7); assert.equal(item.timedOut, false);
+  assert.equal(item.forceStopRequested, true); assert.equal(item.groupStop, 'observed-gone');
+});

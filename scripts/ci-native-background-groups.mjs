@@ -66,22 +66,44 @@ async function executeCase(control, directory, group, step, index) {
     .replaceAll('${{ github.workspace }}', control.root);
   const env = {...process.env, ...Object.fromEntries(Object.entries(step.env ?? {})
     .map(([key, value]) => [key, substitute(value)])), GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary};
-  let code, signal, failure;
+  let code, signal, failure, timedOut = false, stopAt, forceStopRequested = false;
+  let groupStop = 'not-requested';
   try {
     const child = spawn('/bin/bash', ['-e', '-o', 'pipefail', '-c', step.run], {
       cwd: control.root, env, detached: true, stdio: ['ignore', log, log],
     });
     const budget = Math.min(remaining, (step.timeoutMinutes ?? Infinity) * 60_000);
     let grace;
-    const timer = setTimeout(() => {
+    const requestGroupStop = () => {
+      if (stopAt !== undefined) return;
+      stopAt = Date.now();
       try { process.kill(-child.pid, 'SIGTERM'); } catch (error) { if (error.code !== 'ESRCH') failure = error.code; }
-      grace = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch {} }, 5000);
+      grace = setTimeout(() => {
+        try { process.kill(-child.pid, 'SIGKILL'); forceStopRequested = true; }
+        catch (error) { if (error.code !== 'ESRCH') failure = error.code; }
+      }, 5000);
+    };
+    const timer = setTimeout(() => {
+      timedOut = true; failure ??= 'ETIMEDOUT';
+      requestGroupStop();
     }, budget);
     await new Promise(done => {
       child.once('error', error => { failure = error.code; });
       child.once('close', (status, receivedSignal) => { code = status; signal = receivedSignal; done(); });
     });
-    clearTimeout(timer); clearTimeout(grace);
+    clearTimeout(timer);
+    if (timedOut || failure || signal || code !== 0) {
+      const groupExists = () => {
+        try { process.kill(-child.pid, 0); return true; }
+        catch (error) { if (error.code === 'ESRCH') return false; failure = error.code; return true; }
+      };
+      // The leader's closed FDs do not account for its other group members.
+      // Keep the original grace/escalation alive until this known group ends.
+      if (groupExists()) requestGroupStop();
+      while (groupExists() && Date.now() < stopAt + 6000) await pause(25);
+      groupStop = groupExists() ? 'unconfirmed' : 'observed-gone';
+    }
+    clearTimeout(grace);
   } finally { closeSync(log); }
   const outputs = {};
   if (existsSync(output)) for (const line of readFileSync(output, 'utf8').split('\n').filter(Boolean)) {
@@ -90,8 +112,8 @@ async function executeCase(control, directory, group, step, index) {
     const match = /^evidence-directory=([^\r\n]*)$/u.exec(line);
     if (match) outputs['evidence-directory'] = match[1];
   }
-  return {name: step.name, id: step.id, group, status: !failure && !signal && code === 0 ? 'success' : 'failure',
-    code, signal, failure, startedAt, completedAt: Date.now(), outputs};
+  return {name: step.name, id: step.id, group, status: !timedOut && !failure && !signal && code === 0 ? 'success' : 'failure',
+    code, signal, failure, timedOut, groupStop, forceStopRequested, startedAt, completedAt: Date.now(), outputs};
 }
 
 export async function runNativeGroups(directory) {
@@ -143,6 +165,7 @@ export async function waitNativeGroups(directory, {report = value => process.std
         assert.equal(item.code, 0);
         assert.equal(item.signal, null);
         assert.equal(item.failure, undefined);
+        assert.equal(item.timedOut, false);
         assert(Number.isSafeInteger(item.startedAt) && Number.isSafeInteger(item.completedAt) &&
           item.completedAt >= item.startedAt);
       }

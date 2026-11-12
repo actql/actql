@@ -1209,6 +1209,9 @@ still refuses; there is no metadata rewrite or implicit rebuild fallback.
 Local `run native` retains one preparation and every original case serially.
 Job and case deadlines stay unchanged. Parallelism is CI orchestration, not a
 product lifetime, permission, capacity or successful cleanup claim.
+Timeout and failed-command cleanup retains the known process group's TERM/KILL
+grace after its leader closes. An unconfirmed group stop remains a failure;
+a timed out leader exiting zero cannot turn the command into a success.
 
 Native preparation logs each command/component interval as
 `ACTQL_NATIVE_CI_PHASE` and writes a small `phase-*.timing.json` diagnostic into
