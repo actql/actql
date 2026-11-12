@@ -26,6 +26,63 @@ pub fn prepare_client_infer_result_artifact_input(
   artifact : ClientEffectLocalResultArtifact,
   manifest : ClientEffectLocalManifest,
 ) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue] {
+  prepare_client_infer_result_artifact_input_original(
+    occurrence,
+    plan,
+    import_index,
+    input,
+    sequence,
+    completed,
+    artifact,
+    manifest,
+    () => {
+      @execution.completed_segment_inputs_output(completed, sequence, bindings)
+    },
+  )
+}
+
+///|
+/// The same Artifact admission consumes the complete mixed prefix proof.
+pub fn prepare_client_infer_fixed_result_artifact_input(
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+  import_index : Int,
+  input : @execution.CompletedOutput,
+  sequence : @execution.GeneratedSequence,
+  bindings : Array[(Int, Int, @execution.FixedRelationRead)],
+  completed : @execution.CompletedSegmentInputs,
+  artifact : ClientEffectLocalResultArtifact,
+  manifest : ClientEffectLocalManifest,
+) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue] {
+  prepare_client_infer_result_artifact_input_original(
+    occurrence,
+    plan,
+    import_index,
+    input,
+    sequence,
+    completed,
+    artifact,
+    manifest,
+    () => {
+      @execution.completed_fixed_segment_inputs_output(
+        completed, sequence, bindings,
+      )
+    },
+  )
+}
+
+///|
+fn prepare_client_infer_result_artifact_input_original(
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+  import_index : Int,
+  input : @execution.CompletedOutput,
+  sequence : @execution.GeneratedSequence,
+  completed : @execution.CompletedSegmentInputs,
+  artifact : ClientEffectLocalResultArtifact,
+  manifest : ClientEffectLocalManifest,
+  original_output : () -> @execution.CompletedOutput?,
+) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue] {
   let owner = artifact.invocation.owner
   if !client_infer_occurrence_matches_plan(occurrence, plan) ||
     !physical_equal(
@@ -90,8 +147,7 @@ pub fn prepare_client_infer_result_artifact_input(
     }
   }
   guard selected is Some(slot) &&
-    @execution.completed_segment_inputs_output(completed, sequence, bindings)
-    is Some(actual) &&
+    original_output() is Some(actual) &&
     physical_equal(actual, input) &&
     @execution.completed_segment_inputs_has_original_pipeline_input(
       completed,

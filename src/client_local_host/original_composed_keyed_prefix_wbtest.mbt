@@ -1126,6 +1126,119 @@ fn original_composed_keyed_consumer(
     )
     assert_eq(@publication_host.client_keyed_left_read_rows(left), Some(1))
     assert_eq(@resources.ledger_usage(ledger), before)
+    // Seal the actual joined producer through its existing preconsumer Unit,
+    // export receipt, semantic Artifact and manifest, before the Model runs.
+    let authority = "sha256:" + "2".repeat(64)
+    let policy = @publication_host.prepared_client_effect_publication_data_policy_cid(
+      prepared,
+    ).unwrap()
+    let admission = @publication_host.client_effect_allowed_run_admission(
+      allowed,
+    )
+    let source_originals = @publication_host.prepare_client_effect_source_unit_inputs(
+      prepared,
+      model._compilation,
+      admission,
+      model.definition,
+      original_plan.direct_occurrences.unwrap(),
+      sources,
+      whole_identities,
+      whole_capacities.map(value => {
+        @publication_host.WholeSourceOriginal(value.original)
+      }),
+      whole_observations.map(value => value.1),
+      whole_observations.map(value => value.0),
+      authority,
+      policy,
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    let retention = @publication.issue_result_retention_for_data_policy(
+      original_composed_keyed_metadata_retention(),
+      policy,
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    let combined = @publication_host.prepare_client_effect_source_unit(
+      source_originals, 0, retention, 100000, 10000, 100,
+    ).unwrap()
+    let producer_unit = @strategy.pin_captured_effect_acquired_unit_results(
+      host, 0, 10,
+    ).unwrap()
+    let wire : @execution.RowWireLimits = {
+      max_columns: 3,
+      max_order_work: 10000,
+      max_bytes: 20000,
+      max_nodes: 10000,
+      max_depth: 32,
+    }
+    let exported = @strategy.start_captured_effect_local_unit_result_export(
+      producer_unit,
+      0,
+      {
+        max_fields: 3,
+        max_mapping_work: 10000,
+        max_order_work: 10000,
+        max_workspace_entries: 100,
+      },
+      10,
+      execution.rows.input_values,
+      wire,
+      wire,
+      { max_fields: 3, max_bytes: 10000, max_nodes: 1000, max_depth: 32, },
+      10000,
+    ).unwrap()
+    let export_preparation = @strategy.captured_effect_local_result_export_preparation(
+      exported,
+    )
+    let mut export_ready = false
+    for _ in 0..<10000 {
+      if @execution.advance_completed_result_relation_export(
+          export_preparation, 31,
+        ).unwrap().0 {
+        export_ready = true
+        break
+      }
+    }
+    assert_true(export_ready)
+    let export_stream = @execution.finish_completed_result_relation_export_preparation(
+      export_preparation,
+    ).unwrap()
+    while @execution.next_completed_output_export_canonical_row(
+            export_stream, 20000, 32, 10000,
+          ).unwrap()
+          is Some(_) {
+      ()
+    }
+    let export_receipt = @execution.finish_completed_relation_export(
+        export_stream,
+      ).unwrap().0
+    let result_definition = @publication_host.issue_client_effect_local_result_definition(
+      prepared, 0, "rows", 100000, 10000, 100,
+    ).unwrap()
+    let result_artifact = @publication_host.issue_preconsumer_client_effect_unit_result_artifact(
+      prepared,
+      producer_unit,
+      exported,
+      combined,
+      result_definition,
+      export_receipt,
+      admission,
+      model.definition,
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    let result_manifest = @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      @publication_host.client_effect_combined_source_unit_invocation(combined),
+      [result_artifact],
+      100000,
+      10000,
+      100,
+    ).unwrap()
     let lookup = @publication_host.start_client_original_composed_keyed_lookup_input(
       left, 4096, 10000,
     ).unwrap()
@@ -1366,6 +1479,141 @@ fn original_composed_keyed_consumer(
       }
     }
     assert_eq(@execution.prepared_infer_rows_count(mapped.unwrap()), 1)
+    let (model_input, model_sequence, model_bindings, mixed_proof) = client_infer_completed_input_provenance(
+      input,
+    ).unwrap()
+    assert_eq(model_bindings.length(), 2)
+    assert_true(
+      @execution.completed_fixed_segment_inputs_output(
+        mixed_proof, model_sequence, model_bindings,
+      )
+      is Some(_),
+    )
+    let shortened = model_bindings[:1].to_owned()
+    let swapped = [model_bindings[1], model_bindings[0]]
+    for invalid in [shortened, swapped, [model_bindings[0], model_bindings[0]]] {
+      assert_true(
+        @execution.completed_fixed_segment_inputs_output(
+          mixed_proof, model_sequence, invalid,
+        )
+        is None,
+      )
+    }
+    let same_right = @execution.restrict_supplied_relation_read(right, () => {
+      true
+    })
+    let replaced = model_bindings.copy()
+    replaced[1] = (
+      model_bindings[1].0,
+      model_bindings[1].1,
+      @execution.fixed_supplied_relation_read(same_right),
+    )
+    assert_true(
+      @execution.completed_fixed_segment_inputs_output(
+        mixed_proof, model_sequence, replaced,
+      )
+      is None,
+    )
+    let imported = client_infer_completed_result_artifact_input(
+      input,
+      model._occurrence,
+      model.graph,
+      0,
+      result_artifact,
+      result_manifest,
+    ).unwrap()
+    let keyed_observation = @publication_host.issue_client_keyed_lookup_observation(
+      lookup, authority, "2026-11-05T00:00:01.000Z",
+    ).unwrap()
+    let source_closure = match
+      @publication_host.admit_client_infer_composed_whole_sources(
+        model._occurrence,
+        sources,
+        whole_identities,
+        whole_capacities.map(value => value.original),
+        whole_observations.map(value => value.0),
+        whole_observations.map(value => value.1),
+        authority,
+        "2026-11-05T00:00:00.000Z",
+        "2026-11-05T00:00:01.000Z",
+        keyed=Some(keyed_observation),
+      ) {
+      Ok(value) => value
+      Err(@publication_host.ForeignInput) =>
+        fail("mixed fixture Source closure: ForeignInput")
+      Err(@publication_host.Evidence(issue)) =>
+        fail("mixed fixture Source observation: " + @debug.to_string(issue))
+      Err(_) => fail("mixed fixture Source closure: other")
+    }
+    let model_wire = {
+      ..wire,
+      max_columns: @schema.field_count(
+        @lower.preparation_schema_at(
+          @lower.bound_preparation(
+            @publication_host.client_infer_occurrence_preparation(
+              model._occurrence,
+            ),
+          ),
+          @pipeline.Step(step - 1),
+        ).unwrap(),
+      ),
+    }
+    let identity_workspace = @execution.completed_relation_identity_scan_workspace_slots(
+      model_input,
+      execution.rows.input_values,
+      model_wire,
+      model_wire,
+    ).unwrap()
+    let identity = match
+      @execution.start_completed_relation_identity_scan(
+        model_input,
+        10,
+        execution.rows.input_values,
+        model_wire,
+        model_wire,
+        { max_fields: 10, max_bytes: 20000, max_nodes: 10000, max_depth: 32, },
+        100000,
+        identity_workspace,
+      ) {
+      Ok(value) => value
+      Err(@execution.Unavailable) =>
+        fail("mixed fixture identity scan: Unavailable")
+      Err(@execution.NotCellRepresentation) =>
+        fail("mixed fixture identity scan: NotCellRepresentation")
+      Err(@execution.Admission(_)) =>
+        fail("mixed fixture identity scan: Admission")
+      Err(@execution.Wire(_)) => fail("mixed fixture identity scan: Wire")
+      Err(@execution.Schema(_)) => fail("mixed fixture identity scan: Schema")
+      Err(_) => fail("mixed fixture identity scan: other")
+    }
+    let mut identified = false
+    for _ in 0..<10000 {
+      if @execution.advance_completed_relation_identity_scan(identity, 31).unwrap().0 {
+        identified = true
+        break
+      }
+    }
+    assert_true(identified)
+    let receipt = @execution.finish_completed_relation_identity_scan(identity).unwrap()
+    let call_scope = @publication_host.issue_client_infer_occurrence_call_scope(
+      model._occurrence,
+      model.graph,
+      model_input,
+      receipt,
+      100000,
+      10000,
+      100,
+      sources=Some(source_closure),
+      result_inputs=[imported],
+    ).unwrap()
+    assert_true(
+      @publication.run_evidence_value_json(
+        @publication_host.client_infer_call_scope_artifact(call_scope),
+      ).contains("actql-model-input-artifact/0.1"),
+    )
+    assert_true(
+      @strategy.release_captured_effect_local_unit_inputs(producer_unit),
+    )
     assert_false(cancel_client_infer_input(input))
     assert_true(cleanup_client_infer_input(input).unwrap())
     let stop_observed = Ref(false)

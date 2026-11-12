@@ -6,7 +6,16 @@
 struct CompletedSegmentInputs {
   output : CompletedOutput
   sequence : GeneratedSequence
-  inputs : Array[(Int, Int, ProducerRead)]
+  inputs : CompletedSegmentInputInventory
+}
+
+///|
+// Two views of the SAME ordered proof. Ordinary callers retain their exact
+// signatures and read references; fixed callers also retain supplied ports.
+// The fixed variant control uses the existing Common fixed owner overhead.
+priv enum CompletedSegmentInputInventory {
+  Ordinary(Array[(Int, Int, ProducerRead)])
+  Fixed(Array[(Int, Int, FixedRelationRead)])
 }
 
 ///|
@@ -36,11 +45,12 @@ pub fn completed_segment_inputs_construction_inventory(
 // A bounded walk of the selected original graph, not a count-only assertion.
 // Every external edge must occur exactly once in step/port order. In-segment
 // producers are executed by the provider and cannot be supplied as captures.
-fn completed_segment_inputs_shape(
+fn[T] completed_segment_inputs_shape(
   output : CompletedOutput,
   sequence : GeneratedSequence,
-  inputs : Array[(Int, Int, ProducerRead)],
+  inputs : Array[(Int, Int, T)],
   max_work : Int,
+  matches : (T, @lower.BoundPrepared, Int, Int) -> Bool,
 ) -> Bool {
   let count = generated_sequence_step_count(sequence)
   guard max_work > 0 &&
@@ -89,7 +99,7 @@ fn completed_segment_inputs_shape(
         guard inputs.get(next) is Some((consumer, edge, read)) &&
           consumer == step &&
           edge == port &&
-          producer_read_binding_matches_operation_input(read, owner, step, port) else {
+          matches(read, owner, step, port) else {
           return false
         }
         next += 1
@@ -115,7 +125,9 @@ pub fn retain_completed_segment_inputs(
   }
   // Copy before liveness callbacks can mutate the caller's inventory.
   let inputs = inputs.copy()
-  if !completed_segment_inputs_shape(output, sequence, inputs, max_work) {
+  if !completed_segment_inputs_shape(
+      output, sequence, inputs, max_work, producer_read_binding_matches_operation_input,
+    ) {
     return None
   }
   for (_, _, read) in inputs {
@@ -126,7 +138,7 @@ pub fn retain_completed_segment_inputs(
   if !completed_output_available(output) {
     return None
   }
-  Some({ output, sequence, inputs, })
+  Some({ output, sequence, inputs: Ordinary(inputs), })
 }
 
 ///|
@@ -137,11 +149,12 @@ pub fn completed_segment_inputs_output(
   sequence : GeneratedSequence,
   inputs : Array[(Int, Int, ProducerRead)],
 ) -> CompletedOutput? {
+  guard value.inputs is Ordinary(originals) else { return None }
   if !physical_equal(value.sequence, sequence) ||
-    value.inputs.length() != inputs.length() {
+    originals.length() != inputs.length() {
     return None
   }
-  for index, (step, port, read) in value.inputs {
+  for index, (step, port, read) in originals {
     let (actual_step, actual_port, actual_read) = inputs[index]
     if step != actual_step ||
       port != actual_port ||
@@ -149,8 +162,92 @@ pub fn completed_segment_inputs_output(
       return None
     }
   }
-  for (_, _, read) in value.inputs {
+  for (_, _, read) in originals {
     if !producer_read_available(read) {
+      return None
+    }
+  }
+  if !completed_output_available(value.output) {
+    return None
+  }
+  Some(value.output)
+}
+
+///|
+fn fixed_segment_input_binding_matches(
+  input : FixedRelationRead,
+  owner : @lower.BoundPrepared,
+  step : Int,
+  port : Int,
+) -> Bool {
+  match input {
+    CompletedRelation(read) =>
+      producer_read_binding_matches_operation_input(read, owner, step, port)
+    SuppliedRelation(read) =>
+      physical_equal(read.receiver, owner) &&
+      @lower.node_at(@lower.bound_preparation(owner), step).bind(node => {
+        @lower.node_input_target(node, port)
+      }) ==
+      Some(@pipeline.Input(read.input_index))
+  }
+}
+
+///|
+/// Preserve every actual external port of a mixed completed/supplied segment.
+/// This is the same completed-input proof, never a new completion or read grant.
+pub fn retain_completed_fixed_segment_inputs(
+  output : CompletedOutput,
+  sequence : GeneratedSequence,
+  inputs : Array[(Int, Int, FixedRelationRead)],
+  max_work : Int,
+) -> CompletedSegmentInputs? {
+  if max_work <= 0 || inputs.length() > max_work {
+    return None
+  }
+  let inputs = inputs.copy()
+  if !completed_segment_inputs_shape(
+      output, sequence, inputs, max_work, fixed_segment_input_binding_matches,
+    ) {
+    return None
+  }
+  for (_, _, read) in inputs {
+    if !fixed_relation_read_available(read) {
+      return None
+    }
+  }
+  if !completed_output_available(output) {
+    return None
+  }
+  Some({ output, sequence, inputs: Fixed(inputs), })
+}
+
+///|
+/// Borrow only with the same full ordered inventory and original read objects.
+/// Rebound equal bindings or another restricted representation cannot replace
+/// the actual read retained by this closed provider's completion proof.
+pub fn completed_fixed_segment_inputs_output(
+  value : CompletedSegmentInputs,
+  sequence : GeneratedSequence,
+  inputs : Array[(Int, Int, FixedRelationRead)],
+) -> CompletedOutput? {
+  guard value.inputs is Fixed(originals) else { return None }
+  if !physical_equal(value.sequence, sequence) ||
+    originals.length() != inputs.length() {
+    return None
+  }
+  for index, (step, port, read) in originals {
+    let (actual_step, actual_port, actual_read) = inputs[index]
+    let same = match (read, actual_read) {
+      (CompletedRelation(a), CompletedRelation(b)) => physical_equal(a, b)
+      (SuppliedRelation(a), SuppliedRelation(b)) => physical_equal(a, b)
+      _ => false
+    }
+    if step != actual_step || port != actual_port || !same {
+      return None
+    }
+  }
+  for (_, _, read) in originals {
+    if !fixed_relation_read_available(read) {
       return None
     }
   }
@@ -174,14 +271,39 @@ pub fn completed_segment_inputs_has_original_pipeline_input(
     !physical_equal(generated_sequence_owner(value.sequence), receiver) {
     return false
   }
+  match value.inputs {
+    Ordinary(inputs) =>
+      completed_segment_original_pipeline_input(
+        inputs,
+        read => Some(read),
+        receiver,
+        input_index,
+        original,
+      )
+    Fixed(inputs) =>
+      completed_segment_original_pipeline_input(
+        inputs, fixed_relation_read_completed, receiver, input_index, original,
+      )
+  }
+}
+
+///|
+fn[T] completed_segment_original_pipeline_input(
+  inputs : Array[(Int, Int, T)],
+  completed : (T) -> ProducerRead?,
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+  original : CompletedOutput,
+) -> Bool {
   let mut found = false
-  for (step, port, read) in value.inputs {
+  for (step, port, input) in inputs {
     guard @lower.node_at(@lower.bound_preparation(receiver), step) is Some(node) else {
       return false
     }
     if @lower.node_input_target(node, port) ==
       Some(@pipeline.Input(input_index)) {
-      if !bound_producer_input_has_original_completion(read.bound, original) {
+      guard completed(input) is Some(read) &&
+        bound_producer_input_has_original_completion(read.bound, original) else {
         return false
       }
       found = true

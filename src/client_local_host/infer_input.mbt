@@ -629,42 +629,73 @@ pub fn client_infer_completed_result_artifact_input(
   @publication_host.ClientInferResultArtifactInput,
   @publication_host.ClientInferCallScopeIssue,
 ] {
+  guard client_infer_completed_input_provenance(active)
+    is Some((output, sequence, bindings, proof)) else {
+    return Err(@publication_host.ForeignInput)
+  }
+  @publication_host.prepare_client_infer_fixed_result_artifact_input(
+    occurrence, plan, import_index, output, sequence, bindings, proof, artifact,
+    manifest,
+  )
+}
+
+///|
+// Keep the closed provider's exact completed external-port proof together.
+// This is input custody only; Artifact/manifest/occurrence admission stays
+// at the existing publication owner after the same original proof is retained.
+fn client_infer_completed_input_provenance(
+  active : ClientInferInputExecution,
+) -> (
+  @execution.CompletedOutput,
+  @execution.GeneratedSequence,
+  Array[(Int, Int, @execution.FixedRelationRead)],
+  @execution.CompletedSegmentInputs,
+)? {
   guard !active.reclaimed &&
     !active.cancelled &&
     active.prefix_done &&
     active.sequence is Some(sequence) &&
     client_infer_completed_input(active) is Some(output) else {
-    return Err(@publication_host.ForeignInput)
+    return None
   }
-  let bindings : Array[(Int, Int, @execution.ProducerRead)] = []
+  let bindings : Array[(Int, Int, @execution.FixedRelationRead)] = []
   let count = @execution.generated_sequence_step_count(sequence)
   let mut work = 0
   for position in 0..<count {
     guard @execution.generated_sequence_step_index_at(sequence, position)
       is Some(step) &&
       @lower.node_at(@lower.bound_preparation(active.owner), step) is Some(node) else {
-      return Err(@publication_host.ForeignInput)
+      return None
     }
     for port in 0..<@lower.node_input_count(node) {
       if work >= active.limits.max_work {
-        return Err(@publication_host.ForeignInput)
+        return None
       }
       work += 1
       let mut selected = None
       for input in active.producer_inputs {
         if work >= active.limits.max_work {
-          return Err(@publication_host.ForeignInput)
+          return None
         }
         work += 1
-        if input is @local.RelationInput(read) &&
-          @execution.producer_read_matches_operation_input(
-            read,
-            active.owner,
-            step,
-            port,
-          ) {
+        let read = match input {
+          @local.RelationInput(read) if @execution.producer_read_matches_operation_input(
+              read,
+              active.owner,
+              step,
+              port,
+            ) => Some(@execution.fixed_completed_relation_read(read))
+          @local.SuppliedRelationInput(read) if @execution.supplied_relation_read_matches_operation_input(
+              read,
+              active.owner,
+              step,
+              port,
+            ) => Some(@execution.fixed_supplied_relation_read(read))
+          _ => None
+        }
+        if read is Some(read) {
           if selected is Some(_) {
-            return Err(@publication_host.ForeignInput)
+            return None
           }
           selected = Some(read)
         }
@@ -674,19 +705,16 @@ pub fn client_infer_completed_result_artifact_input(
       }
     }
   }
-  guard @execution.retain_completed_segment_inputs(
+  guard @execution.retain_completed_fixed_segment_inputs(
       output,
       sequence,
       bindings,
       active.limits.max_work,
     )
     is Some(proof) else {
-    return Err(@publication_host.ForeignInput)
+    return None
   }
-  @publication_host.prepare_client_infer_result_artifact_input(
-    occurrence, plan, import_index, output, sequence, bindings, proof, artifact,
-    manifest,
-  )
+  Some((output, sequence, bindings, proof))
 }
 
 ///|
