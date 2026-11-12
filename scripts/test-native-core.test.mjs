@@ -1439,6 +1439,7 @@ const result = spawnSync('moon', ['test', '--target', 'native', ...args], {stdio
 process.exit(result.status ?? 1);
 `);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
+    ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '1',
     ...(scoped ? {ACTQL_FIXTURE_CORE_SCOPED: '1'} : {}),
     ...(relationWork ? {ACTQL_FIXTURE_CORE_RELATION_WORK: '1'} : {}),
     ...(effectTargets ? {ACTQL_FIXTURE_CORE_EFFECT_TARGETS: '1'} : {}),
@@ -2465,6 +2466,118 @@ test('full Native Core provisions exact current relation Work inputs and rejects
     assert.equal((result.stdout.match(/CURRENT_RELATION_COMPONENT_INPUTS_REQUIRED/gu) ?? []).length, 1);
     assert.match(result.stdout, /"scoped":8,"physical":7,"repeatedGeometry":1/u);
     assert.equal(existsSync(selected.relationRoot), zero, 'failure preserves originals; no reset or reuse');
+    f.verifyExternal();
+  }
+});
+
+test('two scoped allocation loops share one preparation and join all original cases before scratch confirmation', t => {
+  const f = fixture(t, {scoped: true}), commands = join(f.root, 'parallel-commands.jsonl');
+  const events = join(f.root, 'parallel-events.jsonl');
+  const original = readFileSync(f.moon, 'utf8');
+  const boundary = original.indexOf('\n') + 1;
+  const probe = `
+if (process.env.ACTQL_FIXTURE_PROFILE) {
+  const fs=require('node:fs'),path=${JSON.stringify(events)};
+  fs.appendFileSync(path,JSON.stringify({phase:'start',profile:process.env.ACTQL_FIXTURE_PROFILE,at:Date.now(),pid:process.pid})+'\\n');
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,200);
+  fs.appendFileSync(path,JSON.stringify({phase:'end',profile:process.env.ACTQL_FIXTURE_PROFILE,at:Date.now(),pid:process.pid})+'\\n');
+}
+`;
+  writeFileSync(f.moon, original.slice(0, boundary) + probe + original.slice(boundary));
+  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'], {
+    cwd: f.checkout, encoding: 'utf8', timeout: 15000,
+    env: {...f.env, ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2', ACTQL_FIXTURE_NATIVE_COMMANDS: commands},
+  });
+  assert.ifError(result.error); assert.equal(result.status, 0, result.stdout + result.stderr);
+  const phases = result.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_CI_PHASE '))
+    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)));
+  for (const [profile, count] of [['runtime-values', 2], ['scoped-review-values', 5]]) {
+    const phase = phases.find(value => value.profile === profile);
+    assert.deepEqual({...phase, milliseconds: 0}, {phase: 'scoped-profile', profile, milliseconds: 0,
+      expectedCases: count, attemptedCases: count, passedCases: count, failedCases: 0,
+      unexecutedCases: 0, succeeded: true});
+  }
+  const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(calls.length, 10, 'Two checkpoint originals, ordinary Core and seven scoped cases; no second prerequisites');
+  const selected = calls.filter(call => call.profile !== 'ordinary');
+  assert.equal(selected.length, 7);
+  assert.equal(new Set(selected.map(call => JSON.stringify(call.args))).size, 7);
+  const timeline = readFileSync(events, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(timeline.length, 14);
+  const first = timeline.find(event => event.phase === 'start' && event.profile === 'runtime-values');
+  const other = timeline.find(event => event.phase === 'start' && event.profile === 'scoped-review-values');
+  const firstEnd = timeline.find(event => event.phase === 'end' && event.pid === first.pid);
+  const otherEnd = timeline.find(event => event.phase === 'end' && event.pid === other.pid);
+  assert(first.at < otherEnd.at && other.at < firstEnd.at, 'Distinct existing compiler profiles must actually overlap');
+  for (const profile of ['runtime-values', 'scoped-review-values']) {
+    const entries = timeline.filter(event => event.profile === profile);
+    for (let index = 0; index < entries.length; index += 2) {
+      assert.equal(entries[index].phase, 'start'); assert.equal(entries[index + 1].phase, 'end');
+      assert.equal(entries[index].pid, entries[index + 1].pid);
+      if (index) assert(entries[index].at >= entries[index - 1].at, 'The same allocation profile stays serial');
+    }
+  }
+  for (const pid of new Set(timeline.map(event => event.pid))) assert.throws(() => process.kill(pid, 0), {code: 'ESRCH'});
+  f.verifyExternal();
+});
+
+test('a failed scoped loop retains the original failure after its independent sibling finishes and closes', t => {
+  const f = fixture(t, {scoped: true}), events = join(f.root, 'failed-parallel-events.jsonl');
+  const original = readFileSync(f.moon, 'utf8'), boundary = original.indexOf('\n') + 1;
+  const probe = `
+if (process.env.ACTQL_FIXTURE_PROFILE) {
+  const fs=require('node:fs'),path=${JSON.stringify(events)};
+  fs.appendFileSync(path,JSON.stringify({phase:'start',profile:process.env.ACTQL_FIXTURE_PROFILE,pid:process.pid})+'\\n');
+  if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values')process.exit(7);
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,150);
+  fs.appendFileSync(path,JSON.stringify({phase:'end',profile:process.env.ACTQL_FIXTURE_PROFILE,pid:process.pid})+'\\n');
+}
+`;
+  writeFileSync(f.moon, original.slice(0, boundary) + probe + original.slice(boundary));
+  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn'], {
+    cwd: f.checkout, encoding: 'utf8', timeout: 15000,
+    env: {...f.env, ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2'},
+  });
+  assert.ifError(result.error); assert.equal(result.status, 7, result.stdout + result.stderr);
+  const phases = result.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_CI_PHASE '))
+    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)));
+  const failed = phases.find(value => value.profile === 'runtime-values');
+  assert.deepEqual({...failed, milliseconds: 0}, {phase: 'scoped-profile', profile: 'runtime-values', milliseconds: 0,
+    expectedCases: 2, attemptedCases: 1, passedCases: 0, failedCases: 1, unexecutedCases: 1, succeeded: false});
+  const completed = phases.find(value => value.profile === 'scoped-review-values');
+  assert.equal(completed.passedCases, 5); assert.equal(completed.unexecutedCases, 0);
+  const timeline = readFileSync(events, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(timeline.filter(event => event.profile === 'runtime-values').length, 1);
+  const sibling = timeline.filter(event => event.profile === 'scoped-review-values');
+  assert.equal(sibling.length, 10, 'All five original sibling cases must start and finish');
+  assert.equal(sibling.at(-1).phase, 'end');
+  for (let index = 0; index < sibling.length; index += 2) {
+    assert.equal(sibling[index].phase, 'start'); assert.equal(sibling[index + 1].phase, 'end');
+    assert.equal(sibling[index].pid, sibling[index + 1].pid);
+  }
+  for (const pid of new Set(timeline.map(event => event.pid))) assert.throws(() => process.kill(pid, 0), {code: 'ESRCH'});
+  f.verifyExternal();
+});
+
+test('parallel scoped joins cannot accept zero, skipped or signalled original cases', t => {
+  for (const mode of ['zero', 'skip', 'signal']) {
+    const f = fixture(t, {scoped: true}), original = readFileSync(f.moon, 'utf8');
+    const boundary = original.indexOf('\n') + 1;
+    const probe = `
+if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values') {
+  if(${JSON.stringify(mode)}==='signal')process.kill(process.pid,'SIGTERM');
+  else {
+    console.log(${JSON.stringify(mode)}==='zero'?'Total tests: 0, passed: 0, failed: 0.':'Total tests: 1, passed: 0, failed: 0, skipped: 1.');
+    process.exit(0);
+  }
+}
+`;
+    writeFileSync(f.moon, original.slice(0, boundary) + probe + original.slice(boundary));
+    const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs', '--deny-warn'], {
+      cwd: f.checkout, encoding: 'utf8', timeout: 15000,
+      env: {...f.env, ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2'},
+    });
+    assert.ifError(result.error); assert.notEqual(result.status, 0, mode + result.stdout + result.stderr);
     f.verifyExternal();
   }
 });
