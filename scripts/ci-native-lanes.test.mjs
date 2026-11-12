@@ -50,10 +50,17 @@ test('HTTP remains independent while all other consumers retain the same physica
     if (family === 'native') {
       const retained = workload.steps.findIndex(step => step.name === 'Verify registered Native retained product path');
       assert(retained > join, 'The long retained compiler cannot hold the global Moon lock during npm prepack');
-      assert.equal(workload.steps[retained].if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+      assert.equal(workload.steps[retained].if,
+        "${{ !cancelled() && steps.native-preparation.outcome == 'success' && steps.native-background.outcome == 'success' }}");
+      const condition = workload.steps[retained].if.slice(3, -2)
+        .replaceAll('steps.native-preparation.outcome', 'prepared')
+        .replaceAll('steps.native-background.outcome', 'joined');
+      for (const joined of ['success', 'failure', 'cancelled', 'skipped', undefined])
+        assert.equal(runInNewContext(condition, {prepared: 'success', joined, cancelled: () => false}),
+          joined === 'success', 'A failed or unconfirmed join cannot authorize another compiler');
       assert(!background[family].flatMap(group => group.steps).some(step =>
         step.name === 'Verify registered Native retained product path'));
-    }
+    } else assert(workload.steps.slice(join + 1).every(step => step.run === undefined));
     assert.equal(workload.steps[start].if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
     assert(workload.steps[join].if.includes("steps.native-background-start.outcome == 'success'"));
     assert(workload.steps[join].run.includes('steps.native-background-start.outputs.directory'));
