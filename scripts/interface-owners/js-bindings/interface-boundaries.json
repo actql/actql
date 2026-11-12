@@ -32912,7 +32912,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "234be70c42a38b95e84abac9748387b1a5906b202889a6cb01695a3165a06ee2",
+      "sha256": "7a015d0b8f1c136fe00aff6c989792537e745338adaf489e0503ef50131aa07c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32991,6 +32991,11 @@
         },
         {
           "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "acquiredEffectModelGroup/acquiredEffectModelGroup#5",
           "parameters": [],
           "async": false
         },
@@ -33886,6 +33891,7 @@
             "acquiredEffectModelGroup/acquiredEffectModelGroup#2",
             "acquiredEffectModelGroup/acquiredEffectModelGroup#3",
             "acquiredEffectModelGroup/acquiredEffectModelGroup#4",
+            "acquiredEffectModelGroup/acquiredEffectModelGroup#5",
             "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup",
             "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup#2",
             "acquiredEffectModelGroup/acquiredEffectModelGroup/acquiredEffectModelGroup#3",
