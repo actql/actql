@@ -84945,6 +84945,10 @@
           "declaration": "[ T ] finish_original_read_children ( claim : FundedReadClaim [ T ] , ) - > Result [ Unit , OriginalReadIssue ]"
         },
         {
+          "name": "[T]grow_original_read_child_capacity",
+          "declaration": "[ T ] grow_original_read_child_capacity ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , origin : T , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , OriginalReadIssue ]"
+        },
+        {
           "name": "[T]handoff_original_read_child_capacity",
           "declaration": "[ T ] handoff_original_read_child_capacity ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , origin : T , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( Ledger , CapacityReservation ) , OriginalReadIssue ]"
         },
@@ -84967,6 +84971,10 @@
         {
           "name": "[T]original_read_children_current",
           "declaration": "[ T ] original_read_children_current ( claim : FundedReadClaim [ T ] ) - > Bool"
+        },
+        {
+          "name": "[T]original_read_children_snapshot_matches",
+          "declaration": "[ T ] original_read_children_snapshot_matches ( claim : FundedReadClaim [ T ] , ) - > Bool"
         },
         {
           "name": "[T]settle_original_read_child",
@@ -84992,12 +85000,14 @@
             "[T]claim_funded_read_preparations",
             "[T]enter_original_read_child",
             "[T]finish_original_read_children",
+            "[T]grow_original_read_child_capacity",
             "[T]handoff_original_read_child_capacity",
             "[T]leave_original_read_children",
             "[T]original_read_child",
             "[T]original_read_child_available",
             "[T]original_read_child_origin",
             "[T]original_read_children_current",
+            "[T]original_read_children_snapshot_matches",
             "[T]settle_original_read_child",
             "[T]stop_original_read_child",
             "[T]stop_original_read_children",
@@ -85113,7 +85123,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "7d5d9203b293dbb8ebeda8fc7c463168f0ae8a3acf664657d65cd84379502ed2"
+      "sha256": "e42392d27f0d2f4dafcd9f04a91fb86dfa47af2ba9245e8e9df67a81d864f1ff"
     },
     {
       "module": "src/run_publication_host/client_model_read_group.mbt",
