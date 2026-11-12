@@ -20,6 +20,9 @@ import { rejectParentSubstitutions } from './parent-control/regression.mjs';
 import { capacityObligationsByPart } from '../proof-parts.mjs';
 import { resolveCapacityUnion, validateCapacityOwners } from './parts.mjs';
 import { auditCustody, auditCustodyMutations } from './parent-control/custody.mjs';
+export function auditCapacityArtifact(archive, digest, read) {
+  assert.equal(hash(read(archive)), digest, 'Executed capacity artifact changed');
+}
 export function validateCapacityPart(report, current, targets, read) {
   validateCapacityOwners(report);
   return validate(report, current, targets, read);
@@ -146,7 +149,7 @@ export function validate(report, current, targets, read) {
       assert(path.startsWith(`_build/${run.target}/debug/test/query_integration/`));
       const archive = execution.capacityArchives[path];
       assert(archive.startsWith(`.artifacts/relation-pipeline/capacity/binaries/${run.target}/`));
-      assert.equal(hash(read(archive)), digest, 'Executed capacity artifact changed');
+      auditCapacityArtifact(archive, digest, read);
     }
     for (const c of run.cases) {
       assert(!observationIds.has(c.id), 'Duplicate capacity observation identity'); observationIds.add(c.id);
