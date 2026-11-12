@@ -313,10 +313,22 @@ test('same original Checkpoint metadata projects its live record without an extr
   assert(fallback > fast);
   const closed = entry.slice(fast, fallback);
   assert.doesNotMatch(closed, /\.transaction(?:_with_reads)?\(/u);
-  assert.equal([...closed.matchAll(/authority\.current_for\(journal, request\)/gu)].length, 2);
-  assert.equal([...closed.matchAll(/journal\.check_transaction_context\(reads~\)/gu)].length, 2);
-  assert.match(closed, /physical_equal\(current, record\)/u,
-    'Post-callback reentry cannot disclose an invalidated or replaced original record');
+  assert.equal([...closed.matchAll(/authority\.current_for\(journal, request\)/gu)].length, 1,
+    'Pure projection has no later callback requiring another Account/current traversal');
+  assert.equal([...closed.matchAll(/journal\.check_transaction_context\(reads~\)/gu)].length, 1);
+  const current = closed.indexOf('authority.current_for(journal, request)');
+  const select = closed.indexOf('journal.operation_record is Some(record)');
+  const project = closed.indexOf('return project(record)');
+  assert(closed.indexOf('journal.check_transaction_context(reads~)') < current && current < select && select < project,
+    'Actual physical Read exchange and current precede same-record selection and pure projection');
+  assert.doesNotMatch(closed.slice(project), /current_for|check_transaction_context|\.retained\(/u);
+  const projection = entry.slice(entry.indexOf('    let run_definition_cid ='),
+    entry.indexOf('\n  }\n  // Same admitted record after current'));
+  assert.equal(createHash('sha256').update(projection.split('\n').map(line => line ? '    ' + line : '').join('\n')).digest('hex'),
+    'b05f1f59e7f6278dd75fb518c8018a02311e013b88099947506c0d7f941e6ff7',
+    'The exact original immutable five-field projection introduces no callback or I/O');
+  const contracts = readFileSync(new URL('../src/run_publication/contracts.mbt', import.meta.url), 'utf8');
+  assert.match(contracts, /pub fn publication_contract_identity\(contract : PublicationContract\) -> String \{\n  contract\.identity\n\}/u);
   for (const guard of ['journal.operation_active', '!journal.fenced', '!journal.transaction_active',
     '!journal.publication_read_locked', 'journal.operation_record is Some(record)', '@host.SameRequest'])
     assert(closed.includes(guard));
