@@ -2287,7 +2287,7 @@ test('Core Native prepares existing scoped producer dependencies before expensiv
   const steps = workflow.jobs.core.steps;
   const dependencies = steps.find(step => step.name === 'Install existing scoped component producer dependencies');
   assert(dependencies, 'the Native scoped component producer imports the pinned Python dependencies');
-  const existing = workflow.jobs['native-macos'].steps.find(step => step.name === dependencies.name);
+  const existing = workflow.jobs['native-macos-preparation'].steps.find(step => step.name === dependencies.name);
   assert(existing);
   assert.equal(dependencies.run, existing.run, 'use the same existing pinned selection, not another version list');
   assert.equal(dependencies.if, "${{ matrix.target == 'native' }}");
