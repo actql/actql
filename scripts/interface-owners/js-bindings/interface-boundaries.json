@@ -36709,6 +36709,13 @@
           "async": false
         },
         {
+          "name": "dispatchFailureSnapshot/read/read",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "dispatchFailureSnapshot/text/text",
           "parameters": [
             "name"
@@ -37776,7 +37783,8 @@
             "dispatchFailureSnapshot/text/text",
             "releaseDispatchPreparationHost",
             "retainDispatchPreparationHost",
-            "retainDispatchPrimaryFailure"
+            "retainDispatchPrimaryFailure",
+            "dispatchFailureSnapshot/read/read"
           ],
           "exports": [],
           "attributes": {
@@ -39418,7 +39426,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "6849c80e91b020e409882586d13c1978b0d154b7adfa42f0701f24db3b70fdff",
+      "sha256": "f3a5831dcf7e5a2b115d08d592f1a9f6ff1c7b70a7378972b54383ea64aa03b8",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

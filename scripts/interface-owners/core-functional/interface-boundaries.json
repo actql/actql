@@ -88547,7 +88547,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "12ad9e4b15253534969ea7c89c81393e0f44934f5a4ecd273ac688a9bc9f36f3",
+      "sha256": "84d0744478142655bf50e9c5bbce3953329032b10fe123ac8affd984665fac61",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -88672,7 +88672,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "bbb8e0c30c2d25d9bfcf515c9031d7c5a37f4c1c24e76e6ed28cf6f8401703d9",
+      "sha256": "2ce10589ae2bf8160c5ca20e04beab38ca8fff20d6c59b70603fcb2c238a7aaa",
       "exports": [],
       "operations": [
         {
@@ -88682,6 +88682,10 @@
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( issue : LocalDispatchIssue , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_failure_resource_dimension",
+          "declaration": "local_managed_failure_resource_dimension ( issue : LocalDispatchIssue , ) - > String ?"
         },
         {
           "name": "local_managed_provider_failure",
@@ -88698,7 +88702,8 @@
             "<module>",
             "local_managed_advance_capture_work",
             "local_managed_advance_control_work_limit",
-            "local_managed_provider_failure"
+            "local_managed_provider_failure",
+            "local_managed_failure_resource_dimension"
           ],
           "exports": [],
           "attributes": {
@@ -88788,7 +88793,7 @@
     },
     {
       "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-      "sha256": "a9173ee403646286108dea9a7df2bccad69f35bc22f2b0d217ebb7fb7ad324fd",
+      "sha256": "0dab8dbcea9f961327a236142e281edfd57ac1e8947e641b8ee4b939961ba413",
       "exports": [],
       "operations": [
         {
@@ -88798,6 +88803,10 @@
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_advance_resource_dimension",
+          "declaration": "local_managed_advance_resource_dimension ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
         }
       ],
       "role": "common-semantics",
@@ -88809,7 +88818,8 @@
           "operations": [
             "<module>",
             "local_managed_advance_capture_work",
-            "local_managed_advance_control_work_limit"
+            "local_managed_advance_control_work_limit",
+            "local_managed_advance_resource_dimension"
           ],
           "exports": [],
           "attributes": {

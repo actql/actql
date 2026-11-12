@@ -1,4 +1,4 @@
-# Local managed work diagnosis
+# Local managed execution diagnostics
 
 ## Responsibility
 
@@ -9,6 +9,9 @@ no acceptance rule, public error, dispatch, stop or cleanup decision.
 The existing value-capture owner separately preserves a failed short-name
 UTF-8 charge when its strictly smaller bound was the original work allowance.
 `value_capture_work` is distinct from the provider's `control_work` counter.
+The same failed advance can separately identify the original physical
+retained-byte or execution-byte quota constructor. Generic capacity failures
+are not evidence of either dimension.
 
 ## Inputs and outputs
 
@@ -25,6 +28,10 @@ The actual pinned Node export returns that vector inside boxed `Some`;
 `runtimeIsBoxedSome` and `runtimeField` from the existing generated compiler
 binding read it. A raw array is not an alternative ABI or fallback. The
 control-work `Int?` projection retains its separate original unboxed layout.
+The resource getter accepts only `Execution(Physical(RetentionLimit))` or
+`Execution(Physical(ExecutionLimit))`. Its closed diagnostic has phase
+`local_managed_advance`, kind `resource`, the original Task ordinal, and
+dimension `retained_bytes` or `execution_bytes`. It supplies no new allowance.
 
 ## Identity
 
@@ -46,6 +53,9 @@ the original initial control-work limit.
 Value-capture diagnosis instead retains its original Capture step and the
 immutable `ValueBudget.limits.max_work`, with no new counter or cleanup owner.
 It is attached to the original error without replacing its cleanup carrier.
+The existing failure wrappers preserve this own diagnostic DATA slot. A pending
+cleanup may separately expose its fixed owner category, phase and continuation
+state; those observations do not acknowledge stop or resource release.
 
 ## Synchronization
 
@@ -112,3 +122,7 @@ Capture work cause at step 41 before the same owner's cleanup, then verifies
 the original holder/Run retirement and zero live reservations. Its normal
 installed refusal, later query and prior Saved read still require the matching
 immutable distribution; component checks do not establish that acceptance.
+Selected Filter tests exercise counted reclamation of an actual stopped,
+unpublished output and unchanged work/source availability. Provider and typed
+bridge tests retain the original continuation and exact resource constructor.
+These checks do not establish normal first-close or post-refusal recovery.

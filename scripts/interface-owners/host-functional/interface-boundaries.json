@@ -7869,7 +7869,7 @@
     {
       "module": "adapters/host-common/managed-failure.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5fdd9967d49ae9a390fd60dc6317e2647903679e2ad716df889cf228e0df6a14",
+      "sha256": "c8f46eebd8aad540b383264ea6c26900f856859a2da93c505347c44d05a1125e",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -8088,6 +8088,11 @@
           "async": false
         },
         {
+          "name": "settleFailedManagedOperations/status/status/status#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "settleFailedManagedOperations/stopped/stopped",
           "parameters": [],
           "async": false
@@ -8127,7 +8132,8 @@
             "settleFailedManagedOperations/status/status",
             "settleFailedManagedOperations/status/status/extra/extra",
             "settleFailedManagedOperations/status/status/status",
-            "settleFailedManagedOperations/stopped/stopped"
+            "settleFailedManagedOperations/stopped/stopped",
+            "settleFailedManagedOperations/status/status/status#2"
           ],
           "exports": [
             "beginManagedFailureProgress",
@@ -16540,7 +16546,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "298209d5545a1169ca0d8495f5d03ab24c3f9bec9eab79c6dda2b8ebd7f231ce",
+      "sha256": "e1c968b73113c65ac70353cb0f354acab20856042e0365a8adb7a815524ed97b",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -133791,7 +133797,7 @@
     {
       "module": "packages/run-host-core/managed-failure.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5fdd9967d49ae9a390fd60dc6317e2647903679e2ad716df889cf228e0df6a14",
+      "sha256": "c8f46eebd8aad540b383264ea6c26900f856859a2da93c505347c44d05a1125e",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -134010,6 +134016,11 @@
           "async": false
         },
         {
+          "name": "settleFailedManagedOperations/status/status/status#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "settleFailedManagedOperations/stopped/stopped",
           "parameters": [],
           "async": false
@@ -134049,7 +134060,8 @@
             "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry",
             "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry/init:retry",
             "settleFailedManagedOperations/handle/init:retry/init:retry/init:retry#2",
-            "settleFailedManagedOperations/retryOnce/retryOnce"
+            "settleFailedManagedOperations/retryOnce/retryOnce",
+            "settleFailedManagedOperations/status/status/status#2"
           ],
           "exports": [
             "beginManagedFailureProgress",
