@@ -16,6 +16,9 @@ function withNativeFormatter(body, check) {
   const directory = mkdtempSync(join(tmpdir(), 'actql-wire-format-test-'));
   const originalHome = process.env.MOON_HOME, originalTemp = process.env.TMPDIR;
   mkdirSync(join(directory, 'bin'));
+  // The configured temp root can be inside the repository's ESM package.
+  // Keep this test executable's CommonJS format explicit in either location.
+  writeFileSync(join(directory, 'bin', 'package.json'), '{"type":"commonjs"}\n');
   const report = join(directory, 'calls.jsonl');
   writeFileSync(join(directory, 'bin', 'moonfmt'), `#!${process.execPath}\n` +
     `const {fstatSync, readFileSync, appendFileSync} = require('node:fs');\n` +
