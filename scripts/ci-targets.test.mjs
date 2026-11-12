@@ -640,7 +640,7 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.equal(jobs['native-macos-workloads']['timeout-minutes'], 115);
   assert.equal(jobs['native-workloads']['timeout-minutes'], 110);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
-  for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
+  for (const name of ['session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
     assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight']);
   }
@@ -1013,7 +1013,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
+    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
@@ -1282,7 +1282,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
+    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
   for (const profile of ['draft', 'draft-focused']) {
@@ -1542,15 +1542,15 @@ test('unclassified safety changes require proof success while reviewed shallow c
   ]) {
     const selection = selectTargets([path], {event});
     const needs = results(selection);
-    for (const name of ['session-evidence', 'pipeline-evidence']) needs[name].result = deep ? 'success' : 'skipped';
+    for (const name of ['session-evidence', 'session-controls', 'pipeline-evidence']) needs[name].result = deep ? 'success' : 'skipped';
     const lines = verifyGate(plan(selection), needs, {...context, event});
-    for (const name of ['session-evidence', 'pipeline-evidence']) {
+    for (const name of ['session-evidence', 'session-controls', 'pipeline-evidence']) {
       assert(lines.some(line => line.startsWith(`${deep ? 'PASS' : 'NOT APPLICABLE'} ${name}:`)));
       assert.throws(() => verifyGate(plan(selection), {...needs,
         [name]: {result: deep ? 'skipped' : 'success'}}, {...context, event}), undefined, `${event}/${path}/${name}`);
     }
     const scheduleNeeds = {'select-targets': {outputs: {profile: 'full', deep_proofs: String(deepProofRequired(selection))}}};
-    for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants']) {
+    for (const name of ['session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants']) {
       assert.equal(scheduled(name, scheduleNeeds), deep, `${event}/${path}/${name}`);
     }
   }

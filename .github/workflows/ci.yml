@@ -293,7 +293,7 @@ jobs:
         run: python3 -B scripts/test_native_compiler_diagnostics.py
       - name: Test CI lane coverage and bounded Native phase measurement
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/ci-balanced-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
+        run: node --test scripts/ci-balanced-lanes.test.mjs scripts/ci-session-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
@@ -486,6 +486,23 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   # Conditional proof and correspondence evidence beside the existing gates.
+  session-controls:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Reject invalid incremental action inputs and origins
+        run: node scripts/ci-session-controls.mjs
   session-evidence:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
@@ -509,8 +526,6 @@ jobs:
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Reject invalid evidence derivations
         run: node --test proofs/bounded-session/evidence.test.mjs proofs/bounded-session/proof-check.test.mjs
-      - name: Reject invalid incremental action inputs and origins
-        run: node --test proofs/ci-evidence/*.test.mjs
       - name: Select fresh or verified-main acquisition for this live run and attempt
         env:
           ACTIONS_READ_TOKEN: ${{ github.token }}
@@ -2274,7 +2289,7 @@ jobs:
           '
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
+    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04
     timeout-minutes: 5

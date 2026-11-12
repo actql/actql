@@ -276,7 +276,7 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   const fullJobs = fullCheckpointJobs(gateJobs.filter(name => name !== 'focused-tests'));
   assert(!fullJobs.includes('focused-tests'));
   for (const name of ['core (js)', 'core (wasm)', 'core (native 1/4)', 'core (native 2/4)', 'core (native 3/4)', 'core (native 4/4)', 'core (native http)', 'core (native source)', 'core (native scoped)', 'host', 'client', 'native',
-    'session-evidence', 'pipeline-evidence', 'native-macos', 'workers', 'duckdb-node']) assert(fullJobs.includes(name));
+    'session-evidence', 'session-controls', 'pipeline-evidence', 'native-macos', 'workers', 'duckdb-node']) assert(fullJobs.includes(name));
   const run = {id: 101, run_attempt: 1, workflow_id: 7, path: '.github/workflows/ci.yml',
     event: 'push', head_branch: 'main', repository: {id: 12, full_name: 'actql/actql'},
     head_repository: {id: 12}, head_sha: old, status: 'completed', conclusion: 'success'};
