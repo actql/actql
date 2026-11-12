@@ -148,17 +148,32 @@ fn bind_client_keyed_captured_source_metadata(
   }
   let order_fields = match original {
     Query(_) => 0
-    Whole(acquisition) => @acquisition.parameterized_request_field_count(
-      @acquisition.source_acquisition_request(acquisition),
-    )
+    Whole(acquisition) =>
+      @acquisition.parameterized_request_field_count(
+        @acquisition.source_acquisition_request(acquisition),
+      )
   }
   guard @execution.preparation_array_representation(
-      if order_fields > 1 { 1L } else { 0L },
-      if order_fields > 1 { order_fields.to_int64() } else { 0L }, true,
-    ) is Some(ordering) else { return Err(Assembly("capacity_overflow")) }
+      if order_fields > 1 {
+        1L
+      } else {
+        0L
+      },
+      if order_fields > 1 {
+        order_fields.to_int64()
+      } else {
+        0L
+      },
+      true,
+    )
+    is Some(ordering) else {
+    return Err(Assembly("capacity_overflow"))
+  }
   let controls = @execution.preparation_representation_cost({
     record_headers: 12L + ordering.record_headers,
-    reference_slots: 23L + 16L * (index.to_int64() + 1L) + ordering.reference_slots,
+    reference_slots: 23L +
+    16L * (index.to_int64() + 1L) +
+    ordering.reference_slots,
     scalar_words: 13L + ordering.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,

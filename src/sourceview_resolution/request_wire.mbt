@@ -42,7 +42,12 @@ pub fn parameterized_request_canonical_document(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@encode.EncodedDocument, RequestWireIssue] {
-  canonical_request_fields_document(request.fields, max_bytes, max_nodes, max_depth)
+  canonical_request_fields_document(
+    request.fields,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
 }
 
 ///|
@@ -69,7 +74,12 @@ pub fn parameterized_keyed_static_request_document(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@encode.EncodedDocument, RequestWireIssue] {
-  canonical_request_fields_document(request.fields, max_bytes, max_nodes, max_depth)
+  canonical_request_fields_document(
+    request.fields,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
 }
 
 ///|
@@ -79,7 +89,9 @@ fn canonical_request_fields_document(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@encode.EncodedDocument, RequestWireIssue] {
-  let fields = if original.length() < 2 { original } else {
+  let fields = if original.length() < 2 {
+    original
+  } else {
     let fields = original.copy()
     fields.sort_by((a, b) => {
       @unicode.compare_utf16(a.field.slot.field_name, b.field.slot.field_name)
