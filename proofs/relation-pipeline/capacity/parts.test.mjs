@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import { hash } from '../inventory.mjs';
 import { recordCapacityOwner, validateCapacityOwners, unionCapacityParts, resolveCapacityUnion, assembleCapacityParts } from './parts.mjs';
 import { prepareCapacityRegressionInputs } from './regression-inputs.mjs';
+import { capacityRegressionDescriptor, retainCapacityRegressionText } from './regression-fixtures.mjs';
+import { runCapacityRegressionWorkers } from './regression-workers.mjs';
 
 // Synthetic transport only. Real source/artifact/semantic audits remain required.
 function fixture() {
@@ -123,4 +125,29 @@ test('fragment cannot hide an execution behind an unrepresented owner', () => {
   const { parts } = fixture(), report = parts[1].report;
   report.executions[0].receipt.boundary.workspace = 'foreign-owner';
   assert.throws(() => validateCapacityOwners(report));
+});
+
+test('actual worker reconstructs independent full union and reaches the original compiler validator', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-capacity-worker-validator-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(join(root, 'toolchain.json'), JSON.stringify({ version: 'pinned' }));
+  const current = { digest: 'source', sources: {} }, cases = [];
+  for (const slot of ['compiler', 'source', 'owner']) {
+    const f = fixture(), parts = [];
+    for (const { path, report } of f.parts) {
+      report.version = 'actql-relation-pipeline-structure/0.1';
+      report.toolchain = { version: 'unreviewed' };
+      if (slot === 'owner') report.executionOwners[Object.keys(report.executionOwners)[0]].closed = false;
+      const retained = await retainCapacityRegressionText(join(root, `${slot}-${report.part}.json`),
+        JSON.stringify(report, null, 2) + '\n');
+      parts.push({ path, archive: capacityRegressionDescriptor(retained) });
+    }
+    cases.push({ slot, parts, current: slot === 'source' ? { digest: 'changed', sources: {} } : current, root });
+  }
+  const records = await runCapacityRegressionWorkers(cases);
+  assert(records.every(record => record.state === 'closed' && record.exitCode === 0 && !record.error));
+  assert(records.every(record => record.result.status === 1));
+  assert.match(records[0].result.stderr, /Unpinned compiler declaration/);
+  assert.match(records[1].result.stderr, /Stale capacity source/);
+  assert.match(records[2].result.stderr, /Unclosed capacity execution owner/);
 });

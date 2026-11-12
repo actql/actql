@@ -1,15 +1,21 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { closeSync, createWriteStream, fstatSync, lstatSync, openSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { closeSync, createWriteStream, fstatSync, lstatSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { createGzip } from 'node:zlib';
+import { createGzip, gunzipSync } from 'node:zlib';
+import { maxCapacityReportBytes } from '../ci-artifacts.mjs';
 
 // Retain every substituted field and byte without accumulating a full plain
 // report per negative. Only the ordinary CLI needs a temporary plain file;
-// in-process union negatives still validate their independent complete views.
+// union negatives still validate their independent complete views.
 export async function retainCapacityRegressionFixture(path, report) {
-  const serialized = JSON.stringify(report) + '\n';
+  return retainCapacityRegressionText(path, JSON.stringify(report) + '\n');
+}
+
+// Producer overrides retain their original pretty JSON wire, including the
+// final newline, because the union hashes those actual independent bytes.
+export async function retainCapacityRegressionText(path, serialized) {
   const archivePath = `${path}.gz`;
   const hash = createHash('sha256');
   // Bound encoding/compression chunks instead of adding another whole-report
@@ -45,4 +51,22 @@ export async function retainCapacityRegressionFixture(path, report) {
       }
     },
   });
+}
+
+// Retain only this DATA between preparation and validation. In particular, do
+// not retain withUncompressed's closure over an entire serialized report.
+export function capacityRegressionDescriptor({ archivePath, sha256, bytes, compressedBytes }) {
+  return Object.freeze({ archivePath, sha256, bytes, compressedBytes });
+}
+
+export function readCapacityRegressionText(descriptor) {
+  assert(Number.isSafeInteger(descriptor.bytes) && descriptor.bytes > 0 &&
+    descriptor.bytes <= maxCapacityReportBytes, 'Invalid capacity regression extent');
+  const compressed = readFileSync(descriptor.archivePath);
+  assert.equal(compressed.length, descriptor.compressedBytes, 'Capacity regression archive extent changed');
+  const bytes = gunzipSync(compressed, { maxOutputLength: descriptor.bytes });
+  assert.equal(bytes.length, descriptor.bytes, 'Capacity regression fixture extent changed');
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), descriptor.sha256,
+    'Capacity regression fixture digest changed');
+  return bytes.toString('utf8');
 }

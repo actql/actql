@@ -134,6 +134,16 @@ admit it. A structural proof alone cannot supply those facts.
   evidence substituted into JS/Wasm slots and unconditional-byte claims fail at
   the actual audit entrypoint.
 
+The target-substitution audit keeps its healthy independent CLI and all ten
+negative full validations. Mutation inputs and their complete producer wires
+are prepared sequentially and retained compressed; only archive descriptors
+survive preparation. At most two fresh Node worker isolates reconstruct unions
+and validate negatives, with no shared validation result. Each result must have
+its exact expected refusal and a joined normal worker exit. Per-case logs and
+the execution census distinguish preparation, running, closed and unexecuted
+cases, including abnormal exits or incomplete results. Timings separate serial
+preparation from worker loading, union construction and validation.
+
 ```
 node --test proofs/relation-pipeline/capacity.test.mjs
 node proofs/relation-pipeline/capacity/check.mjs
