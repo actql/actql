@@ -45,7 +45,7 @@ export const maintenanceFiles = Object.freeze([
 ]);
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
-  'native-cli-installed', 'native-cli-linux-local', 'native', 'native-preparation', 'native-http', 'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'native-macos-preparation', 'native-http-macos', 'python-wheels',
+  'native-cli-installed', 'native-cli-linux-local', 'native', 'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick', 'client-readme-packed']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
@@ -85,7 +85,7 @@ export function gateJobRequired(selection, name) {
   if (name === 'focused-tests') return ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (name === 'python-wheels') return pythonWheelAcceptanceRequired(selection);
   if (['session-evidence', 'pipeline-evidence'].includes(name)) return deepProofRequired(selection);
-  return selection.profile === 'full' && (!['native-macos', 'native-macos-preparation', 'native-http-macos'].includes(name) || selection.macos);
+  return selection.profile === 'full' && (name !== 'native-macos' || selection.macos);
 }
 
 // A targeted Draft acceptance lane, not a claim of complete Draft product coverage.

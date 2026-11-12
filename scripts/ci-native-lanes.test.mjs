@@ -18,7 +18,7 @@ const runCondition = (expression, group) => runInNewContext(expression
 test('every original Native command and environment has one independent execution owner', () => {
   for (const [family, obligations] of Object.entries(original.jobs)) {
     const http = family === 'native' ? 'native-http' : 'native-http-macos';
-    const jobs = [workflow.jobs[family], workflow.jobs[http]];
+    const jobs = [workflow.jobs[family + '-consumers'], workflow.jobs[http]];
     const cases = jobs.flatMap(job => job.steps.filter(step => step.run && /^(?:Test |Verify registered)/u.test(step.name ?? '')));
     assert.deepEqual(cases.map(step => step.name).sort(), obligations.map(step => step.name).sort());
     for (const expected of obligations) {
@@ -39,14 +39,14 @@ test('Native HTTP does not await or duplicate the unrelated software preparation
   for (const job of ['native-http', 'native-http-macos']) {
     assert.deepEqual(workflow.jobs[job].needs, ['select-targets', 'preflight']);
     assert(!workflow.jobs[job].steps.some(step => step.id === 'native-preparation'));
-    assert(gateJobs.includes(job));
-    assert(workflow.jobs.check.needs.includes(job));
+    const family = job === 'native-http' ? 'native' : 'native-macos';
+    assert(workflow.jobs[family].needs.includes(job));
   }
 });
 
 test('one immutable Native preparation per platform feeds every independent software consumer', () => {
   for (const family of ['native', 'native-macos']) {
-    const producer = family + '-preparation', job = workflow.jobs[family];
+    const producer = family + '-preparation', job = workflow.jobs[family + '-consumers'];
     assert(job.needs.includes(producer));
     assert.equal(job.strategy['fail-fast'], false);
     assert.equal(job['continue-on-error'], undefined);
@@ -58,10 +58,11 @@ test('one immutable Native preparation per platform feeds every independent soft
     assert.equal(download.with['client-environment'], 'false');
     assert.equal(job.steps.find(step => step.id === 'native-preparation').run,
       'python3 -B scripts/native-ci-artifact.py restore --artifact "${{ runner.temp }}/native-prepared-artifact"');
-    assert(gateJobs.includes(producer)); assert(workflow.jobs.check.needs.includes(producer));
+    assert(workflow.jobs[family].needs.includes(producer));
+    assert(gateJobs.includes(family)); assert(workflow.jobs.check.needs.includes(family));
   }
   const portable = selectTargets(['README.md']);
-  for (const job of ['native-macos', 'native-macos-preparation', 'native-http-macos'])
+  for (const job of ['native-macos'])
     assert.equal(gateJobRequired(portable, job), portable.macos);
 });
 
@@ -82,6 +83,29 @@ test('Native download keeps exact-ID validation and cannot activate Client npm i
   assert.equal(activation.if, "${{ inputs.client-environment == 'true' }}");
   assert.equal(action.runs.steps[1].with['artifact-ids'], '${{ inputs.artifact-id }}');
   assert.equal(action.runs.steps[1]['continue-on-error'], undefined);
+});
+
+test('the original Native required results reject every missing failed cancelled or skipped child', () => {
+  for (const family of ['native', 'native-macos']) {
+    const job = workflow.jobs[family];
+    assert(job.if.includes('always()'));
+    const code = /^node -e '\n([\s\S]*)'\n?$/u.exec(job.steps[0].run)?.[1];
+    assert(code);
+    const complete = Object.fromEntries(job.needs.map(name => [name, {result: 'success'}]));
+    const evaluate = results => {
+      const process = {env: {RESULTS: JSON.stringify(results)}};
+      runInNewContext(code, {process, console: {error() {}}});
+      return process.exitCode ?? 0;
+    };
+    assert.equal(evaluate(complete), 0);
+    for (const dependency of [family + '-preparation', family === 'native' ? 'native-http' : 'native-http-macos', family + '-consumers']) {
+      for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+        assert.equal(evaluate({...complete, [dependency]: {result}}), 1, `${dependency}:${result}`);
+      }
+      const missing = {...complete}; delete missing[dependency];
+      assert.equal(evaluate(missing), 1);
+    }
+  }
 });
 
 test('the existing local Native route still contains every original case without fake Actions context', () => {

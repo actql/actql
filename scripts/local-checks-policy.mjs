@@ -15,6 +15,8 @@ export const heavyJobs = Object.freeze([
 // override. The underlying proof campaigns remain ordinary heavy work; this
 // registry does not classify or intercept their raw commands.
 export const ciOnlyPipelineJobs = Object.freeze({
+  'native-consumers': 'requires the exact same-run Native software producer artifact',
+  'native-macos-consumers': 'requires the exact same-run macOS Native software producer artifact',
   'native-preparation': 'seals software against actual Actions source/run/attempt provenance',
   'native-macos-preparation': 'seals macOS software against actual Actions source/run/attempt provenance',
   'client-supported-versions': 'requires exact same-run normal tarballs and the selected compatibility interpreter',

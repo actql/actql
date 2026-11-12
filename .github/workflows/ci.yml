@@ -2121,7 +2121,7 @@ jobs:
         run: |
           ulimit -S -s 65536
           node scripts/test-native-http-client.mjs
-  native:
+  native-consumers:
     needs: [select-targets, preflight, native-preparation]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
@@ -2390,9 +2390,28 @@ jobs:
             "$RUNNER_TEMP/native-retained-calibration.json"
           ACTQL_NATIVE_CALIBRATION_PROFILE="$RUNNER_TEMP/native-retained-calibration.json" \
             node scripts/test-native-direct-pair.mjs
+  native:
+    needs: [select-targets, preflight, native-preparation, native-http, native-consumers]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every Native producer and independent consumer
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node -e '
+            const results = JSON.parse(process.env.RESULTS);
+            for (const job of ["native-preparation", "native-http", "native-consumers"]) {
+              if (results[job]?.result !== "success") {
+                console.error(`${job}: ${results[job]?.result ?? "missing"}`);
+                process.exitCode = 1;
+              }
+            }
+          '
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, native-preparation, native-http, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, native-macos-preparation, native-http-macos, python-wheels,
+    needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -2611,7 +2630,7 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
         run: |
           node scripts/test-native-http-client.mjs
-  native-macos:
+  native-macos-consumers:
     needs: [select-targets, preflight, native-macos-preparation]
     if: >-
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
@@ -2762,6 +2781,25 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-cancel
         run: |
           node scripts/test-native-resident-site.mjs --cancel-only
+  native-macos:
+    needs: [select-targets, preflight, native-macos-preparation, native-http-macos, native-macos-consumers]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every Native producer and independent consumer
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node -e '
+            const results = JSON.parse(process.env.RESULTS);
+            for (const job of ["native-macos-preparation", "native-http-macos", "native-macos-consumers"]) {
+              if (results[job]?.result !== "success") {
+                console.error(`${job}: ${results[job]?.result ?? "missing"}`);
+                process.exitCode = 1;
+              }
+            }
+          '
   python-wheels:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
