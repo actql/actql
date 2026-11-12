@@ -104,8 +104,8 @@ const mutations = [
   }))), 'adapters/host-node/client-read-reorder.test.mjs'],
   ['an uncertain read opening silently creates another charged attempt', [
   [
-    "    createDigest: installed.createDigest,\n    authorize,\n    signal,\n  }, Object.isFrozen(index) && Object.isFrozen(manifest)\n    ? Object.freeze({store: installed.store, control: installed.control,\n      index, manifest}) : undefined);\n}",
-    "    createDigest: installed.createDigest,\n    authorize,\n    signal,\n  }, Object.isFrozen(index) && Object.isFrozen(manifest)\n    ? Object.freeze({store: installed.store, control: installed.control,\n      index, manifest}) : undefined).catch(cause => {\n    if (input.attemptId.startsWith('unsafe-retry:')) throw cause;\n    return deliverAuthorizedResult(service,\n      {...input, attemptId: 'unsafe-retry:' + globalThis.crypto.randomUUID()}, sink, signal);\n  });\n}"
+    "    createDigest: installed.createDigest,\n    authorize,\n    signal,\n  }, Object.isFrozen(index) && Object.isFrozen(manifest)\n    ? Object.freeze({store: installed.store, control: installed.control,\n      index, manifest}) : undefined, workspace);\n}",
+    "    createDigest: installed.createDigest,\n    authorize,\n    signal,\n  }, Object.isFrozen(index) && Object.isFrozen(manifest)\n    ? Object.freeze({store: installed.store, control: installed.control,\n      index, manifest}) : undefined, workspace).catch(cause => {\n    if (input.attemptId.startsWith('unsafe-retry:')) throw cause;\n    return deliverAuthorizedResult(service,\n      {...input, attemptId: 'unsafe-retry:' + globalThis.crypto.randomUUID()}, sink, signal);\n  });\n}"
   ]
 ], ['local', 'https'].map(entrance => ({
     name: `${entrance}: opening reply lost after-commit is looked up without reopening or consuming another grant`,
