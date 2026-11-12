@@ -69,7 +69,7 @@ test('prepared selected SQLite table and original-Database statement keep actual
     'Existing exact-source preparation is required; no component producer fallback');
   const scratch = await createOwnedScratch({parent: join(root, '_build'),
     prefix: 'selected-read-statement-c-', label: 'selected read statement controls',
-    digests: () => ['selected-read-statement']});
+    digests: () => ['actor/read-statement']});
   const evidence = createCommandEvidence({scratch: join(root, '_build/selected-read-statement-c-evidence'),
     revision: commandSource(root).revision, cwd: root});
   try {
