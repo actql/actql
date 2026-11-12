@@ -282,7 +282,7 @@ pub fn source_input_dag_retains_completed_read_at(
     task < run.done.length() &&
     run.done[task] &&
     run.lifetimes[task].live &&
-    materialized_task_output(run, task) is Some(output) &&
+    run.outputs.get(task).bind(value => value) is Some(output) &&
     @execution.supplied_relation_read_available(read) &&
     run.supplied_reads[task].any(port => {
       port
@@ -290,19 +290,28 @@ pub fn source_input_dag_retains_completed_read_at(
         @execution.supplied_relation_read_same_binding(actual, read)
       })
       .unwrap_or(false)
-    }) &&
-    @execution.completed_output_available(output) else {
+    }) else {
     return false
   }
-  // The same committed slot was admitted by completed_segment_inputs_output
-  // when imported, or by the ordinary completion input check when executed.
+  // The SAME committed task slot already proved its exact admitted inputs.
+  // Its retained representation may be Cells, managed Relation or Carrier;
+  // none becomes another execution read merely to keep Source custody.
+  let available = match output {
+    Materialized(value) => @execution.completed_output_available(value)
+    Managed(value) => @execution.managed_completed_reference_available(value)
+    CarrierManaged(value) =>
+      @execution.carrier_managed_completed_reference_available(value)
+  }
   // Imported Source roots retain ProducerRead provenance from their original
   // prefix; it must not be recast as a fresh SuppliedRelation execution.
-  // Original availability callbacks can retire this port reentrantly. This
-  // result is custody correspondence only, never renewed execution access.
+  // Availability can synchronously retire this exact slot/Run. Keep the same
+  // committed reference after that callback; this grants no execution access.
+  available &&
   !run.stopped &&
   run.lifetimes[task].live &&
-  materialized_task_output(run, task)
+  run.outputs
+  .get(task)
+  .bind(value => value)
   .map(actual => physical_equal(actual, output))
   .unwrap_or(false)
 }

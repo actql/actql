@@ -142,6 +142,14 @@ test "Effect whole inputs keep distinct Source slots and execute their original 
   ).unwrap()
   let operations : Array[@local_driver.LocalManagedDispatchOperations[Int]] = []
   let output_live = Ref(true)
+  let stop_on_output_check = Ref(false)
+  let output_current = () => {
+    if stop_on_output_check.val {
+      stop_on_output_check.val = false
+      @strategy.stop_captured_dag(dag)
+    }
+    output_live.val
+  }
   let mut available : Array[@local_driver.LocalManagedAvailableOutput[Int]] = [
     @local_driver.local_managed_supplied_relation_input(),
     @local_driver.local_managed_supplied_relation_input(),
@@ -190,9 +198,11 @@ test "Effect whole inputs keep distinct Source slots and execute their original 
         fail("Whole Source Compute physical: " + @debug.to_string(issue))
       Err(_) => fail("Whole Source Compute other")
     }
-    (original.prepare_finalization)(task, original.storage_bytes, () => {
-      output_live.val
-    }).unwrap()
+    (original.prepare_finalization)(
+      task,
+      original.storage_bytes,
+      output_current,
+    ).unwrap()
     let mut finalized = false
     for _ in 0..<10000 {
       if (original.advance_finalization)(256).unwrap().complete {
@@ -202,16 +212,85 @@ test "Effect whole inputs keep distinct Source slots and execute their original 
     }
     assert_true(finalized)
     (original.settle)().unwrap()
-    let completed = (original.complete)(task, original.storage_bytes, () => {
-      output_live.val
-    }).unwrap()
+    let completed = (original.complete)(
+      task,
+      original.storage_bytes,
+      output_current,
+    ).unwrap()
     assert_eq(@execution.managed_completed_output_row_count(completed), 1)
     assert_eq((original.output_row)(0).unwrap(), "{\"id\":3}")
+    if task == 0 {
+      // This actual Local completion has a managed slot, not a Cells view.
+      let target = @lower.preparation_output_target(
+        @lower.bound_preparation(
+          @strategy.graph_task_owner(plan.graph, 0).unwrap(),
+        ),
+      ).unwrap()
+      assert_true(@strategy.captured_task_output(dag, 0, target) is None)
+      for source in sources {
+        let read = @query.captured_source_original_input_read(source).unwrap()
+        assert_true(
+          @strategy.source_input_dag_retains_completed_read_at(dag, read, 0),
+        )
+        let receiver = @execution.supplied_relation_read_receiver(read)
+        let input_index = @execution.supplied_relation_read_input_index(read)
+        // Equal fresh row admission is no Source/custody substitute.
+        let equal_rows = @execution.capture_input(
+          receiver,
+          input_index,
+          [funded_value_cursor("{\"id\":3}")],
+          max_rows=1,
+          {
+            max_nodes: 100,
+            max_depth: 20,
+            max_text_bytes: 100,
+            max_work: 1000,
+          },
+        ).unwrap()
+        let foreign = @execution.prepare_supplied_relation_read(
+          receiver,
+          input_index,
+          equal_rows,
+          () => true,
+        ).unwrap()
+        assert_true(
+          @execution.supplied_relation_read_cell(read, 0, 0)
+          is Some(@admitted.Number(3.0)),
+        )
+        assert_true(
+          @execution.supplied_relation_read_cell(foreign, 0, 0)
+          is Some(@admitted.Number(3.0)),
+        )
+        assert_false(
+          @execution.supplied_relation_read_same_binding(read, foreign),
+        )
+        assert_false(
+          @strategy.source_input_dag_retains_completed_read_at(dag, foreign, 0),
+        )
+        let retired = @execution.restrict_supplied_relation_read(read, () => {
+          false
+        })
+        assert_false(
+          @strategy.source_input_dag_retains_completed_read_at(dag, retired, 0),
+        )
+      }
+    }
     operations.push(original)
     available = [@local_driver.local_managed_relation_output(completed)]
   }
   assert_true(@strategy.captured_task_completed(dag, 0))
   assert_true(@strategy.captured_task_completed(dag, 1))
+  let source_read = @query.captured_source_original_input_read(sources[0]).unwrap()
+  assert_false(
+    @strategy.source_input_dag_retains_completed_read_at(dag, source_read, 1),
+  )
+  // Availability may synchronously stop this exact Run. The original slot
+  // cannot remain custody-current after that callback, even if it returns true.
+  stop_on_output_check.val = true
+  assert_false(
+    @strategy.source_input_dag_retains_completed_read_at(dag, source_read, 0),
+  )
+  assert_false(stop_on_output_check.val)
   output_live.val = false
   for original in operations {
     (original.close)()
