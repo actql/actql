@@ -330,15 +330,19 @@ pub fn start_client_composed_infer_input(
       // its actual Host/direct-output binding selects this two-port branch;
       // a count, equal Result or raw Source cannot stand in for that binding.
       Some(_) if inputs.length() == 2 &&
-        inputs[0] is @local.RelationInput(read) &&
+        inputs[0] is @local.RelationInput(left) &&
         @publication_host.client_composed_keyed_lookup_result_input_matches(
-          lookup, occurrence, read,
+          lookup, occurrence, left,
         ) => {
         guard inputs[1] is @local.SuppliedRelationInput(read) &&
           @publication_host.finish_client_keyed_lookup_input(lookup)
           is Ok(original) else {
           return Err(UnsupportedProgram)
         }
+        // A representation rebind preserves logical binding identity while
+        // retaining its own physical availability. Check that supplied read,
+        // then keep the existing final lookup/owner fence after callbacks.
+        @execution.producer_read_available(left) &&
         @execution.supplied_relation_read_same_binding(read, original) &&
         @execution.supplied_relation_read_available(read)
       }

@@ -1310,6 +1310,35 @@ fn original_composed_keyed_consumer(
         is Err(UnsupportedProgram),
       )
     }
+    let replacement_live = Ref(true)
+    let rebound = @execution.rebind_producer_representation(
+      read,
+      @execution.restrict_completed_output(output.unwrap(), () => {
+        replacement_live.val
+      }),
+    ).unwrap()
+    assert_true(@execution.producer_read_same_binding(read, rebound))
+    assert_true(@execution.producer_read_available(rebound))
+    replacement_live.val = false
+    assert_true(@execution.producer_read_available(read))
+    assert_false(@execution.producer_read_available(rebound))
+    let before_rebound = @resources.ledger_usage(ledger)
+    let revoked = start_client_composed_infer_input(
+      model._occurrence,
+      prefix,
+      [@local.managed_provider_relation_input(rebound), inputs[1]],
+      execution,
+      measurement,
+      mapping,
+      keyed=Some(lookup),
+    )
+    match revoked {
+      Err(UnsupportedProgram) => ()
+      Err(_) => fail("revoked replacement reached a later constructor")
+      Ok(_) =>
+        fail("revoked replacement was admitted with its live original binding")
+    }
+    assert_eq(@resources.ledger_usage(ledger), before_rebound)
     let input = match
       start_client_composed_infer_input(
         model._occurrence,
