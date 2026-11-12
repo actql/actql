@@ -132,19 +132,34 @@ fn prepare_native_keyed_lookup_completion(
   // receipt or resets actual consumed work after a partial failure.
   lookup.native_completion = Some(result)
   lookup.left.observed_ms = now_ms
-  match finish_keyed_lookup_protocol_metadata(
-    lookup, phase, max_nodes, max_depth,
-    [result.accounting, result.receipt, result.relation, result.retention, result.evidence,
-      @publication.result_ordering_evidence_contract(result.ordering),
-      @publication.result_ordering_derivation_contract(result.ordering)],
-    evidence=[result.input, result.source],
-  ) {
+  match
+    finish_keyed_lookup_protocol_metadata(
+      lookup,
+      phase,
+      max_nodes,
+      max_depth,
+      [
+        result.accounting,
+        result.receipt,
+        result.relation,
+        result.retention,
+        result.evidence,
+        @publication.result_ordering_evidence_contract(result.ordering),
+        @publication.result_ordering_derivation_contract(result.ordering),
+      ],
+      evidence=[result.input, result.source],
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if @publication.publication_contract_name(component.original.profile) == "declared_file_content_read" {
-    prepare_declared_file_lookup_dependencies(lookup, result, max_nodes, max_depth)
-  } else { Ok(()) }
+  if @publication.publication_contract_name(component.original.profile) ==
+    "declared_file_content_read" {
+    prepare_declared_file_lookup_dependencies(
+      lookup, result, max_nodes, max_depth,
+    )
+  } else {
+    Ok(())
+  }
 }
 
 ///|

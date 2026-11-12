@@ -90,7 +90,9 @@ pub fn checked_local_catalog_dependency_body(
       return Err(MissingDependency)
     }
     let (bytes, nodes, depth) = @environment.member_emission_geometry(original)
-    if !prepare(bytes, nodes, depth) { return Err(BudgetExceeded) }
+    if !prepare(bytes, nodes, depth) {
+      return Err(BudgetExceeded)
+    }
   }
   let kind = match role {
     "schema_evidence" => SourceSchema(index)

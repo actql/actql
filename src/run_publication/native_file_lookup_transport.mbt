@@ -4,7 +4,9 @@
 pub fn file_read_profile_contract_bindings(
   profile : PublicationContract,
 ) -> (String, String, String)? {
-  guard ["native_file_content_read", "declared_file_content_read"].contains(profile.name) &&
+  guard ["native_file_content_read", "declared_file_content_read"].contains(
+      profile.name,
+    ) &&
     optional_string(
       @json.object_field(profile.value, "source_view_contract_cid"),
     )
@@ -24,7 +26,9 @@ pub fn file_read_profile_contract_bindings(
 pub fn file_read_profile_physical_source_contract_cid(
   profile : PublicationContract,
 ) -> String? {
-  if !["native_file_content_read", "declared_file_content_read"].contains(profile.name) {
+  if !["native_file_content_read", "declared_file_content_read"].contains(
+      profile.name,
+    ) {
     return None
   }
   optional_string(
@@ -104,7 +108,9 @@ pub fn issue_file_lookup_transport(
 pub fn native_file_read_profile_contract_bindings(
   profile : PublicationContract,
 ) -> (String, String, String)? {
-  if profile.name != "native_file_content_read" { return None }
+  if profile.name != "native_file_content_read" {
+    return None
+  }
   file_read_profile_contract_bindings(profile)
 }
 
@@ -112,7 +118,9 @@ pub fn native_file_read_profile_contract_bindings(
 pub fn native_file_read_profile_physical_source_contract_cid(
   profile : PublicationContract,
 ) -> String? {
-  if profile.name != "native_file_content_read" { return None }
+  if profile.name != "native_file_content_read" {
+    return None
+  }
   file_read_profile_physical_source_contract_cid(profile)
 }
 
@@ -128,5 +136,7 @@ pub fn issue_native_file_lookup_transport(
   if profile.name != "native_file_content_read" {
     return Err(InvalidField("native_file_read_profile"))
   }
-  issue_file_lookup_transport(profile, static_request, max_bytes, max_nodes, max_depth)
+  issue_file_lookup_transport(
+    profile, static_request, max_bytes, max_nodes, max_depth,
+  )
 }

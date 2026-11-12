@@ -119,22 +119,28 @@ pub fn prepare_client_keyed_native_activation(
     owned_utf16_units: 24L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  let writer_bytes = if @publication.publication_contract_name(profile) == "declared_file_content_read" {
+  let writer_bytes = if @publication.publication_contract_name(profile) ==
+    "declared_file_content_read" {
     // The original encoded Request is already retained by this plan. Only
     // its actual subtree and the closed issuer/envelope Strings are next;
     // a large accepted codec ceiling is not an allocation request.
-    let units = wire.length().to_int64() + issuer_id.length().to_int64() +
+    let units = wire.length().to_int64() +
+      issuer_id.length().to_int64() +
       @publication.publication_contract_json(profile).length().to_int64() +
       @publication.publication_contract_identity(batch).length().to_int64() +
       @publication.publication_contract_identity(transport).length().to_int64() +
-      source.length().to_int64() + schema.length().to_int64() +
+      source.length().to_int64() +
+      schema.length().to_int64() +
       client_request_authority_scope_cid(client_request).length().to_int64() +
       component.barrier.logical_cid.length().to_int64()
-    guard @execution.checked_preparation_add_product(4096L, units, 6L) is Some(bytes) else {
+    guard @execution.checked_preparation_add_product(4096L, units, 6L)
+      is Some(bytes) else {
       return Err(Assembly("capacity_overflow"))
     }
     Int64::min(bytes, max_bytes.to_int64()).to_int()
-  } else { max_bytes }
+  } else {
+    max_bytes
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       state,
@@ -249,7 +255,8 @@ pub fn prepare_client_keyed_native_activation(
   }
   let activation = match
     native_lookup_seal(
-      "native_file_lookup_activation", activation_body, writer_bytes, max_nodes, max_depth,
+      "native_file_lookup_activation", activation_body, writer_bytes, max_nodes,
+      max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

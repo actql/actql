@@ -697,6 +697,8 @@ pub fn keyed_row_capture_export_construction_capacity(
 pub fn keyed_row_capture_dimensions(
   capture : RowKeyedSourceCapture,
 ) -> (Int, Int) {
-  (@execution.captured_row_count(capture.retention.rows),
-    @schema.field_count(@execution.captured_schema(capture.retention.rows)))
+  (
+    @execution.captured_row_count(capture.retention.rows),
+    @schema.field_count(@execution.captured_schema(capture.retention.rows)),
+  )
 }

@@ -53,7 +53,10 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   max_depth : Int,
   physical_source : (String, String)?,
   before_body : ((Int, Int, Int) -> Bool)?,
-) -> Result[Array[@publication.CapturedEffectDependencyBody], ClientEffectDependencyCaptureIssue] {
+) -> Result[
+  Array[@publication.CapturedEffectDependencyBody],
+  ClientEffectDependencyCaptureIssue,
+] {
   if limits.max_entries < 0 ||
     limits.max_entries > 4096 ||
     limits.max_total_bytes < 1 ||
@@ -64,8 +67,10 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     max_depth < 1 {
     return Err(Dependency(InvalidLimits))
   }
-  guard !lookup.closed && lookup.left.lookup_issue is None &&
-    lookup.native_completion is Some(same_completion) && physical_equal(same_completion, completed) &&
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.native_completion is Some(same_completion) &&
+    physical_equal(same_completion, completed) &&
     lookup.left.composed is Some(original) &&
     original.plan.keyed is Some(component) &&
     original.keyed.program is KeyedEffect(prepared) &&
@@ -113,9 +118,20 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     }
     let (body, bytes) = require_native_lookup_dependency(
       admit_client_effect_dependency_capture_body(
-        kind, Some(cid), wire, remaining, max_nodes, max_depth, before_body,
-        () => !lookup.closed && lookup.left.lookup_issue is None &&
-          lookup.native_completion.map(value => physical_equal(value, completed)).unwrap_or(false),
+        kind,
+        Some(cid),
+        wire,
+        remaining,
+        max_nodes,
+        max_depth,
+        before_body,
+        () => {
+          !lookup.closed &&
+          lookup.left.lookup_issue is None &&
+          lookup.native_completion
+          .map(value => physical_equal(value, completed))
+          .unwrap_or(false)
+        },
       ),
     )
     bodies.push(body)
@@ -152,7 +168,9 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         let writer = @encode.measuring_writer(remaining, max_nodes, max_depth)
         produce(writer)
         @encode.finish_measurement_usage(writer)
-      } catch { _ => raise NativeLookupDependencyStop(Dependency(InvalidBody)) }
+      } catch {
+        _ => raise NativeLookupDependencyStop(Dependency(InvalidBody))
+      }
       if !prepare(measure.0, measure.1, measure.2) {
         raise NativeLookupDependencyStop(ConstructionRefused)
       }
@@ -295,10 +313,14 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       return Err(ForeignInput)
     }
     if before_body is None {
-      let pipeline_wire = @canonical.stringify_value(pipeline, remaining, max_nodes, max_depth)
+      let pipeline_wire = @canonical.stringify_value(
+        pipeline, remaining, max_nodes, max_depth,
+      )
       append("task_fragment", component.left.logical_cid, pipeline_wire)
     } else {
-      emit("task_fragment", component.left.logical_cid, writer => @canonical.emit_value(pipeline, writer))
+      emit("task_fragment", component.left.logical_cid, writer => {
+        @canonical.emit_value(pipeline, writer)
+      })
     }
     for index, source in native.sources {
       evidence("source_input_logical", source.logical)

@@ -421,8 +421,12 @@ pub fn prepare_client_keyed_native_left_relation(
   // The declared-file consumer borrows already-retained Source bodies. Price
   // its next closed envelopes from those original wires/CIDs, not the policy
   // ceiling. Native's selected caller keeps its existing codec geometry.
-  let writer_bytes = if @publication.publication_contract_name(component.original.profile) == "declared_file_content_read" {
-    let mut units = issuer.length().to_int64() + policy.cid.length().to_int64() +
+  let writer_bytes = if @publication.publication_contract_name(
+      component.original.profile,
+    ) ==
+    "declared_file_content_read" {
+    let mut units = issuer.length().to_int64() +
+      policy.cid.length().to_int64() +
       @publication.publication_contract_json(retention).length().to_int64() +
       left.producer_contract_cid.length().to_int64() +
       left.logical_value_cid.length().to_int64() +
@@ -430,18 +434,28 @@ pub fn prepare_client_keyed_native_left_relation(
       left.computation_contract_cid.length().to_int64() +
       client_request_authority_scope_cid(request).length().to_int64()
     for source in state.sources {
-      let borrowed_units = @publication.publication_contract_json(source.relation).length().to_int64() +
+      let borrowed_units = @publication.publication_contract_json(
+          source.relation,
+        )
+        .length()
+        .to_int64() +
         @publication.publication_contract_json(source.scope).length().to_int64()
-      guard @execution.checked_preparation_add_product(units, borrowed_units, 1L) is Some(next) else {
+      guard @execution.checked_preparation_add_product(
+          units, borrowed_units, 1L,
+        )
+        is Some(next) else {
         return Err(Assembly("capacity_overflow"))
       }
       units = next
     }
-    guard @execution.checked_preparation_add_product(4096L, units, 6L) is Some(bytes) else {
+    guard @execution.checked_preparation_add_product(4096L, units, 6L)
+      is Some(bytes) else {
       return Err(Assembly("capacity_overflow"))
     }
     Int64::min(bytes, max_bytes.to_int64()).to_int()
-  } else { max_bytes }
+  } else {
+    max_bytes
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
@@ -492,7 +506,9 @@ pub fn prepare_client_keyed_native_left_relation(
   inputs.sort()
   let mut index = inputs.length() - 1
   while index > 0 {
-    if inputs[index] == inputs[index - 1] { inputs.remove(index) |> ignore }
+    if inputs[index] == inputs[index - 1] {
+      inputs.remove(index) |> ignore
+    }
     index -= 1
   }
   let ordering = match

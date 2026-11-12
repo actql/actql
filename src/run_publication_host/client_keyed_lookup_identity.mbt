@@ -350,7 +350,9 @@ fn prepare_keyed_lookup_request_metadata(
       128L * role_count.to_int64()
     for (wire, _, _) in lookup.known {
       guard @execution.checked_preparation_add_product(
-          bound, wire.length().to_int64(), 6L,
+          bound,
+          wire.length().to_int64(),
+          6L,
         )
         is Some(next) else {
         return Err(Assembly("capacity_overflow"))

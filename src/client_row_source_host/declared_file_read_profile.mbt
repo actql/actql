@@ -85,15 +85,24 @@ pub fn declared_file_read_profile_construction_inventory(
   fields : DeclaredFileReadFields,
   prior_profiles? : Int = 0,
 ) -> @execution.PreparationRepresentationUnits? {
-  if prior_profiles < 0 { return None }
+  if prior_profiles < 0 {
+    return None
+  }
   guard declared_file_read_profile_wire_bound(fields) is Some(bytes) else {
     return None
   }
   let mut source_units = 0L
-  for wires in [declaration.view_bodies, physical.contracts, physical.view_bodies] {
+  for
+    wires in [declaration.view_bodies, physical.contracts, physical.view_bodies] {
     for wire in wires {
-      guard @execution.checked_preparation_add_product(source_units, wire.length().to_int64(), 1L)
-        is Some(next) else { return None }
+      guard @execution.checked_preparation_add_product(
+          source_units,
+          wire.length().to_int64(),
+          1L,
+        )
+        is Some(next) else {
+        return None
+      }
       source_units = next
     }
   }
@@ -124,7 +133,8 @@ pub fn declared_file_read_profile_construction_inventory(
       record_references: 26L,
       record_words: 2L,
       reference_arrays: 4L,
-      reference_items: prior_profiles.to_int64() + fields.items_path.length().to_int64() +
+      reference_items: prior_profiles.to_int64() +
+      fields.items_path.length().to_int64() +
       fields.key_path.length().to_int64() +
       declaration.file_read_profiles
       .map(profiles => profiles.length().to_int64())
@@ -141,8 +151,10 @@ pub fn declared_file_read_profile_construction_inventory(
   @execution.compose_preparation_representation([
     parsed,
     {
-      record_headers: hash.record_headers, reference_slots: hash.reference_slots,
-      scalar_words: hash.scalar_words, owned_utf16_units: hash.owned_utf16_units,
+      record_headers: hash.record_headers,
+      reference_slots: hash.reference_slots,
+      scalar_words: hash.scalar_words,
+      owned_utf16_units: hash.owned_utf16_units,
       owned_wire_bytes: hash.owned_wire_bytes,
     },
     contracts,
@@ -178,12 +190,15 @@ pub fn bind_declared_file_read_profile(
     !fields.key_path.is_empty() else {
     return Err(InvalidSpecification)
   }
-  guard physical.views.search_by(view => physical_equal(view, physical_view)) is Some(physical_index) &&
+  guard physical.views.search_by(view => physical_equal(view, physical_view))
+    is Some(physical_index) &&
     physical.view_bodies.get(physical_index) is Some(physical_wire) else {
     return Err(InvalidSpecification)
   }
   let mut wire_units = 0L
-  for wire in physical.view_bodies { wire_units += wire.length().to_int64() }
+  for wire in physical.view_bodies {
+    wire_units += wire.length().to_int64()
+  }
   for wire in physical.contracts {
     wire_units += wire.length().to_int64()
   }
@@ -364,7 +379,8 @@ pub fn row_declaration_file_read_profile_matches(
     true
   }
   profile.physical_resource == physical_resource &&
-  physical.views.iter().find_first(view => view.resource == physical_resource) is Some(view) &&
+  physical.views.iter().find_first(view => view.resource == physical_resource)
+  is Some(view) &&
   physical_equal(profile.physical_view, view) &&
   original.identity == fields.identity &&
   original.name == fields.name &&
@@ -376,7 +392,6 @@ pub fn row_declaration_file_read_profile_matches(
   same_path(original.key_path, fields.key_path)
 }
 
-
 ///|
 /// Original installing View body retained by the profile's existing Mapping
 /// validation. Equal-CID profiles cannot select this borrowed publication DATA.
@@ -385,7 +400,10 @@ pub fn row_declaration_file_read_physical_source(
   declaration : RowDeclaration,
   profile : @publication.PublicationContract,
 ) -> (String, String)? {
-  declaration.file_read_profiles.bind(profiles =>
-    profiles.iter().find_first(value => physical_equal(value.contract, profile))
-      .map(value => (value.physical_view.view_cid, value.physical_wire)))
+  declaration.file_read_profiles.bind(profiles => {
+    profiles
+    .iter()
+    .find_first(value => physical_equal(value.contract, profile))
+    .map(value => (value.physical_view.view_cid, value.physical_wire))
+  })
 }

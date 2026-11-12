@@ -2,9 +2,10 @@
 fn is_lookup_effect_dependency_kind(kind : String) -> Bool {
   [
     "lookup_evidence", "lookup_accounting", "acquisition_attempt_receipt", "lookup_barrier",
-    "native_file_content_read", "declared_file_content_read", "native_file_lookup_transport", "native_file_lookup_batch_plan",
-    "native_file_lookup_request", "native_file_lookup_call_slot", "native_file_lookup_activation",
-    "native_file_lookup_raw_response", "native_file_lookup_attempt_event", "native_file_lookup_adoption",
+    "native_file_content_read", "declared_file_content_read", "native_file_lookup_transport",
+    "native_file_lookup_batch_plan", "native_file_lookup_request", "native_file_lookup_call_slot",
+    "native_file_lookup_activation", "native_file_lookup_raw_response", "native_file_lookup_attempt_event",
+    "native_file_lookup_adoption",
   ].contains(kind)
 }
 

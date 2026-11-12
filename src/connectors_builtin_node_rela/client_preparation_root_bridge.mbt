@@ -231,31 +231,55 @@ pub fn client_program_prepare_request_model_graph(
   @publication_host.ClientInferPlanGraph,
   ClientRequestProgramModuleBridgeIssue,
 ] {
-  prepare_request_model_graph_with_file_declarations(parent, input, occurrence, execution, contracts, None)
+  prepare_request_model_graph_with_file_declarations(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    None,
+  )
 }
 
 ///|
 #export_name("clientProgramPrepareRequestDeclaredFileModelGraph")
 pub fn client_program_prepare_request_declared_file_model_graph(
-  parent : @client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal],
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
   input : ClientLocalPreparationInputOriginal,
   occurrence : @publication_host.ClientInferOccurrence,
   execution : @check_environment.ModelExecutionContract,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
   declarations : Array[@client_row_source_host.RowDeclaration],
-) -> Result[@publication_host.ClientInferPlanGraph, ClientRequestProgramModuleBridgeIssue] {
-  prepare_request_model_graph_with_file_declarations(parent, input, occurrence, execution, contracts, Some(declarations))
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  prepare_request_model_graph_with_file_declarations(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    Some(declarations),
+  )
 }
 
 ///|
 fn prepare_request_model_graph_with_file_declarations(
-  parent : @client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal],
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
   input : ClientLocalPreparationInputOriginal,
   occurrence : @publication_host.ClientInferOccurrence,
   execution : @check_environment.ModelExecutionContract,
   contracts : @client_local_host.ClientInstalledSequenceContracts,
   keyed_file_declarations : Array[@client_row_source_host.RowDeclaration]?,
-) -> Result[@publication_host.ClientInferPlanGraph, ClientRequestProgramModuleBridgeIssue] {
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))

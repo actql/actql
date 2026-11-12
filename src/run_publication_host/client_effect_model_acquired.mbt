@@ -204,11 +204,17 @@ pub fn client_effect_model_acquired_lookup_barrier(
 /// a copy of the pointer array cannot mutate that private retained inventory.
 pub fn client_effect_model_acquired_lookup_dependency_bodies(
   value : ClientEffectModelAcquiredEvidence,
-) -> Result[Array[@publication.CapturedEffectDependencyBody], ClientEffectLocalResultArtifactIssue] {
+) -> Result[
+  Array[@publication.CapturedEffectDependencyBody],
+  ClientEffectLocalResultArtifactIssue,
+] {
   guard value.keyed is Some((lookup, completed)) else { return Ok([]) }
-  guard !lookup.closed && lookup.left.lookup_issue is None &&
-    lookup.native_completion is Some(same) && physical_equal(same, completed) &&
-    lookup.native_sources is Some(state) && state.dependency_bodies is Some(bodies) else {
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.native_completion is Some(same) &&
+    physical_equal(same, completed) &&
+    lookup.native_sources is Some(state) &&
+    state.dependency_bodies is Some(bodies) else {
     return Err(ForeignOwner)
   }
   Ok(bodies.copy())
