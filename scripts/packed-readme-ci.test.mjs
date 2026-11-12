@@ -234,12 +234,12 @@ test('Whole three-Source and binary JOIN CI always collects only the invocation 
   ]) {
     const consumer = steps.find(step => step.id === id); assert(consumer);
     assert.equal(consumer.run, `node scripts/test-packed-hubspot-source.mjs --ci ${selection}`);
-    assert.equal(consumer.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+    assert.equal(consumer.if, "${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
     assert.equal(Object.values(workflow.jobs).flatMap(job => job.steps ?? [])
       .filter(step => step.run?.includes(selection)).length, 1, 'Each original consumer runs once');
     const upload = steps.find(step => step.with?.directory === `\${{ steps.${id}.outputs.evidence-directory }}`);
     assert(upload); assert(steps.indexOf(upload) > steps.indexOf(consumer));
-    assert.equal(upload.if, `always() && steps.${id}.outputs.evidence-directory != ''`);
+    assert.equal(upload.if, `matrix.group == 'connectors' && always() && steps.${id}.outputs.evidence-directory != ''`);
     assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
     assert.equal(upload['continue-on-error'], undefined);
     assert.equal(consumer['continue-on-error'], undefined);
