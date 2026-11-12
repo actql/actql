@@ -2489,6 +2489,14 @@ if (process.env.ACTQL_FIXTURE_PROFILE) {
     env: {...f.env, ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2', ACTQL_FIXTURE_NATIVE_COMMANDS: commands},
   });
   assert.ifError(result.error); assert.equal(result.status, 0, result.stdout + result.stderr);
+  const phases = result.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_CI_PHASE '))
+    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)));
+  for (const [profile, count] of [['runtime-values', 2], ['scoped-review-values', 5]]) {
+    const phase = phases.find(value => value.profile === profile);
+    assert.deepEqual({...phase, milliseconds: 0}, {phase: 'scoped-profile', profile, milliseconds: 0,
+      expectedCases: count, attemptedCases: count, passedCases: count, failedCases: 0,
+      unexecutedCases: 0, succeeded: true});
+  }
   const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(calls.length, 10, 'Two checkpoint originals, ordinary Core and seven scoped cases; no second prerequisites');
   const selected = calls.filter(call => call.profile !== 'ordinary');
@@ -2531,6 +2539,13 @@ if (process.env.ACTQL_FIXTURE_PROFILE) {
     env: {...f.env, ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2'},
   });
   assert.ifError(result.error); assert.equal(result.status, 7, result.stdout + result.stderr);
+  const phases = result.stderr.split('\n').filter(line => line.startsWith('ACTQL_NATIVE_CI_PHASE '))
+    .map(line => JSON.parse(line.slice('ACTQL_NATIVE_CI_PHASE '.length)));
+  const failed = phases.find(value => value.profile === 'runtime-values');
+  assert.deepEqual({...failed, milliseconds: 0}, {phase: 'scoped-profile', profile: 'runtime-values', milliseconds: 0,
+    expectedCases: 2, attemptedCases: 1, passedCases: 0, failedCases: 1, unexecutedCases: 1, succeeded: false});
+  const completed = phases.find(value => value.profile === 'scoped-review-values');
+  assert.equal(completed.passedCases, 5); assert.equal(completed.unexecutedCases, 0);
   const timeline = readFileSync(events, 'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(timeline.filter(event => event.profile === 'runtime-values').length, 1);
   const sibling = timeline.filter(event => event.profile === 'scoped-review-values');

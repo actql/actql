@@ -257,72 +257,85 @@ if (full) {
       const tests = selection.profiles.scoped.tests.filter(test =>
         nativeCoreScopedAllocationProfile(test.source) === profile);
       if (tests.length === 0) return {status: 0};
-      const profileNamespace = join(scopedScratch.path, profile);
-      mkdirSync(profileNamespace, {mode: 0o700});
-      // Start from the original PATH, not the ordinary test-only compiler shim.
-      const scoped = prepareNativeCoreScopedProfile(root, profileNamespace,
-        ['--target', 'native', ...args, ...new Set(tests.map(test => test.source))],
-        {env: fixtureEnvironment, profile});
-      console.log(`Native Core ${profile}: ${tests.length} required cases`);
-      // Each original case initializes its own physical region header. Closing
-      // that region does not erase the header, and the cases require different
-      // exact backing extents. Keep the compiled target, never reset a used file.
-      for (const [ordinal, test] of tests.entries()) {
-        const caseNamespace = join(namespace, `scoped-${profile}-case-${ordinal}`);
-        mkdirSync(caseNamespace, {mode: 0o700});
-        const physical = test.source === nativeRelationWorkTestFile
-          ? await relationFixture(caseNamespace, relationRuntime)
-          : nativeRelationCaptureTestFiles.includes(test.source)
-          ? nativeRelationFileCaptureFixture(caseNamespace)
-          : test.source === nativeRelationTargetIOTestFile
-          ? nativeRelationTargetIOFixture(caseNamespace, test.index)
-          : test.source === nativeRelationTargetIOLineageTestFile
-          ? nativeRelationTargetIOLineageFixture(caseNamespace, test.index)
-          : test.source === nativeClientFileResponseTestFile
-          ? nativeClientFileResponseFixture(caseNamespace, test.index)
-          : test.source === 'src/platform_native/installed_arena_control/model_read_frame_physical_scoped_wbtest.mbt'
-          ? nativeCoreModelFrameFixture(caseNamespace)
-          : nativeCoreScopedFixture(caseNamespace, {
-          cryptoLibrary: components.cryptoLibrary,
-          sqliteLibrary: components.sqliteLibrary,
-          backingPages: nativeCoreScopedBackingPages(test.source),
-        });
-        const content = test.source === nativeProjectMockContentTestFile
-          ? nativeProjectContentCaseFixture(caseNamespace, test.index,
-            fixtureEnvironment.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT)
-          : {ACTQL_TEST_NATIVE_METADATA_REMAINDER: undefined, ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined, ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: undefined,
-            ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: undefined, ACTQL_TEST_NATIVE_RAW_SNAPSHOT: undefined,
-            ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: undefined, ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES: undefined,
-            ACTQL_TEST_NATIVE_BATCH_PLAN: undefined, ACTQL_TEST_NATIVE_ACTIVATION: undefined,
-            ACTQL_TEST_NATIVE_RAW_STORE: undefined, ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: undefined,
-            ACTQL_TEST_NATIVE_LEFT_IDENTITY: undefined, ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: undefined,
-            ACTQL_TEST_NATIVE_ATTEMPT_USAGE: undefined, ACTQL_TEST_NATIVE_CAPTURED_PAGE: undefined,
-            ACTQL_TEST_NATIVE_LOOKUP_COMPLETION: undefined, ACTQL_TEST_NATIVE_LOOKUP_DEPENDENCIES: undefined,
-            ACTQL_TEST_NATIVE_LOOKUP_CLOSURE: undefined, ACTQL_TEST_NATIVE_SOURCE_UNIT_EVIDENCE: undefined};
-        const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
-          '--target-dir', scoped.targetDirectory];
-        const timeout = scopedDeadline - Date.now();
-        if (timeout <= 0) throw new Error('Selected Native Core deadline exhausted');
-        const result = await new Promise(resolve => {
-          let error;
-          const child = spawn(process.execPath, ['--input-type=module', '-e',
-          "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-          "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
-          ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
-          JSON.stringify(scopedScratch.path) + "});"],
-        {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment,
-          ACTQL_TEST_NATIVE_TARGET_IO_ROOT: undefined, ...physical, ...content,
-          ...(test.source === nativeClientFileResponseTestFile ? fileReceiptCheckpoint : {}),
-          ...nativeCoreScopedTestEnvironment(test),
-          ACTQL_TEST_NATIVE_IMPORT_QUOTE:
-            test.source === 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt' &&
-            test.index === 10 ? '1' : undefined}});
-          child.once('error', value => { error = value; });
-          child.once('close', (status, signal) => resolve({status, signal, error}));
-        });
-        if (result.error || result.status !== 0) return result;
+      const profileStarted = performance.now();
+      let attemptedCases = 0, passedCases = 0;
+      try {
+        const profileNamespace = join(scopedScratch.path, profile);
+        mkdirSync(profileNamespace, {mode: 0o700});
+        // Start from the original PATH, not the ordinary test-only compiler shim.
+        const scoped = prepareNativeCoreScopedProfile(root, profileNamespace,
+          ['--target', 'native', ...args, ...new Set(tests.map(test => test.source))],
+          {env: fixtureEnvironment, profile});
+        console.log(`Native Core ${profile}: ${tests.length} required cases`);
+        // Each original case initializes its own physical region header. Closing
+        // that region does not erase the header, and the cases require different
+        // exact backing extents. Keep the compiled target, never reset a used file.
+        for (const [ordinal, test] of tests.entries()) {
+          const caseNamespace = join(namespace, `scoped-${profile}-case-${ordinal}`);
+          mkdirSync(caseNamespace, {mode: 0o700});
+          const physical = test.source === nativeRelationWorkTestFile
+            ? await relationFixture(caseNamespace, relationRuntime)
+            : nativeRelationCaptureTestFiles.includes(test.source)
+            ? nativeRelationFileCaptureFixture(caseNamespace)
+            : test.source === nativeRelationTargetIOTestFile
+            ? nativeRelationTargetIOFixture(caseNamespace, test.index)
+            : test.source === nativeRelationTargetIOLineageTestFile
+            ? nativeRelationTargetIOLineageFixture(caseNamespace, test.index)
+            : test.source === nativeClientFileResponseTestFile
+            ? nativeClientFileResponseFixture(caseNamespace, test.index)
+            : test.source === 'src/platform_native/installed_arena_control/model_read_frame_physical_scoped_wbtest.mbt'
+            ? nativeCoreModelFrameFixture(caseNamespace)
+            : nativeCoreScopedFixture(caseNamespace, {
+            cryptoLibrary: components.cryptoLibrary,
+            sqliteLibrary: components.sqliteLibrary,
+            backingPages: nativeCoreScopedBackingPages(test.source),
+          });
+          const content = test.source === nativeProjectMockContentTestFile
+            ? nativeProjectContentCaseFixture(caseNamespace, test.index,
+              fixtureEnvironment.ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT)
+            : {ACTQL_TEST_NATIVE_METADATA_REMAINDER: undefined, ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: undefined, ACTQL_TEST_NATIVE_MODEL_SOURCE_CLOSURE: undefined,
+              ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY: undefined, ACTQL_TEST_NATIVE_RAW_SNAPSHOT: undefined,
+              ACTQL_TEST_NATIVE_RAW_SNAPSHOT_CID: undefined, ACTQL_TEST_NATIVE_RAW_SNAPSHOT_BYTES: undefined,
+              ACTQL_TEST_NATIVE_BATCH_PLAN: undefined, ACTQL_TEST_NATIVE_ACTIVATION: undefined,
+              ACTQL_TEST_NATIVE_RAW_STORE: undefined, ACTQL_TEST_NATIVE_RAW_STORE_REFUSAL: undefined,
+              ACTQL_TEST_NATIVE_LEFT_IDENTITY: undefined, ACTQL_TEST_NATIVE_SOURCE_ARTIFACTS: undefined,
+              ACTQL_TEST_NATIVE_ATTEMPT_USAGE: undefined, ACTQL_TEST_NATIVE_CAPTURED_PAGE: undefined,
+              ACTQL_TEST_NATIVE_LOOKUP_COMPLETION: undefined, ACTQL_TEST_NATIVE_LOOKUP_DEPENDENCIES: undefined,
+              ACTQL_TEST_NATIVE_LOOKUP_CLOSURE: undefined, ACTQL_TEST_NATIVE_SOURCE_UNIT_EVIDENCE: undefined};
+          const scopedArgs = ['--target', 'native', ...args, test.source, '--index', String(test.index),
+            '--target-dir', scoped.targetDirectory];
+          const timeout = scopedDeadline - Date.now();
+          if (timeout <= 0) throw new Error('Selected Native Core deadline exhausted');
+          attemptedCases++;
+          const result = await new Promise(resolve => {
+            let error;
+            const child = spawn(process.execPath, ['--input-type=module', '-e',
+            "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+            "process.exitCode = runFocusedTests('moon', " + JSON.stringify(scopedArgs) +
+            ", {timeout: " + timeout + ", expectedTests: 1, evidenceScratch: " +
+            JSON.stringify(scopedScratch.path) + "});"],
+          {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...scoped.environment,
+            ACTQL_TEST_NATIVE_TARGET_IO_ROOT: undefined, ...physical, ...content,
+            ...(test.source === nativeClientFileResponseTestFile ? fileReceiptCheckpoint : {}),
+            ...nativeCoreScopedTestEnvironment(test),
+            ACTQL_TEST_NATIVE_IMPORT_QUOTE:
+              test.source === 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt' &&
+              test.index === 10 ? '1' : undefined}});
+            child.once('error', value => { error = value; });
+            child.once('close', (status, signal) => resolve({status, signal, error}));
+          });
+          if (result.error || result.status !== 0) return result;
+          passedCases++;
+        }
+        return {status: 0};
+      } finally {
+        try {
+          console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({phase: 'scoped-profile', profile,
+            milliseconds: Math.round(performance.now() - profileStarted), expectedCases: tests.length,
+            attemptedCases, passedCases, failedCases: attemptedCases - passedCases,
+            unexecutedCases: tests.length - attemptedCases, succeeded: passedCases === tests.length}));
+        } catch { /* Case accounting diagnostics never replace an original failure. */ }
       }
-      return {status: 0};
     };
     const profiles = ['runtime-values', 'scoped-review-values'];
     if (scopedJobs === '2') {
