@@ -68,7 +68,7 @@ async function runControl({prepared, root, repository, command, record}) {
       await writeFile(path, JSON.stringify(observation, null, 2) + '\n', {flag: 'wx'});
       try {
         const result = await command(process.execPath, phase === 'capture'
-          ? [join(project, 'capture.mjs'), 'capture', handoff, 'deal-review-mock', 'two-models']
+          ? [join(project, 'capture.mjs'), 'capture', handoff, 'deal-review-mock', 'two-models', 'original-run-control']
           : [join(project, 'control.mjs'), handoff, mode],
         {cwd: project, name: `effect-control-${mode}-${phase}`, timeout: 30_000});
         Object.assign(observation, {pid: result.pid, exitCode: result.code, signal: result.signal ?? null});

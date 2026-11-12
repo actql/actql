@@ -7,12 +7,13 @@ import {connect} from '@actql/node';
 import {getSubmissionCheckObservation} from '@actql/sdk';
 import {workflowWorkObservation} from './work-observation.fixture.mjs';
 
-const [phase, handoffPath, template = 'churn-risk-mock', variant = 'readme'] = process.argv.slice(2);
+const [phase, handoffPath, template = 'churn-risk-mock', variant = 'readme', workPurpose = 'workflow'] = process.argv.slice(2);
 assert.ok(['capture', 'approve', 'recover'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
 assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
 const dealReview = template === 'deal-review-mock';
 assert.ok(variant === 'readme' || ['two-models', 'two-models-whole'].includes(variant) && dealReview);
+assert.ok(workPurpose === 'workflow' || workPurpose === 'original-run-control' && phase === 'capture');
 const twoModels = variant !== 'readme', wholeProducer = variant === 'two-models-whole';
 const C = /^sha256:[0-9a-f]{64}$/u;
 const expected = Object.freeze(dealReview ? {
@@ -43,7 +44,9 @@ function checkWorkflowWork(observed, selectedPhase, writes, modelTasks = 1) {
     assert.equal(observed.effectReplacementReturns, selectedPhase === 'approve' ? writes : 0);
   }
 }
-const workObservation = workflowWorkObservation();
+// The original acceptance binds the observation revision. A later control
+// cannot acquire another revision while reopening that same captured Run.
+const workObservation = workflowWorkObservation({trackOriginal: workPurpose === 'original-run-control'});
 const stepDiagnosticFailures = [];
 async function step(name, operation) {
   activeStep = name;

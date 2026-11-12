@@ -3,6 +3,9 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {createHostObservationConnection, installHostObservation, projectEffectPreflightFailure} from '../host-common/observation.mjs';
+import {DatabaseSync} from 'node:sqlite';
+import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+import {openClientObservationStorage} from './client-observation-journal.mjs';
 
 // Execute the fixture's actual capture branch with explicit SDK/filesystem
 // ports. This is no installed SDK, Model, business Run or close acceptance.
@@ -60,6 +63,50 @@ test('work collector selects needed facts without requesting Run rows or repeate
   assert.equal(actual.sourceAcquisitionStarts, 2); assert.equal(actual.modelCallStarts, 2);
   assert.equal(actual.status.repeated, 0); assert.equal(actual.status.dropped, 0);
   assert.deepEqual(actual.status.loss, {}); assert.equal(actual.complete, true);
+});
+
+test('normal control capture establishes the original observer revision before acceptance without resetting custody', async () => {
+  const make = new Function('createHostObservationConnection',
+    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const initializer = ast.body.filter(node => node.type === 'VariableDeclaration')
+    .flatMap(node => node.declarations).find(node => node.id.name === 'workObservation').init;
+  const captureFor = new Function('workflowWorkObservation', 'workPurpose',
+    `return (${text.slice(initializer.start, initializer.end)});`);
+  const original = {namespaceId: 'fixture', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+    runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+  for (const purpose of ['original-run-control', 'workflow']) {
+    const db = new DatabaseSync(':memory:');
+    try {
+      db.exec(`CREATE TABLE client_requests (namespace_id TEXT, authority_scope_cid TEXT,
+        run_definition_cid TEXT, caller_request_id TEXT) STRICT;`);
+      db.prepare('INSERT INTO client_requests VALUES (?, ?, ?, ?)').run(original.namespaceId,
+        original.authorityScopeCid, original.runDefinitionCid, 'original');
+      const storage = openClientObservationStorage(db, createSqliteTransaction(db, 'Fixture'));
+      const install = work => installHostObservation(work.connection,
+        {journal: {observationStorage: () => storage}, runId: () => 'unit-original'});
+      const capture = captureFor(make, purpose), accepted = install(capture);
+      accepted.accepted({ref: original, inserted: true}, 'original');
+      await accepted.close();
+      const initial = db.prepare('SELECT * FROM client_observation_runs').get();
+      const work = make({trackOriginal: true}), observer = install(work);
+      for (let n = 0; n < 4; n++) observer.diagnostic('effect_application_observed',
+        {ref: original, outcome: 'waiting_checkpoint'});
+      await observer.close();
+      const actual = work.forOriginal(original), matching = purpose === 'original-run-control';
+      assert.equal(actual.complete, matching);
+      assert.equal(actual.status.budgetUnavailable, matching ? 0 : 4);
+      assert.equal(actual.status.dropped, matching ? 0 : 4);
+      assert.equal(capture.connection.configuration().revision === work.connection.configuration().revision, matching);
+      const retained = db.prepare('SELECT * FROM client_observation_runs').get();
+      assert.equal(retained.configuration_revision, initial.configuration_revision);
+      assert.equal(retained.records, matching ? 4 : 0);
+      assert.equal(db.prepare('SELECT count(*) AS n FROM client_observation_runs').get().n, 1);
+      assert.equal(db.prepare('SELECT count(*) AS n FROM client_requests').get().n, 1);
+      assert.throws(() => storage.initialize({ref: original, requestId: 'original', scope: 'local',
+        revision: work.connection.configuration().revision}));
+      assert.deepEqual(actual.totals, {sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0});
+    } finally {db.close();}
+  }
 });
 
 test('workflow primary failure stays with its actual original Run instead of another verification Run', async () => {
