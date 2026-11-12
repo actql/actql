@@ -1808,18 +1808,28 @@ test('Native target child keeps a finite cold Core budget without widening ordin
     });
     assert.equal(invocation.command, process.execPath);
     assert.deepEqual(invocation.args.slice(0, 2), ['--input-type=module', '-e']);
-    const prefix = "import {runFocusedTests} from './scripts/test-execution.mjs'; ";
+    const prefix = coreArgs === undefined
+      ? "import {runFocusedTests} from './scripts/test-execution.mjs'; "
+      : "import {runMeasuredNativeTests} from './scripts/native-core-measured-tests.mjs'; ";
     assert(invocation.args[2].startsWith(prefix));
     const execution = {};
+    const check = (args, options) => {
+      assert.deepEqual(Array.from(args), moonArgs);
+      assert.equal(options.timeout, timeout);
+      assert.equal(options.evidenceScratch, '/original/owned/fixture');
+      assert.equal(options.expectedTests, coreExpectedTests);
+      return 7;
+    };
     runInNewContext(invocation.args[2].slice(prefix.length), {
       process: execution,
       runFocusedTests(kind, args, options) {
         assert.equal(kind, 'moon');
-        assert.deepEqual(Array.from(args), moonArgs);
-        assert.equal(options.timeout, timeout);
-        assert.equal(options.evidenceScratch, '/original/owned/fixture');
-        assert.equal(options.expectedTests, coreExpectedTests);
-        return 7;
+        assert.equal(coreArgs, undefined);
+        return check(args, options);
+      },
+      runMeasuredNativeTests(args, options) {
+        assert.notEqual(coreArgs, undefined);
+        return check(args, options);
       },
     });
     assert.equal(execution.exitCode, 7, 'the original child failure must propagate');

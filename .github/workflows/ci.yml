@@ -291,6 +291,9 @@ jobs:
       - name: Test bounded compiler crash metadata privacy controls
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_native_compiler_diagnostics.py
+      - name: Test CI lane coverage and bounded Native phase measurement
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node --test scripts/ci-balanced-lanes.test.mjs scripts/native-core-measured-tests.test.mjs
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
@@ -342,22 +345,42 @@ jobs:
           path: _build/focused-evidence
           if-no-files-found: warn
           retention-days: 7
-  # One runner per target: check, then test, each with --deny-warn, as
-  # before. A target never shares a runner or _build with another.
+  # Portable targets remain single jobs. Native keeps complete package drivers
+  # in four ordinary jobs and three independent physical profiles.
   core:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}/2', matrix.partition) || '' }})
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
-        partition: [1, 2]
+        partition: ['1/4', '2/4', '3/4', '4/4', http, source, scoped]
         exclude:
           - target: js
-            partition: 2
+            partition: '2/4'
+          - target: js
+            partition: '3/4'
+          - target: js
+            partition: '4/4'
+          - target: js
+            partition: http
+          - target: js
+            partition: source
+          - target: js
+            partition: scoped
           - target: wasm
-            partition: 2
+            partition: '2/4'
+          - target: wasm
+            partition: '3/4'
+          - target: wasm
+            partition: '4/4'
+          - target: wasm
+            partition: http
+          - target: wasm
+            partition: source
+          - target: wasm
+            partition: scoped
     # Physical Native fixtures use the existing Darwin arm64 profile.
     runs-on: ${{ matrix.target == 'native' && 'macos-15' || 'ubuntu-24.04' }}
     # Native keeps its full 60-minute child after the separate cold checkpoint
@@ -405,7 +428,7 @@ jobs:
               (matrix.target != 'native' && success()) }}
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
-          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}
+          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && matrix.partition || '' }}
           CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
         run: |
           # Local full-Core execution has no hosted selection file.
@@ -429,7 +452,7 @@ jobs:
             # physical test execution serial under the original fixture roots.
             # Partition whole ordinary test packages before C generation. Each
             # runner keeps its own source/toolchain/build and original fixtures;
-            # only partition 1 owns the unchanged HTTP/Source/scoped profiles.
+            # physical profiles have independent runners and original fixtures.
             MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
           else
             if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then
@@ -456,7 +479,7 @@ jobs:
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: native-compiler-cause-${{ matrix.partition }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-compiler-cause-${{ strategy.job-index }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/native-compiler-diagnostics/
             _build/native-reader-helper-tests/callbacks-*/callback-*.json
@@ -1623,10 +1646,14 @@ jobs:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
     runs-on: ubuntu-24.04
-    # The preceding packed checks took about 36 minutes before the selected
-    # Native build's 30-minute budget. Preserve time for that entire build,
-    # the remaining Result checks and always-on evidence retention.
-    timeout-minutes: 75
+    name: client-packed (${{ matrix.group }})
+    # Every group consumes the one same-run Client artifact. Private installed
+    # applications, Stores and keys remain independently owned by each case.
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [connectors, infer, query-portable, query-native]
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1635,6 +1662,7 @@ jobs:
         with:
           python: 'true'
       - name: Select the packed Native Graph compiler
+        if: ${{ matrix.group == 'query-native' }}
         timeout-minutes: 5
         run: |
           bash scripts/ci-install-linux-clang.sh
@@ -1650,134 +1678,147 @@ jobs:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
       - name: Test packed Local runtime assets
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: node scripts/test-packed-local-node-assets.mjs
       - name: Test packed Sheets
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: node scripts/test-packed-sheets.mjs
       - name: Test packed HubSpot record approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --approval
       - name: Test packed kintone record approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
       - name: Test packed Salesforce mock approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval
       - name: Test packed HubSpot mock approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval
       - name: Test packed HubSpot Whole-input mock approval and original Saved
         id: packed-hubspot-whole
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval
       - name: Retain packed HubSpot Whole-input qualification and failure evidence
-        if: always() && steps.packed-hubspot-whole.outputs.evidence-directory != ''
+        if: matrix.group == 'connectors' && always() && steps.packed-hubspot-whole.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-hubspot-whole.outputs.evidence-directory }}
           name: packed-hubspot-whole-${{ github.sha }}
       - name: Test packed three-Source HubSpot mock approval and original Saved
         id: packed-hubspot-three-source
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval
       - name: Retain packed three-Source HubSpot qualification and failure evidence
-        if: always() && steps.packed-hubspot-three-source.outputs.evidence-directory != ''
+        if: matrix.group == 'connectors' && always() && steps.packed-hubspot-three-source.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-hubspot-three-source.outputs.evidence-directory }}
           name: packed-hubspot-three-source-${{ github.sha }}
       - name: Test packed binary Whole JOIN HubSpot mock approval and original Saved
         id: packed-hubspot-binary-source
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-binary-source-approval
       - name: Retain packed binary Whole JOIN HubSpot qualification and failure evidence
-        if: always() && steps.packed-hubspot-binary-source.outputs.evidence-directory != ''
+        if: matrix.group == 'connectors' && always() && steps.packed-hubspot-binary-source.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-hubspot-binary-source.outputs.evidence-directory }}
           name: packed-hubspot-binary-source-${{ github.sha }}
       - name: Test packed kintone mock approval and original Saved
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
         run: node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval
       - name: Test packed Embedded Local Checkpoint and Named Result
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: npm run check:packed-embedded-checkpoint
       - name: Test packed single INFER capture and replay
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'infer' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-infer
         run: node scripts/test-packed-single-infer.mjs
       - name: Retain packed single INFER evidence
-        if: always() && steps.packed-infer.outputs.evidence-directory != ''
+        if: matrix.group == 'infer' && always() && steps.packed-infer.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-infer.outputs.evidence-directory }}
           name: packed-single-infer-${{ github.sha }}
       - name: Test packed named INFER evaluation with traces off and unsampled
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'infer' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-infer-evaluation
         run: node scripts/test-packed-infer-evaluation.mjs
       - name: Retain packed INFER evaluation evidence
-        if: always() && steps.packed-infer-evaluation.outputs.evidence-directory != ''
+        if: matrix.group == 'infer' && always() && steps.packed-infer-evaluation.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-infer-evaluation.outputs.evidence-directory }}
           name: packed-infer-evaluation-${{ github.sha }}
       - name: Test packed acquired INFER capture and replay
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'infer' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-acquired-infer
         run: node scripts/test-packed-acquired-infer.mjs
       - name: Retain packed acquired INFER evidence
-        if: always() && steps.packed-acquired-infer.outputs.evidence-directory != ''
+        if: matrix.group == 'infer' && always() && steps.packed-acquired-infer.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-acquired-infer.outputs.evidence-directory }}
           name: packed-acquired-infer-${{ github.sha }}
       - name: Test raw public SQL and Pipe through packed Local and HTTP
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ matrix.group == 'query-portable' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-query
+        env:
+          ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'
+        run: |
+          node --test scripts/packed-query-evidence.test.mjs
+          node scripts/test-packed-public-query.mjs --ci-part=portable
+      - name: Retain packed public query evidence
+        if: matrix.group == 'query-portable' && always() && steps.packed-query.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-query.outputs.evidence-directory }}
+          name: packed-public-query-${{ github.sha }}
+      - name: Test committed Result descriptions through packed Local and HTTP
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        # The description path reads retained metadata, including empty Results.
+        # It must be exercised from installed packages on both transports.
+        run: node scripts/test-packed-result-description.mjs
+        id: packed-result-description
+      - name: Retain packed Result description evidence
+        if: matrix.group == 'connectors' && always() && steps.packed-result-description.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
+          name: packed-result-description-${{ github.sha }}
+      - name: Test the complete packed Native Graph campaign
+        if: ${{ !cancelled() && matrix.group == 'query-native' && steps.client-inputs.outcome == 'success' }}
+        id: packed-query-native
         env:
           ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'
           ACTQL_TEST_NATIVE_QUERY_COMPILER: 'clang-19'
         run: |
           test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
           cc --version
-          node --test scripts/packed-query-evidence.test.mjs
-          node scripts/test-packed-public-query.mjs
-      - name: Retain packed public query evidence
-        if: always() && steps.packed-query.outputs.evidence-directory != ''
+          node scripts/test-packed-public-query.mjs --ci-part=native
+      - name: Retain packed Native query evidence
+        if: always() && matrix.group == 'query-native' && steps.packed-query-native.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
-          directory: ${{ steps.packed-query.outputs.evidence-directory }}
-          name: packed-public-query-${{ github.sha }}
-      - name: Test committed Result descriptions through packed Local and HTTP
-        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
-        # The description path reads retained metadata, including empty Results.
-        # It must be exercised from installed packages on both transports.
-        run: node scripts/test-packed-result-description.mjs
-        id: packed-result-description
-      - name: Retain packed Result description evidence
-        if: always() && steps.packed-result-description.outputs.evidence-directory != ''
-        uses: ./.github/actions/upload-packed-query-evidence
-        with:
-          directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
-          name: packed-result-description-${{ github.sha }}
+          directory: ${{ steps.packed-query-native.outputs.evidence-directory }}
+          name: packed-public-query-native-${{ github.sha }}
   # Source composition gets the same full budget as the other packed consumers.
   # The preceding installed-query workloads must not consume its execution time.
   client-packed-composition:

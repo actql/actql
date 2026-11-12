@@ -317,7 +317,7 @@ test('child cwd outside Git retains the recorder repository source identity', t 
 test('Client packed reaches ownership controls through its normal driver before installation', () => {
   const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['client-packed'];
-  assert.equal(job['timeout-minutes'], 75);
+  assert.equal(job['timeout-minutes'], 45);
   const run = job.steps.find(step => step.id === 'packed-query').run;
   assert.match(run, /node scripts\/test-packed-public-query\.mjs/u);
   const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');

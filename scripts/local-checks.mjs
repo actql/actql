@@ -76,11 +76,11 @@ function commands(name, target, raw = false) {
       return [key, ''];
     }
     if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PARTITION') {
-      if (value !== "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}") {
+      if (value !== "${{ matrix.target == 'native' && matrix.partition || '' }}") {
         fail('Unsupported Native Core partition expression; local CI must retain complete coverage');
       }
       // One local runner keeps the complete original campaign, rather than
-      // silently selecting one half of the hosted two-runner matrix.
+      // silently selecting only one hosted partition or physical profile.
       return [key, ''];
     }
     return [key, resolve(value)];

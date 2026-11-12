@@ -15,7 +15,7 @@ import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture} from './native-project-configuration-fixture.mjs';
 import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
   nativeCoreScopedTestEnvironment,
-  nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles,
+  nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles, nativeCoreCheckpointRequired,
   nativeProjectMockContentTestFile, nativeRelationTargetIOTestFile, nativeRelationTargetIOLineageTestFile,
   nativeClientFileResponseTestFile} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
@@ -65,8 +65,12 @@ const compilerEnvironment = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: u
 const selection = full ? nativeCoreTestSelection(root, args,
   // One absolute metadata-preparation envelope covers four dry-run plans and
   // all original driver generations. It grants no extra test or C-build time.
-  {env: compilerEnvironment, partitionProfiles: true, ordinaryPartitions: Boolean(partition),
-    timeoutMs: 5 * 60_000, executionPackages}) : undefined;
+  {env: compilerEnvironment, partitionProfiles: true,
+    ordinaryPartitions: partition?.endsWith('/4') ? 4 : Boolean(partition) && !['http', 'source', 'scoped'].includes(partition),
+    // Physical jobs retain their complete profile even when an ordinary PR
+    // closure has no member in it. An empty job cannot establish execution.
+    timeoutMs: 5 * 60_000,
+    executionPackages: ['http', 'source', 'scoped'].includes(partition) ? undefined : executionPackages}) : undefined;
 if (selection?.executionScope) console.log('Native Core dependency scope: ' + JSON.stringify(selection.executionScope));
 if (selection && partition) {
   const originalCases = selection.profiles.ordinary.cases;
@@ -92,7 +96,8 @@ const originalSigning = full || args.some(arg => arg.includes('platform_native/s
   ? nativeOriginalSigningFixture(namespace) : {};
 const processRegion = full || args.some(arg => arg.includes('platform_native/host_bootstrap'))
   ? nativeProcessRegionFixture(root, namespace) : {};
-const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
+const clientCheckpoint = (full ? !partition || nativeCoreCheckpointRequired(selection.profiles) :
+  args.some(arg => arg.includes('platform_native/client_host')))
   // Match optimization, debug and warning modes before the original producers
   // populate the cache. Changing the mode afterwards invalidates their Core
   // dependencies even when the physical test source has not changed.

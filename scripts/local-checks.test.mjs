@@ -89,7 +89,7 @@ test('local Core adapter runs complete unpartitioned coverage for the hosted Nat
   const workflow = JSON.parse(readFileSync(path, 'utf8'));
   workflow.jobs.core.steps = [{name: 'original full selection',
     env: {TARGET: '${{ matrix.target }}', ACTQL_TEST_NATIVE_CORE_PARTITION:
-      "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}"},
+      "${{ matrix.target == 'native' && matrix.partition || '' }}"},
     run: 'printf "%s:%s\\n" "$TARGET" "$ACTQL_TEST_NATIVE_CORE_PARTITION" >> calls'}];
   writeFileSync(path, JSON.stringify(workflow));
   for (const target of ['native', 'js', 'wasm']) {

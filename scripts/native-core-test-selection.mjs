@@ -130,7 +130,9 @@ const selectedGeometryFiles = new Set([
 // Keep each package's original test drivers together: splitting individual
 // cases would compile the same large generated C executable on both runners.
 // Balance compiler units first, then case counts; this is not a time estimate.
-export function nativeCoreOrdinaryPartitions(args, paths, records) {
+export function nativeCoreOrdinaryPartitions(args, paths, records, count = 2) {
+  assert(Number.isSafeInteger(count) && count >= 2 && count <= 16,
+    'Invalid Native ordinary partition count');
   assert(Array.isArray(args) && args.every(value => typeof value === 'string'));
   assert(Array.isArray(paths) && new Set(paths).size === paths.length);
   const groups = new Map(), identities = new Set(), owners = new Map();
@@ -151,15 +153,14 @@ export function nativeCoreOrdinaryPartitions(args, paths, records) {
     group.cases += record.benchmark ? 0 : 1;
     group.records.push(record);
   }
-  assert([...groups.values()].filter(group => group.cases > 0).length >= 2,
-    'Two nonempty Native ordinary package partitions required');
-  const partitions = Array.from({length: 2}, () => ({drivers: 0, cases: 0, directories: new Set()}));
+  assert([...groups.values()].filter(group => group.cases > 0).length >= count,
+    'Enough nonempty Native ordinary package partitions required');
+  const partitions = Array.from({length: count}, () => ({drivers: 0, cases: 0, directories: new Set()}));
   for (const group of [...groups.values()].sort((a, b) =>
     b.drivers.size - a.drivers.size || b.cases - a.cases ||
     (a.directory < b.directory ? -1 : a.directory > b.directory ? 1 : 0))) {
-    const selected = partitions[0].drivers < partitions[1].drivers ||
-      partitions[0].drivers === partitions[1].drivers && partitions[0].cases <= partitions[1].cases
-      ? partitions[0] : partitions[1];
+    const selected = partitions.reduce((a, b) =>
+      a.drivers < b.drivers || a.drivers === b.drivers && a.cases <= b.cases ? a : b);
     selected.drivers += group.drivers.size;
     selected.cases += group.cases;
     selected.directories.add(group.directory);
@@ -179,13 +180,34 @@ export function nativeCoreOrdinaryPartitions(args, paths, records) {
 
 export function nativeCorePartitionProfiles(profiles, value) {
   if (value === undefined || value === '') return profiles;
-  assert(value === '1/2' || value === '2/2', 'Invalid Native Core partition');
-  assert.equal(profiles.ordinary.partitions?.length, 2, 'Missing Native Core partitions');
-  const ordinary = profiles.ordinary.partitions[Number(value[0]) - 1];
-  assert(ordinary.cases > 0 && ordinary.args?.length > 0, 'Empty Native Core partition');
-  return value === '1/2' ? {...profiles, ordinary} : {...profiles, ordinary,
+  const match = /^([1-4])\/(2|4)$/u.exec(value);
+  const physical = ['http', 'source', 'scoped'].includes(value);
+  assert(physical || match && Number(match[1]) <= Number(match[2]), 'Invalid Native Core partition');
+  const empty = {...profiles, ordinary: {args: null, cases: 0},
     http: {args: null, cases: 0}, source: {args: null, cases: 0},
     scoped: {args: null, cases: 0, tests: []}, physicalCases: 0, repeatedGeometryCases: 0};
+  if (physical) {
+    assert(profiles[value].cases > 0 && profiles[value].args?.length > 0,
+      'Empty Native physical partition');
+    return {...empty, [value]: profiles[value],
+      ...(value === 'scoped' ? {physicalCases: profiles.physicalCases,
+        repeatedGeometryCases: profiles.repeatedGeometryCases} : {})};
+  }
+  assert.equal(profiles.ordinary.partitions?.length, Number(match[2]), 'Missing Native Core partitions');
+  const ordinary = profiles.ordinary.partitions[Number(match[1]) - 1];
+  assert(ordinary.cases > 0 && ordinary.args?.length > 0, 'Empty Native Core partition');
+  // Preserve the old two-runner local interface. The hosted four-way plan
+  // gives each physical profile its own runner, with identical fixture owners.
+  return value === '1/2' ? {...profiles, ordinary} : {...empty, ordinary};
+}
+
+// These original reference producers compile the large Client Host test
+// driver. Only its assigned ordinary job and its scoped consumers need them;
+// HTTP/Source jobs use their existing independently owned peer environments.
+export function nativeCoreCheckpointRequired(profiles) {
+  return profiles.ordinary.args?.some(value => value === 'src/platform_native/client_host' ||
+    value.startsWith('src/platform_native/client_host/')) === true ||
+    profiles.scoped.tests.some(test => test.source.startsWith('src/platform_native/client_host/'));
 }
 
 function partitionProfiles(args, records, ordinaryPartitions, compilerDirectories) {
@@ -229,7 +251,8 @@ function partitionProfiles(args, records, ordinaryPartitions, compilerDirectorie
   return {
     ordinary: {args: ordinaryPaths.length ? [...args, ...ordinaryPaths] : null,
       cases: runnable(ordinary), ...(ordinaryPartitions ? {
-        partitions: nativeCoreOrdinaryPartitions(args, ordinaryPaths, ordinary),
+        partitions: nativeCoreOrdinaryPartitions(args, ordinaryPaths, ordinary,
+          ordinaryPartitions === true ? 2 : ordinaryPartitions),
       } : {})},
     http: {args: http.length ? [...args, ...new Set(http.map(record =>
       record.directory === 'src/platform_native/http_client' ? record.directory : record.source))] : null,
@@ -399,8 +422,9 @@ function compilerTestSelection(repository, args, {
       // Existing partition balancing counts original driver/case inventory.
       // A skipped-only driver can win a partition even when two other packages
       // have runnable cases; test the actual assigned inputs before narrowing.
-      const nonemptyPartitions = !ordinaryPartitions || ordinaryPackages.size >= 2 &&
-        partitionProfiles(args, subset, true, compilerDirectories).ordinary.partitions.every(partition =>
+      const partitionCount = ordinaryPartitions === true ? 2 : ordinaryPartitions;
+      const nonemptyPartitions = !ordinaryPartitions || ordinaryPackages.size >= partitionCount &&
+        partitionProfiles(args, subset, ordinaryPartitions, compilerDirectories).ordinary.partitions.every(partition =>
           subset.some(record => runnableCompilerCase(record) &&
             (partition.args.slice(args.length).includes(record.directory) ||
               partition.args.slice(args.length).includes(record.source))));

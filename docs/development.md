@@ -1211,6 +1211,20 @@ Execution includes Moon's incremental freshness check; it is not a pure test-CPU
 measurement. Compare these intervals with Actions job start/queue observations;
 case counts alone do not predict wall-time savings.
 
+Hosted Native Core assigns complete compiler-owned ordinary package drivers to
+four disjoint jobs. HTTP, Source and scoped physical profiles have independent
+jobs with their original environments; the scoped profile retains the deliberate
+second geometry configuration. The compiler metadata selection checks complete
+case identities, unchanged driver inputs, nonempty partitions and no overlapping
+ordinary drivers before C generation. Portable targets are not multiplied.
+The original two-part local interface remains supported.
+
+The ordinary Native child measures `--build-only` and subsequent execution
+separately in the same build tree, with identical arguments and environment.
+Both phases share the original absolute timeout. Execution still uses the
+nonzero/full-count guard and includes Moon's incremental freshness check.
+Neither successful compilation nor a timing record establishes test success.
+
 The preparation helper reuses the verified OpenSSL source archive from the
 compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the
 original digest and builds its own patched source/libraries; Homebrew and Linux

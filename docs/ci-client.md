@@ -291,6 +291,23 @@ artifact transfer, private runtime/native builds and aggregation. Also report
 queue/dependency delay separately when available. A shorter wall span can cost
 more total runner time; added cold native compilation must remain visible.
 
+The packed consumer matrix separates connectors, INFER, portable SQL/Pipe and
+the complete Native Graph campaign. All four jobs download the same successful
+producer's exact artifact ID and retain the existing source/tarball checks.
+They never share application state, keys or an installed Host. Each campaign
+step has exactly one matrix owner; the existing Client aggregate requires the
+whole matrix to succeed, including its evidence-retention steps.
+
+`test-packed-public-query.mjs --ci-part=portable` retains the full Local/HTTPS
+corpus, original Saved/restart checks and public graph cases, omitting only the
+final Native campaign. `--ci-part=native` runs that complete original Native
+campaign, including its source-free control, after the common installation
+prerequisites. The two CI parts refuse narrower selectors and ambient `*_ONLY`
+overrides. Running without either option preserves the original serial route.
+Compilation occurs only in the Native part; the portable part does not install
+the Native compiler. Shared package-installation checks remain prerequisites,
+not additional independent acceptance samples.
+
 The pre-change observations are separate samples: main run
 [37008805516](https://github.com/actql/actql/actions/runs/37008805516) completed
 Client in 16m04s, and reporting-only PR run
