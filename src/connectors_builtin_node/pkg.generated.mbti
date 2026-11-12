@@ -1442,6 +1442,8 @@ pub fn client_program_infer_call_entry_persistence_saved(@model_execution.ModelC
 
 pub fn client_program_infer_call_entry_persistence_unknown() -> @model_execution.ModelEntryPersistenceObservation
 
+pub fn client_program_infer_call_scope_issue_kind(@client_infer_host.Issue) -> String?
+
 pub fn client_program_infer_call_scope_snapshot(@client_infer_host.Execution) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_infer_call_scope_unit_id(@client_infer_host.Execution) -> String?
@@ -4593,6 +4595,8 @@ pub fn local_managed_carrier_output(@execution_relation.CarrierManagedCompletedO
 pub fn local_managed_dispatch(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Array[@execution_relation.ManagedCompletedOutput[Int]], Int64) -> @actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]? raise NodeHostFailure
 
 pub fn local_managed_duration(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> Int64?
+
+pub fn local_managed_has_prepared_relation_input(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Bool
 
 pub fn local_managed_relation_output(@execution_relation.ManagedCompletedOutput[Int]) -> @actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]
 

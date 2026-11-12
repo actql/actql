@@ -16629,6 +16629,7 @@
             "openNodeComposedInferProvider/provider/provider",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
+            "openNodeComposedInferProvider/provider/provider/provider",
             "openNodeComposedInferProvider/recordFailure/recordFailure",
             "openNodeComposedInferProvider/selectRead/selectRead",
             "openNodeInferOperation",
@@ -17836,6 +17837,13 @@
           "async": false
         },
         {
+          "name": "openNodeComposedInferProvider/provider/provider/provider",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeComposedInferProvider/provider/provider#2",
           "parameters": [
             "active"
@@ -18837,7 +18845,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ea8257907923cb10e3999b2ce51946132faaea8eceb94aeb15d86c91a69f87c4"
+      "sha256": "ed3903a8eb7c8635856b7cfe582b08a38e6a36ec61db0da6ee88c37b9632aaa1"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -23610,7 +23618,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "bbba128fca87a2d4f1a8fad2234718af83b13a3b5248e9f92b98588b85935396",
+      "sha256": "c11000d936edf8c8b80247961d0ab02e7b7f35c4726c207d097acfd96bae662b",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -23699,7 +23707,8 @@
         {
           "name": "localStrategyContribution/init:prepareNext/init:prepareNext/inputs/inputs",
           "parameters": [
-            "producer"
+            "producer",
+            "index"
           ],
           "async": false
         },
@@ -69192,7 +69201,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "4fd9d1940f07c839cb6496b22ee8a581458c1c5c7fc140803f1b59930c5beff5",
+      "sha256": "d6b851dcc2e430d216b9be61166ff933cc6653a6d23ffdb829318bcb47a131f9",
       "exports": [],
       "operations": [
         {
@@ -69302,6 +69311,10 @@
         {
           "name": "captured_next_managed_producers",
           "declaration": "captured_next_managed_producers ( run : CapturedDAG ) - > Array [ Int ]"
+        },
+        {
+          "name": "captured_next_task_has_prepared_input",
+          "declaration": "captured_next_task_has_prepared_input ( run : CapturedDAG , input : Int , ) - > Bool"
         },
         {
           "name": "captured_output_inputs_match",
@@ -69558,6 +69571,7 @@
             "captured_next_managed_operation_input",
             "captured_next_managed_producer",
             "captured_next_managed_producers",
+            "captured_next_task_has_prepared_input",
             "captured_output_inputs_match",
             "captured_pending_task_input_output",
             "captured_releasable_managed_producers",

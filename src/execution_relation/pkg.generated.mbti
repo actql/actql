@@ -580,6 +580,8 @@ pub fn completed_relation_export_matches_output(CompletedRelationExportReceipt, 
 
 pub fn completed_relation_export_measurement(CompletedRelationExportReceipt) -> CompletedRelationExportMeasurement
 
+pub fn completed_relation_export_original_source(CompletedRelationExportReceipt) -> CompletedOutput?
+
 pub fn completed_relation_export_receipt_live(CompletedRelationExportReceipt) -> Bool
 
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity

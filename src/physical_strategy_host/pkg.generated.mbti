@@ -329,6 +329,8 @@ pub fn captured_next_managed_producer(CapturedDAG) -> Int?
 
 pub fn captured_next_managed_producers(CapturedDAG) -> Array[Int]
 
+pub fn captured_next_task_has_prepared_input(CapturedDAG, Int) -> Bool
+
 pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relation.CompletedOutput
 
 pub fn captured_pending_task_input_output(CapturedDAG, Int, Int) -> @execution_relation.CompletedOutput?
