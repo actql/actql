@@ -130,7 +130,8 @@ const selectedGeometryFiles = new Set([
 
 // Keep each package's original test drivers together: splitting individual
 // cases would compile the same large generated C executable on both runners.
-// Balance compiler units first, then case counts; this is not a time estimate.
+// Separate the measured large packages, then balance other compiler units and
+// case counts. This is not a time estimate.
 export function nativeCoreOrdinaryPartitions(args, paths, records, count = 2) {
   assert(Number.isSafeInteger(count) && count >= 2 && count <= 16,
     'Invalid Native ordinary partition count');
@@ -156,8 +157,15 @@ export function nativeCoreOrdinaryPartitions(args, paths, records, count = 2) {
   }
   assert([...groups.values()].filter(group => group.cases > 0).length >= count,
     'Enough nonempty Native ordinary package partitions required');
+  // Seed the four-way plan with the measured large compiler units. Keeping
+  // their whole packages separate avoids concentrating them by driver count;
+  // all remaining packages retain the existing driver/case balance.
+  const largeCompilerUnit = group => count === 4 &&
+    (group.directory === 'src/canonical_value' || group.directory === 'src/query_integration' ||
+      group.directory === 'src/cmd/native_client');
   const partitions = Array.from({length: count}, () => ({drivers: 0, cases: 0, directories: new Set()}));
   for (const group of [...groups.values()].sort((a, b) =>
+    Number(largeCompilerUnit(b)) - Number(largeCompilerUnit(a)) ||
     b.drivers.size - a.drivers.size || b.cases - a.cases ||
     (a.directory < b.directory ? -1 : a.directory > b.directory ? 1 : 0))) {
     const selected = partitions.reduce((a, b) =>

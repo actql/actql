@@ -240,12 +240,47 @@ test('four Native ordinary jobs and independent physical jobs exhaust the origin
   assert.throws(() => nativeCoreOrdinaryPartitions([], paths.slice(0, 3), records.slice(0, 9), 4), /nonempty/u);
 });
 
+test('four Native ordinary bins separate measured large packages without splitting original drivers', () => {
+  const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
+  const heavy = ['src/canonical_value', 'src/query_integration', 'src/cmd/native_client'];
+  const other = ['src/ordinary-a', 'src/ordinary-b', 'src/ordinary-c'];
+  const paths = [...other, ...heavy], records = [];
+  for (const directory of paths) for (let driver = 0; driver < (heavy.includes(directory) ? 1 : 10); driver++) {
+    const source = `${directory}/original-${driver}_test.mbt`;
+    for (let index = 0; index < 2; index++) records.push(Object.freeze({directory, source,
+      benchmark: index === 1,
+      entry: Object.freeze([`${directory}/driver-${driver}`, source, Object.freeze({index, attrs: ['original']})]),
+    }));
+  }
+  const original = JSON.stringify(records);
+  const parts = nativeCoreOrdinaryPartitions(args, paths, records, 4);
+  const owners = heavy.map(path => parts.findIndex(part => part.args.includes(path)));
+  assert.equal(new Set(owners).size, 3, 'Measured large packages must not collect in the same ordinary bin');
+  assert(owners.every(owner => owner >= 0));
+  assert.equal(parts.length, 4);
+  assert.deepEqual(parts.flatMap(part => part.args.slice(args.length)).sort(), [...paths].sort());
+  for (const part of parts) {
+    assert.deepEqual(part.args.slice(0, args.length), args);
+    const selected = records.filter(record => part.args.includes(record.directory));
+    assert.equal(part.cases, selected.filter(record => !record.benchmark).length);
+    assert(part.cases > 0);
+    for (const record of selected) assert.equal(parts.filter(p => p.args.includes(record.directory)).length, 1);
+  }
+  assert.equal(parts.reduce((sum, part) => sum + part.cases, 0), 33);
+  assert.deepEqual(nativeCoreOrdinaryPartitions(args, [...paths].reverse(), [...records].reverse(), 4),
+    parts.map(part => ({...part, args: [...args, ...part.args.slice(args.length).reverse()]})));
+  assert.equal(JSON.stringify(records), original, 'Original compiler records must remain unchanged');
+  assert.deepEqual(nativeCoreOrdinaryPartitions(args, paths, records, 2).map(part => part.args.slice(args.length)),
+    [[other[0], other[2]], [other[1], ...heavy]], 'The existing two-way local plan is unchanged');
+});
+
 test('actual compiler four-way Native inventory never duplicates a generated test driver', t => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-four-partitions-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   writeFileSync(join(root, 'moon.mod'), 'name = "fixture/native_four"\nversion = "0.0.0"\n');
-  for (let i = 0; i < 8; i++) {
-    const directory = join(root, 'src', `package-${i}`);
+  const heavy = ['src/canonical_value', 'src/query_integration', 'src/cmd/native_client'];
+  for (const path of [...heavy, ...Array.from({length: 5}, (_, i) => `src/package-${i}`)]) {
+    const directory = join(root, path);
     mkdirSync(directory, {recursive: true});
     writeFileSync(join(directory, 'moon.pkg'), '');
     writeFileSync(join(directory, 'main.mbt'), 'test "original case" { assert_eq(7, 7) }\n');
@@ -256,6 +291,7 @@ test('actual compiler four-way Native inventory never duplicates a generated tes
   assert.equal(parts.length, 4);
   assert.equal(selected.cases, 8);
   assert.deepEqual(parts.map(p => p.cases), [2, 2, 2, 2]);
+  assert.equal(new Set(heavy.map(path => parts.findIndex(part => part.args.includes(path)))).size, 3);
   const paths = parts.flatMap(p => p.args.slice(args.length));
   assert.equal(new Set(paths).size, 8);
   const drivers = parts.flatMap(p => p.drivers);
