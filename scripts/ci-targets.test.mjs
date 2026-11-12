@@ -1,3 +1,4 @@
+import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -655,6 +656,7 @@ const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: 
 test('Native Core matrix owns four ordinary and three physical partitions without multiplying portable targets', t => {
   const core = jobs.core, matrix = core.strategy.matrix;
   assert.deepEqual(matrix.partition, ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped']);
+  assert.deepEqual(matrix.partition, nativeCoreCiPartitions);
   assert.deepEqual(matrix.exclude, ['js', 'wasm'].flatMap(target => matrix.partition.slice(1).map(partition => ({target, partition}))));
   const selected = all.flatMap(target => matrix.partition.map(partition => ({target, partition})))
     .filter(row => !matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition));
