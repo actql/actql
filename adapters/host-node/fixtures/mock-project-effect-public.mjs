@@ -45,6 +45,50 @@ function joinedModelInputEvidence(selectedVariant) {
       notes: 'Globex expansion meeting: the deal is Closed Lost for this year. Revisit next fiscal year.\n',
       confirmation: {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'}},
   };
+  // These are fixture DATA assertions over the already admitted typed frame.
+  // Known literal UTF8 bytes fix content CID/size. Dynamic original bindings
+  // stay bound to this Run and scope; no bytes are read or reference issued.
+  // All members below are closed ASCII metadata, so this fixed key order is
+  // the canonical preimage without using a product CID/Content helper.
+  const identityKeys = ['$actql_ref', 'authorityScopeCid', 'availability_evidence_cid',
+    'capture_authority', 'capture_authority_cid', 'content_cid', 'content_store_cid', 'content_store_id',
+    'data_classification', 'effective_data_policy_cid', 'evidence_cid', 'expiresAt', 'expires_at',
+    'issuer_contract_cid', 'issuer_evidence', 'issuer_kind', 'media_type', 'metadata', 'name', 'reported_media_type',
+    'retention_class', 'runDefinitionCid', 'size_bytes', 'storage_scope', 'storeAuthorityCid',
+    'truncated', 'version', 'workspace_scope_cid'].sort();
+  const identity = body => 'sha256:' + createHash('sha256')
+    .update(JSON.stringify(body, identityKeys), 'utf8').digest('hex');
+  let contentContext;
+  const checkNotesReference = (actual, notes, subject) => {
+    assert(actual !== null && typeof actual === 'object' && !Array.isArray(actual));
+    const metadata = actual.metadata;
+    assert(metadata !== null && typeof metadata === 'object' && !Array.isArray(metadata));
+    const issuer = metadata.issuer_evidence;
+    assert(issuer !== null && typeof issuer === 'object' && !Array.isArray(issuer));
+    const storeAuthorityCid = issuer.content_store_cid, expiresAt = metadata.expires_at;
+    assert(C.test(storeAuthorityCid) && C.test(issuer.capture_authority_cid) && C.test(metadata.effective_data_policy_cid));
+    assert.equal(typeof expiresAt, 'string'); assert(Number.isFinite(Date.parse(expiresAt)));
+    assert.equal(new Date(expiresAt).toISOString(), expiresAt); assert(Date.parse(expiresAt) > Date.now());
+    const contentCid = 'sha256:' + createHash('sha256').update(notes, 'utf8').digest('hex');
+    const issuerBody = {version: 'actql-content-issuer-evidence/0.1', issuer_kind: 'connector_capture',
+      issuer_contract_cid: identity({version: 'actql-installed-local-policy/0.1', name: 'content-issuer',
+        storeAuthorityCid, authorityScopeCid: subject.authorityScopeCid}),
+      content_store_cid: storeAuthorityCid, workspace_scope_cid: subject.authorityScopeCid,
+      content_cid: contentCid, effective_data_policy_cid: metadata.effective_data_policy_cid,
+      capture_authority_cid: issuer.capture_authority_cid, reported_media_type: 'text/plain'};
+    const body = {$actql_ref: 'content', version: 'actql-content-ref/0.1', media_type: 'text/plain', metadata: {
+      content_store_id: 'local', content_cid: contentCid, media_type: 'text/plain', storage_scope: 'workspace',
+      retention_class: 'local-content', capture_authority: 'read_content', data_classification: 'internal',
+      effective_data_policy_cid: metadata.effective_data_policy_cid, expires_at: expiresAt,
+      availability_evidence_cid: identity({version: 'actql-installed-local-policy/0.1', name: 'content-availability',
+        storeAuthorityCid, runDefinitionCid: subject.runDefinitionCid, expiresAt}),
+      size_bytes: Buffer.byteLength(notes), truncated: false,
+      issuer_evidence: {...issuerBody, evidence_cid: identity(issuerBody)}}};
+    assert.deepEqual(actual, {...body, content_ref_cid: identity(body)});
+    const context = {storeAuthorityCid, expiresAt, policy: metadata.effective_data_policy_cid};
+    if (contentContext === undefined) contentContext = context;
+    else assert.deepEqual(context, contentContext, 'Both original notes share the same local Source context');
+  };
   const destination = 'local:packed-joined-model-inputs';
   const inputs = new Map(), manifests = new Map();
   let failure;
@@ -78,11 +122,15 @@ function joinedModelInputEvidence(selectedVariant) {
           assert.equal(input.key.length, 1);
           const key = input.key[0]; assert(Object.hasOwn(originals, key));
           const expected = originals[key], role = Object.hasOwn(input.inputs, 'StageName') ? 'review' : 'confirm';
-          assert.deepEqual(input.inputs, role === 'confirm' ? expected.confirmation : {
-            StageName: expected.StageName, NextStep: expected.NextStep,
-            ...(selectedVariant === 'two-models-joined-inputs'
-              ? {fileVersion: expected.fileVersion} : {notes: expected.notes}),
+          if (role === 'confirm') assert.deepEqual(input.inputs, expected.confirmation);
+          else if (selectedVariant === 'two-models-joined-inputs') assert.deepEqual(input.inputs, {
+            StageName: expected.StageName, NextStep: expected.NextStep, fileVersion: expected.fileVersion,
           });
+          else {
+            const {notes, ...columns} = input.inputs;
+            assert.deepEqual(columns, {StageName: expected.StageName, NextStep: expected.NextStep});
+            checkNotesReference(notes, expected.notes, subject);
+          }
           const identity = role + '/' + key;
           assert(!inputs.has(identity), 'One original input comparison per Model call');
           assert(inputs.size < 4);

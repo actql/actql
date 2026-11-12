@@ -2180,12 +2180,40 @@ for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
   });
 }
 
+// Independently authored Content DATA from the public literal notes and closed
+// local-capture preimages. This is not an issuer, Store read or permission.
+function independentJoinedNotesReference(notes, subject, overrides = {}, issuerOverrides = {}) {
+  const canonical = value => {
+    if (value === null || typeof value !== 'object') return JSON.stringify(value);
+    return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}';
+  };
+  const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+  const contentCid = 'sha256:' + createHash('sha256').update(notes, 'utf8').digest('hex');
+  const storeAuthorityCid = 'sha256:' + 'b'.repeat(64), expiresAt = '2099-01-01T00:00:00.000Z';
+  const issuerBody = {version: 'actql-content-issuer-evidence/0.1', issuer_kind: 'connector_capture',
+    issuer_contract_cid: cid({version: 'actql-installed-local-policy/0.1', name: 'content-issuer',
+      storeAuthorityCid, authorityScopeCid: subject.authorityScopeCid}),
+    content_store_cid: storeAuthorityCid, workspace_scope_cid: subject.authorityScopeCid,
+    content_cid: contentCid, effective_data_policy_cid: 'sha256:' + 'c'.repeat(64),
+    capture_authority_cid: 'sha256:' + createHash('sha256').update('original-capture:' + notes).digest('hex'),
+    reported_media_type: 'text/plain', ...issuerOverrides};
+  const body = {$actql_ref: 'content', version: 'actql-content-ref/0.1', media_type: 'text/plain', metadata: {
+    content_store_id: 'local', content_cid: contentCid, media_type: 'text/plain', storage_scope: 'workspace',
+    retention_class: 'local-content', capture_authority: 'read_content', data_classification: 'internal',
+    effective_data_policy_cid: issuerBody.effective_data_policy_cid, expires_at: expiresAt,
+    availability_evidence_cid: cid({version: 'actql-installed-local-policy/0.1', name: 'content-availability',
+      storeAuthorityCid, runDefinitionCid: subject.runDefinitionCid, expiresAt}),
+    size_bytes: Buffer.byteLength(notes), truncated: false,
+    issuer_evidence: {...issuerBody, evidence_cid: cid(issuerBody)}, ...overrides}};
+  return {...body, content_ref_cid: cid(body)};
+}
+
 test('joined input oracle consumes bounded original typed input and refuses swapped columns slots and subjects', async () => {
   const source = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
   const node = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
     .find(value => value.id?.name === 'joinedModelInputEvidence');
-  const make = Function('assert', 'C', 'Buffer', `return (${source.slice(node.start, node.end)});`)(
-    assert, /^sha256:[0-9a-f]{64}$/u, Buffer);
+  const make = Function('assert', 'C', 'Buffer', 'createHash', `return (${source.slice(node.start, node.end)});`)(
+    assert, /^sha256:[0-9a-f]{64}$/u, Buffer, createHash);
   const cid = digit => 'sha256:' + digit.repeat(64);
   const subject = {runDefinitionCid: cid('1'), authorityScopeCid: cid('2')};
   const versions = independentJoinedFixtureVersions();
@@ -2207,7 +2235,7 @@ test('joined input oracle consumes bounded original typed input and refuses swap
         model_call_slot_cid: original.modelCallSlotCid, semantic_request_cid: original.semanticRequestCid,
         key: [row.key], inputs: role === 'confirm' ? row.confirmation : {
           StageName: row.StageName, NextStep: row.NextStep,
-          ...(variant === 'two-models-joined-inputs' ? {fileVersion: row.fileVersion} : {notes: row.notes}),
+          ...(variant === 'two-models-joined-inputs' ? {fileVersion: row.fileVersion} : {notes: independentJoinedNotesReference(row.notes, subject)}),
         }})}};
   }));
   for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
@@ -2267,5 +2295,53 @@ test('joined composition cannot replace actual typed input comparison by success
         }}), {code: 'ERR_ASSERTION'});
       assert.deepEqual(phases, ['capture']);
     }
+  }
+});
+
+
+test('joined Whole typed input keeps Content references bound to literal bytes and closed metadata', async () => {
+  const source = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
+  const node = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(value => value.id?.name === 'joinedModelInputEvidence');
+  const make = Function('assert', 'C', 'Buffer', 'createHash', `return (${source.slice(node.start, node.end)});`)(
+    assert, /^sha256:[0-9a-f]{64}$/u, Buffer, createHash);
+  const files = twoModelJoinedWholeDealReviewFiles();
+  const model = parse(files['model-tasks/deal-review.v1.yaml']);
+  assert.deepEqual(model.input.notes, {type: 'content_ref', nullable: false});
+  const program = JSON.parse(files['deal-review.program.json']);
+  assert.equal(program.stages[1].steps[0].join.select.notes, 'right.content');
+  assert.deepEqual(program.stages[1].steps.find(step => step.infer).infer.input.notes, {field: 'notes'});
+  const cid = digit => 'sha256:' + digit.repeat(64);
+  const subject = {runDefinitionCid: cid('1'), authorityScopeCid: cid('2')};
+  const notes = 'Acme renewal meeting: move the deal to Negotiation. Send revised pricing by Friday.\n';
+  const reference = independentJoinedNotesReference(notes, subject);
+  assert.equal(reference.metadata.size_bytes, 84);
+  assert.equal(reference.metadata.content_cid, 'sha256:e610e873efbdbf84be4f12255b0b77ff8cd84f4f0c56373c8892f8153bc284e5');
+  const delivery = value => ({kind: 'typed-input', subject, target: 'assessment', attemptCid: cid('a'),
+    original: {modelCallSlotCid: cid('3'), semanticRequestCid: cid('7'), modelTaskCid: cid('8')},
+    wires: {typedInput: JSON.stringify({model_task_contract_cid: cid('8'), model_call_slot_cid: cid('3'),
+      semantic_request_cid: cid('7'), key: ['006Acme'], inputs: {StageName: 'Proposal', NextStep: null, notes: value}})}});
+  assert.deepEqual(await make('two-models-joined-whole').configuration.sink.capture(delivery(reference)), {status: 'complete'});
+  const negatives = [notes, independentJoinedNotesReference(notes + ' ', subject),
+    independentJoinedNotesReference(notes, {...subject, authorityScopeCid: cid('f')}),
+    independentJoinedNotesReference(notes, {...subject, runDefinitionCid: cid('f')})];
+  for (const mutate of [value => {value.content_ref_cid = cid('f');},
+    value => {value.metadata.issuer_evidence.evidence_cid = cid('f');},
+    value => {value.metadata.media_type = 'application/json';},
+    value => {value.metadata.size_bytes++;}, value => {value.metadata.truncated = true;},
+    value => {value.metadata.data_classification = 'unknown';},
+    value => {value.metadata.retention_class = 'foreign';},
+    value => {value.metadata.extra = true;}, value => {value.extra = true;}]) {
+    const value = structuredClone(reference); mutate(value); negatives.push(value);
+  }
+  negatives.push(independentJoinedNotesReference(notes, subject, {truncated: true}),
+    independentJoinedNotesReference(notes, subject, {size_bytes: 85}),
+    independentJoinedNotesReference(notes, subject, {availability_evidence_cid: cid('f')}),
+    independentJoinedNotesReference(notes, subject, {}, {issuer_contract_cid: cid('f')}),
+    independentJoinedNotesReference(notes, subject, {effective_data_policy_cid: cid('f')}),
+    independentJoinedNotesReference(notes, subject, {storage_scope: 'local'}),
+    independentJoinedNotesReference(notes, subject, {expires_at: '2000-01-01T00:00:00.000Z'}));
+  for (const value of negatives) {
+    await assert.rejects(make('two-models-joined-whole').configuration.sink.capture(delivery(value)), {code: 'ERR_ASSERTION'});
   }
 });
