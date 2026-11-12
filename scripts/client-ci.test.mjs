@@ -829,11 +829,12 @@ echo "$compiler_bin" >> "$GITHUB_PATH"`,
     'node scripts/test-packed-single-infer.mjs',
     'node scripts/test-packed-infer-evaluation.mjs',
     'node scripts/test-packed-acquired-infer.mjs',
+    `node --test scripts/packed-query-evidence.test.mjs
+node scripts/test-packed-public-query.mjs --ci-part=portable`,
+    'node scripts/test-packed-result-description.mjs',
     `test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
 cc --version
-node --test scripts/packed-query-evidence.test.mjs
-node scripts/test-packed-public-query.mjs`,
-    'node scripts/test-packed-result-description.mjs',
+node scripts/test-packed-public-query.mjs --ci-part=native`,
   ]);
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
     step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
@@ -842,7 +843,7 @@ node scripts/test-packed-public-query.mjs`,
   for (const step of approvalSteps) {
     assert(step.name.startsWith('Test packed '));
     assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});
-    assert.equal(step.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+    assert.equal(step.if, "${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
     assert.equal(step['continue-on-error'], undefined);
   }
   assert.deepEqual(runs('client-packed-composition'), ['node scripts/test-packed-salesforce-source.mjs']);
@@ -863,8 +864,11 @@ done`,
   for (const name of groups.filter(name => name !== 'client-supported-versions')) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
-    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 75 : 30, name);
-    assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
+    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 45 : 30, name);
+    if (name === 'client-packed') {
+      assert.equal(jobs[name].strategy['fail-fast'], false, 'no fail-fast sibling cancellation');
+      assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable', 'query-native']);
+    } else assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
       if (step.name?.startsWith('Test ')) {
@@ -872,7 +876,14 @@ done`,
         else if (name === 'client-distribution-native') preparation = 'native-client-preparation';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
-      assert.equal(step.if, preparation
+      if (name === 'client-packed') {
+        const group = /matrix\.group == '([^']+)'/u.exec(step.if)?.[1];
+        assert(jobs[name].strategy.matrix.group.includes(group));
+        const terms = step.if.slice(3, -2).split('&&').map(term => term.trim()).sort();
+        assert.deepEqual(terms, [`matrix.group == '${group}'`, ...(preparation
+          ? ['!cancelled()', `steps.${preparation}.outcome == 'success'`] : [])].sort(),
+        'matrix ownership retains the original preparation/current-cancellation barrier');
+      } else assert.equal(step.if, preparation
         ? '${{ !cancelled() && steps.' + preparation + ".outcome == 'success' }}" : undefined,
       'independent cases require their original successful preparation, not a previous case');
       assert.equal(step['continue-on-error'], undefined);
@@ -887,12 +898,12 @@ done`,
 test('packed Native Graph compiler setup retains exact cc and ar selection', () => {
   const job = jobs['client-packed'];
   const setup = job.steps.find(step => step.name === 'Select the packed Native Graph compiler');
-  const query = job.steps.find(step => step.id === 'packed-query');
+  const query = job.steps.find(step => step.id === 'packed-query-native');
   assert(setup && query);
   assert(job.steps.indexOf(setup) < job.steps.indexOf(query));
   assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
-  assert.equal(job['timeout-minutes'], 75);
+  assert.equal(job['timeout-minutes'], 45);
   assert.equal(setup['continue-on-error'], undefined);
   assert.equal(query['continue-on-error'], undefined);
   assert.equal(query.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
@@ -917,7 +928,7 @@ test('packed Native Graph compiler setup retains exact cc and ar selection', () 
     assert.equal(readFileSync(pathFile, 'utf8'), compilerBin + '\n');
     assert.equal(realpathSync(join(compilerBin, 'cc')), realpathSync(cc));
     assert.equal(realpathSync(join(compilerBin, 'ar')), realpathSync(ar));
-    const prefix = query.run.slice(0, query.run.indexOf('node --test '));
+    const prefix = query.run.slice(0, query.run.indexOf('node scripts/test-packed-public-query'));
     assert(prefix.startsWith('test "$(realpath "$(command -v cc)")" = '));
     const selected = run(paths(prefix), {PATH: compilerBin + ':' + process.env.PATH});
     assert.equal(selected.status, 0, selected.stderr);
@@ -980,12 +991,16 @@ test('packed evidence uploads remain always-on after their original command', ()
   for (const [id, name] of [['packed-infer', 'packed-single-infer'],
     ['packed-infer-evaluation', 'packed-infer-evaluation'],
     ['packed-acquired-infer', 'packed-acquired-infer'],
-    ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description']]) {
+    ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description'],
+    ['packed-query-native', 'packed-public-query-native']]) {
     const command = steps.findIndex(step => step.id === id);
     const upload = steps[command + 1];
     assert(command >= 0);
     assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
-    assert.equal(upload.if, `always() && steps.${id}.outputs.evidence-directory != ''`);
+    const group = id.includes('infer') ? 'infer' : id === 'packed-query' ? 'query-portable' : id === 'packed-query-native' ? 'query-native' : 'connectors';
+    assert.equal(upload.if, id === 'packed-query-native'
+      ? `always() && matrix.group == '${group}' && steps.${id}.outputs.evidence-directory != ''`
+      : `matrix.group == '${group}' && always() && steps.${id}.outputs.evidence-directory != ''`);
     assert.deepEqual(upload.with, {
       directory: '${{ steps.' + id + '.outputs.evidence-directory }}',
       name: name + '-${{ github.sha }}',

@@ -840,7 +840,7 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
-    'native-client-file-fixture.mjs', 'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'native-http-lifetime-fixture.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
+    'native-client-file-fixture.mjs', 'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'ci-core-partitions.mjs', 'native-http-lifetime-fixture.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs', 'native-project-configuration-fixture.mjs',

@@ -7,6 +7,7 @@ import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync} from 'node:f
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, resolve, sep} from 'node:path';
 import {parseCommands} from './verification-actions.mjs';
+import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 
 export const nativeRelationWorkTestFile =
   'src/platform_native/relation_file_work_tests/relation_file_original_physical_scoped_test.mbt';
@@ -181,7 +182,7 @@ export function nativeCoreOrdinaryPartitions(args, paths, records, count = 2) {
 export function nativeCorePartitionProfiles(profiles, value) {
   if (value === undefined || value === '') return profiles;
   const match = /^([1-4])\/(2|4)$/u.exec(value);
-  const physical = ['http', 'source', 'scoped'].includes(value);
+  const physical = nativeCoreCiPartitions.slice(4).includes(value);
   assert(physical || match && Number(match[1]) <= Number(match[2]), 'Invalid Native Core partition');
   const empty = {...profiles, ordinary: {args: null, cases: 0},
     http: {args: null, cases: 0}, source: {args: null, cases: 0},
