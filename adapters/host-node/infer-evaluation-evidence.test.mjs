@@ -592,3 +592,14 @@ test('typed logical getter retains only original prepared call and executed invo
     if (mode === 'no-invocation') assert.deepEqual(seen, ['invocation']);
   }
 });
+
+
+test('typed-input Effect manifest preserves the original Effect definition without a pure Program cast', async () => {
+  const f = typedInputFixture();
+  f.facts.programDefinitionCid = 'original-effect-program';
+  f.facts.moon.clientProgramDefinitionCid = () => {throw new TypeError('EffectRunIsNotPreparedClientProgram');};
+  await projectInferEvidence(f.facts);
+  assert.equal(f.manifests[0].manifest.status, 'complete');
+  assert.equal(f.manifests[0].manifest.programCid, 'original-effect-program');
+  assert.equal(f.manifests[0].manifest.providerBindingCid, 'provider');
+});

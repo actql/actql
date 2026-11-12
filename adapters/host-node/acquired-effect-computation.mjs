@@ -1061,6 +1061,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         try {
           await projectInferEvidence({configuration: inferEvidence, moon, control: acquired.control,
             preparedProgram, plan, selected: child.selection, operation: child.operation,
+            // This group retains an Effect Run, not a PreparedClientProgram.
+            // Read immutable definition DATA from its same original computation.
+            programDefinitionCid: moon.clientProgramEffectDefinitionCid(acquired.prepared),
             captureOwner: child.capture, continuation: child.continuation,
             current: publicationCurrent,
             authorityScopeCid: acquired.authorityScopeCid,

@@ -61,6 +61,10 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
     return released;
   }, clientProgramCancelInferObservationIssuance: () => false,
   clientProgramEffectComposedModelKeyedAcquisition: () => ({$tag: 1, _0: undefined})};
+  moon.clientProgramEffectDefinitionCid = original => {
+    assert.strictEqual(original, acquired.prepared, 'Read the original Effect computation, not its bound Run');
+    return 'original-effect-program';
+  };
   moon.clientProgramCleanupInferObservationIssuance = () => ({$tag: 1, _0: true});
   moon.clientProgramInferPlanBoundary = graph => ({_0: graph.index});
   const host = {}, unit = {value: {}}, sourceUnits = {byUnit: new Map([[0, unit]])};
@@ -861,4 +865,14 @@ test('plural typed-input funding preserves exact missing-original error codes', 
     assert.deepEqual(f.funding, []);
     assert.equal(await f.group.retirePublication(), true);
   }
+});
+
+
+test('plural Evidence metadata uses the same original Effect computation definition', async () => {
+  const definitions = [];
+  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+    definitions.push(facts.programDefinitionCid);
+  }});
+  await f.group.persist();
+  assert.deepEqual(definitions, ['original-effect-program', 'original-effect-program']);
 });

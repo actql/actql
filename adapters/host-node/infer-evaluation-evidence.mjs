@@ -122,7 +122,7 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
 
 export async function projectInferEvidence({configuration, moon, control, preparedProgram,
   plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainCopy, partial = false,
-  copyFunding, current}) {
+  copyFunding, current, programDefinitionCid}) {
   if (configuration === undefined) return;
   const configured = configurations.get(configuration);
   if (configured === undefined) throw new TypeError('ForeignInferEvidenceConfiguration');
@@ -328,7 +328,7 @@ export async function projectInferEvidence({configuration, moon, control, prepar
       const unavailable = items.find(item => item.status !== 'complete');
       manifest = Object.freeze({status: unavailable === undefined ? 'complete' : 'incomplete',
         ...(unavailable === undefined ? {} : {reason: unavailable.reason}), subject, target,
-        programCid: moon.clientProgramDefinitionCid(preparedProgram),
+        programCid: programDefinitionCid ?? moon.clientProgramDefinitionCid(preparedProgram),
         modelTaskCid: JSON.parse(inventory.calls[0].callWire).model_task_cid,
         ...(partial ? {policy} : {}),
         providerBindingCid: selected.providerBinding.identity, items: Object.freeze(items)});

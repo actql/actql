@@ -95,7 +95,13 @@ function joinedModelInputEvidence(selectedVariant) {
       async record({subject, target, manifest}) {
         return checked(() => {
           assert.equal(target, 'assessment'); assert.equal(manifest.kind, 'typed-input');
-          assert.equal(manifest.status, 'complete', 'Incomplete typed-input Evidence: ' + manifest.reason);
+          const code = value => typeof value === 'string' ? value.slice(0, 80) : undefined;
+          assert.equal(manifest.status, 'complete', 'Incomplete typed-input Evidence: ' + JSON.stringify({
+            kind: code(manifest.kind), status: code(manifest.status), reason: code(manifest.reason),
+            items: Array.isArray(manifest.items) ? manifest.items.slice(0, 2).map(item =>
+              ({status: code(item.status), reason: code(item.reason)})) : undefined,
+            captures: inputs.size,
+          }));
           assert(subjectMatches(subject, manifest.subject));
           assert(C.test(manifest.modelTaskCid));
           assert(!manifests.has(manifest.modelTaskCid));
