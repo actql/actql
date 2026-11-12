@@ -3139,7 +3139,7 @@ fn original_composed_keyed_consumer(
         issued_direct
         is Err(
           @publication_host.Invocation(
-            @publication_host.ForeignSourceObservation
+            @publication_host.IncompleteResultImports
           )
         ),
       )
