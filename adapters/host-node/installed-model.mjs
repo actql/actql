@@ -62,7 +62,7 @@ function checkInstallation(installation) {
     throw new TypeError('InvalidInstalledModelConfiguration');
   }
   const entries = installation.executionContracts ?? [];
-  if (!Array.isArray(entries) || entries.length > 128) {
+  if (!Array.isArray(entries)) {
     throw new TypeError('InvalidInstalledModelExecutionConfiguration');
   }
   const tasks = new Set();
@@ -78,7 +78,7 @@ function checkInstallation(installation) {
     tasks.add(entry.modelTaskCid);
   }
   const bodies = installation.dependencyBodies ?? [];
-  if (!Array.isArray(bodies) || bodies.length > 384) {
+  if (!Array.isArray(bodies)) {
     throw new TypeError('InvalidInstalledModelDependencyConfiguration');
   }
   const references = new Set();
@@ -326,7 +326,10 @@ export function installModelProviders(moon, register, assertHostRuntime,
   }
   const entries = register(moon);
   assertHostRuntime?.();
-  if (!Array.isArray(entries) || entries.length > 128) {
+  // This is the embedding Host's original registration inventory, not checked
+  // Run demand or a physical execution grant. Keep every actual entry and its
+  // original callbacks; the selected Run still admits its own material/limits.
+  if (!Array.isArray(entries)) {
     throw new TypeError('InvalidInstalledModelProviderRegistration');
   }
   const result = new Map();
