@@ -151,6 +151,11 @@ test('private profiler data is removed only after its complete sanitized report 
 });
 
 test('CPU mode is explicit and false by default while all unrelated jobs exclude it', () => {
+  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const unit = ci.jobs.lint.steps.find(step => step.run?.split(/\s+/u)
+    .includes('scripts/native-approval-cpu-diagnostic.test.mjs'));
+  assert(unit, 'CPU decoder regressions must run in the required lint job');
+  assert.equal(unit.if, undefined, 'Small decoder tests also run during Draft preparation');
   for (const event of ['workflow_dispatch', 'workflow_call']) {
     assert.deepEqual(workflow.on[event].inputs['native-approval-cpu-diagnostic'].default, false);
     assert.equal(workflow.on[event].inputs['native-approval-cpu-diagnostic'].type, 'boolean');
