@@ -4,6 +4,9 @@ import assert from 'node:assert/strict';
 // An unknown selector must never fall through to the full corpus.
 const supported = new Set([
   '--ci-part=portable',
+  '--ci-part=portable-1',
+  '--ci-part=portable-2',
+  '--ci-part=portable-3',
   '--ci-part=native',
   '--abs-only',
   '--acquired-data-only',
@@ -162,6 +165,7 @@ export function validatePackedPublicQueryArguments(args, environment = process.e
   for (const argument of args) {
     assert.ok(supported.has(argument), `UnknownPackedPublicQueryArgument: ${argument}`);
   }
+  assert.equal(environment.ACTQL_TEST_QUERY_CI_PART, undefined, 'PackedQueryCIPartMustBeExplicit');
   if (args.some(argument => argument.startsWith('--ci-part='))) {
     assert.equal(args.filter(argument => argument.startsWith('--ci-part=')).length, 1,
       'PackedQueryCIPartMustBeUnique');

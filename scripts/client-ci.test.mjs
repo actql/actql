@@ -833,7 +833,7 @@ echo "$compiler_bin" >> "$GITHUB_PATH"`,
     'node scripts/test-packed-infer-evaluation.mjs',
     'node scripts/test-packed-acquired-infer.mjs',
     `node --test scripts/packed-query-evidence.test.mjs
-node scripts/test-packed-public-query.mjs --ci-part=portable`,
+node scripts/test-packed-public-query.mjs --ci-part=\${{ matrix.query-part }}`,
     'node scripts/test-packed-result-description.mjs',
     `test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
 cc --version
@@ -870,7 +870,7 @@ done`,
     assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 45 : 30, name);
     if (name === 'client-packed') {
       assert.equal(jobs[name].strategy['fail-fast'], false, 'no fail-fast sibling cancellation');
-      assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable', 'query-native']);
+      assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable-1', 'query-portable-2', 'query-portable-3', 'query-native']);
     } else assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
@@ -883,7 +883,10 @@ done`,
         const group = /matrix\.group == '([^']+)'/u.exec(step.if)?.[1];
         assert(jobs[name].strategy.matrix.group.includes(group));
         const terms = step.if.slice(3, -2).split('&&').map(term => term.trim()).sort();
-        assert.deepEqual(terms, [`matrix.group == '${group}'`, ...(preparation
+        const ownership = step.id === 'packed-query'
+          ? "(matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3')"
+          : `matrix.group == '${group}'`;
+        assert.deepEqual(terms, [ownership, ...(preparation
           ? ['!cancelled()', `steps.${preparation}.outcome == 'success'`] : [])].sort(),
         'matrix ownership retains the original preparation/current-cancellation barrier');
       } else assert.equal(step.if, preparation
@@ -1000,13 +1003,14 @@ test('packed evidence uploads remain always-on after their original command', ()
     const upload = steps[command + 1];
     assert(command >= 0);
     assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
-    const group = id.includes('infer') ? 'infer' : id === 'packed-query' ? 'query-portable' : id === 'packed-query-native' ? 'query-native' : 'connectors';
+    const group = id.includes('infer') ? 'infer' : id === 'packed-query' ? 'portable' : id === 'packed-query-native' ? 'query-native' : 'connectors';
+    const selectedGroup = id === 'packed-query' ? "(matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3')" : `matrix.group == '${group}'`;
     assert.equal(upload.if, id === 'packed-query-native'
       ? `always() && matrix.group == '${group}' && steps.${id}.outputs.evidence-directory != ''`
-      : `matrix.group == '${group}' && always() && steps.${id}.outputs.evidence-directory != ''`);
+      : `${selectedGroup} && always() && steps.${id}.outputs.evidence-directory != ''`);
     assert.deepEqual(upload.with, {
       directory: '${{ steps.' + id + '.outputs.evidence-directory }}',
-      name: name + '-${{ github.sha }}',
+      name: id === 'packed-query' ? 'packed-public-${{ matrix.group }}-${{ github.sha }}' : name + '-${{ github.sha }}',
     });
   }
 });

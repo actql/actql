@@ -295,7 +295,7 @@ jobs:
         run: node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs
       - name: Test CI lane coverage and bounded Native phase measurement
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/ci-balanced-lanes.test.mjs scripts/ci-session-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
+        run: node --test scripts/ci-balanced-lanes.test.mjs scripts/packed-public-query-parts.test.mjs scripts/ci-session-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
@@ -2099,7 +2099,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [connectors, infer, query-portable, query-native]
+        group: [connectors, infer, query-portable-1, query-portable-2, query-portable-3, query-native]
+        include:
+          - {group: query-portable-1, query-part: portable-1}
+          - {group: query-portable-2, query-part: portable-2}
+          - {group: query-portable-3, query-part: portable-3}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -2225,19 +2229,19 @@ jobs:
           directory: ${{ steps.packed-acquired-infer.outputs.evidence-directory }}
           name: packed-acquired-infer-${{ github.sha }}
       - name: Test raw public SQL and Pipe through packed Local and HTTP
-        if: ${{ matrix.group == 'query-portable' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        if: ${{ (matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3') && !cancelled() && steps.client-inputs.outcome == 'success' }}
         id: packed-query
         env:
           ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'
         run: |
           node --test scripts/packed-query-evidence.test.mjs
-          node scripts/test-packed-public-query.mjs --ci-part=portable
+          node scripts/test-packed-public-query.mjs --ci-part=${{ matrix.query-part }}
       - name: Retain packed public query evidence
-        if: matrix.group == 'query-portable' && always() && steps.packed-query.outputs.evidence-directory != ''
+        if: (matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3') && always() && steps.packed-query.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-query.outputs.evidence-directory }}
-          name: packed-public-query-${{ github.sha }}
+          name: packed-public-${{ matrix.group }}-${{ github.sha }}
       - name: Test committed Result descriptions through packed Local and HTTP
         if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         # The description path reads retained metadata, including empty Results.
