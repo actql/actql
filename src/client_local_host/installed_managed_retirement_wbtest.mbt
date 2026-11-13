@@ -1,7 +1,7 @@
 ///|
 test "installed managed retirement tombstone rejects new borrows" {
   let assets = @publication_host.client_local_product_assets()
-  let cid = "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f"
+  let cid = "sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0"
   let environment = @publication_host.admit_client_check_environment(
     assets.environment,
     cid,
