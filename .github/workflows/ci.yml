@@ -747,123 +747,13 @@ jobs:
   # Isolated producers retain every campaign and never share source/build trees.
   # Evidence is from this run AND attempt; rerun all jobs after partial retries.
   # Fixed four-part plan: no matrix, shared mutable root or result reuse.
-  pipeline-mutations:
-    needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    env:
-      ACTQL_PIPELINE_PART: L-M0
-      ACTQL_PIPELINE_PHASE_TIMING: '1'
-    outputs:
-      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
-      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
-      archive-digest: ${{ steps.seal.outputs.archive-digest }}
-      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-toolchain
-      - name: Install audited Lean pin
-        run: |
-          node proofs/bounded-session/setup-lean.mjs
-          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Bind independently owned part to source and partition plan
-        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M0
-      - name: Verify this part's independent three-operation baseline
-        run: |
-          node proofs/relation-pipeline/run.mjs js base
-          node proofs/relation-pipeline/ci-parts.mjs stage L-M0 baseline
-      - name: Verify assigned fixed and required fresh mutations on every target
-        run: |
-          node proofs/relation-pipeline/mutations.mjs verify
-          node proofs/relation-pipeline/ci-parts.mjs stage L-M0 mutations
-      - name: Validate local obligations and seal restored closed evidence
-        id: seal
-        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M0
-      - name: Upload immutable part archive
-        id: evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relation-pipeline-L-M0-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: .artifacts/pipeline-ci/L-M0/evidence.tar
-          compression-level: 6
-          include-hidden-files: true
-          if-no-files-found: error
-      - name: Retain unsealed diagnostics when this part cannot finish
-        if: ${{ always() && steps.evidence.outcome != 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relation-pipeline-L-M0-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: |
-            .artifacts/relation-pipeline/
-            !.artifacts/relation-pipeline/ci-seal.json
-          include-hidden-files: true
-          if-no-files-found: warn
-  pipeline-mutations-rest:
-    needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    env:
-      ACTQL_PIPELINE_PART: L-M1
-      ACTQL_PIPELINE_PHASE_TIMING: '1'
-    outputs:
-      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
-      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
-      archive-digest: ${{ steps.seal.outputs.archive-digest }}
-      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - uses: ./.github/actions/setup-toolchain
-      - name: Install audited Lean pin
-        run: |
-          node proofs/bounded-session/setup-lean.mjs
-          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Bind independently owned part to source and partition plan
-        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M1
-      - name: Verify this part's independent three-operation baseline
-        run: |
-          node proofs/relation-pipeline/run.mjs js base
-          node proofs/relation-pipeline/ci-parts.mjs stage L-M1 baseline
-      - name: Verify assigned fixed and required fresh mutations on every target
-        run: |
-          node proofs/relation-pipeline/mutations.mjs verify
-          node proofs/relation-pipeline/ci-parts.mjs stage L-M1 mutations
-      - name: Validate local obligations and seal restored closed evidence
-        id: seal
-        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M1
-      - name: Upload immutable part archive
-        id: evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relation-pipeline-L-M1-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: .artifacts/pipeline-ci/L-M1/evidence.tar
-          compression-level: 6
-          include-hidden-files: true
-          if-no-files-found: error
-      - name: Retain unsealed diagnostics when this part cannot finish
-        if: ${{ always() && steps.evidence.outcome != 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: relation-pipeline-L-M1-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: |
-            .artifacts/relation-pipeline/
-            !.artifacts/relation-pipeline/ci-seal.json
-          include-hidden-files: true
-          if-no-files-found: warn
   pipeline-capacity:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      ACTQL_PIPELINE_PART: L-C0
+      ACTQL_PIPELINE_PART: L-C2
       ACTQL_PIPELINE_PHASE_TIMING: '1'
     outputs:
       artifact-id: ${{ steps.evidence.outputs.artifact-id }}
@@ -881,24 +771,24 @@ jobs:
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Bind independently owned part to source and partition plan
-        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C0
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C2
       - name: Execute this part's structural capacity obligations
         run: |
-          node proofs/relation-pipeline/capacity/run.mjs all L-C0
-          node proofs/relation-pipeline/ci-parts.mjs stage L-C0 capacity
+          node proofs/relation-pipeline/capacity/run.mjs all L-C2
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C2 capacity
       - name: Preserve the complete final registered corpus on every target
         run: |
           node proofs/relation-pipeline/run.mjs all
-          node proofs/relation-pipeline/ci-parts.mjs stage L-C0 final-normal
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C2 final-normal
       - name: Validate local obligations and seal restored closed evidence
         id: seal
-        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C0
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C2
       - name: Upload immutable part archive
         id: evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: relation-pipeline-L-C0-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: .artifacts/pipeline-ci/L-C0/evidence.tar
+          name: relation-pipeline-L-C2-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-C2/evidence.tar
           compression-level: 6
           include-hidden-files: true
           if-no-files-found: error
@@ -906,7 +796,58 @@ jobs:
         if: ${{ always() && steps.evidence.outcome != 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: relation-pipeline-L-C0-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          name: relation-pipeline-L-C2-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-capacity-support:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-C3
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C3
+      - name: Execute this part's structural capacity obligations
+        run: |
+          node proofs/relation-pipeline/capacity/run.mjs all L-C3
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C3 capacity
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C3
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-C3-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-C3/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-C3-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: |
             .artifacts/relation-pipeline/
             !.artifacts/relation-pipeline/ci-seal.json
@@ -918,7 +859,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      ACTQL_PIPELINE_PART: L-C1
+      ACTQL_PIPELINE_PART: L-C4
       ACTQL_PIPELINE_PHASE_TIMING: '1'
     outputs:
       artifact-id: ${{ steps.evidence.outputs.artifact-id }}
@@ -936,20 +877,20 @@ jobs:
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Bind independently owned part to source and partition plan
-        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C1
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C4
       - name: Execute this part's structural capacity obligations
         run: |
-          node proofs/relation-pipeline/capacity/run.mjs all L-C1
-          node proofs/relation-pipeline/ci-parts.mjs stage L-C1 capacity
+          node proofs/relation-pipeline/capacity/run.mjs all L-C4
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C4 capacity
       - name: Validate local obligations and seal restored closed evidence
         id: seal
-        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C1
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C4
       - name: Upload immutable part archive
         id: evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: relation-pipeline-L-C1-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: .artifacts/pipeline-ci/L-C1/evidence.tar
+          name: relation-pipeline-L-C4-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-C4/evidence.tar
           compression-level: 6
           include-hidden-files: true
           if-no-files-found: error
@@ -957,7 +898,278 @@ jobs:
         if: ${{ always() && steps.evidence.outcome != 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: relation-pipeline-L-C1-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          name: relation-pipeline-L-C4-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-capacity-mutants-rest:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-C5
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-C5
+      - name: Execute this part's structural capacity obligations
+        run: |
+          node proofs/relation-pipeline/capacity/run.mjs all L-C5
+          node proofs/relation-pipeline/ci-parts.mjs stage L-C5 capacity
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-C5
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-C5-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-C5/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-C5-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-mutations:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-M2
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M2
+      - name: Verify this part's independent three-operation baseline
+        run: |
+          node proofs/relation-pipeline/run.mjs js base
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M2 baseline
+      - name: Verify assigned fixed and required fresh mutations on every target
+        run: |
+          node proofs/relation-pipeline/mutations.mjs verify
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M2 mutations
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M2
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M2-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-M2/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M2-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-mutations-second:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-M3
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M3
+      - name: Verify this part's independent three-operation baseline
+        run: |
+          node proofs/relation-pipeline/run.mjs js base
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M3 baseline
+      - name: Verify assigned fixed and required fresh mutations on every target
+        run: |
+          node proofs/relation-pipeline/mutations.mjs verify
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M3 mutations
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M3
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M3-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-M3/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M3-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-mutations-rest:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-M4
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M4
+      - name: Verify this part's independent three-operation baseline
+        run: |
+          node proofs/relation-pipeline/run.mjs js base
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M4 baseline
+      - name: Verify assigned fixed and required fresh mutations on every target
+        run: |
+          node proofs/relation-pipeline/mutations.mjs verify
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M4 mutations
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M4
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M4-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-M4/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M4-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            !.artifacts/relation-pipeline/ci-seal.json
+          include-hidden-files: true
+          if-no-files-found: warn
+  pipeline-mutations-rest-second:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ACTQL_PIPELINE_PART: L-M5
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
+    outputs:
+      artifact-id: ${{ steps.evidence.outputs.artifact-id }}
+      artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
+      archive-digest: ${{ steps.seal.outputs.archive-digest }}
+      manifest-digest: ${{ steps.seal.outputs.manifest-digest }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Bind independently owned part to source and partition plan
+        run: node proofs/relation-pipeline/ci-parts.mjs begin L-M5
+      - name: Verify this part's independent three-operation baseline
+        run: |
+          node proofs/relation-pipeline/run.mjs js base
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M5 baseline
+      - name: Verify assigned fixed and required fresh mutations on every target
+        run: |
+          node proofs/relation-pipeline/mutations.mjs verify
+          node proofs/relation-pipeline/ci-parts.mjs stage L-M5 mutations
+      - name: Validate local obligations and seal restored closed evidence
+        id: seal
+        run: node proofs/relation-pipeline/ci-parts.mjs seal L-M5
+      - name: Upload immutable part archive
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M5-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/pipeline-ci/L-M5/evidence.tar
+          compression-level: 6
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Retain unsealed diagnostics when this part cannot finish
+        if: ${{ always() && steps.evidence.outcome != 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-L-M5-incomplete-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: |
             .artifacts/relation-pipeline/
             !.artifacts/relation-pipeline/ci-seal.json
@@ -994,23 +1206,29 @@ jobs:
         run: node proofs/relation-pipeline/ci-parts.mjs validation
   pipeline-evidence:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
-      !(needs.pipeline-mutations.result == 'skipped' && needs.pipeline-mutations-rest.result == 'skipped' &&
-        needs.pipeline-capacity.result == 'skipped' && needs.pipeline-capacity-mutants.result == 'skipped') }}
-    needs: [pipeline-mutations, pipeline-mutations-rest, pipeline-capacity, pipeline-capacity-mutants, pipeline-validation]
+      !(needs.pipeline-capacity.result == 'skipped' &&
+        needs.pipeline-capacity-support.result == 'skipped' &&
+        needs.pipeline-capacity-mutants.result == 'skipped' &&
+        needs.pipeline-capacity-mutants-rest.result == 'skipped' &&
+        needs.pipeline-mutations.result == 'skipped' &&
+        needs.pipeline-mutations-second.result == 'skipped' &&
+        needs.pipeline-mutations-rest.result == 'skipped' &&
+        needs.pipeline-mutations-rest-second.result == 'skipped') }}
+    needs: [pipeline-capacity, pipeline-capacity-support, pipeline-capacity-mutants, pipeline-capacity-mutants-rest, pipeline-mutations, pipeline-mutations-second, pipeline-mutations-rest, pipeline-mutations-rest-second, pipeline-validation]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
       artifact-id: ${{ steps.pipeline-actions.outputs.artifact-id }}
       artifact-digest: ${{ steps.pipeline-actions.outputs.artifact-digest }}
     steps:
-      - name: Require all four producers and mandatory validation before transfer
+      - name: Require every producer and mandatory validation before transfer
         env:
           PIPELINE_NEEDS: ${{ toJSON(needs) }}
         run: |
           node -e '
             const assert = require("node:assert/strict");
             const jobs = JSON.parse(process.env.PIPELINE_NEEDS);
-            const names = ["pipeline-capacity", "pipeline-capacity-mutants", "pipeline-mutations", "pipeline-mutations-rest"];
+            const names = ["pipeline-capacity", "pipeline-capacity-support", "pipeline-capacity-mutants", "pipeline-capacity-mutants-rest", "pipeline-mutations", "pipeline-mutations-second", "pipeline-mutations-rest", "pipeline-mutations-rest-second"];
             assert.deepEqual(Object.keys(jobs).sort(), [...names, "pipeline-validation"].sort());
             assert.equal(jobs["pipeline-validation"].result, "success", "Required synthetic validation did not succeed");
             const ids = [];
@@ -1022,7 +1240,7 @@ jobs:
                 assert.match(job.outputs[key] ?? "", /^[0-9a-f]{64}$/);
               ids.push(job.outputs["artifact-id"]);
             }
-            assert.equal(new Set(ids).size, 4, "Part artifacts must be distinct");
+            assert.equal(new Set(ids).size, names.length, "Part artifacts must be distinct");
           '
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1031,29 +1249,53 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
-      - name: Download exact L-M0 archive
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          artifact-ids: ${{ needs.pipeline-mutations.outputs.artifact-id }}
-          path: ${{ runner.temp }}/pipeline-ci/L-M0
-          merge-multiple: true
-      - name: Download exact L-M1 archive
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          artifact-ids: ${{ needs.pipeline-mutations-rest.outputs.artifact-id }}
-          path: ${{ runner.temp }}/pipeline-ci/L-M1
-          merge-multiple: true
-      - name: Download exact L-C0 archive
+      - name: Download exact L-C2 archive
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           artifact-ids: ${{ needs.pipeline-capacity.outputs.artifact-id }}
-          path: ${{ runner.temp }}/pipeline-ci/L-C0
+          path: ${{ runner.temp }}/pipeline-ci/L-C2
           merge-multiple: true
-      - name: Download exact L-C1 archive
+      - name: Download exact L-C3 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-capacity-support.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-C3
+          merge-multiple: true
+      - name: Download exact L-C4 archive
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           artifact-ids: ${{ needs.pipeline-capacity-mutants.outputs.artifact-id }}
-          path: ${{ runner.temp }}/pipeline-ci/L-C1
+          path: ${{ runner.temp }}/pipeline-ci/L-C4
+          merge-multiple: true
+      - name: Download exact L-C5 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-capacity-mutants-rest.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-C5
+          merge-multiple: true
+      - name: Download exact L-M2 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-mutations.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-M2
+          merge-multiple: true
+      - name: Download exact L-M3 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-mutations-second.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-M3
+          merge-multiple: true
+      - name: Download exact L-M4 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-mutations-rest.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-M4
+          merge-multiple: true
+      - name: Download exact L-M5 archive
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.pipeline-mutations-rest-second.outputs.artifact-id }}
+          path: ${{ runner.temp }}/pipeline-ci/L-M5
           merge-multiple: true
       - name: Validate every part before constructing the immutable complete union
         env:

@@ -2,7 +2,7 @@
 // Semantic/minimality auditing remains in audit.mjs; no receipt is rewritten.
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mutationNamesByPart, planDigest, partFamily } from './proof-parts.mjs';
+import { mutationNamesByPart, logicalMutationNamesByPart, planDigest, partFamily } from './proof-parts.mjs';
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const targets = ['js', 'wasm', 'native'];
 const partIds = Object.keys(mutationNamesByPart);
@@ -10,6 +10,10 @@ export const mutationPartSchema = 'actql-relation-pipeline-mutation-part/0.1';
 export function mutationPart(id) {
   assert.equal(partFamily(id), 'mutations');
   return { version: mutationPartSchema, id, planDigest, variants: [...mutationNamesByPart[id]] };
+}
+export function logicalMutationPart(id) {
+  assert(Object.hasOwn(logicalMutationNamesByPart, id), 'Unknown logical mutation part');
+  return {version: mutationPartSchema, id, planDigest, variants: [...logicalMutationNamesByPart[id]]};
 }
 export function mutationReportPath(id, mode) {
   assert(partIds.includes(id), 'Unknown mutation part');
@@ -57,6 +61,9 @@ function minimumExecutions(executions, observations, minimum, pair, role, source
 }
 export function inspectMutationPart(report, options = {}) {
   return inspectMutationPartAgainst(report, mutationPart(options.partId ?? report.part?.id), options);
+}
+export function inspectLogicalMutationPart(report, options = {}) {
+  return inspectMutationPartAgainst(report, logicalMutationPart(options.partId ?? report.part?.id), options);
 }
 // This one immutable record predates the 114-case final-normal plan. Its exact
 // canonical report and original source pin are required before any projection.
@@ -127,7 +134,7 @@ function inspectMutationPartAgainst(report, requiredPart,
   return refs;
 }
 export function joinMutationParts(parts, { mode = parts[0]?.report.mode, source, decision } = {}) {
-  assert.equal(parts.length, 2, 'Missing or extra mutation parts');
+  assert.equal(parts.length, partIds.length, 'Missing or extra mutation parts');
   assert.deepEqual(parts.map(p => p.report.part?.id).sort(), [...partIds].sort(), 'Missing or duplicate mutation part');
   const ordered = partIds.map(id => parts.find(p => p.report.part.id === id));
   const original = ordered[0].report;

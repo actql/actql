@@ -11,7 +11,7 @@ import {authenticateExecutionOrigin} from '../ci-evidence/receipts.mjs';
 import {leanInput} from '../ci-evidence/check.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {inspectMutationPart, mutationReportPath} from './mutation-parts.mjs';
-import {mutationNamesByPart} from './proof-parts.mjs';
+import {mutationNamesByPart, mutationPartIds} from './proof-parts.mjs';
 import {mutationSourceInputs, mutationActionRecords} from './mutation-actions.mjs';
 import {createAudit} from './audit.mjs';
 
@@ -146,7 +146,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const repository = process.env.GITHUB_REPOSITORY;
   const runId = Number(process.env.GITHUB_RUN_ID), runAttempt = Number(process.env.GITHUB_RUN_ATTEMPT);
   const admission = createAudit(root)();
-  const report = JSON.parse(readFileSync(join(root, '.artifacts/relation-pipeline/fixed-mutations-L-M0.json')));
+  const report = JSON.parse(readFileSync(join(root, `.artifacts/relation-pipeline/fixed-mutations-${mutationPartIds[0]}.json`)));
   const origin = {repository, repositoryId: event.repository.id, testedRevision: revision,
     runHeadRevision: event.pull_request?.head?.sha ?? revision, workflowPath: '.github/workflows/ci.yml', runId, runAttempt,
     event: process.env.GITHUB_EVENT_NAME, branch: event.pull_request?.head?.ref ?? process.env.GITHUB_REF_NAME};

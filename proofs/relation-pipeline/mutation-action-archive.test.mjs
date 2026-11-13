@@ -76,7 +76,7 @@ test('a manual-main original retains its actual certificate and originals withou
   assert.equal(result.authority, 'authenticated-successful-pipeline-job');
   assert.equal(result.acquisition, 'original-not-reused');
   assert.equal(result.reuseAuthorized, false);
-  assert.equal(result.original.admission.actions.length, 36);
+  assert.equal(result.original.admission.actions.length, 72);
   assert(result.unresolved.length > 0);
   assert.deepEqual([...base.members].map(([path, bytes]) => [path, hash(bytes)]), before);
 });
@@ -128,9 +128,9 @@ test('a rerun during full member verification invalidates the final required ver
 
 test('the required consumer uses the exact current artifact and reconstructs every fresh obligation', async t => {
   const result = await consume(t, {requiredConsumer: true});
-  assert.equal(result.freshActions, 36);
-  assert.equal(result.required.length, 36);
-  assert.equal(result.applications.length, 36);
+  assert.equal(result.freshActions, 72);
+  assert.equal(result.required.length, 72);
+  assert.equal(result.applications.length, 72);
   assert(result.applications.every(entry => !entry.reused && entry.origin === revision));
   assert.equal(result.reuseAuthorized, false);
   assert.deepEqual(result.certificate, base.original.admission.certificate);

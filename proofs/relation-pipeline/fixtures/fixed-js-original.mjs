@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {hash, gitTree} from '../../ci-evidence/inputs.mjs';
 import {pipelinePristineSourcePaths} from '../../ci-evidence/isolation.mjs';
 import {checkCurrentSource, snapshot} from '../inventory.mjs';
-import {mutationPart} from '../mutation-parts.mjs';
+import {logicalMutationPart as mutationPart} from '../mutation-parts.mjs';
 import {variants} from '../mutation-registry.mjs';
 import {applyMutation} from '../sites.mjs';
 import {fixedJsAction} from '../fixed-js-scope.mjs';

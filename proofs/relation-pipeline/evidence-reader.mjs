@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalJson, fileDigest, maxCapacityReportBytes, noLinks, safePath } from './ci-artifacts.mjs';
 import { hash } from './inventory.mjs';
+import {capacityPartIds} from './proof-parts.mjs';
 const prefix = '.artifacts/relation-pipeline/';
 export function pipelineEvidenceReader(directory, sourceRoot = fileURLToPath(new URL('../../', import.meta.url))) {
   const local = path => {
@@ -47,6 +48,6 @@ export function pipelineEvidenceReader(directory, sourceRoot = fileURLToPath(new
   } });
   Object.defineProperty(read, 'artifactDigestWork', { value: () => Object.freeze({ ...work }) });
   const report = path => canonicalJson(join(directory, safePath(path)),
-    /^capacity\/parts\/L-C[01]\.json$/u.test(path) ? maxCapacityReportBytes : 32 * 1024 ** 2);
+    capacityPartIds.some(id => path === `capacity/parts/${id}.json`) ? maxCapacityReportBytes : 32 * 1024 ** 2);
   return {local, read, report};
 }

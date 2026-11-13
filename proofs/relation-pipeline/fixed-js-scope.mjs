@@ -1,6 +1,6 @@
 // One local finite campaign; it never changes the complete part's obligations.
 import assert from 'node:assert/strict';
-import {mutationNamesByPart} from './proof-parts.mjs';
+import {mutationNamesByPart, logicalMutationNamesByPart} from './proof-parts.mjs';
 export const fixedJsAction = Object.freeze({id: 'pipeline-l-m0-fixed-js-campaign',
   part: 'L-M0', mode: 'fixed', target: 'js', phases: Object.freeze(['mutated', 'pristine', 'post-restore'])});
 
@@ -10,7 +10,8 @@ export function mutationCampaignScope(options = {}) {
   const {profile = 'full', mode = 'explore', partId = null, revision = null} = options;
   assert(['full', 'local-fixed-js'].includes(profile), 'Unregistered campaign profile');
   assert(['fixed', 'explore', 'auto', 'verify'].includes(mode), 'Unregistered campaign mode');
-  assert(partId === null || Object.hasOwn(mutationNamesByPart, partId), 'Unregistered mutation part');
+  assert(partId === null || Object.hasOwn(logicalMutationNamesByPart, partId) ||
+    profile === 'full' && Object.hasOwn(mutationNamesByPart, partId), 'Unregistered mutation part');
   if (profile === 'local-fixed-js') {
     assert.equal(mode, 'fixed', 'Local campaign cannot select exploration');
     assert.equal(partId, fixedJsAction.part, 'Local campaign cannot change its part');
