@@ -1679,6 +1679,59 @@ test('shallow and deep aggregate expectations reject every wrong status, includi
   assert.equal(scheduled('pipeline-evidence', needs), false, 'cheap checks alone do not start deep assembly');
 });
 
+test('Ready PR record-only observations and the aggregate select the same existing package consumers', () => {
+  const job = jobs['main-performance'];
+  assert(gateJobs.includes('main-performance') && jobs.check.needs.includes('main-performance'));
+  const cases = [
+    selectTargets(['src/query/new-case.mbt'], {event: 'pull_request', draft: false}),
+    selectTargets(['src/query/new-case.mbt'], {event: 'pull_request', draft: true}),
+    maintenanceSelection(['scripts/operation-performance.mjs']),
+    ...['push', 'schedule', 'workflow_dispatch'].map(event => selectTargets(['README.md'], {event})),
+  ];
+  for (const selection of cases) {
+    const required = selection.event === 'push' || selection.event === 'pull_request' && selection.profile === 'full';
+    const scheduled = runInNewContext(job.if.slice(3, -2).trim(), {
+      inputs: {}, needs: {'select-targets': {outputs: {profile: selection.profile}}}, toJSON: JSON.stringify,
+      github: {event_name: selection.event, ref: 'refs/heads/main', event: {
+        repository: {visibility: 'public', private: false}, pull_request: {draft: selection.profile.startsWith('draft')},
+      }},
+    }, {timeout: 100});
+    assert.equal(scheduled, required, `${selection.event}/${selection.profile}`);
+    assert.equal(gateJobRequired(selection, 'main-performance'), required);
+    const env = {...context, event: selection.event};
+    if (selection.profile.startsWith('draft')) {
+      assert.throws(() => verifyGate(plan(selection), results(selection), env), /Draft preparation is not merge verification/);
+      continue;
+    }
+    assert.doesNotThrow(() => verifyGate(plan(selection), results(selection), env));
+    for (const wrong of required ? ['failure', 'cancelled', 'skipped', undefined] : ['success']) {
+      assert.throws(() => verifyGate(plan(selection),
+        {...results(selection), 'main-performance': {result: wrong}}, env), /main-performance/);
+    }
+  }
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
+});
+
+test('record-only PR observations preserve private, Draft, lightweight and alternate-mode exclusions', () => {
+  const runs = ({profile = 'full', draft = false, visibility = 'public', privateFlag = false,
+    event = 'pull_request', ref = 'refs/heads/main', inputs = {}} = {}) => runInNewContext(
+    jobs['main-performance'].if.slice(3, -2).trim(), {
+      inputs, needs: {'select-targets': {outputs: {profile}}}, toJSON: JSON.stringify,
+      github: {event_name: event, ref, event: {repository: {visibility, private: privateFlag}, pull_request: {draft}}},
+    }, {timeout: 100});
+  assert.equal(runs(), true);
+  for (const profile of ['maintenance', 'focused-tests', 'draft', 'draft-focused']) {
+    assert.equal(runs({profile}), false, profile);
+    assert.equal(gateJobRequired({event: 'pull_request', profile}, 'main-performance'), false, profile);
+  }
+  for (const options of [{draft: true}, {visibility: 'private', privateFlag: true},
+    {privateFlag: null}, {event: 'schedule'}, {event: 'workflow_dispatch'},
+    {event: 'push', ref: 'refs/heads/feature'},
+    {inputs: {performance_matrix: true}}, {inputs: {packed_query_evidence_probe: true}}]) {
+    assert.equal(runs(options), false, JSON.stringify(options));
+  }
+});
+
 test('existing push-only health result is required by the same aggregate that schedules it', () => {
   assert(jobs.check.needs.includes('health-quick'));
   assert(gateJobs.includes('health-quick'));

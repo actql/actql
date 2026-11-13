@@ -348,10 +348,14 @@ those requirements justify the extra producer and dependency. The failed run's
 35,501 total job-seconds and 4,532-second final-check interval remain separate
 observations, never a successful optimization comparison.
 
-## Main performance observations
+## Ready PR and main performance observations
 
-Every public `main` push runs `main-performance` on Linux with the normal
-`client-packages` artifact from that same run. It does not rebuild packages or
+Every public `main` push and full Ready PR runs `main-performance` on Linux with
+the normal `client-packages` artifact from that same run. Draft and lightweight
+maintenance/focused profiles retain their skips and acquire no new producer.
+The selector and final aggregate require the same selected observation job;
+missing, failed, cancelled or unexpectedly skipped observations fail that gate.
+The job waits only for selection and its original package producer. It does not rebuild packages or
 start the heavy performance matrix. The existing ordinary consumer preparer,
 `benchmark-node-operations.mjs`, and `benchmark-node-process-operations.mjs`
 run in explicit `record-only` mode. Diagnostic/final acceptance modes and their

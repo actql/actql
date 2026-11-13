@@ -81,7 +81,9 @@ export function deepProofRequired(selection) {
 export function gateJobRequired(selection, name) {
   if (['select-targets', 'preflight', 'lint', 'spec'].includes(name)) return true;
   if (name === 'client-readme-packed') return selection.profile === 'full';
-  if (['main-performance', 'health-quick'].includes(name)) return selection.event === 'push';
+  if (name === 'main-performance') return selection.event === 'push' ||
+    selection.event === 'pull_request' && selection.profile === 'full';
+  if (name === 'health-quick') return selection.event === 'push';
   if (name === 'focused-tests') return ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (name === 'python-wheels') return pythonWheelAcceptanceRequired(selection);
   if (['session-evidence', 'session-controls', 'pipeline-evidence'].includes(name)) return deepProofRequired(selection);

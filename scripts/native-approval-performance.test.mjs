@@ -2,12 +2,119 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {runInNewContext} from 'node:vm';
+import * as performance from './native-approval-performance.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalResources, approvalPhases} from './native-approval-performance.mjs';
 
 const sourceSha = 'a'.repeat(40), fixtureSha256 = 'b'.repeat(64), runnerSha256 = 'c'.repeat(64);
 const series = () => ({mode: 'final', sourceSha, fixtureSha256, runnerSha256,
   samples: Array.from({length: 30}, (_, iteration) => ({iteration, sourceSha, fixtureSha256,
     runnerSha256, wallNs: 4000000000, cpuUserUs: 1000, cpuSystemUs: 1000, cpuScope: 'synthetic OS sample', peakRssBytes: 4096, rssScope: 'synthetic OS sample', completed: true, verified: true}))});
+
+function smokeScenarios(wallNs = 10000000000) {
+  return ['deal-review-mock', 'churn-risk-mock'].map(template => ({template,
+    commands: [{args: ['original-launcher', 'approve', 'original-checkpoint', '--wait', '--json'],
+      code: 0, signal: null, wallNs}]}));
+}
+
+async function installedSmokeTail(scenarios, measureResources = false, writeFailure) {
+  const source = readFileSync(new URL('./test-native-cli-mock-install.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('const receiptFile = join(directory,');
+  assert(start >= 0, 'Use the actual installed consumer publication tail');
+  const receipt = {scenarios}, events = [];
+  const pending = runInNewContext(`(async () => {${source.slice(start)}\n})()`, {
+    directory: '/original-release', platform: 'linux-x64-gnu', Date: {now: () => 1},
+    join: (...parts) => parts.join('/'), receipt, measureResources, assert,
+    assessOrdinaryNativeApprovalSmoke: performance.assessOrdinaryNativeApprovalSmoke,
+    writeFile: async (path, bytes, options) => {
+      if (writeFailure) throw writeFailure;
+      events.push({kind: 'receipt', path, value: JSON.parse(bytes), options});
+    },
+    scratch: {passed: () => events.push({kind: 'passed'})},
+    console: {log: message => events.push({kind: 'console', message})},
+  }, {timeout: 100});
+  return {receipt, events, pending};
+}
+
+test('ordinary Native smoke persists the original slow approvals before rejecting and never marks them passed', async () => {
+  const original = smokeScenarios(11000000000);
+  const {events, pending} = await installedSmokeTail(original);
+  await assert.rejects(pending, /approval maximum exceeds 10000 ms/u);
+  assert.deepEqual(events.map(event => event.kind), ['receipt']);
+  assert.deepEqual(events[0].value.scenarios, original);
+  assert.equal(events[0].value.approvalSmoke.status, 'failed');
+  assert.equal(events[0].value.approvalSmoke.samples.length, 2);
+  assert.equal(events[0].options.flag, 'wx');
+});
+
+test('ordinary Native smoke accepts ten seconds and refuses one nanosecond above without a p95 claim', () => {
+  const scenarios = smokeScenarios(), original = structuredClone(scenarios);
+  const passed = performance.assessOrdinaryNativeApprovalSmoke(scenarios);
+  assert.equal(passed.status, 'passed'); assert.equal(passed.maximumMs, 10000);
+  assert.equal(passed.formalAcceptance, false); assert.equal(passed.samples.length, 2);
+  assert.equal(Object.hasOwn(passed, 'p95Ms'), false);
+  assert.deepEqual(scenarios, original);
+  for (let index = 0; index < 2; index++) {
+    const slow = structuredClone(scenarios); slow[index].commands[0].wallNs++;
+    const result = performance.assessOrdinaryNativeApprovalSmoke(slow);
+    assert.equal(result.status, 'failed'); assert.equal(result.samples[index].wallNs, 10000000001);
+    assert(result.failures.some(reason => reason.includes('approval maximum exceeds 10000 ms')));
+  }
+});
+
+test('ordinary Native smoke cannot pass missing invalid failed or duplicate original timing', () => {
+  for (const wallNs of [undefined, null, 0, -1, NaN, Infinity, 1.5, '1000']) {
+    const selected = smokeScenarios(); selected[0].commands[0].wallNs = wallNs;
+    assert.equal(performance.assessOrdinaryNativeApprovalSmoke(selected).status, 'failed');
+  }
+  for (const change of [command => {command.code = 1;}, command => {command.signal = 'SIGTERM';},
+    command => {delete command.signal;}, command => {command.killed = true;}]) {
+    const selected = smokeScenarios(); change(selected[0].commands[0]);
+    assert.equal(performance.assessOrdinaryNativeApprovalSmoke(selected).status, 'failed');
+  }
+  for (const selected of [null, [], smokeScenarios().slice(1), [...smokeScenarios(), smokeScenarios()[0]],
+    [smokeScenarios()[0], smokeScenarios()[0]]]) {
+    assert.equal(performance.assessOrdinaryNativeApprovalSmoke(selected).status, 'failed');
+  }
+  for (const commands of [null, [], [...smokeScenarios()[0].commands, ...smokeScenarios()[0].commands]]) {
+    const selected = smokeScenarios(); selected[0].commands = commands;
+    assert.equal(performance.assessOrdinaryNativeApprovalSmoke(selected).status, 'failed');
+  }
+});
+
+test('ordinary Native smoke publishes inclusive-boundary success but retains invalid timing as failure', async () => {
+  const passed = await installedSmokeTail(smokeScenarios()); await passed.pending;
+  assert.deepEqual(passed.events.map(event => event.kind), ['receipt', 'passed', 'console']);
+  assert.equal(passed.events[0].value.approvalSmoke.status, 'passed');
+  const invalid = smokeScenarios(); delete invalid[0].commands[0].wallNs;
+  const failed = await installedSmokeTail(invalid);
+  await assert.rejects(failed.pending, /original approval timing missing or invalid/u);
+  assert.deepEqual(failed.events.map(event => event.kind), ['receipt']);
+  assert.equal(failed.events[0].value.approvalSmoke.status, 'failed');
+});
+
+test('ordinary Native smoke leaves formal slow samples and earlier receipt errors intact', async () => {
+  const original = smokeScenarios(30000000000);
+  const formal = await installedSmokeTail(original, true); await formal.pending;
+  assert.deepEqual(formal.events.map(event => event.kind), ['receipt', 'passed', 'console']);
+  assert.deepEqual(formal.events[0].value.scenarios, original);
+  assert.equal(Object.hasOwn(formal.events[0].value, 'approvalSmoke'), false);
+  const primary = new Error('original receipt write failure');
+  const failed = await installedSmokeTail(original, false, primary);
+  await assert.rejects(failed.pending, error => error === primary);
+  assert.deepEqual(failed.events, []);
+});
+
+test('ordinary Native smoke stays on required original CI consumers with separate stop and formal bounds', () => {
+  const consumer = readFileSync(new URL('./test-native-cli-mock-install.mjs', import.meta.url), 'utf8');
+  const ci = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const collector = readFileSync(new URL('./test-native-approval-performance.mjs', import.meta.url), 'utf8');
+  assert.match(consumer, /async function run\(command, args, cwd = root, timeoutMs = 120_000\)/u);
+  assert(consumer.indexOf('await registry.close()') < consumer.indexOf('const receiptFile = join(directory,'));
+  assert.match(ci, /run: node scripts\/test-native-cli-mock-install\.mjs "\$RUNNER_TEMP\/native-cli-linux-local\/release"\n/u);
+  assert.match(collector, /count = values\.diagnostic \? 3 : 30/u);
+  assert.match(collector, /'--measure-approval-resources'/u);
+});
 
 test('authenticated Host subject consumes its original control header without parsing it again', () => {
   const controlSource = readFileSync(new URL('../src/platform_native/client_host/local_initial_signing_original.mbt', import.meta.url), 'utf8');
