@@ -4,16 +4,16 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'yaml';
 
-test('temporary Crypto diagnostic requires the original inferior result and only one manual C job', () => {
+test('temporary Crypto replay requires original inferior status and one manual build-free job', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
   assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch']);
   assert.deepEqual(Object.keys(workflow.jobs), ['crypto-partial']);
   const job = workflow.jobs['crypto-partial'];
   assert.equal(job['runs-on'], 'ubuntu-24.04');
   const commands = job.steps.map(step => step.run ?? '').join('\n');
-  assert(commands.includes('scripts/diagnose-native-crypto-partial.py'));
-  assert(!/produce-native-cli|npm (?:run|ci)|moon (?:build|test)|test-native-approval/u.test(commands));
-  assert.deepEqual(job.permissions, {contents: 'read'});
+  assert(commands.includes('scripts/replay-native-crypto-partial.py'));
+  assert(!/produce-native|npm (?:run|ci)|moon (?:build|test)|setup-moonbit|clang|test-native-approval/u.test(commands));
+  assert.deepEqual(job.permissions, {contents: 'read', actions: 'read'});
   const code = String.raw`
 import ast, importlib.util, json
 from pathlib import Path
@@ -40,6 +40,15 @@ assert 'threading.Timer(30' in script
 assert 'handle SIGSEGV stop nopass print' in script and 'noprint' not in script
 assert "info signals SIGSEGV" in script and "Signal stop policy mismatch" in script
 assert 'frame.read_var' not in script and 'bt full' not in script
+replay=Path('scripts/replay-native-crypto-partial.py')
+ast.parse(replay.read_text())
+spec=importlib.util.spec_from_file_location('replay',replay)
+r=importlib.util.module_from_spec(spec);spec.loader.exec_module(r)
+assert r.ARTIFACT==14021199374 and r.ORIGINAL_RUN==43393813496
+assert r.BINARY_SOURCE=='db7ac05a1ba7ac43d9bdb39570c00ab987b70b9b'
+try: r.validate_original(b'not the original ELF archive')
+except ValueError: pass
+else: raise AssertionError('foreign artifact accepted')
 print('original inferior status, no false signal pass, bounded one-run script verified')
 `;
   const result = spawnSync('python3', ['-c', code], {cwd: new URL('..', import.meta.url), encoding: 'utf8', timeout: 10000});

@@ -1,5 +1,5 @@
 # TEMPORARY DIAGNOSTIC BRANCH ONLY. Never merge this workflow replacement.
-name: Linux Crypto partial diagnostic
+name: Linux Crypto original ELF replay
 
 on:
   workflow_dispatch:
@@ -9,48 +9,48 @@ permissions:
 
 jobs:
   crypto-partial:
-    name: One original Linux Crypto partial under gdb
+    name: Same original Linux Crypto partial ELF under corrected gdb
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 8
     permissions:
       contents: read
+      actions: read
+    env:
+      LC_ALL: C
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 22.22.0
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12.16'
-      - name: Install existing pinned clang19 and debugger tooling
-        timeout-minutes: 5
+      - name: Install only debugger tooling
+        timeout-minutes: 3
         run: |
-          bash scripts/ci-install-linux-clang.sh
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 update --error-on=any
           sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 install --yes --no-install-recommends gdb
-      - name: Install pinned provider tooling without ActQL runtime preparation
-        timeout-minutes: 4
+      - name: Retain exact original product and provider Source correspondence
         run: |
-          node scripts/setup-moonbit.mjs
-          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
-          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
-      - name: Observe only the original 4096-byte partial once
+          git fetch --no-tags --depth=1 origin db7ac05a1ba7ac43d9bdb39570c00ab987b70b9b
+          git diff --exit-code db7ac05a1ba7ac43d9bdb39570c00ab987b70b9b HEAD -- \
+            packages/python-local-runtime/native/crypto-component \
+            packages/python-local-runtime/native/pre-root scripts/produce-native-crypto-component.py
+      - name: Observe only the same original partial ELF once
         timeout-minutes: 4
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python3 scripts/diagnose-native-crypto-partial.py \
-            --source "$GITHUB_SHA" --clang "$(realpath /usr/bin/clang-19)" \
-            --gdb "$(realpath /usr/bin/gdb)" --moon-home "$MOON_HOME" \
-            --output "$RUNNER_TEMP/crypto-partial-diagnostic" --seconds 180
-      - name: Preserve bounded sanitized observations and exact input receipts
+          python3 scripts/replay-native-crypto-partial.py \
+            --source "$GITHUB_SHA" --gdb "$(realpath /usr/bin/gdb)" \
+            --output "$RUNNER_TEMP/crypto-partial-replay"
+      - name: Preserve bounded sanitized observations and distinct input receipts
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: crypto-partial-diagnostic-${{ github.sha }}
+          name: crypto-partial-replay-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/crypto-partial-diagnostic/summary.json
-            ${{ runner.temp }}/crypto-partial-diagnostic/inputs.json
-            ${{ runner.temp }}/crypto-partial-diagnostic/allocator-conformance
+            ${{ runner.temp }}/crypto-partial-replay/summary.json
+            ${{ runner.temp }}/crypto-partial-replay/inputs.json
           if-no-files-found: error
           retention-days: 7
