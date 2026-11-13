@@ -250,7 +250,6 @@ pub struct LocalManagedRelationSnapshot {
   frames : LocalInputFrames
   advance_save : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   take_output : () -> Result[String, LocalDispatchIssue]
-  next : () -> Result[String?, LocalDispatchIssue]
   content : () -> Result[@managed_carrier_runtime.SnapshotContent, LocalDispatchIssue]
   release_source : (String, () -> Bool) -> Result[Unit, LocalDispatchIssue]
   source_available : () -> Bool

@@ -1,6 +1,8 @@
 ///|
 test "Local Relation physical batches keep original work owner and refuse unspent overrun" {
-  for refused in [false, true] {
+  let measured_export_work = Ref(0L)
+  for mode in [0, 1, 2] {
+    let refused = mode == 1
     let (run, issuer) = captured_graph_fixture(
       dag_two_consumers_of_compute_a=true,
       count=true,
@@ -10,8 +12,14 @@ test "Local Relation physical batches keep original work owner and refuse unspen
     let graph = @strategy.captured_dag_graph(run)
     let registry = search_registry()
     let limits = dispatch_test_limits()
-    let max_work = captured_keyed_count_chain_work() +
-      (if refused { 0 } else { 1000 })
+    let allowance = if refused {
+      0
+    } else if mode == 2 {
+      measured_export_work.val.to_int()
+    } else {
+      1000
+    }
+    let max_work = captured_keyed_count_chain_work() + allowance
     let execution = { ..limits.local_execution, max_work, }
     let installed = @local_driver.prepare_local_dispatch_module(
       @host_driver.open_dispatch_driver(run),
@@ -114,6 +122,11 @@ test "Local Relation physical batches keep original work owner and refuse unspen
     } else {
       assert_true(saved && !rejected)
       assert_true(spent > 2L)
+      if mode == 0 {
+        measured_export_work.val = spent
+      } else {
+        assert_eq(spent, measured_export_work.val)
+      }
       assert_eq(parts, 2)
       assert_eq(text.to_string(), "[{\"id\":2},{\"id\":3}]")
       let content = (snapshot.content)().unwrap()

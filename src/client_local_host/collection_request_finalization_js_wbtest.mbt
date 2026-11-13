@@ -712,17 +712,23 @@ fn collection_node_snapshot(
   let mut save_polls = snapshot.frames.maxBytes.to_int64() + 2L
   while save_polls > 0L {
     save_polls -= 1L
-    match (snapshot.next)() {
-      Ok(Some(part)) => {
-        bytes += @utf8.encode(part).length()
-        parts.push(part)
-      }
-      Ok(None) => {
-        saved = true
-        break
-      }
+    let observation = match (snapshot.advance_save)(32) {
+      Ok(value) => value
       Err(issue) =>
         return collection_node_snapshot_failure(task, 2, issue, ledger)
+    }
+    let part = match (snapshot.take_output)() {
+      Ok(value) => value
+      Err(issue) =>
+        return collection_node_snapshot_failure(task, 2, issue, ledger)
+    }
+    if part != "" {
+      bytes += @utf8.encode(part).length()
+      parts.push(part)
+    }
+    if observation.complete {
+      saved = true
+      break
     }
   }
   if !saved {
