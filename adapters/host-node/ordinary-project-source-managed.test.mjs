@@ -15,7 +15,8 @@ async function fixture() {
   assert.equal(typeof sources.prepareOrdinaryProjectSourceManagedInstallation, 'function');
   const directory = await mkdtemp(join(tmpdir(), 'actql-project-source-custody-'));
   await writeFile(join(directory, 'original'), 'original');
-  const originals = {}, prepared = {}, request = {}, declaration = {}, parent = {}, holder = {}, managed = {}, plan = {};
+  const originals = {}, prepared = {}, request = {}, identity = {}, declaration = {}, parent = {}, holder = {}, managed = {}, plan = {};
+  const coordinates = [[0, 0, 0], [0, 1, 0]];
   const bundle = Object.freeze({sources: Object.freeze([{declaration}])});
   const ok = value => ({$tag: 1, _0: value});
   let valid = true, original, ports, retiring = false, returned = false;
@@ -48,11 +49,19 @@ async function fixture() {
     clientProgramPreparationBorrowRead: value => {assert.strictEqual(value, holder); return prepared;},
     clientProgramComposedInferOccurrences: () => ok([]),
     clientProgramSerializationOccurrences: () => [],
-    clientProgramAcquisitionCount: () => 1,
+    clientProgramAcquisitionCount: () => coordinates.length,
     clientProgramRequestParametersOriginal: () => ok(undefined),
     clientProgramAdoptRequestProgramPreparation: () => assert.fail('No source-free adoption'),
     clientProgramPrepareRequestCaptureModuleBody: () => ok(),
     clientProgramAdoptRequestCapturePreparation: () => ok(managed),
+    clientProgramInstalledManagedSourceOccurrence(value, owner, intent, slot) {
+      assert.strictEqual(value, managed); assert.strictEqual(owner, prepared);
+      assert.strictEqual(intent, identity);
+      if (!coordinates[slot]) throw Object.assign(new Error('OriginalPlanSlotUnavailable'),
+        {code: 'OriginalPlanSlotUnavailable'});
+      const [stage, input, task] = coordinates[slot];
+      return ok({_0: stage, _1: input, _2: task});
+    },
     clientProgramPreparationBorrowRetirementStarted: () => retiring,
     clientProgramPreparationBorrowReturn(value) {
       assert.strictEqual(value, holder); assert(retiring); assert(!returned); returned = true; return ok(true);
@@ -71,7 +80,8 @@ async function fixture() {
   const connection = Object.freeze({mode: 'local', owner: 'local',
     consentRefs: Object.freeze([]), runners: Object.freeze([])});
   const program = {version: 'actql/0.1', id: 'original-project-source', stages: [{id: 'scan',
-    inputs: {remote: {connector: 'fixture', resource: 'records'}},
+    inputs: {remote: {connector: 'fixture', resource: 'records'},
+      other: {connector: 'fixture', resource: 'records'}},
     steps: [{filter: 'true'}, {select: ['id'], as: 'rows'}],
     results: {rows: {from: 'rows', fields: ['id']}}}],
     results: {rows: {from: {stage: 'scan', result: 'rows'}}}};
@@ -79,11 +89,14 @@ async function fixture() {
   const body = view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
   view.bindSourceSnapshot(receipt, body); view.bindSourceRequest(receipt, body, request);
   await view.fundedPreparation(request, undefined);
-  const adopted = view.adoptCapturePreparation(prepared, request, {}, () => plan);
+  const adopted = view.adoptCapturePreparation(prepared, request, identity, () => plan);
   assert.strictEqual(adopted.original, original); assert.strictEqual(adopted.value, managed);
-  return {view, prepared, declaration, original, ports, directory,
-    child(index = 0) {return view.prepareRead(prepared, declaration, managed,
-      {stage: index, input: 0, task: index});},
+  return {view, prepared, declaration, original, ports, directory, managed, identity,
+    child(index = 0, changes = {}) {
+      const [stage, input, computeTask] = coordinates[index] ?? [0, 0, 0];
+      return view.prepareRead(prepared, declaration, managed,
+        {stage, input, task: index, computeTask, ...changes}, identity);
+    },
     finish() {view.finishSourceProducer(receipt, 'returned');
       assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);},
     sever() {retiring = true; view.severPreparation(prepared, original); assert(returned);},
@@ -129,6 +142,30 @@ test('Project Source distinguishes same-declaration occurrences and preserves pe
   ready = true;
   assert.equal((await first.close()).pending, false);
   assert.equal(closeCalls, 2); assert.equal(file.fd, -1);
+  f.sever(); assert.equal(f.ports.status(2), 0); f.retired();
+  assert.equal((await f.view.close()).pending, false);
+});
+
+test('Project Source uses the retained Plan coordinates and refuses swapped or foreign originals before a child', async () => {
+  const f = await fixture();
+  for (const changed of [{stage: 1}, {input: 0}, {task: 0}, {computeTask: 1}]) {
+    assert.throws(() => f.child(1, changed), {code: 'InstalledSourcePreparationMismatch'});
+  }
+  assert.throws(() => f.child(2), {code: 'OriginalPlanSlotUnavailable'});
+  assert.throws(() => f.view.prepareRead({}, f.declaration, f.managed,
+    {stage: 0, input: 1, task: 1, computeTask: 0}, f.identity));
+  assert.throws(() => f.view.prepareRead(f.prepared, {}, f.managed,
+    {stage: 0, input: 1, task: 1, computeTask: 0}, f.identity), {code: 'InstalledSourcePreparationMismatch'});
+  assert.throws(() => f.view.prepareRead(f.prepared, f.declaration, {},
+    {stage: 0, input: 1, task: 1, computeTask: 0}, f.identity), {code: 'InstalledSourcePreparationMismatch'});
+  assert.throws(() => f.view.prepareRead(f.prepared, f.declaration, f.managed,
+    {stage: 0, input: 1, task: 1, computeTask: 0}, {}));
+  const child = f.child(1);
+  let closed = false;
+  child.retainChild({status: () => ({pending: !closed}),
+    close() {closed = true; return {pending: false};}});
+  f.finish();
+  assert.equal((await child.close()).pending, false);
   f.sever(); assert.equal(f.ports.status(2), 0); f.retired();
   assert.equal((await f.view.close()).pending, false);
 });
