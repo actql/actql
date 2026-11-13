@@ -86,6 +86,29 @@ test('Native approval enforces both p95 and maximum without dropping slow failur
   assert(assessNativeApproval(p95).failures.some(value => value.includes('p95')));
 });
 
+test('Native approval accepts four seconds p95 and rejects one nanosecond above it', () => {
+  assert.equal(assessNativeApproval(series()).status, 'passed');
+  const selected = series();
+  selected.samples[0].wallNs = selected.samples[1].wallNs = 4000000001;
+  const result = assessNativeApproval(selected);
+  assert.equal(result.status, 'failed');
+  assert.deepEqual(result.failures, ['approval p95 exceeds 4000 ms']);
+  assert.equal(result.summary.count, 30);
+  assert.equal(result.summary.p95Ms, 4000.000001);
+});
+
+test('Native approval accepts five seconds maximum and rejects one nanosecond above it', () => {
+  const selected = series(); selected.samples[0].wallNs = 5000000000;
+  assert.equal(assessNativeApproval(selected).status, 'passed');
+  selected.samples[0].wallNs++;
+  const result = assessNativeApproval(selected);
+  assert.equal(result.status, 'failed');
+  assert.deepEqual(result.failures, ['approval maximum exceeds 5000 ms']);
+  assert.equal(result.summary.count, 30);
+  assert.equal(result.summary.p95Ms, 4000);
+  assert.equal(result.summary.maxMs, 5000.000001);
+});
+
 test('Native approval diagnostic samples do not supply a final acceptance p95', () => {
   const selected = series(); selected.mode = 'diagnostic'; selected.samples.length = 3;
   const result = assessNativeApproval(selected);

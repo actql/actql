@@ -114,8 +114,8 @@ export function assessNativeApproval(series) {
   if (!resources.rss.available) missing.push('actual command peak RSS observations');
   if (series.mode !== 'final') missing.push('diagnostic only');
   if (series.samples.length !== nativeApprovalTarget.samples) missing.push('30 actual approval samples');
-  if (summary.p95Ms !== null && summary.p95Ms > nativeApprovalTarget.p95Ms) failures.push('approval p95 exceeds 5 seconds');
-  if (summary.maxMs !== null && summary.maxMs > nativeApprovalTarget.maxMs) failures.push('approval maximum exceeds 10 seconds');
+  if (summary.p95Ms !== null && summary.p95Ms > nativeApprovalTarget.p95Ms) failures.push(`approval p95 exceeds ${nativeApprovalTarget.p95Ms} ms`);
+  if (summary.maxMs !== null && summary.maxMs > nativeApprovalTarget.maxMs) failures.push(`approval maximum exceeds ${nativeApprovalTarget.maxMs} ms`);
   return {status: failures.length ? 'failed' : missing.length ? 'incomplete' : 'passed',
     target: nativeApprovalTarget, summary, resources, failures, missing};
 }
