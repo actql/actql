@@ -2475,7 +2475,7 @@ test('one installed Host reads and applies independent Effects', async t => {
   assert.deepEqual(await effect.result('answer').all(),
     [{id: 1}, {id: 2}]);
   assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
-  await first.close();
+  await closeRetainedStoreFixtureHost(first, t, {observeFirstClose: true, requireFirstClose: true});
   const restarted = await remoteHost(t, account(), options);
   const attached = await (await restarted.as('owner-token'))
     .attach(effect.ref);
