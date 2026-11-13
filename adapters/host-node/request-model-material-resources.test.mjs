@@ -13,6 +13,47 @@ const frozen = (executions, bodies) => Object.freeze({environmentWire: '{}',
   executionContracts: Object.freeze(executions.map(Object.freeze)),
   dependencyBodies: Object.freeze(bodies.map(Object.freeze))});
 
+test('same Request funds the complete129 execution385 dependency inventory before reading original tail bodies',()=>{
+  const prepared={},occurrence={},execution={},dependencies={};
+  const executions=Array.from({length:129},(_,index)=>({modelTaskCid:`task-${index}`,
+    cid:`execution-${index}`,bodyWire:`original-execution-${index}`}));
+  const bodies=Array.from({length:385},(_,index)=>({cid:`dependency-${index}`,
+    bodyWire:`original-dependency-${index}`}));
+  const installation=frozen(executions,bodies),calls=[];
+  const moon={clientProgramInferOccurrenceCoordinates:()=>({_2:0}),
+    clientProgramInferOccurrenceModelTaskCid:()=>executions.at(-1).modelTaskCid,
+    clientProgramReadComposedInferModelExecution(original,wire,cid){
+      calls.push('execution');assert.strictEqual(original,occurrence);
+      assert.equal(wire,executions.at(-1).bodyWire);assert.equal(cid,executions.at(-1).cid);
+      return {$tag:1,_0:execution};
+    },
+    clientProgramInferDependencyReferences:()=>({_0:bodies[382].cid,_1:bodies[383].cid,_2:bodies[384].cid}),
+    clientProgramInferMediaDependencyReferences:()=>[],
+    clientProgramReadInferModelDependencies(original,...wires){
+      calls.push('dependencies');assert.strictEqual(original,execution);
+      assert.deepEqual(wires,bodies.slice(-3).map(entry=>entry.bodyWire));
+      return {$tag:1,_0:dependencies};
+    }};
+  const beforeRead=(count,at,containers)=>{
+    assert.equal(containers,514);
+    const wires=Array.from({length:count},(_,index)=>at(index));
+    if(count===1)assert.deepEqual(wires,[executions.at(-1).bodyWire]);
+    else assert.deepEqual(wires,bodies.slice(-3).map(entry=>entry.bodyWire));
+    calls.push('funded');
+  };
+  assert.strictEqual(readInstalledModelExecution(moon,prepared,installation,occurrence,beforeRead).execution,
+    execution);
+  assert.strictEqual(readInstalledModelDependencies(moon,execution,installation,beforeRead,prepared,occurrence),
+    dependencies);
+  assert.deepEqual(calls,['funded','execution','funded','dependencies']);
+  const primary=new Error('OriginalRequestCurrentRefused');
+  for(const read of [()=>readInstalledModelExecution(moon,prepared,installation,occurrence,()=>{throw primary;}),
+    ()=>readInstalledModelDependencies(moon,execution,installation,()=>{throw primary;},prepared,occurrence)]){
+    assert.throws(read,error=>error===primary);
+  }
+  assert.deepEqual(calls,['funded','execution','funded','dependencies']);
+});
+
 test('empty original Model execution absence belongs to the same tuple and one consumption', () => {
   const prepared = {}, installation = frozen([], []), occurrence = {};
   const moon = {clientProgramInferOccurrenceCoordinates(value) {
