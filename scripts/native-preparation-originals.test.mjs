@@ -2,10 +2,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,writeFileSync} from 'node:fs';
+import {cpSync,existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {preparedNativeCommand,preparedNativeComponents,preparedNativeHttpReceipt} from './native-preparation-originals.mjs';
+import * as originals from './native-preparation-originals.mjs';
+import {prepareNativeRuntimeBundle,prepareNativeResidentSite} from './native-runtime-bundle-fixture.mjs';
 
 const fingerprint=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
 const descriptor=path=>({path,...fingerprint(readFileSync(path))});
@@ -128,4 +130,120 @@ test('changed receipt bytes or incomplete preparation cannot be adopted',t=>{
   assert.throws(()=>preparedNativeCommand(f.root,'native_runtime_bundle',f.selected),/Original preparation input/u);
   rmSync(join(f.root,'preparation.json'));
   assert.throws(()=>preparedNativeComponents(f.root,f.selected),/ENOENT/u);
+});
+
+function compiledCommandFixture(t,entry='native_runtime_bundle') {
+  const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-command-adoption-')));
+  t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const origin=join(root,'origin'),receiver=join(root,'receiver');
+  const put=(path,body)=>{mkdirSync(join(path,'..'),{recursive:true});writeFileSync(path,body);return path;};
+  const context={source:'a'.repeat(40),target:'darwin-arm64',repository:join(origin,'repository'),
+    moon_home:join(origin,'moon'),clang:join(origin,'tools/clang'),sdk:join(origin,'SDK')};
+  const header=put(join(context.repository,'src/original.h'),'exact original Source header');
+  put(join(context.repository,'toolchain.json'),'exact pinned toolchain');
+  put(join(context.moon_home,'bin/moon'),'exact original Moon tool');
+  put(context.clang,'exact original Clang tool');
+  put(join(context.sdk,'SDKSettings.json'),'exact original ABI');
+  const directory=join(origin,'command');mkdirSync(directory);
+  const generated=put(join(directory,'derived-read-source/original.h'),'exact original generated allocator header');
+  const executable=put(join(directory,`emission/native/release/build/cmd/${entry}/${entry}.exe`),
+    'explicit inert compiled-command port, never executed');
+  const generatedC=put(executable.slice(0,-4)+'.c','explicit original generated C port');
+  const selected=[context.clang,'-O2','-o',executable,generatedC];
+  put(join(directory,'commands.json'),JSON.stringify([selected]));
+  const step=join(directory,'cc-0.json');
+  put(step,JSON.stringify({original:['original',generatedC],selected,exit:0,output:descriptor(executable)}));
+  put(join(directory,'cc-plan.json'),JSON.stringify({steps:[{original:['original',generatedC],selected,receipt:step}],
+    allocator_inputs:[descriptor(generated)]}));
+  const inputs=[header,join(context.repository,'toolchain.json'),join(context.moon_home,'bin/moon'),
+    context.clang,join(context.sdk,'SDKSettings.json'),generated,join(directory,'cc-plan.json')].map(descriptor);
+  put(join(directory,'inputs.json'),JSON.stringify(inputs));
+  const body={source:context.source,target:context.target,entry:'src/cmd/'+entry,plan_only:false,moon_build_exit:0,
+    compiler_backend:'pinned ordinary C (MOONBIT_NEW_NATIVE=0)',compiler_profile:'ordinary Moon --release --strip',
+    providers:1,core_modules:1,commands_completed:1,completed_c_steps:1,
+    installed_supplier:false,normal_profile:null,runtime_cases:0,public_e2e:0,
+    executable:descriptor(executable),generated_c:descriptor(generatedC)};
+  put(join(directory,'build.json'),JSON.stringify(body));
+  mkdirSync(receiver);
+  for(const name of ['repository','moon','tools','SDK'])cpSync(join(origin,name),join(receiver,name),{recursive:true});
+  const current={...context,repository:join(receiver,'repository'),moon_home:join(receiver,'moon'),
+    clang:join(receiver,'tools/clang'),sdk:join(receiver,'SDK')};
+  const artifact=join(root,'offered'),received=join(root,'received-input'),destination=join(receiver,'prepared');
+  const calls=[];
+  const execute=(command,args)=>{
+    calls.push([command,args]);
+    if(command==='git')return args[0]==='rev-parse'?current.source+'\n':'';
+    if(command==='xcrun')return (args[0]==='--find'?current.clang:current.sdk)+'\n';
+    assert.fail('Received compiled DATA must not invoke another producer: '+command);
+  };
+  const publish=()=>{
+    assert.equal(typeof originals.exportNativeCompiledCommand,'function');
+    const offered=originals.exportNativeCompiledCommand(directory,artifact,entry,context);
+    cpSync(artifact,received,{recursive:true});
+    return {...offered,path:join(received,'command.json')};
+  };
+  const receive=(input,overrides={})=>(entry==='native_runtime_bundle'?prepareNativeRuntimeBundle:prepareNativeResidentSite)(
+    current.repository,destination,{platform:'darwin',arch:'arm64',moonHome:current.moon_home,execute,
+      preparation:null,compiledInput:input,...overrides});
+  return {root,origin,directory,body,context,current,artifact,received,destination,calls,publish,receive,put};
+}
+
+test('compiled command adoption keeps origin bytes and creates a fresh receiver without producer or old paths',t=>{
+  for(const entry of ['native_runtime_bundle','native_remote_resident_site']) {
+    const f=compiledCommandFixture(t,entry),originReceipt=readFileSync(join(f.directory,'build.json'));
+    const input=f.publish();
+    assert(readFileSync(join(f.artifact,'origin-build.json')).equals(originReceipt));
+    rmSync(f.origin,{recursive:true});
+    const binary=f.receive(input);
+    assert.equal(binary,join(f.destination,'received-command.exe'));
+    assert.equal(readFileSync(binary,'utf8'),'explicit inert compiled-command port, never executed');
+    assert(!existsSync(join(f.destination,'build.json')),'old physical producer receipt must not be fabricated');
+    const current=JSON.parse(readFileSync(join(f.destination,'received.json'))),identity=lstatSync(binary,{bigint:true});
+    assert.equal(current.kind,'received-native-command');assert.equal(current.source,f.current.source);
+    assert.equal(current.executable.path,binary);assert.equal(current.executable.ino,String(identity.ino));
+    assert.equal(current.executable.dev,String(identity.dev));
+    assert(readFileSync(join(f.received,'origin-build.json')).equals(originReceipt));
+    assert(f.calls.every(([name])=>name==='git'||name==='xcrun'));
+  }
+});
+
+test('compiled command adoption refuses changed source target current tools ABI and explicit mode ambiguity',t=>{
+  for(const change of [f=>{f.current.source='b'.repeat(40);},f=>{f.put(f.current.clang,'changed compiler');},
+    f=>{f.put(join(f.current.repository,'src/original.h'),'changed Source');},
+    f=>{f.put(join(f.current.moon_home,'bin/moon'),'changed Moon');},
+    f=>{f.put(join(f.current.sdk,'SDKSettings.json'),'changed ABI');}]) {
+    const f=compiledCommandFixture(t),input=f.publish();change(f);
+    assert.throws(()=>f.receive(input));assert(!existsSync(f.destination));
+  }
+  const f=compiledCommandFixture(t),input=f.publish();
+  assert.throws(()=>f.receive(input,{platform:'linux',arch:'x64'}));
+  assert.throws(()=>f.receive(input,{preparation:f.artifact}));
+  assert(!existsSync(f.destination));
+});
+
+test('compiled command adoption refuses altered transferred bytes receipt and generated input before publication',t=>{
+  for(const change of [f=>f.put(join(f.received,'command.json'),'changed manifest'),
+    f=>f.put(join(f.received,'origin-build.json'),'changed receipt'),
+    f=>{const body=JSON.parse(readFileSync(join(f.received,'command.json')));
+      f.put(join(f.received,body.members.find(x=>x.original.path.endsWith('.exe')).file),'changed compiled binary');},
+    f=>{const body=JSON.parse(readFileSync(join(f.received,'command.json')));
+      f.put(join(f.received,body.members.find(x=>x.original.path.endsWith('derived-read-source/original.h')).file),'changed generated input');}]) {
+    const f=compiledCommandFixture(t),input=f.publish();change(f);
+    assert.throws(()=>f.receive(input));assert(!existsSync(f.destination));
+  }
+});
+
+test('compiled command export and adoption refuse incomplete execution foreign entry symlinks and existing receivers',t=>{
+  for(const change of [body=>{body.plan_only=true;},body=>{body.moon_build_exit=1;},
+    body=>{body.completed_c_steps=0;},body=>{body.compiler_profile='foreign profile';},
+    body=>{body.entry='src/cmd/native_client';},body=>{body.installed_supplier=true;}]) {
+    const f=compiledCommandFixture(t);change(f.body);f.put(join(f.directory,'build.json'),JSON.stringify(f.body));
+    assert.throws(()=>f.publish());assert(!existsSync(f.artifact));
+  }
+  const f=compiledCommandFixture(t),input=f.publish();mkdirSync(f.destination);
+  assert.throws(()=>f.receive(input));assert.deepEqual(Object.keys(JSON.parse(readFileSync(input.path))).includes('members'),true);
+  const other=compiledCommandFixture(t),offered=other.publish();
+  const body=JSON.parse(readFileSync(offered.path)),member=body.members.find(x=>x.original.path.endsWith('.exe'));
+  const path=join(other.received,member.file);rmSync(path);symlinkSync(join(other.directory,'emission/native/release/build/cmd/native_runtime_bundle/native_runtime_bundle.exe'),path);
+  assert.throws(()=>other.receive(offered));assert(!existsSync(other.destination));
 });
