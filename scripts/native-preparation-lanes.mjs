@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {Worker,isMainThread,parentPort,workerData} from 'node:worker_threads';
 import {createHash} from 'node:crypto';
-import {chmodSync,constants,copyFileSync,lstatSync,mkdirSync,readFileSync,readdirSync,readlinkSync,
+import {appendFileSync,chmodSync,constants,copyFileSync,lstatSync,mkdirSync,readFileSync,readdirSync,readlinkSync,
   realpathSync,symlinkSync,writeFileSync} from 'node:fs';
 import {basename,dirname,join,relative,resolve,sep} from 'node:path';
 import {verifyInstallation} from './moonbit-installation.mjs';
@@ -69,6 +69,11 @@ function timed(destination,source,target,phase,prepare) {
     console.error('ACTQL_NATIVE_CI_PHASE '+JSON.stringify(result));
     try {writeFileSync(join(destination,'lane-'+phase+'.timing.json'),JSON.stringify(result)+'\n',{flag:'wx',mode:0o600});}
     catch {console.error('Native lane timing diagnostic unavailable');}
+    if(process.env.GITHUB_STEP_SUMMARY) {
+      try {appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+        `- Native ${phase}: ${result.milliseconds} ms (${succeeded?'success':'failed'}).\n`);}
+      catch {console.error('Native lane timing summary unavailable');}
+    }
   }
 }
 
@@ -132,8 +137,11 @@ function startWorker(lane,configuration) {
 export async function prepareNativeParallel(configuration,{copyTools=copyNativePreparationTools,startLane=startWorker}={}) {
   const {repository,destination,moonHome,target}=configuration;
   const pin=JSON.parse(readFileSync(join(repository,'toolchain.json'),'utf8'));
-  const toolDirectory=join(repository,'.toolchains',basename(destination)+'-commands');
-  mkdirSync(join(repository,'.toolchains'),{recursive:true});
+  const toolBase=join(repository,'.toolchains');mkdirSync(toolBase,{recursive:true});
+  const baseStat=lstatSync(toolBase);
+  assert(baseStat.isDirectory()&&!baseStat.isSymbolicLink(),'A shared tool-output alias is not a preparation destination');
+  assert.equal(realpathSync(toolBase),join(realpathSync(repository),'.toolchains'));
+  const toolDirectory=join(realpathSync(toolBase),basename(destination)+'-commands');
   const copied=copyTools(moonHome,toolDirectory,JSON.stringify({pin,platform:target}));
   writeFileSync(join(destination,'command-tool-copy.json'),JSON.stringify(copied)+'\n',{flag:'wx',mode:0o600});
   const results=await Promise.allSettled([
