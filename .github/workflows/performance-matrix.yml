@@ -27,6 +27,13 @@ jobs:
       - name: Install original verifier tools only
         working-directory: original
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prepare the original pinned verifier toolchain
+        working-directory: original
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$PWD/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
       - name: Fetch and verify the exact retained failed-producer artifact
         env:
           GH_TOKEN: ${{ github.token }}
