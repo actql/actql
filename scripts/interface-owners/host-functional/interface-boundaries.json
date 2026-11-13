@@ -69763,7 +69763,7 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "45f654fc9511ad3c574b3f75bb963ed4cf4f333229ca27abeb94e524f4cf87ad",
+      "sha256": "78f13429a2d3ddf1bbbe8f1bb2e6c8cce6312761958229fa215c854440beeca5",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -119013,7 +119013,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "05a3ef20e5b3b09f27681c8c5b91b1a63e3147cb7907ab9a4511d23a75d53ca6"
+      "sha256": "e5b7e227029d63e12312bec45e912d925ef2051ad270c1ae0bd1f95f1fdd958b"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
