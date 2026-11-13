@@ -11,6 +11,7 @@ import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
 import {prepareNativeResidentPortableRuntime, verifyNativeResidentPortablePreparation} from './native-resident-portable-preparation.mjs';
+import * as portablePreparation from './native-resident-portable-preparation.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 
@@ -180,12 +181,15 @@ function assertRemoteAgentOriginalRoot(t,foreignParent) {
   let observation;
   runInNewContext(remoteAgentLaunchSource(),{
     valuesHttpsOnly:false,moon:'original-selected-moon',repositoryRoot:root,
+    nativeTargetArguments:['--target-dir',join(root,'native-strip-build')],
+    nativeEnvironment:environment=>({...environment,MOON_HOME:join(root,'compiler-tool')}),
     process:{env:parent},agentRoot,sqliteLibrary:'original-sqlite',cryptoLibrary:'original-crypto',
     targetTriple:'original-target',keys:{publicKey:{export:()=> 'original-public-key'}},
     envelope:{body:'original-body',runtimeBundleCid:'original-cid',signature:'original-signature'},
     execFileSync:(command,args,options)=>{
       assert.equal(command,'original-selected-moon');
-      assert.deepEqual(Array.from(args),['test','src/platform_native/remote_agent/native_test','--target','native','--strip']);
+      assert.deepEqual(Array.from(args),['test','src/platform_native/remote_agent/native_test','--target','native','--strip','--target-dir',join(root,'native-strip-build')]);
+      assert.equal(options.env.MOON_HOME,join(root,'compiler-tool'));
       assert.equal(options.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,'original-sqlite');
       assert.equal(options.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY,'original-crypto');
       // Execute the exact caller environment in a real child. This is a
@@ -715,4 +719,18 @@ test('bundle libraries use the original component producers and verify their ori
     else assert.deepEqual(prepare(),{sqliteLibrary:join(destination,'sqlite/original.dylib'),
       cryptoLibrary:join(destination,'crypto/original.dylib')});
   }
+});
+
+
+test('shared Native portable module verifies the original prepared software and never rebuilds a refusal',t=>{
+  const f=portablePreparationFixture(t);f.prepare();const calls=[];
+  assert.equal(typeof portablePreparation.prepareNativeResidentPortableCore,'function');
+  const module=()=>portablePreparation.prepareNativeResidentPortableCore(f.root,{env:f.env,preparation:f.receipt,
+    prepare:()=>calls.push('duplicate producer')});
+  assert.equal(module(),join(f.root,'_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'));
+  assert.deepEqual(calls,[]);
+  f.put(f.artifacts[0],'changed original software');assert.throws(module);assert.deepEqual(calls,[]);
+  const original=new Error('original standalone producer failure');
+  assert.throws(()=>portablePreparation.prepareNativeResidentPortableCore(f.root,{env:f.env,preparation:null,
+    prepare:()=>{throw original;}}),error=>error===original);
 });

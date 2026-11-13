@@ -3,7 +3,7 @@
 import {spawn} from 'node:child_process';
 import {appendFileSync, existsSync, readFileSync, readdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {join, posix} from 'node:path';
+import {isAbsolute, join, posix} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {assertTestExecution} from './test-execution.mjs';
 import {tokens, readPackageTargetOptions} from './portable-core.mjs';
@@ -330,7 +330,7 @@ export function assertNativeQueryExecution(selection, result) {
   return checked.counts;
 }
 
-export async function runNativeQueryTests(moon, owner, {cwd, env}) {
+export async function runNativeQueryTests(moon, owner, {cwd, env, targetDirectory}) {
   const root = cwd instanceof URL ? fileURLToPath(cwd) : cwd;
   const selection = selectNativeQueryTests(owner, readNativeQuerySources(root), env);
   console.log(`Native query ${owner}: ${selection.mode}, ${selection.expected} cases`);
@@ -338,7 +338,13 @@ export async function runNativeQueryTests(moon, owner, {cwd, env}) {
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
     `### Native query ${owner}\n\nSelection: **${selection.mode}**, ${selection.expected} required cases.\n\n` +
     selection.reasons.map(reason => `- ${reason}\n`).join(''));
-  const child = spawn(moon, ['test', ...selection.paths, '--target', 'native'],
+  const args = ['test', ...selection.paths, '--target', 'native'];
+  if (targetDirectory !== undefined) {
+    if (typeof targetDirectory !== 'string' || !isAbsolute(targetDirectory) || /[\r\n\0]/u.test(targetDirectory))
+      throw new Error('Original absolute Native Query output directory required');
+    args.push('--target-dir', targetDirectory);
+  }
+  const child = spawn(moon, args,
     {cwd, env, stdio: ['ignore', 'pipe', 'pipe']});
   // Keep bounded summary tails while forwarding normal compiler/test output.
   let stdout = '';

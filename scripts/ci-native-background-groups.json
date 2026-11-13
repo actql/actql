@@ -153,14 +153,6 @@
           "env": {
             "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-publication-lock"
           }
-        },
-        {
-          "name": "Test Native remote runtime",
-          "run": "node scripts/test-native-remote-runtime.mjs\n",
-          "id": "native-remote",
-          "env": {
-            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-remote"
-          }
         }
       ]
     },
@@ -197,6 +189,14 @@
           "id": "native-cancel",
           "env": {
             "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-cancel"
+          }
+        },
+        {
+          "name": "Test Native remote runtime",
+          "run": "node scripts/test-native-remote-runtime.mjs\n",
+          "id": "native-remote",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-remote"
           }
         }
       ]

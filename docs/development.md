@@ -1203,6 +1203,23 @@ stock-library fixture. Both workload and HTTP results are strict dependencies.
 The original retained-product command runs after the background join: its long
 global Moon build must not hold the build lock during bounded npm prepack.
 
+On macOS the complete remote-runtime command follows Resident controls in the
+second existing background slot, while the complete HTTP command keeps its
+original package and case order in the runtime slot. The remote invocation owns
+one verified private Moon/Core installation and separate generated roots for its
+stripped Native tests and default-profile Query tests. Its compiler environment
+changes only the tool home and PATH; signed fixtures, private Stores, dynamically
+allocated peers and original child cleanup remain per invocation. Shared project
+`_build` and installed Core caches are not writable compiler outputs for that
+remote lane. Linux group assignment and the two-slot bound remain unchanged.
+
+HTTP, remote-runtime and bundle-CLI consumers verify the existing same-job
+portable preparation before importing its returned original module path. A
+foreign or changed explicit preparation refuses without rebuilding it. Without
+an offered preparation, the original standalone builder is retained; focused
+HTTP review builders keep their original explicit compiler scheduling. This
+keeps concurrent CI consumers from rewriting the prepared shared JS artifact.
+
 No Native preparation is transplanted across runners: existing descriptors bind
 physical compiler aliases and generated toolchain inputs. A mismatched original
 still refuses; there is no metadata rewrite or implicit rebuild fallback.

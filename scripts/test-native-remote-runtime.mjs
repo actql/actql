@@ -1,3 +1,5 @@
+import {copyNativePreparationTools} from './native-preparation-lanes.mjs';
+import {prepareNativeResidentPortableCore} from './native-resident-portable-preparation.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 import assert from 'node:assert/strict';
@@ -6,7 +8,7 @@ import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {existsSync} from 'node:fs';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {request as httpsRequest} from 'node:https';
-import {dirname, isAbsolute, join} from 'node:path';
+import {delimiter, dirname, isAbsolute, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
@@ -149,8 +151,8 @@ async function testValuesHttps(tls, environment, transferControl) {
   // not be mistaken for an unavailable Site during its first observation.
   execFileSync(moon, ['test',
     'src/native_values_integration/values_fixture_wbtest.mbt',
-    '--target', 'native', '--strip', '--build-only'], {
-    cwd: repositoryRoot, env: environment, stdio: 'inherit',
+    '--target', 'native', '--strip', '--build-only', ...nativeTargetArguments], {
+    cwd: repositoryRoot, env: nativeEnvironment(environment), stdio: 'inherit',
   });
   let destinationChild;
   let destinationExited;
@@ -234,8 +236,8 @@ async function testValuesHttps(tls, environment, transferControl) {
   }
   const child = spawn(moon, [
     'test', 'src/native_values_integration/values_fixture_wbtest.mbt',
-    '--target', 'native', '--strip',
-  ], {cwd: repositoryRoot, env: destination === undefined &&
+    '--target', 'native', '--strip', ...nativeTargetArguments,
+  ], {cwd: repositoryRoot, env: nativeEnvironment(destination === undefined &&
     externalDestinationOrigin === undefined ? environment : {
     ...environment,
     ...acceptedRunEnvironment,
@@ -251,7 +253,7 @@ async function testValuesHttps(tls, environment, transferControl) {
       process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY ??
       (process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' :
         'libcurl.so.4'),
-  }, stdio: ['ignore', 'pipe', 'pipe']});
+  }), stdio: ['ignore', 'pipe', 'pipe']});
   let stdout = '';
   let stderr = '';
   child.stdout.setEncoding('utf8');
@@ -264,7 +266,7 @@ async function testValuesHttps(tls, environment, transferControl) {
       try {
         const checked = assertTestExecution('moon', moon,
           ['test', 'src/native_values_integration/values_fixture_wbtest.mbt',
-            '--target', 'native', '--strip'],
+            '--target', 'native', '--strip', ...nativeTargetArguments],
           {status: code, signal, stdout, stderr});
         assert.equal(checked.counts.passed, 1);
         resolve();
@@ -414,7 +416,13 @@ async function testValuesHttps(tls, environment, transferControl) {
   }
 }
 
-const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
+const portableMoon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
+const nativeMoonHome = join(root, 'compiler-tool');
+const moon = join(nativeMoonHome, 'bin', 'moon');
+// Preserve stripped and default Query profiles in separate generated roots.
+const nativeTargetArguments = ['--target-dir', join(root, 'native-strip-build')];
+const nativeEnvironment = environment => ({...environment, MOON_HOME: nativeMoonHome,
+  PATH: join(nativeMoonHome, 'bin') + delimiter + (environment.PATH ?? '')});
 const valuesHttpsOnly = process.argv.includes('--values-https-only');
 const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
   (process.platform === 'darwin'
@@ -457,14 +465,17 @@ if (targetTriple === undefined) {
 
 let verificationSucceeded = false;
 try {
-  execFileSync(moon, [
-    'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
-  ], {cwd: repositoryRoot, stdio: 'inherit'});
-  const moonModule = await import(pathToFileURL(join(
-    repositoryRoot,
-    '_build/js/release/build/connectors_builtin_node/' +
-      'connectors_builtin_node.js',
-  )).href);
+  // One verified private compiler/Core installation per original invocation.
+  // No Node-wide environment or installed preparation bytes are changed.
+  copyNativePreparationTools(process.env.MOON_HOME, nativeMoonHome,
+    JSON.stringify({pin: JSON.parse(await readFile(join(repositoryRoot, 'toolchain.json'), 'utf8')),
+      platform: process.platform + '-' + process.arch}));
+  const portableCorePath = prepareNativeResidentPortableCore(repositoryRoot, {
+    prepare: () => execFileSync(portableMoon, [
+      'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+    ], {cwd: repositoryRoot, stdio: 'inherit'})
+  });
+  const moonModule = await import(pathToFileURL(portableCorePath).href);
   const control = runtimeCore(moonModule).remoteBundleControl;
   const keys = generateKeyPairSync('ed25519');
   const component = Buffer.from('native-runtime');
@@ -489,19 +500,19 @@ try {
     const slotRoot = join(root, 'executor-slot');
     await mkdir(slotRoot, {recursive: true, mode: 0o700});
     execFileSync(moon, [
-      'test', 'src/platform_native/executor_slot', '--target', 'native', '--strip',
+      'test', 'src/platform_native/executor_slot', '--target', 'native', '--strip', ...nativeTargetArguments,
     ], {
       cwd: repositoryRoot,
-      env: {...process.env, ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: slotRoot},
+      env: nativeEnvironment({...process.env, ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: slotRoot}),
       stdio: 'inherit',
     });
   }
   if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/platform_native/remote_runtime/native_test',
-    '--target', 'native', '--strip',
+    '--target', 'native', '--strip', ...nativeTargetArguments,
   ], {
     cwd: repositoryRoot,
-    env: {
+    env: nativeEnvironment({
       ...process.env,
       ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
       ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
@@ -512,12 +523,13 @@ try {
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: envelope.body,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID: envelope.runtimeBundleCid,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE: envelope.signature,
-    },
+    }),
     stdio: 'inherit',
   });
   if (!valuesHttpsOnly) await runNativeQueryTests(moon, 'remote-runtime', {
+    targetDirectory: join(root, 'native-query-build'),
     cwd: repositoryRoot,
-    env: {
+    env: nativeEnvironment({
       ...process.env,
       ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
       ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
@@ -530,7 +542,7 @@ try {
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: envelope.body,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID: envelope.runtimeBundleCid,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE: envelope.signature,
-    },
+    }),
   });
   const valuesTls = await issueTestCertificates();
   await testValuesHttps(valuesTls, {
@@ -552,10 +564,10 @@ try {
   }, runtimeCore(moonModule).remoteTransferControl);
   if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/platform_native/remote_agent/native_test',
-    '--target', 'native', '--strip',
+    '--target', 'native', '--strip', ...nativeTargetArguments,
   ], {
     cwd: repositoryRoot,
-    env: {
+    env: nativeEnvironment({
       ...process.env,
       ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
       ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
@@ -567,7 +579,7 @@ try {
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: envelope.body,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID: envelope.runtimeBundleCid,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE: envelope.signature,
-    },
+    }),
     stdio: 'inherit',
   });
   verificationSucceeded = true;

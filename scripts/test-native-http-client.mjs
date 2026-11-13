@@ -1,3 +1,4 @@
+import {prepareNativeResidentPortableCore} from './native-resident-portable-preparation.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
 import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
 import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
@@ -1255,15 +1256,14 @@ verification: try {
       `focused HTTP retirement tests failed: ${code ?? signal}`);
     break verification;
   }
-  execFileSync(moon, [
-    'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
-    ...(focus?.startsWith('resident-review-') ? ['--jobs', '2'] : []),
-  ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
-  const moonModule = await import(pathToFileURL(join(
-    new URL('../', import.meta.url).pathname,
-    '_build/js/release/build/connectors_builtin_node/' +
-      'connectors_builtin_node.js',
-  )).href);
+  const portableCorePath = prepareNativeResidentPortableCore(fileURLToPath(new URL('../', import.meta.url)), {
+    prepare: () => execFileSync(moon, [
+      'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+      ...(focus?.startsWith('resident-review-') ? ['--jobs', '2'] : []),
+    ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'}),
+    preparation: focus?.startsWith('resident-review-') ? null : process.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION
+  });
+  const moonModule = await import(pathToFileURL(portableCorePath).href);
   const portableRuntime = runtimeCore(moonModule);
   const runtimeControl = portableRuntime.remoteBundleControl;
   const credentialControl = portableRuntime.remoteCredentialControl;
