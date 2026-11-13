@@ -50,8 +50,14 @@ function prepareNativeCommand(repository, destination, entry, {
     return binary;
   }
   if (preparation !== undefined && preparation !== null) {
-    destination = preparedNativeCommand(preparation, entry, {source,target,clang,sdk,
-      moon_home:realpathSync(moonHome)});
+    const prepared = preparedNativeCommand(preparation, entry, {source,target,clang,sdk,
+      moon_home:realpathSync(moonHome),repository});
+    if (prepared.kind === 'received') {
+      assert.equal(run('git', ['rev-parse', 'HEAD']).trim(), source);
+      assert.equal(run('git', ['status', '--porcelain']), '');
+      return prepared.binary;
+    }
+    destination = prepared;
   } else run('python3', [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
     '--source', source, '--moon-home', realpathSync(moonHome), '--clang', clang,
     ...(sdk === undefined ? [] : ['--sdk', sdk]), '--target', target,
