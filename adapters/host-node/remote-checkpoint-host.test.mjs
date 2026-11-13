@@ -196,7 +196,9 @@ async function effectFixture({twoMembers = false} = {}) {
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
   const base = JSON.parse(await readFile(join(repository,
     'spec/local-check-environment.json'), 'utf8'));
-  environment.host_policy_profile.text_time_evaluation = base.host_policy_profile.text_time_evaluation;
+  // Author this new Effect publication against the same complete Host policy
+  // as its Source before hashing/installing it; older fixture bytes stay fixed.
+  environment.host_policy_profile = structuredClone(base.host_policy_profile);
   const target = 'connector://crm/account';
   const schema = {additional_properties: false, fields: {
     Id: {nullable: false, type: 'number'},

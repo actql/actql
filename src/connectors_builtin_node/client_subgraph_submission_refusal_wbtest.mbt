@@ -74,7 +74,7 @@ test "Request published Subgraph support gap retains original typed cause and pu
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
     assets.environment,
-    "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+    "sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
     { text_time: true, veca: false, },
     { rela: true, sga: true, tea: true, calendar: false, text_rank: false, },
     graph=true,
@@ -128,7 +128,7 @@ test "Request published malformed Subgraph stays protected and authority remains
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
     assets.environment,
-    "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+    "sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
     { text_time: true, veca: false, },
     { rela: true, sga: true, tea: true, calendar: false, text_rank: false, },
     graph=true,
