@@ -74,11 +74,12 @@ try:
     while state["parentExit"] is None:
         # An exited test child can remain selected. Continue the original live
         # coordinator and all other attached inferiors, rather than quitting it.
-        live = [inferior for inferior in gdb.inferiors() if inferior.pid]
-        if not live:
-            raise gdb.GdbError("No live inferior before the original parent exit")
-        selected = next((inferior for inferior in live if inferior.num == original), live[0])
-        gdb.execute("inferior " + str(selected.num))
+        if not gdb.selected_inferior().pid:
+            live = [inferior for inferior in gdb.inferiors() if inferior.pid]
+            if not live:
+                raise gdb.GdbError("No live inferior before the original parent exit")
+            selected = next((inferior for inferior in live if inferior.num == original), live[0])
+            gdb.execute("inferior " + str(selected.num))
         gdb.execute("continue")
 except gdb.error as error:
     state["debuggerError"] = str(error)[:256]
