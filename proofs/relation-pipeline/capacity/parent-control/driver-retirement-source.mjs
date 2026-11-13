@@ -293,6 +293,7 @@ const importReclaim=`{
 // These are correspondence premises for the existing conditional model, not
 // another capacity allowance or a proof of physical file/import reclamation.
 const cancelSnapshot=`{
+  save_output.val = None
   if stream.val is Some(value) { @execution.cancel_completed_output_export(value) }
   if receipt.val is Some(value) { @execution.cancel_completed_export_receipt(value) }
   if importing.val is Some(value) { @execution.cancel_completed_output_import(value) |> ignore }
