@@ -39,6 +39,7 @@ def _run_build_process(command, *, cwd, env, timeout, stdout, stderr,
         raise ValueError('Positive original build timeout and bounded stop grace required')
     child = None
     opening, stopping, interrupted = True, False, None
+    signal_cleanup = None
     handlers = {}
 
     class InterruptedBuild(BaseException):
@@ -114,16 +115,31 @@ def _run_build_process(command, *, cwd, env, timeout, stdout, stderr,
         return result
     except BaseException as primary:
         stopping = True
+        cleanup_error = None
         if child is not None:
             try:
                 primary.build_cleanup_pending = not stop_group()
             except BaseException as cleanup:
                 primary.build_cleanup_pending = True
-                primary.add_note('Build group cleanup failed: ' + type(cleanup).__name__)
+                cleanup_error = type(cleanup).__name__
+                primary.add_note('Build group cleanup failed: ' + cleanup_error)
             if primary.build_cleanup_pending:
                 primary.add_note('Original build process group cleanup remains unconfirmed')
+                if interrupted is not None:
+                    signal_cleanup = {'pending': True, 'signal': interrupted}
+                    if cleanup_error is not None:
+                        signal_cleanup['error'] = cleanup_error[:64]
         raise
     finally:
+        if signal_cleanup is not None:
+            # Default termination would discard the exception notes. Emit one
+            # bounded inert diagnostic while repeated default signals remain
+            # deferred; no command/input/output/error message is disclosed.
+            try:
+                os.write(2, ('ACTQL_NATIVE_BUILD_CLEANUP ' +
+                    json.dumps(signal_cleanup, separators=(',', ':')) + '\n').encode())
+            except BaseException:
+                pass  # Diagnostic failure cannot replace the original signal.
         for number, previous in handlers.items():
             signal.signal(number, previous)
         if interrupted is not None:

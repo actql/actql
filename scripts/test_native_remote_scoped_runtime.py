@@ -846,24 +846,33 @@ while True: signal.pause()
                     json.loads((self.root / 'descendant.json').read_text())['pid']))
         self.assertTrue(result.build_cleanup_pending, 'later test hygiene cannot rewrite the failed observation')
 
-    def interrupt_build(self, number):
+    def interrupt_build(self, number, stop_fault=False):
         module = Path(__file__).with_name('produce-native-remote-scoped-runtime.py')
-        worker = '''import importlib.util, os, sys
+        worker = '''import importlib.util, os, sys, signal
 from pathlib import Path
 spec=importlib.util.spec_from_file_location('original_build',sys.argv[1])
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 root=Path(sys.argv[2])
+if sys.argv[3]=='stop-fault':
+ original=m.os.killpg
+ def refused(group,requested):
+  if requested!=0: raise PermissionError('controlled stop fault')
+  return original(group,requested)
+ m.os.killpg=refused
 with (root/'stdout').open('wb') as out,(root/'stderr').open('wb') as err:
  m._run_build_process([sys.executable,str(root/'original-build.py'),str(root),'running'],cwd=root,env=os.environ.copy(),timeout=10,stdout=out,stderr=err,stop_grace_seconds=0.5)
 '''
-        child = subprocess.Popen([sys.executable, '-c', worker, str(module), str(self.root)],
+        child = subprocess.Popen([sys.executable, '-c', worker, str(module), str(self.root),
+                                  'stop-fault' if stop_fault else 'original'],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
             self.wait_for(lambda: (self.root / 'leader.json').exists())
             child.send_signal(number)
             _, error = child.communicate(timeout=5)
             self.assertEqual(child.returncode, -number, error)
-            self.assert_original_stopped()
+            if not stop_fault:
+                self.assert_original_stopped()
+            return error
         finally:
             if child.poll() is None:
                 child.kill()
@@ -874,6 +883,32 @@ with (root/'stdout').open('wb') as out,(root/'stderr').open('wb') as err:
 
     def test_sigint_keeps_original_interrupt_after_stopping_its_build_group(self):
         self.interrupt_build(signal.SIGINT)
+
+    def test_sigterm_preserves_bounded_cleanup_fault_before_original_signal(self):
+        try:
+            error = self.interrupt_build(signal.SIGTERM, stop_fault=True)
+            prefix = b'ACTQL_NATIVE_BUILD_CLEANUP '
+            lines = [line for line in error.splitlines() if line.startswith(prefix)]
+            self.assertEqual(len(lines), 1)
+            self.assertLess(len(lines[0]), 512)
+            diagnostic = json.loads(lines[0][len(prefix):])
+            self.assertEqual(diagnostic, {'pending': True, 'signal': signal.SIGTERM,
+                                          'error': 'PermissionError'})
+            self.assertNotIn(str(self.root).encode(), lines[0])
+            self.assertTrue(self.exists(json.loads((self.root / 'descendant.json').read_text())['pid']))
+        finally:
+            path = self.root / 'leader.json'
+            if path.exists():
+                original = json.loads(path.read_text())
+                self.assertEqual(original['group'], original['pid'])
+                self.assertNotEqual(original['group'], os.getpgrp())
+                try:
+                    os.killpg(original['group'], signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                self.wait_for(lambda: not self.exists(
+                    json.loads((self.root / 'descendant.json').read_text())['pid']))
+        self.assertTrue(diagnostic['pending'], 'test hygiene cannot relabel the original uncertainty')
 
 
 if __name__ == '__main__':
