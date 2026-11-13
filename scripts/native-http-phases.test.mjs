@@ -30,7 +30,7 @@ test('Source coverage defaults to complete and only the closed Darwin package ow
 test('Source coverage redistribution requires current Linux HTTP and complete Darwin Core outcomes', () => {
   const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const gate = workflow.jobs['native-http-macos'];
-  assert.deepEqual(gate.needs, ['select-targets', 'preflight', 'native-macos-workloads', 'native-http', 'core']);
+  assert.deepEqual(gate.needs, ['select-targets', 'native-macos-workloads', 'native-http', 'core']);
   assert.equal(gate['runs-on'], 'ubuntu-24.04');
   const step = gate.steps[0];
   assert.equal(step.env.LINUX_HTTP_RESULT, '${{ needs.native-http.result }}');

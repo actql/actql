@@ -12,7 +12,7 @@ import {gateJobs, gateJobRequired, selectTargets} from './ci-targets.mjs';
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 test('ordinary Native CLI installed acceptance is required by the final full CI gate', () => {
   const job = jobs['native-cli-installed'];
-  assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
   assert.match(job.if, /outputs\.profile == 'full'/u);
   assert.doesNotMatch(job.if, /always\(|failure\(|cancelled\(/u);
