@@ -1215,6 +1215,21 @@ provenance data; they are not executed as receiver tools. Original paths and
 inodes are never relabeled as local prepared originals. This path neither starts
 a provider nor replaces the subsequent fresh runtime, currentness or cleanup
 checks, and a refused explicit input never triggers a rebuild fallback.
+The macOS workload explicitly selects `--lanes 2` inside that same preparation
+owner. Closed command compilation runs alongside the existing sequential
+libraries, HTTP and portable preparation. The command lane uses one verified
+private copy of the pinned tool installation and Core bundles; shared tool-home
+aliases refuse as output destinations. Build/cache roots stay separate. Both
+lanes must finish before the single complete index and consumer environment are
+published, including when either lane fails. Original command budgets also cover
+export and receive; component profiles, TLS jobs and consumer deadlines remain.
+The default CLI and Linux workload keep one lane.
+A complete index may retain `received.json` for an explicitly received command.
+Its exact immutable inputs are checked once per unchanged process scope, with
+physical file identity, metadata and current tool selection checked on every
+reuse. Changed inputs invalidate the scope and require full verification; a new
+process starts empty. The real factory keeps its current Source, entry, target
+and executable checks and never copies or rebuilds a reused received command.
 Local `run native` retains one preparation and every original case serially.
 Job and case deadlines stay unchanged. Parallelism is CI orchestration, not a
 product lifetime, permission, capacity or successful cleanup claim.
@@ -1223,9 +1238,11 @@ grace after its leader closes. An unconfirmed group stop remains a failure;
 a timed out leader exiting zero cannot turn the command into a success.
 
 Native preparation logs each command/component interval as
-`ACTQL_NATIVE_CI_PHASE` and writes a small `phase-*.timing.json` diagnostic into
+`ACTQL_NATIVE_CI_PHASE` and writes small `phase-*.timing.json` or
+`lane-*.timing.json` diagnostics into
 its existing receipt artifact before later tests run. Each record identifies
-only the source, target, phase, elapsed milliseconds and producer outcome;
+the source, target, phase, elapsed milliseconds and producer outcome;
+parallel lanes also record their actual start/end bounds;
 it is not an artifact reuse or runtime acceptance receipt. Missing timing I/O
 never replaces the producer's original result. The HTTP package loop separately logs build-only and
 execution intervals using the same compiler inputs and fixture environment.

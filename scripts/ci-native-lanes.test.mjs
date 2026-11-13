@@ -163,3 +163,18 @@ test('local Native route retains every original case serially with one preparati
   assert(output.indexOf('== native: Verify registered Native retained product path\n') >
     output.indexOf('== native: Test packed Output report custody and ACK crash boundaries\n'));
 });
+
+test('required lint directly selects Native preparation controls and only macOS opts into isolated construction overlap',()=>{
+  const required=workflow.jobs.lint.steps.filter(step=>step.name==='Test Native preparation originals and bounded compiler orchestration');
+  assert.equal(required.length,1);assert.equal(required[0].if,undefined,'Drafts require these source/port controls too');
+  assert.equal(required[0].run,'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-core-c-compiler.test.mjs scripts/native-preparation-lanes.test.mjs');
+  const prepare=family=>workflow.jobs[family+'-workloads'].steps.find(step=>step.id==='native-preparation');
+  assert(prepare('native-macos').run.endsWith('--resident-seconds 1200 --lanes 2'));
+  assert(!prepare('native').run.includes('--lanes'));
+  for(const family of ['native','native-macos'])assert.equal(prepare(family)['timeout-minutes'],family==='native'?65:70);
+  const cli=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  const awaited=cli.indexOf('?await prepareNativeParallel('),ready=cli.indexOf("writeFileSync(join(destination,'preparation.json')");
+  const environment=cli.indexOf("if(process.env.GITHUB_ENV!==undefined)");
+  assert(awaited>0&&ready>awaited&&environment>ready);
+  assert.equal(cli.split("writeFileSync(join(destination,'preparation.json')").length-1,1);
+});

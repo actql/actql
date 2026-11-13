@@ -321,3 +321,13 @@ test('received preparation refuses replaced executable or foreign context withou
     assert.throws(f.select);assert(f.calls.every(([name])=>name==='git'||name==='xcrun'));
   }
 });
+
+test('received command factory consumes the checked preparation without copy or producer and still refuses changed input',t=>{
+  const f=receivedPreparation(t),before=lstatSync(f.binary,{bigint:true});
+  const consume=()=>f.receive(undefined,{preparation:f.receiver});
+  assert.equal(consume(),f.binary);assert.equal(consume(),f.binary);
+  const after=lstatSync(f.binary,{bigint:true});
+  for(const key of ['dev','ino','mtimeNs','ctimeNs'])assert.equal(after[key],before[key]);
+  f.put(join(f.current.repository,'src/original.h'),'changed actual Source input');
+  assert.throws(consume);assert(f.calls.every(([name])=>name==='git'||name==='xcrun'));
+});
