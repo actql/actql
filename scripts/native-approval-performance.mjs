@@ -1,6 +1,40 @@
 import assert from 'node:assert/strict';
 import {latencySummary, resourceSummary, nativeApprovalTarget} from './operation-performance.mjs';
 import {peakRssBytes} from './layout-measurement-support.mjs';
+import {mockTemplates} from './native-cli-mock-scenario.mjs';
+
+// Two ordinary installed fixtures supply a maximum-only smoke check. Their
+// process stop/cleanup deadline and the formal 30-sample profile are separate.
+export function assessOrdinaryNativeApprovalSmoke(scenarios) {
+  const failures = [], samples = [], maximumMs = 10000;
+  if (!Array.isArray(scenarios) || scenarios.length !== mockTemplates.length) {
+    failures.push('Both original Native mock scenarios are required');
+  }
+  for (const template of mockTemplates) {
+    const selected = Array.isArray(scenarios) ? scenarios.filter(row => row?.template === template) : [];
+    if (selected.length !== 1) {
+      failures.push(`${template}: one original scenario required`); continue;
+    }
+    const commands = selected[0].commands;
+    const approvals = Array.isArray(commands) ? commands.filter(command =>
+      Array.isArray(command?.args) && command.args.includes('approve')) : [];
+    if (approvals.length !== 1) {
+      failures.push(`${template}: one original approval required`); continue;
+    }
+    const approval = approvals[0];
+    const valid = Number.isSafeInteger(approval.wallNs) && approval.wallNs > 0;
+    const completed = approval.code === 0 && approval.signal === null && approval.killed !== true;
+    samples.push({template, wallNs: valid ? approval.wallNs : null,
+      wallMs: valid ? approval.wallNs / 1e6 : null, completed});
+    if (!valid) failures.push(`${template}: original approval timing missing or invalid`);
+    if (!completed) failures.push(`${template}: original approval did not complete successfully`);
+    if (valid && approval.wallNs > maximumMs * 1e6) {
+      failures.push(`${template}: approval maximum exceeds ${maximumMs} ms (${approval.wallNs} ns)`);
+    }
+  }
+  return {purpose: 'ordinary-small-fixture-maximum', maximumMs, samples,
+    status: failures.length ? 'failed' : 'passed', failures, formalAcceptance: false};
+}
 
 // The original sampler writes to its own file, leaving Native stderr intact.
 // CPU/RSS are OS observations of the Node launcher plus its waited Native child,

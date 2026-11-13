@@ -14,6 +14,23 @@ the two Effects, complete Result, separate-process Saved reread, no Model
 restart, and no extra writes. The formal collector reuses that consumer and its
 fresh private installation/state; it never replays a failed business state.
 
+The required ordinary Linux Local producer already executes both installed Mock
+workflows. Its ordinary consumer now checks each complete approval process
+against a maximum of 10000 ms, using the existing monotonic `wallNs` observation.
+Missing, invalid, failed or duplicate observations cannot pass. This is a
+two-fixture maximum-only smoke check; it supplies no p95 or formal acceptance.
+Both functional workflows and their counter checks finish first, and the
+original receipt, raw timings and smoke verdict are saved after registry close
+before a slow verdict exits nonzero. The existing 120-second command timeout
+and cleanup behavior remain unchanged.
+
+Resource-enabled formal collection retains every slow sample for its own
+30-per-template, 4000/5000 ms assessment. It does not use the ordinary smoke
+cutoff. This smoke check needs no timing baseline and adds no workflow runs.
+The separate Health Quick comparison remains warning-only for latency; adopting
+a reviewed comparable Quick baseline alone does not turn its timing warnings
+into a failing performance gate.
+
 Prepare the exact immutable Native release with the existing canonical producer,
 then run through the existing bounded local-check guard:
 

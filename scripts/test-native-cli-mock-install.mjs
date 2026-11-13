@@ -14,7 +14,7 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
-import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases} from './native-approval-performance.mjs';
+import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases, assessOrdinaryNativeApprovalSmoke} from './native-approval-performance.mjs';
 import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -129,6 +129,10 @@ try {
 // Successful evidence is published only after every child has exited and the
 // private registry has confirmed closure. Cleanup failure is not acceptance.
 const receiptFile = join(directory, `mock-install-${platform}-${Date.now()}.json`);
+if (!measureResources) receipt.approvalSmoke = assessOrdinaryNativeApprovalSmoke(receipt.scenarios);
 await writeFile(receiptFile, `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
+// Keep the completed original workflows and slow timings before failing CI.
+// Resource-enabled formal collection retains every sample for its own assessor.
+if (!measureResources) assert.equal(receipt.approvalSmoke.status, 'passed', receipt.approvalSmoke.failures.join('; '));
 scratch.passed();
 console.log(`Installed Native mock approval/recovery passed: ${receiptFile}`);
