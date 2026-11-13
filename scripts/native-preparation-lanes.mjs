@@ -93,7 +93,7 @@ export function prepareNativeConstructionLane(lane,configuration,ports={}) {
         const remaining=()=>{const value=Math.floor((deadline-performance.now())/1000);
           assert(value>0,'Original command lane budget exhausted');return value;};
         producer(repository,directory,{moonHome,seconds:budget,preparation:null});
-        const context={repository,source,target,moon_home:moonHome,clang:configuration.clang,sdk:configuration.sdk};
+        const context={repository,source,target,moon_home:moonHome,clang:configuration.clang,sdk:configuration.sdk??undefined};
         remaining();
         const input=(ports.exportCommand??exportNativeCompiledCommand)(directory,join(inputs,name),name,context);
         producer(repository,join(destination,name),{moonHome:receiverMoonHome,seconds:remaining(),preparation:null,compiledInput:input});
