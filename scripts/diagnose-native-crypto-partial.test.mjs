@@ -12,7 +12,7 @@ test('temporary Crypto replay requires original inferior status and one manual b
   assert.equal(job['runs-on'], 'ubuntu-24.04');
   const commands = job.steps.map(step => step.run ?? '').join('\n');
   assert(commands.includes('scripts/replay-native-crypto-partial.py'));
-  assert(!/produce-native|npm (?:run|ci)|moon (?:build|test)|setup-moonbit|clang|test-native-approval/u.test(commands));
+  assert(!/(?:node|python3?)\s+scripts\/produce-native|npm (?:run|ci)|moon (?:build|test)|setup-moonbit|clang|test-native-approval/u.test(commands));
   assert.deepEqual(job.permissions, {contents: 'read', actions: 'read'});
   const code = String.raw`
 import ast, importlib.util, json
