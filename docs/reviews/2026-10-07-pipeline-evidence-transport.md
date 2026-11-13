@@ -49,7 +49,7 @@ The existing required `check` authenticates the current pipeline job's exact
 artifact ID/digest and reconstructs the independent plan before succeeding.
 Keep the existing job-verdict gate first and preserve Draft/target selection.
 
-Retain the entire original pipeline archive for diagnostics. Publish only the
+Retain the entire original pipeline byte inventory for diagnostics. Publish only the
 derived action record and unchanged mutation part reports/raw receipt JSON in a
 small `pipeline-actions-<run>-<attempt>-<tested SHA>` artifact, using the existing
 64 MiB bounded transport instead of transferring unrelated capacity reports or
@@ -57,6 +57,115 @@ raising transport limits. The reader's code-selected pipeline namespace changes
 to this dedicated original; no alternative/old-name fallback is introduced.
 The existing pinned uploader exposes its artifact ID/digest to `check`.
 No producer execution, exploration/capacity corpus or original bytes are removed.
+
+### Eight-part diagnostic retrieval
+
+After the exact eight-part union and every final audit/negative succeed, the
+final `relation-pipeline-evidence` artifact contains only the three derived
+union reports (`capacity/all.json`, `fixed-mutations.json`, and, when required,
+`mutations.json`), the complete capacity target-substitution directory, the
+generic target-regression JSON/logs, `pipeline-ci/join.json`, and
+`pipeline-ci/action-original.json`. Original members remain unchanged in the
+eight `relation-pipeline-L-*` artifacts. The small `pipeline-actions` artifact,
+its bytes, provenance checks and required consumer remain unchanged.
+
+If any earlier step fails or is cancelled, including a partial join or a final
+audit, the always-on final uploader retains the complete received
+`.artifacts/relation-pipeline/` diagnostic tree instead. It also keeps the same
+join/action and target-regression paths. Partial diagnostics never authorize
+success. Successful and incomplete producer uploads are unchanged.
+
+These artifacts form one diagnostic bundle, not a cache. All producer parts
+and the final artifact use the same repository retention policy. Keep them
+together; do not selectively delete or shorten retention of a referenced part.
+The final index carries each exact artifact ID, ZIP digest, inner TAR digest,
+seal digest, complete original file inventory and source/run/attempt binding.
+Missing, expired or mismatched originals make reconstruction unavailable or
+invalid; they do not authorize fresh execution or an alternative/latest archive.
+
+For a finite manual retrieval, use `gh`, `jq`, `unzip`, and `sha256sum` on Linux,
+plus the existing Node dependencies in a separate checkout of the independently
+selected **tested merge SHA**, not merely the PR head. Keep downloads outside
+the checkout and use a new private directory. Obtain the final artifact ID and
+successful `pipeline-evidence` job identity from the original run's API/job
+records. Verify the repository, run ID, attempt, tested SHA and run-head SHA
+independently; an index downloaded from another run cannot choose those values.
+
+For the final artifact and then each of the eight part IDs, use the existing
+GitHub artifact endpoints. Set `ARTIFACT_ID`, `EXPECTED_NAME` and
+`EXPECTED_DIGEST` from the original job outputs/API records (for a part, also
+require the index's ID/digest to match those records). Set `REPOSITORY`,
+`RUN_ID`, `RUN_HEAD_SHA`, `TESTED_SHA`, `RUN_ATTEMPT` and `DOWNLOADS` explicitly:
+
+```sh
+gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID" > "$DOWNLOADS/$ARTIFACT_ID.metadata.json"
+jq -e --argjson id "$ARTIFACT_ID" --argjson run "$RUN_ID" \
+  --arg head "$RUN_HEAD_SHA" --arg name "$EXPECTED_NAME" --arg digest "$EXPECTED_DIGEST" \
+  '.id == $id and .workflow_run.id == $run and .workflow_run.head_sha == $head
+   and .name == $name and .digest == $digest and .expired == false
+   and (.expires_at | fromdateiso8601) > now' "$DOWNLOADS/$ARTIFACT_ID.metadata.json"
+gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > "$DOWNLOADS/$ARTIFACT_ID.zip"
+test "$(wc -c < "$DOWNLOADS/$ARTIFACT_ID.zip" | tr -d ' ')" = \
+  "$(jq -r '.size_in_bytes' "$DOWNLOADS/$ARTIFACT_ID.metadata.json")"
+printf '%s  %s\n' "${EXPECTED_DIGEST#sha256:}" "$DOWNLOADS/$ARTIFACT_ID.zip" | sha256sum --check
+```
+
+The exact names are `relation-pipeline-evidence-$RUN_ID-$RUN_ATTEMPT-$TESTED_SHA`
+and `relation-pipeline-$PART_ID-$RUN_ID-$RUN_ATTEMPT-$TESTED_SHA`. API expiry,
+digest and byte-length checks precede any adoption of a ZIP member. Read only
+the literal `pipeline-ci/join.json` member from the verified final ZIP with
+`unzip -p`; retain the ZIP itself as the original final diagnostic. Do not
+extract arbitrary ZIP paths or execute downloaded code. For each verified part
+ZIP, require `unzip -Z1` to list exactly `evidence.tar`, then stream that literal
+member into a new `$RESTORE_ROOT/transport/$PART_ID/evidence.tar`. A duplicate,
+missing or extra member refuses; never concatenate an unchecked member set.
+Use exclusive new paths and leave all downloaded originals intact.
+
+Restore the originals using the existing strict TAR verifier and complete union
+constructor from that exact checkout. `INDEX` below is the retained literal
+join member; `RESTORE_ROOT` must be a fresh absolute directory without linked
+ancestors. This reconstructs bytes for diagnosis, not an Actions original or a
+new passing execution:
+
+```sh
+node --input-type=module <<'NODE'
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {join} from 'node:path';
+import {canonicalJson, verifyArchive} from './proofs/relation-pipeline/ci-artifacts.mjs';
+import {joinParts, validatePartInputs} from './proofs/relation-pipeline/ci-parts.mjs';
+import {snapshot} from './proofs/relation-pipeline/inventory.mjs';
+const original = canonicalJson(process.env.INDEX);
+assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], {encoding:'utf8'}).trim(), process.env.TESTED_SHA);
+for (const [key, value] of Object.entries({repository:process.env.REPOSITORY,
+  runId:process.env.RUN_ID, runAttempt:process.env.RUN_ATTEMPT, testedSha:process.env.TESTED_SHA}))
+  assert.equal(original.context[key], value);
+assert.equal(original.source.digest, snapshot(process.cwd()).digest);
+const {schema, parts, manifests, fileCount, expandedBytes, ownerCount, observationCount,
+  verificationMs, ...expected} = original;
+assert.equal(schema, 'actql-pipeline-ci-part-union/0.1');
+const inputs = parts.map(part => ({...part, result:'success',
+  directory:join(process.env.RESTORE_ROOT, 'verified', part.partId)}));
+validatePartInputs(inputs);
+for (const part of inputs)
+  verifyArchive(join(process.env.RESTORE_ROOT, 'transport', part.partId), part.directory, part.archiveDigest);
+const restored = joinParts({inputs, expected,
+  destination:join(process.env.RESTORE_ROOT, 'originals')});
+const {verificationMs: ignored, ...recorded} = original;
+assert.deepEqual(restored, recorded);
+NODE
+```
+
+The existing verifier checks the TAR digest and closed member format before the
+union checks every seal digest, original inventory, exact source/plan/context,
+complete scientific receipts and unique ownership. It refuses an existing
+destination, missing/foreign part, changed byte or incomplete union. It does not
+compile or repeat the original campaigns. Keep the final retained derived
+reports and negative diagnostics separately: reconstructed reports are not
+replacement originals. If comparing the derived reports, stream only their
+literal final-ZIP member names into new paths and compare bytes with `cmp`;
+do not overwrite either retained or reconstructed files. Do not change
+production archive-reader limits for this manual diagnostic retrieval.
 
 The final reader's API/digest failures are mandatory current-evidence failures,
 distinct from an optional historical main comparison. The latter cannot block

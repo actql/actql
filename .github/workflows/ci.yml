@@ -1314,13 +1314,16 @@ jobs:
         run: node proofs/relation-pipeline/capacity/audit.mjs
       - name: Retain every capacity target, byte, edge, shrink and compiler negative
         run: node proofs/relation-pipeline/capacity/audit-target-regression.mjs
-      - name: Retain exact-source original parts and derived audited evidence
+      - name: Retain derived audited evidence or complete failure diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relation-pipeline-evidence-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
           path: |
-            .artifacts/relation-pipeline/
+            ${{ success() && '.artifacts/relation-pipeline/capacity/all.json' || '.artifacts/relation-pipeline/' }}
+            .artifacts/relation-pipeline/fixed-mutations.json
+            .artifacts/relation-pipeline/mutations.json
+            .artifacts/relation-pipeline/capacity/target-substitution/
             .artifacts/pipeline-ci/join.json
             .artifacts/pipeline-ci/action-original.json
             .artifacts/relation-pipeline-target-regression/run-*/*.json
