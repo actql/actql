@@ -677,11 +677,19 @@ test('workflow compacts only a successful audited union and preserves complete f
     '.artifacts/relation-pipeline-target-regression/run-*/*.json',
     '.artifacts/relation-pipeline-target-regression/run-*/*.log',
   ];
-  // Evaluate only the checked-in GitHub status expression; no artifact supplies code.
-  const selected = successful => upload.with.path.trim().split('\n').map(path => path.replace(
-    /\$\{\{ (.*?) \}\}/gu, (_, expression) => Function('success', `return (${expression});`)(() => successful)));
-  assert.deepEqual(selected(true), expected);
-  assert.equal(upload.if, 'always()');
+  const failure = final.steps.find(step => step.with?.name?.startsWith('relation-pipeline-evidence-incomplete-'));
+  const paths = step => step.with.path.trim().split('\n');
+  // Status functions belong in step conditions, not upload input expressions.
+  assert.equal(upload.if, '${{ success() }}');
+  assert.equal(failure.if, '${{ always() && !success() }}');
+  const enabled = (step, successful) => Function('success', 'always',
+    `return (${step.if.slice(4, -3)});`)(() => successful, () => true);
+  assert.deepEqual(paths(upload), expected);
+  assert.deepEqual(paths(failure), [
+    '.artifacts/relation-pipeline/', ...expected.slice(4),
+  ]);
+  assert(final.steps.indexOf(upload) < final.steps.indexOf(failure));
+  assert(final.steps.indexOf(failure) < final.steps.findIndex(step => step.id === 'pipeline-actions'));
   assert.equal(upload.with['include-hidden-files'], true);
   assert.equal(upload.with['if-no-files-found'], 'error');
   const commands = [
@@ -695,19 +703,24 @@ test('workflow compacts only a successful audited union and preserves complete f
     assert.equal(step['continue-on-error'], undefined, command);
     for (const outcome of ['failure', 'cancelled', 'skipped']) {
       const outcomes = commands.map(value => value === command ? outcome : 'success');
-      assert.deepEqual(selected(outcomes.every(value => value === 'success')), [
-        '.artifacts/relation-pipeline/', ...expected.slice(1),
-      ], `${command}: ${outcome}`);
+      const successful = outcomes.every(value => value === 'success');
+      assert.equal(enabled(upload, successful), false, `${command}: ${outcome}`);
+      assert.equal(enabled(failure, successful), true, `${command}: ${outcome}`);
     }
   }
   // Cancellation or any other earlier failure must also retain the full root.
-  assert.equal(selected(false)[0], '.artifacts/relation-pipeline/');
+  assert.equal(enabled(upload, true), true);
+  assert.equal(enabled(failure, true), false);
+  assert.equal(enabled(upload, false), false);
+  assert.equal(enabled(failure, false), true);
+  assert.equal(failure.with['include-hidden-files'], true);
+  assert.equal(failure.with['if-no-files-found'], 'error');
   for (const name of producerJobs) {
     const original = jobs[name].steps.find(step => step.id === 'evidence');
     assert.equal(original.with['retention-days'], upload.with['retention-days'], name);
     assert.equal(original.with.path, `.artifacts/pipeline-ci/${partNames[name]}/evidence.tar`);
   }
-  assert(!selected(true).some(path => /\/binaries\/|\/sources\/|L-[CM][0-9]/u.test(path)));
+  assert(!paths(upload).some(path => /\/binaries\/|\/sources\/|L-[CM][0-9]/u.test(path)));
   assert.equal(final.outputs['artifact-id'], '${{ steps.pipeline-actions.outputs.artifact-id }}');
   assert.equal(final.outputs['artifact-digest'], '${{ steps.pipeline-actions.outputs.artifact-digest }}');
 });

@@ -73,7 +73,10 @@ If any earlier step fails or is cancelled, including a partial join or a final
 audit, the always-on final uploader retains the complete received
 `.artifacts/relation-pipeline/` diagnostic tree instead. It also keeps the same
 join/action and target-regression paths. Partial diagnostics never authorize
-success. Successful and incomplete producer uploads are unchanged.
+success. Its name is `relation-pipeline-evidence-incomplete-<run>-<attempt>-<tested SHA>`;
+the distinct name also permits full fallback if the compact upload itself
+fails after creating an artifact. Successful and incomplete producer uploads
+are unchanged. Status checks occur in step conditions, never upload inputs.
 
 These artifacts form one diagnostic bundle, not a cache. All producer parts
 and the final artifact use the same repository retention policy. Keep them

@@ -220,7 +220,9 @@ test('the workflow binds the small original to the required consumer without cha
   assert(!upload.with.path.includes('capacity') && !upload.with.path.includes('_build'));
   assert.equal(upload.with['include-hidden-files'], true);
   assert.equal(upload.with['if-no-files-found'], 'error');
-  assert(producer.steps.some(step => step.with?.name?.startsWith('relation-pipeline-evidence-') && step.if === 'always()'));
+  const failure = producer.steps.find(step => step.with?.name?.startsWith('relation-pipeline-evidence-incomplete-'));
+  assert.equal(failure.if, '${{ always() && !success() }}');
+  assert(failure.with.path.includes('.artifacts/relation-pipeline/'));
   const consumer = gate.steps.find(step => step.id === 'pipeline-action-check');
   assert.equal(consumer.run, 'node proofs/relation-pipeline/mutation-action-final.mjs');
   assert.equal(consumer.if, "${{ needs.pipeline-evidence.result == 'success' }}");
