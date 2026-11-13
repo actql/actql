@@ -1284,9 +1284,12 @@ keeping whole package drivers and the existing release/strip, strict warnings,
 test-only generated-C optimization and serial test execution. Nested packages
 use original compiler-selected file inputs rather than admitting an unrelated
 child package. The actual executed case count must equal compiler discovery.
-Darwin coverage stays intact until the corresponding Linux execution passes;
-then its common cases can be retired while retaining the FFI/allocator,
-SQLite/crypto/linking and installed-consumer differences. This transition is
+After actual execution of all eight Linux partitions, hosted Darwin Core uses
+the complementary compiler-owned package scope. It retains FFI/allocator,
+SQLite/crypto/linking and installed-consumer differences, complete HTTP/Source
+and scoped profiles, and the deliberate repeated geometry. Local full Core
+diagnostics remain unpartitioned and do not inherit the hosted platform scope.
+This transition is
 not a measured CI speedup or evidence that the complete workflow meets its
 20–30-minute target including queue and setup time.
 

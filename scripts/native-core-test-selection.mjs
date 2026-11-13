@@ -433,9 +433,11 @@ function compilerTestSelection(repository, args, {
       const subset = records.filter(record => requested.has(record.directory));
       const preview = partitionProfiles(args, subset, false, compilerDirectories);
       if (allowNestedFileInputs) {
-        assert.equal(preview.http.cases + preview.source.cases + preview.scoped.cases, 0,
-          'Explicit common Native files cannot select physical profiles');
-        scopedInputs = preview.ordinary.args?.slice(args.length);
+        // Preserve all selected original profiles when a parent directory has
+        // an unselected nested package. The Linux common caller separately
+        // refuses physical profiles before execution; full Darwin keeps them.
+        scopedInputs = [...new Set(['ordinary', 'http', 'source', 'scoped'].flatMap(name =>
+          preview[name].args?.slice(args.length) ?? []))];
       }
       const ordinaryPaths = preview.ordinary.args?.slice(args.length) ?? [];
       const ordinaryPackages = new Set(subset.filter(record => runnableCompilerCase(record) &&

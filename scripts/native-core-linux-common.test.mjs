@@ -168,3 +168,22 @@ test('Linux common scope cannot silently accept missing metadata or an unreviewe
   }
   assert.equal(executed, false);
 });
+
+test('hosted Darwin Core selects the complementary scope without changing local full diagnostics', () => {
+  const run = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+  const expression = run.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE;
+  assert.equal(expression,
+    "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'darwin-differences' || '' }}");
+  for (const [target, partition, expected] of [
+    ['native', '1/4', 'darwin-differences'], ['native', 'scoped', 'darwin-differences'],
+    ['native', 'linux-common-1/8', ''], ['js', '1/4', ''], ['wasm', '1/4', ''],
+  ]) assert.equal(runInNewContext(expression.slice(3, -2), {matrix: {target, partition},
+    startsWith: (value, prefix) => value.startsWith(prefix)}), expected);
+  const core = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
+  assert(core.includes("platformScope !== 'darwin-differences'"));
+  assert(core.includes("process.platform !== 'darwin'"));
+  assert(core.includes('platformPackages?.darwin'));
+  assert(core.includes('allowNestedFileInputs: platformPackages !== undefined'));
+  assert.equal((core.match(/ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: undefined/gu) ?? []).length, 2,
+    'The selection-only marker cannot leak into original producers or runtime children');
+});
