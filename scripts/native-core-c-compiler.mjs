@@ -46,7 +46,7 @@ export function nativeCoreCObjectCommands(repository, compiler, args, object) {
       compile.push(arg); continue;
     }
     // Clang forwards O0 to ld as well, including its no-deduplication choice.
-    if (['-O0', '-Werror'].includes(arg)) { compile.push(arg); link.push(arg); continue; }
+    if (['-O0', '-Werror', '-pthread'].includes(arg)) { compile.push(arg); link.push(arg); continue; }
     if (/^-I[^\0\r\n]+$/u.test(arg) || /^-std=(?:gnu|c)(?:99|11|17)$/u.test(arg)) {
       compile.push(arg); continue;
     }
@@ -196,16 +196,22 @@ export function runNativeCoreCCompiler(repository, compiler, args) {
     if (result.signal) process.kill(process.pid, result.signal);
     process.exitCode = result.status ?? 1;
   };
-  const selected = nativeCoreCArguments(repository, args);
+  finish(runNativeCoreCCommands(repository, compiler, nativeCoreCArguments(repository, args),
+    object => nativeCoreCObjectCommands(repository, compiler, args, object)));
+}
+
+// Both original compiler owners admit their own command before selecting this
+// same optional object cache. Unknown recipes retain the original combined call.
+export function runNativeCoreCCommands(repository, compiler, selected, objectCommands) {
   const eligible = process.env.ACTQL_TEST_NATIVE_CORE_CCACHE === undefined ? undefined
-    : nativeCoreCObjectCommands(repository, compiler, args);
+    : objectCommands();
   const cache = eligible && ordinaryObjectCache(repository, compiler);
-  if (!cache) return finish(spawnSync(compiler, selected, {stdio: 'inherit'}));
+  if (!cache) return spawnSync(compiler, selected, {stdio: 'inherit'});
   const temporary = mkdtempSync(join(dirname(resolve(eligible.output)), '.ordinary-c-object-'));
-  const plan = nativeCoreCObjectCommands(repository, compiler, args, join(temporary, 'test.o'));
+  const plan = objectCommands(join(temporary, 'test.o'));
   const compiled = spawnSync(cache.tool, [compiler, ...plan.compile],
     {stdio: 'inherit', env: cache.environment});
-  if (compiled.error || compiled.signal || compiled.status !== 0) return finish(compiled);
+  if (compiled.error || compiled.signal || compiled.status !== 0) return compiled;
   const linked = spawnSync(compiler, plan.link, {stdio: 'inherit'});
   let reportError;
   try {
@@ -215,6 +221,6 @@ export function runNativeCoreCCompiler(repository, compiler, args) {
   if (!linked.error && !linked.signal && linked.status === 0) rmSync(temporary, {recursive: true});
   // Keep one enclosing caller deadline. No retry, fresh allowance or fallback
   // follows an actual compiler/link failure; failed object evidence is retained.
-  finish(linked);
   if (linked.status === 0 && reportError) throw reportError;
+  return linked;
 }

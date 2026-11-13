@@ -3,11 +3,11 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {accessSync, constants, mkdirSync, readFileSync, realpathSync,
-  symlinkSync, writeFileSync} from 'node:fs';
+import {accessSync, constants, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync,
+  renameSync, symlinkSync, writeFileSync} from 'node:fs';
 import {basename, delimiter, dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {nativeCoreCArguments} from './native-core-c-compiler.mjs';
+import {nativeCoreCArguments, nativeCoreCObjectCommands, runNativeCoreCCommands} from './native-core-c-compiler.mjs';
 import {parseCommands} from './verification-actions.mjs';
 
 const runtimeNames = new Set(['backtrace.c', 'env.c', 'runtime.c', 'sync_io.c', 'utf.c']);
@@ -149,6 +149,21 @@ export function nativeCoreScopedCArguments(config, args) {
     ? componentProviderLinkArguments(config.target, config.componentProviderOwner.symbols) : [])];
 }
 
+// Decompose only after the existing full Scoped command admission. All original
+// profile definitions/headers compile into the object; owned exports stay on its
+// fresh link. Unknown generated-C flags keep the original combined compiler call.
+export function nativeCoreScopedCObjectCommands(config, compiler, args, object) {
+  const selected = nativeCoreScopedCArguments(config, args);
+  if (config.target !== 'aarch64-apple-darwin') return;
+  const plan = nativeCoreCObjectCommands(config.repository, compiler, args, object);
+  if (!plan) return;
+  const base = nativeCoreCArguments(config.repository, args);
+  const offset = selected.findIndex((_, index) => base.every((value, item) => selected[index + item] === value));
+  assert(offset >= 0, 'Original generated Scoped command required');
+  return {...plan, compile: [...selected.slice(0, offset), ...plan.compile],
+    link: [...plan.link, ...selected.slice(offset + base.length)]};
+}
+
 // Only compiler-information queries may bypass the closed source/output plan.
 export function runNativeCoreScopedCompiler(configPath, kind, args) {
   const config = JSON.parse(readFileSync(configPath, 'utf8'));
@@ -157,7 +172,9 @@ export function runNativeCoreScopedCompiler(configPath, kind, args) {
     ['--version', '-v', '-dumpmachine', '-dumpversion', '-print-search-dirs'].includes(value));
   const selected = information ? args : nativeCoreScopedCArguments(config, args);
   const started = performance.now();
-  const result = spawnSync(config.compilers[kind], selected, {stdio: 'inherit'});
+  const result = information ? spawnSync(config.compilers[kind], selected, {stdio: 'inherit'})
+    : runNativeCoreCCommands(config.repository, config.compilers[kind], selected,
+      object => nativeCoreScopedCObjectCommands(config, config.compilers[kind], args, object));
   try {
     console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({phase: 'scoped-c-compiler',
       profile: config.profile, operation: information ? 'information' : args.includes('-c') ? 'compile' : 'link',
@@ -171,7 +188,7 @@ export function runNativeCoreScopedCompiler(configPath, kind, args) {
 
 export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   env = process.env, platform = process.platform, arch = process.arch,
-  execute = execFileSync, profile = 'runtime-values', linuxStockFileSlots,
+  execute = execFileSync, profile = 'runtime-values', linuxStockFileSlots, softwareDirectory,
 } = {}) {
   assert(profiles.has(profile), 'Unknown Native Core allocation profile');
   const target = targets.get(`${platform}-${arch}`);
@@ -193,7 +210,32 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   const moonHome = realpathSync(env.MOON_HOME);
   const directory = join(scratch, 'native-core-scoped-profile');
   mkdirSync(directory, {mode: 0o700});
-  const sourceDirectory = join(directory, 'derived-read-source');
+  let retireSoftware;
+  if (softwareDirectory !== undefined) {
+    assert.equal(softwareDirectory, join(repository, '_build/native-core-scoped/compiler-software', profile),
+      'Only the original profile software directory may be selected');
+    let existingParent = dirname(softwareDirectory);
+    while (!existsSync(existingParent)) existingParent = dirname(existingParent);
+    assert.equal(realpathSync(existingParent), existingParent,
+      'Actual software directory required, never a path alias');
+    mkdirSync(dirname(softwareDirectory), {recursive: true, mode: 0o700});
+    assert.equal(realpathSync(dirname(softwareDirectory)), dirname(softwareDirectory),
+      'Actual software directory required, never a path alias');
+    mkdirSync(softwareDirectory, {mode: 0o700});
+    const original = lstatSync(softwareDirectory);
+    let retired = false;
+    retireSoftware = () => {
+      if (retired) return;
+      const current = lstatSync(softwareDirectory);
+      assert(current.isDirectory() && !current.isSymbolicLink() &&
+        current.dev === original.dev && current.ino === original.ino,
+      'Keep the original software directory owner; never retire its replacement');
+      renameSync(softwareDirectory, join(directory, 'retired-software'));
+      retired = true;
+    };
+  }
+  try {
+  const sourceDirectory = join(softwareDirectory ?? directory, 'derived-read-source');
   const prepare = join(repository, 'packages/python-local-runtime/native/pre-root/prepare_scoped_read.py');
   const record = JSON.parse(execute('python3', [prepare, '--moonbit', moonHome,
     '--destination', sourceDirectory, ...(platform === 'linux' ? ['--target', target] : [])], {cwd: repository, env, encoding: 'utf8',
@@ -228,7 +270,7 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   } else assert.equal(record.required_source_parameters, undefined);
   // Keep test-only O0 recognition in the existing owner: its pattern is rooted
   // under _build, while this fresh target remains separate from default Core.
-  const targetDirectory = join(directory, 'target');
+  const targetDirectory = join(softwareDirectory ?? directory, 'target');
   mkdirSync(targetDirectory);
   const selectedEnv = {...env, MOON_HOME: moonHome, MOONBIT_NEW_NATIVE: '0'};
   const locate = name => execute('/bin/sh', ['-c', 'command -v "$1"', 'scoped-compiler', name],
@@ -260,10 +302,18 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   const environment = {...selectedEnv, PATH: bin + delimiter + env.PATH,
     CC: join(bin, env.CC === undefined ? 'cc' : 'package-cc'),
     CXX: join(bin, env.CXX === undefined ? 'c++' : 'package-c++')};
-  return {environment, targetDirectory, compilerInputs: {
+  return {environment, targetDirectory, ...(retireSoftware ? {retireSoftware} : {}), compilerInputs: {
     qualification: 'selected-provider compiler inputs only; no test execution or artifact authority',
     configPath, sourceDirectory, inputs, profile, componentProviderOwner, recipeSha256: record.recipe_sha256,
     patchSha256: record.patch_sha256, target: record.target,
+    ...(softwareDirectory ? {softwareDirectory, retiredSoftwareDirectory: join(directory, 'retired-software')} : {}),
     ...(stockFileControl ? {stockFileControl} : {}),
   }};
+  } catch (error) {
+    try { retireSoftware?.(); }
+    catch (retirement) {
+      throw new AggregateError([error, retirement], 'Scoped preparation failed with software retirement pending', {cause: error});
+    }
+    throw error;
+  }
 }

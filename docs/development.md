@@ -1332,6 +1332,18 @@ The existing scoped compiler wrapper records each original C compile/link/query
 interval separately. These intervals exclude Moon lowering and test execution;
 their sum is compiler activity, not elapsed job time when profiles overlap.
 
+Hosted Scoped generated-C objects use the same pinned cache machinery as the
+ordinary partitions, after the existing complete profile/recipe admission.
+Only derived headers and the generated target use an exclusive actual directory
+under `_build/native-core-scoped/compiler-software/<profile>`. Configurations,
+component preparation and physical case roots remain fresh and separate. After
+all original case children close, the same directory owner moves its generated
+software into its original fresh scratch for inspection; existing or replaced
+paths are never adopted or retired. Every runtime/provider compilation and link
+remains fresh. No symlink path, macro remapping or relaxed cache key is used.
+Default local/non-CI callers keep their original fresh software paths. A cache
+hit is neither a test result nor evidence of a complete CI time reduction.
+
 The ordinary Native child measures `--build-only` and subsequent execution
 separately in the same build tree, with identical arguments and environment.
 Both phases share the original absolute timeout. Execution still uses the

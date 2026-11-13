@@ -979,14 +979,24 @@ process.exitCode=process.env.ACTQL_FIXTURE_SOURCE_FAILED==='1'?9:0;
     writeFileSync(join(checkout, 'scripts/native-core-scoped-profile.mjs'), `
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
+import * as fs from 'node:fs';
 import {dirname, join} from 'node:path';
-export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profile}) {
+export function prepareNativeCoreScopedProfile(root, scratch, args, {env, profile, softwareDirectory}) {
   assert.deepEqual(args.slice(0, 2), ['--target', 'native']);
   assert.equal(env.PATH.includes('/test-c-compiler:'), false);
   assert.equal(env.ACTQL_REQUIRE_NATIVE_RETAINED_TEST, '1');
   assert(env.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE);
   const targetDirectory = join(scratch, 'selected-target'); mkdirSync(targetDirectory);
   assert(['runtime-values', 'scoped-review-values'].includes(profile));
+  if (softwareDirectory !== undefined) {
+    assert.equal(softwareDirectory, join(root, '_build/native-core-scoped/compiler-software', profile));
+    fs.appendFileSync(env.ACTQL_FIXTURE_SOFTWARE_EVENTS, JSON.stringify({phase:'prepared',profile,softwareDirectory})+'\\n');
+    return {targetDirectory, environment: {...env, ACTQL_FIXTURE_PROFILE: profile}, retireSoftware() {
+      const completed=fs.readFileSync(env.ACTQL_FIXTURE_NATIVE_COMMANDS,'utf8').trim().split('\\n').map(JSON.parse)
+        .filter(call=>call.profile===profile).length;
+      fs.appendFileSync(env.ACTQL_FIXTURE_SOFTWARE_EVENTS,JSON.stringify({phase:'retired',profile,completed})+'\\n');
+    }};
+  }
   return {targetDirectory, environment: {...env, ACTQL_FIXTURE_PROFILE: profile}};
 }
 `);
@@ -2598,4 +2608,26 @@ if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values') {
     assert.ifError(result.error); assert.notEqual(result.status, 0, mode + result.stdout + result.stderr);
     f.verifyExternal();
   }
+});
+
+test('hosted Scoped cache forwards separate software paths and retires only after each original case loop', t => {
+  const f=fixture(t,{scoped:true}),commands=join(f.root,'software-commands.jsonl'),events=join(f.root,'software-events.jsonl');
+  const result=spawnSync(process.execPath,['scripts/test-native-core.mjs','--deny-warn','--release','--strip','-j','2','--no-parallelize'],{
+    cwd:f.checkout,encoding:'utf8',timeout:15000,env:{...f.env,GITHUB_ACTIONS:'true',
+      ACTQL_TEST_NATIVE_CORE_PARTITION:'scoped',ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS:'2',
+      ACTQL_TEST_NATIVE_CORE_CCACHE:'/explicit/cache-port',
+      ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT:join(f.checkout,'_build/native-core-scoped/compiler-software'),
+      ACTQL_FIXTURE_NATIVE_COMMANDS:commands,ACTQL_FIXTURE_SOFTWARE_EVENTS:events},
+  });
+  assert.ifError(result.error);assert.equal(result.status,0,result.stdout+result.stderr);
+  const records=readFileSync(events,'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(records.length,4);
+  for(const [profile,count] of [['runtime-values',2],['scoped-review-values',5]]){
+    const owned=records.filter(x=>x.profile===profile);
+    assert.deepEqual(owned.map(x=>x.phase),['prepared','retired']);
+    assert.equal(owned[1].completed,count);
+  }
+  const selected=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse).filter(x=>x.profile!=='ordinary');
+  assert.equal(selected.length,7);assert.equal(new Set(selected.map(x=>x.installedProcess)).size,7);
+  f.verifyExternal();
 });
