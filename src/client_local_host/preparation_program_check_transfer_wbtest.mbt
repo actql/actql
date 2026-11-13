@@ -89,8 +89,8 @@ test "Check clear untransferred controls keep typed constructor refusal retired"
 test "Check clear untransferred controls keep one-short original growth retired" {
   for retention in [true, false] {
     let (owner, ledger, capacity, input) = catalog_domain_fixture()
-    let required_r = owner.base_retained + 47960L + 9888L
-    let required_e = owner.base_execution + 47960L + 9888L
+    let required_r = owner.base_retained + 47984L + 9888L
+    let required_e = owner.base_execution + 47984L + 9888L
     let limits = @resources.ledger_limits(ledger)
     let blocker = @resources.reserve_capacity(
       ledger,

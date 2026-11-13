@@ -50,7 +50,7 @@ pub fn closed_values_local_owner_layout(
   let unit_w = 28L + 17L + 12L
   // Guarded acyclic scaffold + empty-sourceview carrier-site inventory:
   // closed-context-carrier-site-inventory.json, 76 explicit source files.
-  // 6976 weighted syntax sites /11456 weighted payload slots. This includes
+  // 6985 weighted syntax sites /11471 weighted payload slots. This includes
   // declarations and unreachable branches deliberately; it is an upper, not
   // actual allocation telemetry. A site may own one direct tagged/tuple value
   // and one returned Result/Some carrier. Each payload slot is conservatively
@@ -65,8 +65,8 @@ pub fn closed_values_local_owner_layout(
   // their separate source/walk recipes. Fixed VM frames are not charged here.
   // This replaces the unjustified record-count81/dispatch31/helper16 proxy.
   // Eleven actual scalar budget records remain distinct (16 scalar fields).
-  let sites = 6976L
-  let payload_slots = 11456L
+  let sites = 6985L
+  let payload_slots = 11471L
   let control_h = 2L * sites + 11L
   let control_r = sites + payload_slots
   let control_w = 2L * sites + payload_slots + 16L

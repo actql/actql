@@ -101,7 +101,9 @@ export const currentPackageConfigurations = Object.freeze({
   // The next successor selects the two READ Request tests on JS, matching
   // their existing original Node supplier. All prior descriptors stay retained.
   // See docs/reviews/2026-11-12-session-local-host-js-selector-review.md.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: 'f6711ed47a6251f7f3c6bc75191c1f4b4215b050ee05594b24f70a683aa1972b', rule: 'literal-target-selectors-with-bound-source-membership', revision: '5d46f7839bab1146ce3763d6e8b08f57f5daab6c'}),
+  // One further literal JS-only File task-boundary selector; imports unchanged.
+  // See docs/reviews/2026-11-13-session-file-task-boundary-selector-review.md.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: 'c0e298e3407e0d4b966926b7e4054d269a86c74e18ddd5552d5d119370b79695', rule: 'literal-target-selectors-with-bound-source-membership', revision: '58ebdec4d074bc3d1f70779eca237f904fa2a47e'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
