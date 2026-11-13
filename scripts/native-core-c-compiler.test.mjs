@@ -6,6 +6,63 @@ import {join, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {nativeCoreCArguments, nativeCoreCCompiler} from './native-core-c-compiler.mjs';
+import * as compilerModule from './native-core-c-compiler.mjs';
+
+test('ordinary generated C object planning preserves effective flags and ordered fresh link inputs', () => {
+  assert.equal(typeof compilerModule.nativeCoreCObjectCommands, 'function');
+  const source = '/original/_build/native/release/test/pkg/pkg.whitebox_test.c';
+  const output = source.slice(0, -2) + '.exe';
+  const args = ['-o', output, '-I/pinned/include', '-fwrapv', '-fno-strict-aliasing',
+    '-Wno-unused-value', '-Wall', '-Wextra', '-Werror', '-O2',
+    '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', 'before.o', source, 'after.a', '-lm'];
+  const plan = compilerModule.nativeCoreCObjectCommands('/original', '/usr/bin/clang', args, '/owned/object.o');
+  assert.deepEqual(plan, {source, output,
+    compile: ['-c', source, '-o', '/owned/object.o', '-I/pinned/include', '-fwrapv',
+      '-fno-strict-aliasing', '-Wno-unused-value', '-Wall', '-Wextra', '-Werror', '-O0',
+      '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-dumpdir', output + '-'],
+    link: ['-o', output, '-Werror', '-O0', 'before.o', '/owned/object.o', 'after.a', '-lm']});
+  assert.deepEqual(args.slice(-4), ['before.o', source, 'after.a', '-lm']);
+});
+
+test('ordinary object planning refuses unsupported profiles before any compiler or cache work', () => {
+  assert.equal(typeof compilerModule.nativeCoreCObjectCommands, 'function');
+  const source = '/original/_build/native/release/test/pkg/pkg.whitebox_test.c';
+  const args = ['-o', source.slice(0, -2) + '.exe', '-O2', source, 'original.a', '-lm'];
+  for (const [compiler, changed] of [
+    ['/usr/bin/c++', args], ['/usr/bin/clang++', args], ['/foreign/compiler', args],
+    ['/usr/bin/clang', [...args, '-flto']], ['/usr/bin/clang', [...args, '-shared']],
+    ['/usr/bin/clang', [...args, '@response']], ['/usr/bin/clang', [...args, '-x', 'c']],
+    ['/usr/bin/clang', [...args, '-DACTQL_SCOPED_READ_ALLOCATOR']],
+    ['/usr/bin/clang', [...args, '-DACTQL_RUNTIME_MANAGED_VALUES=1']],
+    ['/usr/bin/clang', [...args, '-unknown-option']], ['/usr/bin/clang', [...args, '/original/second.c']],
+    ['/usr/bin/clang', args.map(x => x === '-O2' ? '-O0' : x)],
+    ['/usr/bin/clang', args.map(x => x === source ? source.replace('/release/', '/debug/') : x)],
+    ['/usr/bin/clang', args.map(x => x.endsWith('.exe') ? '/foreign/output.exe' : x)],
+  ]) assert.equal(compilerModule.nativeCoreCObjectCommands('/original', compiler, changed, '/owned/object.o'),
+    undefined, JSON.stringify([compiler, changed]));
+});
+
+test('unsupported cache mode keeps the original combined compiler result and actual OS signal', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-cache-fallback-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const compiler = join(root, 'original-compiler');
+  const module = new URL('./native-core-c-compiler.mjs', import.meta.url).href;
+  const script = `import {runNativeCoreCCompiler} from ${JSON.stringify(module)};` +
+    `runNativeCoreCCompiler(${JSON.stringify(root)},${JSON.stringify(compiler)},process.argv.slice(1));`;
+  const args = ['-o', 'unsupported.exe', '-O2', 'original.c', '-flto'];
+  const env = {...process.env, ACTQL_TEST_NATIVE_CORE_CCACHE: '/absent/cache',
+    ACTQL_TEST_NATIVE_CORE_CCACHE_DIR: '/absent/unused', ACTQL_FIXTURE_CURRENT: 'original'};
+  writeFileSync(compiler, '#!' + process.execPath + '\nconsole.log(JSON.stringify({' +
+    'args:process.argv.slice(2),current:process.env.ACTQL_FIXTURE_CURRENT}));process.exit(23);\n', {mode: 0o700});
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script, '--', ...args],
+    {cwd: root, env, encoding: 'utf8', timeout: 5000});
+  assert.ifError(result.error); assert.equal(result.status, 23); assert.equal(result.signal, null);
+  assert.deepEqual(JSON.parse(result.stdout), {args, current: 'original'});
+  writeFileSync(compiler, '#!' + process.execPath + '\nprocess.kill(process.pid,"SIGTERM");\n');
+  const stopped = spawnSync(process.execPath, ['--input-type=module', '-e', script, '--', ...args],
+    {cwd: root, env, encoding: 'utf8', timeout: 5000});
+  assert.ifError(stopped.error); assert.equal(stopped.status, null); assert.equal(stopped.signal, 'SIGTERM');
+});
 
 test('Native Core C profile changes only the default optimization of one generated release test input', () => {
   const root = '/original';
