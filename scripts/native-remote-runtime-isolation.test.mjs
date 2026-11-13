@@ -108,3 +108,4 @@ test('private Query output forwards the complete original default-profile select
   assert(!command.includes('--strip')&&!command.includes('--release'));
   await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env:{...env,FIXTURE_SHORT:'1'},targetDirectory}),/coverage mismatch/u);
 });
+import './native-http-phases.test.mjs';

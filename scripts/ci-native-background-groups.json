@@ -127,7 +127,9 @@
           "id": "native-http",
           "timeoutMinutes": 115,
           "env": {
-            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http"
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http",
+            "ACTQL_TEST_NATIVE_HTTP_FOCUS": "http-packages",
+            "ACTQL_TEST_PRESERVE_SCRATCH": "1"
           }
         },
         {
@@ -197,6 +199,17 @@
           "id": "native-remote",
           "env": {
             "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-remote"
+          }
+        },
+        {
+          "name": "Test original Native HTTP CLI controls",
+          "run": "node scripts/test-native-http-client.mjs\n",
+          "id": "native-http-controls",
+          "timeoutMinutes": 115,
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http-controls",
+            "ACTQL_TEST_NATIVE_HTTP_FOCUS": "http-controls",
+            "ACTQL_TEST_PRESERVE_SCRATCH": "1"
           }
         }
       ]

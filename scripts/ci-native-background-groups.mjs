@@ -151,7 +151,7 @@ export async function waitNativeGroups(directory, {report = value => process.std
   const result = JSON.parse(readFileSync(join(directory, 'result.json'), 'utf8'));
   assert.equal(result.token, control.token);
   assert.deepEqual(result.groups.map(value => value.name), control.groups.map(value => value.name));
-  const outputs = {}; let failed = false;
+  const outputs = {}, http = []; let failed = false;
   for (const [index, group] of result.groups.entries()) {
     assert.deepEqual(group.cases.map(value => value.name), control.groups[index].steps.map(value => value.name));
     const log = join(directory, group.name + '.log');
@@ -170,7 +170,7 @@ export async function waitNativeGroups(directory, {report = value => process.std
           item.completedAt >= item.startedAt);
       }
       failed ||= item.status !== 'success';
-      if (item.id === 'native-http') outputs['native-http-result'] = item.status;
+      if (['native-http', 'native-http-controls'].includes(item.id)) http.push(item.status);
       if (item.id && item.outputs['evidence-directory']) outputs[item.id + '-evidence-directory'] = item.outputs['evidence-directory'];
       const summary = join(directory, `${group.name}-${ordinal}.summary`);
       if (summaryFile && existsSync(summary)) for await (const chunk of createReadStream(summary))
@@ -181,6 +181,8 @@ export async function waitNativeGroups(directory, {report = value => process.std
         outcome: item.status}) + '\n');
     }
   }
+  if (http.length) outputs['native-http-result'] = http.every(status => status === 'success') ? 'success'
+    : http.includes('failure') ? 'failure' : 'unexecuted';
   return {status: failed ? 1 : 0, outputs, result};
 }
 
