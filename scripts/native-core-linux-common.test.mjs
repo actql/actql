@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
+import {nativeCoreFocusedTestCount} from './native-core-test-selection.mjs';
+import {nativeCoreLinuxCommonArguments, runNativeCoreLinuxCommon} from './test-native-core-linux-common.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 
@@ -35,4 +39,83 @@ test('Linux common Native uses its selected compiler profile rather than Darwin 
   assert(!cache.if.includes('linux-common'));
   const reader = core.steps.find(step => step.name === 'Test actual Native Reader callbacks and original empty compiler driver');
   assert(reader.if.includes("matrix.partition != 'linux-common'"));
+});
+
+test('Linux common Native orchestration retains exact flags, compiler environment, case count and failure', async () => {
+  assert.deepEqual(nativeCoreLinuxCommonArguments, [
+    '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose',
+    'src/capacity_arithmetic', 'src/canonical_value', 'src/value_admission',
+  ]);
+  const original = {PATH: '/original/pinned/bin', RUNNER_TEMP: '/original/runner', ORIGINAL: 'retained'};
+  for (const status of [0, 17]) {
+    const calls = [];
+    const actual = await runNativeCoreLinuxCommon({platform: 'linux', env: original,
+      createScratch: async options => {
+        assert.equal(options.parent, '/original/runner/core-linux-common');
+        return {path: '/original/owned/compiler', passed: () => calls.push('passed')};
+      },
+      selectCompiler: (_root, scratch, env) => {
+        assert.equal(scratch, '/original/owned/compiler'); assert.equal(env, original);
+        calls.push('compiler'); return {PATH: '/original/owned/compiler/test-c-compiler:/original/pinned/bin'};
+      },
+      countTests: (_root, args, options) => {
+        assert.deepEqual(args, [...nativeCoreLinuxCommonArguments]);
+        assert.equal(options.env.MOONBIT_NEW_NATIVE, '0');
+        assert.equal(options.timeoutMs, 300000); calls.push('metadata'); return 73;
+      },
+      executeTests: (kind, args, options) => {
+        assert.equal(kind, 'moon');
+        assert.deepEqual(args, ['--target', 'native', ...nativeCoreLinuxCommonArguments]);
+        assert.equal(options.expectedTests, 73); assert.equal(options.timeout, 3600000);
+        assert.equal(options.env.PATH, '/original/owned/compiler/test-c-compiler:/original/pinned/bin');
+        assert.equal(options.env.ORIGINAL, 'retained');
+        assert.equal(options.env.MOONBIT_NEW_NATIVE, '0');
+        calls.push('execute'); return status;
+      }});
+    assert.equal(actual, status);
+    assert.deepEqual(calls, ['compiler', 'metadata', 'execute', ...(status === 0 ? ['passed'] : [])]);
+  }
+  assert.deepEqual(original, {PATH: '/original/pinned/bin', RUNNER_TEMP: '/original/runner', ORIGINAL: 'retained'});
+});
+
+test('Linux common Native refuses a foreign platform, empty metadata or failed discovery before execution', async () => {
+  let allocated = false, executed = false;
+  await assert.rejects(runNativeCoreLinuxCommon({platform: 'darwin',
+    createScratch: async () => { allocated = true; }}), /actual Linux runner/u);
+  assert.equal(allocated, false);
+  const original = new Error('original metadata refusal');
+  for (const countTests of [() => 0, () => { throw original; }]) {
+    await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', env: {},
+      createScratch: async () => ({path: '/owned', passed() { throw new Error('unconfirmed owner'); }}),
+      selectCompiler: () => ({}), countTests,
+      executeTests: () => { executed = true; }}),
+    error => error === original || /Nonempty compiler-owned/u.test(error.message));
+  }
+  assert.equal(executed, false);
+});
+
+test('Linux common Native metadata counts original native runnable cases without compiling or linking', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-linux-common-metadata-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  mkdirSync(join(root, 'selected'));
+  writeFileSync(join(root, 'selected/cases_test.mbt'), 'Original compiler metadata fixture\n');
+  const calls = [];
+  const args = ['--release', '--strip', '--deny-warn', 'selected'];
+  const count = nativeCoreFocusedTestCount(root, args, {execute: (command, values) => {
+    assert.equal(command, 'moon'); calls.push(values[0]);
+    if (values[0] === 'test') {
+      assert.deepEqual(values, ['test', '--target', 'native', ...args, '--dry-run']);
+      return 'moon generate-test-driver --output-driver _build/driver.mbt --output-metadata _build/info.json selected/cases_test.mbt --target native --pkg-name fixture/selected --driver-kind blackbox';
+    }
+    assert.equal(values[0], 'generate-test-driver');
+    const first = {index: 0, name: 'same original', attrs: []};
+    const benchmark = {index: 2, name: 'benchmark', attrs: []};
+    writeFileSync(values[values.indexOf('--output-metadata') + 1], JSON.stringify({
+      tests: {'cases_test.mbt': [first, {index: 1, name: 'skipped', attrs: ['skip']}, benchmark]},
+      with_bench_args_tests: {'cases_test.mbt': [benchmark]},
+    }));
+    return '';
+  }});
+  assert.equal(count, 1);
+  assert.deepEqual(calls, ['test', 'generate-test-driver']);
 });

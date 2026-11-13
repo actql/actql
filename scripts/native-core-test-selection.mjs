@@ -292,6 +292,10 @@ export function portableMoonTestCount(repository, args, target, options = {}) {
   return compilerTestSelection(repository, args, options, target, true).runnableCases;
 }
 
+export function nativeCoreFocusedTestCount(repository, args, options = {}) {
+  return compilerTestSelection(repository, args, options, 'native', true).runnableCases;
+}
+
 function compilerTestSelection(repository, args, {
   env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
   ordinaryPartitions = false, timeoutMs = 60_000, now = Date.now, executionPackages,

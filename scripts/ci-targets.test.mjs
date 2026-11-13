@@ -702,10 +702,10 @@ const changes = paths => paths.map(path => ({path, before: {mode: '100644', obje
   after: {mode: '100644', object: 'd'.repeat(40)}}));
 const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
 
-test('Native Core matrix owns four ordinary and three physical partitions without multiplying portable targets', t => {
+test('Native Core matrix retains Darwin profiles and adds Linux common without multiplying portable targets', t => {
   const core = jobs.core, matrix = core.strategy.matrix;
-  assert.deepEqual(matrix.partition, ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped']);
-  assert.deepEqual(matrix.partition, nativeCoreCiPartitions);
+  assert.deepEqual(matrix.partition, [...nativeCoreCiPartitions, 'linux-common']);
+  assert.deepEqual(matrix.partition.filter(value => value !== 'linux-common'), nativeCoreCiPartitions);
   assert.deepEqual(matrix.exclude, ['js', 'wasm'].flatMap(target => matrix.partition.slice(1).map(partition => ({target, partition}))));
   const selected = all.flatMap(target => matrix.partition.map(partition => ({target, partition})))
     .filter(row => !matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition));
@@ -1388,7 +1388,7 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
     'node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs',
     'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs',
     'node --test scripts/native-cli-default-numeric.test.mjs',
-    'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs']);
+    'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs']);
   assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',
     'npm run check:local-resource-completion', 'npm run check:execution-authorization-vectors', 'git diff --exit-code']);
   for (const name of ['lint', 'spec']) {
