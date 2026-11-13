@@ -7,10 +7,65 @@ import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {gateJobs, gateJobRequired, selectTargets} from './ci-targets.mjs';
 import {validateGroups} from './ci-native-background-groups.mjs';
+import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
+import {nativeCoreLinuxCommonPartitions} from './test-native-core-linux-common.mjs';
+import {spawnSync} from 'node:child_process';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const original = JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json', import.meta.url), 'utf8'));
 const background = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
+
+test('Core runner split caps only Darwin and retains the complete original matrix union', () => {
+  const common = workflow.jobs['core-common'], darwin = workflow.jobs['core-darwin'];
+  assert(common && darwin);
+  assert.equal(common['runs-on'], 'ubuntu-24.04');
+  assert.equal(common.strategy['max-parallel'], undefined);
+  assert.equal(darwin['runs-on'], 'macos-15');
+  assert.equal(darwin.strategy['max-parallel'], 4);
+  assert.deepEqual(darwin.strategy.matrix, {target: ['native'], partition: [...nativeCoreCiPartitions]});
+  assert.equal(common.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
+  assert.deepEqual(common.strategy.matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
+  const rows = job => ['js', 'wasm', 'native'].flatMap(target => job.strategy.matrix.partition.map(partition => ({target, partition})))
+    .filter(row => !job.strategy.matrix.exclude.some(x => x.target === row.target && x.partition === row.partition));
+  const selected = [...rows(common), ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))];
+  assert.equal(selected.length, 17);
+  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 17);
+  assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
+    ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
+    ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
+  assert.equal(common.steps, darwin.steps, 'One YAML-anchored step owner preserves all original commands and environments');
+  for (const job of [common, darwin]) {
+    assert.deepEqual(job.needs, ['select-targets', 'preflight']);
+    assert.equal(job.strategy['fail-fast'], false);
+    assert.equal(job['timeout-minutes'], "${{ matrix.target == 'native' && 90 || 30 }}");
+  }
+  assert(darwin.if.includes("contains(fromJSON(needs.select-targets.outputs.targets), 'native')"));
+});
+
+test('Core runner aggregate requires every selected matrix and refuses missing failed or skipped work', () => {
+  const core = workflow.jobs.core;
+  assert.deepEqual(core.needs, ['select-targets', 'preflight', 'core-common', 'core-darwin']);
+  assert.equal(core['runs-on'], 'ubuntu-24.04');
+  assert(core.if.includes('always()'));
+  assert.equal(core['timeout-minutes'], 5);
+  const step = core.steps[0];
+  assert.deepEqual(step.env, {CORE_TARGETS: '${{ needs.select-targets.outputs.targets }}',
+    COMMON_RESULT: '${{ needs.core-common.result }}', DARWIN_RESULT: '${{ needs.core-darwin.result }}'});
+  const run = values => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
+    encoding: 'utf8', timeout: 5000, env: {...process.env, ...values},
+  });
+  for (const targets of [['js'], ['wasm'], ['native'], ['js', 'wasm', 'native']]) {
+    const selected = targets.includes('native');
+    const success = {CORE_TARGETS: JSON.stringify(targets), COMMON_RESULT: 'success', DARWIN_RESULT: selected ? 'success' : 'skipped'};
+    assert.equal(run(success).status, 0);
+    for (const value of ['failure', 'cancelled', 'skipped', ''])
+      assert.notEqual(run({...success, COMMON_RESULT: value}).status, 0);
+    for (const value of selected ? ['failure', 'cancelled', 'skipped', ''] : ['failure', 'cancelled', 'success', ''])
+      assert.notEqual(run({...success, DARWIN_RESULT: value}).status, 0);
+  }
+  for (const targets of ['', '[]', 'null', '["other"]', '["native","native"]', 'invalid'])
+    assert.notEqual(run({CORE_TARGETS: targets, COMMON_RESULT: 'success', DARWIN_RESULT: 'success'}).status, 0);
+});
 
 test('normal Native object caching selects only the four mandatory ordinary jobs and retains their complete Core command', () => {
   assert.equal(workflow.on.workflow_dispatch.inputs.ordinary_native_c_cache, undefined);
