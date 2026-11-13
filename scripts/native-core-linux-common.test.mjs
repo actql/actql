@@ -12,8 +12,8 @@ import {nativeCoreLinuxCommonArguments, nativeCoreLinuxCommonPartitions, runNati
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 
 test('Linux common Native is mandatory without removing the original Darwin matrix', () => {
-  const core = workflow.jobs.core, matrix = core.strategy.matrix;
-  assert.deepEqual(matrix.partition, ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped', ...nativeCoreLinuxCommonPartitions]);
+  const core = workflow.jobs['core-common'], matrix = core.strategy.matrix;
+  assert.deepEqual(matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   assert.equal(core.strategy['fail-fast'], false);
   assert.equal(core['continue-on-error'], undefined);
   assert(workflow.jobs.check.needs.includes('core'));
@@ -21,14 +21,14 @@ test('Linux common Native is mandatory without removing the original Darwin matr
     for (const partition of nativeCoreLinuxCommonPartitions)
       assert(matrix.exclude.some(row => row.target === target && row.partition === partition));
   }
-  for (const partition of matrix.partition) {
-    const runner = runInNewContext(core['runs-on'].slice(3, -2), {matrix: {target: 'native', partition}, startsWith: (value, prefix) => value.startsWith(prefix)});
-    assert.equal(runner, partition.startsWith('linux-common-') ? 'ubuntu-24.04' : 'macos-15');
-  }
+  assert.equal(core['runs-on'], 'ubuntu-24.04');
+  assert.equal(workflow.jobs['core-darwin']['runs-on'], 'macos-15');
+  assert.deepEqual(workflow.jobs['core-darwin'].strategy.matrix.partition,
+    ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped']);
 });
 
 test('Linux common Native uses its selected compiler profile rather than Darwin preparation', () => {
-  const core = workflow.jobs.core;
+  const core = workflow.jobs['core-common'];
   const platform = core.steps.find(step => step.name === 'Require the supported Core Native platform');
   assert(platform.run.includes('linux-common'));
   assert(platform.run.includes('Linux'));
@@ -170,7 +170,7 @@ test('Linux common scope cannot silently accept missing metadata or an unreviewe
 });
 
 test('hosted Darwin Core selects the complementary scope without changing local full diagnostics', () => {
-  const run = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+  const run = workflow.jobs['core-common'].steps.find(step => step.name === 'Test common core');
   const expression = run.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE;
   assert.equal(expression,
     "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'darwin-differences' || '' }}");

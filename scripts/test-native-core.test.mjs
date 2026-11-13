@@ -74,7 +74,7 @@ test('Native Effect capture progress missing evidence remains unavailable', asyn
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
-const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+const coreStep = workflow.jobs['core-darwin'].steps.find(step => step.name === 'Test common core');
 
 test('Reader custody injection loads on the supported Native host profile', () => {
   const checkout = fileURLToPath(new URL('../', import.meta.url));
@@ -378,7 +378,7 @@ test('Reader custody callbacks preserve the original pinned Moonc loader', () =>
 });
 
 test('Native Core full campaign remains selected after callback diagnosis failure', () => {
-  const core = workflow.jobs.core;
+  const core = workflow.jobs['core-darwin'];
   const start = core.steps.findIndex(step => step.id === 'native-compiler-diagnostic-start');
   const campaign = core.steps.indexOf(coreStep);
   assert.deepEqual(core.steps.slice(start + 1, campaign).map(step => step.name),
@@ -756,17 +756,17 @@ test('Compiler stop diagnostic timeout stays unobserved without raw debugger pay
 });
 
 test('Native Core retains admitted Darwin profiles and selects Linux for common packages', t => {
-  const core = workflow.jobs.core;
-  const expression = core['runs-on'];
-  assert.equal(expression, "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'macos-15' || 'ubuntu-24.04' }}");
+  const core = workflow.jobs['core-darwin'];
+  assert.equal(core['runs-on'], 'macos-15');
+  const common = workflow.jobs['core-common'];
+  assert.equal(common['runs-on'], 'ubuntu-24.04');
   for (const [target, partition, runner] of [['native', '1/4', 'macos-15'],
     ['native', 'linux-common-1/8', 'ubuntu-24.04'], ['js', '1/4', 'ubuntu-24.04'],
     ['wasm', '1/4', 'ubuntu-24.04']]) {
-    assert.equal(runInNewContext(expression.slice(3, -2), {matrix: {target, partition},
-      startsWith: (value, prefix) => value.startsWith(prefix)},
-      {timeout: 100}), runner);
+    assert.equal(target === 'native' && !partition.startsWith('linux-common-') ? core['runs-on'] : common['runs-on'], runner);
   }
-  assert.equal(core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
+  assert.deepEqual(core.strategy.matrix.target, ['native']);
+  assert.equal(common.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.equal(core.strategy['fail-fast'], false);
   const platform = core.steps.find(step => step.name === 'Require the supported Core Native platform');
   assert.ok(platform);
@@ -2293,7 +2293,7 @@ test('Native checkpoint and full child keep the selected backend and explicit co
 });
 
 test('Core Native prepares existing producer dependencies only for its scoped consumer', () => {
-  const steps = workflow.jobs.core.steps;
+  const steps = workflow.jobs['core-darwin'].steps;
   const dependencies = steps.find(step => step.name === 'Install existing scoped component producer dependencies');
   assert(dependencies, 'the Native scoped component producer imports the pinned Python dependencies');
   const existing = workflow.jobs['native-macos-workloads'].steps.find(step => step.name === dependencies.name);
@@ -2311,11 +2311,11 @@ test('Core Native prepares existing producer dependencies only for its scoped co
     assert(preparation < steps.findIndex(step => step.name === name), name);
   }
   const selected = [];
-  for (const target of ['js', 'wasm', 'native']) {
-    for (const partition of workflow.jobs.core.strategy.matrix.partition) {
+  for (const job of [workflow.jobs['core-common'], workflow.jobs['core-darwin']]) {
+    const targets = Array.isArray(job.strategy.matrix.target) ? job.strategy.matrix.target : ['js', 'wasm', 'native'];
+    for (const target of targets) for (const partition of job.strategy.matrix.partition) {
       const matrix = {target, partition};
-      if (workflow.jobs.core.strategy.matrix.exclude.some(value =>
-        value.target === target && value.partition === partition)) continue;
+      if ((job.strategy.matrix.exclude ?? []).some(value => value.target === target && value.partition === partition)) continue;
       const required = runInNewContext(dependencies.if.slice(3, -2), {matrix}, {timeout: 100});
       assert.equal(required, target === 'native' && partition === 'scoped', JSON.stringify(matrix));
       if (required) selected.push(matrix);

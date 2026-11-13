@@ -347,11 +347,11 @@ jobs:
           path: _build/focused-evidence
           if-no-files-found: warn
           retention-days: 7
-  # Portable targets remain single jobs. Native keeps complete package drivers
-  # in four ordinary jobs and three independent physical profiles. The initial
-  # Linux common packages use eight whole-driver partitions. Darwin coverage
-  # keeps the FFI/platform/linker owners and their complete source/test importers.
-  core:
+  # Linux keeps both portable targets and eight complete Native common drivers.
+  # Darwin retains its four ordinary and three physical profiles under a separate
+  # four-job cap, leaving another macOS slot for the original long workloads.
+  # Both matrices use the same step owner; Core requires their selected outcomes.
+  core-common:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
@@ -359,23 +359,9 @@ jobs:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
-        partition: ['1/4', '2/4', '3/4', '4/4', http, source, scoped,
-          linux-common-1/8, linux-common-2/8, linux-common-3/8, linux-common-4/8,
-          linux-common-5/8, linux-common-6/8, linux-common-7/8, linux-common-8/8]
+        partition: ['1/4', 'linux-common-1/8', 'linux-common-2/8', 'linux-common-3/8', 'linux-common-4/8', 'linux-common-5/8', 'linux-common-6/8', 'linux-common-7/8', 'linux-common-8/8']
         exclude:
           - target: js
-            partition: '2/4'
-          - target: js
-            partition: '3/4'
-          - target: js
-            partition: '4/4'
-          - target: js
-            partition: http
-          - target: js
-            partition: source
-          - target: js
-            partition: scoped
-          - target: js
             partition: linux-common-1/8
           - target: js
             partition: linux-common-2/8
@@ -392,18 +378,6 @@ jobs:
           - target: js
             partition: linux-common-8/8
           - target: wasm
-            partition: '2/4'
-          - target: wasm
-            partition: '3/4'
-          - target: wasm
-            partition: '4/4'
-          - target: wasm
-            partition: http
-          - target: wasm
-            partition: source
-          - target: wasm
-            partition: scoped
-          - target: wasm
             partition: linux-common-1/8
           - target: wasm
             partition: linux-common-2/8
@@ -419,12 +393,13 @@ jobs:
             partition: linux-common-7/8
           - target: wasm
             partition: linux-common-8/8
-    # Physical Native fixtures use the existing Darwin arm64 profile.
-    runs-on: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'macos-15' || 'ubuntu-24.04' }}
+          - target: native
+            partition: '1/4'
+    runs-on: ubuntu-24.04
     # Native keeps its full 60-minute child after the separate cold checkpoint
     # producers, with time for original failure diagnostics and cleanup.
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
-    steps:
+    steps: &core_steps
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
@@ -611,12 +586,47 @@ jobs:
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: native-compiler-cause-${{ strategy.job-index }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-compiler-cause-${{ github.job }}-${{ strategy.job-index }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/native-compiler-diagnostics/
             _build/native-reader-helper-tests/callbacks-*/callback-*.json
           if-no-files-found: warn
           retention-days: 14
+  core-darwin:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        target: [native]
+        partition: ['1/4', '2/4', '3/4', '4/4', http, source, scoped]
+    runs-on: macos-15
+    timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
+    steps: *core_steps
+  core:
+    needs: [select-targets, preflight, core-common, core-darwin]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every selected original Core matrix
+        env:
+          CORE_TARGETS: ${{ needs.select-targets.outputs.targets }}
+          COMMON_RESULT: ${{ needs.core-common.result }}
+          DARWIN_RESULT: ${{ needs.core-darwin.result }}
+        run: |
+          node -e '
+            const targets = JSON.parse(process.env.CORE_TARGETS || "null");
+            const valid = Array.isArray(targets) && targets.length > 0 &&
+              new Set(targets).size === targets.length && targets.every(target => ["js", "wasm", "native"].includes(target));
+            if (!valid || process.env.COMMON_RESULT !== "success" ||
+                process.env.DARWIN_RESULT !== (targets.includes("native") ? "success" : "skipped")) {
+              console.error(`Core common=${process.env.COMMON_RESULT || "missing"}, Darwin=${process.env.DARWIN_RESULT || "missing"}`);
+              process.exitCode = 1;
+            }
+          '
   # Conditional proof and correspondence evidence beside the existing gates.
   session-controls:
     needs: [select-targets, preflight]

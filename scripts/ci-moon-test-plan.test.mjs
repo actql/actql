@@ -265,7 +265,7 @@ test('workflow prepares graph tools only for candidates and retains full checks 
   assert.equal(select.steps.find(step => step.id === 'moon-candidate').run, 'node scripts/ci-targets.mjs moon-graph-candidate');
   assert.equal(select.steps.find(step => step.name?.startsWith('Install pinned Moon only')).if,
     "steps.moon-candidate.outputs.required == 'true'");
-  const core = workflow.jobs.core.steps;
+  const core = workflow.jobs['core-common'].steps;
   assert.equal(core.find(step => step.name === 'Check common core').run, 'moon check --target "${{ matrix.target }}" --deny-warn');
   const run = core.find(step => step.name === 'Test common core');
   assert.match(run.run, /node scripts\/ci-moon-tests\.mjs "\$\{\{ matrix\.target \}\}"/u);
