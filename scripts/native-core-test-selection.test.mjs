@@ -137,6 +137,22 @@ test('Native dependency scope keeps a full plan for an unselected nested compile
   assert.equal(selected.cases, f.originalCases);
 });
 
+test('explicit common Native scope uses original files without admitting an unselected nested package', t => {
+  const f = dependencyFixture(t, {nested: true});
+  const selected = nativeCoreTestSelection(f.root, ['--release'], {execute: f.execute,
+    partitionProfiles: true, ordinaryPartitions: true, executionPackages: ['active', 'empty'],
+    allowNestedFileInputs: true});
+  assert.equal(selected.executionScope.mode, 'subset');
+  assert.equal(selected.cases, 2);
+  assert.deepEqual(selected.args, ['--release', 'active/main.mbt', 'empty']);
+  assert.deepEqual(selected.profiles.ordinary.partitions.flatMap(part => part.args.slice(1)).sort(),
+    ['active/main.mbt', 'empty']);
+  assert.equal(selected.profiles.http.cases + selected.profiles.source.cases + selected.profiles.scoped.cases, 0);
+  assert.throws(() => nativeCoreTestSelection(f.root, ['--release'], {execute: f.execute,
+    partitionProfiles: true, executionPackages: f.selectedPackages, allowNestedFileInputs: true}),
+  /cannot select physical profiles/u);
+});
+
 test('Native dependency selection refuses changed original drivers and foreign or duplicate package paths', t => {
   const f = dependencyFixture(t, {changedDriver:true});
   assert.throws(() => nativeCoreTestSelection(f.root, ['--release'], {execute:f.execute,

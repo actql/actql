@@ -1275,6 +1275,21 @@ case identities, unchanged driver inputs, nonempty partitions and no overlapping
 ordinary drivers before C generation. Portable targets are not multiplied.
 The original two-part local interface remains supported.
 
+The migration toward Linux for exhaustive common Native coverage starts with
+eight additional required Linux partitions in the same Core matrix. The pinned
+compiler's complete source, whitebox and blackbox import graph identifies Native
+command/platform packages, explicit C stubs and linker overrides, including all
+their importers. Every remaining compiler-owned common case is assigned once,
+keeping whole package drivers and the existing release/strip, strict warnings,
+test-only generated-C optimization and serial test execution. Nested packages
+use original compiler-selected file inputs rather than admitting an unrelated
+child package. The actual executed case count must equal compiler discovery.
+Darwin coverage stays intact until the corresponding Linux execution passes;
+then its common cases can be retired while retaining the FFI/allocator,
+SQLite/crypto/linking and installed-consumer differences. This transition is
+not a measured CI speedup or evidence that the complete workflow meets its
+20–30-minute target including queue and setup time.
+
 The hosted scoped job runs its two existing allocation profiles concurrently
 on the same runner (`ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS=2`). Checkpoint,
 component and relation preparation still occur once, before both loops, and

@@ -1,3 +1,4 @@
+import {nativeCoreLinuxCommonPartitions} from './test-native-core-linux-common.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync, symlinkSync} from 'node:fs';
@@ -702,10 +703,10 @@ const changes = paths => paths.map(path => ({path, before: {mode: '100644', obje
   after: {mode: '100644', object: 'd'.repeat(40)}}));
 const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
 
-test('Native Core matrix owns four ordinary and three physical partitions without multiplying portable targets', t => {
+test('Native Core matrix retains Darwin profiles and adds Linux common without multiplying portable targets', t => {
   const core = jobs.core, matrix = core.strategy.matrix;
-  assert.deepEqual(matrix.partition, ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped']);
-  assert.deepEqual(matrix.partition, nativeCoreCiPartitions);
+  assert.deepEqual(matrix.partition, [...nativeCoreCiPartitions, ...nativeCoreLinuxCommonPartitions]);
+  assert.deepEqual(matrix.partition.filter(value => !value.startsWith('linux-common-')), nativeCoreCiPartitions);
   assert.deepEqual(matrix.exclude, ['js', 'wasm'].flatMap(target => matrix.partition.slice(1).map(partition => ({target, partition}))));
   const selected = all.flatMap(target => matrix.partition.map(partition => ({target, partition})))
     .filter(row => !matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition));
@@ -735,7 +736,7 @@ test('Native Core matrix owns four ordinary and three physical partitions withou
   }
   const command = core.steps.find(step => step.name === 'Test common core');
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_PARTITION,
-    "${{ matrix.target == 'native' && matrix.partition || '' }}");
+    "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}");
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,
     "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}");
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
@@ -749,11 +750,15 @@ test('Native Core matrix owns four ordinary and three physical partitions withou
     const run = command.run.replaceAll('${{ matrix.target }}', 'native')
       .replaceAll('${{ matrix.partition }}', String(partition));
     const env = {...process.env, PATH: root + ':' + process.env.PATH, ACTQL_FIXTURE_EXIT: String(status)};
-    env.ACTQL_TEST_NATIVE_CORE_PARTITION = partition; delete env.MOONBIT_NEW_NATIVE;
+    env.ACTQL_TEST_NATIVE_CORE_PARTITION = partition.startsWith('linux-common-') ? '' : partition; delete env.MOONBIT_NEW_NATIVE;
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c', run], {cwd: root, env, encoding: 'utf8', timeout: 5000});
     assert.equal(result.error, undefined); assert.equal(result.signal, null);
     assert.equal(result.status, status, result.stderr);
     const lines = result.stdout.trim().split('\n');
+    if (partition.startsWith('linux-common-')) {
+      assert.deepEqual(lines, [`|0|scripts/test-native-core-linux-common.mjs ${partition}`]);
+      continue;
+    }
     assert.equal(lines[0], '||scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock');
     assert.equal(lines.length, status === 0 ? 2 : 1);
     if (status === 0) assert.equal(lines[1], `${partition}|0|scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose`);
@@ -1388,7 +1393,7 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
     'node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs',
     'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs',
     'node --test scripts/native-cli-default-numeric.test.mjs',
-    'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs']);
+    'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs']);
   assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',
     'npm run check:local-resource-completion', 'npm run check:execution-authorization-vectors', 'git diff --exit-code']);
   for (const name of ['lint', 'spec']) {
