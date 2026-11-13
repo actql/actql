@@ -701,6 +701,21 @@ function firstHostCloseFailureDiagnostic(error) {
   const bounded = (value, project) => Array.isArray(value) && !utilTypes.isProxy(value)
     ? Array.from({length: Math.min(value.length, 16)}, (_, index) => project(own(value, String(index))))
     : null;
+  const storeResources = error => {
+    const detail = own(error, 'cleanupDiagnostic');
+    if (own(detail, 'kind') !== 'publication-store-close') return undefined;
+    const resources = own(detail, 'resources');
+    const names = ['physicalRemovalOriginals', 'physicalRemovalAcquisitions',
+      'clockObservations', 'reservedObjects', 'preparedObjects', 'preparedSchemas',
+      'reclaimableCustodies', 'resultDeletions', 'metadataDeletions',
+      'uncommittedMetadataCleanups', 'physicalHoldingDeletions', 'resultReaders',
+      'physicalHoldingReaders', 'modelStorageBindingReaders',
+      'installationPublicationStorageBindingReaders', 'semanticReaders', 'physicalRecordWriters'];
+    return names.flatMap(name => {
+      const count = own(resources, name);
+      return Number.isSafeInteger(count) && count > 0 ? [{resource: name, count}] : [];
+    });
+  };
   let pendingOwners = null;
   try {
     const original = own(error, 'cleanupHandle'), status = own(original, 'status');
@@ -711,10 +726,12 @@ function firstHostCloseFailureDiagnostic(error) {
     code: closed(own(error, 'code'), codes),
     cleanupPending: own(error, 'cleanupPending') === true,
     storeCleanupPending: own(error, 'storeCleanupPending') === true,
-    cleanupErrors: bounded(own(error, 'cleanupErrors'), entry => ({
-      owner: closed(own(entry, 'owner'), owners),
-      code: closed(own(own(entry, 'error'), 'code'), codes),
-    })), pendingOwners};
+    cleanupErrors: bounded(own(error, 'cleanupErrors'), entry => {
+      const owner = own(entry, 'owner'), failure = own(entry, 'error');
+      const resources = owner === 'store' ? storeResources(failure) : undefined;
+      return {owner: closed(owner, owners), code: closed(own(failure, 'code'), codes),
+        ...(resources === undefined ? {} : {storeResources: resources})};
+    }), pendingOwners};
 }
 
 async function closeRetainedStoreFixtureHost(host, t,
@@ -797,6 +814,13 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
   assert.deepEqual(observations[0], {phase: 'original_host_first_close_failure',
     code: 'InstalledHostCleanupPending', cleanupPending: true, storeCleanupPending: true,
     cleanupErrors: [{owner: 'store', code: 'PublicationStoreCleanupPending'}], pendingOwners: ['store']});
+  child.cleanupDiagnostic = Object.freeze({kind: 'publication-store-close',
+    resources: Object.freeze({semanticReaders: 2, reservedObjects: 0,
+      physicalRecordWriters: -1, privatePayload: 'PRIVATE'})});
+  assert.deepEqual(firstHostCloseFailureDiagnostic(original).cleanupErrors,
+    [{owner: 'store', code: 'PublicationStoreCleanupPending',
+      storeResources: [{resource: 'semanticReaders', count: 2}]}]);
+  delete child.cleanupDiagnostic;
   assert.equal(privateReads, 0);
   assert(!JSON.stringify(observations).includes('PRIVATE'));
   assert.deepEqual(firstHostCloseFailureDiagnostic({code: 'private-run-id',

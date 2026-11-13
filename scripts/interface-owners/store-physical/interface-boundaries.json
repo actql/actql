@@ -6986,7 +6986,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d2d5d0a5b61b2318690ae7dcb12cb061fedb3b05ea1e3b410aefa59726370f6b",
+      "sha256": "73a43b5c3a97ae067ea893de26ce9a6dccd51e4ffcd1d58354a9acc977708790",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8874,6 +8874,13 @@
         {
           "name": "openOriginalLocalPublicationStore/init:close/init:close",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/init:close/init:close/cleanupPendingFailure/cleanupPendingFailure",
+          "parameters": [
+            "cause"
+          ],
           "async": false
         },
         {
@@ -12298,6 +12305,7 @@
             "openOriginalLocalPublicationStore/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
             "openOriginalLocalPublicationStore/forgetEffectCaptureCustodyOriginal/forgetEffectCaptureCustodyOriginal",
             "openOriginalLocalPublicationStore/init:close/init:close",
+            "openOriginalLocalPublicationStore/init:close/init:close/cleanupPendingFailure/cleanupPendingFailure",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#3",
