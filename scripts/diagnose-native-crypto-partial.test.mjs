@@ -37,6 +37,8 @@ script=m.debugger_script(Path('/tmp/fixture'),[('main','entry')])
 assert script.count("gdb.execute('run'")==1
 assert "gdb.execute('kill'" in script
 assert 'threading.Timer(30' in script
+assert 'handle SIGSEGV stop nopass print' in script and 'noprint' not in script
+assert "info signals SIGSEGV" in script and "Signal stop policy mismatch" in script
 assert 'frame.read_var' not in script and 'bt full' not in script
 print('original inferior status, no false signal pass, bounded one-run script verified')
 `;
