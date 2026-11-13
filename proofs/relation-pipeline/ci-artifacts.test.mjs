@@ -664,6 +664,54 @@ test('workflow downloads exact producer IDs only after its success and identity 
   assert.deepEqual(workflow.permissions, { contents: 'read' });
 });
 
+test('workflow compacts only a successful audited union and preserves complete failure diagnostics', () => {
+  const final = jobs['pipeline-evidence'];
+  const upload = final.steps.find(step => step.with?.name?.startsWith('relation-pipeline-evidence-'));
+  const expected = [
+    '.artifacts/relation-pipeline/capacity/all.json',
+    '.artifacts/relation-pipeline/fixed-mutations.json',
+    '.artifacts/relation-pipeline/mutations.json',
+    '.artifacts/relation-pipeline/capacity/target-substitution/',
+    '.artifacts/pipeline-ci/join.json',
+    '.artifacts/pipeline-ci/action-original.json',
+    '.artifacts/relation-pipeline-target-regression/run-*/*.json',
+    '.artifacts/relation-pipeline-target-regression/run-*/*.log',
+  ];
+  // Evaluate only the checked-in GitHub status expression; no artifact supplies code.
+  const selected = successful => upload.with.path.trim().split('\n').map(path => path.replace(
+    /\$\{\{ (.*?) \}\}/gu, (_, expression) => Function('success', `return (${expression});`)(() => successful)));
+  assert.deepEqual(selected(true), expected);
+  assert.equal(upload.if, 'always()');
+  assert.equal(upload.with['include-hidden-files'], true);
+  assert.equal(upload.with['if-no-files-found'], 'error');
+  const commands = [
+    'ci-parts.mjs join', 'mutation-action-archive.mjs seal', 'audit-target-regression.mjs',
+    'capacity/audit.mjs', 'capacity/audit-target-regression.mjs',
+  ];
+  for (const command of commands) {
+    const step = final.steps.find(step => step.run === `node proofs/relation-pipeline/${command}`);
+    assert(step && final.steps.indexOf(step) < final.steps.indexOf(upload), command);
+    assert.equal(step.if, undefined, command);
+    assert.equal(step['continue-on-error'], undefined, command);
+    for (const outcome of ['failure', 'cancelled', 'skipped']) {
+      const outcomes = commands.map(value => value === command ? outcome : 'success');
+      assert.deepEqual(selected(outcomes.every(value => value === 'success')), [
+        '.artifacts/relation-pipeline/', ...expected.slice(1),
+      ], `${command}: ${outcome}`);
+    }
+  }
+  // Cancellation or any other earlier failure must also retain the full root.
+  assert.equal(selected(false)[0], '.artifacts/relation-pipeline/');
+  for (const name of producerJobs) {
+    const original = jobs[name].steps.find(step => step.id === 'evidence');
+    assert.equal(original.with['retention-days'], upload.with['retention-days'], name);
+    assert.equal(original.with.path, `.artifacts/pipeline-ci/${partNames[name]}/evidence.tar`);
+  }
+  assert(!selected(true).some(path => /\/binaries\/|\/sources\/|L-[CM][0-9]/u.test(path)));
+  assert.equal(final.outputs['artifact-id'], '${{ steps.pipeline-actions.outputs.artifact-id }}');
+  assert.equal(final.outputs['artifact-digest'], '${{ steps.pipeline-actions.outputs.artifact-digest }}');
+});
+
 test('workflow producer guard rejects unsuccessful, missing or ambiguous producer identities', () => {
   const script = jobs['pipeline-evidence'].steps[0].run;
   const invoke = needs => shell(script, { PIPELINE_NEEDS: JSON.stringify(needs) });
