@@ -41,7 +41,7 @@ fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixtur
       planning_work: 4096,
       attempts: 2048,
       holdings: 1024,
-      transfer_bytes: 16L * mib,
+      transfer_bytes: 32L * mib,
       retained_bytes: 0L,
       execution_bytes: 256L * mib,
     },
