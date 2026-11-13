@@ -64,23 +64,35 @@ def check(args: argparse.Namespace) -> int:
         system = platform.system(), platform.machine()
         linux = system == ('Linux', 'x86_64')
         if linux:
-            if args.crypto_producer is None or args.openssl_prefix is not None:
-                raise ValueError('Linux requires the original normal Crypto producer receipt')
-            producer_pin = P.original(args.crypto_producer, 8 * 1024 * 1024)
-            with args.crypto_producer.open('rb') as stream:
-                raw = stream.read(8 * 1024 * 1024 + 1)
-            if {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()} != producer_pin:
-                raise ValueError('Original Crypto producer receipt changed')
-            producer = json.loads(raw)
-            inputs[str(args.crypto_producer)] = producer_pin
+            if (args.openssl_prefix is not None or
+                    (args.crypto_producer is None) == (args.openssl_package_archive is None)):
+                raise ValueError('Select one explicit Linux producer or diagnostic package input')
             selected = recipe['source_targets'][P.LINUX_TARGET]
-            prefix = args.crypto_producer.parent / 'openssl-input'
-            if producer['source'] != source or producer['target'] != P.LINUX_TARGET:
-                raise ValueError('Foreign original Crypto producer')
-            for name, expected in {**inputs, **P.linux_member_inputs(prefix, selected)}.items():
-                if name != str(args.crypto_producer) and producer['inputs'].get(name) != expected:
-                    raise ValueError('Original Crypto producer input mismatch: ' + name)
-                inputs[name] = expected
+            if args.openssl_package_archive is not None:
+                # Temporary validation ref only. No normal producer receipt is
+                # manufactured and no component DSO is built for this C test.
+                prefix = args.output / 'openssl-input'
+                package_inputs = P.prepare_linux_package_inputs(prefix, args.openssl_package_archive, selected)
+                inputs.update(package_inputs['inputs'])
+                report['packageArchives'] = package_inputs['packages']
+                inputs[str(ROOT / 'scripts/produce-native-crypto-component.py')] = P.original(ROOT / 'scripts/produce-native-crypto-component.py')
+                tool = Path('/usr/bin/dpkg-deb').resolve(strict=True)
+                inputs[str(tool)] = P.original(tool)
+            else:
+                producer_pin = P.original(args.crypto_producer, 8 * 1024 * 1024)
+                with args.crypto_producer.open('rb') as stream:
+                    raw = stream.read(8 * 1024 * 1024 + 1)
+                if {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()} != producer_pin:
+                    raise ValueError('Original Crypto producer receipt changed')
+                producer = json.loads(raw)
+                inputs[str(args.crypto_producer)] = producer_pin
+                prefix = args.crypto_producer.parent / 'openssl-input'
+                if producer['source'] != source or producer['target'] != P.LINUX_TARGET:
+                    raise ValueError('Foreign original Crypto producer')
+                for name, expected in {**inputs, **P.linux_member_inputs(prefix, selected)}.items():
+                    if name != str(args.crypto_producer) and producer['inputs'].get(name) != expected:
+                        raise ValueError('Original Crypto producer input mismatch: ' + name)
+                    inputs[name] = expected
             archive = prefix / selected['archive']['path']
             includes = [prefix / 'include', prefix / 'include/x86_64-linux-gnu']
             target = ['--target', P.LINUX_TARGET]
@@ -92,7 +104,8 @@ def check(args: argparse.Namespace) -> int:
             # are not an installed Local control envelope.
             libraries = ['-ldl', '-lpthread', '-lm']
         else:
-            if system != ('Darwin', 'arm64') or args.openssl_prefix is None or args.crypto_producer is not None:
+            if (system != ('Darwin', 'arm64') or args.openssl_prefix is None
+                    or args.crypto_producer is not None or args.openssl_package_archive is not None):
                 raise ValueError('Only selected Linux or explicit Darwin arm64 diagnostic inputs')
             prefix = args.openssl_prefix.resolve(strict=True)
             archive = prefix / 'lib/libcrypto.a'
@@ -131,9 +144,12 @@ def check(args: argparse.Namespace) -> int:
         prepare([*common, str(P.SOURCE / 'fixtures/allocator_conformance.c'), str(provider),
                  str(derived / 'libmoonbitrun.o'), str(derived / 'backtrace.c'),
                  str(derived / 'libbacktrace.a'), str(archive), *libraries, '-o', str(binary)], 'link-fixture')
-        report['profile'] = 'linux-x64-original-normal-inputs' if linux else 'darwin-arm64-homebrew26-diagnostic'
+        report['profile'] = ('linux-x64-pinned-package-diagnostic' if args.openssl_package_archive is not None
+                             else 'linux-x64-original-normal-inputs') if linux else 'darwin-arm64-homebrew26-diagnostic'
         report['verifiedOriginalInputs'] = len(inputs)
         report['sourcePins'], report['binary'] = recipe['local'], P.original(binary)
+        (args.output / 'inputs.json').write_text(json.dumps({'source': source, 'inputs': inputs,
+                                                          'provider': prepared, 'profile': report['profile']}, indent=2) + '\n')
         # Each mode has a new process and original extent. Collect independent
         # failures after successful preparation, never share initialized state.
         for mode in MODES:
@@ -162,6 +178,7 @@ if __name__ == '__main__':
     parser.add_argument('--clang', type=Path, required=True)
     parser.add_argument('--moon-home', type=Path, default=os.environ.get('MOON_HOME'))
     parser.add_argument('--crypto-producer', type=Path)
+    parser.add_argument('--openssl-package-archive', type=Path, action='append')
     parser.add_argument('--openssl-prefix', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--seconds', type=int, default=150)
