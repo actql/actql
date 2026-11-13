@@ -60,60 +60,39 @@ test('Linux dispatch leaves discovery and expected counts to the sole original N
   assert.equal(entered, 1); assert.equal(actual, 19);
 });
 
-test('Linux importers enter the original ordinary profile with exact flags, case count and failure', async () => {
+test('Linux dispatch preserves original flags and environment and propagates profile failures', async () => {
   assert.deepEqual(nativeCoreLinuxCommonArguments, [
     '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose',
   ]);
   const original = {PATH: '/original/pinned/bin', RUNNER_TEMP: '/original/runner', ORIGINAL: 'retained'};
   for (const status of [0, 17]) {
-    const calls = [];
+    let calls = 0;
     const actual = await runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-8/8', env: original,
-      platformPackages: () => ({common: ['src/portable'], importers: ['src/importer'], graphSha256: 'a'.repeat(64)}),
-      selectTests: (_root, args, options) => {
-        assert.deepEqual(args, [...nativeCoreLinuxCommonArguments]);
-        assert.equal(options.ordinaryPartitions, 8);
-        assert.deepEqual(options.executionPackages, ['src/importer', 'src/portable']);
-        return {executionScope: {mode: 'subset'}, profiles: {
-          ordinary: {partitions: Array.from({length: 8}, (_, index) => ({args: [...args, `src/selected-${index}`], cases: 73}))},
-          http: {cases: 0}, source: {cases: 0}, scoped: {cases: 0}}};
-      },
-      countTests: (_root, args, options) => {
-        assert.deepEqual(args, [...nativeCoreLinuxCommonArguments, 'src/selected-7']);
-        assert.equal(options.env.MOONBIT_NEW_NATIVE, '0');
-        assert.equal(options.timeoutMs, 300000); calls.push('metadata'); return 73;
-      },
       executeProfile: (_root, args, options) => {
+        calls++;
         assert.deepEqual(args, [...nativeCoreLinuxCommonArguments]);
-        assert.equal(options.expectedTests, 73);
-        assert.equal(options.env.PATH, original.PATH, 'Only the original full profile selects its compiler');
+        assert.equal(options.expectedTests, undefined);
+        assert.equal(options.env.PATH, original.PATH);
         assert.equal(options.env.ORIGINAL, 'retained');
         assert.equal(options.env.MOONBIT_NEW_NATIVE, '0');
         assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE, 'linux-common-importers');
         assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PARTITION, '8/8');
-        calls.push('profile'); return status;
+        return status;
       }});
-    assert.equal(actual, status);
-    assert.deepEqual(calls, ['metadata', 'profile']);
+    assert.equal(actual, status); assert.equal(calls, 1);
   }
+  const failed = new Error('original profile failure');
+  await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8',
+    executeProfile: () => {throw failed;}}), error => error === failed);
   assert.deepEqual(original, {PATH: '/original/pinned/bin', RUNNER_TEMP: '/original/runner', ORIGINAL: 'retained'});
 });
 
-test('Linux common Native refuses a foreign platform, empty metadata or failed discovery before execution', async () => {
-  let discovered = false, executed = false;
-  await assert.rejects(runNativeCoreLinuxCommon({platform: 'darwin',
-    platformPackages: () => { discovered = true; }}), /actual Linux runner/u);
-  assert.equal(discovered, false);
-  const original = new Error('original metadata refusal');
-  for (const countTests of [() => 0, () => { throw original; }]) {
-    await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8', env: {},
-      countTests,
-      platformPackages: () => ({common: ['src/portable'], importers: []}),
-      selectTests: () => ({executionScope: {mode: 'subset'}, profiles: {
-        ordinary: {partitions: Array.from({length: 8}, () => ({args: [...nativeCoreLinuxCommonArguments, 'src/portable']}))},
-        http: {cases: 0}, source: {cases: 0}, scoped: {cases: 0}}}),
-      executeProfile: () => { executed = true; }}),
-    error => error === original || /Nonempty compiler-owned/u.test(error.message));
-  }
+test('Linux dispatch refuses a foreign platform or partition before entering the original profile', async () => {
+  let executed = false;
+  for (const options of [{platform: 'darwin', partition: 'linux-common-1/8'},
+    {platform: 'linux', partition: 'linux-common-9/8'}, {platform: 'linux'}])
+    await assert.rejects(runNativeCoreLinuxCommon({...options,
+      executeProfile: () => {executed = true;}}), /actual Linux runner|original Linux common partition/u);
   assert.equal(executed, false);
 });
 
@@ -163,43 +142,24 @@ test('Native platform classes separate original FFI owners from every source and
   assert.equal(JSON.stringify(graph), original);
 });
 
-test('Linux common scope cannot silently accept missing metadata or an unreviewed physical fallback', async () => {
+test('the platform classifier preserves the original manifest failure and the entry owns all selection', () => {
+  const failed = new Error('missing original manifest');
   assert.throws(() => partitionNativeCorePlatformPackages({packages: [{name: 'original', path: 'src/original'}], edges: []},
-    () => { throw new Error('missing original manifest'); }), /missing original manifest/u);
-  let executed = false;
-  for (const mode of ['full-fallback', 'subset']) {
-    await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8', env: {},
-      platformPackages: () => ({common: ['src/original'], importers: []}),
-      selectTests: () => ({executionScope: {mode}, profiles: {
-        ordinary: {}, http: {cases: 1}, source: {cases: 0}, scoped: {cases: 0}}}),
-      executeProfile: () => { executed = true; }}),
-    /cannot fall back|unrelated physical fixture/u);
-  }
-  assert.equal(executed, false);
-});
-
-test('Linux importer execution refuses an old missing classification and keeps the original same-process fixture entry', async () => {
-  let selected = false;
-  await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8',
-    platformPackages: () => ({common: ['src/original']}),
-    selectTests: () => { selected = true; }}), /Missing original Native importer inventory/u);
-  assert.equal(selected, false);
+    () => {throw failed;}), error => error === failed);
   const wrapper = readFileSync(new URL('./test-native-core-linux-common.mjs', import.meta.url), 'utf8');
   assert(wrapper.includes("await import('./test-native-core.mjs')"));
   assert(wrapper.includes('process.argv.splice(2, process.argv.length - 2, ...args)'));
-  assert(!wrapper.includes('spawnSync') && !wrapper.includes('nativeCoreCCompiler'));
-  assert(wrapper.includes("selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases, 0"));
+  for (const retired of ['spawnSync', 'nativeCoreCCompiler', 'nativeCoreTestSelection', 'nativeCoreFocusedTestCount', 'readNativeCorePlatformPackages'])
+    assert(!wrapper.includes(retired), retired);
+  const entry = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
+  assert(entry.includes('selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases !== 0'));
+  assert.equal((entry.match(/full \? nativeCoreTestSelection/g) ?? []).length, 1);
 });
 
 test('the actual Native profile entry refuses library reentry before changing argv or importing fixtures', async () => {
   const argv = [...process.argv];
-  await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8',
-    platformPackages: () => ({common: ['src/common'], importers: ['src/importer']}),
-    countTests: () => 1,
-    selectTests: (_root, args) => ({executionScope: {mode: 'subset'}, profiles: {
-      ordinary: {partitions: Array.from({length: 8}, () => ({args: [...args, 'src/importer'], cases: 1}))},
-      http: {cases: 0}, source: {cases: 0}, scoped: {cases: 0}}}),
-  }), /Original one-shot Linux cohort CLI required/u);
+  await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8'}),
+    /Original one-shot Linux cohort CLI required/u);
   assert.deepEqual(process.argv, argv);
 });
 

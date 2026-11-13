@@ -453,6 +453,62 @@ test('Native partition caller passes the complete compiler inventory before sele
   }
 });
 
+test('the original Linux entry refuses foreign scope physical profiles empty partitions and original discovery failure', () => {
+  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('const selection = full ? nativeCoreTestSelection');
+  const end = source.indexOf('if (selection) console.log', start);
+  assert(start >= 0 && end > start);
+  const fixture = () => ({executionScope: {mode: 'subset'}, profiles: {
+    ordinary: {cases: 8, partitions: Array.from({length: 8}, (_, i) => ({args: [`src/owner-${i}`], cases: 1}))},
+    http: {args: null, cases: 0}, source: {args: null, cases: 0}, scoped: {args: null, cases: 0, tests: []},
+  }});
+  const inspect = discover => runInNewContext(source.slice(start, end), {
+    full: true, root: '/original', args: ['--release'], compilerEnvironment: {}, partition: '1/8',
+    executionPackages: ['src/common', 'src/importer'], linuxCommonImporters: true,
+    platformScope: 'linux-common-importers', platformPackages: {common: [], importers: [], darwin: []},
+    nativeCorePartitionProfiles, nativeCoreTestSelection: discover, console: {log() {}},
+  });
+  for (const [label, change, reason] of [
+    ['fallback', value => {value.executionScope.mode = 'full-fallback';}, /exact compiler-owned/u],
+    ...['http', 'source', 'scoped'].map(name => [name, value => {value.profiles[name].cases = 1;}, /unrelated physical fixture/u]),
+    ['empty', value => {value.profiles.ordinary.partitions[0].cases = 0;}, /Empty Native Core partition/u],
+    ['missing', value => {value.profiles.ordinary.partitions.pop();}, /Missing Native Core partitions/u],
+  ]) {
+    let calls = 0;
+    assert.throws(() => inspect(() => {calls++; const value = fixture(); change(value); return value;}), reason, label);
+    assert.equal(calls, 1, label);
+  }
+  const original = new Error('original compiler discovery failure');
+  assert.throws(() => inspect(() => {throw original;}), error => error === original);
+});
+
+test('the original Native profile consumes its selected case count and refuses original child failure', () => {
+  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
+  const checkStart = source.indexOf('const checkChild = result =>');
+  const checkEnd = source.indexOf('if (full)', checkStart);
+  const profileStart = source.indexOf('  const runProfile = (profile, environment) =>');
+  const profileEnd = source.indexOf('  runProfile(selection.profiles.ordinary', profileStart);
+  assert(checkStart >= 0 && checkEnd > checkStart && profileStart >= 0 && profileEnd > profileStart);
+  for (const status of [0, 17]) {
+    const exit = new Error('original child refused'); let calls = 0;
+    const environment = {original: 'same'}, profile = {args: ['--release', 'src/importer'], cases: 37};
+    const run = runInNewContext(source.slice(checkStart, checkEnd) + source.slice(profileStart, profileEnd) + '\nrunProfile;', {
+      root: '/original', console: {log() {}, error() {}},
+      process: {execPath: '/original/node', exit(code) {assert.equal(code, status); throw exit;}},
+      spawnSync(command, args, options) {
+        calls++; assert.equal(command, '/original/node');
+        assert.equal(args[0], 'scripts/test-native-salesforce-effect-preview.mjs');
+        assert.equal(args[args.indexOf('--core-test-json') + 1], JSON.stringify(profile.args));
+        assert.equal(args[args.indexOf('--core-test-count') + 1], '37');
+        assert.equal(options.env, environment); return {status};
+      },
+    });
+    if (status === 0) run(profile, environment);
+    else assert.throws(() => run(profile, environment), error => error === exit);
+    assert.equal(calls, 1);
+  }
+});
+
 test('Native partition target oracle keeps original mandatory requests once and refuses every sibling request', () => {
   const source = readFileSync(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url), 'utf8');
   const begin = source.indexOf('const corePartition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;');

@@ -3,8 +3,6 @@ import assert from 'node:assert/strict';
 import {realpathSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {nativeCoreFocusedTestCount, nativeCoreTestSelection} from './native-core-test-selection.mjs';
-import {readNativeCorePlatformPackages} from './native-core-platform-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 export const nativeCoreLinuxCommonArguments = Object.freeze([
@@ -27,34 +25,17 @@ async function executeOriginalNativeProfile(root, args, {env}) {
 }
 
 export async function runNativeCoreLinuxCommon({root = repository, env = process.env,
-  platform = process.platform, partition, countTests = nativeCoreFocusedTestCount,
-  platformPackages = readNativeCorePlatformPackages, selectTests = nativeCoreTestSelection,
+  platform = process.platform, partition,
   executeProfile = executeOriginalNativeProfile} = {}) {
   assert.equal(platform, 'linux', 'The common Native cohort requires an actual Linux runner');
   assert(nativeCoreLinuxCommonPartitions.includes(partition), 'One original Linux common partition required');
   root = realpathSync(root);
-  // The full ordinary entry owns its one generated-C O0 adapter and fixtures.
-  // Metadata discovery itself must neither compile nor allocate another owner.
+  // Dispatch only. The original entry is the sole owner of graph discovery,
+  // nonempty selection, zero-physical admission and counted test execution.
   const environment = {...env, MOONBIT_NEW_NATIVE: '0'};
-  const scope = platformPackages(root, {env: environment});
-  assert(Array.isArray(scope.importers), 'Missing original Native importer inventory');
-  const selection = selectTests(root, [...nativeCoreLinuxCommonArguments], {env: environment,
-    timeoutMs: 5 * 60_000, executionPackages: [...scope.common, ...scope.importers].sort(), partitionProfiles: true, ordinaryPartitions: 8,
-    allowNestedFileInputs: true});
-  assert.equal(selection.executionScope?.mode, 'subset', 'Linux common selection cannot fall back to physical profiles');
-  assert.equal(selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases, 0,
-    'Linux common cannot adopt an unrelated physical fixture');
-  assert.equal(selection.profiles.ordinary.partitions.length, 8);
-  const args = selection.profiles.ordinary.partitions[nativeCoreLinuxCommonPartitions.indexOf(partition)].args;
-  assert(Array.isArray(args) && args.length > nativeCoreLinuxCommonArguments.length);
-  const expectedTests = countTests(root, args, {env: environment, timeoutMs: 5 * 60_000});
-  assert(Number.isSafeInteger(expectedTests) && expectedTests > 0, 'Nonempty compiler-owned Native cohort required');
-  console.log('Linux common Native: ' + JSON.stringify({partition, expectedTests,
-    packages: args.slice(nativeCoreLinuxCommonArguments.length), graphSha256: scope.graphSha256}));
   return await executeProfile(root, [...nativeCoreLinuxCommonArguments], {
     env: {...environment, ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: 'linux-common-importers',
       ACTQL_TEST_NATIVE_CORE_PARTITION: partition.slice('linux-common-'.length)},
-    expectedTests,
   });
 }
 
