@@ -2611,7 +2611,8 @@ if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values') {
     });
     assert.ifError(result.error); assert.notEqual(result.status, 0, mode + result.stdout + result.stderr);
     assert.equal(readFileSync(entered, 'utf8'), mode, 'The original refusal probe must actually execute');
-    assert.match(result.stdout + result.stderr, mode === 'signal' ? /SIGTERM/u : /no successfully executed test cases/u);
+    assert.match(result.stdout + result.stderr, mode === 'signal' ? /SIGTERM/u
+      : mode === 'skip' ? /Malformed MoonBit test summary/u : /no successfully executed test cases/u);
     f.verifyExternal();
   }
 });
