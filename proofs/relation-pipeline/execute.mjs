@@ -27,6 +27,57 @@ assert(part === '' || ['L-C0', 'L-C1', 'L-M0', 'L-M1'].includes(part), 'Unknown 
 // Aggregation never edits a receipt to resolve coincidental process IDs.
 const invocation = invocationIdentity(part);
 export const executions = [];
+const phaseTimingEnabled = environment.ACTQL_PIPELINE_PHASE_TIMING === '1';
+let phaseTimingSerial = 0;
+function executionPhaseTiming(target) {
+  if (!phaseTimingEnabled) return undefined;
+  try {
+    const phases = Object.fromEntries(['workspaceBefore', 'toolsBefore', 'fixturePreparation',
+      'priorArtifacts', 'inputEvidenceIO', 'spawnBuildRun', 'outputIO', 'toolsAfter',
+      'observations', 'workspaceAfter', 'finalArtifacts', 'archive', 'receiptIO'].map(name => [name, 0]));
+    const counts = { cases: 0, observations: 0, toolFiles: 0, toolBytes: 0,
+      fixtureBytes: 0, inputBytes: 0, outputBytes: 0, priorArtifactChecks: 0,
+      finalArtifactFiles: 0, archivedFiles: 0 };
+    const sequence = phaseTimingSerial++;
+    const clock = performance.now.bind(performance);
+    const started = clock();
+    let current, since = started;
+    const settle = () => {
+      const now = clock();
+      if (current !== undefined) phases[current] += now - since;
+      since = now;
+      return now;
+    };
+    return {
+      counts,
+      phase(name) {
+        try { settle(); current = name; }
+        catch { /* A clock failure is not an execution failure. */ }
+      },
+      finish(returned) {
+        // Diagnostic failure must never replace an original result or throw,
+        // including a thrown undefined. This does not authorize any execution.
+        try {
+          const record = { version: 'actql-pipeline-execution-phase-timing/1',
+            part: part || null, target, sequence, returned, lastPhase: current,
+            milliseconds: phases, counts, totalMilliseconds: settle() - started };
+          const bytes = JSON.stringify(record) + '\n';
+          // Separate from scientific evidence inventories; no receipt changes,
+          // input/tool paths, payloads, error text or per-file log records.
+          try {
+            const directory = join(root, '.artifacts/pipeline-execution-timing');
+            mkdirSync(directory, { recursive: true });
+            const state = lstatSync(directory);
+            assert(state.isDirectory() && !state.isSymbolicLink());
+            writeFileSync(join(directory, `${invocation}-${sequence}.json`), bytes, { flag: 'wx' });
+          } catch { /* The same diagnostic is still available on stdout. */ }
+          try { console.log(`ACTQL_PIPELINE_PHASE_TIMING:${bytes.trimEnd()}`); }
+          catch { /* Reporting cannot change the original execution outcome. */ }
+        } catch { /* Timing/encoding failures are diagnostic-only. */ }
+      },
+    };
+  } catch { return undefined; }
+}
 // All contexts share only receipt storage and serial IDs, never source/build trees.
 export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {targets = ['js', 'wasm', 'native'], jobs} = {}) {
   assert(Array.isArray(targets) && targets.length > 0 && new Set(targets).size === targets.length &&
@@ -47,7 +98,7 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     assert(path, `Missing execution tool ${name}`);
     return realpathSync(path);
   };
-  const toolIdentity = () => {
+  const toolIdentity = counts => {
     const inputs = [...['moon', 'moonc', 'moonrun'].map(name => join(home, 'bin', name)),
       ...[...new Set(['node', ...(allowedTargets.has('native')
         ? ['cc', 'c++', 'ar', environment.CC ?? 'cc', environment.CXX ?? 'c++', environment.AR ?? 'ar'] : [])])].map(resolveTool)];
@@ -79,7 +130,11 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
       return selected;
     };
     for (const directory of ['lib/core', 'lib/runtime', 'include']) inputs.push(...files(join(home, directory)));
-    const identities = inputs.map(path => [path, realpathSync(path), digest(readFileSync(path))]);
+    const identities = inputs.map(path => {
+      const resolved = realpathSync(path), bytes = readFileSync(path);
+      if (counts !== undefined) { counts.toolFiles++; counts.toolBytes += bytes.byteLength; }
+      return [path, resolved, digest(bytes)];
+    });
     return digest(JSON.stringify(directoryAliases.length ? {files: identities, directoryAliases} : identities));
   };
   const expectedTools = toolIdentity();
@@ -109,93 +164,122 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     if (!allowedTargets.has(target) || !cases.length) throw new Error('Bad execution request or target outside owner scope');
     const prefix = receiptBasename(invocation, serial, label, target);
     const command = executionCommand(target, jobs).slice(1);
-    const source = workspace.check();
-    assert.equal(toolIdentity(), expectedTools, 'Execution toolchain changed');
-    const boundary = { version: 'actql-pipeline-execution-boundary/0.1', workspace: workspace.id,
-      root: workspaceRoot, role: workspace.role, sourceDigest: source.digest,
-      toolchainDigest: expectedTools, environmentDigest, fixtureDigest: digest(body), target, command: ['moon', ...command] };
-    const buildIdentity = digest(JSON.stringify(boundary));
-    const fixtureBody = boundFixture(boundary, {jobs});
-    if (ownedFixture !== null) assertOwnedFixture();
-    else {
-      assert(!existsSync(path), 'Another pipeline batch owns the temporary fixture');
-      writeFileSync(path, fixtureBody, { flag: 'wx' });
-      fixtureIdentity = lstatSync(path);
-      ownedFixture = fixtureBody;
-    }
-    if (ownedFixture !== fixtureBody) { writeFileSync(path, fixtureBody); ownedFixture = fixtureBody; }
-    const prior = built.get(target);
-    if (prior?.buildIdentity === buildIdentity) {
-      assert.deepEqual(artifacts(workspaceRoot, target, 'query_integration'), prior.artifacts,
-        'Previously built execution artifacts changed');
-    }
-    const entries = cases.map((testCase, i) => ({ testCase, id: `${invocation}:${serial}:${i}:${testCase.id}`, program: program(testCase, registry) }));
-    const inputs = payload(entries, correspondence);
-    const directory = join(root, '.artifacts/relation-pipeline');
-    mkdirSync(directory, { recursive: true });
-    const sourcePath = `.artifacts/relation-pipeline/sources/${source.digest}.json`;
-    mkdirSync(join(directory, 'sources'), { recursive: true });
-    if (!existsSync(join(root, sourcePath))) writeFileSync(join(root, sourcePath), JSON.stringify(source, null, 2) + '\n');
-    serial++;
-    writeFileSync(join(directory, `${prefix}.fixture.mbt`), fixtureBody);
-    writeFileSync(join(directory, `${prefix}.inputs.json`), inputs);
-    const result = spawnProofCommand(moon, command, target, { cwd: workspaceRoot,
-      env: { ...environment, [inputVariable]: inputs }, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
-    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    writeFileSync(join(directory, `${prefix}.log`), output);
-    if (result.error || result.status !== 0) {
-      process.stderr.write(output);
-      throw result.error ?? new Error(`Generated observation execution failed: ${prefix}`);
-    }
-    assert.equal(toolIdentity(), expectedTools, 'Execution toolchain changed');
-    assertOwnedFixture();
-    const markers = output.split('\n').filter(line => line.startsWith('ACTQL_PIPELINE_BUILD:'));
-    assert.deepEqual(markers, [`ACTQL_PIPELINE_BUILD:${buildIdentity}`], 'Executed binary/source/workspace identity mismatch');
-    assert.match(output, /Total tests: 1, passed: 1, failed: 0/, 'Observation fixture did not pass exactly once');
-    const observations = [];
-    let currentId;
-    let faults = [];
-    for (const line of output.split('\n')) {
-      if (line.startsWith('ACTQL_PIPELINE_CASE:')) { currentId = JSON.parse(line.slice('ACTQL_PIPELINE_CASE:'.length)); faults = []; }
-      if (line.startsWith('ACTQL_PIPELINE_FAULT:')) faults.push(JSON.parse(line.slice('ACTQL_PIPELINE_FAULT:'.length)));
-      if (line.startsWith('ACTQL_PIPELINE:')) {
-        const value = JSON.parse(line.slice('ACTQL_PIPELINE:'.length));
-        if (value.id !== currentId) throw new Error('Unbound execution event');
-        observations.push({ ...value, tableRows: value.rows,
-          rows: value.wireRows.map(row => value.columns.map(field => row[field])), faults });
+    const timing = executionPhaseTiming(target);
+    let returned = false;
+    try {
+      timing?.phase('workspaceBefore');
+      const source = workspace.check();
+      timing?.phase('toolsBefore');
+      assert.equal(toolIdentity(timing?.counts), expectedTools, 'Execution toolchain changed');
+      timing?.phase('fixturePreparation');
+      const boundary = { version: 'actql-pipeline-execution-boundary/0.1', workspace: workspace.id,
+        root: workspaceRoot, role: workspace.role, sourceDigest: source.digest,
+        toolchainDigest: expectedTools, environmentDigest, fixtureDigest: digest(body), target, command: ['moon', ...command] };
+      const buildIdentity = digest(JSON.stringify(boundary));
+      const fixtureBody = boundFixture(boundary, {jobs});
+      if (ownedFixture !== null) assertOwnedFixture();
+      else {
+        assert(!existsSync(path), 'Another pipeline batch owns the temporary fixture');
+        writeFileSync(path, fixtureBody, { flag: 'wx' });
+        fixtureIdentity = lstatSync(path);
+        ownedFixture = fixtureBody;
       }
-    }
-    if (observations.length !== entries.length) throw new Error(`Missing actual observations ${observations.length}/${entries.length}: ${prefix}`);
-    observations.forEach((observation, i) => {
-      if (observation.id !== entries[i].id || !observation.checked || !observation.registered) throw new Error('Execution identity mismatch');
-    });
-    if (workspace.check().digest !== source.digest) throw new Error('Source changed during generated execution');
-    const actualArtifacts = artifacts(workspaceRoot, target, 'query_integration');
-    if (prior?.buildIdentity === buildIdentity) assert.deepEqual(actualArtifacts, prior.artifacts, 'Unchanged-source execution artifacts changed');
-    built.set(target, { buildIdentity, artifacts: actualArtifacts });
-    const archives = {};
-    if (label === 'normal') {
-      mkdirSync(join(directory, 'final-artifacts', target), { recursive: true });
-      for (const [path, expected] of Object.entries(actualArtifacts)) {
-        const suffix = path.slice(`_build/${target}/debug/test/query_integration/`.length);
-        const archive = `.artifacts/relation-pipeline/final-artifacts/${target}/${suffix}`;
-        mkdirSync(dirname(join(root, archive)), { recursive: true });
-        copyFileSync(join(workspaceRoot, path), join(root, archive));
-        if (digest(readFileSync(join(root, archive))) !== expected) throw new Error('Archive differs from executed artifact');
-        archives[path] = archive;
+      if (ownedFixture !== fixtureBody) { writeFileSync(path, fixtureBody); ownedFixture = fixtureBody; }
+      const prior = built.get(target);
+      timing?.phase('priorArtifacts');
+      if (prior?.buildIdentity === buildIdentity) {
+        if (timing !== undefined) timing.counts.priorArtifactChecks++;
+        assert.deepEqual(artifacts(workspaceRoot, target, 'query_integration'), prior.artifacts,
+          'Previously built execution artifacts changed');
       }
-    }
-    const receipt = { target, correspondence, boundary, buildIdentity, compiler: compiler.stdout.trim(), sourceDigest: source.digest, sourcePath,
-      command: ['moon', ...command], exit: result.status, fixtureDigest: digest(fixtureBody),
-      fixturePath: `.artifacts/relation-pipeline/${prefix}.fixture.mbt`,
-      inputVariable, inputDigest: digest(inputs), inputPath: `.artifacts/relation-pipeline/${prefix}.inputs.json`,
-      logPath: `.artifacts/relation-pipeline/${prefix}.log`,
-      logDigest: digest(output), artifacts: actualArtifacts, archives,
-      cases: entries.map((e, i) => ({ ...e, caseDigest: digest(JSON.stringify(e.testCase)), observation: observations[i] })) };
-    writeFileSync(join(directory, `${prefix}.json`), JSON.stringify(receipt) + '\n');
-    executions.push({ path: `.artifacts/relation-pipeline/${prefix}.json`, digest: digest(JSON.stringify(receipt)), receipt });
-    const recorded = JSON.parse(readFileSync(join(directory, `${prefix}.json`)));
-    return recorded.cases.map(e => e.observation);
+      timing?.phase('inputEvidenceIO');
+      const entries = cases.map((testCase, i) => ({ testCase, id: `${invocation}:${serial}:${i}:${testCase.id}`, program: program(testCase, registry) }));
+      const inputs = payload(entries, correspondence);
+      if (timing !== undefined) {
+        timing.counts.cases = entries.length;
+        timing.counts.fixtureBytes = Buffer.byteLength(fixtureBody);
+        timing.counts.inputBytes = Buffer.byteLength(inputs);
+      }
+      const directory = join(root, '.artifacts/relation-pipeline');
+      mkdirSync(directory, { recursive: true });
+      const sourcePath = `.artifacts/relation-pipeline/sources/${source.digest}.json`;
+      mkdirSync(join(directory, 'sources'), { recursive: true });
+      if (!existsSync(join(root, sourcePath))) writeFileSync(join(root, sourcePath), JSON.stringify(source, null, 2) + '\n');
+      serial++;
+      writeFileSync(join(directory, `${prefix}.fixture.mbt`), fixtureBody);
+      writeFileSync(join(directory, `${prefix}.inputs.json`), inputs);
+      timing?.phase('spawnBuildRun');
+      const result = spawnProofCommand(moon, command, target, { cwd: workspaceRoot,
+        env: { ...environment, [inputVariable]: inputs }, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+      timing?.phase('outputIO');
+      const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+      if (timing !== undefined) timing.counts.outputBytes = Buffer.byteLength(output);
+      writeFileSync(join(directory, `${prefix}.log`), output);
+      if (result.error || result.status !== 0) {
+        process.stderr.write(output);
+        throw result.error ?? new Error(`Generated observation execution failed: ${prefix}`);
+      }
+      timing?.phase('toolsAfter');
+      assert.equal(toolIdentity(timing?.counts), expectedTools, 'Execution toolchain changed');
+      timing?.phase('observations');
+      assertOwnedFixture();
+      const markers = output.split('\n').filter(line => line.startsWith('ACTQL_PIPELINE_BUILD:'));
+      assert.deepEqual(markers, [`ACTQL_PIPELINE_BUILD:${buildIdentity}`], 'Executed binary/source/workspace identity mismatch');
+      assert.match(output, /Total tests: 1, passed: 1, failed: 0/, 'Observation fixture did not pass exactly once');
+      const observations = [];
+      let currentId;
+      let faults = [];
+      for (const line of output.split('\n')) {
+        if (line.startsWith('ACTQL_PIPELINE_CASE:')) { currentId = JSON.parse(line.slice('ACTQL_PIPELINE_CASE:'.length)); faults = []; }
+        if (line.startsWith('ACTQL_PIPELINE_FAULT:')) faults.push(JSON.parse(line.slice('ACTQL_PIPELINE_FAULT:'.length)));
+        if (line.startsWith('ACTQL_PIPELINE:')) {
+          const value = JSON.parse(line.slice('ACTQL_PIPELINE:'.length));
+          if (value.id !== currentId) throw new Error('Unbound execution event');
+          observations.push({ ...value, tableRows: value.rows,
+            rows: value.wireRows.map(row => value.columns.map(field => row[field])), faults });
+        }
+      }
+      if (observations.length !== entries.length) throw new Error(`Missing actual observations ${observations.length}/${entries.length}: ${prefix}`);
+      observations.forEach((observation, i) => {
+        if (observation.id !== entries[i].id || !observation.checked || !observation.registered) throw new Error('Execution identity mismatch');
+      });
+      if (timing !== undefined) timing.counts.observations = observations.length;
+      timing?.phase('workspaceAfter');
+      if (workspace.check().digest !== source.digest) throw new Error('Source changed during generated execution');
+      timing?.phase('finalArtifacts');
+      const actualArtifacts = artifacts(workspaceRoot, target, 'query_integration');
+      if (prior?.buildIdentity === buildIdentity) assert.deepEqual(actualArtifacts, prior.artifacts, 'Unchanged-source execution artifacts changed');
+      built.set(target, { buildIdentity, artifacts: actualArtifacts });
+      if (timing !== undefined) timing.counts.finalArtifactFiles = Object.keys(actualArtifacts).length;
+      timing?.phase('archive');
+      const archives = {};
+      if (label === 'normal') {
+        mkdirSync(join(directory, 'final-artifacts', target), { recursive: true });
+        for (const [path, expected] of Object.entries(actualArtifacts)) {
+          const suffix = path.slice(`_build/${target}/debug/test/query_integration/`.length);
+          const archive = `.artifacts/relation-pipeline/final-artifacts/${target}/${suffix}`;
+          mkdirSync(dirname(join(root, archive)), { recursive: true });
+          copyFileSync(join(workspaceRoot, path), join(root, archive));
+          if (digest(readFileSync(join(root, archive))) !== expected) throw new Error('Archive differs from executed artifact');
+          archives[path] = archive;
+          if (timing !== undefined) timing.counts.archivedFiles++;
+        }
+      }
+      timing?.phase('receiptIO');
+      const receipt = { target, correspondence, boundary, buildIdentity, compiler: compiler.stdout.trim(), sourceDigest: source.digest, sourcePath,
+        command: ['moon', ...command], exit: result.status, fixtureDigest: digest(fixtureBody),
+        fixturePath: `.artifacts/relation-pipeline/${prefix}.fixture.mbt`,
+        inputVariable, inputDigest: digest(inputs), inputPath: `.artifacts/relation-pipeline/${prefix}.inputs.json`,
+        logPath: `.artifacts/relation-pipeline/${prefix}.log`,
+        logDigest: digest(output), artifacts: actualArtifacts, archives,
+        cases: entries.map((e, i) => ({ ...e, caseDigest: digest(JSON.stringify(e.testCase)), observation: observations[i] })) };
+      writeFileSync(join(directory, `${prefix}.json`), JSON.stringify(receipt) + '\n');
+      executions.push({ path: `.artifacts/relation-pipeline/${prefix}.json`, digest: digest(JSON.stringify(receipt)), receipt });
+      const recorded = JSON.parse(readFileSync(join(directory, `${prefix}.json`)));
+      const values = recorded.cases.map(e => e.observation);
+      returned = true;
+      return values;
+    } finally { timing?.finish(returned); }
   }
 
   return Object.freeze({ execute, close });
