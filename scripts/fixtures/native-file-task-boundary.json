@@ -2,7 +2,7 @@
   "version": "actql/0.1",
   "id": "native-file-task-boundary",
   "stages": [
-    {"id":"capture","inputs":{"records":{"connector":"snowflake","resource":"usage_30d"}},"steps":[{"from":"records","select":["account_id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["account_id"]}}},
+    {"id":"capture","inputs":{"records":{"connector":"snowflake","resource":"usage_30d","view":"records"}},"steps":[{"from":"records","select":["account_id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["account_id"]}}},
     {"id":"main","inputs":{"records":{"result":{"stage":"capture","result":"rows"}}},"steps":[{"from":"records","filter":"account_id <> 'never'"},{"select":["account_id"],"as":"selected"},{"from":"records","select":["account_id"],"as":"complete"},{"from":"complete","group":{"by":[],"aggregates":{"id":{"fn":"count"}}},"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}},
     {"id":"compute0","inputs":{"r":{"result":{"stage":"main","result":"rows"}}},"steps":[{"filter":"id >= 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},
     {"id":"compute1","inputs":{"r":{"result":{"stage":"compute0","result":"rows"}}},"steps":[{"filter":"id >= 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},
