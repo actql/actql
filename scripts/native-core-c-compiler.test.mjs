@@ -1,12 +1,51 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
+import {chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {nativeCoreCArguments, nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import * as compilerModule from './native-core-c-compiler.mjs';
+import {nativeRuntimeReaderCustodyFixture, nativeRuntimeReaderCustodyCacheInput} from './native-runtime-reader-custody-fixture.mjs';
+
+test('Reader compiler cache inputs refuse changed physical or recipe data without keying fresh library identities',
+  {skip: process.platform !== 'darwin'}, t => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-reader-cache-input-')));
+    t.after(() => rmSync(root, {recursive: true, force: true}));
+    const source = join(root, 'scripts/fixtures/native-runtime-reader-custody.c');
+    mkdirSync(join(root, 'scripts/fixtures'), {recursive: true});
+    copyFileSync(new URL('./fixtures/native-runtime-reader-custody.c', import.meta.url), source);
+    const selected = process.env.ACTQL_TEST_NATIVE_CORE_CCACHE;
+    process.env.ACTQL_TEST_NATIVE_CORE_CCACHE = '/not-consumed-by-this-input-test';
+    try {
+      const first = join(root, 'first'); mkdirSync(first);
+      const original = nativeRuntimeReaderCustodyFixture(root, first);
+      const value = nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', original);
+      assert(value); assert.equal(value.source, source);
+      const missing = {...original}; delete missing.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE;
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', missing), undefined);
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', {...original,
+        DYLD_INSERT_LIBRARIES: original.DYLD_INSERT_LIBRARIES + ':foreign.dylib'}), undefined);
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/clang', original), undefined);
+      const changed = JSON.parse(original.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE);
+      changed.recipe.flags[1] = '-O1';
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', {...original,
+        ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE: JSON.stringify(changed)}), undefined);
+      const old = original.DYLD_INSERT_LIBRARIES + '.original';
+      renameSync(original.DYLD_INSERT_LIBRARIES, old); copyFileSync(old, original.DYLD_INSERT_LIBRARIES);
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', original), undefined,
+        'byte-identical replacement cannot claim the original physical construction');
+      writeFileSync(source, readFileSync(source, 'utf8') + '\n// Changed actual fixture source.\n');
+      const second = join(root, 'second'); mkdirSync(second);
+      const next = nativeRuntimeReaderCustodyFixture(root, second);
+      const nextValue = nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', next);
+      assert(nextValue); assert.notEqual(nextValue.recipeSha256, value.recipeSha256);
+    } finally {
+      if (selected === undefined) delete process.env.ACTQL_TEST_NATIVE_CORE_CCACHE;
+      else process.env.ACTQL_TEST_NATIVE_CORE_CCACHE = selected;
+    }
+  });
 
 test('ordinary generated C object planning preserves effective flags and ordered fresh link inputs', () => {
   assert.equal(typeof compilerModule.nativeCoreCObjectCommands, 'function');
