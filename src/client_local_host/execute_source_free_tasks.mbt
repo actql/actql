@@ -57,6 +57,50 @@ pub fn execute_source_free_local_tasks_guarded(
 }
 
 ///|
+/// Execute the original task chain supplied by this retained Whole Source
+/// Plan. Equal Graphs or a Host from another Run cannot replace its binding.
+/// Source custody remains with the caller through execution and cleanup.
+pub fn execute_installed_whole_source_values_guarded(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+  require_current : () -> Bool,
+) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  guard installed_managed_preparation_admission_original(
+      owner, prepared, request,
+    )
+    is Some(_) &&
+    owner.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    !plan.whole_sources.is_empty() &&
+    owner.source_free_captured is Some(original) &&
+    physical_equal(original, run) &&
+    physical_equal(plan.graph, @strategy.captured_dag_graph(run)) &&
+    @strategy.source_inputs_dag_matches_original(
+      plan.graph,
+      @publication_host.prepared_client_graph(prepared),
+    ) else {
+    return Err(failed_local_values_execution(UnsupportedGraph))
+  }
+  execute_local_tasks_guarded(
+    setup,
+    finalization_quantum,
+    max_finalization_rounds,
+    require_current,
+    require_live=None,
+    first=0,
+    whole_source=Some(plan),
+  )
+}
+
+///|
 /// Continue only the original checked Effect computation. Completed Source
 /// and Model tasks stay on this same captured DAG; they are not dispatched
 /// again. The caller keeps their original output uses until this execution's
@@ -154,6 +198,7 @@ fn execute_local_tasks_guarded(
   require_live~ : (() -> Bool)?,
   first~ : Int,
   retained_effect? : @strategy.CapturedEffectRunDAG? = None,
+  whole_source? : ClientInstalledManagedCapturePlan? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(failed_local_values_execution(InvalidLimits))
@@ -201,11 +246,18 @@ fn execute_local_tasks_guarded(
   let continuation = retained_effect is Some(original) &&
     physical_equal(@strategy.captured_effect_run_dag(original), run) &&
     @strategy.graph_program_has_effects(graph)
+  // Only the original Whole Plan entrance above supplies this private binding.
+  // The public Source-free entry still has no such input or purpose switch.
+  let supplied_whole = whole_source is Some(_)
   if @strategy.graph_captured_prefix(graph) != first ||
     (
       !continuation &&
       (
-        (first == 0 && !@strategy.graph_source_free_inputs_complete(graph)) ||
+        (
+          first == 0 &&
+          !supplied_whole &&
+          !@strategy.graph_source_free_inputs_complete(graph)
+        ) ||
         @strategy.graph_program_has_effects(graph) ||
         @strategy.next_captured_task(run) != Some(first)
       )
@@ -256,7 +308,7 @@ fn execute_local_tasks_guarded(
     let producers = @strategy.captured_next_managed_producers(run)
     let inputs : Array[@local_driver.LocalManagedAvailableOutput[Int]] = []
     for producer in producers {
-      if continuation && producer == -1 {
+      if (continuation || supplied_whole) && producer == -1 {
         inputs.push(@local_driver.local_managed_supplied_relation_input())
         continue
       }

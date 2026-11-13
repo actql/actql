@@ -32,8 +32,10 @@ struct actql_sqlite_component_api {
     sqlite3_int64 (*changes64)(sqlite3 *);
     int (*busy_timeout)(sqlite3 *, int);
     int (*get_autocommit)(sqlite3 *);
+    int (*reset)(sqlite3_stmt *);
+    int (*clear_bindings)(sqlite3_stmt *);
 };
-#define ACTQL_SQLITE_COMPONENT_ABI 2
+#define ACTQL_SQLITE_COMPONENT_ABI 3
 #define ACTQL_SQLITE_COMPONENT_SOURCE_ID \
     "2025-11-04 19:38:17 fb2c931ae597f8d00a37574ff67aeed3eced4e5547f9120744ae4bfa8e74527b"
 #endif

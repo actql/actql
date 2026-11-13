@@ -65,6 +65,7 @@ pub fn[I] prepare_request_model_graph(
   serialization? : @publication_host.ClientSerializationPlanGraph? = None,
   caller_material? : @execution.PreparationRepresentationUnits? = None,
   keyed_native_profile? : @publication.PublicationContract? = None,
+  keyed_file_declarations? : Array[@row_source_host.RowDeclaration]? = None,
 ) -> Result[
   @publication_host.ClientInferPlanGraph,
   ClientRequestProgramPlanIssue,
@@ -99,6 +100,37 @@ pub fn[I] prepare_request_model_graph(
     owner.program_model is None &&
     !owner.program_body_attempted else {
     return Err(Preparation(ForeignOriginal))
+  }
+  // Borrow the original installed file profile through the existing checked
+  // occurrence identity projection. No second acquisition/compiler, JSON
+  // classifier or provider callback is needed to choose this Graph shape.
+  let keyed_native_profile = match
+    (keyed_native_profile, keyed_file_declarations, prepared) {
+    (None, Some(declarations), Effect(_)) if serialization is None => {
+      let mut selected = None
+      if @publication_host.client_infer_occurrence_keyed_source_identity(
+          occurrence,
+        )
+        is Some((source_ref, source_cid)) {
+        for declaration in declarations {
+          if @row_source_host.row_declaration_file_read_profile(
+              declaration, source_ref,
+            )
+            is Some(profile) {
+            guard selected is None &&
+              @publication.file_read_profile_contract_bindings(profile)
+              is Some((same_source, _, _)) &&
+              same_source == source_cid else {
+              return Err(Preparation(ForeignOriginal))
+            }
+            selected = Some(profile)
+          }
+        }
+      }
+      selected
+    }
+    (Some(_), Some(_), _) => return Err(Preparation(ForeignOriginal))
+    (profile, _, _) => profile
   }
   // Keep earlier original graphs alive across this constructor/current and
   // its failure path. The existing Request debit is never replaced or reset.

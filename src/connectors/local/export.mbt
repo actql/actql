@@ -37,11 +37,16 @@ pub fn local_export_retention_capacity(limits : LocalExportLimits) -> Int64? {
   Some(
     // Sixteen preparation roots bound the largest fixed overlap. The row
     // cursor's eight roots do not overlap preparation after transfer.
-    1024L +
+    // The physical-batch mode adds three stream words and two row words.
+    // Precharge their fixed controls before construction on this SAME task.
+    // It reuses the existing builder: no second accumulator or row array.
+    1088L +
     w.max_bytes.to_int64() +
     // Exact row/column authority and reference roots survive the cell-to-file
     // conversion. They are bounded independently of the canonical file bytes.
     128L * v.max_nodes.to_int64() +
+    // Existing simultaneous builder/drained String/FD snapshot backing. A
+    // larger group of small rows may fill this window, never exceed it.
     8L * limits.max_batch_bytes.to_int64() +
     64L *
     (w.max_columns.to_int64() + w.max_depth.to_int64() + v.max_depth.to_int64()),

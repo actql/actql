@@ -100,6 +100,35 @@ test('ordinary Local preserves current Deny on the same Host and after reopening
   assert.equal(await readFile(f.config, 'utf8'), restricted);
 });
 
+test('diagnostic-only authorization preserves standard bootstrap and current Deny', async t => {
+  const f = await fixture(t);
+  let observations = 0;
+  const observe = () => { observations++; };
+  const authorization = await f.start({observe});
+  assert.equal(authorization.observe, observe);
+  assert.equal(authorization.accountConfig, f.config);
+  assert.equal(JSON.parse(await readFile(f.config, 'utf8')).bootstrap.profile_id,
+    'actql-local-standard');
+  const authorize = createLocalResultAuthorization({moon, authorization,
+    principalId: 'person', namespaceId: 'local', authorityScopeCid: scope});
+  assert.equal(await authorize(facts), true);
+  const restricted = JSON.parse(await readFile(f.config, 'utf8'));
+  for (const entry of restricted.entries) {
+    if (entry.operation.any_of.includes('read')) entry.outcome = 'deny';
+  }
+  await writeFile(f.config, JSON.stringify(restricted));
+  assert.equal(await authorize(facts), false,
+    'Diagnostic delivery cannot preserve an earlier Allow after Account changes');
+  assert.equal(observations, 0, 'Account checks do not fabricate diagnostic delivery');
+  await f.close();
+  const reopened = await f.start({observe});
+  assert.equal(reopened.observe, observe);
+  assert.deepEqual(JSON.parse(await readFile(f.config, 'utf8')), restricted,
+    'Reopening with diagnostics must not regrant the standard Account');
+  assert.equal(await createLocalResultAuthorization({moon, authorization: reopened,
+    principalId: 'person', namespaceId: 'local', authorityScopeCid: scope})(facts), false);
+});
+
 test('ordinary Local missing adopted configuration or intent refuses without recreation', async t => {
   for (const field of ['config', 'intent']) {
     const f = await fixture(t);

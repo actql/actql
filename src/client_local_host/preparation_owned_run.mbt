@@ -21,6 +21,33 @@ priv enum ClientManagedPreparationCustody {
 }
 
 ///|
+/// Borrow the SAME Resource admission retained by this preparation-owned Pure
+/// Run. This is an immutable original projection, not another issuer, current
+/// observation or execution grant. The receiving Native entry must still bind
+/// its exact Ledger/control and original Host/Read/Journal scope.
+pub fn installed_managed_preparation_admission_original(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> @resources.PreparedRunAdmission[@publication_host.PreparedClientProgram]? {
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    value.ledger is Some(_) &&
+    physical_equal(value.request, request) &&
+    value.preparation is Some(PureManaged(admission, actual)) &&
+    physical_equal(actual, prepared) &&
+    value.preparation_retirement is Some(PurePreparation(retirement)) &&
+    physical_equal(retirement.admission, admission) &&
+    retirement.holder is Some(holder) &&
+    !@resources.preparation_body_retirement_started(holder) &&
+    @resources.preparation_body_borrow_value(holder) is Some(body) &&
+    physical_equal(body, prepared) else {
+    return None
+  }
+  Some(admission)
+}
+
+///|
 /// Dormant fixed-Root entry. The supplier must fund constructor coexistence
 /// and retain every original dependency before calling; no SDK path currently
 /// selects it. Unlike the legacy entry, this consumes the already started

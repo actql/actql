@@ -64,6 +64,30 @@ int main(int argc, char **argv) {
     actql_native_timing_begin(ACTQL_NATIVE_PHASE_EXECUTION);
     sqlite_calls(); nanosleep(&pause, NULL);
     actql_native_timing_end(ACTQL_NATIVE_PHASE_EXECUTION);
+  } else if (strcmp(argv[1], "approval-stages") == 0) {
+    for (int tag = 32; tag < 39; tag++) {
+      actql_native_timing_begin(tag);
+      actql_native_timing_end(tag);
+    }
+    actql_native_timing_count(ACTQL_NATIVE_COUNT_SIGNING_FULL_BOUNDARY);
+  } else if (strcmp(argv[1], "snapshot") == 0) {
+    bool enabled = getenv("ACTQL_NATIVE_TIMINGS") && strcmp(getenv("ACTQL_NATIVE_TIMINGS"), "1") == 0;
+    errno = EDOM;
+    assert(actql_native_timing_counter_value(-1) == -1);
+    assert(actql_native_timing_counter_value(70) == -1);
+    int64_t before = actql_native_timing_counter_value(16);
+    actql_native_timing_count(16);
+    int64_t after = actql_native_timing_counter_value(16);
+    assert(enabled ? (before == 0 && after == 1) : (before == -1 && after == -1));
+    assert(actql_native_timing_counter_value(16) == after);
+    assert(errno == EDOM);
+  } else if (strcmp(argv[1], "request-work") == 0) {
+    /* Project observed totals once, without pretending these fixture amounts
+     * are execution of an actual Request parser/checker/compiler. */
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_REQUEST_QUERY_PARSE, 2);
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_REQUEST_QUERY_LOWER, 3);
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_REQUEST_SEMANTIC_CHECK, 4);
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_REQUEST_PROGRAM_COMPILE, 5);
   } else if (strcmp(argv[1], "threads") == 0) {
     pthread_t workers[4];
     for (int i = 0; i < 4; i++) assert(pthread_create(&workers[i], NULL, worker, NULL) == 0);
@@ -80,7 +104,7 @@ int main(int argc, char **argv) {
     actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES, 16384);
     actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES, 0);
     actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES, -1);
-    actql_native_timing_amount(64, 1);
+    actql_native_timing_amount(70, 1);
     assert(errno == EDOM);
   } else if (strcmp(argv[1], "amount-overflow") == 0) {
     for (int i = 0; i < 3; i++)

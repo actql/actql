@@ -11,6 +11,11 @@ const fail = code => {
 };
 
 const preflightRejections = new WeakSet();
+const preflightFailureObservations = new WeakMap();
+
+export function effectApplyPreflightFailureObservation(error) {
+  return preflightRejections.has(error) ? preflightFailureObservations.get(error) : undefined;
+}
 
 export function isEffectApplyPreflightRejection(error) {
   return error !== null && typeof error === 'object' &&
@@ -20,11 +25,19 @@ export function isEffectApplyPreflightRejection(error) {
 // A checked preflight rejection is a definitive refusal of this Preview.
 // Provider observation failures occur before this boundary and remain
 // retryable; they must not be converted into a terminal Run result.
-function checkedPreflight(result) {
+function checkedPreflight(result, moon) {
   if (runtimeIsError(result)) {
     const error = Object.assign(new Error('MoonBitHostFailure', {
       cause: runtimeField(result, 0)}), {code: 'MoonBitHostFailure'});
     preflightRejections.add(error);
+    // The Core getter consumes ONLY the same retained typed error. Missing or
+    // failed optional diagnostics cannot replace its original refusal.
+    try {
+      if (moon.clientProgramEffectApplyPreflightTargetVersionChanged(error.cause) === true) {
+        preflightFailureObservations.set(error, Object.freeze({code: 'EffectTargetVersionMismatch',
+          kind: 'target_version_mismatch', phase: 'effect_apply_preflight'}));
+      }
+    } catch { /* Diagnostic absence leaves the original primary unchanged. */ }
     throw error;
   }
   return checked(result);
@@ -340,7 +353,7 @@ export async function applyCapturedEffectSet({
     current.decision, current.requestScope, current.keys,
     current.maxMembers, current.maxRows,
     current.maxFootprintWork, current.maxWork,
-  ));
+  ), moon);
   if (noReadyRows) {
     return Object.freeze({status: 'applied', dispatched: 0,
       frontier: initialFrontier, subjectCid});
@@ -490,7 +503,7 @@ export async function applyRecoveredEffectSet({
     preflight.decision, preflight.requestScope, preflight.keys,
     preflight.maxMembers, preflight.maxRows,
     preflight.maxFootprintWork, preflight.maxWork,
-  ));
+  ), moon);
   const authorized = await authorizeEffectCommit(commit, subjectCid, signal);
   const last = authorized.decisions.at(-1);
   if (last?.action === 'waiting') {

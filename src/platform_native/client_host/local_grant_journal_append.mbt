@@ -10,12 +10,13 @@ fn append_local_owned_grant_original_locked(
   target? : NativeLocalPreparationOriginalTarget? = None,
   host_prepared? : String? = None,
   resolution_proof? : @checkpoint.PreparedResolutionProof? = None,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if (original.grant is PreparationGrant(_)) != (target is Some(_)) {
     return Err(ChangedIntent)
   }
   let (count, revision, runs) = match
-    grant_host.local_grant_custody(grant_crypto) {
+    grant_host.local_grant_custody(grant_crypto, capture~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

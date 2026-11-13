@@ -503,6 +503,24 @@ these boundaries separately from Core's actual imported-current counters and
 normal packed operation acceptance.
 
 
+## Captured Compute retirement before entry
+
+An installed Effect can retain its captured DAG before entering the Compute
+runner. The acquisition custody records each Host construction attempt before
+the fallible constructor and records runner entry before invoking it. A binding
+or constructor failure between these boundaries still belongs to the same
+original managed Run, including when no Host wrapper was returned.
+
+Before closing Source, keyed-prefix or Model backing, that custody asks the
+existing original parent to retire its captured consumers. Only the parent's
+actual successful retirement response discharges that DAG obligation. A false
+response or exception keeps the same parent and dependent resources pending;
+cleanup may observe that same obligation again without constructing or running
+anything. After runner entry, only the existing physical/preflight handoff can
+establish its cleanup responsibility. Missing handoff remains unresolved.
+None of these observations authorizes publication, a new attempt or resend, and
+the original operational failure remains distinct from retirement failure.
+
 ## Canonical CREATE occurrence carriage
 
 The Row Effect calls its existing Common CREATE inventory on the complete mapped

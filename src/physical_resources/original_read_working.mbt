@@ -1,5 +1,5 @@
 ///|
-/// Grow the SAME singular consuming Read reservation before its next
+/// Grow the SAME consuming Read reservation before its next
 /// constructor. This creates no reservation, attempt, transfer allowance or
 /// cleanup owner. Native physical construction/growth must be connected by the
 /// original Host; these logical extents alone certify no allocator geometry.
@@ -11,6 +11,11 @@ pub fn[T] grow_funded_read_consumer_capacity(
   retained_bytes : Int64,
   execution_bytes : Int64,
 ) -> Result[Unit, OriginalReadIssue] {
+  if consumer.claim is Some(claim) && claim.children is Some(_) {
+    return grow_original_read_child_capacity(
+      claim, consumer, origin, retained_bytes, execution_bytes,
+    )
+  }
   grow_original_read_capacity(
     consumer, origin, retained_bytes, execution_bytes, false,
   )

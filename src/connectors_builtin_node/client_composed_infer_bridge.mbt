@@ -814,3 +814,41 @@ pub fn client_program_refresh_acquired_effect_cleanup(
   let run = @strategy.captured_effect_run_dag(value.run)
   @strategy.retire_captured_task_outputs(run)
 }
+
+///|
+#export_name("clientProgramBindInferResultArtifactInput")
+pub fn client_program_bind_infer_result_artifact_input(
+  active : @infer_host.Execution,
+  import_index : Int,
+  artifact : @publication_host.ClientEffectLocalResultArtifact,
+  manifest : @publication_host.ClientEffectLocalManifest,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_result_artifact_input(
+    active, import_index, artifact, manifest,
+  )
+}
+
+///|
+#export_name("clientProgramInferOccurrenceResultImports")
+pub fn client_program_infer_occurrence_result_imports(
+  occurrence : @publication_host.ClientInferOccurrence,
+) -> Array[(Int, String)] {
+  @publication_host.client_infer_occurrence_result_imports(occurrence)
+}
+
+///|
+/// Project only the actual typed call-scope failure returned by this Model
+/// component. This observes no owner, input body or current callback.
+#export_name("clientProgramInferCallScopeIssueKind")
+pub fn client_program_infer_call_scope_issue_kind(
+  issue : @infer_host.Issue,
+) -> String? {
+  match issue {
+    CallScope(ForeignOwner) => Some("call_scope.foreign_owner")
+    CallScope(ForeignInput) => Some("call_scope.foreign_input")
+    CallScope(UnsupportedBindings) => Some("call_scope.unsupported_bindings")
+    CallScope(Encoding) => Some("call_scope.encoding")
+    CallScope(Evidence(_)) => Some("call_scope.evidence")
+    _ => None
+  }
+}

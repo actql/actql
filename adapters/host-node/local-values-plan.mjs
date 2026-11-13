@@ -7,6 +7,7 @@ import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
+import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
 
 function prepareQueryInvocation(control, prepared, request, retained) {
   if (control.clientRequiresQueryTime?.(prepared) !== true) return undefined;
@@ -128,7 +129,6 @@ const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
   name});
 const valuesAdmissions = new WeakMap();
 const originalPlans = new WeakMap();
-const originalPlanLimits = Object.freeze({maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
 export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan)?.original;}
 export function sourceFreePlanExecutionOwner(plan) {return originalPlans.get(plan)?.executionOwner;}
 
@@ -137,8 +137,10 @@ function retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime)
   // closed publication data bag. This replaces the larger timed Plan clone.
   originalPlans.set(plan, Object.freeze({
     executionOwner: Object.freeze({program: preparedProgram, compiled}),
+    // Original admission uses the same metadata codec as its invocation and
+    // publication. Later inspection keeps the reader's own explicit bounds.
     original: control.captureOriginalClientRunPlan(
-      compiled, preparedProgram, plan.runDefinition, originalPlanLimits),
+      compiled, preparedProgram, plan.runDefinition, limits),
     queryTimePreparation: queryTime?.queryTimePreparation,
     queryTime: queryTime?.queryTime,
   }));
@@ -175,22 +177,25 @@ function localPublicationPlan(options) {
   return buildLocalPublicationPlan(options).plan;
 }
 
-// Keep the retained input policy available to Effect evidence issuance
-// without extending the closed publication-plan JS bridge used by ordinary Runs.
-function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
-  observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
-  sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
-  dataPolicyCid, createdAt, now, resultCount, retainUntil,
-  compiled, preparedProgram, effectCompilation, preparedEffect, moon,
-  modelEvidence = [], outputLimits = localOutputLimits}) {
+// The same installed Host retention clocks feed early input custody and
+// final publication. This DATA resolves no permission or additional lifetime.
+function localRetentionTimes(now, retainUntil) {
   const at = Date.parse(now());
   const availableAt = retainUntil === undefined ? at + 60 * 60 * 1000
     : Math.max(at + 60 * 60 * 1000, Date.parse(retainUntil));
-  const availableUntil = instant(availableAt);
-  const deleteBy = instant(availableAt + 60 * 60 * 1000);
-  const metadataDeleteBy = instant(Math.max(at + 7 * 24 * 60 * 60 * 1000,
-    availableAt + 2 * 60 * 60 * 1000));
-  const retention = control.seal('result_retention_policy', JSON.stringify({
+  return Object.freeze({availableUntil: instant(availableAt),
+    deleteBy: instant(availableAt + 60 * 60 * 1000),
+    metadataDeleteBy: instant(Math.max(at + 7 * 24 * 60 * 60 * 1000,
+      availableAt + 2 * 60 * 60 * 1000))});
+}
+
+export function keyedInputRetentionSelection(acquired) {
+  return acquired.selectRetention();
+}
+
+function issueLocalResultRetention(control, dataPolicyCid, selection) {
+  const {availableUntil, deleteBy, metadataDeleteBy} = selection;
+  return control.seal('result_retention_policy', JSON.stringify({
     version: 'actql-result-retention-policy/0.1',
     retention_contract_cid: retentionDependencies[0].cid,
     effective_data_policy_cid: dataPolicyCid,
@@ -200,6 +205,19 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
     metadata_delete_by: metadataDeleteBy,
     clock_contract_cid: retentionDependencies[2].cid,
   }), limits);
+}
+
+// Keep the retained input policy available to Effect evidence issuance
+// without extending the closed publication-plan JS bridge used by ordinary Runs.
+function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
+  observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
+  sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
+  dataPolicyCid, createdAt, now, resultCount, retainUntil,
+  compiled, preparedProgram, effectCompilation, preparedEffect, moon,
+  modelEvidence = [], outputLimits = localOutputLimits, retentionSelection, originalRetention}) {
+  const {availableUntil, deleteBy, metadataDeleteBy} = retentionSelection ?? localRetentionTimes(now, retainUntil);
+  const retention = originalRetention ?? issueLocalResultRetention(control, dataPolicyCid,
+    {availableUntil, deleteBy, metadataDeleteBy});
   const normalizationJournal = control.sealRunEvidence(
     'normalization_journal', JSON.stringify({
       version: 'actql-normalization-journal/0.1',
@@ -263,8 +281,27 @@ function effectPublicationAdmission({moon, control, prepared,
   const runDefinition = control.admit('run_definition',
     moon.strategyPublicationContractJson(definition), limits);
   const dataPolicyCid = policyCid('local-result-data');
+  // Retention is immutable Run DATA, selected at its original first-use
+  // boundary and reused after Model awaits. Keep the live permission/current
+  // clock below unchanged; this selection never grants or extends access.
+  let retentionSelection, retentionFailure, retentionFailed = false;
+  const selectRetention = () => {
+    if (retentionFailed) throw retentionFailure;
+    if (retentionSelection !== undefined) return retentionSelection;
+    try {
+      const run = JSON.parse(runDefinition.wire);
+      retentionSelection = Object.freeze({...localRetentionTimes(now, run.valid_until),
+        expiresAt: run.valid_until,
+        retentionContractCid: retentionDependencies[0].cid,
+        metadataRetentionPolicyCid: retentionDependencies[1].cid,
+        clockContractCid: retentionDependencies[2].cid});
+      return retentionSelection;
+    } catch (cause) {
+      retentionFailed = true; retentionFailure = cause; throw cause;
+    }
+  };
   return Object.freeze({moon, control, prepared, compilation, allowed,
-    definition, authorityScopeCid, namespaceId, storeAuthorityCid, now,
+    definition, authorityScopeCid, namespaceId, storeAuthorityCid, now, selectRetention,
     admission, runDefinition, compiledPlan, dataPolicyCid, resultDataPolicy,
     queryTimePreparation, queryTime, requestIdentity: identity,
     resultDataPolicyLimits: limits});
@@ -303,7 +340,8 @@ export function sourceFreeEffectPublicationPlan(options) {
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
     resultCount, retainUntil: run.valid_until,
-    moon, effectCompilation: compilation, preparedEffect: prepared});
+    moon, effectCompilation: compilation, preparedEffect: prepared,
+    retentionSelection: acquired.selectRetention?.()});
   return Object.freeze({...plan, effectInputRetention: retention, invocationOwner: runtimeField(sourceFree, 1),
     localEvidenceContext: Object.freeze({admission, runDefinition,
       runInvocation: invocation, observation})});
@@ -335,7 +373,8 @@ export function sourceFreeContentEffectPublicationPlan({acquired,compiled,genera
     sourceEvidence:[],authorityScopeCid,namespaceId,storeAuthorityCid,dataPolicyCid:policy.cid,
     createdAt:run.created_at,now,retainUntil:run.valid_until,
     resultCount:moon.clientProgramEffectCompilationResultNames(compilation).length,
-    moon,effectCompilation:compilation,preparedEffect:prepared});
+    moon,effectCompilation:compilation,preparedEffect:prepared,
+    retentionSelection: acquired.selectRetention?.()});
   const contentGenerations=Object.freeze([generation]);
   return Object.freeze({...plan,effectInputRetention:retention,invocationOwner,
     receiptEvidence:Object.freeze({...plan.receiptEvidence,contentGenerations}),
@@ -348,10 +387,10 @@ export function sourceFreeContentEffectPublicationPlan({acquired,compiled,genera
 // Keep the original Effect admission and bind that exact Model issuer instead
 // of issuing a no-external-work observation during Run preparation.
 export function sourceFreeInferEffectPublicationPlan({acquired,
-  compiled, operation, issuance, modelEvidence}) {
+  compiled, operation, issuance, modelEvidence, issuedModel, modelOriginals}) {
   const {moon, control, prepared, compilation, admission, runDefinition,
     compiledPlan, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
-  const issued = operation.bindIssuedInvocation(control, {
+  const issued = issuedModel ?? operation.bindIssuedInvocation(control, {
     compiled, runDefinition, issued: issuance});
   try {
     const {observation, invocation, owner: invocationOwner} =
@@ -369,24 +408,35 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
       createdAt: run.created_at, now,
       resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
       retainUntil: run.valid_until,
-      moon, effectCompilation: compilation, preparedEffect: prepared});
+      moon, effectCompilation: compilation, preparedEffect: prepared,
+      retentionSelection: acquired.selectRetention?.()});
     return Object.freeze({...issued, plan: Object.freeze({...plan, effectInputRetention: retention,
       invocationOwner, localEvidenceContext: Object.freeze({admission,
         runDefinition, retentionDependencies: Object.freeze([...retentionDependencies,
           Object.freeze({kind: 'result_retention_policy',
             cid: retention.identity, wire: retention.wire})]),
         sourceFreeDependencyClosure:true,
+        ...(modelOriginals === undefined ? {} : {
+          modelOriginalByUnit: Object.freeze(Object.fromEntries(modelOriginals.map(model => [model.unit, model]))),
+          modelRetention: retention,
+        }),
         resultDataPolicy: control.compiledInferSourceFreeResultPolicy(compiled),
         runInvocation: invocation,
         observation})})});
   } catch (error) {
-    moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+    if (issuedModel === undefined) moon.clientProgramReleaseInferInvocationBinding(issued.binding);
     throw error;
   }
 }
 
 export function acquiredEffectPublicationPlan({acquired, captured,
-  sourceEvidenceWire, captureStartedAt, captureCompletedAt, content}) {
+  sourceEvidence: originalSourceEvidence, sourceEvidenceWire,
+  captureStartedAt, captureCompletedAt, content, sourcePlan}) {
+  if (content === undefined && captured?.inputKind === 'whole-input') {
+    return acquiredMultiEffectPublicationPlan({acquired,
+      sources: [{captured, sourceEvidence: originalSourceEvidence, sourceEvidenceWire}],
+      captureStartedAt, captureCompletedAt, sourcePlan});
+  }
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
@@ -430,7 +480,8 @@ export function acquiredEffectPublicationPlan({acquired, captured,
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid, createdAt: run.created_at,
     now, resultCount, retainUntil: run.valid_until,
-    moon, effectCompilation: compilation, preparedEffect: prepared});
+    moon, effectCompilation: compilation, preparedEffect: prepared,
+    retentionSelection: acquired.selectRetention?.()});
   let sourceRetention = retention;
   if (content !== undefined) {
     const body = JSON.parse(retention.wire);
@@ -473,31 +524,106 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       runInvocation: invocation, observation})});
 }
 
+// Retain the actual upstream Unit semantics before opening the first Model.
+// The existing group owns this cache and its dispatch borrow through cleanup;
+// no complete Model/Run observation or physical publication is claimed here.
+export function prepareAcquiredEffectSourceUnits({acquired, sources, sourcePlan, managedRun, modelUnits}) {
+  if (!Array.isArray(sources) || !Array.isArray(modelUnits)) {
+    throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+  }
+  const units = new Map();
+  for (const {captured} of sources) {
+    const unit = captured.occurrence?.stage;
+    if (!Number.isSafeInteger(unit) || unit < 0) throw new TypeError('OriginalEffectSourceCoordinateRequired');
+    units.set(unit, (units.get(unit) ?? 0) + 1);
+  }
+  const selected = [...units].filter(([unit, count]) => count > 1 && !modelUnits.includes(unit));
+  if (selected.length === 0) return undefined;
+  if (managedRun === undefined || sourcePlan === undefined || acquired.requestIdentity === undefined) {
+    throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+  }
+  const {moon, control} = acquired;
+  const policy = moon.clientProgramEffectPublicationDataPolicyCid(acquired.prepared);
+  if (typeof policy !== 'string') throw new TypeError('UnavailableAcquiredEffectPolicy');
+  const retention = issueLocalResultRetention(control, policy, acquired.selectRetention());
+  const evidence = sources.map(source => source.sourceEvidence === undefined
+    ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits) : source.sourceEvidence);
+  const inputs = control.prepareCheckedInstalledEffectSourceUnits(sourcePlan, acquired.prepared,
+    acquired.requestIdentity, acquired.compilation, acquired.admission, acquired.definition,
+    sources, evidence, {authorityScopeCid: acquired.authorityScopeCid, dataPolicyCid: policy}, limits);
+  const byUnit = new Map();
+  for (const [unit] of selected) {
+    // This record is installed before the Resource current/resize callbacks.
+    // Reentry or a failed constructor never obtains a second original body.
+    const entry = {preparing: true, value: undefined};
+    byUnit.set(unit, entry);
+    entry.value = control.prepareInstalledEffectModelSourceUnit(managedRun, sourcePlan,
+      acquired.requestIdentity, inputs, unit, retention, limits);
+    entry.preparing = false;
+  }
+  return Object.freeze({managedRun, sourcePlan, request: acquired.requestIdentity,
+    sources, inputs, retention, byUnit});
+}
+
 // Both acquired tuples remain checked by the common Effect owner. Source
 // input retention carries each original policy; derived publication carries
 // the checked combined policy with exactly the same custody/time bounds.
 export function acquiredMultiEffectPublicationPlan({acquired, sources,
-  captureStartedAt, captureCompletedAt, issuedModel, modelEvidence = [], keyedSource}) {
+  captureStartedAt, captureCompletedAt, issuedModel, modelOriginal, modelOriginals = modelOriginal === undefined ? [] : [modelOriginal], modelEvidence = [], keyedSource, sourcePlan, managedRun, sourceUnitsOriginal}) {
   const {moon, control, prepared, compilation, definition, admission,
     runDefinition, compiledPlan, authorityScopeCid,
     namespaceId, storeAuthorityCid, now} = acquired;
-  if (!Array.isArray(sources) || (issuedModel === undefined ? sources.length !== 2
-    : ![1, 2].includes(sources.length))) {
+  if (!Array.isArray(sources) || sources.length < 1) {
     throw new TypeError('IncompleteAcquiredEffectSources');
+  }
+  if (!Array.isArray(modelOriginals) || issuedModel !== undefined && (modelOriginals.length === 0 ||
+      modelOriginals.some(model => !Number.isSafeInteger(model?.unit) || model.unit < 0) ||
+      new Set(modelOriginals.map(model => model.unit)).size !== modelOriginals.length)) {
+    throw new TypeError('OriginalEffectModelObservationRequired');
   }
   const dataPolicyCid = moon.clientProgramEffectPublicationDataPolicyCid(prepared);
   if (typeof dataPolicyCid !== 'string') {
     throw new TypeError('UnavailableAcquiredEffectPolicy');
   }
-  const {observation, invocation, owner: invocationOwner} =
-    issuedModel === undefined ? control.issueCheckedClientEffectMultiCapturedInvocation(
-      prepared, compilation, admission, definition, sources,
-      {authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt},
-      limits) : control.checkedClientEffectInferInvocation(prepared,
-        compilation, runDefinition, issuedModel);
   const sourceEvidence = sources.map(source => source.sourceEvidence === undefined
     ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits)
     : source.sourceEvidence);
+  const sourceUnits = new Map();
+  for (const {captured} of sources) {
+    const unit = captured.occurrence?.stage;
+    if (!Number.isSafeInteger(unit) || unit < 0) {
+      throw new TypeError('OriginalEffectSourceCoordinateRequired');
+    }
+    sourceUnits.set(unit, (sourceUnits.get(unit) ?? 0) + 1);
+  }
+  const whole = issuedModel === undefined &&
+    sources.some(({captured}) => captured.inputKind === 'whole-input');
+  const direct = issuedModel === undefined && (whole || [...sourceUnits.values()].some(count => count > 1));
+  if (direct && (sourcePlan === undefined || acquired.requestIdentity === undefined)) {
+    throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+  }
+  const context = {authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt};
+  const {observation, invocation, owner: invocationOwner, sourcePublication} = direct
+    ? control.issueCheckedInstalledEffectDirectSourcesInvocation(sourcePlan, prepared,
+      acquired.requestIdentity, compilation, admission, definition, sources, sourceEvidence, context, limits)
+    : issuedModel === undefined ? control.issueCheckedClientEffectMultiCapturedInvocation(
+      prepared, compilation, admission, definition, sources,
+      context,
+      limits) : control.checkedClientEffectInferInvocation(prepared,
+        compilation, runDefinition, issuedModel);
+  // Source Unit semantics remain available with later Models present. This
+  // retains only original Source inputs, never a fake complete Run observation.
+  const needsSourceUnits = issuedModel !== undefined && [...sourceUnits].some(([unit, count]) =>
+    count > 1 && !modelOriginals.some(model => model.unit === unit));
+  if (needsSourceUnits && (sourcePlan === undefined || managedRun === undefined || acquired.requestIdentity === undefined)) {
+    throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+  }
+  if (sourceUnitsOriginal !== undefined && (sourceUnitsOriginal.managedRun !== managedRun ||
+      sourceUnitsOriginal.sourcePlan !== sourcePlan || sourceUnitsOriginal.request !== acquired.requestIdentity ||
+      sourceUnitsOriginal.sources !== sources)) throw new TypeError('ForeignEffectSourceUnitOriginal');
+  const sourceUnitInputs = !needsSourceUnits ? undefined : sourceUnitsOriginal?.inputs ??
+    control.prepareCheckedInstalledEffectSourceUnits(sourcePlan, prepared,
+      acquired.requestIdentity, compilation, admission, definition, sources, sourceEvidence, context, limits);
   if (keyedSource !== undefined) {
     if (issuedModel === undefined || keyedSource.source === undefined ||
         typeof keyedSource.logicalRelationCid !== 'string') throw new TypeError('IncompleteAcquiredEffectSources');
@@ -508,26 +634,74 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     control, admission, runDefinition, invocation, observation,
     compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
-    inputRelationCids: [...sources.map(({captured}) =>
+    // Result derivation names a set of logical dependencies. Equal content
+    // does not merge the original Source occurrences or their evidence above.
+    inputRelationCids: [...new Set([...sources.map(({captured}) =>
       moon.clientProgramCapturedSourceLogicalCid(captured.identity)),
-      ...(keyedSource === undefined ? [] : [keyedSource.logicalRelationCid])],
+      ...(keyedSource === undefined ? [] : [keyedSource.logicalRelationCid])])],
     sourceEvidence, modelEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid, createdAt: run.created_at, now,
     resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
     retainUntil: run.valid_until,
-    moon, effectCompilation: compilation, preparedEffect: prepared});
+    moon, effectCompilation: compilation, preparedEffect: prepared,
+    retentionSelection: acquired.selectRetention?.(), originalRetention: sourceUnitsOriginal?.retention});
   const acquisitionDependencies = [];
-  const acquiredEvidenceByUnit = sources.map(({captured}, unit) => {
-    const body = JSON.parse(retention.wire);
-    delete body.effective_retention_policy_cid;
-    body.effective_data_policy_cid = captured.checkedSource.sourceDataPolicyCid;
-    const sourceRetention = control.seal('result_retention_policy',
-      JSON.stringify(body), limits);
-    const evidence = control.issueCheckedAcquiredEffectEvidence(
-      prepared, captured.capture.source(), captured.identity,
-      captured.requirement, captured.logicalInput, sourceEvidence[unit],
-      authorityScopeCid, captured.checkedSource.sourceDataPolicyCid,
-      sourceRetention, limits, unit, retention);
+  const acquiredEvidenceByUnit = [];
+  for (const [slot, {captured}] of sources.entries()) {
+    const unit = captured.occurrence?.stage;
+    if (!Number.isSafeInteger(unit) || unit < 0) {
+      throw new TypeError('OriginalEffectSourceCoordinateRequired');
+    }
+    // Inline Query/Whole inputs contribute to this SAME Model Unit. Their
+    // complete evidence is issued from its retained Model observation below,
+    // never through the Query-only single-Source Unit entrance.
+    const modelContribution = issuedModel !== undefined && modelOriginals.some(model => model.unit === unit);
+    if (!modelContribution && sourceUnits.get(unit) > 1) {
+      if (acquiredEvidenceByUnit[unit] === undefined) {
+        if (sourceUnitInputs !== undefined) {
+          const original = sourceUnitsOriginal?.byUnit.get(unit);
+          if (sourceUnitsOriginal !== undefined && (original === undefined || original.preparing || original.value === undefined)) {
+            throw new TypeError('OriginalEffectSourceUnitUnavailable');
+          }
+          acquiredEvidenceByUnit[unit] = original?.value ?? control.prepareInstalledEffectModelSourceUnit(
+            managedRun, sourcePlan, acquired.requestIdentity, sourceUnitInputs, unit, retention, limits);
+        } else {
+          if (sourcePublication === undefined) {
+            throw new TypeError('CombinedEffectProducerUnitOriginalRequired');
+          }
+          acquiredEvidenceByUnit[unit] = control.prepareCombinedEffectSourceUnit(
+            sourcePublication, unit, retention, limits);
+        }
+      }
+    } else if (!modelContribution) {
+      if (acquiredEvidenceByUnit[unit] !== undefined) {
+        throw new TypeError('DuplicateEffectProducerUnitEvidence');
+      }
+      if (captured.inputKind === 'whole-input') {
+        if (sourcePlan === undefined || acquired.requestIdentity === undefined ||
+            captured.wholeCapacity === undefined) {
+          throw new TypeError('WholeEffectProducerUnitOriginalRequired');
+        }
+        acquiredEvidenceByUnit[unit] = control.issueCheckedWholeEffectSourceUnit(
+          sourcePlan, prepared, acquired.requestIdentity, slot,
+          captured.capture.source(), captured.identity, captured.wholeCapacity,
+          captured.logicalInput, sourceEvidence[slot], authorityScopeCid, retention, limits);
+      } else {
+        if (captured.requirement === undefined) {
+          throw new TypeError('QueryEffectProducerUnitOriginalRequired');
+        }
+        const body = JSON.parse(retention.wire);
+        delete body.effective_retention_policy_cid;
+        body.effective_data_policy_cid = captured.checkedSource.sourceDataPolicyCid;
+        const sourceRetention = control.seal('result_retention_policy',
+          JSON.stringify(body), limits);
+        acquiredEvidenceByUnit[unit] = control.issueCheckedAcquiredEffectEvidence(
+          prepared, captured.capture.source(), captured.identity,
+          captured.requirement, captured.logicalInput, sourceEvidence[slot],
+          authorityScopeCid, captured.checkedSource.sourceDataPolicyCid,
+          sourceRetention, limits, unit, retention);
+      }
+    }
     const bodies = moon.clientProgramCapturedSourceDependencyBodies(
       captured.identity, captured.capture.source());
     if (typeof runtimeOptionalField(bodies, 0) !== 'string' || typeof runtimeOptionalField(bodies, 1) !== 'string') {
@@ -540,12 +714,16 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
       Object.freeze({kind: 'relation_schema',
         cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
         wire: runtimeField(bodies, 1)}));
-    return evidence;
-  });
+  }
   return Object.freeze({...plan, effectInputRetention: retention, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       acquiredEvidence: acquiredEvidenceByUnit[0],
       acquiredEvidenceByUnit: Object.freeze(acquiredEvidenceByUnit),
+      ...(sourceUnitsOriginal === undefined ? {} : {originalUnitResults: sourceUnitsOriginal.byUnit}),
+      ...(modelOriginals.length === 0 ? {} : {
+        modelOriginalByUnit: Object.freeze(Object.fromEntries(modelOriginals.map(model => [model.unit, model]))),
+        modelRetention: retention,
+      }),
       acquiredCatalogBodies: Object.freeze([
         ...acquiredEvidenceByUnit.flatMap(value => value.catalogBodies),
         ...checked(moon.clientProgramEffectPublicationPolicyBodies(prepared,
@@ -559,20 +737,63 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
 
 // The original Model issuer has already adopted the real capture into the
 // original Effect Run. Its live binding remains held by capture custody.
-export function acquiredInferEffectPublicationPlan({acquired, sources,
-  compiled, operation, issuance, modelEvidence, captureStartedAt, captureCompletedAt, keyedSource}) {
-  const issued = operation.bindIssuedInvocation(acquired.control, {
-    compiled, runDefinition: acquired.runDefinition, issued: issuance});
+export async function acquiredInferEffectPublicationPlan({acquired, sources,
+  compiled, operation, operations = [operation], issuance, modelEvidence,
+  captureStartedAt, captureCompletedAt, keyedSource, signal, sourcePlan, managedRun, sourceUnitsOriginal, fundingOperation = operation, current, retainBinding}) {
+  if (!Array.isArray(operations) || operations.length === 0 || operations[0] !== operation ||
+      new Set(operations).size !== operations.length) {
+    throw new TypeError('OriginalEffectModelInventoryRequired');
+  }
+  const issuedModels = [], modelOriginals = [];
+  // Earlier Model scans stay in this group's original custody; count that
+  // retained overlap before constructing any later final-issuer metadata.
+  const earlierUnits = [...(sourceUnitsOriginal?.byUnit.values() ?? [])]
+    .filter(entry => entry.results?.modelOriginal !== undefined);
+  let retainedBase = earlierUnits.reduce((sum, entry) => sum + entry.results.identityRetainedBytes, 0n);
+  let executionBase = earlierUnits.reduce((sum, entry) => sum + entry.results.identityExecutionBytes, 0n);
   try {
-    const plan = acquiredMultiEffectPublicationPlan({acquired, sources,
-      captureStartedAt, captureCompletedAt, issuedModel: issued, modelEvidence, keyedSource});
-    const contentGenerations = operation.contentGenerations?.();
-    const completePlan = contentGenerations === undefined ? plan : Object.freeze({...plan,
-      receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
-      captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations})});
-    return Object.freeze({...issued, plan: completePlan});
+    for (const originalOperation of operations) {
+      current?.(); signal?.throwIfAborted();
+      const issued = originalOperation.bindIssuedInvocation(acquired.control, {
+        compiled, runDefinition: acquired.runDefinition, issued: issuance});
+      issuedModels.push(issued);
+      retainBinding?.(issued.binding);
+      const earlier = earlierUnits.find(entry => entry.modelOperation === originalOperation);
+      const model = earlier === undefined ? await withOriginalInferModelObservation({
+        moon: acquired.moon, operation: fundingOperation, binding: issued.binding, signal, retainedBase, executionBase,
+        consume: ({scan, receipt, retainedBytes, executionBytes}) => {
+          const original = acquired.control.captureCheckedClientInferModelObservation(issued, scan, receipt, limits);
+          retainedBase += retainedBytes; executionBase += executionBytes;
+          return original;
+        },
+      }) : acquired.control.captureCheckedClientInferModelObservation(issued,
+        earlier.results.modelScan, earlier.results.modelReceipt, limits, earlier.value);
+      current?.(); signal?.throwIfAborted();
+      if (!Number.isSafeInteger(model?.unit) || model.unit < 0 ||
+          modelOriginals.some(original => original.unit === model.unit)) {
+        throw new TypeError('OriginalEffectModelUnitInventoryRequired');
+      }
+      modelOriginals.push(model);
+    }
+    const issued = issuedModels[0];
+    const plan = sources.length === 0
+      ? sourceFreeInferEffectPublicationPlan({acquired, compiled, operation, issuance,
+        issuedModel: issued, modelOriginals, modelEvidence}).plan
+      : acquiredMultiEffectPublicationPlan({acquired, sources,
+        captureStartedAt, captureCompletedAt, issuedModel: issued, modelOriginals, modelEvidence, keyedSource, sourcePlan, managedRun, sourceUnitsOriginal});
+    const generations = operations.flatMap(original => original.contentGenerations?.() ?? []);
+    const completePlan = generations.length === 0 ? plan : Object.freeze({...plan,
+      receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations: generations}),
+      captureEvidence: Object.freeze({...plan.captureEvidence, contentGenerations: generations})});
+    return Object.freeze({...issued, bindings: Object.freeze(issuedModels.map(original => original.binding)), plan: completePlan});
   } catch (error) {
-    acquired.moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+    // Group custody retains each original binding before the first await. A
+    // standalone caller transfers no such custody, so retire its partials here.
+    if (retainBinding === undefined) {
+      for (const issued of issuedModels) {
+        try {acquired.moon.clientProgramReleaseInferInvocationBinding(issued.binding);} catch { /* Preserve the primary. */ }
+      }
+    }
     throw error;
   }
 }
@@ -691,7 +912,7 @@ export function restoreInferTaskRunAdmission({control, preparedProgram, restored
   const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,
     JSON.parse(runDefinition.wire));
   const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
-  return Object.freeze({...compiled, compiled, runDefinition,
+  return Object.freeze({...compiled, compiled, runDefinition, requestIdentity,
     ...queryTime,
     createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: restored.graph});
 }
@@ -833,7 +1054,7 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
   const queryTime=original === undefined
     ? bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition)
     : {queryTimePreparation:original.queryTimePreparation,queryTime:original.queryTime};
-  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt, publicationPreparation,
+  const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt, publicationPreparation, requestIdentity,
     ...queryTime,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
@@ -912,7 +1133,7 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
   captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
   const whole = Array.isArray(sources) && sources.some(({captured}) => captured?.inputKind === 'whole-input');
-  if (!Array.isArray(sources) || sources.length !== 2 ||
+  if (!Array.isArray(sources) || sources.length < 1 ||
       moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
       sources.some(({captured, sourceEvidence}, task) =>
         sourceEvidence === undefined || captured?.logicalInput === undefined ||

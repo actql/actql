@@ -368,6 +368,8 @@ pub fn strategy_fixture_retained_captured_filter_arithmetic(@actql/actql/connect
 
 pub fn strategy_fixture_retained_chain_filter_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
+pub fn strategy_fixture_retained_control_work_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
+
 pub fn strategy_fixture_retained_events_asof_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
 pub fn strategy_fixture_retained_input_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool

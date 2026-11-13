@@ -17,7 +17,10 @@ pub fn[P] reserve_preparation_publication_phase(
 }
 
 ///|
-fn[I, P] reserve_original_preparation_publication_phase(
+// Both closed callers extend the same running body reservation. Their purpose
+// selection stays at the original public entrance; ownership/current/resize
+// and reentrant-return handling have one implementation.
+fn[I, P] reserve_original_preparation_running_phase(
   borrowed : PreparationCapacityBorrow[I, P],
   body : P,
   retained_peak : Int64,

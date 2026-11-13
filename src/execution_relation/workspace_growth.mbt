@@ -53,6 +53,22 @@ fn grow_workspace(
   let slot_peak = Int::max(growth.slot_peak, slots)
   let logical_peak = Int64::max(growth.logical_peak, logical)
   let text_peak = Int64::max(growth.text_peak, text)
+  if slot_peak == growth.slot_peak &&
+    logical_peak == growth.logical_peak &&
+    text_peak == growth.text_peak &&
+    growth.retained_outputs is Some(original_retained) &&
+    original_retained == retained &&
+    growth.used <= growth.funded &&
+    (growth.reserve_retained is None || retained <= growth.retained_funded) {
+    // The same metered output total and workspace peaks already own this exact
+    // quote, including direct output charges within its funded page. Releases
+    // change live extents, never that quote. Unmetered callers may supply an
+    // explicit retained amount, so None always keeps the full checked recipe.
+    growth.slots = slots
+    growth.logical = logical
+    growth.text = text
+    return true
+  }
   guard execution_capacity_inventory_add(
       0L,
       CursorRootSlots,
@@ -237,22 +253,44 @@ fn working_row_workspace(
 // Existing output budgets supply complete cumulative usage before a row is
 // transferred into persistent storage. Each budget retains its funded peak;
 // all buffers compose on the same task attachment through original cleanup.
+fn output_retention_required_bytes(nodes : Int, text : Int) -> Int64? {
+  execution_capacity_inventory_add(0L, ValueNodeSlots, nodes.to_int64(), 1).bind(node_bytes => {
+      execution_capacity_inventory_add(
+        node_bytes,
+        DecodedTextBytes,
+        text.to_int64(),
+        1,
+      )
+    },
+  )
+}
+
+///|
 fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool {
   guard budget.retention is Some(growth) &&
     growth.retained_outputs is Some(total) else {
     return true
   }
+  let (nodes, text, copies) = match budget.row_scratch_start {
+    None => (nodes, text, 1L)
+    Some((start_nodes, start_text)) =>
+      (nodes - start_nodes, text - start_text, 2L)
+  }
+  // Array.clear may retain the previous row in Native backing. Keep TWO
+  // complete largest rows funded through original Task cleanup, not just the
+  // current logical length. Never return or reset an original output charge.
+  guard output_retention_required_bytes(nodes, text) is Some(row_bytes) &&
+    checked_preparation_add_product(0L, row_bytes, copies) is Some(required) else {
+    growth.failed = true
+    return false
+  }
+  let required = if budget.row_scratch_start is Some(_) {
+    Int64::max(required, budget.retention_funded)
+  } else {
+    required
+  }
   guard !growth.failed &&
     !growth.busy &&
-    execution_capacity_inventory_add(0L, ValueNodeSlots, nodes.to_int64(), 1)
-    is Some(node_bytes) &&
-    execution_capacity_inventory_add(
-      node_bytes,
-      DecodedTextBytes,
-      text.to_int64(),
-      1,
-    )
-    is Some(required) &&
     required >= budget.retention_funded &&
     required - budget.retention_funded <= 9223372036854775807L - total else {
     growth.failed = true

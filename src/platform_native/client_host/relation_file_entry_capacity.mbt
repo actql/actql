@@ -8,10 +8,12 @@
 //   must be recensused if its constructor chain changes.
 // * Canonical reserve/current frontier: H26/R20/S60. The token and new usage
 //   remain Read-owned; this is not another reservation in the business Ledger.
-// * Arena entry, self-marker Ref/Some and borrowed Ledger Some: H4/R11/S8.
+// * Arena entry, self-marker Ref/Some and borrowed Ledger Some: H5/R12/S8.
 // * Arena Ready/Pending, Result and Some: H3/R3/S3.
-// * Client entry/access/source projections and inert refusals: H9/R27/S10.
+// * Client entry/access/source projections and inert refusals: H11/R29/S11.
 //   Includes two preowned current/export scalar Errs and their entry fields.
+//   The clearable original payload adds tuple/Some H2/R2/S1 to the old
+//   three-field view; physical retirement must not retain those heavy aliases.
 // * Pending client failure, entry Some, Result and outer Some: H4/R7/S3.
 //   This dominates the Ready return H2/R2/S2 without fabricating a grant.
 // * Never-entered cancellation/current frontier: H22/R13/S59. It is retained
@@ -37,6 +39,13 @@ pub fn native_relation_file_entry_read_capacity(
   if !@row_file.native_relation_file_input_valid(selection, limits) {
     return None
   }
+  native_relation_file_entry_read_control_capacity(selection)
+}
+
+///|
+fn native_relation_file_entry_read_control_capacity(
+  selection : @row_file.NativeRelationFileSelection,
+) -> @execution.ExecutionCapacity? {
   let key_fields = match selection.key_path {
     None => 0L
     Some(path) => 14L + 3L * path.length().to_int64()
@@ -49,9 +58,9 @@ pub fn native_relation_file_entry_read_capacity(
   guard @execution.preparation_representation_cost({
       record_headers: 12L +
       26L +
-      4L +
+      5L +
       3L +
-      9L +
+      11L +
       4L +
       22L +
       5L +
@@ -63,9 +72,9 @@ pub fn native_relation_file_entry_read_capacity(
       9L,
       reference_slots: 2L +
       20L +
-      11L +
+      12L +
       3L +
-      27L +
+      29L +
       7L +
       13L +
       2L +
@@ -80,7 +89,7 @@ pub fn native_relation_file_entry_read_capacity(
       60L +
       8L +
       3L +
-      10L +
+      11L +
       3L +
       59L +
       2L +
@@ -120,4 +129,39 @@ pub fn native_relation_file_entry_outer_capacity() -> @execution.ExecutionCapaci
     return None
   }
   @execution.execution_capacity(bytes, bytes)
+}
+
+///|
+/// Complete conservative original-Read envelope for the fixed Whole entry.
+/// Sum the existing entry and Whole caller frontiers without temporal reuse.
+/// Their distinct business reservation is still owned by the original body;
+/// this DATA is for the original Read's separately backed construction realm.
+pub fn native_relation_whole_file_entry_read_capacity(
+  selection : @row_file.NativeRelationFileSelection,
+  limits : @row_file.NativeRelationFileLimits,
+  provider : @row_file.NativeRelationFilePreparedProvider,
+  graph : @strategy.CheckedDAG,
+) -> @execution.ExecutionCapacity? {
+  // The prepared provider checks the actual admitted managed profile. Do not
+  // apply the standalone diagnostic reader's independent 64 KiB ceiling.
+  guard native_relation_whole_file_work_control_capacity(
+      selection, limits, provider, graph,
+    )
+    is Some(whole) &&
+    native_relation_file_entry_read_control_capacity(selection) is Some(entry) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_retained_bytes(entry),
+      @execution.execution_capacity_retained_bytes(whole),
+      1L,
+    )
+    is Some(r) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(entry),
+      @execution.execution_capacity_execution_bytes(whole),
+      1L,
+    )
+    is Some(e) else {
+    return None
+  }
+  @execution.execution_capacity(r, e)
 }

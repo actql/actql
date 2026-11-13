@@ -5,9 +5,11 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture}
   from './native-project-configuration-fixture.mjs';
-import {nativeClientFileResponseTestFile} from './native-core-test-selection.mjs';
+import {nativeClientFileResponseTestFile, nativeCoreScopedTestEnvironment}
+  from './native-core-test-selection.mjs';
 
 test('Native staged import quote belongs only to its exact scoped Request case', () => {
   const wrapper = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
@@ -26,10 +28,23 @@ test('Native staged import quote belongs only to its exact scoped Request case',
   assert.equal(base.ACTQL_TEST_NATIVE_IMPORT_QUOTE, undefined, 'ordinary children must not inherit the marker');
   assert.equal(base.ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT, undefined);
   assert.equal(base.ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE, undefined);
-  const start = wrapper.indexOf('{...fixtureEnvironment, ...scoped.environment,');
-  const end = wrapper.indexOf('}}));', start);
-  assert(start >= 0 && end > start);
-  const environment = wrapper.slice(start, end + 1);
+  const environments = [];
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'spawn') {
+      const env = node.arguments[2]?.properties?.find(value => value.key?.name === 'env')?.value;
+      if (env?.properties?.some(value => value.type === 'SpreadElement' &&
+        value.argument.type === 'MemberExpression' && value.argument.object.name === 'scoped' &&
+        value.argument.property.name === 'environment')) environments.push(env);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(wrapper, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(environments.length, 1, 'One actual async scoped child environment required');
+  const environment = wrapper.slice(environments[0].start, environments[0].end);
   const source = 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt';
   const authored = readFileSync(new URL('../' + source, import.meta.url), 'utf8');
   const names = [...authored.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]);
@@ -43,6 +58,7 @@ test('Native staged import quote belongs only to its exact scoped Request case',
       physical: {ACTQL_TEST_INSTALLED_PROCESS_ROOT: '/original/physical'},
       content: {ACTQL_TEST_NATIVE_CONTENT_LOOKUPS: '2', ACTQL_TEST_NATIVE_STORE_ROOT: '/original/content'},
       nativeClientFileResponseTestFile,
+      nativeCoreScopedTestEnvironment,
       fileReceiptCheckpoint: {ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE: 'original-file-receipt'},
       test: {source: selectedSource, index},
     });

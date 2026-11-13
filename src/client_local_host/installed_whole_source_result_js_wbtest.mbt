@@ -6,9 +6,32 @@ fn whole_source_result_publication_fixture(
   selected_result? : Bool = false,
   filtered_root? : Bool = false,
   filtered_rows? : Bool = false,
+  native_geometry? : Bool = false,
+  native_execution? : Bool = false,
+  numeric_case? : Bool = false,
+  source_free_refusal? : Bool = false,
+  native_identity? : Bool = false,
+  native_retention? : Bool = false,
 ) -> Unit raise {
-  let declaration = pure_provider_declaration()
-  let document = if filtered_rows {
+  let declaration = if numeric_case {
+    let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 10,
+      max_fields: 100,
+    }).unwrap()
+    let (query_name, original) = @row_source_host.mock_churn_risk_query_alias_at(
+      catalogue, 1,
+    ).unwrap()
+    assert_eq(query_name, "snowflake.usage_30d")
+    original
+  } else {
+    pure_provider_declaration()
+  }
+  let document = if numeric_case {
+    "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d"
+  } else if filtered_rows {
     (
       #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 1","as":"eligible"},{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
     )
@@ -21,34 +44,105 @@ fn whole_source_result_publication_fixture(
       #|{"version":"actql/0.1","id":"whole-source-plan","stages":[{"id":"read","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"read","result":"out"}}}}
     )
   }
-  let (parent, child, _, input) = registration_parent_fixture(
-    text=document,
-    environment=Some(pure_provider_environment(declaration)),
-  )
-  guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
-    fail("unfiltered whole Source must check")
+  let (parent, prepared, input) = if numeric_case {
+    // Same shipped profile selected by the actual Native default entrance;
+    // this existing fixed CID also pins the original numeric task fixtures.
+    let environment = pure_provider_environment(
+      declaration,
+      numeric_profile_cid=Some(
+        "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+      ),
+    )
+    let view = declaration.views[0]
+    let wire : Json = {
+      "environmentCid": Json::string(
+        @checked.checking_environment_cid(environment),
+      ),
+      "aliases": [
+        {
+          "name": "snowflake.usage_30d",
+          "sourceRef": Json::string(view.source_ref),
+          "sourceViewContractCid": Json::string(view.view_cid),
+          "schemaContractCid": Json::string(view.carrier_schema_cid),
+        },
+      ],
+    }
+    let publication = @source_publication.prepare_published_query_environment(
+      environment,
+      wire.stringify(),
+    ).unwrap()
+    let captured : Json = { "format": "sql", "text": Json::string(document) }
+    let captured = captured.stringify()
+    let (parent, input) = native_driver_parent(captured)
+    match
+      prepare_request_native_source_computation(
+        parent,
+        input,
+        request_native_test_value(captured),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+      ) {
+      Ok(Pure) => ()
+      Ok(_) => fail("original CASE must retain Pure computation")
+      Err(original) => {
+        let cause : Error = original
+        fail("original CASE Request: " + @debug.to_string(cause))
+      }
+    }
+    let prepared = parent.compiled_program.unwrap()
+    assert_eq(
+      @strategy.graph_task_count(
+        @publication_host.prepared_client_graph(prepared),
+      ),
+      2,
+    )
+    (parent, prepared, input)
+  } else {
+    let (parent, child, _, input) = registration_parent_fixture(
+      text=document,
+      environment=Some(pure_provider_environment(declaration)),
+    )
+    guard finish_program_check_preparation(child).unwrap()
+      is @checked.Checked(_) else {
+      fail("unfiltered whole Source must check")
+    }
+    let prepared = compile_program_check_preparation(
+      child,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+    (parent, prepared, input)
   }
-  let prepared = compile_program_check_preparation(
-    child,
-    @publication_host.client_standard_program_preparation_limits(),
-  ).unwrap()
-  assert_true(
-    physical_equal(
-      continue_request_program_preparation(parent, input).unwrap(),
-      prepared,
-    ),
-  )
+  if !numeric_case {
+    assert_true(
+      physical_equal(
+        continue_request_program_preparation(parent, input).unwrap(),
+        prepared,
+      ),
+    )
+  }
   reserve_request_program_plan(parent, input).unwrap()
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
     "whole-source-plan",
   ).unwrap()
+  let assets = @publication_host.client_local_product_assets()
+  let (registry_body, values_body, fragment_body, ordered_body) = if numeric_case {
+    (assets.registry, assets.values, Some(assets.fragment), assets.ordered)
+  } else {
+    (
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+    )
+  }
   let contracts = prepare_installed_sequence_contracts(
-    source_query_original_registry,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
+    registry_body, values_body, fragment_body, ordered_body,
   ).unwrap()
   let provider = installed_json_source_reader_capacity(
     [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4],
@@ -65,27 +159,42 @@ fn whole_source_result_publication_fixture(
     ),
     1,
   )
+  let transport_bytes = if native_identity { 1048576L } else { 4096L }
   let source = prepare_installed_whole_source_capacity(
     prepared,
     original,
     declaration,
     contracts,
-    {
-      max_rows: 128,
-      page: { max_bytes: 4096, max_nodes: 1000, max_depth: 20, max_rows: 128, },
-      retention: {
-        max_nodes: 10000,
-        max_text_bytes: 10000,
-        max_depth: 20,
-        max_work: 1000000,
-      },
-      wire: {
-        max_columns: 1,
-        max_order_work: 10000,
-        max_bytes: 20000,
-        max_nodes: 10000,
-        max_depth: 20,
-      },
+    if native_identity {
+      // The actual Native mock File profile, through its existing policy.
+      installed_row_input_policy(100, 1048576, 4096, 32, 100)
+    } else {
+      {
+        max_rows: 128,
+        page: {
+          max_bytes: 4096,
+          max_nodes: 1000,
+          max_depth: 20,
+          max_rows: 128,
+        },
+        retention: {
+          max_nodes: 10000,
+          max_text_bytes: 10000,
+          max_depth: 20,
+          max_work: 1000000,
+        },
+        wire: {
+          max_columns: if numeric_case {
+            3
+          } else {
+            1
+          },
+          max_order_work: 10000,
+          max_bytes: 20000,
+          max_nodes: 10000,
+          max_depth: 20,
+        },
+      }
     },
     Some(provider),
   ).unwrap()
@@ -93,12 +202,12 @@ fn whole_source_result_publication_fixture(
     prepared,
     request,
     source,
-    4096L,
-    4096L,
+    transport_bytes,
+    transport_bytes,
     contracts,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
+    values_body,
+    fragment_body,
+    ordered_body,
     retained_output~,
     provider_factory=_ => [],
   ).unwrap()
@@ -174,9 +283,94 @@ fn whole_source_result_publication_fixture(
     }
   }
   let owner = begin_request_capture_managed_run(parent, request).unwrap()
-  let (read, original, acquisition, _) = begin_installed_managed_whole_source_read(
-    owner, prepared, request, declaration,
-  ).unwrap()
+  if native_geometry {
+    let before = @resources.ledger_usage(owner.ledger.unwrap())
+    let (physical, rows, entries, evidence_entries) = installed_managed_capture_publication_geometry_original(
+      owner, prepared, request,
+    ).unwrap()
+    assert_true(physical_equal(physical, plan.graph))
+    assert_true(physical_equal(rows, plan.capacity_plan.imports.row))
+    assert_eq(entries, plan.capacity_plan.execution.rows.metadata_entries)
+    assert_eq(
+      evidence_entries,
+      plan.capacity_plan.execution.rows.retained_entries,
+    )
+    assert_eq(@strategy.graph_captured_prefix(physical), 0)
+    assert_eq(@resources.ledger_usage(owner.ledger.unwrap()), before)
+    assert_true(
+      installed_managed_capture_publication_geometry_original(
+        { ..owner, },
+        prepared,
+        request,
+      )
+      is None,
+    )
+    let foreign = @publication_host.prepare_source_free_client_request_identity(
+      prepared,
+      "sha256:" + "a".repeat(64),
+      "foreign-native-geometry",
+    ).unwrap()
+    assert_true(
+      installed_managed_capture_publication_geometry_original(
+        owner, prepared, foreign,
+      )
+      is None,
+    )
+    assert_eq(
+      @row_source_host.row_input_acquisition_target_resource(source.acquisition),
+      if numeric_case {
+        "usage_30d"
+      } else {
+        "records"
+      },
+    )
+    let tasks = @strategy.graph_task_count(physical).to_int64()
+    let ports = @strategy.graph_data_count(physical).to_int64()
+    // Independent fixed task-loop vector; no new Resource or runtime grant.
+    let expected = (16L + 12L * tasks + 2L * ports) * 16L +
+      (32L + 16L * tasks + 4L * ports) * 8L +
+      (8L + 4L * tasks + ports) * 8L
+    let controller = source_input_local_tasks_control_capacity(physical).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(controller),
+      expected,
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(controller),
+      expected,
+    )
+    assert_true(retained_effect_local_tasks_control_capacity(physical) is None)
+  }
+  let (read, original, acquisition, _) = if native_geometry {
+    assert_true(
+      begin_installed_managed_whole_source_read_on_ledger(
+        owner,
+        prepared,
+        request,
+        declaration,
+        source,
+        owner.ledger.unwrap(),
+        transport_bytes - 1L,
+        transport_bytes,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(owner.reads[0] is None)
+    begin_installed_managed_whole_source_read_on_ledger(
+      owner,
+      prepared,
+      request,
+      declaration,
+      source,
+      owner.ledger.unwrap(),
+      transport_bytes,
+      transport_bytes,
+    ).unwrap()
+  } else {
+    begin_installed_managed_whole_source_read(
+      owner, prepared, request, declaration,
+    ).unwrap()
+  }
   assert_true(physical_equal(original, source.original))
   assert_true(physical_equal(acquisition, source.acquisition))
   let stopped = Ref(false)
@@ -185,13 +379,13 @@ fn whole_source_result_publication_fixture(
     acquisition,
     "whole-input-plan",
     _ => true,
-    4096L,
-    4096L,
+    transport_bytes,
+    transport_bytes,
   ).unwrap()
   @row_source_host.begin_row_run_with_page_limits(
     run,
-    { max_bytes: 4096, max_nodes: 1000, max_depth: 20, max_rows: 128, },
-    128,
+    @row_source_host.row_input_acquisition_limits(acquisition).page,
+    @row_source_host.row_input_acquisition_limits(acquisition).max_rows,
   ).unwrap()
   let responses = @row_source_host.borrow_row_input_run_responses(
     run, acquisition,
@@ -199,11 +393,45 @@ fn whole_source_result_publication_fixture(
   @row_source_host.bind_row_run_response_borrow_cleanup(responses, () => {
     stopped.val
   }).unwrap()
-  let body = @utf8.encode("[{\"id\":2},{\"id\":1}]")
+  let body = @utf8.encode(
+    if numeric_case {
+      whole_native_numeric_source_document
+    } else {
+      "[{\"id\":2},{\"id\":1}]"
+    },
+  )
   let charge = @row_source_host.charge_row_run_page(run, body).unwrap()
-  @row_source_host.accept_charged_row_run_page(run, charge, body).unwrap()
-  |> ignore
-  @row_source_host.finish_row_run(run).unwrap()
+  if numeric_case {
+    // Same original complete-file projection/typed int64 conversion as the
+    // Native file reader, before the charged whole-input Row acceptance.
+    let document = @row_source_host.admit_relation_document(
+      body,
+      { max_bytes: 4096, max_nodes: 1000, max_depth: 20, max_rows: 128, },
+      10000000,
+    ).unwrap()
+    let target = @row_source_host.project_relation_target_document(
+      document,
+      declaration,
+      "usage_30d",
+      ["snowflake", "usage_30d", "rows"],
+      Some(["snowflake", "usage_30d", "key"]),
+      "account_id",
+      [],
+    ).unwrap()
+    @row_source_host.accept_charged_relation_input_document(
+      run, charge, acquisition, target, 10000000,
+    ).unwrap()
+    |> ignore
+    @row_source_host.finish_row_run(run).unwrap()
+    assert_true(
+      @row_source_host.discard_relation_target_document_original(target),
+    )
+    assert_true(@row_source_host.discard_relation_document_original(document))
+  } else {
+    @row_source_host.accept_charged_row_run_page(run, charge, body).unwrap()
+    |> ignore
+    @row_source_host.finish_row_run(run).unwrap()
+  }
   @row_source_host.begin_row_capture(run).unwrap()
   let mut ready = false
   for _ in 0..<10000 {
@@ -238,74 +466,214 @@ fn whole_source_result_publication_fixture(
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let limits = original_keyed_content_workspace().export_limits
-  let identity = @query.identify_captured_source_relation(
-    captured,
-    128,
-    limits.values,
-    limits.payload_wire,
-    limits.logical_wire,
-    limits.schema,
-    limits.max_batch_bytes,
-  ).unwrap()
-  let logical = @publication_host.issue_captured_whole_source_input_logical(
-    plan.graph,
-    captured,
-    identity,
-    original,
-  ).unwrap()
-  let authority = "sha256:" + "2".repeat(64)
-  let policy = @publication_host.prepared_client_publication_data_policy_cid(
-    prepared,
-  ).unwrap()
-  let facts = @row_source_host.row_input_acquisition_facts(acquisition)
-  let evidence = @row_source_host.issue_row_input_source_evidence(
-    acquisition,
-    capture,
-    identity,
-    logical,
-    authority,
-    facts.source_data_policy_cid,
-    "2026-10-30T00:00:01.000Z",
-  ).unwrap()
-  let tight = @utf8.encode(@publication.run_evidence_value_json(evidence)).length() -
-    1
-  assert_true(
-    @publication_host.issue_client_compiled_whole_source_invocation(
-      compiled, definition, captured, identity, original, evidence, logical, authority,
-      policy, "2026-10-30T00:00:00.000Z", "2026-10-30T00:00:01.000Z", tight, 8192,
-      64,
+  let prepare_source_evidence = () => {
+    let identity = if native_identity {
+      // Exact Native caller's incremental identity arguments from the SAME
+      // original acquisition. This is not the generic Result export profile.
+      let bounds = @row_source_host.row_input_acquisition_limits(acquisition)
+      let scan = match
+        @query.start_captured_source_cell_identity(
+          captured,
+          bounds.max_rows,
+          bounds.retention,
+          bounds.wire,
+          bounds.wire,
+          {
+            max_fields: bounds.wire.max_columns,
+            max_bytes: bounds.wire.max_bytes,
+            max_nodes: bounds.wire.max_nodes,
+            max_depth: bounds.wire.max_depth,
+          },
+          bounds.retention.max_work,
+          @query.captured_source_cell_identity_workspace_slots(
+            captured,
+            bounds.retention,
+            bounds.wire,
+            bounds.wire,
+          ).unwrap(),
+          bounds.wire.max_bytes,
+        ) {
+        Ok(scan) => scan
+        Err(@query.Export(@execution.Admission(@execution.CaptureLimit))) =>
+          fail("Native Source identity: Export.Admission.CaptureLimit")
+        Err(_) => fail("Native Source identity: another original refusal")
+      }
+      let mut complete = false
+      for _ in 0..<100000 {
+        let next = @query.captured_source_cell_identity_next_capacity(scan).unwrap()
+        if @query.advance_captured_source_cell_identity(scan, 31, next).unwrap().0 {
+          complete = true
+          break
+        }
+      }
+      assert_true(complete)
+      @query.finish_captured_source_cell_identity(scan).unwrap()
+    } else {
+      @query.identify_captured_source_relation(
+        captured,
+        128,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+      ).unwrap()
+    }
+    let logical = @publication_host.issue_captured_whole_source_input_logical(
+      plan.graph,
+      captured,
+      identity,
+      original,
+    ).unwrap()
+    let authority = if native_retention {
+      @publication_host.client_request_authority_scope_cid(request)
+    } else {
+      "sha256:" + "2".repeat(64)
+    }
+    let policy = @publication_host.prepared_client_publication_data_policy_cid(
+      prepared,
+    ).unwrap()
+    let facts = @row_source_host.row_input_acquisition_facts(acquisition)
+    let evidence = @row_source_host.issue_row_input_source_evidence(
+      acquisition,
+      capture,
+      identity,
+      logical,
+      authority,
+      facts.source_data_policy_cid,
+      "2026-10-30T00:00:01.000Z",
+    ).unwrap()
+    let tight = @utf8.encode(@publication.run_evidence_value_json(evidence)).length() -
+      1
+    assert_true(
+      @publication_host.issue_client_compiled_whole_source_invocation(
+        compiled, definition, captured, identity, original, evidence, logical, authority,
+        policy, "2026-10-30T00:00:00.000Z", "2026-10-30T00:00:01.000Z", tight, 8192,
+        64,
+      )
+      is Err(_),
     )
-    is Err(_),
-  )
-  let (observation, invocation) = issue_program_whole_source_publication_invocation(
-    owner, prepared, compiled, definition, capture, identity, evidence, logical,
-    authority, policy, "2026-10-30T00:00:00.000Z", "2026-10-30T00:00:01.000Z", 65536,
-    8192, 64,
-  ).unwrap()
-  assert_true(physical_equal(owner.publication_definition.unwrap(), definition))
-  assert_true(physical_equal(owner.publication_invocation.unwrap(), invocation))
-  assert_true(
-    @publication.run_evidence_value_json(observation).contains(
-      @publication.run_evidence_value_identity(evidence),
-    ),
-  )
-  assert_true(
-    issue_program_whole_source_publication_invocation(
+    let (observation, invocation) = issue_program_whole_source_publication_invocation(
       owner, prepared, compiled, definition, capture, identity, evidence, logical,
       authority, policy, "2026-10-30T00:00:00.000Z", "2026-10-30T00:00:01.000Z",
       65536, 8192, 64,
+    ).unwrap()
+    assert_true(
+      physical_equal(owner.publication_definition.unwrap(), definition),
     )
-    is Err(WrongPhase),
-  )
+    assert_true(
+      physical_equal(owner.publication_invocation.unwrap(), invocation),
+    )
+    assert_true(
+      @publication.run_evidence_value_json(observation).contains(
+        @publication.run_evidence_value_identity(evidence),
+      ),
+    )
+    assert_true(
+      issue_program_whole_source_publication_invocation(
+        owner, prepared, compiled, definition, capture, identity, evidence, logical,
+        authority, policy, "2026-10-30T00:00:00.000Z", "2026-10-30T00:00:01.000Z",
+        65536, 8192, 64,
+      )
+      is Err(WrongPhase),
+    )
+    (
+      authority,
+      policy,
+      evidence,
+      invocation,
+      @query.captured_source_relation_logical_cid(identity),
+    )
+  }
+  // Native retains the same completed Compute output before issuing Source
+  // identity/evidence; the legacy fixture keeps its original earlier order.
+  let early_evidence = if native_identity {
+    None
+  } else {
+    Some(prepare_source_evidence())
+  }
   let (host, dag, _) = open_installed_managed_capture_host(
     owner,
     prepared,
     request,
     [captured],
   ).unwrap()
-  let publication = reserve_program_publication(owner, prepared).unwrap()
+  if source_free_refusal {
+    let before = @resources.ledger_usage(owner.ledger.unwrap()).attempts
+    let rejected = execute_source_free_local_tasks_guarded(host, 64, 10000, () => {
+      true
+    })
+    guard rejected is Err(original) else {
+      fail("a Whole input cannot supply the Source-free entrance")
+    }
+    assert_true(
+      local_values_execution_failure_issue(original) is UnsupportedGraph,
+    )
+    assert_true(retry_local_values_execution_failure_cleanup(original))
+    assert_false(@strategy.captured_task_completed(dag, 0))
+    assert_eq(@resources.ledger_usage(owner.ledger.unwrap()).attempts, before)
+    assert_true(retire_installed_source_read(read) is Err(_))
+    stopped.val = true
+    let mut retired = false
+    for _ in 0..<10000 {
+      if retire_installed_source_read(read) is Ok(_) {
+        retired = true
+        break
+      }
+    }
+    assert_true(retired)
+    assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+    @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    return
+  }
+  let early_publication = if native_identity {
+    None
+  } else {
+    Some(reserve_program_publication(owner, prepared).unwrap())
+  }
+  if native_execution {
+    let foreign = { ..owner, }
+    let callbacks = Ref(0)
+    let check = () => {
+      callbacks.val = callbacks.val + 1
+      true
+    }
+    let copied = execute_installed_whole_source_values_guarded(
+      foreign, prepared, request, host, 64, 10000, check,
+    )
+    assert_true(
+      copied is Err(original) &&
+      local_values_execution_failure_issue(original) is UnsupportedGraph,
+    )
+    let bound = owner.source_free_captured
+    owner.source_free_captured = None
+    let unbound = execute_installed_whole_source_values_guarded(
+      owner, prepared, request, host, 64, 10000, check,
+    )
+    owner.source_free_captured = bound
+    assert_true(
+      unbound is Err(original) &&
+      local_values_execution_failure_issue(original) is UnsupportedGraph,
+    )
+    assert_eq(callbacks.val, 0)
+    assert_eq(@strategy.next_captured_task(dag), Some(0))
+  }
   let execution = match
-    execute_source_free_values_guarded(host, 64, 10000, () => true) {
+    (if native_execution {
+      execute_installed_whole_source_values_guarded(
+        owner,
+        prepared,
+        request,
+        host,
+        64,
+        10000,
+        () => true,
+      )
+    } else {
+      execute_source_free_values_guarded(host, 64, 10000, () => true)
+    }) {
     Ok(value) => value
     Err(original) => {
       let label = match local_values_execution_failure_issue(original) {
@@ -357,15 +725,32 @@ fn whole_source_result_publication_fixture(
       fail("whole result execution: " + label)
     }
   }
-  assert_eq(
-    execution.rows().unwrap(),
-    if filtered_rows {
-      ["{\"id\":2}"]
-    } else {
-      ["{\"id\":2}", "{\"id\":1}"]
-    },
-  )
+  if numeric_case {
+    // Match the original ordinary observer's independent JSON value oracle;
+    // object property order is not part of that caller's assertion.
+    assert_eq(execution.rows().unwrap().map(row => @json.parse(row)), [
+      @json.parse("{\"total\":16,\"average\":8}"),
+    ])
+  } else {
+    assert_eq(
+      execution.rows().unwrap(),
+      if filtered_rows {
+        ["{\"id\":2}"]
+      } else {
+        ["{\"id\":2}", "{\"id\":1}"]
+      },
+    )
+  }
   assert_true(@strategy.captured_task_completed(dag, 0))
+  let (authority, policy, evidence, invocation, input_cid) = match
+    early_evidence {
+    Some(value) => value
+    None => prepare_source_evidence()
+  }
+  let publication = match early_publication {
+    Some(value) => value
+    None => reserve_program_publication(owner, prepared).unwrap()
+  }
   let export_limits = installed_managed_publication_limits(
     owner, prepared, 10000000,
   ).unwrap()
@@ -451,44 +836,98 @@ fn whole_source_result_publication_fixture(
   wire.write_string(stream.finish().unwrap())
   // No authored/inherited order exists: the checked Result uses its
   // canonical field ordering, independently of physical input arrival.
-  assert_eq(
-    wire.to_string(),
-    if filtered_rows {
-      "[{\"id\":2}]"
-    } else {
-      "[{\"id\":1},{\"id\":2}]"
-    },
-  )
+  if numeric_case {
+    assert_eq(
+      @json.parse(wire.to_string()),
+      @json.parse("[{\"total\":16,\"average\":8}]"),
+    )
+  } else {
+    assert_eq(
+      wire.to_string(),
+      if filtered_rows {
+        "[{\"id\":2}]"
+      } else {
+        "[{\"id\":1},{\"id\":2}]"
+      },
+    )
+  }
   assert_true(physical_equal(publication.run.unwrap(), dag))
   stream
   .issue_result_evidence(
-    authority,
-    [@publication.run_evidence_value_identity(evidence)],
+    if native_retention {
+      @publication.publication_contract_identity(
+        @publication_host.client_compiled_run_plan(compiled),
+      )
+    } else {
+      authority
+    },
+    if native_retention {
+      [input_cid]
+    } else {
+      [@publication.run_evidence_value_identity(evidence)]
+    },
     @publication.publication_contract_identity(definition),
     policy,
-    "sha256:" + "5".repeat(64),
+    if native_retention {
+      authority
+    } else {
+      "sha256:" + "5".repeat(64)
+    },
     65536,
     8192,
     64,
   )
   .unwrap()
-  let retention = @publication.seal_publication_contract(
-    "result_retention_policy",
-    "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
-    "8".repeat(64) +
-    "\",\"effective_data_policy_cid\":\"" +
-    policy +
-    "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-03T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
-    "9".repeat(64) +
-    "\",\"metadata_delete_by\":\"2099-01-04T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
-    "a".repeat(64) +
-    "\"}",
-    65536,
-    8192,
-    64,
-  ).unwrap()
-  stream.issue_artifact(invocation, retention, 65536, 8192, 64).unwrap()
-  |> ignore
+  let retention = if native_retention {
+    let originals = @publication_host.client_local_product_common_originals(
+      "/Users/operator/.actql-local",
+      "2026-11-11T00:00:00.000Z",
+      @publication_host.client_local_product_assets(),
+    ).unwrap()
+    let wire = @utf8.decode(originals.retention_policy) catch {
+      _ => fail("original Native retention must be UTF-8")
+    }
+    let original = @publication.admit_publication_contract(
+      "result_retention_policy", wire, 65536, 8192, 64,
+    ).unwrap()
+
+    // The unchanged issuer must reject the original baseline policy before
+    // the same existing projection binds the actual resolved Source policy.
+    assert_true(
+      stream.issue_artifact(invocation, original, 65536, 8192, 64)
+      is Err(
+        @publication_host.Artifact(@publication.ArtifactIssuancePolicyMismatch)
+      ),
+    )
+    let selected = @publication.issue_result_retention_for_data_policy(
+      original, policy, 8192, 64, 8,
+    ).unwrap()
+    assert_true(@publication.result_retention_bounds_equal(original, selected))
+    selected
+  } else {
+    @publication.seal_publication_contract(
+      "result_retention_policy",
+      "{\"version\":\"actql-result-retention-policy/0.1\",\"retention_contract_cid\":\"sha256:" +
+      "8".repeat(64) +
+      "\",\"effective_data_policy_cid\":\"" +
+      policy +
+      "\",\"available_until\":\"2099-01-01T00:00:00.000Z\",\"delete_by\":\"2099-01-02T00:00:00.000Z\",\"extension_ceiling_at\":\"2099-01-03T00:00:00.000Z\",\"metadata_retention_policy_cid\":\"sha256:" +
+      "9".repeat(64) +
+      "\",\"metadata_delete_by\":\"2099-01-04T00:00:00.000Z\",\"clock_contract_cid\":\"sha256:" +
+      "a".repeat(64) +
+      "\"}",
+      65536,
+      8192,
+      64,
+    ).unwrap()
+  }
+  match stream.issue_artifact(invocation, retention, 65536, 8192, 64) {
+    Ok(_) => ()
+    Err(@publication_host.Artifact(@publication.ArtifactIssuancePolicyMismatch)) =>
+      fail("original Native Source retention: ArtifactIssuancePolicyMismatch")
+    Err(_) => fail("original Native Source retention: another refusal")
+  }
+
   let snapshot = begin_program_snapshot(publication, stream).unwrap()
   let mut snapshot_done = false
   for _ in 0..<10000 {
@@ -560,3 +999,68 @@ test "root Source preserves its actual filter and Result while acquiring the com
     filtered_rows=true,
   )
 }
+
+///|
+test "Native Whole bridge borrows its SAME physical Plan geometry and task-loop inventory" {
+  whole_source_result_publication_fixture(false, native_geometry=true)
+}
+
+///|
+test "Native Whole execution retains its bound Plan and refuses copied or unbound Runs" {
+  whole_source_result_publication_fixture(
+    false,
+    native_geometry=true,
+    native_execution=true,
+  )
+}
+
+///|
+test "original Native File CASE16 and AVG8 executes both Whole tasks through publication and cleanup" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    native_geometry=true,
+    native_execution=true,
+    numeric_case=true,
+  )
+}
+
+///|
+test "original Whole input cannot enter Source-free task execution or spend another attempt" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    native_geometry=true,
+    numeric_case=true,
+    source_free_refusal=true,
+  )
+}
+
+///|
+test "Native original CASE16 AVG8 incremental Source identity reaches publication and cleanup" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    native_geometry=true,
+    native_execution=true,
+    numeric_case=true,
+    native_identity=true,
+  )
+}
+
+///|
+test "Native original CASE16 AVG8 retains original finite bounds under resolved Source policy" {
+  whole_source_result_publication_fixture(
+    false,
+    selected_result=true,
+    native_geometry=true,
+    native_execution=true,
+    numeric_case=true,
+    native_identity=true,
+    native_retention=true,
+  )
+}
+
+///|
+// Exact authored mock/data.json from the tracked churn-risk-mock template.
+let whole_native_numeric_source_document : String = "{\n  \"salesforce\": {\n    \"Account\": {\n      \"key\": [\n        \"id\"\n      ],\n      \"rows\": [\n        {\n          \"id\": \"001Acme\",\n          \"name\": \"Acme Corp\",\n          \"description\": \"Evaluating a competitor; usage down since June.\",\n          \"Churn_Risk__c\": \"low\",\n          \"Risk_Reason__c\": null\n        },\n        {\n          \"id\": \"001Globex\",\n          \"name\": \"Globex Inc\",\n          \"description\": \"Several support tickets about the new pricing.\",\n          \"Churn_Risk__c\": \"medium\",\n          \"Risk_Reason__c\": null\n        }\n      ]\n    }\n  },\n  \"snowflake\": {\n    \"usage_30d\": {\n      \"key\": [\n        \"account_id\"\n      ],\n      \"rows\": [\n        {\n          \"account_id\": \"001Acme\",\n          \"active_users\": 4,\n          \"trend\": \"down\"\n        },\n        {\n          \"account_id\": \"001Globex\",\n          \"active_users\": 12,\n          \"trend\": \"flat\"\n        }\n      ]\n    }\n  }\n}\n"

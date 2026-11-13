@@ -409,52 +409,109 @@ pub fn client_program_model_request_input_frame_bounded(
   }
   let writer = @encode.writer(max_bytes, 10000, 64) catch { _ => return None }
   try {
-    @encode.begin_object(writer)
-    for
-      (name, value) in [
-        (
-          "model_task_contract_cid",
-          @check_environment.model_task_identity(request.task).2,
-        ),
-        ("model_call_slot_cid", request.slot_cid),
-        ("semantic_request_cid", request.fixed_request_cid),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, value)
-    }
-    @encode.key(writer, "input_contract")
-    @parameter_contract.emit_checked(
-      @check_environment.model_task_input(request.task),
-      writer,
-    )
-    @encode.key(writer, "output_contract")
-    @parameter_contract.emit_checked(
-      @check_environment.model_task_output(request.task),
-      writer,
-    )
-    @encode.key(writer, "key")
-    @encode.begin_array(writer)
-    for value in request.key {
-      @admitted.emit_checked_wire_value(value, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "key_contracts")
-    @encode.begin_array(writer)
-    for value in request.key {
-      @parameter_contract.emit_checked(value.contract, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "inputs")
-    @encode.begin_object(writer)
-    for (name, value) in request.inputs {
-      @encode.key(writer, name)
-      @admitted.emit_checked_wire_value(value, writer)
-    }
-    @encode.end_object(writer)
-    @encode.end_object(writer)
+    emit_client_program_model_request_input_frame(writer, request)
     Some(@encode.finish(writer))
   } catch {
     _ => None
+  }
+}
+
+///|
+fn emit_client_program_model_request_input_frame(
+  writer : @encode.Writer,
+  request : @model.ModelRequest,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for
+    (name, value) in [
+      (
+        "model_task_contract_cid",
+        @check_environment.model_task_identity(request.task).2,
+      ),
+      ("model_call_slot_cid", request.slot_cid),
+      ("semantic_request_cid", request.fixed_request_cid),
+    ] {
+    @encode.key(writer, name)
+    @encode.string_value(writer, value)
+  }
+  @encode.key(writer, "input_contract")
+  @parameter_contract.emit_checked(
+    @check_environment.model_task_input(request.task),
+    writer,
+  )
+  @encode.key(writer, "output_contract")
+  @parameter_contract.emit_checked(
+    @check_environment.model_task_output(request.task),
+    writer,
+  )
+  @encode.key(writer, "key")
+  @encode.begin_array(writer)
+  for value in request.key {
+    @admitted.emit_checked_wire_value(value, writer)
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "key_contracts")
+  @encode.begin_array(writer)
+  for value in request.key {
+    @parameter_contract.emit_checked(value.contract, writer)
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "inputs")
+  @encode.begin_object(writer)
+  for (name, value) in request.inputs {
+    @encode.key(writer, name)
+    @admitted.emit_checked_wire_value(value, writer)
+  }
+  @encode.end_object(writer)
+  @encode.end_object(writer)
+}
+
+///|
+/// Measure the SAME original typed-input emitter before its wire is allocated.
+#export_name("clientProgramModelRequestInputFrameGeometry")
+pub fn client_program_model_request_input_frame_geometry(
+  request : @model.ModelRequest,
+  max_bytes : Int,
+) -> Result[@encode.EncodingConstructionGeometry, @model.ModelExecutionIssue] {
+  if max_bytes < 1 || max_bytes > 65536 {
+    return Err(@model.InvalidLimits)
+  }
+  let writer = @encode.construction_measuring_writer(max_bytes, 10000, 64) catch {
+    _ => return Err(@model.InvalidLimits)
+  }
+  try {
+    emit_client_program_model_request_input_frame(writer, request)
+    Ok(@encode.finish_construction_measurement(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(@model.OutputValue)
+    }
+  }
+}
+
+///|
+#export_name("clientProgramEffectModelEvidenceCopyCapacity")
+pub fn client_program_effect_model_evidence_copy_capacity(
+  bundle_bytes : Int,
+  bundle_nodes : Int,
+  bundle_depth : Int,
+  input : @encode.EncodingConstructionGeometry,
+  other_text_units : Int,
+  calls : Int,
+) -> Result[(Int64, Int64), @model.ModelExecutionIssue] {
+  match
+    @client_local_host.client_effect_model_evidence_copy_capacity(
+      bundle_bytes, bundle_nodes, bundle_depth, input, other_text_units, calls,
+    ) {
+    Some(capacity) =>
+      Ok(
+        (
+          @execution.execution_capacity_retained_bytes(capacity),
+          @execution.execution_capacity_execution_bytes(capacity),
+        ),
+      )
+    None => Err(@model.InvalidLimits)
   }
 }
 
@@ -1645,6 +1702,17 @@ pub fn client_program_infer_capture_export_identity(
   active : @model.ModelCaptureExport,
 ) -> String? {
   @model.model_capture_export_identity(active)
+}
+
+///|
+#export_name("clientProgramInferCaptureExportWireUsage")
+pub fn client_program_infer_capture_export_wire_usage(
+  active : @model.ModelCaptureExport,
+) -> Result[(Int, Int, Int), @model.ModelExecutionIssue] {
+  match @model.model_capture_export_wire_usage(active) {
+    Some(value) => Ok(value)
+    None => Err(@model.OutputIdentity)
+  }
 }
 
 ///|

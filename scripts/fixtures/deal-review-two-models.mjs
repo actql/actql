@@ -38,6 +38,90 @@ answers:
   return Object.freeze(files);
 }
 
+// A distinct ordinary consumer: the first Model imports a real completed
+// Whole Source Unit, while its files/Content reads remain in the Model Unit.
+// Public roots expose both original Models and the separate producer so the
+// consumer must read every declared Result, including on cold Saved recovery.
+export function twoModelWholeDealReviewFiles() {
+  const files = {...twoModelDealReviewFiles()};
+  const program = JSON.parse(files['deal-review.program.json']);
+  const fields = ['id', 'name', 'StageName', 'NextStep'];
+  program.id = 'fixture.deal-review-dependent-models-whole';
+  program.stages[0].inputs.opportunities = {result: {stage: 'source_opportunities', result: 'rows'}};
+  program.stages.unshift({id: 'source_opportunities', inputs: {
+    opportunities: {connector: 'salesforce', resource: 'Opportunity'},
+  }, from: 'opportunities', steps: [{select: fields, as: 'original'}],
+  results: {rows: {from: 'original', fields}}});
+  program.results = {
+    answer: {from: {stage: 'source_opportunities', result: 'rows'}},
+    main: {from: {stage: 'review', result: 'rows'}},
+    ...program.results,
+  };
+  files['deal-review.program.json'] = JSON.stringify(program, null, 2) + '\n';
+  return Object.freeze(files);
+}
+
+// Minimal distinct connection: two independent Sources JOIN inside one Unit,
+// whose ONE six-field Result is the genuine input of the later Model Unit.
+// Existing README and Whole fixtures retain their original bodies/oracles.
+export function twoModelJoinedWholeDealReviewFiles() {
+  const files = {...twoModelWholeDealReviewFiles()};
+  const program = JSON.parse(files['deal-review.program.json']);
+  const producer = program.stages[0], review = program.stages[1];
+  const fields = ['id', 'name', 'StageName', 'NextStep', 'resource', 'version'];
+  program.id = 'fixture.deal-review-two-source-joined-whole';
+  producer.inputs.files = review.inputs.files;
+  producer.steps = [{join: {with: 'files', kind: 'inner', on: [{left: 'name', right: 'name'}],
+    select: {id: 'left.id', name: 'left.name', StageName: 'left.StageName', NextStep: 'left.NextStep',
+      resource: 'right.resource', version: 'right.version'}}, as: 'joined'}];
+  producer.results = {rows: {from: 'joined', fields}};
+  review.inputs = {joined: {result: {stage: producer.id, result: 'rows'}}, contents: review.inputs.contents};
+  review.from = 'joined';
+  review.steps = review.steps.slice(1);
+  files['deal-review.program.json'] = JSON.stringify(program, null, 2) + '\n';
+  return Object.freeze(files);
+}
+
+// Additional minimal joined-input consumer. The broader keyed Content fixture
+// stays separate: this task consumes StageName from Opportunity and version
+// from Drive files directly from the same genuine six-field producer Result.
+export function twoModelJoinedInputsDealReviewFiles() {
+  const files = {...twoModelJoinedWholeDealReviewFiles()};
+  const task = 'model-task:deal-review-joined-inputs.v1';
+  const config = JSON.parse(files['actql.config.json']);
+  config.mock.answers[task] = './mock/deal-review-joined-inputs.v1.answers.yaml';
+  files['actql.config.json'] = JSON.stringify(config, null, 2) + '\n';
+  const registry = JSON.parse(files['model-tasks.json']);
+  registry.tasks[task] = './model-tasks/deal-review-joined-inputs.v1.yaml';
+  files['model-tasks.json'] = JSON.stringify(registry, null, 2) + '\n';
+  files['model-tasks/deal-review-joined-inputs.v1.yaml'] = `task: ${task}
+input:
+  StageName: string
+  NextStep: {type: string, nullable: true}
+  fileVersion: string
+instructions: |
+  Review the current Opportunity stage and next step together with the exact
+  joined Drive file version provided in this input. Return the proposed change.
+output:
+  changed: boolean
+  stage: string
+  next_step: string
+`;
+  files['mock/deal-review-joined-inputs.v1.answers.yaml'] =
+    files['mock/deal-review.v1.answers.yaml'].replace('model-task:deal-review.v1', task);
+  const program = JSON.parse(files['deal-review.program.json']);
+  program.id = 'fixture.deal-review-two-source-joined-inputs';
+  const review = program.stages[1];
+  delete review.inputs.contents;
+  review.steps.shift();
+  const infer = review.steps.find(step => step.infer !== undefined).infer;
+  infer.contract = task;
+  infer.input = {StageName: {field: 'StageName'}, NextStep: {field: 'NextStep'},
+    fileVersion: {field: 'version'}};
+  files['deal-review.program.json'] = JSON.stringify(program, null, 2) + '\n';
+  return Object.freeze(files);
+}
+
 // Independently authored structured Program. A Pipe does not create a Unit:
 // the second Model consumes the retained first Stage Result in the SAME Run.
 // The MappingRef is closed declaration DATA under the existing mapping

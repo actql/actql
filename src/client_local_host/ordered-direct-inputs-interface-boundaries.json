@@ -325,7 +325,7 @@
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b33cebf5ee2c68aca5d0904d1e9ea4d92e64896b8603be08914742846a7e47f9",
+      "sha256": "adb026517de7fdb12f35b4252125f18a1f53232847e9b462afc7d0646e1d7e81",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -345,6 +345,10 @@
         {
           "name": "installed_managed_capture_plan",
           "declaration": "installed_managed_capture_plan ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_capture_publication_geometry_original",
+          "declaration": "installed_managed_capture_publication_geometry_original ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > ( @ strategy . CheckedDAG , @ execution . RetainedRowDecodeLimits , Int , Int ) ?"
         },
         {
           "name": "open_installed_managed_capture_host",
@@ -399,7 +403,8 @@
             "prepare_installed_managed_capture_plan_owned",
             "prepare_retained_installed_capture_ledger",
             "prepared_installed_managed_capture_acquisition",
-            "prepared_installed_managed_capture_requirements"
+            "prepared_installed_managed_capture_requirements",
+            "installed_managed_capture_publication_geometry_original"
           ],
           "exports": [],
           "attributes": {
@@ -1216,7 +1221,7 @@
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "99ac90bf3596cbee74e6bdd0a0bd343987d75620dde08250187c04e99632b0d0",
+      "sha256": "d9b74ab8fc5e7e973c3c5472e6a176d6e07e7850669c8a07088e709dfcbb1b16",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1232,6 +1237,10 @@
         {
           "name": "begin_installed_managed_whole_source_read_at",
           "declaration": "begin_installed_managed_whole_source_read_at ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_managed_whole_source_read_on_ledger",
+          "declaration": "begin_installed_managed_whole_source_read_on_ledger ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , expected : ClientInstalledWholeSourceCapacity , ledger : @ resources . Ledger , transfer : Int64 , scratch : Int64 , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "begin_installed_managed_whole_source_read_original",
@@ -1365,7 +1374,8 @@
             "select_installed_effect_source_input",
             "select_installed_source_input",
             "select_installed_source_input_graph",
-            "start_installed_whole_source_read_rows"
+            "start_installed_whole_source_read_rows",
+            "begin_installed_managed_whole_source_read_on_ledger"
           ],
           "exports": [],
           "attributes": {
@@ -1436,7 +1446,7 @@
     {
       "module": "src/client_local_host/installed_effect_provider_source.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "628092d66fed2e6489aa1dc59d7ea58a0b62430e7a3eedf07ddbe7cf806a4d50",
+      "sha256": "4ad68ceb381796ecf51b1693086237fa9ba759dbd4e8bf63772068e90daeef17",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1444,13 +1454,43 @@
         {
           "name": "begin_installed_effect_managed_source_read",
           "declaration": "begin_installed_effect_managed_source_read ( owner : ClientInstalledManagedRun , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "begin_installed_effect_managed_whole_source_read",
+          "declaration": "begin_installed_effect_managed_whole_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_effect_managed_source_input_kind",
+          "declaration": "installed_effect_managed_source_input_kind ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ String , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_managed_source_occurrence",
+          "declaration": "installed_effect_managed_source_occurrence ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , slot : Int , ) - > Result [ ( Int , Int , Int ) , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_managed_sources_ledger",
+          "declaration": "installed_effect_managed_sources_ledger ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_installed_effect_managed_query_requirement",
+          "declaration": "prepared_installed_effect_managed_query_requirement ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ @ planning . QueryRequirement , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_installed_effect_source_occurrences",
+          "declaration": "prepared_installed_effect_source_occurrences ( plan : ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences ? , ClientInstalledManagedRunIssue , ]"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "begin_installed_effect_managed_source_read"
+            "begin_installed_effect_managed_source_read",
+            "begin_installed_effect_managed_whole_source_read",
+            "installed_effect_managed_source_input_kind",
+            "installed_effect_managed_source_occurrence",
+            "installed_effect_managed_sources_ledger",
+            "prepared_installed_effect_managed_query_requirement",
+            "prepared_installed_effect_source_occurrences"
           ],
           "exports": [],
           "attributes": {
@@ -1521,7 +1561,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c4d20d00f573acbcbd99931da04c5fb99ba4ad2684358d6dc0bda77a784afe87",
+      "sha256": "0c3bd672ddfe0eed7a854db31b10548275a2a0464af45134755d1a34cc6c3c38",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1745,7 +1785,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e39d0711d0d953bf5fefbab70e747b54724aee4a4c289bb75a65a16d9219a7e9",
+      "sha256": "07a2176ea65062ed0b6dcfd82d61fe592011266ad90ea526a8bcab2c590c32e2",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],

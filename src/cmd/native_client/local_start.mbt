@@ -397,11 +397,14 @@ fn local_submission_start(
       !@local_host.native_client_local_values_profile_supported(prepared) {
       stop("LocalValuesExecutionProfileNotSupported")
     }
+    let original_file = business is Some(original) &&
+      original.file_source is Some(_)
     if !source_free &&
+      !original_file &&
       !@source_owner.resident_source_compute_shape_supported(prepared) {
       stop("LocalSourceExecutionProfileNotSupported")
     }
-    let source = if source_free {
+    let source = if source_free || original_file {
       None
     } else {
       let source_file = settings.source_file.unwrap_or_else(() => {
@@ -663,6 +666,13 @@ fn local_submission_start(
                 run.retention,
                 now,
                 @env.now().to_double(),
+                managed=if original.file_source is Some(_) {
+                  original.original.business.bind(business => {
+                    business.request_run
+                  })
+                } else {
+                  None
+                },
               ),
             )
         }
@@ -699,7 +709,7 @@ fn local_submission_start(
     if !current() {
       stop("LocalSubmissionAuthorizationDenied")
     }
-    if source_free {
+    if source_free || original_file {
       local_retain_values_policy_originals(
         host,
         settings,
@@ -725,7 +735,7 @@ fn local_submission_start(
           _ => stop("InvalidLocalReadPolicyOriginal")
         },
       )
-      if read.enabled() && !source_free {
+      if read.enabled() && !source_free && !original_file {
         local_retain_values_policy_originals(
           host,
           settings,
@@ -815,6 +825,14 @@ fn local_submission_start(
               attempt, crypto, store, current,
             )
         }
+      } else if original_file {
+        guard business is Some(original) else {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+        local_execute_original_publish_file_source(
+          original, settings, run, compiled, definition, prepared, request, reference,
+          attempt, store,
+        )
       } else {
         let source = source.unwrap()
         guard host.authorize({

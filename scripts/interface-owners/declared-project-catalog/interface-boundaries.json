@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "0b3cedad927e403199b29dc6ea39392f85491659626d40e13da7f7390f321f30",
+      "sha256": "7b1bf42271328fad257e579c39ee262db463deee5dc9e57548118fa5d34a676d",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog"
@@ -130,6 +130,13 @@
           "async": false
         },
         {
+          "name": "projectDeclaredCatalog/argumentsFor/argumentsFor",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
           "name": "projectDeclaredCatalog/call/call",
           "parameters": [
             "name",
@@ -180,6 +187,21 @@
         {
           "name": "projectDeclaredCatalog/facts/facts#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/fileCall/fileCall",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/fileMethods/fileMethods",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -295,7 +317,21 @@
         {
           "name": "projectDeclaredCatalog/projectDeclaredCatalog#10",
           "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#11",
+          "parameters": [
             "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#12",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -345,6 +381,33 @@
           "async": false
         },
         {
+          "name": "projectDeclaredCatalog/projection/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projection/init:capacity/init:capacity#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projection/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projection/projection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projection/projection/projection",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
           "name": "projectDeclaredCatalog/restoreInput/restoreInput",
           "parameters": [
             "member",
@@ -352,7 +415,8 @@
             "registration",
             "revision",
             "input",
-            "final"
+            "final",
+            "originalOnly"
           ],
           "async": false
         },
@@ -600,7 +664,17 @@
             "projectDeclaredCatalog/source/source/source/source",
             "projectDeclaredCatalog/source/source/writes/writes",
             "text/text",
-            "wire/wire"
+            "wire/wire",
+            "projectDeclaredCatalog/argumentsFor/argumentsFor",
+            "projectDeclaredCatalog/fileCall/fileCall",
+            "projectDeclaredCatalog/fileMethods/fileMethods",
+            "projectDeclaredCatalog/projectDeclaredCatalog#11",
+            "projectDeclaredCatalog/projectDeclaredCatalog#12",
+            "projectDeclaredCatalog/projection/init:capacity/init:capacity",
+            "projectDeclaredCatalog/projection/init:capacity/init:capacity#2",
+            "projectDeclaredCatalog/projection/init:project/init:project",
+            "projectDeclaredCatalog/projection/projection",
+            "projectDeclaredCatalog/projection/projection/projection"
           ],
           "exports": [
             "inspectDeclaredProjectCatalog",
@@ -670,7 +744,7 @@
               },
               {
                 "path": "adapters/local-node/declared-project-catalog.mjs",
-                "anchor": "const sourcePrepared = restoreInput(sourceMember, connectorId, registration, revision, finalInput, true);"
+                "anchor": "sourcePrepared = restoreInput(sourceMember, connectorId, registration, revision, finalInput, true);"
               }
             ],
             "failure": [

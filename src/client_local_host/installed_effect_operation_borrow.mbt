@@ -2088,6 +2088,8 @@ fn installed_effect_control_capacity_for_rows(
       recovery_members=plan.operations.length(),
     )
     is Some(base) &&
+    captured_task_completion_control_capacity(plan.graph) is Some(completion) &&
+    @execution.add_execution_capacity(base, completion) is Some(base) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_execution_bytes(base),
       retained,

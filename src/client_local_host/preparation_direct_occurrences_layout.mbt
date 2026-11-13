@@ -39,9 +39,11 @@ fn installed_direct_occurrences_layout(captures : Int) -> (Int64, Int64)? {
       // Result/Option and query-shape selection carriers. QueryAcquisition's
       // six borrowed references/five scalars and terminal target are included.
       {
-        record_headers: 18L + 2L * n,
+        // The private route result also carries Whole/Query DATA until its
+        // checked task triple is retained; only one such carrier is live.
+        record_headers: 19L + 2L * n,
         reference_slots: 28L + 3L * n,
-        scalar_words: 32L + n,
+        scalar_words: 36L + n,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       },

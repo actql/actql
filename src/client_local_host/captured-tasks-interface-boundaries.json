@@ -144,7 +144,7 @@
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d0f4ff57cd3b2b3d8c129259c81b2a33bf33142be0cf3e09d336c48e37451750",
+      "sha256": "c59cca443da1861a3b3cd2defa103ff62c730c73e01c0bb4934d1b77679ad4f9",
       "role": "common-semantics",
       "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
       "exports": [],
@@ -162,8 +162,16 @@
           "declaration": "execute_captured_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , capture : @ row_source_host . RowSourceCapture , requirements : ClientLocalRequirements , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
         },
         {
+          "name": "execute_installed_whole_source_values_guarded",
+          "declaration": "execute_installed_whole_source_values_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+        },
+        {
           "name": "execute_local_tasks_guarded",
-          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , retained_effect ? : @ strategy . CapturedEffectRunDAG ?"
+        },
+        {
+          "name": "execute_retained_effect_local_tasks_guarded",
+          "declaration": "execute_retained_effect_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , captured : @ strategy . CapturedEffectRunDAG , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
         },
         {
           "name": "execute_source_free_local_tasks_guarded",
@@ -178,7 +186,9 @@
             "close_local_values_tasks",
             "execute_captured_local_tasks_guarded",
             "execute_local_tasks_guarded",
-            "execute_source_free_local_tasks_guarded"
+            "execute_source_free_local_tasks_guarded",
+            "execute_installed_whole_source_values_guarded",
+            "execute_retained_effect_local_tasks_guarded"
           ],
           "exports": [],
           "attributes": {
@@ -249,7 +259,7 @@
     {
       "module": "src/client_local_host/captured_tasks_control_inventory.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4e94ec644fcbcb552b68d9170acad6f2cd3cfbdbb08899d0356ace0b73400ce8",
+      "sha256": "5a6c2d1512d23faf4af17d33a506c9d7134681c5e4d9dee552dd9703de901786",
       "role": "common-semantics",
       "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
       "exports": [],
@@ -257,13 +267,28 @@
         {
           "name": "captured_local_tasks_control_capacity",
           "declaration": "captured_local_tasks_control_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "local_tasks_control_capacity",
+          "declaration": "local_tasks_control_capacity ( graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "retained_effect_local_tasks_control_capacity",
+          "declaration": "retained_effect_local_tasks_control_capacity ( graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_input_local_tasks_control_capacity",
+          "declaration": "source_input_local_tasks_control_capacity ( graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "captured_local_tasks_control_capacity"
+            "captured_local_tasks_control_capacity",
+            "local_tasks_control_capacity",
+            "retained_effect_local_tasks_control_capacity",
+            "source_input_local_tasks_control_capacity"
           ],
           "exports": [],
           "attributes": {

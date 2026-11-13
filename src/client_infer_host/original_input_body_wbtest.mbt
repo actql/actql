@@ -143,3 +143,105 @@ test "original first input scan capacity refusal preserves its read and never ca
   assert_true(cleanup(active).unwrap())
   original_composed_test_release(ledger, consumer)
 }
+
+///|
+test "original restored input body refuses capacity and cancellation before scanning or Model" {
+  for stop in [false, true] {
+    let calls = Ref(0)
+    let (active, ledger, consumer) = original_observation_test_start(
+      provider=original_funded_start_provider(calls),
+      input_body=true,
+      restored_input=true,
+      input_read_ceiling=if stop { None } else { Some(10L) },
+    )
+    assert_true(active.identity_body is Some(_))
+    assert_true(active.identity is None)
+    if stop {
+      assert_true(cancel(active))
+      assert_true(fixture_finish(active) is Stopped(..))
+    } else {
+      assert_true(
+        fixture_finish(active)
+        is Failed(
+          OriginalCapacity(
+            @publication_host.Read(
+              @publication_host.Resource(
+                @resources.Resource(@resources.RetentionLimit)
+              )
+            )
+          ),
+          ..
+        ),
+      )
+      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+    }
+    assert_eq(calls.val, 0)
+    assert_true(active.identity is None)
+    assert_true(active.original_preparation is Some(_))
+    assert_true(cleanup(active).unwrap())
+    original_composed_test_release(ledger, consumer)
+  }
+}
+
+///|
+test "original restored input body rejects a foreign checked Read before scan construction" {
+  let prepared = fixture_prepared()
+  let (occurrence, prefix) = original_composed_test_input(prepared)
+  let plan = call_identity_plan(prepared)
+  let limits = standard_limits()
+  let calls = Ref(0)
+  let (compiled, definition, ledger, read) = original_funded_start_read(
+    prepared, plan, limits,
+  )
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, plan, 7L, 5L,
+  ).unwrap()
+  let (foreign_compiled, foreign_definition, foreign_ledger, foreign_read) = original_funded_start_read(
+    prepared, plan, limits,
+  )
+  let foreign_consumer = @publication_host.claim_client_model_read_preparation(
+    foreign_read, foreign_compiled, foreign_definition, plan, 7L, 5L,
+  ).unwrap()
+  let (saved, exported) = original_restored_composed_test_saved(
+    prepared,
+    compiled,
+    definition,
+    occurrence,
+    plan,
+    () => true,
+  )
+  let foreign_before = @resources.ledger_usage(foreign_ledger)
+  let active = start_original_restored_composed(
+    occurrence,
+    plan,
+    prefix,
+    original_funded_start_provider(calls),
+    @input.client_infer_retained_input_export_binding(exported),
+    @input.client_infer_retained_input_export_descriptor(exported),
+    @input.client_infer_retained_input_export_rows(exported),
+    () => true,
+    saved,
+    limits,
+    compiled,
+    definition,
+    consumer,
+    7L,
+    5L,
+    100L,
+    5L,
+    input_body_read=Some(foreign_read),
+  ).unwrap()
+  assert_true(
+    fixture_finish(active)
+    is Failed(
+      OriginalCapacity(@publication_host.Read(@publication_host.ForeignRun)),
+      ..
+    ),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(active.identity is None)
+  assert_eq(@resources.ledger_usage(foreign_ledger), foreign_before)
+  assert_true(cleanup(active).unwrap())
+  original_composed_test_release(ledger, consumer)
+  original_composed_test_release(foreign_ledger, foreign_consumer)
+}

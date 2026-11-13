@@ -95,6 +95,7 @@
         "input_logical",
         "output_logical",
         "output",
+        "reclamation_steps",
         "rows",
         "live",
         "accepted",

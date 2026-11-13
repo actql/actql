@@ -36,6 +36,21 @@ export function checkedPreparation(moon,result) {
 const noPhysicalChildren = () => false;
 const invalid = () => {throw Object.assign(new Error('NodeLocalPreparationAdmissionUnavailable'),
   {code:'NodeLocalPreparationAdmissionUnavailable'});};
+// Read only already detached own DATA. A frozen accessor/Proxy is not a
+// budget selection, and checking availability must not invoke its callbacks.
+function requestMemorySelection(context) {
+  const field=Object.getOwnPropertyDescriptor(context,'requestMemory');
+  if(field!==undefined && !Object.hasOwn(field,'value')) return false;
+  const value=field?.value;
+  if(value===undefined) return undefined;
+  if(value===null || typeof value!=='object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) return false;
+  for(const name of ['retainedBytes','executionBytes']) {
+    const item=Object.getOwnPropertyDescriptor(value,name);
+    if(item===undefined || !Object.hasOwn(item,'value') || !Number.isSafeInteger(item.value)) return false;
+  }
+  return value;
+}
+
 export function requestPreparationAvailable(context) {
   if(context===null || typeof context!=='object' || nodeTypes.isProxy(context)) return false;
   const own = (object,name) => {
@@ -46,10 +61,13 @@ export function requestPreparationAvailable(context) {
   if(moon===null || typeof moon!=='object' || nodeTypes.isProxy(moon) ||
       own(context,'preparedEnvironment')===undefined ||
       typeof own(context,'retainedRelationOutput')!=='boolean') return false;
-  const rowField=Object.getOwnPropertyDescriptor(context,'valuesMaxRows');
-  if (rowField!==undefined && !Object.hasOwn(rowField,'value')) return false;
-  const rows=rowField?.value;
-  if (rows!==undefined && (!Number.isSafeInteger(rows) || rows<1 || rows>2147483647)) return false;
+  for (const name of ['valuesMaxRows', 'sourceFreeMaxWork']) {
+    const field=Object.getOwnPropertyDescriptor(context,name);
+    if (field!==undefined && !Object.hasOwn(field,'value')) return false;
+    const value=field?.value;
+    if (value!==undefined && (!Number.isSafeInteger(value) || value<1 || value>2147483647)) return false;
+  }
+  if(requestMemorySelection(context)===false) return false;
   return typeof own(moon,'clientProgramRequestPreparationControl')==='function' &&
     typeof own(moon,'clientProgramBeginRequestPreparation')==='function' &&
     typeof own(moon,'clientLocalPreparationResourceLimits')==='function' &&
@@ -83,9 +101,11 @@ export function assertRequestPreparationControl(context) {
 // retain this same state before entry and supply its original current/physical
 // child observation; a profile or cleanup registry is not admitted backing.
 // Both existing Request callers use this exact opening, never a second owner.
-function openPreparationAdmission(state, moon, input, assertCurrent, childrenPending) {
+function openPreparationAdmission(state, moon, input, assertCurrent, childrenPending, memory) {
     const policy=moon.clientLocalResourcePolicyOriginal();
-    const limits=moon.clientLocalPreparationResourceLimits(policy);
+    const limits=moon.clientLocalPreparationResourceLimits(policy,
+      memory === undefined ? undefined : BigInt(memory.retainedBytes),
+      memory === undefined ? undefined : BigInt(memory.executionBytes));
     if (!Array.isArray(limits) || limits.length!==6 ||
         limits.some(value => typeof value!=='bigint' || value<0n || value>9223372036854775807n) ||
         limits.slice(0,3).some(value => value>2147483647n)) invalid();
@@ -107,7 +127,10 @@ export function openRequestPreparation(state, input, assertCurrent, childrenPend
   const moon=state.context.runtime;
   state.opening=true;
   try {
-    const policy=openPreparationAdmission(state,moon,input,assertCurrent,childrenPending);
+    if(nodeTypes.isProxy(state.context)) invalid();
+    const memory=requestMemorySelection(state.context);
+    if(memory===false) invalid();
+    const policy=openPreparationAdmission(state,moon,input,assertCurrent,childrenPending,memory);
     state.parent=checked(moon.clientProgramBeginRequestPreparation(state.admission,input,
       policy));
     return state.parent;

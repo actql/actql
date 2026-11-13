@@ -106,7 +106,7 @@ pub fn advance_cancel_completed_output_import(CompletedOutputImport, Int) -> Boo
 
 pub fn[T] advance_close_managed_producer_bridge(ManagedProducerBridge[T], Int) -> Bool
 
-pub fn advance_completed_output_export(CompletedOutputExport, Int, Int) -> Result[CompletedOutputExportAdvance, CompletedExportIssue]
+pub fn advance_completed_output_export(CompletedOutputExport, Int, Int, batch? : Bool) -> Result[CompletedOutputExportAdvance, CompletedExportIssue]
 
 pub fn advance_completed_output_export_preparation(CompletedOutputExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
@@ -266,7 +266,11 @@ pub fn bounded_append_cleanup_pending(BoundedAppendExecution) -> Bool
 
 pub fn bounded_asof_join_cleanup_pending(BoundedAsOfJoinExecution) -> Bool
 
+pub fn bounded_binding_rows_cleanup_continuation(BoundedBindingRowsExecution) -> Int64
+
 pub fn bounded_binding_rows_cleanup_pending(BoundedBindingRowsExecution) -> Bool
+
+pub fn bounded_cross_join_cleanup_continuation(BoundedCrossJoinExecution) -> Int64
 
 pub fn bounded_cross_join_cleanup_pending(BoundedCrossJoinExecution) -> Bool
 
@@ -502,6 +506,8 @@ pub fn completed_export_content(CompletedOutputExportReceipt) -> AdmittedOutputS
 
 pub fn completed_export_preparation_workspace_slots(Int) -> Int?
 
+pub fn completed_fixed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, FixedRelationRead)]) -> CompletedOutput?
+
 pub fn completed_has_cell_access(CompletedOutput) -> Bool
 
 pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> CompletedOutput?
@@ -546,6 +552,10 @@ pub fn completed_output_matches_serialization_sort(CompletedOutput, @lowering_re
 
 pub fn completed_output_matches_supplied_inputs(CompletedOutput, Array[SuppliedRelationRead]) -> Bool
 
+pub fn completed_output_occurrence_matches_original(CompletedOutputOccurrence, CompletedOutput) -> Bool
+
+pub fn completed_output_original_occurrence(CompletedOutput) -> CompletedOutputOccurrence
+
 pub fn completed_output_retained_material(CompletedOutput) -> RetainedOutputMaterial?
 
 pub fn completed_output_row_wire(CompletedOutput, Int, Int, Int, Int) -> Result[String, CompletedExportIssue]
@@ -572,6 +582,8 @@ pub fn completed_relation_export_matches_output(CompletedRelationExportReceipt, 
 
 pub fn completed_relation_export_measurement(CompletedRelationExportReceipt) -> CompletedRelationExportMeasurement
 
+pub fn completed_relation_export_original_source(CompletedRelationExportReceipt) -> CompletedOutput?
+
 pub fn completed_relation_export_receipt_live(CompletedRelationExportReceipt) -> Bool
 
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity
@@ -594,6 +606,8 @@ pub fn completed_relation_identity_scan_start_construction_capacity(CompletedOut
 
 pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> Int64
 
+pub fn completed_relation_identity_scan_workspace_slots(CompletedOutput, ValueLimits, RowWireLimits, RowWireLimits) -> Int?
+
 pub fn completed_result_export_preparation_matches_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
 pub fn completed_result_export_preparation_matches_owner(CompletedResultRelationExportPreparation, ManagedResultOccurrence, CompletedOutput) -> Bool
@@ -602,11 +616,15 @@ pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelati
 
 pub fn completed_result_export_preparation_retains_original_row(CompletedResultRelationExportPreparation, CompletedOutputExportOriginalRow) -> Bool
 
+pub fn completed_result_export_preparation_source(CompletedResultRelationExportPreparation) -> CompletedOutput?
+
 pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, CompletedResultRelationExportPreparation, @relation_schema.Field) -> Bool
 
 pub fn completed_row_count(CompletedOutput) -> Int
 
 pub fn completed_segment_inputs_construction_inventory(Int) -> PreparationRepresentationUnits?
+
+pub fn completed_segment_inputs_has_original_pipeline_input(CompletedSegmentInputs, @lowering_relation.BoundPrepared, Int, CompletedOutput) -> Bool
 
 pub fn completed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, ProducerRead)]) -> CompletedOutput?
 
@@ -890,6 +908,8 @@ pub fn[T] managed_completed_output_matches_material(ManagedCompletedOutput[T], M
 
 pub fn[T] managed_completed_output_matches_port(ManagedCompletedOutput[T], @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
 
+pub fn[T] managed_completed_output_original_occurrence(ManagedCompletedOutput[T]) -> CompletedOutputOccurrence?
+
 pub fn[T] managed_completed_output_row_count(ManagedCompletedOutput[T]) -> Int
 
 pub fn[T] managed_completed_output_storage_bytes(ManagedCompletedOutput[T]) -> Int64?
@@ -978,6 +998,8 @@ pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Sch
 
 pub fn managed_output_values_scratch_released(ManagedOutputValues) -> Bool
 
+pub fn[T] managed_producer_bridge_import_usage(ManagedProducerBridge[T]) -> ValueUsage?
+
 pub fn[T] managed_producer_measurement_matches_inputs(ManagedProducerMeasurement, Array[ManagedProducerRead[T]]) -> Bool
 
 pub fn managed_producer_measurement_usage(ManagedProducerMeasurement) -> (Int, Int, Int)
@@ -1003,6 +1025,8 @@ pub fn[T] managed_producer_read_row_count(ManagedProducerRead[T]) -> Int
 pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProducerRead[T]) -> Bool
 
 pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
+
+pub fn[T] managed_publication_bridge_import_geometry(ManagedCompletedOutput[T], ManagedRetainedOutput[T], Int, Int) -> ManagedPublicationBridgeLimits?
 
 pub fn[T] managed_publication_bridge_matches_result_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedResultRelationExportPreparation, ManagedResultOccurrence) -> Bool
 
@@ -1056,7 +1080,7 @@ pub fn nest_attached_bytes_output_unit() -> AggregateOutputUnit
 
 pub fn nest_grouped_bytes_output_unit() -> AggregateOutputUnit
 
-pub fn next_completed_output_export(CompletedOutputExport) -> Result[String?, CompletedExportIssue]
+pub fn next_completed_output_export(CompletedOutputExport, batch? : Bool) -> Result[String?, CompletedExportIssue]
 
 pub fn next_completed_output_export_canonical_row(CompletedOutputExport, Int, Int, Int) -> Result[(Int, String, @canonical_json.CanonicalValue)?, CompletedExportIssue]
 
@@ -1156,7 +1180,7 @@ pub fn[T] prepare_managed_operation_read(@lowering_relation.BoundPrepared, Int, 
 
 pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (ManagedOutputValueReceipt, T, Int64, () -> Bool)?) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue]
 
-pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits, working? : GeneratedSequence?) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
+pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits, working? : GeneratedSequence?, completed_projection? : CompletedOutput?) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
 
 pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int, deferred_reclamation? : Bool) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
 
@@ -1200,7 +1224,7 @@ pub fn[T] prepare_reused_managed_producer_measurement(Array[ManagedProducerRead[
 
 pub fn prepare_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrder, RowWireIssue]
 
-pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
+pub fn prepare_runtime_fragment(@lowering_relation.FragmentRequest, FragmentContract, @lowering_relation.DemandLimits, RegistryLimits, @lowering_relation.FragmentRowLimits, ordered? : RegisteredOrderedContract?, runtime_body_floor? : RegistryLimits?) -> Result[FragmentRuntimeContext, RuntimeFragmentIssue]
 
 pub fn prepare_sequence_runtime_fragments(@lowering_relation.PreparedSequence, FragmentContract?, RegisteredOrderedContract?, SequenceFragmentLimits) -> Result[Array[FragmentRuntimeContext], SequenceFragmentIssue]
 
@@ -1261,6 +1285,8 @@ pub fn producer_read_input_index(ProducerRead) -> Int
 pub fn producer_read_matches_completed_output(ProducerRead, CompletedOutput) -> Bool
 
 pub fn producer_read_matches_operation_input(ProducerRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
+pub fn producer_read_original_output(ProducerRead) -> CompletedOutput?
 
 pub fn producer_read_preparation_is_small(ProducerReadPreparation) -> Bool
 
@@ -1337,6 +1363,8 @@ pub fn restrict_supplied_relation_read(SuppliedRelationRead, () -> Bool) -> Supp
 pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, Int64, () -> Bool) -> Result[RetainedOutputHandle[T], TrustedOutputIssue]
 
 pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bool) -> RetainedOutputHandle[T]
+
+pub fn retain_completed_fixed_segment_inputs(CompletedOutput, GeneratedSequence, Array[(Int, Int, FixedRelationRead)], Int) -> CompletedSegmentInputs?
 
 pub fn retain_completed_segment_input(CompletedOutput, ProducerRead) -> CompletedOutput?
 
@@ -1694,6 +1722,7 @@ pub(all) enum BoundedCrossJoinIssue {
   Capture(CaptureIssue)
   Completion(TrustedOutputIssue)
   Execution(@bounded_execution.Issue)
+  ControlWorkLimit
 }
 
 pub enum BoundedCrossJoinPoll {
@@ -1915,6 +1944,7 @@ pub(all) enum CaptureIssue {
   InputValue(Int, @value_admission.Issue)
   ClosedCapture
   ForeignCheckedValue(Int, Int)
+  CaptureWorkLimit(Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum CaptureOrigin {
@@ -1986,6 +2016,8 @@ type CompletedOutputExportPreparation
 type CompletedOutputExportReceipt
 
 type CompletedOutputImport
+
+type CompletedOutputOccurrence
 
 pub(all) struct CompletedRelationExportMeasurement {
   row_count : Int

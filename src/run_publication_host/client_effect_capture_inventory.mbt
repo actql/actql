@@ -134,8 +134,9 @@ pub fn issue_client_effect_capture_inventory(
       @strategy.captured_effect_result_import_producer(observed.captured),
     ) ||
     !physical_equal(observed.artifact.invocation, acquired.invocation) ||
-    @publication.publication_contract_identity(observed.artifact.run_invocation) !=
-    @publication.publication_contract_identity(artifact.run_invocation) {
+    client_effect_local_artifact_run_invocation_cid(observed.artifact) is None ||
+    client_effect_local_artifact_run_invocation_cid(observed.artifact) !=
+    client_effect_local_artifact_run_invocation_cid(artifact) {
     return Err(ForeignInput)
   }
   let required = [observed.artifact, artifact]

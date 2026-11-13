@@ -10,6 +10,7 @@ import {readMoonTestPlan} from './ci-moon-test-plan.mjs';
 import {validateSelection} from './ci-targets.mjs';
 import {runFocusedTests} from './test-execution.mjs';
 import {portableMoonTestCount} from './native-core-test-selection.mjs';
+import {readCiInput} from './ci-input.mjs';
 
 export function originalMoonTestPlan(plan, base, {cwd = process.cwd(),
   git = args => execFileSync('git', args, {cwd, encoding:'utf8'}),
@@ -24,8 +25,8 @@ export function originalMoonTestPlan(plan, base, {cwd = process.cwd(),
 
 export function nativeMoonPackages(environment = process.env, {cwd = process.cwd(),
   readEvent = path => JSON.parse(readFileSync(path, 'utf8')), ...options} = {}) {
-  if (!environment.CI_PLAN) return undefined;
-  const plan = JSON.parse(environment.CI_PLAN);
+  const plan = readCiInput('CI_PLAN', environment);
+  if (plan === undefined) return undefined;
   if (!plan.selection?.moonTests) return undefined;
   assert.equal(environment.GITHUB_EVENT_NAME, 'pull_request');
   const base = readEvent(environment.GITHUB_EVENT_PATH).pull_request.base.sha;
@@ -52,5 +53,5 @@ export function runMoonTests(plan, target, base, {cwd = process.cwd(), git, disc
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   assert.equal(process.env.GITHUB_EVENT_NAME, 'pull_request');
   const payload = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
-  process.exitCode = runMoonTests(JSON.parse(process.env.CI_PLAN), process.argv[2], payload.pull_request.base.sha);
+  process.exitCode = runMoonTests(readCiInput('CI_PLAN'), process.argv[2], payload.pull_request.base.sha);
 }

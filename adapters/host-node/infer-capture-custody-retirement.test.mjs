@@ -6,15 +6,17 @@ const {openNodeInferCaptureCustody}=await import(process.env.ACTQL_CAPTURE_CUSTO
 // Actual Node custody/holding code with explicit Core, Model and Store port
 // doubles. This does not prove actual Store ACK, heap funding or public INFER.
 function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true,
-  rejectInvocationReadmit = false, omitEntryAttempt = false} = {}) {
-  const capture={}, output={}, exporter={};
+  rejectInvocationReadmit = false, omitEntryAttempt = false, publicationFailure,
+  publicationValue} = {}) {
+  const capture={}, output={}, exporter={}, issuance={};
   const evidence={wire:'{"raw":"é\\r\\n"}'};
   const invocationView=Object.freeze({name:'model_invocation_evidence',
     identity:'cid-model_invocation_evidence',wire:evidence.wire});
   const settlement={}, entry=omitEntryAttempt ? {ordinal:0} : {ordinal:0,attemptCid:'original-attempt'};
   const bundleWire='{"capture":"original é\\r\\n"}';
   const stored=new Map();
-  const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0,usage:0,proof:0,limitReads:0,exports:[]};
+  const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0,usage:0,proof:0,limitReads:0,
+    publication:0,issuerStart:0,issuerCleanup:0,exports:[]};
   const flags={stopped:true,exportCleanup:true,modelCleanup:true,
     usageRetired:false,usageRefusal:false,journalState:'SavedSuccess',ackFailure:undefined};
   let cleanupCallback, beforeCommit;
@@ -42,6 +44,18 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     clientProgramReleaseInferOutput:value=>assert.equal(value,output),
     clientProgramInferCaptureCall:()=>({wire:'{"slot":"original"}'}),
     clientProgramInferCaptureOutcome:()=> 'ok',
+    clientProgramAdvanceInferObservationIssuance:original=>{
+      assert.strictEqual(original,issuance);return ok({_0:true});
+    },
+    clientProgramCancelInferObservationIssuance:original=>{
+      assert.strictEqual(original,issuance);return false;
+    },
+    clientProgramCleanupInferObservationIssuance:original=>{
+      assert.strictEqual(original,issuance);counters.issuerCleanup++;return ok(true);
+    },
+    clientProgramReleaseInferInvocationBinding:original=>{
+      assert.strictEqual(original,publicationValue.binding);
+    },
   };
   const operation={
     physicalStopped:()=>flags.stopped,
@@ -50,6 +64,7 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     cleanupProgress:()=>0,
     acquireOutput(){counters.acquire++;return output;},
     acquireCapture:()=>capture,
+    startObservation(){counters.issuerStart++;return issuance;},
     settlementSlot:value=>{assert.equal(value,settlement);return 0;},
     attemptEvidence:()=>{
       counters.proof++;
@@ -105,7 +120,12 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
   const owner=openNodeInferCaptureCustody({moon,control,operation,
     plan:{runDefinition:{}},store,storeAuthorityCid:'original-store',
     captureOnly,durableCalls:true,
-    publicationFor:captureOnly?undefined:()=>assert.fail('No publication before the selected exporter')});
+    publicationFor:captureOnly?undefined:()=>{
+      counters.publication++;
+      if(publicationFailure!==undefined)throw publicationFailure;
+      if(publicationValue!==undefined)return publicationValue;
+      assert.fail('No publication before the selected exporter');
+    }});
   owner.configureModelJournal({observe:async()=>({state:flags.journalState}),entry:()=>entry});
   return {owner,operation,flags,counters,stored,bundleWire,store,moon,invocationView,
     async complete(){
@@ -115,6 +135,61 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     async settling(){await cleanupCallback(settlement);},
     deferCommit(callback){beforeCommit=callback;}};
 }
+
+test('failed publication releases same persisted capture on first close without reissuing publication',async()=>{
+  const primary=Object.assign(new Error('FixturePublicationBindingRejected'),
+    {code:'FixturePublicationBindingRejected'});
+  const f=fixture({captureOnly:false,publicationFailure:primary});
+  await assert.rejects(f.complete(),error=>error===primary);
+  assert.ok(f.stored.has('model_capture_bundle'));
+  const commits=f.counters.commit;
+  assert.equal(f.counters.publication,1);assert.equal(f.counters.issuerStart,1);
+  await f.owner.custody.close();
+  assert.equal(f.owner.custody.cleanupPending(),false);
+  assert.equal(f.counters.publication,1,'cleanup cannot reconstruct the rejected publication');
+  assert.equal(f.counters.commit,commits,'the durable capture is not rewritten');
+  assert.equal(f.counters.issuerStart,1);assert.equal(f.counters.issuerCleanup,1);
+  assert.equal(f.counters.stop,1);assert.equal(f.counters.cleanup,1);
+  assert.ok(f.stored.has('model_capture_bundle'),'original durable evidence stays retained');
+});
+
+test('failed publication cannot turn unconfirmed Model stop into first-close success',async()=>{
+  const primary=new Error('FixturePublicationRejectedBeforeStop');
+  const f=fixture({captureOnly:false,publicationFailure:primary});
+  await assert.rejects(f.complete(),error=>error===primary);
+  f.flags.stopped=false;
+  await assert.rejects(f.owner.custody.close(),{code:'ClientDispatchCleanupPending'});
+  assert.equal(f.owner.custody.cleanupPending(),true);
+  assert.equal(f.counters.publication,1);assert.equal(f.counters.issuerCleanup,0);
+  assert.equal(f.counters.cleanup,0);assert.equal(f.counters.stop,1);
+  assert.ok(f.stored.has('model_capture_bundle'));
+});
+
+test('pending publication write retains its same holding and issuer until actual Store confirmation',async()=>{
+  const publicationValue={binding:{},observation:{wire:'{}',identity:'observation-cid'},
+    invocation:{wire:'{}',identity:'invocation-cid'}};
+  const f=fixture({captureOnly:false,publicationValue});
+  const unknown=Object.assign(new Error('FixturePublicationCommitUnknown'),
+    {code:'FixturePublicationCommitUnknown'});
+  f.deferCommit(()=>{if(f.counters.publication>0)throw unknown;});
+  await assert.rejects(f.complete(),error=>error===unknown);
+  const originalHolding=unknown.cleanupHandle;
+  assert.ok(originalHolding);
+  await assert.rejects(f.owner.custody.close(),error=>error===unknown);
+  assert.strictEqual(unknown.cleanupHandle,originalHolding);
+  assert.equal(f.owner.custody.cleanupPending(),true);
+  assert.equal(f.counters.publication,1);assert.equal(f.counters.issuerCleanup,0);
+  assert.equal(f.counters.cleanup,0);
+  // A changed Store response settles this original duty, not another close,
+  // provider execution, publication construction or reconstructed holding.
+  f.deferCommit(undefined);
+  assert.equal(await f.owner.custody.cleanup(),true);
+  assert.equal(originalHolding.status().committed,true);
+  assert.equal(f.counters.publication,1);assert.equal(f.counters.issuerCleanup,1);
+  assert.equal(f.counters.cleanup,1);assert.equal(f.counters.stop,1);
+  assert.ok(f.stored.has('observation_set'));
+  assert.equal(f.stored.has('run_invocation'),false,'cleanup does not fabricate remaining publication');
+});
 
 // White-box observation, not a production getter or an actually escaped client
 // handle. The temporary setter preserves normal own assignment semantics and

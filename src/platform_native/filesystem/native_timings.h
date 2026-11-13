@@ -29,11 +29,20 @@ enum {
   ACTQL_NATIVE_COUNT_RUN_RECORD_READ = 25,
   ACTQL_NATIVE_COUNT_ADOPTION_DIGEST = 26,
   ACTQL_NATIVE_COUNT_BACKING_ALLOCATED_BYTES = 46,
-  ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES = 47
+  ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES = 47,
+  ACTQL_NATIVE_COUNT_SIGNING_FULL_BOUNDARY = 64,
+  ACTQL_NATIVE_COUNT_SIGNING_HELPER_REVALIDATION = 65,
+  ACTQL_NATIVE_COUNT_REQUEST_QUERY_PARSE = 66,
+  ACTQL_NATIVE_COUNT_REQUEST_QUERY_LOWER = 67,
+  ACTQL_NATIVE_COUNT_REQUEST_SEMANTIC_CHECK = 68,
+  ACTQL_NATIVE_COUNT_REQUEST_PROGRAM_COMPILE = 69
 };
 void actql_native_timing_begin(int32_t tag);
 void actql_native_timing_end(int32_t tag);
 void actql_native_timing_count(int32_t tag);
+/* Read an existing process-local diagnostic counter without resetting it.
+ * -1 means unavailable; it must never be interpreted as zero work. */
+int64_t actql_native_timing_counter_value(int32_t tag);
 /* Acceptance metadata is separate from numeric timing counters and authority. */
 int32_t actql_native_acceptance_enabled(void);
 void actql_native_acceptance_identity(int32_t tag, int32_t ordinal,

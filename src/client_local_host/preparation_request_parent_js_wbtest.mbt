@@ -197,20 +197,32 @@ test "fixed Request control envelope preserves original upper bound through the 
   // The retained-wire tuple/Some and its Request field add 2H/2R/2W.
   // Native intake additionally retains its baseline tuple/Some, Request slot
   // and monotone byte scalar: 2H/2R/3W. Neither is domain payload storage.
+  // The explicit source-free work selection adds its Some/header, scalar
+  // and two references (1H/2R/1W =40 bytes), not payload capacity.
   // This fixed control belongs to the original parent before domain growth.
   assert_eq(
-    10736L + 16L * 2L + 8L * 2L + 8L * 2L + 16L * 2L + 8L * 2L + 8L * 3L,
-    10872L,
+    10736L +
+    16L * 2L +
+    8L * 2L +
+    8L * 2L +
+    16L * 2L +
+    8L * 2L +
+    8L * 3L +
+    8L * 4L +
+    16L +
+    8L * 2L +
+    8L,
+    10944L,
   )
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(10872L),
+    Some(10944L),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((14968L, 0L)),
+    Some((15040L, 0L)),
   )
   let growth = @resources.preparation_inventory_growth_entry_construction()
   assert_eq(
@@ -248,7 +260,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   ).unwrap()
   let reservation = owner.capacity
   let before = @resources.ledger_usage(owner.ledger)
-  assert_eq(before.reserved_retention_bytes, 14968L)
+  assert_eq(before.reserved_retention_bytes, 15040L)
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let small = @resources.ledger_usage(owner.ledger)
   reserve_request_snapshot(owner, input, 256L, 32L).unwrap()
@@ -265,14 +277,14 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((14968L, 0L)),
+    Some((15040L, 0L)),
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
 }
 
 ///|
-test "Node Request keeps its original full sealed envelope requirement" {
+test "Node Request preserves original nonbyte controls independently of byte ceilings" {
   let input = [1]
   let policy = client_local_resource_policy()
   let ceiling = client_local_preparation_initial_limits(policy).unwrap()
@@ -281,7 +293,8 @@ test "Node Request keeps its original full sealed envelope requirement" {
     input,
     initial_limits=Some({
       ..ceiling,
-      retained_bytes: controls,
+      attempts: ceiling.attempts - 1,
+      retained_bytes: controls + 40L,
       execution_bytes: 0L,
     }),
   )
@@ -358,4 +371,36 @@ test "Request keeps live continuation until original constructor borrower return
   assert_true(@resources.return_preparation_body_borrow(holder).unwrap())
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_true(owner.phase == Closed && owner.effect_capacity is None)
+}
+
+///|
+test "selected small parent refuses actual fixed controls and overflow without a default envelope grant" {
+  let policy = client_local_resource_policy()
+  let (controls, _) = client_request_preparation_control_capacity(policy).unwrap()
+  let input = [1]
+  let limits = client_local_preparation_initial_limits(
+    policy,
+    retained_bytes=Some(controls - 1L),
+    execution_bytes=Some(67108864L),
+  ).unwrap()
+  let initial = request_parent_fixture(input, initial_limits=Some(limits))
+  assert_true(
+    begin_request_preparation(initial, input, policy)
+    is Err(Capacity(Resource(RetentionLimit))),
+  )
+  @resources.cleanup_node_preparation_admission(initial).unwrap()
+  let limits = client_local_preparation_initial_limits(
+    policy,
+    retained_bytes=Some(67108864L),
+    execution_bytes=Some(67108864L),
+  ).unwrap()
+  let initial = request_parent_fixture(input, initial_limits=Some(limits))
+  let owner = begin_request_preparation(initial, input, policy).unwrap()
+  let before = @resources.ledger_usage(owner.ledger)
+  assert_true(
+    reserve_request_snapshot(owner, input, 9223372036854775807L, 1L) is Err(_),
+  )
+  assert_eq(@resources.ledger_usage(owner.ledger), before)
+  abort_request_preparation_after_cleanup(owner).unwrap()
+  assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
 }

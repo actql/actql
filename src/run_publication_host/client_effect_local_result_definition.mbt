@@ -42,19 +42,11 @@ fn emit_client_effect_local_result_definition(
 }
 
 ///|
-/// The checked owner, not a caller-provided CID or publication inventory,
-/// proves that this Result is declared by this exact local Unit.
-pub fn issue_client_effect_local_result_definition(
+fn client_effect_local_result_definition_origin(
   owner : PreparedClientEffectComputation,
   unit : Int,
   result_name : String,
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Result[
-  ClientEffectLocalResultDefinition,
-  ClientEffectLocalResultDefinitionIssue,
-] {
+) -> Result[String, ClientEffectLocalResultDefinitionIssue] {
   let program = @checked.effect_program_static_checked_computation(
     owner.candidate,
   )
@@ -69,6 +61,28 @@ pub fn issue_client_effect_local_result_definition(
   guard @stage_results.stage_at(stages, unit) is Some(stage) &&
     @results.lookup(stage, result_name) is Some(_) else {
     return Err(MissingResult)
+  }
+  Ok(unit_definition_cid)
+}
+
+///|
+/// The checked owner, not a caller-provided CID or publication inventory,
+/// proves that this Result is declared by this exact local Unit.
+pub fn issue_client_effect_local_result_definition(
+  owner : PreparedClientEffectComputation,
+  unit : Int,
+  result_name : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientEffectLocalResultDefinition,
+  ClientEffectLocalResultDefinitionIssue,
+] {
+  let unit_definition_cid = match
+    client_effect_local_result_definition_origin(owner, unit, result_name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
@@ -160,4 +174,44 @@ pub fn client_effect_local_result_definition_matches(
     owner.candidate,
   )
   @checked.unit_definition_cid(program, unit) == Some(value.unit_definition_cid)
+}
+
+///|
+/// Measure the same checked Result Definition before constructing its wire.
+/// Only the future self-CID's fixed checked width is needed by this sink.
+pub fn client_effect_local_result_definition_construction_geometry(
+  owner : PreparedClientEffectComputation,
+  unit : Int,
+  result_name : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @encode.EncodingConstructionGeometry,
+  ClientEffectLocalResultDefinitionIssue,
+] {
+  let unit_definition_cid = match
+    client_effect_local_result_definition_origin(owner, unit, result_name) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let writer = @encode.construction_measuring_writer(
+    max_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  try {
+    emit_client_effect_local_result_definition(
+      writer,
+      unit_definition_cid,
+      result_name,
+      Some(unit_definition_cid),
+    )
+    Ok(@encode.finish_construction_measurement(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(Encoding)
+    }
+  }
 }

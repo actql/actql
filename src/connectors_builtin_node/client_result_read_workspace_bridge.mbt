@@ -1,0 +1,110 @@
+///|
+#export_name("clientProgramReserveRequestResultRead")
+pub fn client_program_reserve_request_result_read(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  max_row : Int,
+  frame : Int,
+  schema_units : Int,
+  max_nodes : Int,
+  desired_window : Int,
+) -> Result[Int, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_result_read(
+    parent, input, max_row, frame, schema_units, max_nodes, desired_window,
+  )
+}
+
+///|
+#export_name("clientProgramGrowRequestResultReadRow")
+pub fn client_program_grow_request_result_read_row(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  units : Int,
+) -> Result[(Int, Int), @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.grow_request_result_read_row(parent, input, units)
+}
+
+///|
+#export_name("clientProgramReserveRequestResultMetadata")
+pub fn client_program_reserve_request_result_metadata(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  bytes : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_result_read_metadata(parent, input, bytes)
+}
+
+///|
+#export_name("clientProgramRetainRequestResultMetadataContract")
+pub fn client_program_retain_request_result_metadata_contract(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  slot : Int,
+  contract : @publication.PublicationContract,
+  mode : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.retain_request_result_metadata_contract(
+    parent, input, slot, contract, mode,
+  )
+}
+
+///|
+#export_name("clientProgramRetainRequestResultMetadataData")
+pub fn client_program_retain_request_result_metadata_data(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  slot : Int,
+  nodes : Int,
+  text_units : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.retain_request_result_metadata_data(
+    parent, input, slot, nodes, text_units,
+  )
+}
+
+///|
+#export_name("clientProgramReleaseRequestResultMetadata")
+pub fn client_program_release_request_result_metadata(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  slot : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.release_request_result_metadata(parent, input, slot)
+}
+
+///|
+#export_name("clientProgramFinishRequestResultMetadata")
+pub fn client_program_finish_request_result_metadata(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.finish_request_result_metadata(parent, input)
+}
+
+///|
+#export_name("clientProgramReconcileRequestResultReadSerializer")
+pub fn client_program_reconcile_request_result_read_serializer(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  serializer : @publication.ResultDeliverySerializer,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reconcile_request_result_read_serializer(
+    parent, input, serializer,
+  )
+}

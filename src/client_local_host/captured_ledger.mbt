@@ -15,6 +15,7 @@ fn client_local_execution_limits(
   scalar_inventory? : ClientLocalSchemaProofInventory? = None,
   scalar_demand? : ClientLocalScalarDemand? = None,
   value_node_demand? : ClientLocalValueNodeDemand? = None,
+  source_free_max_work? : Int? = None,
 ) -> (
   @execution.ValueLimits,
   @execution.SequenceExecutionLimits,
@@ -39,7 +40,7 @@ fn client_local_execution_limits(
     max_nodes: scalar_nodes.unwrap_or(client_local_general_value_nodes()),
     max_text_bytes: 500000,
     max_depth: 100,
-    max_work: 20000000,
+    max_work: client_local_source_free_max_work(source_free_max_work).unwrap(),
   }
   let execution : @execution.SequenceExecutionLimits = {
     rows: {
@@ -626,7 +627,7 @@ fn prepare_multi_captured_local_ledger_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  if acquisitions.length() != 2 {
+  if acquisitions.is_empty() {
     return None
   }
   let capacities = []
@@ -1292,10 +1293,10 @@ pub fn prepare_multi_captured_effect_capacity_ledger(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  if capacities.length() != 2 {
+  if capacities.is_empty() {
     return None
   }
-  for index in 0..<2 {
+  for index in 0..<capacities.length() {
     guard prepare_effect_local_query_requirement(
         prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )
@@ -1330,10 +1331,10 @@ pub fn prepare_multi_captured_local_capacity_ledger(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  if capacities.length() != 2 {
+  if capacities.is_empty() {
     return None
   }
-  for index in 0..<2 {
+  for index in 0..<capacities.length() {
     guard prepare_local_query_requirement(
         prepared, index, 0, installed_contracts, values_body, fragment_body, ordered_body,
       )

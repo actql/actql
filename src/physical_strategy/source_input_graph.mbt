@@ -61,9 +61,7 @@ pub fn prepare_source_inputs_dag(
   original : CheckedDAG,
   acquisitions : Array[@acquisition.SourceAcquisition],
 ) -> Result[CheckedDAG, GraphIssue] {
-  if original.captured_prefix < 1 ||
-    acquisitions.is_empty() ||
-    acquisitions.length() > 2 {
+  if original.captured_prefix < 1 || acquisitions.is_empty() {
     return Err(UnsupportedIncoming(0))
   }
   let targets = original.targets.copy()
@@ -86,7 +84,7 @@ pub fn prepare_source_inputs_dag(
       is @pipeline.Input(input) &&
       graph_stage_operation_task(original, stage, 0) is Some(task) &&
       task >= 0 &&
-      task < original.captured_prefix &&
+      task < original.owners.length() &&
       physical_equal(
         @acquisition.source_acquisition_pipeline(acquisition),
         @lower.pipeline(@lower.bound_preparation(original.owners[task])),
@@ -100,8 +98,14 @@ pub fn prepare_source_inputs_dag(
       is Some(target) else {
       return Err(UnsupportedIncoming(stage))
     }
-    seen[task] = true
-    targets[task] = Some(target)
+    if task < original.captured_prefix {
+      seen[task] = true
+      targets[task] = Some(target)
+    } else if original.targets[task] != Some(target) {
+      // A later Source occurrence supplies its actual receiving port. It may
+      // not widen a selected task target or manufacture an earlier completion.
+      return Err(UnsupportedIncoming(stage))
+    }
     supplied_slots.push({
       consumer: task,
       input,

@@ -36,16 +36,19 @@ const writableFailure = error => {
 };
 
 export function preparePrivatePublicationHolding(store, binding, rawBytes) {
-  const raw = binding?.name === 'model_raw_response';
-  if (!store || typeof (raw ? store.confirmModelRawEvidence :
+  const lookupRaw = binding?.name === 'lookup_raw_response';
+  const raw = lookupRaw || binding?.name === 'model_raw_response';
+  const prepareRaw = lookupRaw ? 'prepareLookupRawEvidence' : 'prepareModelRawEvidence';
+  const confirmRaw = lookupRaw ? 'confirmLookupRawEvidence' : 'confirmModelRawEvidence';
+  if (!store || typeof (raw ? store[confirmRaw] :
       store.confirmPrivateEvidence) !== 'function' ||
-      typeof (raw ? store.prepareModelRawEvidence :
+      typeof (raw ? store[prepareRaw] :
         store.preparePrivateEvidence) !== 'function' ||
       typeof store.commitPhysicalHolding !== 'function' ||
       !binding || !['effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
         'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
         'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission', 'observation_set',
-        'run_invocation', 'source_evidence', 'model_raw_response', 'content_input_artifact',
+        'run_invocation', 'source_evidence', 'model_raw_response', 'lookup_raw_response', 'content_input_artifact',
         'content_evidence', 'content_generation', 'installation_publication']
         .includes(binding.name) ||
       typeof binding.semanticCid !== 'string' ||
@@ -85,7 +88,7 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
     holdingCid: owned.holdingCid, wire: owned.wire, contentCid: owned.contentCid,
     byteCount: owned.byteCount}) : undefined;
   const confirm = async () => raw
-    ? (await store.confirmModelRawEvidence(rawBinding))?.record
+    ? (await store[confirmRaw](rawBinding))?.record
     : store.confirmPrivateEvidence(owned);
   const status = () => Object.freeze({
     committed, abandoned, abandoning,
@@ -123,13 +126,13 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
           }
           let encrypted;
           try {
-            encrypted = raw ? await store.prepareModelRawEvidence(
+            encrypted = raw ? await store[prepareRaw](
               rawBinding, originalBytes,
             ) : [await store.preparePrivateEvidence(
               owned.name, owned.wire, owned.semanticCid,
             )];
           } catch (error) {
-            if (error.cleanupPending === true && error.cleanupHandle !== undefined) {
+            if (error?.cleanupPending === true && error.cleanupHandle !== undefined) {
               constructionCleanup = error.cleanupHandle;
             }
             throw error;

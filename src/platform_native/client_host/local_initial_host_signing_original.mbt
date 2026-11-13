@@ -15,30 +15,39 @@ struct NativeLocalInitialHostSigningOriginal {
 fn read_local_initial_host_signing_control(
   host : NativeLocalHostConnection,
   body : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[NativeLocalInitialSigningFields, NativeLocalAdoptionIssue] {
-  guard read_local_initial_signing_control(host, body) is Ok(Some(reviewer)) else {
+  read_local_initial_host_signing_control_with_subject(
+    host,
+    body,
+    signing_original~,
+  ).map(pair => pair.0)
+}
+
+///|
+// Consume the Host fields/subject checked by this immediate control admission.
+// A later physical or current boundary must still perform its own fresh read.
+fn read_local_initial_host_signing_control_with_subject(
+  host : NativeLocalHostConnection,
+  body : Bytes,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
+) -> Result[
+  (NativeLocalInitialSigningFields, (String, String, String)?),
+  NativeLocalAdoptionIssue,
+] {
+  guard read_local_initial_signing_control_with_host_key(
+      host,
+      body,
+      signing_original~,
+    )
+    is Ok(Some((reviewer, Some((fields, subject))))) else {
     return Err(CustodyLost)
-  }
-  let header = match local_initial_signing_control_header(body) {
-    Ok(value) if value.length() >= 3 => value
-    _ => return Err(CustodyLost)
-  }
-  let packet = @base64.decode(header[2]) catch { _ => return Err(CustodyLost) }
-  if @base64.encode(packet) != header[2] {
-    return Err(CustodyLost)
-  }
-  let fields = match
-    read_local_initial_signing_packet(
-      host, packet, "host_attestation", "local-host-attestation-key.pem",
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
   }
   if fields.policy.cid() != reviewer.policy.cid() ||
     fields.issuer != reviewer.issuer {
     return Err(CustodyLost)
   }
-  Ok(fields)
+  Ok((fields, subject))
 }
 
 ///|
@@ -47,13 +56,35 @@ fn read_local_initial_host_signing_control(
 /// cannot create or adopt another key, even if a matching PEM is present now.
 pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
   self : NativeLocalHostConnection,
+  reviewer_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[NativeLocalInitialHostSigningOriginal, NativeLocalAdoptionIssue] {
-  let reviewer = match self.restore_initial_signing_original() {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let reviewer = match reviewer_original {
+    Some(original) => {
+      if !physical_equal(original.host, self) {
+        return Err(CustodyLost)
+      }
+      match original.require_current() {
+        Ok(_) => original
+        Err(issue) => return Err(issue)
+      }
+    }
+    None =>
+      match self.restore_initial_signing_original() {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
   }
-  let fields = match
-    read_local_initial_host_signing_control(self, reviewer.control_body) {
+  let signing_original = if reviewer.original_read is Some(_) {
+    Some(reviewer)
+  } else {
+    None
+  }
+  let (fields, subject) = match
+    read_local_initial_host_signing_control_with_subject(
+      self,
+      reviewer.control_body,
+      signing_original~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -68,10 +99,22 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
     exported: fields.exported,
     public_key: fields.public_key,
     public_key_pem: fields.public_key_pem,
-    signing_subject: match
-      read_initial_host_signing_subject(self, reviewer.control_body, fields) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
+    // The same original Read admitted this immutable subject with its fields.
+    // Keep that DATA; the complete post-projection current check below still
+    // authenticates the control and subject after the physical boundary.
+    signing_subject: if signing_original is Some(_) {
+      subject
+    } else {
+      match
+        read_initial_host_signing_subject(
+          self,
+          reviewer.control_body,
+          fields,
+          signing_original~,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
     },
   }
   original.require_current().map(_ => original)
@@ -83,20 +126,34 @@ pub fn NativeLocalHostConnection::restore_initial_host_signing_original(
 pub fn NativeLocalInitialHostSigningOriginal::require_current(
   self : NativeLocalInitialHostSigningOriginal,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match self.reviewer.require_current() {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
   let host = self.reviewer.host
-  let fields = match
-    read_local_initial_host_signing_control(host, self.reviewer.control_body) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let subject = match
-    read_initial_host_signing_subject(host, self.reviewer.control_body, fields) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let (fields, subject) = if self.reviewer.original_read is Some(_) {
+    let (reviewer_fields, host_fields) = match
+      self.reviewer.read_current_control() {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    // The same active Read authenticated both roles and this exact subject.
+    // No callback intervenes before consuming the original immutable fields.
+    guard host_fields is Some((fields, subject)) &&
+      fields.policy.cid() == reviewer_fields.policy.cid() &&
+      fields.issuer == reviewer_fields.issuer else {
+      return Err(CustodyLost)
+    }
+    (fields, subject)
+  } else {
+    match self.reviewer.require_current() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    match
+      read_local_initial_host_signing_control_with_subject(
+        host,
+        self.reviewer.control_body,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
   }
   if fields.exported != self.exported ||
     fields.public_key_pem != self.public_key_pem ||
@@ -112,7 +169,7 @@ pub fn NativeLocalInitialHostSigningOriginal::require_current(
     Ok(_) => ()
     Err(issue) => return Err(Filesystem(issue))
   }
-  host.check_binding()
+  self.reviewer.check_host_current()
 }
 
 ///|

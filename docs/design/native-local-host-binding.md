@@ -34,12 +34,18 @@ suspended. A Pure operation is activated only for the actual Pure requirements.
 This handoff is preparation, not approval, Account authority or a durable Effect
 Run supplier; unsupported execution remains unavailable.
 
-Finite Policy lifetime preparation binds the original checked Effect identity
+Finite Policy lifetime preparation binds the original checked Pure or Effect identity
 to the same submitted intent and Request before selecting execution support.
 It does not require the legacy one-task Values execution profile. A pending
 Retention neither admits a Run nor starts Source, Model or Effect work. The
 actual material constructors and first acceptance retain their own shape,
 current-authority and custody checks, including the legacy Values guard.
+The backed Native File Source caller supplies its already adopted managed Run
+at first acceptance. The Policy owner requires the SAME live preparation body,
+Request, captured Plan and compiler artifact through their existing original
+projections. The default legacy acceptance entrance remains source-free; a
+Source count or matching CID alone cannot select this route. The original
+Journal/current/definition and physical Work checks remain independent.
 An already accepted Request instead reads its saved original Policy without
 resampling it; changed identity or lost current authority still refuses.
 
@@ -534,6 +540,56 @@ but cannot create a replacement key, policy or claim. Read failure retains its
 original typed cause; if transaction retirement also fails, both causes survive
 in the same existing Host error path, and the database remains fenced.
 
+Inside the same active captured Read, the initial original also retains the
+independent Host public-key/PEM pair admitted by that first full control read.
+Subsequent packet reads still verify the actual HMAC and closed payload/policy
+fields, then compare exact role, file, PEM and public32 against those retained
+public DATA. They observe the same Read/material identity and live Library;
+they do not recreate an EVP decoder for the same public key. Legacy and cold
+reads retain the full decoder. Physical private-file generation/separation,
+fresh Account roles, trusted clock, claims and pre/post-signing fences remain
+independent. The existing pre-restore construction allowance includes the
+bounded pair, optional wrappers and overlapping result/matcher references.
+
+Initial signing control authentication consumes the existing Epoch authority's
+operation-local custody observation only while that same original Read and
+material remain active. Each packet still performs actual HMAC; neither the
+MAC result nor any Account decision enters the Epoch receipt-authentication
+map. Relevant row writes invalidate the existing custody slot. Every existing
+callback/physical-signing boundary drops its earlier observation, retains the
+full boundary fence and freshly reads custody afterwards, before returning to
+the original signing/current path. Operation return, failure and cleanup clear
+the same slot. Legacy and cold control readers keep their complete raw SQL
+custody read. Clock sampling, revision CAS/COMMIT, key projection, revocation,
+independent roles and the one-shot signing/Unknown rules remain separate.
+
+The terminal saved-Reviewer registration fence follows both original-current
+checks, the original approval authority scope and both fresh Resolve checks.
+For the same initial original and captured Read only, it reuses that material
+while checking the actual Library, SQLite fence, DB generation and lifetime.
+It adds no clock callback or constructor and caches no authorization outcome.
+Configured/cold and Resident routes retain the full Host fence; a selected
+foreign or expired scoped Read refuses without a legacy fallback.
+
+Initial grant-history validators forward the same signing original's captured
+Read into Host scope projection. The existing operation scope retains its exact
+account/adoption and principal/connection CID; repeated history checks consume
+that DATA instead of encoding and hashing it again. Host, Library and entered
+Read must match. Selected foreign or expired captures refuse; omitted captures
+keep the complete legacy path. No new retained cache, signing credential or
+Account outcome is introduced. Row scans, authenticated original packets,
+generation/revision checks, independent role authorization and every existing
+callback, clock, claim, physical-signing and Unknown boundary remain unchanged.
+
+First-issue Reviewer and Host metadata use the existing selected-file content
+CID only within that same active original Read/material/Library, after their
+independent current key/account checks. The exact selected name and raw bytes
+must match the previously admitted configuration. Missing or changed selection
+refuses; a selected unentered Read cannot fall back to hashing. Legacy scope
+omission keeps the old raw digest. This avoids recomputing an admitted raw-file
+CID; it removes no control authentication, key/generation validation, role
+decision or physical signing check and adds no retained cache or issuer.
+
 This physical metadata seam is not default-signer selection, Account/Reviewer/
 Run authorization, first issue, use claim, signature or public approval. Those
 existing operational gates must independently bind the exact original purpose,
@@ -754,6 +810,13 @@ separate duties; neither supplies Host Sign. An absent installation tuple does
 not discover a default actor or resource. The original initial control, paired
 Reviewer key, physical Host key generation and selected Host file remain bound
 to the same adopted Host.
+
+Within an initial signing operation, Submission scope and key checks may share
+the same captured Read's immutable adopted material. Signing RunRead evaluates
+the original Account again instead of consuming the ordinary Read's decision
+table. Reviewer Resolve and Host Sign remain independently evaluated. This
+private selection creates no persisted authority or clock sample; Epoch,
+cancellation, revision and physical signing/use fences retain their owners.
 
 Core exposes the complete immutable unsigned verified-wrapper wire from its
 already admitted Resolution. The Host admits the exact authenticated Reviewer
@@ -1946,6 +2009,16 @@ entry/leave permanently keeps that view cleanup-only; a later available context
 cannot revive it. The same pair retains the consuming view and never restores
 its spent available-read port. Scope leave does not retire managed aliases or
 acknowledge material, domain, Library or Host cleanup.
+
+A claimed relation-file Work keeps execution, output export and child cleanup
+inside its original business scope. Publication authorization also runs after
+that borrower returns to the same original Read, including its Store flight
+and Journal fence. Its separate entry projection accepts only the same live,
+claimed, unfinished entry in either of those actual scopes. It performs no
+entry, admission or current check. The Work still validates its original
+Prepared/compiled/Definition/Request binding and checks Source and Account
+currentness through the retained original Read access. A copied, unclaimed,
+finished, closed or unentered entry cannot use that publication projection.
 
 Each Read context may retain one managed-page search hint in its original
 backed context storage. It is only a placement candidate: under the existing

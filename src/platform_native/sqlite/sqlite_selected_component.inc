@@ -80,6 +80,7 @@ static bool actql_component_api_original(const actql_sqlite_component_api *api,
                                          void *base) {
   if (api == NULL || api->abi != ACTQL_SQLITE_COMPONENT_ABI ||
       api->bytes != sizeof(*api) || api->instance != api ||
+      api->reset == NULL || api->clear_bindings == NULL ||
       !actql_component_origin(api, base)) return false;
   const void *entries[] = {
     (void *)api->allocate_memory, (void *)api->libversion, (void *)api->libversion_number,
@@ -88,7 +89,8 @@ static bool actql_component_api_original(const actql_sqlite_component_api *api,
     (void *)api->bind_text, (void *)api->bind_blob, (void *)api->bind_int64,
     (void *)api->step, (void *)api->column_int64, (void *)api->column_blob,
     (void *)api->column_bytes, (void *)api->finalize, (void *)api->changes64,
-    (void *)api->busy_timeout, (void *)api->get_autocommit
+    (void *)api->busy_timeout, (void *)api->get_autocommit,
+    (void *)api->reset, (void *)api->clear_bindings
   };
   for (size_t i = 0; i < sizeof(entries) / sizeof(entries[0]); i++)
     if (!actql_component_origin(entries[i], base)) return false;
@@ -182,6 +184,8 @@ static void *actql_native_sqlite_load_component_original(
   library->changes64 = api->changes64;
   library->busy_timeout = api->busy_timeout;
   library->get_autocommit = api->get_autocommit;
+  library->reset = api->reset;
+  library->clear_bindings = api->clear_bindings;
   library->selected_ready = true;
   return library;
 #endif

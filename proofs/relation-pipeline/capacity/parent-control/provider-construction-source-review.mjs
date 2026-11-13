@@ -30,6 +30,69 @@ const replaceOnce = (source, from, to = '') => {
   return source.replace(from, to);
 };
 
+// The added execution-owner observer is separate from candidate construction.
+// Reverse only its exact guarded callback, never an arbitrary map or function.
+export function selectedBeforeRowCleanupContinuation(source) {
+  return replaceOnce(source, `  ).map(owner => {
+    owner.cleanup_continuation = Some(() => {
+      @execution.bounded_binding_rows_cleanup_continuation(active)
+    })
+    owner
+  })`, '  )');
+}
+
+export function selectedBeforeCleanupContinuation(source) {
+  return replaceOnce(source, `  ).map(active => {
+    active.cleanup_continuation = Some(fn() {
+      // Only the existing reverse cleanup cursor selects a stopped child.
+      // An active/pending input or an uninstrumented family remains blocked.
+      if !terminal.val || reclaimed.val || cleanup_index.val < 0 {
+        return -1L
+      }
+      state.children
+      .get(cleanup_index.val)
+      .map(managed_provider_cleanup_continuation)
+      .unwrap_or(-1L)
+    })
+    (active, state)
+  })`, '  ).map(active => (active, state))');
+}
+
+// This quote-only change leaves the eleven-candidate constructor unchanged.
+// Preserve the complete prior preimage rather than refreshing its old digest.
+export function selectedBeforeBoundedChainQuote(source) {
+  return replaceOnce(source, `    // This audited chain constructs bounded children and exact-count handles,
+    // not the generic sequence table/measurement workspace. Keep every child
+    // output, the live scratch peak and the original output-copy retention.
+    // Unreclaimed/family suffixes retain their complete generic floor.
+    Int64::max(
+      if reclaimed_prefix == count {
+        base.retained_bytes
+      } else {
+        base.execution_bytes
+      },
+      live_children + handles + preparation,
+    ),`, '    Int64::max(base.execution_bytes, live_children + handles + preparation),');
+}
+
+export function managedBeforeCleanupContinuation(source) {
+  let prior = replaceOnce(source, '  mut cleanup_continuation : (() -> Int64)?\n');
+  prior = replaceOnce(prior, '    cleanup_continuation: None,\n');
+  return replaceOnce(prior, `///|
+/// Observe a stopped provider's actual finite private reclamation cursor.
+/// Absent, active or externally blocked owners cannot authorize continuation.
+pub fn managed_provider_cleanup_continuation(
+  execution : ManagedProviderExecution,
+) -> Int64 {
+  if !managed_provider_stopped(execution) {
+    return -1L
+  }
+  execution.cleanup_continuation.map(observe => observe()).unwrap_or(-1L)
+}
+
+`);
+}
+
 // Exact current callback-execution support delta, never a runtime fallback.
 // The complete normalized blob is compared with the existing review below.
 export function selectedBeforeBoundaryDispatch(source) {

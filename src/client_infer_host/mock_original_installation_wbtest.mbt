@@ -10,6 +10,7 @@ fn original_mock_fixture(
   purpose_ledger? : @resources.LedgerLimits? = None,
   expected_purpose_issue? : @resources.LedgerIssue? = None,
   restored_input? : Bool = false,
+  deferred_answers? : Bool = false,
   restored_custody? : () -> Bool = () => true,
 ) -> (
   Execution,
@@ -78,16 +79,18 @@ fn original_mock_fixture(
     },
   ).unwrap()
   let now = Ref("2026-10-12T00:00:00.000Z")
-  let installation = @model.install_original_model_mock(
-    profile,
-    declaration,
-    normalized,
-    answers,
-    () => {
-      calls.val += 1
-      now.val
-    },
-  ).unwrap()
+  let clock = () => {
+    calls.val += 1
+    now.val
+  }
+  let installation = if deferred_answers {
+    @model.prepare_original_model_mock(profile, declaration, normalized, clock)
+  } else {
+    @model.install_original_model_mock(
+      profile, declaration, normalized, answers, clock,
+    )
+  }
+  let installation = installation.unwrap()
   let provider = @model.original_model_mock_provider(installation).unwrap()
   assert_true(@model.model_provider_synchronous_invoke(provider) is None)
   let execution_materials = @environment.model_mock_execution_materials(
@@ -614,4 +617,25 @@ test "actual mock unconfirmed entry never consults answers or retries the origin
   assert_true(
     @resources.finish_original_ledger_inventory(ledger, true).unwrap(),
   )
+}
+
+///|
+test "declared Mock without physical answers cannot dispatch a new original Model call" {
+  let calls = Ref(0)
+  let (active, installation, profile, read, _, _, _) = original_mock_fixture(
+    calls,
+    deferred_answers=true,
+  )
+  // Metadata and the real original call Scope can be prepared independently;
+  // only a NEW Slot crosses the mandatory answer-ready gate.
+  assert_true(
+    fixture_finish(active, initial_work=active.work)
+    is Failed(Model(@model.InvalidProvider), ..),
+  )
+  assert_true(active.phase is Terminal)
+  assert_eq(calls.val, 0)
+  assert_true(cleanup(active).unwrap())
+  @model.retire_original_model_mock(installation).unwrap() |> ignore
+  assert_true(@environment.retire_model_mock_profile(profile))
+  @publication_host.settle_client_model_read(read, true).unwrap() |> ignore
 }

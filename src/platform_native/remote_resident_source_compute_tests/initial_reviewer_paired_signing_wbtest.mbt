@@ -261,8 +261,9 @@ fn paired_initial_reviewer_signing(
     .prepare_initial_resolution_signing("paired-initial-reviewer")
     .unwrap()
   if fixture.probe_scope_once {
-    // Full scope construction16 + fresh initial view21 + post-child material5.
-    assert_eq(fixture.current_reads.val - before_prepare, 42)
+    // One scope/subject16 + after-scope material5 + post-child material5.
+    // The same-subject handoff omits a second 16-callback scope traversal.
+    assert_eq(fixture.current_reads.val - before_prepare, 16 + 5 + 5)
   }
   let before_sign = fixture.current_reads.val
   let wire = signing.sign_candidate_once().unwrap()

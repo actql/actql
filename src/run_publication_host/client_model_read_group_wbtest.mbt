@@ -60,6 +60,117 @@ fn client_model_read_group_fixture() -> (
 }
 
 ///|
+test "complete compiler Model read inputs grow under their same original typed consumers" {
+  let (compiled, definition, plans, ledger, identity) = client_model_read_group_fixture()
+  let scopes = bind_client_model_read_scopes(
+    compiled,
+    definition,
+    plans,
+    ledger,
+    identity,
+    [7L, 9L],
+    [5L, 6L],
+  ).unwrap()
+  let first = prepare_client_model_read(scopes[0], 7L, 5L).unwrap()
+  let consumer = claim_client_model_read_preparation(
+    first,
+    compiled,
+    definition,
+    plans[0],
+    7L,
+    5L,
+  ).unwrap()
+  enter_client_model_read_consumer(
+    consumer,
+    compiled,
+    definition,
+    plans[0],
+    7L,
+    5L,
+  ).unwrap()
+  grow_client_model_read_preparation_consumer_capacity(
+    first,
+    consumer,
+    compiled,
+    definition,
+    plans[0],
+    10L,
+    8L,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    grow_client_model_read_preparation_consumer_capacity(
+      first,
+      consumer,
+      compiled,
+      definition,
+      plans[1],
+      11L,
+      9L,
+    )
+    is Err(ForeignRun),
+  )
+  let second = prepare_client_model_read(scopes[1], 9L, 6L).unwrap()
+  assert_true(
+    grow_client_model_read_preparation_consumer_capacity(
+      second,
+      consumer,
+      compiled,
+      definition,
+      plans[1],
+      11L,
+      9L,
+    )
+    is Err(Resource(@resources.ForeignOrigin)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  let next = claim_client_model_read_preparation(
+    second,
+    compiled,
+    definition,
+    plans[1],
+    9L,
+    6L,
+  ).unwrap()
+  enter_client_model_read_consumer(next, compiled, definition, plans[1], 9L, 6L).unwrap()
+  grow_client_model_read_preparation_consumer_capacity(
+    second,
+    next,
+    compiled,
+    definition,
+    plans[1],
+    12L,
+    10L,
+  ).unwrap()
+  // One read16/11 + first delta3/3 + second delta3/4, plus bootstrap3/2.
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 25L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 20L)
+  settle_client_model_read(first, true).unwrap()
+  settle_client_model_read(second, true).unwrap()
+  // Each original Scope still reports its own completion. Settling both
+  // read children does not acknowledge the first Scope on its behalf.
+  assert_false(
+    finish_client_model_read_scope(
+      scopes[0],
+      compiled,
+      definition,
+      plans[0],
+      true,
+    ).unwrap(),
+  )
+  assert_true(
+    finish_client_model_read_scope(
+      scopes[1],
+      compiled,
+      definition,
+      plans[1],
+      true,
+    ).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
 test "complete compiler Model scopes use one original read in either child start order and retire children before parent" {
   let (compiled, definition, plans, ledger, identity) = client_model_read_group_fixture()
   let scopes = bind_client_model_read_scopes(

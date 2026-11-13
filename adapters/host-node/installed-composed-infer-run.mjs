@@ -2,7 +2,7 @@
 // Local owns scheduling; the original Model journal owns each physical send.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {runCapturedStrategy} from './entry.mjs';
+import {runCapturedInternalStrategy} from './entry.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {openNodeComposedInferProvider, startCompleteInferObservation} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
@@ -256,7 +256,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       }
     }
     sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
-      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
       submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
       currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}},
       restore: {view: {kind: 'model_invocation', prepareAttemptId: null, runId,
@@ -299,7 +299,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     // matching array or a single Source's closure cannot stand in for them.
     if (historical !== undefined) throw new Error('ModelMultiSourceClosureCustodyUnavailable');
     sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
-      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
       submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
       currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}}});
     const originals = input.sources.map(source => ({occurrence: source.occurrence,
@@ -324,7 +324,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       }
     }
     sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
-      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
       submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
       currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}},
       ...(saved === undefined ? {} : {restore: {
@@ -449,7 +449,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint};
   });
   beginPhysicalWork();
-  execution = await runCapturedStrategy(setup, {...computeConfigurations, local}, signal, undefined,
+  // This driver computes intermediate Model output. The SAME complete original
+  // observation and invocation are published below by the final Run owner.
+  execution = await runCapturedInternalStrategy(setup, {...computeConfigurations, local}, signal, undefined,
     installedCaptured ? {preparationHolder: originalPreparation.preparationHolder,
       retainPreflightCleanup(owner) {
         if (preflightCleanup !== undefined || pendingSetup !== setup) {

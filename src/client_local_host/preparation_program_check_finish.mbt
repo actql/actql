@@ -36,8 +36,13 @@ fn[I, P] finish_program_check_preparation_owned(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  let (outcome, spent, complete) = match
-    @checked.observe_finish_parsed_check_registry(original) {
+  let calls = Ref(0L)
+  let observed = @checked.observe_finish_parsed_check_registry(
+    original,
+    calls_out=Some(calls),
+  )
+  owner._observed_semantic_check_calls += calls.val
+  let (outcome, spent, complete) = match observed {
     Err(issue) => {
       owner.phase = Failed
       return Err(Prelude(issue))

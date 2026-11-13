@@ -31,6 +31,8 @@ fn LocalCommandPreparationOriginal::publish_saved_effect_files(
   run : LocalRunInstallation,
   continuation : @local_host.NativeLocalEffectResumeOriginal,
 ) -> String raise ClientStop {
+  native_timing_begin(37)
+  defer native_timing_end(37)
   guard self.business is Some(business) &&
     business.saved_effect_files is Some(work) &&
     work.child is None &&

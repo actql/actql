@@ -197,7 +197,23 @@ pub fn capacity_reservation_covers(
   retained_bytes : Int64,
   execution_bytes : Int64,
 ) -> Bool {
-  let token = reservation.reservation
+  original_capacity_token_covers(
+    ledger,
+    reservation.reservation,
+    retained_bytes,
+    execution_bytes,
+  )
+}
+
+///|
+// The existing opaque reservation remains the selected original. Descriptor
+// continuation checks borrow it directly; no replacement capacity is issued.
+fn original_capacity_token_covers(
+  ledger : Ledger,
+  token : Reservation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
   retained_bytes >= 0L &&
   execution_bytes >= 0L &&
   physical_equal(ledger, token.owner) &&

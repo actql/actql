@@ -4,9 +4,10 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
+import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 const sha = /^[0-9a-f]{40}$/u;
 const workflowPath = '.github/workflows/ci.yml';
-export const policyPaths = Object.freeze(['.github', 'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs', 'scripts/test-execution.mjs', 'scripts/packed-query-evidence.mjs', 'scripts/ci-main-base.mjs']);
+export const policyPaths = Object.freeze(['.github', 'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs', 'scripts/test-execution.mjs', 'scripts/packed-query-evidence.mjs', 'scripts/ci-main-base.mjs', 'scripts/ci-core-partitions.mjs', 'scripts/ci-session-controls.mjs']);
 const gitDefault = args => execFileSync('git', args, {encoding: 'utf8', maxBuffer: 1024 * 1024});
 const positive = value => Number.isSafeInteger(value) && value > 0;
 
@@ -40,8 +41,10 @@ export function fullCheckpointJobs(gateJobs) {
   // do not generalize these exceptions to arbitrary skipped or missing jobs.
   return ['check', ...gateJobs.filter(name => !['focused-tests', 'main-performance', 'health-quick'].includes(name))
     .flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)',
-      'core (native 1/2)', 'core (native 2/2)'] : name === 'native-separated-network'
-      ? ['native-separated-network (direct)', 'native-separated-network (store)'] : [name])];
+      ...nativeCoreCiPartitions.map(partition => `core (native ${partition})`)] : name === 'native-separated-network'
+      ? ['native-separated-network (direct)', 'native-separated-network (store)']
+      : name === 'client-readme-packed'
+        ? ['client-readme-packed (22.22.0)', 'client-readme-packed (24)'] : [name])];
 }
 
 function validRun(run, {repository, repositoryId, workflowId, ancestors}) {

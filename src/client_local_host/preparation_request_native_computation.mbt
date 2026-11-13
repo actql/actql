@@ -147,6 +147,9 @@ fn[I] finish_request_original_computation(
   program_limits : @publication_host.ClientProgramPreparationLimits,
   effect_limits : @publication_host.ClientEffectComputationLimits,
 ) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
+  let (program_limits, effect_limits) = request_original_query_check_limits(
+    owner, program_limits, effect_limits,
+  )
   // Project the SAME installed publication once. Require reuse of its Catalog;
   // no changed-limit fallback can silently construct another one at check.
   let (update, store, command, catalog) = match
@@ -165,6 +168,36 @@ fn[I] finish_request_original_computation(
   }
   finish_request_checked_computation_targets(
     owner, input, update, store, command,
+  )
+}
+
+///|
+// Only the ordinary input driver consumes its just-completed Query lowerer's
+// selected generated-Program envelope. Explicit generic check/reuse APIs keep
+// the caller's original restrictions. This reads the existing parent slot;
+// no new controller, traversal, parse or physical/resource authority is issued.
+fn[I] request_original_query_check_limits(
+  owner : ClientRequestPreparation[I],
+  program : @publication_host.ClientProgramPreparationLimits,
+  effect : @publication_host.ClientEffectComputationLimits,
+) -> (
+  @publication_host.ClientProgramPreparationLimits,
+  @publication_host.ClientEffectComputationLimits,
+) {
+  guard owner.phase == QueryLowered &&
+    owner.query_syntax is Some(_) &&
+    owner.computation_limits is Some(selected) else {
+    return (program, effect)
+  }
+  (
+    selected,
+    {
+      ..effect,
+      program: {
+        ..effect.program,
+        checking: { ..effect.program.checking, input: selected.checking.input, },
+      },
+    },
   )
 }
 

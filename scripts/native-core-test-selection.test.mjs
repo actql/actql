@@ -6,7 +6,8 @@ import {tmpdir} from 'node:os';
 import {basename, dirname, join, resolve} from 'node:path';
 import test from 'node:test';
 import {nativeCoreTestSelection, portableMoonTestCount, nativeCoreHttpArguments, nativeCoreHttpTestFiles,
-  nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile} from './native-core-test-selection.mjs';
+  nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile,
+  nativeCoreScopedTestEnvironment, nativeCoreCheckpointRequired} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
 function fixture(t) {
@@ -208,6 +209,111 @@ test('Native partition ownership runs HTTP Source scoped and repeated geometry e
     assert.throws(() => nativeCorePartitionProfiles(profiles, value), /Invalid/u);
   assert.throws(() => nativeCorePartitionProfiles({...profiles, ordinary: {cases: 11}}, '1/2'), /Missing/u);
   assert.throws(() => nativeCorePartitionProfiles({...profiles, ordinary: {partitions: [parts[0], {args: [], cases: 0}]}}, '2/2'), /Empty/u);
+});
+
+test('four Native ordinary jobs and independent physical jobs exhaust the original profile inventory', () => {
+  const paths = Array.from({length: 12}, (_, i) => `src/package-${i}`);
+  const records = paths.flatMap(directory => Array.from({length: 3}, (_, index) => ({
+    directory, source: `${directory}/original_test.mbt`, benchmark: false,
+    entry: [directory, 'original_test.mbt', {index}],
+  })));
+  const partitions = nativeCoreOrdinaryPartitions(['--release'], paths, records, 4);
+  assert.equal(partitions.length, 4);
+  assert.deepEqual(partitions.flatMap(p => p.args.slice(1)).sort(), [...paths].sort());
+  assert.deepEqual(nativeCoreOrdinaryPartitions(['--release'], paths, [...records].reverse(), 4), partitions);
+  const profiles = {ordinary: {args: ['--release', ...paths], cases: 36, partitions},
+    http: {args: ['src/http'], cases: 3}, source: {args: ['src/source'], cases: 5},
+    scoped: {args: ['src/scoped'], cases: 9, tests: [{source: 'original', index: 0}]},
+    physicalCases: 7, repeatedGeometryCases: 2};
+  const lanes = ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped'];
+  const selected = lanes.map(lane => nativeCorePartitionProfiles(profiles, lane));
+  for (const name of ['ordinary', 'http', 'source', 'scoped']) {
+    assert.equal(selected.reduce((sum, p) => sum + p[name].cases, 0), profiles[name].cases);
+    assert.equal(selected.filter(p => p[name].args !== null).length, name === 'ordinary' ? 4 : 1);
+  }
+  assert.equal(selected.reduce((sum, p) => sum + p.physicalCases, 0), 7);
+  assert.equal(selected.reduce((sum, p) => sum + p.repeatedGeometryCases, 0), 2);
+  assert.equal(selected.at(-1).scoped.tests, profiles.scoped.tests);
+  for (const lane of ['0/4', '5/4', '3/2', '1/3', 'HTTP', 'scoped/4'])
+    assert.throws(() => nativeCorePartitionProfiles(profiles, lane), /Invalid/u);
+  assert.throws(() => nativeCorePartitionProfiles({...profiles, http: {args: null, cases: 0}}, 'http'), /Empty/u);
+  assert.throws(() => nativeCoreOrdinaryPartitions([], paths.slice(0, 3), records.slice(0, 9), 4), /nonempty/u);
+});
+
+test('four Native ordinary bins separate measured large packages without splitting original drivers', () => {
+  const args = ['--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize'];
+  const heavy = ['src/canonical_value', 'src/query_integration', 'src/cmd/native_client'];
+  const other = ['src/ordinary-a', 'src/ordinary-b', 'src/ordinary-c'];
+  const paths = [...other, ...heavy], records = [];
+  for (const directory of paths) for (let driver = 0; driver < (heavy.includes(directory) ? 1 : 10); driver++) {
+    const source = `${directory}/original-${driver}_test.mbt`;
+    for (let index = 0; index < 2; index++) records.push(Object.freeze({directory, source,
+      benchmark: index === 1,
+      entry: Object.freeze([`${directory}/driver-${driver}`, source, Object.freeze({index, attrs: ['original']})]),
+    }));
+  }
+  const original = JSON.stringify(records);
+  const parts = nativeCoreOrdinaryPartitions(args, paths, records, 4);
+  const owners = heavy.map(path => parts.findIndex(part => part.args.includes(path)));
+  assert.equal(new Set(owners).size, 3, 'Measured large packages must not collect in the same ordinary bin');
+  assert(owners.every(owner => owner >= 0));
+  assert.equal(parts.length, 4);
+  assert.deepEqual(parts.flatMap(part => part.args.slice(args.length)).sort(), [...paths].sort());
+  for (const part of parts) {
+    assert.deepEqual(part.args.slice(0, args.length), args);
+    const selected = records.filter(record => part.args.includes(record.directory));
+    assert.equal(part.cases, selected.filter(record => !record.benchmark).length);
+    assert(part.cases > 0);
+    for (const record of selected) assert.equal(parts.filter(p => p.args.includes(record.directory)).length, 1);
+  }
+  assert.equal(parts.reduce((sum, part) => sum + part.cases, 0), 33);
+  assert.deepEqual(nativeCoreOrdinaryPartitions(args, [...paths].reverse(), [...records].reverse(), 4),
+    parts.map(part => ({...part, args: [...args, ...part.args.slice(args.length).reverse()]})));
+  assert.equal(JSON.stringify(records), original, 'Original compiler records must remain unchanged');
+  assert.deepEqual(nativeCoreOrdinaryPartitions(args, paths, records, 2).map(part => part.args.slice(args.length)),
+    [[other[0], other[2]], [other[1], ...heavy]], 'The existing two-way local plan is unchanged');
+});
+
+test('actual compiler four-way Native inventory never duplicates a generated test driver', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-four-partitions-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  writeFileSync(join(root, 'moon.mod'), 'name = "fixture/native_four"\nversion = "0.0.0"\n');
+  const heavy = ['src/canonical_value', 'src/query_integration', 'src/cmd/native_client'];
+  for (const path of [...heavy, ...Array.from({length: 5}, (_, i) => `src/package-${i}`)]) {
+    const directory = join(root, path);
+    mkdirSync(directory, {recursive: true});
+    writeFileSync(join(directory, 'moon.pkg'), '');
+    writeFileSync(join(directory, 'main.mbt'), 'test "original case" { assert_eq(7, 7) }\n');
+  }
+  const args = ['--release', '--deny-warn'];
+  const selected = nativeCoreTestSelection(root, args, {partitionProfiles: true, ordinaryPartitions: 4});
+  const parts = selected.profiles.ordinary.partitions;
+  assert.equal(parts.length, 4);
+  assert.equal(selected.cases, 8);
+  assert.deepEqual(parts.map(p => p.cases), [2, 2, 2, 2]);
+  assert.equal(new Set(heavy.map(path => parts.findIndex(part => part.args.includes(path)))).size, 3);
+  const paths = parts.flatMap(p => p.args.slice(args.length));
+  assert.equal(new Set(paths).size, 8);
+  const drivers = parts.flatMap(p => p.drivers);
+  assert(drivers.length >= 8);
+  assert.equal(new Set(drivers).size, drivers.length);
+  assert.deepEqual(paths.sort(), selected.profiles.ordinary.args.slice(args.length).sort());
+});
+
+test('split Native jobs do not multiply the large checkpoint prerequisite compilation', () => {
+  const ordinary = {args: ['--release', 'src/platform_native/client_host'], cases: 4};
+  const profiles = {ordinary: {...ordinary, partitions: [ordinary,
+    ...['other', 'third', 'fourth'].map(name => ({args: ['src/' + name], cases: 2}))]},
+    http: {args: ['src/http'], cases: 1}, source: {args: ['src/source'], cases: 1},
+    scoped: {args: ['src/scoped'], cases: 1,
+      tests: [{source: 'src/platform_native/client_host/run_effect_file_response_wbtest.mbt', index: 0}]},
+    physicalCases: 1, repeatedGeometryCases: 0};
+  const required = ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped']
+    .filter(lane => nativeCoreCheckpointRequired(nativeCorePartitionProfiles(profiles, lane)));
+  assert.deepEqual(required, ['1/4', 'scoped']);
+  assert.equal(nativeCoreCheckpointRequired({...profiles, ordinary: {args: [
+    'src/platform_native/client_host/another_original_wbtest.mbt']}, scoped: {tests: []}}), true);
+  assert.equal(nativeCoreCheckpointRequired({ordinary: {args: null}, scoped: {tests: []}}), false);
 });
 
 test('Native compiler discovery connects both partitions to unchanged original driver inputs without C compilation', t => {
@@ -719,4 +825,54 @@ test('Native Project Mock real Read keeps its selected provider out of ordinary 
   assert.equal(nativeScopedTestFiles.filter(source => source === physical).length, 1);
   assert.equal(nativeCoreScopedAllocationProfile(physical), 'runtime-values');
   assert.equal(nativeScopedTestFiles.includes('src/cmd/native_client/local_project_configuration_wbtest.mbt'), false);
+});
+
+test('Native initial CID and signing counters select every original case in runtime-values only', t => {
+  const directory = 'src/platform_native/client_host';
+  const cid = directory + '/local_initial_configuration_cid_wbtest.mbt';
+  const signing = directory + '/local_initial_host_signing_original_wbtest.mbt';
+  const ordinary = directory + '/ordinary_wbtest.mbt';
+  // Compiler-owned discovery must retain later authored cases without a pinned
+  // signing-case count in either the environment selector or the driver.
+  for (const signingCases of [4, 6]) {
+    const root = fixture(t);
+    mkdirSync(join(root, directory), {recursive: true});
+    for (const source of [cid, signing, ordinary]) writeFileSync(join(root, source), 'test {}\n');
+    const command = ['moon', 'generate-test-driver', '--output-driver', '_build/driver.mbt',
+      '--output-metadata', '_build/info.json', cid, signing, ordinary, '--target', 'native',
+      '--pkg-name', 'fixture/client_host', '--driver-kind', 'whitebox'].join(' ');
+    const entries = (count, name) => Array.from({length: count}, (_, index) =>
+      ({index, name: name + index, attrs: [], line_number: index + 1}));
+    const execute = (tool, args) => {
+      assert.equal(tool, 'moon');
+      if (args[0] === 'test') return command;
+      assert.equal(args[0], 'generate-test-driver');
+      const output = resolve(root, args[args.indexOf('--output-metadata') + 1]);
+      mkdirSync(dirname(output), {recursive: true});
+      writeFileSync(output, JSON.stringify({tests: {
+        [basename(cid)]: entries(2, 'CID original '),
+        [basename(signing)]: entries(signingCases, 'signing original '),
+        [basename(ordinary)]: entries(1, 'ordinary original '),
+      }}));
+      return '';
+    };
+    const selected = nativeCoreTestSelection(root, ['--release'], {execute, partitionProfiles: true});
+    const expected = [cid, signing].flatMap(source =>
+      Array.from({length: source === cid ? 2 : signingCases}, (_, index) => ({source, index})));
+    assert.deepEqual(selected.profiles.scoped.tests, expected);
+    assert.equal(new Set(expected.map(item => JSON.stringify(item))).size, 2 + signingCases);
+    assert.equal(selected.profiles.scoped.cases, 2 + signingCases);
+    assert.equal(selected.profiles.uniqueCases, 3 + signingCases);
+    assert.deepEqual(selected.profiles.ordinary, {args: ['--release', ordinary], cases: 1});
+    for (const original of selected.profiles.scoped.tests) {
+      assert.equal(nativeScopedTestFiles.filter(source => source === original.source).length, 1);
+      assert.equal(nativeCoreScopedAllocationProfile(original.source), 'runtime-values');
+      assert.deepEqual(nativeCoreScopedTestEnvironment(original), {ACTQL_NATIVE_TIMINGS: '1'});
+    }
+    assert.deepEqual(nativeCoreScopedTestEnvironment({source: ordinary, index: 0}), {});
+    assert.deepEqual(nativeCoreScopedTestEnvironment({source: cid + '.foreign', index: 0}), {});
+  }
+  const mock = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  assert.deepEqual(nativeCoreScopedTestEnvironment({source: mock, index: 13}), {ACTQL_NATIVE_TIMINGS: '1'});
+  for (const index of [0, 12, 14]) assert.deepEqual(nativeCoreScopedTestEnvironment({source: mock, index}), {});
 });

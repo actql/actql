@@ -1,0 +1,239 @@
+{
+  "source": "ed4748e1caa63cae3c22349bf9b823a9d139df8a",
+  "jobs": {
+    "native": [
+      {
+        "name": "Test scoped bundle producer source and image metadata refusals",
+        "commandSha256": "80a80eb7cf031dd6389b4f7abb6a7f5c61bddcc0a2cde6cc3f36c5688b9fe3fc",
+        "env": {}
+      },
+      {
+        "name": "Test immutable Native package-version C mechanism",
+        "commandSha256": "b46e9aed081325d26b31f21fe2a9ac5795dd164e5eca6773c3b186dee4c9a6bd",
+        "env": {}
+      },
+      {
+        "name": "Test selected Linux x64 process-provider ABI and original physical custody",
+        "commandSha256": "98b764bc5096aa488dd688c8925da50facf24cb24ac036341da71b367ff89f63",
+        "env": {}
+      },
+      {
+        "name": "Test original Read slab activation custody on selected Linux x64",
+        "commandSha256": "39fe1f4d9205227817220dc66d3da2618607025eff0b874c0a118b5b2c55371a",
+        "env": {}
+      },
+      {
+        "name": "Test original prepared constructor cohorts on selected Linux x64",
+        "commandSha256": "16335bef1c60ca1ff8a29874890ca313602d6ccf142bb7fd98ab257018ff7fb0",
+        "env": {}
+      },
+      {
+        "name": "Test original working carrier custody on selected Linux x64",
+        "commandSha256": "6c4681e6bca7b8d0227ca151c0a885bfb4f0854df685520bc0b6be17fb5f63d4",
+        "env": {}
+      },
+      {
+        "name": "Test original Native bootstrap inventory FFI and domain lifetime",
+        "commandSha256": "33ada7d06a43fd4fd3eed5e4df382656847323ca8bf3d505013862e587d7ad75",
+        "env": {}
+      },
+      {
+        "name": "Test Node-free native storage publication and control",
+        "commandSha256": "b179ad98de0e2e7f8fdbf2303b5c8911d444f36897ed61b146e1124eb1d6dc43",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http"
+        }
+      },
+      {
+        "name": "Test Native Salesforce Effect preview",
+        "commandSha256": "e1c08e24ad9e43b096c0bb6cbe29ffbd1c67d706aaa25d340d23447ef5f400a9",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-preview"
+        }
+      },
+      {
+        "name": "Test Native runtime bundle CLI",
+        "commandSha256": "df6dd5a2efac24ebce606b70d856a9dfaf4154d7fee1c5e6df91483e32de8600",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-bundle-cli"
+        }
+      },
+      {
+        "name": "Test Native publication Store lock",
+        "commandSha256": "1fa01b48191f954ebb50744c4f40682038e922700e8caaa9843328e344be3124",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-publication-lock"
+        }
+      },
+      {
+        "name": "Test Native remote runtime",
+        "commandSha256": "7946b130e1aff05feac4794db85fff45ae5ccbcc252a4c33da50354e90769c15",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-remote"
+        }
+      },
+      {
+        "name": "Test Native Resident Effect computation",
+        "commandSha256": "1a21fc5f143423d5a4b941effe109e39b4e9bc10dea2b7c6896f969de4abc22d",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-effect"
+        }
+      },
+      {
+        "name": "Test Native Resident Site",
+        "commandSha256": "fa7edf07332423bc377d5ee130ca1cae7008d87b2effc67310768017713ea829",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-runtime-test"
+        }
+      },
+      {
+        "name": "Test Native Resident Source",
+        "commandSha256": "f427cbdae6dc06bcba110be18c9d686e079143a063564585b61d0adc611f68b9",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-source"
+        }
+      },
+      {
+        "name": "Test Native observation replay",
+        "commandSha256": "d890db3799e6203ce3e942494c4fabce4cea2a4f0128281740561fac87fc82e2",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-observation"
+        }
+      },
+      {
+        "name": "Test Native release recovery",
+        "commandSha256": "742d44a9a5e544e87ff66ff56409b37e9767aa224692813e551f1bfc38f499ca",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-release"
+        }
+      },
+      {
+        "name": "Test Native cancellation",
+        "commandSha256": "880b4e00a74c9ff7bda70280e952fe6c4300c0dbc0889b73689f26c94e0aa3c8",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-cancel"
+        }
+      },
+      {
+        "name": "Test public packed Run materials against native resident Site",
+        "commandSha256": "0ce8f0e8873b094244434dfab8ab75bdb200f6309da9a4beaf1fca52ff1547ba",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/packed-resident-materials"
+        }
+      },
+      {
+        "name": "Test packed exact dispatch recovery against native resident Site",
+        "commandSha256": "1bea36ecbb78b9c351c9645c3dcf975fce9b489bfc60b265cd0114d4145323e7",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/packed-resident-redelivery"
+        }
+      },
+      {
+        "name": "Test packed Output report custody and ACK crash boundaries",
+        "commandSha256": "7c4cb2a06e8c337ee156ea804134dd0d16463f6e22ee2b873b1f83301d82fba6",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/packed-output-report"
+        }
+      },
+      {
+        "name": "Verify registered Native retained product path",
+        "commandSha256": "d035fc7e6eaeee8a5be6f89036f3d3e82dc86a2dcc80f6d4f813e3f38dcc0294",
+        "env": {}
+      }
+    ],
+    "native-macos": [
+      {
+        "name": "Test macOS local execution ownership and cancellation",
+        "commandSha256": "89d67618db8b985b45f9c7c8410e0a3012af6eb4fb1395a9d041f0c37b5f3cae",
+        "env": {}
+      },
+      {
+        "name": "Test finite original SQLite statement and selected API custody",
+        "commandSha256": "2294831cf697a9c3ed53819ee0c05f5045d7a761a37eea281bc31e7fe3ae4324",
+        "env": {}
+      },
+      {
+        "name": "Test native macOS retained task file ownership",
+        "commandSha256": "b1aaac2bd32cd6bf0a232aaf3652c5d2205c288bc5441ba7a599f2f47d19632a",
+        "env": {}
+      },
+      {
+        "name": "Test Node-free native storage publication and control",
+        "commandSha256": "4e1fa95ee90ec9dd86b3a4837a064943e1233d0dfe54826ae9387061315d54b0",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http"
+        }
+      },
+      {
+        "name": "Test Native Salesforce Effect preview",
+        "commandSha256": "55cb8bfe742bd068af3d2b9441529f963af3626b90a56761548f46e33b73fb0a",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-preview"
+        }
+      },
+      {
+        "name": "Test Native runtime bundle CLI",
+        "commandSha256": "86cb2b4c8c6022d5ce17ace064ef078f2dd80723f89cff0a91f55793d14a567e",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-bundle-cli"
+        }
+      },
+      {
+        "name": "Test Native publication Store lock",
+        "commandSha256": "02d3d5f16d752e0c885ce218246ccad7ae6b27ee782a7bad726877c168ceb833",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-publication-lock"
+        }
+      },
+      {
+        "name": "Test Native remote runtime",
+        "commandSha256": "cabda7c326fad395fbdc7bf59f4489b5051ecbe626ef6a9ee1edd04557c13be1",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-remote"
+        }
+      },
+      {
+        "name": "Test Native Resident Effect computation",
+        "commandSha256": "dd70fb21fc2343bfd3dabb52daea338e76a8fe8031eb7bb72018ef7e9e37d500",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-effect"
+        }
+      },
+      {
+        "name": "Test Native Resident Site",
+        "commandSha256": "f54aece1fbab29e612799ef5d340c2765c07714dc36e42bc858c9d6da0d59b8c",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-runtime-test"
+        }
+      },
+      {
+        "name": "Test Native Resident Source",
+        "commandSha256": "b8bc9b505c9571eae9c069bf61dac9c8e15478184477fa26850c3a4b17e30af3",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-source"
+        }
+      },
+      {
+        "name": "Test Native observation replay",
+        "commandSha256": "9d63e5dfe153676dce061e76e24f5749f3f9ebf9e009ea16953ba749de7aa09c",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-observation"
+        }
+      },
+      {
+        "name": "Test Native release recovery",
+        "commandSha256": "c988a7434d14613be6071b9b347009c8db87417629b44f3168e3fe9cf51b783f",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-release"
+        }
+      },
+      {
+        "name": "Test Native cancellation",
+        "commandSha256": "893ee91125e35644244b33562a407087aec1c9208157668bfce85a5131f446ee",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-cancel"
+        }
+      }
+    ]
+  }
+}

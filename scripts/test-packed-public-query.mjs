@@ -15,6 +15,7 @@ import {validatePackedPublicQueryArguments} from './packed-public-query-options.
 import {selectAcceptanceTimeout} from './fixtures/packed-query-transport-owner.mjs';
 
 validatePackedPublicQueryArguments(process.argv.slice(2));
+const ciPart = process.argv.find(argument => argument.startsWith('--ci-part='))?.slice('--ci-part='.length);
 const acceptanceTimeout = selectAcceptanceTimeout(process.env);
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -32,7 +33,7 @@ function run(command, args, cwd = root, env = environment,
   return capture(command, args, {cwd, env, timeout});
 }
 console.log(`Packed public-query evidence: ${directory}`);
-console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
+if (ciPart !== 'native') console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
   'scripts/distinct-join-order-source-input.test.mjs',
   'scripts/graph-difference-source-input.test.mjs',
   'scripts/graph-relation-join-source-input.test.mjs',
@@ -741,6 +742,9 @@ if (process.argv.includes('--infer-source-only') ||
 }
 // Execute the README's literal runtime commands, then the same Program through
 // the existing public Client acceptance helper on HTTPS. No second pack/build.
+// These obligations belong to the portable CI part; Native has its own complete
+// public campaign below and must not repeat the portable cases.
+if (ciPart !== 'native') {
 console.log(run('bash', ['-eu', '-c', quickstart.run], root, runtimeEnvironment).trimEnd());
 assert.equal(await readFile(join(root, 'answer.jsonl'), 'utf8'), quickstart.expected);
 console.log(run(process.execPath, ['readme-acceptance.mjs'], root,
@@ -764,6 +768,7 @@ try {
   assert.match(negative.stderr, /publication\.generated\.js/u);
   console.log('Packed missing generated asset: child failed as expected');
 } finally { await rename(asset + '.omitted', asset); }
+}
 async function exerciseNativeGraphSource(sourceOnly = false) {
   const compiler = environment.ACTQL_TEST_NATIVE_QUERY_COMPILER;
   if (compiler !== undefined && (compiler !== 'clang-19' || process.platform !== 'linux')) {
@@ -794,9 +799,13 @@ async function installDuckDB() {
   auditPackedPackages(root, packages);
   run('npm', ['ls', '--omit=dev', '--all']);
 }
-if (process.argv.includes('--graph-native-only')) {
+if (process.argv.includes('--graph-native-only') || ciPart === 'native') {
   await installDuckDB();
-  await exerciseNativeGraphSource(true);
+  if (ciPart === 'native') console.log(run(process.execPath,
+    ['acceptance.mjs', '--prepare-native-graph-fixture'], root, runtimeEnvironment).trimEnd());
+  // The CI split retains the complete original Native campaign, including its
+  // source-free control. The developer's authored-only selector is unchanged.
+  await exerciseNativeGraphSource(ciPart !== 'native');
   return;
 }
 if (process.argv.includes('--quickstart-only')) return;
@@ -1135,5 +1144,5 @@ for (const {name} of graphPublicHostCases) {
 console.log(run(process.execPath, ['--test', 'graph-source-snapshot.test.mjs'], root,
   {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1'}, 180000).trimEnd());
 if (process.argv.includes('--graph-source-only')) return;
-await exerciseNativeGraphSource();
+if (ciPart !== 'portable') await exerciseNativeGraphSource();
 });

@@ -8,8 +8,6 @@ import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
 
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 
-import {createServer} from 'node:http';
-
 import {join} from 'node:path';
 
 import {DatabaseSync} from 'node:sqlite';
@@ -25,12 +23,6 @@ import {installNodeClientEffectRun} from '../../../host-node/client-effect-run.m
 
 import {openClientRequestJournal} from '../../../host-node/client-request-journal.mjs';
 
-import {installNodeClientSubmission} from '../../../host-node/client-submission.mjs';
-
-import {installNodeClientRequestLookup} from '../../../host-node/client-request-lookup.mjs';
-
-import {createClientHttpHandler} from '../../../host-node/client-http.mjs';
-
 import {fundedClientPreparation} from '../../../host-node/funded-client-preparation.fixture.mjs';
 
 import {completeCapturedEffectRun, runCapturedEffectComputation,
@@ -44,8 +36,6 @@ import {canonicalJson} from
   '../../../host-common/publication-contract-control.fixture.mjs';
 
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
-
-import {connect as connectClient, getSubmissionOutcome} from '../../../../packages/sdk/index.mjs';
 
 const fixture = new URL('../../../../packages/sdk/fixtures/', import.meta.url);
 
@@ -229,7 +219,7 @@ async function effectFixture({splitSource = false,
     mappingCid: mapping.mapping_contract_cid};
 }
 
-test('public Effect submit rejects more than two independent acquired roots before Run acceptance',
+test('three independent acquired roots retain their checked inventory through Effect compilation',
   async t => {
     const terminal = await effectFixture({splitSource: true,
       writeKind: 'create', memberIds: ['save', 'save_again'],
@@ -269,107 +259,20 @@ test('public Effect submit rejects more than two independent acquired roots befo
       input: {text: JSON.stringify(program), format: 'json'},
       parameters: null});
     checked(moon.clientProgramCompileLocalEffects(acquiredPrepared));
-    // Keep a separate checked negative at the existing installed compiler's
-    // one-or-two acquired-prefix boundary. Each additional root is retained by
-    // a public Result, so it cannot disappear as an unused input. This records
-    // an implementation limit, not a language restriction or provider grant.
+    // Three acquired roots are now supported. Keep each root in a public
+    // Result so the real compiler must retain the full checked inventory.
     for (const id of ['source_b', 'source_c']) {
       const source = structuredClone(program.stages[0]);
       source.id = id;
       program.stages.splice(1, 0, source);
       program.results[id] = {from: {stage: id, result: 'rows'}};
     }
-    const unsupported = {document: JSON.stringify(program), environment};
-    const prepared = await prepare({kind: 'aql',
-      input: {text: unsupported.document, format: 'json'},
-      parameters: null});
-    assert.equal(moon.clientProgramEffectCompilationIssueCode(
-      moon.clientProgramCompileLocalEffects(prepared)),
-    'unsupported_program');
-    await mkdir(scratch, {recursive: true});
-    const directory = await mkdtemp(join(scratch.pathname,
-      'unsupported-effect-submit-'));
-    t.after(() => retireFixtureDirectory(t, directory));
-    const journal = openClientRequestJournal(directory);
-    const runs = installNodeClientEffectRun({moon, journal,
-      authorizeRequest: async () => ({
-        executionContextCid: cid('a'), hostPolicyCid: cid('b'),
-        createdAt: '2026-09-24T00:00:00.000Z',
-        expiresAt: '2027-01-01T00:00:00.000Z',
-      }),
-      authorizeRunStart: async () => true,
-      execute: () => assert.fail('unsupported Program started execution'),
-    });
-    const services = {
-      authenticate: header => header === 'Bearer scoped-token'
-        ? 'principal-a' : undefined,
-      authorizeConnection: () => true,
-      negotiate: () => ({
-        version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-        durability: 'durable', scopeRef: 'principal-a',
-        capabilities: ['result-jsonl'],
-        limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
-          maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
-          maxRows: 100, maxBatchRows: 10,
-          maxBatchRetainedValueBytes: 2048},
-      }),
-      prepareRequest: preparation.prepareRequest,
-      prepareSubmit: preparation.prepareSubmit,
-      submit: async ({preparedProgram, requestId, principalId,
-        connection, submission}) => {
-        const accepted = await runs.accept({prepared: preparedProgram,
-          authorityScopeCid: cid('e'), requestId, namespaceId: 'namespace-a',
-          principalId, connection,
-          lookupExpiresAt: '2027-01-01T00:00:00.000Z', submission});
-        await runs.start(accepted);
-        return {ref: accepted.ref, durability: accepted.durability,
-          revision: accepted.revision};
-      },
-    };
-    const authorizedScope = ({principalId, connection}) =>
-      principalId === 'principal-a' && connection.mode === 'local' &&
-      connection.owner === 'local'
-        ? {authorityScopeCid: cid('e'), namespaceId: 'namespace-a'} : undefined;
-    const lookupRequest = installNodeClientRequestLookup({journal,
-      control: moon, authorizedScope});
-    const submissions = installNodeClientSubmission({journal, moon,
-      ...preparation.submission,
-      authorizedScope, prepareSubmit: services.prepareSubmit,
-      submit: services.submit, lookupRequest});
-    const server = createServer(createClientHttpHandler({...services, lookupRequest,
-      negotiate: async facts => ({...services.negotiate(facts),
-        submissionEpoch: await submissions.issueEpoch(facts)}),
-      // Public submit-intent carries the existing attempt envelope; the
-      // lower-level submitIntent outcome is not an HTTP attempt response.
-      submitIntent: submissions.submitAttempt,
-      lookupSubmission: submissions.lookupSubmission}));
-    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    try {
-      const client = await connectClient({mode: 'local', owner: 'local',
-        endpoint: `http://127.0.0.1:${server.address().port}/`,
-        token: 'scoped-token', durability: 'durable'});
-      try {
-        await assert.rejects(client.startSource(unsupported.document,
-          {format: 'json', submissionRef: client.newSubmission({nonce: 'unsupported-effect-request'})}),
-        error => {
-          assert.equal(error.code, 'SubmissionPreparationFailed', JSON.stringify({
-            outcome: getSubmissionOutcome(error), cause: error.cause?.message,
-          }));
-          assert.deepEqual(getSubmissionOutcome(error).problem,
-            {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
-          return true;
-        });
-      } finally { client.close(); }
-    } finally {
-      await new Promise(resolve => server.close(resolve));
-      journal.close();
-    }
-    const database = new DatabaseSync(join(directory,
-      'client-requests.sqlite3'), {readOnly: true});
-    try {
-      assert.equal(database.prepare('SELECT COUNT(*) AS n FROM client_requests')
-        .get().n, 0);
-    } finally { database.close(); }
+    const threeRoots = await prepare({kind: 'aql',
+      input: {text: JSON.stringify(program), format: 'json'}, parameters: null});
+    checked(moon.clientProgramCompileLocalEffects(threeRoots));
+    // Runtime publication is covered by the existing required ordinary
+    // three-Source approval/Result/cold-Saved consumer. This real compiler
+    // case grants no I/O authority and no longer invents a count refusal.
   });
 
 test('Effect publication preparation failure reserves no physical start',

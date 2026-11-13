@@ -151,6 +151,44 @@ replace that original. File listings retain their original ResourceRef issuer
 and monotonic clock. Both routes use the same Native capture holder, physical
 Ledger and child-first cleanup; neither route creates an auxiliary Run or Ledger.
 
+The Native whole-input command keeps its original Request compilation, Whole
+Plan, captured module and adopted Run. Its entry borrows the preparation's
+existing reservation; it neither allocates a second capacity token nor coerces
+the Program into a Query/source-free purpose. Logical Work cleanup drops the
+borrowed prepared binding before the original execution returns its physical
+context. Only that original parent can acknowledge/report physical retirement.
+
+A Whole input executes through the retained Plan's same configured DAG and
+existing retained Local task loop. Its original root still performs every
+authored operation, and dependent tasks consume its original managed output.
+The Source-free task entry retains its zero-Source
+predicate; a supplied input is not relabeled to satisfy that predicate. The
+Whole projection checks the original Plan/Prepared/Request/DAG binding before
+entering execution and refuses copied or unbound Runs without observing a
+replacement current callback.
+
+Source publication identifies the complete captured input using its retained
+acquisition bounds, independently of a narrower aggregate Result. The original
+input CID and effective publication policy travel with the same sealed
+invocation; the caller does not parse their evidence wires again. Incremental
+identity/metadata construction grows the same preparation reservation before
+each constructor while its actual Source/output children coexist. The caller
+uses the Core scanner's shared structural workspace count: its three writers
+and actual input-column metadata coexist with the existing bounded traversal
+frames. The value-node admission maximum is not this combined slot count.
+This immutable quote grants no capacity and changes no input or wire limit;
+the original per-transition construction quote still precedes physical growth.
+Publication then uses the original captured Result pin and the existing
+Journal/Store/Saved continuation, preserving partial generations and ambiguous
+commits.
+
+The File caller binds its already-admitted retention envelope to the Work's
+retained resolved publication policy through the existing retention projection.
+All original custody contracts and time bounds remain unchanged; the projection
+issues no policy, extension or read grant. Its envelope coexists with the four
+Source/invocation metadata bodies in the preceding same-reservation grow.
+Artifact issuance still refuses mismatched effective policies.
+
 The accounted listing constructor retains the acquisition's original
 configuration in its existing report holder before a response borrow can match
 the derived listing configuration. Row owns the additional H1/R2/W1 tariff in

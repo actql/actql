@@ -33,10 +33,10 @@ function format(path){
 // Source/Effect/Model execution, a Provider, handling policy or physical funds.
 // The caller funds all original wires/trees/checked values and read workspace.
 export async function loadInstalledProjectMockAnswers(moon,project,profile,
-  {limits,assertCurrent,openFile=open}={}){
+  {limits,assertCurrent,openFile=open,deferAnswers=false}={}){
   let original=installedProjectOriginalsForRuntime(project,moon);
   const bounds=snapshotLimits(limits);
-  if(typeof assertCurrent!=='function'||typeof openFile!=='function'||
+  if(typeof deferAnswers!=='boolean'||typeof assertCurrent!=='function'||typeof openFile!=='function'||
       typeof project.directory!=='string'||
       typeof profile?.originalsForRuntime!=='function'||
       typeof profile?.mockLocatorsForRuntime!=='function'||
@@ -93,15 +93,19 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
       check();
       const task=checked(call('readTask',taskWire,taskFormat,...taskBounds));
       if(call('name',task)!==locator.task)fail('InstalledMockAnswerTaskMismatch');
-      const answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});
-      check();
-      const answers=checked(call('readAnswers',task,answerWire,answerFormat,...answerBounds));
-      retained.push(Object.freeze({task,answers,name:locator.task,taskPath,answerPath,taskWire,answerWire}));
+      let answerWire,answers;
+      if(!deferAnswers){
+        answerWire=await readBoundedConfigurationUtf8(answerPath,{maxBytes:bounds.maxBytes,openFile});
+        check();
+        answers=checked(call('readAnswers',task,answerWire,answerFormat,...answerBounds));
+      }
+      const entry={task,answers,name:locator.task,taskPath,answerPath,taskWire,answerWire,answerFailure:undefined};
+      retained.push(deferAnswers?Object.seal(entry):Object.freeze(entry));
       check();
     }
   }catch(error){
     const retirement=[];
-    for(const entry of retained){try{checked(call('retire',entry.answers,entry.task));}catch(cause){retirement.push(cause);}}
+    for(const entry of retained){try{if(entry.answers!==undefined)checked(call('retire',entry.answers,entry.task));}catch(cause){retirement.push(cause);}}
     if(retirement.length){
       // Preserve the original read/close carrier and exact unretired DATA.
       // No physical acknowledgement or new cleanup authority is manufactured.
@@ -141,7 +145,9 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
       const callbacks=Object.freeze({normalize:moon.clientProgramNormalizeMockTask,
         materials:moon.clientProgramNormalizedPublicModelTaskMaterials,
         execution:moon.clientProgramMockExecutionMaterials,
-        install:moon.clientProgramInstallOriginalMock,
+        install:deferAnswers?moon.clientProgramPrepareOriginalMock:moon.clientProgramInstallOriginalMock,
+        ...(deferAnswers?{bind:moon.clientProgramBindOriginalMockAnswers,
+          declaration:moon.clientProgramOriginalMockDeclaration}:{}),
         provider:moon.clientProgramOriginalMockProvider,
         retire:moon.clientProgramRetireOriginalMock,
         environment:moon.clientProgramProjectPublicModelTaskEnvironment});
@@ -162,9 +168,10 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
         // The portable Model owner checks the SAME retained profile, Task and
         // answers; a replacement/copy cannot become a valid Provider here.
         for(const entry of state.entries){
-          if(checked(modelCall('provider',entry.installation))!==entry.provider){
-            fail('ForeignInstalledMockModelOriginal');
-          }
+          const same=deferAnswers
+            ? checked(modelCall('declaration',entry.installation))===entry.normalized
+            : checked(modelCall('provider',entry.installation))===entry.provider;
+          if(!same)fail('ForeignInstalledMockModelOriginal');
         }
         return state.entries;
       };
@@ -184,8 +191,9 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
             Array.from({length:6},(_,index)=>runtimeField(executionMaterial,index));
           if([executionWire,executionCid,retryWire,retryCid,backoffWire,backoffCid]
             .some(value=>typeof value!=='string'))fail('InvalidHostRuntimeResult');
-          const installation=checked(modelCall('install',originalProfile,
-            entry.task,normalized,entry.answers,now));
+          const installation=checked(deferAnswers
+            ? modelCall('install',originalProfile,entry.task,normalized,now)
+            : modelCall('install',originalProfile,entry.task,normalized,entry.answers,now));
           const bound={...entry,normalized,taskWire,taskCid,promptWire,promptCid,
             executionWire,executionCid,retryWire,retryCid,backoffWire,backoffCid,
             installation,provider:undefined};
@@ -210,6 +218,36 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
               configurationContract:Object.freeze({wire:fields[2],cid:fields[3]}),
               configuration:Object.freeze({wire:fields[4],cid:fields[5]}),
             });
+          },
+          async prepareAnswersForRuntime(runtime,installation){
+            const entries=currentModels(runtime,this);
+            const bound=entries.find(entry=>entry.installation===installation);
+            if(bound===undefined)fail('ForeignInstalledMockModelOriginal');
+            if(!deferAnswers)return;
+            // One same-owner physical preparation flight, not a new answer
+            // registry/cache. Recheck this original after another flight ends.
+            while(state.answerFlight!==undefined)await state.answerFlight;
+            currentModels(runtime,this);
+            const input=retained.find(entry=>entry.task===bound.task);
+            if(input===undefined)fail('ForeignInstalledMockAnswerOriginal');
+            if(input.answerFailure!==undefined)throw input.answerFailure;
+            if(input.answers!==undefined)return;
+            const flight=Promise.resolve().then(async()=>{
+              try{
+                const wire=await readBoundedConfigurationUtf8(input.answerPath,
+                  {maxBytes:bounds.maxBytes,openFile});
+                currentModels(runtime,state.value);
+                const answers=checked(call('readAnswers',input.task,wire,
+                  format(input.answerPath),...answerBounds));
+                // Retain the original DATA before a fallible binding/current
+                // check; failure keeps its same answer/file retirement duty.
+                input.answers=answers;input.answerWire=wire;
+                checked(modelCall('bind',installation,answers));
+                currentModels(runtime,state.value);
+              }catch(error){input.answerFailure=error;throw error;}
+            });
+            state.answerFlight=flight;
+            try{await flight;}finally{if(state.answerFlight===flight)state.answerFlight=undefined;}
           },
           forTaskCid(runtime,taskCid){
             const entries=currentModels(runtime,this);
@@ -261,7 +299,14 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
     retire(runtime){
       same(runtime,this);
       if(retired)return;
+      // An answer-input failure belongs to its original DATA/read, not to
+      // immutable Task metadata needed by other stored outcomes.
+      for(const entry of retained){
+        if(entry.answerFailure?.cleanupHandle?.status()?.pending===true)throw entry.answerFailure;
+      }
       if(modelBinding!==undefined&&!modelBinding.retired){
+        if(modelBinding.answerFlight!==undefined)fail('InstalledMockModelsCleanupPending');
+        if(modelBinding.failure?.cleanupHandle?.status()?.pending===true)throw modelBinding.failure;
         while(modelBinding.retireIndex<modelBinding.entries.length){
           const entry=modelBinding.entries[modelBinding.retireIndex];
           if(checked(Reflect.apply(modelBinding.callbacks.retire,moon,
@@ -274,7 +319,7 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
       // The same view finalizes once. A foreign/copied view cannot consume it.
       while(retireIndex<retained.length){
         const entry=retained[retireIndex];
-        checked(call('retire',entry.answers,entry.task));retireIndex++;
+        if(entry.answers!==undefined)checked(call('retire',entry.answers,entry.task));retireIndex++;
       }
       retained=undefined;retired=true;
       modelBinding=undefined;

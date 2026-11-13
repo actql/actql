@@ -52,6 +52,7 @@ export function requireRetirementDetection(result, output, witness) {
 // This finite census covers the complete normal fixture, not an extension of
 // the eight-case retirement theorem scope. See the independent census review.
 export const normalLifetimeCases = Object.freeze([
+  'reclaimed bounded chain does not fund an unused generic measurement forest',
   'bounded chains execute and charge an unconsumed checked branch',
   'an unconsumed checked branch still fails before the terminal step',
   'built-in chains reclaim each intermediate execution and preserve exact outputs',
@@ -64,9 +65,10 @@ export const normalLifetimeCases = Object.freeze([
   'cancellation after reclaimed Values does not start UNNEST or publish unfinished output',
   'an unaudited first child keeps the complete conservative suffix',
 ]);
-// The reviewed successor also prepares the same original fragment for checked
-// Row bindings. All eleven case bodies, limits and custody assertions remain.
-export const normalLifetimeFixtureSha256 = 'ac2e12bc9f2c26d25a1b06ac762c5a818eb69d330661ccd217f6d516e993e931';
+// The reviewed successor retains checked Row fragment preparation and all
+// eleven lifetime cases. It selects the retained baseline in three capacity
+// assertions and adds the independent unused-forest/real-operation-slot case.
+export const normalLifetimeFixtureSha256 = 'dd0682a1f7fa587b8f1a0bb47b72fa853d4d84c4b66761235848b969936f0625';
 export function requireNormalLifetime(result, output, fixture) {
   // The complete reviewed bytes make the title census unambiguous: comments,
   // strings, unknown additions, and changes to assertions cannot be borrowed.

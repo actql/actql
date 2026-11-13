@@ -614,3 +614,19 @@ function physicalOverridesFromImmutableEntry(frozenEntry, overrideCount) {
   if (count !== expected) invalidGeometry();
   return stage(retained, workspace, {savedViewsWireUnits: savedUnits, overrideCount: count});
 }
+
+/** Existing final-declaration profile caller only. Native opaque quantities
+ * own descriptor/schema/writer bodies. These are the actual JS argument,
+ * spread/destructure, iterator and projection envelopes, from the already
+ * admitted binding count; borrowed entry/schema trees are not traversed. */
+export function declaredFileReadProfileBindingConstructionGeometry(bindingCount) {
+  const count = admittedCount(bindingCount);
+  // Pending/projection/result records and fixed methods/closure references.
+  const retained = {nodes: 12n, text: 0n, wire: 0n};
+  // Per binding: argumentsFor(1 array+9 slots), native call argument vector
+  // (1+11), destructured fields(1+8), composition provider array(1+1),
+  // entries tuple(1+2), and original loop/quantity/call control references.
+  const workspace = {nodes: 12n + count * (10n + 12n + 9n + 2n + 3n + 8n),
+    text: 0n, wire: 0n};
+  return stage(retained, workspace, {fileBindingCount: count});
+}

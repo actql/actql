@@ -1,0 +1,67 @@
+[
+  {
+    "name": "Reject invalid evidence derivations",
+    "run": "node --test proofs/bounded-session/evidence.test.mjs proofs/bounded-session/proof-check.test.mjs"
+  },
+  {
+    "name": "Reject invalid incremental action inputs and origins",
+    "run": "node --test proofs/ci-evidence/*.test.mjs"
+  },
+  {
+    "name": "Select fresh or verified-main acquisition for this live run and attempt",
+    "run": "node proofs/ci-evidence/collect.mjs init",
+    "env": {
+      "ACTIONS_READ_TOKEN": "${{ github.token }}"
+    }
+  },
+  {
+    "name": "Produce conditional common-mechanism evidence beside existing gates",
+    "run": "node proofs/bounded-session/run.mjs all"
+  },
+  {
+    "name": "Execute or authenticate the registered JS mutation obligation",
+    "run": "node proofs/ci-evidence/collect.mjs mutations",
+    "env": {
+      "ACTQL_SESSION_COLLECT": "true"
+    }
+  },
+  {
+    "name": "Reject invalid serial chain derivations and weakened claims",
+    "run": "node --test proofs/relation-chain/evidence.test.mjs proofs/relation-chain/proof-check.test.mjs"
+  },
+  {
+    "name": "Detect serial chain accounting and ownership mutations",
+    "run": "node proofs/relation-chain/mutations.mjs"
+  },
+  {
+    "name": "Reject invalid allocation bounds and weakened capacity propositions",
+    "run": "node --test proofs/relation-capacity/model.test.mjs proofs/relation-capacity/evidence.test.mjs proofs/relation-capacity/proof-check.test.mjs"
+  },
+  {
+    "name": "Check separate registered delayed-stop work regression",
+    "run": "node proofs/relation-capacity/repro-delayed-stop.mjs"
+  },
+  {
+    "name": "Detect allocation reservation and identity mutations on JS",
+    "run": "node proofs/relation-capacity/mutations.mjs"
+  },
+  {
+    "name": "Restore and verify final common-mechanism artifacts on all targets",
+    "run": "node proofs/bounded-session/run.mjs all",
+    "env": {
+      "ACTQL_SESSION_COLLECT": "true"
+    }
+  },
+  {
+    "name": "Produce final serial chain evidence on all targets",
+    "run": "node proofs/relation-chain/run.mjs all"
+  },
+  {
+    "name": "Produce conditional allocation capacity evidence on all targets",
+    "run": "node proofs/relation-capacity/run.mjs all"
+  },
+  {
+    "name": "Check complete fresh and reused action inventory with Lean",
+    "run": "node proofs/ci-evidence/collect.mjs finish"
+  }
+]

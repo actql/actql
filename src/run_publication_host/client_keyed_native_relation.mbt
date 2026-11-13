@@ -20,7 +20,7 @@ fn build_native_keyed_lookup_relation_evidence(
   guard lookup.identity_receipt is Some(output) &&
     lookup.native_left_receipt is Some(input) &&
     lookup.native_read_profile is Some(profile) &&
-    @publication.native_file_read_profile_contract_bindings(profile)
+    @publication.file_read_profile_contract_bindings(profile)
     is Some((source, _, _)) &&
     lookup.planned_requests is Some(requests) &&
     requests.length() <= lookup.rows else {

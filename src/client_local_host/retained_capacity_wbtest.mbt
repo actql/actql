@@ -8,10 +8,11 @@ test "restored Content reserves overlapping admissions and authenticated metadat
   let capacity = client_retained_content_capacity().unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(capacity), 68638464L)
   // The receiving accounting frame adds eight fixed 64-byte control slots,
-  // only during execution, not to durable value retention.
+  // only during execution, not to durable value retention. The overlapping
+  // export also includes its additional 64 bytes of fixed batch controls.
   assert_eq(
     @execution.execution_capacity_execution_bytes(capacity),
-    140711488L + 8L * 64L,
+    140711488L + 8L * 64L + 64L,
   )
 }
 
@@ -19,17 +20,17 @@ test "restored Content reserves overlapping admissions and authenticated metadat
 test "Content completion transport reserves export and retained record overlap" {
   // Fixed row wire, reference roots, batch and column/depth cursors. Saved
   // row text, two 8192-byte metadata bodies and 228 roots remain afterwards.
-  let exporting = 1024L +
+  let exporting = 1088L +
     1000000L +
     128L * 20000L +
     8L * 1000000L +
     64L * (100L + 100L + 100L)
   let retained = 8L * (1000000L + 2L * 8192L) + 64L * (100L + 128L)
-  assert_eq(exporting, 11580224L)
+  assert_eq(exporting, 11580288L)
   assert_eq(retained, 8145664L)
   let capacity = client_content_completion_export_capacity().unwrap()
   assert_eq(@execution.execution_capacity_retained_bytes(capacity), retained)
-  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 19725888L)
+  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 19725952L)
 }
 
 ///|
@@ -77,13 +78,13 @@ test "installed Store limits cover the eight task Set publication inventory" {
   assert_eq(import_bytes, 22545664L)
   assert_eq(@local.local_import_retention_capacity(imports), Some(import_bytes))
   // Preparation roots, canonical bytes, exact authority/reference roots,
-  // one batch and bounded column/depth continuation metadata.
-  let export_bytes = 1024L +
+  // fixed batch controls, one batch and bounded column/depth metadata.
+  let export_bytes = 1088L +
     1000000L +
     128L * 20000L +
     8L * 65536L +
     64L * (100L + 64L + 100L)
-  assert_eq(export_bytes, 4102208L)
+  assert_eq(export_bytes, 4102272L)
   assert_eq(
     @local.local_export_retention_capacity(
       client_local_export_limits(100, values),
@@ -100,18 +101,18 @@ test "installed Store limits cover the eight task Set publication inventory" {
       export_bytes,
       536870912L,
     ),
-    Some((327102976L, 8L)),
+    Some((327103488L, 8L)),
   )
   // Eight producer+export allocations and eight receiving copies. This is
   // independent of the implementation's measured/returned capacity value.
-  assert_eq(8L * (14240000L + export_bytes) + 8L * import_bytes, 327102976L)
+  assert_eq(8L * (14240000L + export_bytes) + 8L * import_bytes, 327103488L)
   assert_true(
     client_local_store_inventory(
       [0, 1, 2, 1, 1, 1, 1, 1],
       14240000L,
       import_bytes,
       export_bytes,
-      327102975L,
+      327103487L,
     )
     is None,
   )

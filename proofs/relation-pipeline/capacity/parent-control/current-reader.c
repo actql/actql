@@ -45,11 +45,14 @@ static void current_record(struct current_json *j,void *p) {
   current_add(j,"]}");
 }
 static void current_callbacks(struct current_json *j,void *parent) {
-  const uint32_t *s=current_shape(parent);assert(s[0]==14 && s[1]==7);
-  for(int i=0;i<7;i++)assert(s[2+i]==(uint32_t)i*4);
+  const uint32_t *s=current_shape(parent);assert(s[0]==16 && s[1]==8);
+  for(int i=0;i<8;i++)assert(s[2+i]==(uint32_t)i*4);
   /* This fixture never installs a retained-completion callback. Its nullable
    * slot is still part of the parent; a live unmeasured callback must fail. */
   assert(current_pointer(parent,48)==NULL);
+  assert(current_pointer(parent,56)!=NULL);
+  current_add(j,",\"owner\":");current_record(j,parent);
+  current_add(j,",\"cleanupContinuation\":");current_record(j,current_pointer(parent,56));
   current_add(j,",\"callbacks\":[");
   for(int i=0;i<5;i++) {if(i)current_add(j,",");current_record(j,current_pointer(parent,i<4?8*i:40));}
   current_add(j,"]");

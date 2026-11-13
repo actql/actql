@@ -35,7 +35,16 @@ fn NativeLocalInitialReviewerSigningKey::finish_original_projection(
 ) -> Result[Unit, NativeLocalSigningOriginalIssue] {
   let original = self.original
   // No caller clock/current callback follows this original-generation check.
-  guard self.installed.current() &&
+  // The same scoped caller has already checked the registration and fresh
+  // resolve outcome. This terminal metadata projection runs no callback and
+  // must not start that whole role/Checkpoint read again. Legacy callers keep
+  // their original complete entry; no missing context becomes scoped success.
+  let installed_current = if original.original_read is Some(_) {
+    self.installed.configuration_current()
+  } else {
+    self.installed.current()
+  }
+  guard installed_current &&
     original.host.session.selected_configuration(self.installed.file)
     is Ok(configuration) &&
     configuration == self.installed.original_bytes &&
@@ -47,7 +56,7 @@ fn NativeLocalInitialReviewerSigningKey::finish_original_projection(
     bytes == original.exported else {
     return Err(SigningOriginalUnavailable)
   }
-  original.host.check_binding().map_err(issue => SigningCustody(issue))
+  original.check_host_current().map_err(issue => SigningCustody(issue))
 }
 
 ///|
@@ -66,10 +75,9 @@ fn NativeLocalInitialReviewerSigningKey::require_current(
     installed.reviewer.principal == self.fields.principal &&
     installed.reviewer.key_id == self.fields.key_id &&
     installed.reviewer.public_key_pem == original.public_key_pem &&
-    original.host.authority_scope_cid(
+    original.authority_scope_cid(
       installed.reviewer.principal,
       installed.reviewer.connection,
-      original.host.epoch.crypto,
     )
     is Ok(scope) &&
     scope == self.fields.authority_scope_cid &&
@@ -115,10 +123,9 @@ pub fn NativeLocalHostConnection::acquire_initial_reviewer_signing_key(
     Err(issue) => return Err(SigningCustody(issue))
   }
   let scope = match
-    self.authority_scope_cid(
+    original.authority_scope_cid(
       installed.reviewer.principal,
       installed.reviewer.connection,
-      self.epoch.crypto,
     ) {
     Ok(value) => value
     Err(issue) => return Err(SigningCustody(issue))
@@ -274,21 +281,32 @@ fn NativeLocalReviewerProofKey::require_signing_key_scope(
         Err(issue) => return Err(ProofKey(issue))
         Ok(_) => ()
       }
-      let facts = key.fields
-      if scope.purpose != @credential.ReviewerProof ||
-        scope.checkpoint_kind != @checkpoint.EffectSet ||
-        scope.account_configuration_cid != facts.account_configuration_cid ||
-        scope.account_id != facts.account_id ||
-        scope.authority_scope_cid != facts.authority_scope_cid ||
-        scope.host_adoption_cid != facts.host_adoption_cid ||
-        scope.key_configuration_cid != facts.key_configuration_cid ||
-        scope.key_generation_cid != facts.key_generation_cid ||
-        scope.key_id != facts.key_id ||
-        scope.key_public_key_cid != facts.key_public_key_cid ||
-        scope.principal != facts.principal {
-        return Err(ProofUnavailable)
-      }
-      key.finish_original_projection().map_err(issue => ProofKey(issue))
+      key.require_signing_scope_after_current(scope)
     }
   }
+}
+
+///|
+// Only the full independent entry above or the immediately completed original
+// signing-current constructor calls this shared correspondence projection.
+// No callback may separate that constructor from this terminal physical fence.
+fn NativeLocalInitialReviewerSigningKey::require_signing_scope_after_current(
+  self : NativeLocalInitialReviewerSigningKey,
+  scope : @credential.LocalSigningCredentialScope,
+) -> Result[Unit, NativeLocalReviewerProofMaterialsIssue] {
+  let facts = self.fields
+  if scope.purpose != @credential.ReviewerProof ||
+    scope.checkpoint_kind != @checkpoint.EffectSet ||
+    scope.account_configuration_cid != facts.account_configuration_cid ||
+    scope.account_id != facts.account_id ||
+    scope.authority_scope_cid != facts.authority_scope_cid ||
+    scope.host_adoption_cid != facts.host_adoption_cid ||
+    scope.key_configuration_cid != facts.key_configuration_cid ||
+    scope.key_generation_cid != facts.key_generation_cid ||
+    scope.key_id != facts.key_id ||
+    scope.key_public_key_cid != facts.key_public_key_cid ||
+    scope.principal != facts.principal {
+    return Err(ProofUnavailable)
+  }
+  self.finish_original_projection().map_err(issue => ProofKey(issue))
 }

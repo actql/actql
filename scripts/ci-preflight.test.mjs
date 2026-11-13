@@ -60,8 +60,8 @@ test('read-only ref lookup verifies exact ref/type and never follows token-beari
 });
 test('mandatory preflight admits every normal heavy primitive and does not serialize the compound spec suite', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
-    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-readme-packed',
+    'native-cli-installed', 'native-cli-linux-local', 'native-workloads', 'native-http', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos-workloads',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of [...heavy, 'lint', 'spec']) {
     assert(jobs[name].needs.includes('preflight'), name);
@@ -69,6 +69,9 @@ test('mandatory preflight admits every normal heavy primitive and does not seria
     assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
     assert.equal(jobs[name]['continue-on-error'], undefined);
   }
+  assert.deepEqual(jobs['native-http-macos'].needs, ['select-targets', 'preflight', 'native-macos-workloads']);
+  assert.match(jobs['native-http-macos'].if, /always\(\)/u, 'The lightweight join must report a failed or missing original consumer');
+  assert.equal(jobs['native-http-macos']['continue-on-error'], undefined);
   assert.deepEqual(permissions, {contents: 'read'});
   assert.equal(jobs.preflight.steps[0].with['fetch-depth'], 0);
   assert.equal(jobs.preflight.steps[0].with['persist-credentials'], false);

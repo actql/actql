@@ -1061,6 +1061,7 @@ fn prepare_client_task_pipeline_input(
   prefix_end : Int?,
   acquisition_prefix : Bool,
   limits : @lower.SequenceLimits,
+  original_input? : Int? = None,
   infer_boundary? : Int? = None,
   serialization_input? : @lower.PreparedSerialization? = None,
   completed_serialization? : (Int, Int)? = None,
@@ -1098,7 +1099,7 @@ fn prepare_client_task_pipeline_input(
       serialization=serialization_boundary,
     )
   } else if acquisition_prefix {
-    @lower.prepare_sequence_prefix(owner, end_step, limits)
+    @lower.prepare_sequence_prefix(owner, end_step, limits, original_input~)
   } else if preparation is Some((original, task)) {
     guard @strategy.graph_task_owner(original.graph, task) is Some(selected) &&
       physical_equal(selected, owner) else {
@@ -2287,6 +2288,7 @@ pub fn observe_prepare_checked_effect_free_client_program(
   max_tasks~ : Int,
   max_graph_work~ : Int,
   values_max_rows? : Int? = None,
+  calls_out? : Ref[Int64]? = None,
 ) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64) {
   let work = Ref(0L)
   let result = prepare_checked_effect_free_client_program_owned(
@@ -2298,6 +2300,7 @@ pub fn observe_prepare_checked_effect_free_client_program(
     max_graph_work~,
     values_max_rows~,
     lowering_work_out=Some(work),
+    calls_out~,
   )
   (result, work.val)
 }
@@ -2312,6 +2315,7 @@ fn prepare_checked_effect_free_client_program_owned(
   max_graph_work~ : Int,
   values_max_rows? : Int? = None,
   lowering_work_out? : Ref[Int64]? = None,
+  calls_out? : Ref[Int64]? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   // The checker already refused nonempty Effects on its Pure path. Read its
   // retained classification instead of copying/scanning every Stage again.
@@ -2332,6 +2336,7 @@ fn prepare_checked_effect_free_client_program_owned(
     max_graph_work~,
     values_max_rows~,
     lowering_work_out~,
+    calls_out~,
   )
 }
 
@@ -2345,7 +2350,11 @@ fn compile_effect_free_checked_client_program(
   max_graph_work~ : Int,
   values_max_rows? : Int? = None,
   lowering_work_out? : Ref[Int64]? = None,
+  calls_out? : Ref[Int64]? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
+  if calls_out is Some(observed) {
+    observed.val += 1L
+  }
   let owners = match
     prepare_client_stage_owners(
       checked,
@@ -2419,35 +2428,31 @@ fn compile_effect_free_checked_client_program(
 }
 
 ///|
-/// Infer only the admitted two-acquisition prefix from checked requests.
+/// Infer the admitted contiguous Direct prefix from checked requests.
 /// The graph owner still validates independence, coverage, and topology.
 fn client_program_acquisition_prefix(program : @checked.CheckedProgram) -> Int {
-  if @checked.unit_count(program) < 3 {
-    return 1
+  let identity = @checked.source_identity(program)
+  let mut prefix = 0
+  for stage in 0..<@checked.unit_count(program) {
+    // Count only the existing independent Direct Stage shape. The graph
+    // constructor still validates every original acquisition, control edge,
+    // ordered port and work bound; this scalar census admits no execution.
+    guard @checked.unit_pipeline(program, stage) is Some(pipeline) &&
+      @pipeline.input_count(pipeline) == 1 &&
+      @context.program_identity_stage_requests(identity, stage)
+      is Some(requests) &&
+      @acquisition.pipeline_requests_count(requests) == 1 &&
+      @acquisition.pipeline_request_at(requests, 0)
+      is Some(@acquisition.Direct(_, _)) else {
+      break
+    }
+    prefix += 1
   }
-  let acquisitions = [0, 0]
-  for index in 0..<@checked.source_execution_count(program) {
-    let check = @checked.source_execution_at(program, index).unwrap()
-    let subject = @checked.source_execution_subject(check)
-    if subject.stage < 0 {
-      return 1
-    }
-    if subject.stage > 1 {
-      // Downstream keyed lookup consumes the genuine computed prefix. It is
-      // not an independent acquisition task, and does not erase the two
-      // original initial Direct tasks. The checked DAG validates its exact
-      // request original and graph edges before accepting this profile.
-      guard subject.request is @acquisition.Keyed(_, _) else { return 1 }
-      continue
-    }
-    guard subject.request is @acquisition.Direct(_, _) else { return 1 }
-    if @checked.source_execution_kind(check) is @checked.HostCombination {
-      acquisitions[subject.stage] += 1
-    }
-  }
-  if acquisitions == [1, 1] {
-    2
-  } else {
+  // The existing single/source-free entrance chooses its own zero-root
+  // treatment. This function adds no interleaved acquisition scheduler.
+  if prefix == 0 {
     1
+  } else {
+    prefix
   }
 }

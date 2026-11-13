@@ -776,11 +776,12 @@
     {
       "module": "adapters/local-node/retained-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c41a08936e5c5cf838dad86fb32b724e8e096a65ba7fda5d1d052f12e8ed5088",
+      "sha256": "49b0dbc209ae64374a828afdee678b254a7a0a9100f7b7364bcea92cf1280818",
       "exports": [
         "installLocalRetainedStore",
         "installLocalSnapshotStore",
         "localComputeFaultInjection",
+        "localExecutionBeforePrepare",
         "localExecutionPauseHandler",
         "localRetainedStore",
         "localSnapshotStore",
@@ -811,6 +812,13 @@
           "async": false
         },
         {
+          "name": "localExecutionBeforePrepare",
+          "parameters": [
+            "configuration"
+          ],
+          "async": false
+        },
+        {
           "name": "localExecutionPauseHandler",
           "parameters": [
             "configuration"
@@ -835,7 +843,8 @@
           "name": "withLocalExecutionPauseHandler",
           "parameters": [
             "configuration",
-            "handlePause"
+            "handlePause",
+            "beforePrepare"
           ],
           "async": false
         }
@@ -849,6 +858,7 @@
             "installLocalRetainedStore",
             "installLocalSnapshotStore",
             "localComputeFaultInjection",
+            "localExecutionBeforePrepare",
             "localExecutionPauseHandler",
             "localRetainedStore",
             "localSnapshotStore",
@@ -858,6 +868,7 @@
             "installLocalRetainedStore",
             "installLocalSnapshotStore",
             "localComputeFaultInjection",
+            "localExecutionBeforePrepare",
             "localExecutionPauseHandler",
             "localRetainedStore",
             "localSnapshotStore",
@@ -946,7 +957,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/store-local/delegated-file.mjs",
@@ -4664,7 +4678,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f140a22f5fd36525be872dcdcf6558ecbd5d4cfdf5271dde8d96ee43dc401f0c",
+      "sha256": "768819be468fb15c0545d6d9e41bde33776249cc6e7a9f10887168924b3e1e04",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4910,7 +4924,8 @@
         {
           "name": "openDeliveryAttemptIndex/init:contract/init:contract",
           "parameters": [
-            "semanticCid"
+            "semanticCid",
+            "readDemand"
           ],
           "async": false
         },
@@ -5081,7 +5096,8 @@
         {
           "name": "openDeliveryAttemptIndex/init:nativePublicationIndex/init:nativePublicationIndex",
           "parameters": [
-            "metadataKey"
+            "metadataKey",
+            "readDemand"
           ],
           "async": false
         },
@@ -5093,7 +5109,8 @@
         {
           "name": "openDeliveryAttemptIndex/init:nativePublicationInventory/init:nativePublicationInventory",
           "parameters": [
-            "publicIndexCid"
+            "publicIndexCid",
+            "readDemand"
           ],
           "async": false
         },
@@ -5215,7 +5232,8 @@
         {
           "name": "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
           "parameters": [
-            "semanticCid"
+            "semanticCid",
+            "readDemand"
           ],
           "async": false
         },
@@ -5409,6 +5427,30 @@
         {
           "name": "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/metadataRead/metadataRead",
+          "parameters": [
+            "legacy",
+            "sql",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/metadataRead/metadataRead/extent/extent",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/metadataRead/metadataRead/metadataRead",
+          "parameters": [
+            "args",
+            "demand"
+          ],
           "async": false
         },
         {
@@ -6217,6 +6259,9 @@
             "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows/insertPublicationRows",
             "openDeliveryAttemptIndex/insertPublicationRows/insertPublicationRows/insertPublicationRows#2",
             "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
+            "openDeliveryAttemptIndex/metadataRead/metadataRead",
+            "openDeliveryAttemptIndex/metadataRead/metadataRead/extent/extent",
+            "openDeliveryAttemptIndex/metadataRead/metadataRead/metadataRead",
             "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical",
             "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical/durable/durable",
             "openDeliveryAttemptIndex/mutateLifetimePhysical/mutateLifetimePhysical/durable/durable#2",
@@ -6400,7 +6445,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "contract(semanticCid) {"
+                "anchor": "contract(semanticCid, readDemand) {"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
@@ -6462,7 +6507,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "const nativeInventory = prepare('SELECT * FROM native_publication_inventories WHERE public_index_cid=?');"
+                "anchor": "const nativeInventory = prepare(nativeInventorySql);"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -6935,7 +6980,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "04c2ae3cf8dcd2b04b205bce01f4b8ad340dd7bcc0a2fdfa8a176346d9f3e9c1",
+      "sha256": "d2d5d0a5b61b2318690ae7dcb12cb061fedb3b05ea1e3b410aefa59726370f6b",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7660,6 +7705,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/closedMetadataObjectExtent/closedMetadataObjectExtent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/collectRunMetadataContracts/collectRunMetadataContracts",
           "parameters": [
             "runDefinitionCid",
@@ -7966,14 +8018,17 @@
         {
           "name": "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
           "parameters": [
-            "key"
+            "key",
+            "readDemand",
+            "slot"
           ],
           "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
           "parameters": [
-            "key"
+            "key",
+            "readDemand"
           ],
           "async": true
         },
@@ -7988,6 +8043,23 @@
             "suppliedWire"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
@@ -8104,7 +8176,8 @@
         {
           "name": "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
           "parameters": [
-            "key"
+            "key",
+            "readDemand"
           ],
           "async": true
         },
@@ -8857,9 +8930,18 @@
           "name": "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract",
           "parameters": [
             "cid",
-            "name"
+            "name",
+            "readDemand"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract/init:readPublicationContract",
+          "parameters": [
+            "semanticCid",
+            "includeNative"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/init:status/init:status",
@@ -9474,12 +9556,20 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/prepareLookupRawEvidence/prepareLookupRawEvidence",
+          "parameters": [
+            "binding",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
           "parameters": [
             "binding",
             "bytes"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
@@ -9506,6 +9596,15 @@
             "input",
             "semanticCid",
             "isWire"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/preparePrivateRawEvidence/preparePrivateRawEvidence",
+          "parameters": [
+            "binding",
+            "bytes",
+            "kind"
           ],
           "async": true
         },
@@ -9914,21 +10013,24 @@
           "name": "openOriginalLocalPublicationStore/readCommittedIndexRaw/readCommittedIndexRaw",
           "parameters": [
             "key",
-            "original"
+            "original",
+            "readDemand"
           ],
           "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readCommittedMetadataInventory/readCommittedMetadataInventory",
           "parameters": [
-            "entry"
+            "entry",
+            "readDemand"
           ],
           "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
           "parameters": [
-            "key"
+            "key",
+            "readDemand"
           ],
           "async": true
         },
@@ -9953,7 +10055,8 @@
           "parameters": [
             "key",
             "resultDefinitionCid",
-            "publication"
+            "publication",
+            "readDemand"
           ],
           "async": false
         },
@@ -10072,9 +10175,17 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/readLookupRawEvidence/readLookupRawEvidence",
+          "parameters": [
+            "binding"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
           "parameters": [
-            "keyHash"
+            "keyHash",
+            "readDemand"
           ],
           "async": true
         },
@@ -10138,7 +10249,8 @@
         {
           "name": "openOriginalLocalPublicationStore/readMetadataInventory/readMetadataInventory",
           "parameters": [
-            "publicIndexEntryCid"
+            "publicIndexEntryCid",
+            "readDemand"
           ],
           "async": true
         },
@@ -10155,7 +10267,7 @@
             "binding",
             "confirm"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
@@ -10167,7 +10279,8 @@
         {
           "name": "openOriginalLocalPublicationStore/readPhysicalHolding/readPhysicalHolding",
           "parameters": [
-            "holdingCid"
+            "holdingCid",
+            "readDemand"
           ],
           "async": false
         },
@@ -10175,14 +10288,16 @@
           "name": "openOriginalLocalPublicationStore/readPhysicalHoldingAt/readPhysicalHoldingAt",
           "parameters": [
             "path",
-            "holdingCid"
+            "holdingCid",
+            "readDemand"
           ],
           "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readPhysicalHoldingDeletion/readPhysicalHoldingDeletion",
           "parameters": [
-            "holdingCid"
+            "holdingCid",
+            "readDemand"
           ],
           "async": false
         },
@@ -10247,10 +10362,20 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/readPrivateRawEvidenceOriginal/readPrivateRawEvidenceOriginal",
+          "parameters": [
+            "binding",
+            "kind",
+            "confirm"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readResultDeletion/readResultDeletion",
           "parameters": [
             "keyHash",
-            "resultDefinitionCid"
+            "resultDefinitionCid",
+            "readDemand"
           ],
           "async": true
         },
@@ -10258,7 +10383,8 @@
           "name": "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension",
           "parameters": [
             "keyHash",
-            "resultDefinitionCid"
+            "resultDefinitionCid",
+            "readDemand"
           ],
           "async": true
         },
@@ -10283,7 +10409,8 @@
             "key",
             "resultDefinitionCid",
             "metadataOnly",
-            "publication"
+            "publication",
+            "readDemand"
           ],
           "async": true
         },
@@ -10292,15 +10419,25 @@
           "parameters": [
             "selected",
             "keyHash",
-            "resultDefinitionCid"
+            "resultDefinitionCid",
+            "readDemand"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
           "parameters": [
             "cid",
-            "includeNative"
+            "includeNative",
+            "readDemand"
           ],
           "async": true
         },
@@ -10310,7 +10447,8 @@
             "cid",
             "includeNative",
             "retainGeneration",
-            "retained"
+            "retained",
+            "readDemand"
           ],
           "async": true
         },
@@ -10609,7 +10747,8 @@
         {
           "name": "openOriginalLocalPublicationStore/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
           "parameters": [
-            "entry"
+            "entry",
+            "readDemand"
           ],
           "async": true
         },
@@ -10618,16 +10757,26 @@
           "parameters": [
             "key",
             "resultDefinitionCid",
-            "publication"
+            "publication",
+            "readDemand"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/requireResultNotDeleted/requireResultNotDeleted",
           "parameters": [
             "keyHash",
             "selected",
-            "resultDefinitionCid"
+            "resultDefinitionCid",
+            "readDemand"
           ],
           "async": true
         },
@@ -11019,7 +11168,8 @@
           "parameters": [
             "contract",
             "readOriginal",
-            "retainedBinding"
+            "retainedBinding",
+            "readDemand"
           ],
           "async": true
         },
@@ -11041,7 +11191,8 @@
         {
           "name": "openOriginalLocalPublicationStore/verifyObject/verifyObject",
           "parameters": [
-            "cid"
+            "cid",
+            "readDemand"
           ],
           "async": true
         },
@@ -11085,7 +11236,8 @@
             "key",
             "resultDefinitionCid",
             "authorize",
-            "use"
+            "use",
+            "readDemand"
           ],
           "async": true
         },
@@ -11107,6 +11259,14 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/verified/verified",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows",
           "parameters": [
             "key",
@@ -11114,7 +11274,9 @@
             "authorize",
             "frameLimits",
             "use",
-            "frameControl"
+            "frameControl",
+            "_attemptIdentity",
+            "readDemand"
           ],
           "async": true
         },
@@ -11297,7 +11459,8 @@
             "maximum",
             "closed",
             "signal",
-            "ownerOnly"
+            "ownerOnly",
+            "readDemand"
           ],
           "async": true
         },
@@ -11762,7 +11925,8 @@
             "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal",
             "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
             "openOriginalLocalPublicationStore/readCommittedIndexRaw/readCommittedIndexRaw",
-            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension"
+            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension",
+            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension/extension/extension"
           ],
           "exports": [],
           "attributes": {
@@ -11787,7 +11951,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readCommittedIndexRaw = async (key, original) => {"
+                "anchor": "const readCommittedIndexRaw = async (key, original, readDemand) => {"
               },
               {
                 "path": "docs/design/prepared-publication-custody.md",
@@ -11974,6 +12138,7 @@
             "openOriginalLocalPublicationStore/captureCustodyPath/captureCustodyPath",
             "openOriginalLocalPublicationStore/captureCustodyRun/captureCustodyRun",
             "openOriginalLocalPublicationStore/clockObservationPath/clockObservationPath",
+            "openOriginalLocalPublicationStore/closedMetadataObjectExtent/closedMetadataObjectExtent",
             "openOriginalLocalPublicationStore/collectRunMetadataContracts/collectRunMetadataContracts",
             "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex",
             "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex/commitEffectfulIndex",
@@ -12015,6 +12180,9 @@
             "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
             "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
             "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
+            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence",
+            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+            "openOriginalLocalPublicationStore/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
             "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence",
@@ -12134,6 +12302,7 @@
             "openOriginalLocalPublicationStore/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
             "openOriginalLocalPublicationStore/init:publicationCapacitySupports/init:publicationCapacitySupports",
             "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract",
+            "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract/init:readPublicationContract",
             "openOriginalLocalPublicationStore/init:status/init:status",
             "openOriginalLocalPublicationStore/inspectCommittedIndex/inspectCommittedIndex",
             "openOriginalLocalPublicationStore/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
@@ -12204,10 +12373,12 @@
             "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor",
             "openOriginalLocalPublicationStore/physicalRemovalFor/physicalRemovalFor/matches/matches",
+            "openOriginalLocalPublicationStore/prepareLookupRawEvidence/prepareLookupRawEvidence",
             "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
             "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
             "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
             "openOriginalLocalPublicationStore/preparePrivateEvidenceInput/preparePrivateEvidenceInput",
+            "openOriginalLocalPublicationStore/preparePrivateRawEvidence/preparePrivateRawEvidence",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
@@ -12269,6 +12440,7 @@
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
+            "openOriginalLocalPublicationStore/readLookupRawEvidence/readLookupRawEvidence",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#2",
@@ -12293,6 +12465,7 @@
             "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
             "openOriginalLocalPublicationStore/readPrivateEvidenceObject/readPrivateEvidenceObject",
             "openOriginalLocalPublicationStore/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
+            "openOriginalLocalPublicationStore/readPrivateRawEvidenceOriginal/readPrivateRawEvidenceOriginal",
             "openOriginalLocalPublicationStore/readResultDeletion/readResultDeletion",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records",
@@ -12351,6 +12524,7 @@
             "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories",
             "openOriginalLocalPublicationStore/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
             "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
+            "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/requireResultNotDeleted/requireResultNotDeleted",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
@@ -12411,6 +12585,7 @@
             "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume",
             "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume/consume",
             "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/retireReader/retireReader",
+            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/verified/verified",
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows",
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows",
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
@@ -12699,11 +12874,11 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readPhysicalHoldingAt = async (path, holdingCid) => {"
+                "anchor": "const readPhysicalHoldingAt = async (path, holdingCid, readDemand) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readCommittedMetadataInventory = async entry => {"
+                "anchor": "const readCommittedMetadataInventory = async (entry, readDemand) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -13073,7 +13248,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const confirmSelectedCommittedIndex = async key => {"
+                "anchor": "const confirmSelectedCommittedIndex = async (key, readDemand) => {"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -13105,7 +13280,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const verified = await verifyDurableResultBinding(selected.contract, undefined, selected.value);"
+                "anchor": "const verified = await verifyDurableResultBinding(selected.contract,\n        (cid, includeNative) => readSemanticOriginal(cid, includeNative, false, undefined, readDemand), selected.value, readDemand);"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -13125,7 +13300,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await requireCommittedMetadataInventory(original.entry);"
+                "anchor": "await requireCommittedMetadataInventory(original.entry, readDemand);"
               },
               {
                 "path": "docs/design/result-description.md",

@@ -229,6 +229,55 @@ pub fn client_program_prepare_request_model_graph(
   @publication_host.ClientInferPlanGraph,
   ClientRequestProgramModuleBridgeIssue,
 ] {
+  prepare_request_model_graph_with_file_declarations(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    None,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestDeclaredFileModelGraph")
+pub fn client_program_prepare_request_declared_file_model_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  execution : @check_environment.ModelExecutionContract,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  prepare_request_model_graph_with_file_declarations(
+    parent,
+    input,
+    occurrence,
+    execution,
+    contracts,
+    Some(declarations),
+  )
+}
+
+///|
+fn prepare_request_model_graph_with_file_declarations(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  execution : @check_environment.ModelExecutionContract,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  keyed_file_declarations : Array[@client_row_source_host.RowDeclaration]?,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
   let manifests = match client_generated_compilation_manifests() {
     Ok(value) => value
     Err(issue) => return Err(Manifests(issue))
@@ -241,6 +290,7 @@ pub fn client_program_prepare_request_model_graph(
     contracts,
     manifests~,
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    keyed_file_declarations~,
   ).map_err(issue => Preparation(issue))
 }
 
@@ -471,6 +521,36 @@ pub fn client_program_reserve_request_snapshot(
   values : Int64,
 ) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
   @client_local_host.reserve_request_snapshot(parent, input, units, values)
+}
+
+///|
+#export_name("clientProgramRequestSnapshotCapacityRefusal")
+pub fn client_program_request_snapshot_capacity_refusal(
+  result : Result[Unit, @client_local_host.ClientRequestPreparationIssue],
+) -> (String, String, Int64, Int64, Int64, Int64)? {
+  match result {
+    Err(SnapshotCapacityExceeded(original, value)) => {
+      let dimension = match original {
+        Resource(RetentionLimit) => "retention"
+        Resource(ExecutionLimit) => "execution"
+        _ => return None
+      }
+      if value.phase != "request_snapshot" || value.dimension != dimension {
+        return None
+      }
+      Some(
+        (
+          value.phase,
+          value.dimension,
+          value.required_retention,
+          value.required_execution,
+          value.available_retention,
+          value.available_execution,
+        ),
+      )
+    }
+    _ => None
+  }
 }
 
 ///|
@@ -1128,6 +1208,7 @@ pub fn client_program_prepare_request_program_module_body(
     @publication_host.ClientCompiledRun,
     @publication.PublicationContract,
   )?,
+  source_free_max_work : Int?,
 ) -> Result[Unit, ClientRequestProgramModuleBridgeIssue] {
   let compilation_limits = match
     @client_local_host.request_program_compilation_limits(parent, input) {
@@ -1147,6 +1228,8 @@ pub fn client_program_prepare_request_program_module_body(
     retained_output~,
     provider_factory=installed_client_family_providers,
     invocation~,
+    source_free_max_work~,
+    runtime_compilation_limits=Some(compilation_limits),
   ).map_err(issue => Preparation(issue))
 }
 

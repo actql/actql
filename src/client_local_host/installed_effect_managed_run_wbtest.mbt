@@ -3,6 +3,7 @@
 // issue no operational admission, Allow, Preview, imported child or Ledger.
 fn installed_effect_managed_fixture(
   rows? : String = "[{\"id\":1}]",
+  suffix? : Bool = false,
 ) -> @publication_host.PreparedClientEffectComputation {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
@@ -16,6 +17,13 @@ fn installed_effect_managed_fixture(
     old="\"rows\":[{\"id\":1}]",
     new="\"rows\":" + rows,
   )
+  let document = if suffix {
+    let suffix_document =
+      #|{"version":"actql/0.1","id":"installed-effect-managed","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"main","result":"rows"}}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"finish","inputs":{"r":{"result":{"stage":"compute","result":"rows"}}},"steps":[{"filter":"id < 3"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"id"}}}}}}],"results":{"rows":{"from":{"stage":"finish","result":"rows"}}}}
+    suffix_document
+  } else {
+    document
+  }
   @publication_host.prepare_client_effect_computation(
     document,
     Json,

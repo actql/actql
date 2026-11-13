@@ -86,6 +86,25 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_scope(
   @credential.LocalSigningCredentialScope,
   NativeLocalReviewerProofMaterialsIssue,
 ] {
+  self
+  .prepare_signing_scope_with_original_subject(attempt_id)
+  .map(value => value.0)
+}
+
+///|
+// Keep the SAME checked subject through the immediately following trusted
+// current constructor. The public metadata facade still returns only scope.
+// This transient typed pair is not an authorization result or a retained cache.
+fn NativeLocalReviewerProofMaterials::prepare_signing_scope_with_original_subject(
+  self : NativeLocalReviewerProofMaterials,
+  attempt_id : String,
+) -> Result[
+  (
+    @credential.LocalSigningCredentialScope,
+    NativeLocalOriginalEffectSigningSubjectRead,
+  ),
+  NativeLocalReviewerProofMaterialsIssue,
+] {
   match self.require_current() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -147,7 +166,7 @@ pub fn NativeLocalReviewerProofMaterials::prepare_signing_scope(
   }
   match subject.original_subject_after_current() {
     Ok((after_invocation, after_unit)) if after_invocation == invocation &&
-      after_unit == unit => Ok(scope)
+      after_unit == unit => Ok((scope, subject))
     Ok(_) | Err(_) => Err(ProofUnavailable)
   }
 }

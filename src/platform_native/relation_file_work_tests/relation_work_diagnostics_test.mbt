@@ -192,6 +192,13 @@ fn relation_work_values_issue(
 fn relation_work_issue(issue : @client.NativeClientSourceWorkIssue) -> String {
   match issue {
     Configuration => "Configuration"
+    InstalledRun(_) => "InstalledRun (original retained)"
+    InstalledRead(_) => "InstalledRead (original retained)"
+    InstalledCapture(_) => "InstalledCapture (original retained)"
+    InputLogical(_) => "InputLogical (original retained)"
+    Preparation(_) => "Preparation (original retained)"
+    SourceEvidence(reason) =>
+      "SourceEvidence: " + relation_work_row_issue(reason)
     OriginalOperation(reason) =>
       "OriginalOperation: " + relation_work_values_issue(reason)
     RelationFile(reason) =>
@@ -277,6 +284,12 @@ fn relation_return_work_label(
 ) -> String {
   match issue {
     Configuration => "Work.Configuration; original custody retained"
+    InstalledRun(_) => "Work.InstalledRun"
+    InstalledRead(_) => "Work.InstalledRead"
+    InstalledCapture(_) => "Work.InstalledCapture"
+    SourceEvidence(_) => "Work.SourceEvidence"
+    InputLogical(_) => "Work.InputLogical"
+    Preparation(_) => "Work.Preparation"
     OriginalOperation(AuthorizationDenied) =>
       "Work.OriginalOperation.AuthorizationDenied"
     OriginalOperation(UnsupportedProfile) =>

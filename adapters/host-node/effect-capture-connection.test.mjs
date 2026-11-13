@@ -130,7 +130,7 @@ test('actual initial close keeps original Store open until capture cleanup, then
     finishInstalledEffectModelScope() {assert.fail('No legacy retirement');}, checked:assert.fail,
     profiles:{retirePreparation() {events.push('registry');}}, host:{}, originalInstallation:{}};
   const body = `let observedClose, sourceManaged, sourceManagedClose, computeManaged, computeManagedClose,
-    computeManagedFlight, resultPublicationClose, resultPublicationFlight, hostJournal, hostJournalClose,
+    computeManagedFlight, resultReadWorkspace, resultPublicationClose, resultPublicationFlight, hostJournal, hostJournalClose,
     hostJournalOpen, hostJournalOwnership, hostJournalAdmitRootFormat, hostJournalFlight,
     hostInitialization, sourceInitializationServices, sourceInitializationSelection, duty, originals;
     let control = {}, controlClose = async () => {events.push('control'); return {pending:false};};

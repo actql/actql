@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {runInNewContext} from 'node:vm';
 import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
@@ -11,7 +12,7 @@ import {moonGraphCandidate, nonMoonRequirements, normalizeMoonGraph, planMoonTes
 import {selectTargets, validateSelection, gateJobRequired, deepProofRequired, verifyGate, gateJobs,
   maintenanceFiles, readChanges} from './ci-targets.mjs';
 import {runMoonTests, nativeMoonPackages} from './ci-moon-tests.mjs';
-import {nativeCoreTestSelection, portableMoonTestCount} from './native-core-test-selection.mjs';
+import {nativeCoreTestSelection, nativeScopedTestFiles, portableMoonTestCount} from './native-core-test-selection.mjs';
 import {runFocusedTests} from './test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url)).replace(/\/$/u, '');
@@ -108,7 +109,7 @@ test('a source-bound Moon plan narrows execution without omitting whole checks o
   const {plan} = fixture();
   const selected = validateSelection(selectTargets(['src/a/code.mbt'], {moonTests:plan}));
   assert.equal(selected.moonTests, plan); assert.deepEqual(selected.targets, ['js', 'wasm', 'native']);
-  for (const name of ['core', 'host', 'client', 'native', 'native-macos', 'python-wheels', 'session-evidence', 'pipeline-evidence'])
+  for (const name of ['core', 'host', 'client', 'native', 'native-macos', 'python-wheels', 'session-evidence', 'session-controls', 'pipeline-evidence'])
     assert.equal(gateJobRequired(selected, name), true, name);
   assert.equal(deepProofRequired(selected), true);
   assert.equal(selectTargets(['src/a/code.mbt'], {moonTests:plan, targetSensitiveDiff:true}).moonTests, undefined);
@@ -184,9 +185,49 @@ test('Native caller consumes the same checked package closure without changing i
   assert.throws(() => nativeMoonPackages(env, {...options, git:() => other}));
   const source = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
   assert.match(source, /const full = !\['focused', 'reporting'\]\.includes/u);
-  assert.match(source, /full && process\.env\.CI_PLAN/u);
+  assert.match(source, /full && \(process\.env\.CI_PLAN \|\| process\.env\.CI_PLAN_PATH\)/u);
   assert.match(source, /nativeMoonPackages\(\)/u);
-  assert.match(source, /timeoutMs: 5 \* 60_000, executionPackages/u);
+  const start = source.indexOf('const selection = full ? nativeCoreTestSelection');
+  const end = source.indexOf('if (selection?.executionScope)', start);
+  assert(start > 0 && end > start);
+  const packages = selection.moonTests.packages;
+  for (const partition of [undefined, '1/2', '2/2', '1/4', '4/4', 'http', 'source', 'scoped']) {
+    let calls = 0;
+    runInNewContext(source.slice(start, end), {
+      full: true, root: '/same/source', args: ['--release'], partition,
+      executionPackages: packages, compilerEnvironment: {},
+      nativeCoreTestSelection(root, args, options) {
+        calls++;
+        assert.equal(root, '/same/source');
+        assert.equal(options.timeoutMs, 300_000);
+        assert.equal(options.partitionProfiles, true);
+        assert.equal(options.ordinaryPartitions, partition?.endsWith('/4') ? 4 :
+          Boolean(partition) && !['http', 'source', 'scoped'].includes(partition));
+        assert.equal(options.executionPackages, ['http', 'source', 'scoped'].includes(partition) ? undefined : packages,
+          'Physical profiles keep full originals; ordinary jobs use only the same authenticated closure');
+      },
+    });
+    assert.equal(calls, 1);
+  }
+});
+
+test('Native file transport retains the original compiler inventory and refuses changed evidence', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-ci-plan-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const path = join(root, 'plan.json');
+  const selection = selectTargets(['src/a/code.mbt'], {moonTests: fixture().plan});
+  writeFileSync(path, JSON.stringify({sourceRevision: hash, selection}));
+  const environment = {CI_PLAN_PATH: path, GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: 'original-event'};
+  const options = {git: () => hash, discover: () => selection.moonTests,
+    readEvent: () => ({pull_request: {base: {sha: other}}})};
+  assert.deepEqual(nativeMoonPackages(environment, options), selection.moonTests.packages);
+  assert.throws(() => nativeMoonPackages(environment, {...options, git: () => other}), /Foreign/u);
+  assert.throws(() => nativeMoonPackages(environment, {...options, discover: () => ({})}), /Changed/u);
+  writeFileSync(path, '{');
+  assert.throws(() => nativeMoonPackages(environment, options), SyntaxError);
+  writeFileSync(path, 'null');
+  assert.throws(() => nativeMoonPackages(environment, options), TypeError);
+  assert.throws(() => nativeMoonPackages({...environment, CI_PLAN_PATH: '', CI_PLAN: 'null'}, options), TypeError);
 });
 
 test('raw additions/deletions/renames/modes and omitted mixed changes refuse before graph discovery', () => {
@@ -214,7 +255,8 @@ test('reviewed real prose and independent JS edits omit product jobs but retain 
     assert.equal(selectTargets([path]).profile, 'full', 'Missing original modification identity stays full');
     assert.equal(selectTargets([path, 'toolchain.json']).profile, 'full');
   }
-  const owned = workflow.jobs.lint.steps.find(step => step.name === 'Test ordinary operation performance assessment');
+  const owned = workflow.jobs.lint.steps.find(step => step.name === 'Test ordinary operation performance policy oracles');
+  assert.equal(owned.if, undefined, 'Small policy oracles must execute during Draft preparation too');
   for (const path of ['scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) assert(owned.run.includes(path));
 });
 
@@ -228,7 +270,7 @@ test('workflow prepares graph tools only for candidates and retains full checks 
   const run = core.find(step => step.name === 'Test common core');
   assert.match(run.run, /node scripts\/ci-moon-tests\.mjs "\$\{\{ matrix\.target \}\}"/u);
   assert.match(run.run, /MOONBIT_NEW_NATIVE=0 node scripts\/test-native-core\.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose/u);
-  assert.equal(run.env.CI_PLAN, '${{ needs.select-targets.outputs.plan }}');
+  assert.equal(run.env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
   assert(workflow.jobs.lint.steps.some(step => step.run === 'node --test scripts/ci-moon-test-plan.test.mjs'));
 });
 
@@ -246,7 +288,17 @@ test('the actual pinned compiler graph narrows a real Gmail source change and re
   assert(plan.packages.includes('src/connectors/gmail/host_node'));
   assert(plan.packages.length < graph.packages.length);
   assert(!plan.files.some(path => path.startsWith('src/platform_native/')));
-  assert.equal(validateSelection(selectTargets([path], {moonTests:plan})).moonTests, plan);
+  const selection = validateSelection(selectTargets([path], {moonTests:plan}));
+  assert.equal(selection.moonTests, plan);
+  assert.equal(gateJobRequired(selection, 'client-readme-packed'), true,
+    'Compiler-selected Core edits must still run the normal packed README consumers');
+  const sourceRevision = git(['rev-parse', 'HEAD']).trim();
+  const results = Object.fromEntries(gateJobs.map(name => [name,
+    {result: gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
+  const context = {event: 'pull_request', sourceRevision, draft: false};
+  verifyGate({sourceRevision, selection}, results, context);
+  assert.throws(() => verifyGate({sourceRevision, selection},
+    {...results, 'client-readme-packed': {result: 'skipped'}}, context), /client-readme-packed/u);
   for (const target of ['js', 'wasm']) {
     assert(portableMoonTestCount(repository, ['--deny-warn', ...plan.files], target) > 0,
       'The real ordinary input must contain runnable compiler cases, not permanent full fallback');
@@ -294,6 +346,40 @@ test('the actual repository Native compiler retains full profiles and partitions
   assert.equal(profiles.ordinary.partitions.length, 2);
   assert(profiles.ordinary.partitions.every(part => part.cases > 0));
   assert.equal(profiles.ordinary.partitions.reduce((sum, part) => sum + part.cases, 0), profiles.ordinary.cases);
+});
+
+test('actual approval Core and Native Host edits retain the scoped call-count owner and required Native job', () => {
+  const counter = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  assert(nativeScopedTestFiles.includes(counter));
+  const tree = git(['ls-tree', '-rz', 'HEAD', '--', 'src']).slice(0, -1).split('\0').map(line => {
+    const [, mode, object, path] = /^(\d{6}) blob ([a-f0-9]{40})\t(.+)$/u.exec(line);
+    return {mode, object, path};
+  });
+  const raw = JSON.parse(execFileSync('moon', ['tree', '--package', '--json'],
+    {cwd:repository, encoding:'utf8', timeout:60000, maxBuffer:16 * 1024 ** 2}));
+  const graph = normalizeMoonGraph(raw, tree, repository);
+  const paths = ['src/execution_authorization/decision.mbt'];
+  let moonTests, moonGraphFailure;
+  try {moonTests = planMoonTests(paths, graph, tree);}
+  catch (error) {
+    // Preserve the existing complete fallback if this real reverse closure
+    // exceeds the original finite argv; never narrow by losing the importer.
+    assert.equal(error.code, 'ERR_ASSERTION');
+    assert.equal(error.message, 'Selected argv exceeds its finite bound');
+    moonGraphFailure = error.message;
+  }
+  const selected = validateSelection(selectTargets(paths, {moonTests, moonGraphFailure}));
+  assert.equal(gateJobRequired(selected, 'native'), true);
+  if (selected.moonTests) {
+    assert(selected.moonTests.packages.includes('src/cmd/native_client'));
+    assert(selected.moonTests.files.includes(counter));
+  } else assert.equal(selected.profile, 'full');
+  for (const path of [counter, 'src/platform_native/client_host/local_installation_original.mbt']) {
+    assert(tree.some(entry => entry.path === path), 'Select an actual tracked Native owner input');
+    const native = validateSelection(selectTargets([path], {draft: false}));
+    assert.equal(gateJobRequired(native, 'native'), true);
+    assert.equal(native.moonTests, undefined, 'Native Host edits retain complete original Native profiles');
+  }
 });
 
 test('executed documentation Quickstart changes retain product owners while pure prose stays maintenance', () => {

@@ -207,6 +207,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
   let originalRead;
+  let originalInputBodyRead;
   let originalScope = originalPreparation?.scope;
   let metadataInstallation = originalPreparation?.metadataInstallation;
   let metadataNodeInstallation = originalPreparation?.nodeInstallation;
@@ -215,6 +216,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let originalMetadata;
   let originalStoreBootstrap;
   let originalPublicationCapacity;
+  let publicationBaseRetained, publicationBaseExecution;
+  let publicationHeldRetained, publicationHeldExecution;
   let originalPublicationSelection;
   let originalPublicationReceiver;
   if (originalPreparation !== undefined) {
@@ -232,6 +235,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       throw new TypeError('InvalidInferOriginalPreparation');
     }
     originalRead = originalPreparation.read;
+    const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');
+    if (bodyRead !== undefined) {
+      if (!Object.hasOwn(bodyRead, 'value') || originalRead === undefined || bodyRead.value !== originalRead) {
+        throw new TypeError('ForeignInferOriginalInputBodyRead');
+      }
+      originalInputBodyRead = bodyRead.value;
+    }
     const publication = Object.getOwnPropertyDescriptor(originalPreparation, 'publicationCapacity');
     if (publication !== undefined) {
       if (!Object.hasOwn(publication, 'value') || typeof publication.value !== 'function') {
@@ -394,14 +404,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       restoredInput.snapshot, () => restoredInput.token.available, restoredInput.savedScope,
       originalConsumer, originalPreparation.readRetainedBytes,
       originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
-      originalPreparation.modelExecutionBytes, restoredReferenceIssuer)
+      originalPreparation.modelExecutionBytes, restoredReferenceIssuer, originalInputBodyRead)
     : originalPreparation !== undefined && composedInput !== undefined
     ? originalPreparation.control.startCheckedClientOriginalComposedInferExecution(
       originalPreparation.compiled, originalPreparation.runDefinition,
       composedInput.occurrence, graph, composedInput.prefix, composedInput.inputs,
       provider, originalConsumer, originalPreparation.readRetainedBytes,
       originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
-      originalPreparation.modelExecutionBytes, composedInput.sources)
+      originalPreparation.modelExecutionBytes, composedInput.sources, originalInputBodyRead)
     : originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')
     ? originalPreparation.control.startCheckedClientInferOriginalPreparation(
       originalPreparation.compiled, originalPreparation.runDefinition,
@@ -508,6 +518,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         cleanedOriginalReads.add(originalRead);
       }
       originalRead = undefined;
+      originalInputBodyRead = undefined;
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);
@@ -696,6 +707,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     invocationEvidenceView: (control, slot) => {
       if (reclaimed) return undefined;
       return control.inspectInferInvocationEvidence(moon, active, slot);
+    },
+    evaluationInput: slot => {
+      if (reclaimed || originalPreparedCallSet === undefined ||
+          moon.clientProgramInferInvocationEvidence(active, slot) === undefined) return undefined;
+      const request = moon.clientProgramInferPreparedRequest(originalPreparedCallSet, slot);
+      const call = moon.clientProgramInferPreparedCallAt(originalPreparedCallSet, slot);
+      if (request === undefined || call === undefined) return undefined;
+      return Object.freeze({request, callWire: moon.strategyRunEvidenceJson(call)});
     },
     evaluationRequest: slot => {
       if (reclaimed) return undefined;
@@ -1115,13 +1134,41 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // original Run Ledger. Missing/refused selection never falls back.
       originalPublicationCapacity = checked(moon.clientProgramReserveOriginalInferPublicationCapacity(
         active, retained.value, workspace.value));
+      publicationBaseRetained = publicationHeldRetained = retained.value;
+      publicationBaseExecution = publicationHeldExecution = workspace.value;
+    },
+    // Actual next scan/writer construction, in addition to this same original
+    // publication's retained controls. Covered phases make no extra Resource
+    // callback. This grows neither an installed limit nor another Ledger.
+    growOriginalPublicationCapacity(retained, execution) {
+      if (reclaimed || closing || originalPublicationCapacity === undefined ||
+          typeof retained !== 'bigint' || typeof execution !== 'bigint' ||
+          retained < 0n || execution < 0n ||
+          retained > 9223372036854775807n - publicationBaseRetained ||
+          execution > 9223372036854775807n - publicationBaseExecution) {
+        throw new Error('InferOriginalPublicationCapacityUnavailable');
+      }
+      const nextRetained = publicationBaseRetained + retained;
+      const nextExecution = publicationBaseExecution + execution;
+      if (nextRetained <= publicationHeldRetained && nextExecution <= publicationHeldExecution) return;
+      checked(moon.clientProgramGrowOriginalInferPublicationCapacity(active,
+        originalPublicationCapacity, nextRetained, nextExecution));
+      publicationHeldRetained = nextRetained > publicationHeldRetained ? nextRetained : publicationHeldRetained;
+      publicationHeldExecution = nextExecution > publicationHeldExecution ? nextExecution : publicationHeldExecution;
+      // Preserve a real grow even if its callback closed this original. No
+      // following projection constructor may proceed after that transition.
+      if (reclaimed || closing) throw new Error('InferOriginalPublicationCapacityUnavailable');
     },
     publicationCapacityPending: () => originalPublicationCapacity !== undefined,
     releaseOriginalPublicationCapacity() {
       if (originalPublicationCapacity === undefined) return true;
       const released = checked(moon.clientProgramReleaseOriginalInferPublicationCapacity(
         originalPublicationCapacity));
-      if (released) originalPublicationCapacity = undefined;
+      if (released) {
+        originalPublicationCapacity = undefined;
+        publicationBaseRetained = publicationBaseExecution = undefined;
+        publicationHeldRetained = publicationHeldExecution = undefined;
+      }
       return released;
     },
     startObservation: ({ledger, maxSlots, maxWireBytes, maxWork, operations}) => {
@@ -1165,6 +1212,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         {maxSlots, maxWireBytes, maxWork})
       : checked(moon.clientProgramStartInferObservationIssuance(active, ledger,
         maxSlots, maxWireBytes, maxWork));
+    },
+    bindOriginalResultArtifact(control, index, artifact, manifest) {
+      if (closing || reclaimed || !Number.isSafeInteger(index) || index < 0 ||
+          typeof control?.bindInferOriginalResultArtifact !== 'function') {
+        throw new TypeError('ForeignInferResultArtifact');
+      }
+      control.bindInferOriginalResultArtifact(active, index, artifact, manifest);
     },
     bindIssuedInvocation: (control, {compiled, runDefinition, issued}) =>
       control.bindIssuedClientInferInvocation(compiled, active, runDefinition,
@@ -1263,6 +1317,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let deferredRead = prepareRead !== undefined;
   let readAttempted = false;
   let operation;
+  let prepareOriginalResults, prepareSourceContext;
   let failure;
   let failureRecorded = false;
   const recordFailure = cause => {
@@ -1315,6 +1370,12 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           computePrefix = runtimeField(segments, 0);
           computeSuffix = runtimeField(segments, 1);
         }
+        if (prepareSourceContext !== undefined) {
+          const context = prepareSourceContext();
+          sources = context.sources; capturedInput = context.capturedInput;
+          prepareSourceContext = undefined;
+        }
+        const resultArtifacts = restoredInput === undefined ? prepareOriginalResults?.(inputs) : undefined;
         operation = openNodeInferOperation({moon, graph: selected.graph,
           composedInput: generated ? undefined : {occurrence: selected.occurrence,
             prefix: computePrefix, inputs, sources,
@@ -1334,6 +1395,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
             : {restoredPreparation: preparation}), bindComputeSuffix, assertRuntimeCurrent,
           retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
+        for (const original of resultArtifacts ?? []) {
+          operation.bindOriginalResultArtifact(control, original.index, original.artifact, original.manifest);
+        }
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
           principalId, at: now(), observeAccount: selected.observeAccount,
           observeAt: now});
@@ -1345,8 +1409,22 @@ export function openNodeComposedInferProvider({moon, selected, sources,
     };
   const provider = selectProvider(
     selected.occurrence, openOriginal, issue => {
-      recordFailure(Object.assign(new Error('ComposedInferComponentFailed'),
-        {code: 'MoonBitHostFailure', cause: issue}));
+      const error = Object.assign(new Error('ComposedInferComponentFailed'),
+        {code: 'MoonBitHostFailure', cause: issue});
+      try {
+        const kind = moon.clientProgramInferCallScopeIssueKind?.(issue);
+        const coordinates = moon.clientProgramInferOccurrenceCoordinates?.(selected.occurrence);
+        const task = runtimeField(coordinates, 0), unit = runtimeField(coordinates, 1),
+          step = runtimeField(coordinates, 2);
+        if (typeof kind === 'string' && kind.startsWith('call_scope.') &&
+            kind.length <= 96 && /^[a-z_]+(?:\.[a-z_]+)*$/u.test(kind) &&
+            [task, unit, step].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647)) {
+          error.primaryDiagnostic = Object.freeze({code: 'MoonBitHostFailure',
+            phase: 'original_infer_component', kind,
+            task, unit, step});
+        }
+      } catch { /* Optional typed DATA never replaces the original issue. */ }
+      recordFailure(error);
     }, active => {
       try {
         if (operation === undefined || activeOperations.get(operation) !== active) {
@@ -1391,6 +1469,12 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       sources = read('sources'); control = read('control'); plan = read('plan');
       principalId = read('principalId'); now = read('now'); signal = read('signal');
       retainOperation = read('retainOperation'); retainCompleted = read('retainCompleted');
+      prepareSourceContext = read('prepareSourceContext');
+      if (prepareSourceContext !== undefined && typeof prepareSourceContext !== 'function') throw new TypeError('InvalidComposedInferSourceContext');
+      prepareOriginalResults = read('prepareOriginalResults');
+      if (prepareOriginalResults !== undefined && typeof prepareOriginalResults !== 'function') {
+        throw new TypeError('InvalidComposedInferOriginalResults');
+      }
       durableCalls = read('durableCalls') === true; restoredInput = read('restoredInput');
       generatedInput = generatedOriginal;
       capturedInput = read('capturedInput');

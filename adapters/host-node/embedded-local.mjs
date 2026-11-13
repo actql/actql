@@ -6,6 +6,7 @@ import {createInstalledHostServices, installedSourceConfigurationReader,
 import {openHostInitializationPreparation, closeHostInitializationPreparation}
   from '../local-node/request-preparation-adapter.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
+import {createLocalResultReadWorkspace} from './local-result-read-workspace.mjs';
 import {runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
 import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 // Private selected-namespace DATA reader. Exporting this pure operation does
@@ -19,8 +20,8 @@ import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
-import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
-  selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy} from './installed-host-policy.mjs';
+import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, snapshotRequestMemory,
+  selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy, localResourceResultReadLimits} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {mkdir, readFile, stat} from 'node:fs/promises';
@@ -512,6 +513,16 @@ export function readLocalPreparationContext(originals) {
   const rows = Object.getOwnPropertyDescriptor(context, 'valuesMaxRows');
   if ((rows !== undefined && !Object.hasOwn(rows, 'value')) ||
       rows?.value !== installation.valuesMaxRows) {
+    throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
+  }
+  const work = Object.getOwnPropertyDescriptor(context, 'sourceFreeMaxWork');
+  if ((work !== undefined && !Object.hasOwn(work, 'value')) ||
+      work?.value !== installation.sourceFreeMaxWork) {
+    throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
+  }
+  const memory = Object.getOwnPropertyDescriptor(context, 'requestMemory');
+  if ((memory !== undefined && !Object.hasOwn(memory, 'value')) ||
+      memory?.value !== installation.requestMemory) {
     throw clientOperationError('NodeLocalPreparationAdmissionUnavailable');
   }
   const mode = Object.getOwnPropertyDescriptor(context, 'retainedRelationOutput');
@@ -1329,6 +1340,9 @@ async function embeddedInstallationIdentity(root, installation, project, moon, p
       retainedRelationOutput: true} : {}),
     ...(installation?.valuesMaxRows === undefined ? {} : {
       valuesMaxRows: installation.valuesMaxRows}),
+    ...(installation?.sourceFreeMaxWork === undefined ? {} : {
+      sourceFreeMaxWork: installation.sourceFreeMaxWork}),
+    ...(installation?.requestMemory === undefined ? {} : {requestMemory: installation.requestMemory}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -1369,6 +1383,14 @@ const REALIZATION_KEY = 'source-free-values';
 function validateValuesMaxRows(value) {
   if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
+  }
+}
+
+// Only the JS/Int representation boundary lives here. Core selects its
+// unchanged default and enforces the actual cumulative fragment counters.
+function validateSourceFreeMaxWork(value) {
+  if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
+    throw new TypeError('InvalidLocalSourceFreeWorkLimit');
   }
 }
 
@@ -1462,7 +1484,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   modelInstallation, registerModelProviders, project, projectProfile, projectRuntime,
   calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
-  retainedRelationOutput = false, valuesMaxRows, observation: observationConnection} = originalInstallation;
+  retainedRelationOutput = false, valuesMaxRows, sourceFreeMaxWork, requestMemory, observation: observationConnection} = originalInstallation;
   // This is the actual returned Host generation, not a CID/configuration
   // stand-in or another resource Owner. The installer covers native/process
   // domains as trusted implementation responsibility, NOT zero bytes or RSS.
@@ -1596,6 +1618,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   validateValuesMaxRows(valuesMaxRows);
+  validateSourceFreeMaxWork(sourceFreeMaxWork);
+  requestMemory = snapshotRequestMemory(requestMemory);
   validateSourceNamespace(sourceNamespace);
   validateSourceNamespace(sourceSelectorNamespace);
   if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
@@ -1726,7 +1750,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     ((mode === 'remote' && effectInstallation !== undefined) ||
       selectedEffectPaths.length !== 0
     ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment)(
-    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy);
+    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy, requestMemory);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
@@ -2035,9 +2059,21 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (selectedEffectPaths.length !== 0 || effectInstallation !== undefined) {
         throw clientOperationError('InstalledMockEffectProfileConflict');
       }
+      const observeMockEffectWrite = original => {
+          const retained = mockEffectOriginals.get(original);
+          let ref;
+          if (retained?.original === original) try {
+            ref = {namespaceId, authorityScopeCid,
+              runDefinitionCid: moon.strategyPublicationContractIdentity(retained.definition)};
+          } catch { /* The returned write stays observable but unbound. */ }
+          // An unreadable physical original must not borrow an ambient
+          // caller's Run correlation as a substitute identity.
+          diagnostic?.('effect_write_observed', {ref: ref ?? {}});
+      };
       installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId}),
-        principalId, mockEffectResources, sourceProfile.mockWritableSource?.connectorBindings[0]);
+        principalId, mockEffectResources, sourceProfile.mockWritableSource?.connectorBindings[0],
+        observeMockEffectWrite);
       // Retain the actual factory result before a fallible observation/current
       // read, so the existing initialization carrier still owns its file child.
       mockEffectObservation = observeInstalledMockEffectResources(installedEffect);
@@ -2216,7 +2252,9 @@ async function openInstalledHost(originalInstallation, preparation) {
           originalInstallation.closedValuesPreparationContext = Object.freeze({runtime: moon,
             control: originalInstallation.initialControl, environment,
             preparedEnvironment: sourceEnvironmentOriginal.preparedEnvironment, retainedRelationOutput,
-            valuesMaxRows: originalInstallation.valuesMaxRows});
+            valuesMaxRows: originalInstallation.valuesMaxRows,
+            sourceFreeMaxWork: originalInstallation.sourceFreeMaxWork,
+            requestMemory: originalInstallation.requestMemory});
         }
       }
     }
@@ -2418,14 +2456,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       actual === principalId ? {namespaceId, authorityScopeCid} : undefined;
     // One installed read policy supplies negotiation and the authorized
     // delivery grant. Publication output bounds are a separate purpose.
-    const resultReadLimits = Object.freeze({
-      maxReadWireBytes: 10 * 1024 * 1024,
-      maxRowWireBytes: 1024 * 1024,
-      maxRowRetainedValueBytes: 1024 * 1024,
-      maxRetainedValueBytes: 10 * 1024 * 1024,
-      maxRows: 10000, maxBatchRows: 1000,
-      maxBatchRetainedValueBytes: 10 * 1024 * 1024,
-    });
+    const resultReadLimits = localResourceResultReadLimits(moon, requestMemory);
     const negotiate = async value => ({version: 'actql-client-host/0.1',
       mode, owner: mode, durability: 'durable',
       ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
@@ -2540,6 +2571,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   });
   const resultService = installNodeResultAccessService({store, control,
     authority: resultAuthority, now, limits: localContractLimits,
+    ...(preparation === undefined ? {} : {readWorkspace: preparation.resultReadWorkspace(moon)}),
     frameLimits: {maxRowBytes: 1024 * 1024, maxDepth: 64,
       maxFrameBytes: 1024 * 1024}});
   const stateService = installRunStateService({store, control,
@@ -3395,6 +3427,15 @@ async function openInstalledHost(originalInstallation, preparation) {
           code: cause.code, cause: cause.cause ?? cause});
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
+    }
+  };
+  // LIVE Model preparation only, after its original managed Run is retained.
+  // Stored outcome/review/approval paths never call this physical input hook.
+  const prepareMockModelInputs = async selection => {
+    for(const member of selection?.components??(selection===undefined?[]:[selection])){
+      if(member.localMock!==true)continue;
+      await mockModels.prepareAnswersForRuntime(moon,member.originalMockInstallation);
+      member.currentProvider();
     }
   };
   // Preadmission and submission revisit the same Prepared through different
@@ -4467,12 +4508,13 @@ async function openInstalledHost(originalInstallation, preparation) {
                       retainedModel = {record, token, view: targetResume.view};
                     }
                   }
+                  const sourceSelectionPlan = checked(moon.clientProgramInstalledEffectManagedOperationPlan(
+                    managedRun, facts.prepared, facts.identity));
                   const selectedSources = selectAcquiredEffectSources({moon,
                     preparedEffect: facts.prepared, sourceProfile,
                     registry, values, fragment, ordered,
                     queryTimePreparation: facts.queryTimePreparation, requestIdentity: facts.identity,
-                    managedPlan: checked(moon.clientProgramInstalledEffectManagedOperationPlan(
-                      managedRun, facts.prepared, facts.identity))});
+                    managedPlan: sourceSelectionPlan});
                   const sourceContinuation = acquiredEffectContinuation({
                     checkpoints: (selectedSources.length === 0 ||
                       selectedSources.every(({adapter}) => typeof adapter.retainedCapture === 'function'))
@@ -4495,8 +4537,15 @@ async function openInstalledHost(originalInstallation, preparation) {
                       retainedModel.token.snapshot.sourceContinuation === undefined) {
                     throw new Error('ModelSourceClosureCustodyUnavailable');
                   }
+                  if(retainedModel===undefined){
+                    assertContinuationCurrent();
+                    await prepareMockModelInputs(managedEffect.modelSelection);
+                    assertContinuationCurrent();
+                  }
                   return await openAcquiredEffectComputation({moon,
                     owner: facts.owner, acquired: facts.preparedExecution, managedRun,
+                    sourceSelection: selectedSources, sourceSelectionPlan,
+                    requestJournal: journal, runRef: facts.ref,
                     originalContent: managedEffect.contentOriginal,
                     originalModelComponent: managedEffect.modelComponent,
                     originalModelComponents: managedEffect.modelMembers === undefined ? undefined
@@ -4514,14 +4563,15 @@ async function openInstalledHost(originalInstallation, preparation) {
                         () => preparation.effectManagedPlanRun(moon, facts.prepared, facts.identity)),
                     }),
                     computeConfigurations: {local: localSnapshotConfiguration},
-                    withComputePauseHandler: (configurations, handlePause) => ({
+                    withComputePauseHandler: (configurations, handlePause, beforePrepare) => ({
                       ...configurations,
-                      local: withLocalExecutionPauseHandler(configurations.local, handlePause),
+                      local: withLocalExecutionPauseHandler(configurations.local, handlePause, beforePrepare),
                     }),
                     store, principalId, contentRun: runContent, faultInjection: authorization?.faultInjection,
                     observe: (event, detail) => diagnostic(event,
                       {...detail, ref: facts.ref}), sourceContinuation,
-                    modelController, submission: effectSubmissions.get(facts.prepared),
+                    modelController, inferEvidence: evidenceConfiguration,
+                    submission: effectSubmissions.get(facts.prepared),
                     existingModel: retainedModel?.record,
                     modelClaim: modelResume?.parentResume === undefined ? modelResume?.claim : undefined,
                     parentResume, modelJournalPort: nextJournal});
@@ -4786,6 +4836,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       managedSourceRun = prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
         requestIdentity: requested, acquisitionCount, model: selectedModel, serializationCount});
     }
+    await prepareMockModelInputs(selectedModel);
     const managedRun = managedSourceRun;
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
@@ -6606,6 +6657,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
   let moon, project, projectProfile, mockPreparation, projectSourcePreparation, sourceManaged, sourceManagedClose;
   let computeManaged, computeManagedClose, computeManagedFlight;
   let resultPublication, resultPublicationClose, resultPublicationFlight;
+  let resultReadWorkspace;
   let hostJournal, hostJournalClose, hostJournalOpen, hostJournalOwnership, hostJournalFlight;
   let hostJournalAdmitRootFormat;
   let hostJournalOpenAttempted = false;
@@ -6718,6 +6770,12 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       computeManaged = computeManagedClose = computeManagedFlight = undefined;
       record.computeManaged = undefined;
+    }
+    if (resultReadWorkspace !== undefined) {
+      if ((await resultReadWorkspace.closeAll()).pending !== false) {
+        throw clientOperationError('ResultReadCleanupPending');
+      }
+      resultReadWorkspace = undefined;
     }
     if (resultPublication !== undefined) {
       resultPublicationClose ??= resultPublication.close;
@@ -6974,6 +7032,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
         return original;
       });
       return resultPublicationFlight;
+    },
+    resultReadWorkspace(runtime) {
+      assertInitialControlHostPreparation(originals);
+      if (runtime !== moon) throw clientOperationError('ForeignInstalledHostPreparation');
+      resultReadWorkspace ??= createLocalResultReadWorkspace({runtime,
+        requestMemory: originalInstallation.requestMemory,
+        // The same original remains recognizable during cleanup. New READs
+        // are fenced by the workspace owner before it retires its children.
+        assertCurrent: () => assertRetainedSourceManagedHost(originals)});
+      return resultReadWorkspace;
     },
     assertResultPublicationCurrent() {
       if (resultPublication === undefined) throw clientOperationError('HostResultPublicationUnavailable');
@@ -7943,7 +8011,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
         serializationGraph === undefined ? undefined :
           (parent, input, originalOccurrence, selected, originalExecution, contracts) =>
             control.prepareClientRequestSerializedInferGraph(parent, input, originalOccurrence,
-              selected, originalExecution, contracts));
+              selected, originalExecution, contracts),
+        record.managedSourceProfile?.fileReadDeclarations);
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
       const manager = sourceManaged ?? computeManaged;
@@ -8122,7 +8191,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return profile;
     },
     async installMockEffects(runtime, baseEnvironmentWire, authorizationFor, principalId, effectResources,
-      sourceBinding) {
+      sourceBinding, observeWrite) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
@@ -8135,7 +8204,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         throw clientOperationError('ForeignInstalledMockSourceBinding');
       }
       return installPreparedProjectMockEffects({moon, mockPreparation, baseEnvironmentWire,
-        authorizationFor, principalId, effectResources,
+        authorizationFor, principalId, effectResources, observeWrite,
         runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl),
         // Correspondence DATA from the actual same Host's Source factory.
         // The Mapping cannot redefine that physical installation identity;
@@ -8212,7 +8281,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         record.mockModelProfile = mockModelProfile;
         assertCurrent();
         mockAnswers = await loadInstalledProjectMockAnswers(moon, project, projectProfile,
-          {limits,assertCurrent});
+          {limits,assertCurrent,deferAnswers:true});
         record.mockAnswers = mockAnswers;
         const models = mockAnswers.bindModelsForRuntime(moon, mockModelProfile, now);
         record.mockModels = models;
@@ -8295,7 +8364,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       resolveEffectSecret, effectInstallation, modelInstallation, registerModelProviders,
       calendarArtifact, resultDataPolicy, inferEvidence, retainedRelationOutput,
       hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy,
-      valuesMaxRows, observation} = options;
+      valuesMaxRows, sourceFreeMaxWork, requestMemory, observation} = options;
     calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
     hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
     hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
@@ -8311,7 +8380,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       effectInstallation, modelInstallation, registerModelProviders, calendarArtifact,
       resultDataPolicy, inferEvidence,
       retainedRelationOutput: retainedRelationOutput === undefined ? false : retainedRelationOutput,
-      hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
+      hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, sourceFreeMaxWork,
+      requestMemory: snapshotRequestMemory(requestMemory), observation});
     record.installation = originalInstallation;
     moon = await import(runtimeUrl.href);
     record.runtime = moon;
@@ -8409,12 +8479,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
   }
   if (installation !== undefined) {
     const {hostCapacityPolicy: selected, hostLookupExecutionPolicy: lookupSelected,
-      calendarArtifact: suppliedCalendar, valuesMaxRows, ...rest} = installation;
+      calendarArtifact: suppliedCalendar, valuesMaxRows, sourceFreeMaxWork, requestMemory: suppliedMemory, ...rest} = installation;
     validateValuesMaxRows(valuesMaxRows);
+    validateSourceFreeMaxWork(sourceFreeMaxWork);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
     const hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(lookupSelected);
     const calendarArtifact = snapshotInstalledCalendar(suppliedCalendar);
-    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows};
+    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows, sourceFreeMaxWork,
+      requestMemory: snapshotRequestMemory(suppliedMemory)};
     if (installation.effectProfilePaths !== undefined) {
       installation.effectProfilePaths = installedEffectPaths(installation);
     }
@@ -8458,14 +8530,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
     retainedRelationOutput: installation?.retainedRelationOutput === undefined
       ? false : installation.retainedRelationOutput,
     observation: installation?.observation,
-    valuesMaxRows: installation?.valuesMaxRows});
+    valuesMaxRows: installation?.valuesMaxRows,
+    sourceFreeMaxWork: installation?.sourceFreeMaxWork, requestMemory: installation?.requestMemory});
   record.installation = originalInstallation;
   if (selectedProfile.selected === 'mock') {
     const services = preparation.sourceInitializationServices(moon, root, userInfo().username);
     const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon,
       preparation.readEnvironmentSource().trimEnd(), originalInstallation.hostCapacityPolicy,
       originalInstallation.hostLookupExecutionPolicy ?? localResourceLookupExecutionPolicy(moon,
-        moon.clientLocalResourcePolicyOriginal(), localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS])));
+        moon.clientLocalResourcePolicyOriginal(), localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS])),
+      originalInstallation.requestMemory);
     originalInstallation.declaredFileBaseEnvironmentWire = baseEnvironmentWire;
     // Retain before module/runtime selection and before the first dynamic
     // declaration. Later Host installation borrows this same service/parent.

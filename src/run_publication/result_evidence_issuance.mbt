@@ -84,6 +84,18 @@ fn emit_ordering_evidence_body(
   derivation_cid : String,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
+  emit_occurrence_ordering_evidence_body(
+    definition_cid, derivation_cid, "derivation", writer,
+  )
+}
+
+///|
+fn emit_occurrence_ordering_evidence_body(
+  definition_cid : String,
+  derivation_cid : String,
+  witness_kind : String,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "kind")
   @encode.string_value(writer, "occurrence")
@@ -100,7 +112,7 @@ fn emit_ordering_evidence_body(
   @encode.key(writer, "cid")
   @encode.string_value(writer, derivation_cid)
   @encode.key(writer, "kind")
-  @encode.string_value(writer, "derivation")
+  @encode.string_value(writer, witness_kind)
   @encode.end_object(writer)
   @encode.end_array(writer)
   @encode.end_object(writer)
@@ -249,5 +261,72 @@ fn issue_occurrence_evidence_for_producer(
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(IssuanceEvidence(issue))
+  }
+}
+
+///|
+/// Variable metadata bodies for one completed local Result, before their
+/// writers/trees are constructed. Reuse the actual three emitters; this DATA
+/// neither issues contracts nor proves an original Result or capacity. Future
+/// derivation/ordering identity positions use a checked ASCII CID solely for
+/// their fixed wire width. No placeholder identity escapes as wire or evidence.
+pub fn local_result_metadata_construction_geometry(
+  definition_cid : String,
+  invocation_cid : String,
+  logical_value_cid : String,
+  result_schema_cid : String,
+  computation_contract_cid : String,
+  input_relation_cids : Array[String],
+  scope_cid : String,
+  policy_cid : String,
+  issuer_id : String,
+  authority_scope_cid : String,
+  retention_cid : String,
+  row_count : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[@encode.EncodingConstructionGeometry],
+  ResultEvidenceIssuanceIssue,
+] {
+  if row_count < 0 || !valid_cid(definition_cid) {
+    return Err(IssuanceInvalidIdentity)
+  }
+  let mut active : @encode.Writer? = None
+  try {
+    let writer = @encode.construction_measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    )
+    active = Some(writer)
+    emit_derivation_evidence_body(
+      definition_cid, logical_value_cid, result_schema_cid, computation_contract_cid,
+      input_relation_cids, scope_cid, policy_cid, issuer_id, authority_scope_cid,
+      writer,
+    )
+    let derivation = @encode.finish_construction_measurement(writer)
+    let writer = @encode.construction_measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    )
+    active = Some(writer)
+    emit_ordering_evidence_body(definition_cid, definition_cid, writer)
+    let ordering = @encode.finish_construction_measurement(writer)
+    let writer = @encode.construction_measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    )
+    active = Some(writer)
+    emit_complete_result_artifact_body(
+      definition_cid, invocation_cid, logical_value_cid, result_schema_cid, definition_cid,
+      row_count, policy_cid, retention_cid, definition_cid, writer,
+    )
+    let artifact = @encode.finish_construction_measurement(writer)
+    Ok([derivation, ordering, artifact])
+  } catch {
+    _ => {
+      if active is Some(writer) {
+        @encode.cancel_writer(writer)
+      }
+      Err(IssuanceEncoding)
+    }
   }
 }

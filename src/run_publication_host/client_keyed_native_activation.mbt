@@ -98,7 +98,7 @@ pub fn prepare_client_keyed_native_activation(
     prepared_client_effect_request_scope(prepared, client_request) is Ok(_) &&
     physical_equal(original.keyed, state.left.acquisition) &&
     physical_equal(component.original.fragments.acquisition, original.keyed) &&
-    @publication.native_file_read_profile_contract_bindings(profile)
+    @publication.file_read_profile_contract_bindings(profile)
     is Some((source, schema, _)) &&
     @values.timestamp_epoch_milliseconds(recorded_at) is Some(epoch) else {
     return Err(Assembly("foreign_or_unavailable_native_activation"))
@@ -119,10 +119,32 @@ pub fn prepare_client_keyed_native_activation(
     owned_utf16_units: 24L,
     owned_wire_bytes: 0L,
   }).unwrap()
+  let writer_bytes = if @publication.publication_contract_name(profile) ==
+    "declared_file_content_read" {
+    // The original encoded Request is already retained by this plan. Only
+    // its actual subtree and the closed issuer/envelope Strings are next;
+    // a large accepted codec ceiling is not an allocation request.
+    let units = wire.length().to_int64() +
+      issuer_id.length().to_int64() +
+      @publication.publication_contract_json(profile).length().to_int64() +
+      @publication.publication_contract_identity(batch).length().to_int64() +
+      @publication.publication_contract_identity(transport).length().to_int64() +
+      source.length().to_int64() +
+      schema.length().to_int64() +
+      client_request_authority_scope_cid(client_request).length().to_int64() +
+      component.barrier.logical_cid.length().to_int64()
+    guard @execution.checked_preparation_add_product(4096L, units, 6L)
+      is Some(bytes) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    Int64::min(bytes, max_bytes.to_int64()).to_int()
+  } else {
+    max_bytes
+  }
   let metadata_phase = match
     grow_keyed_lookup_protocol_metadata(
       state,
-      max_bytes,
+      writer_bytes,
       3L,
       extra_controls=controls,
       copies=3,
@@ -180,7 +202,7 @@ pub fn prepare_client_keyed_native_activation(
     "\",\"version\":\"actql-lookup-semantic-request/0.1\"}"
   let semantic_request = match
     native_lookup_seal(
-      "native_file_lookup_request", body, max_bytes, max_nodes, max_depth,
+      "native_file_lookup_request", body, writer_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -195,13 +217,13 @@ pub fn prepare_client_keyed_native_activation(
     "\",\"version\":\"actql-lookup-call-slot/0.1\"}"
   let slot = match
     native_lookup_seal(
-      "native_file_lookup_call_slot", slot_body, max_bytes, max_nodes, max_depth,
+      "native_file_lookup_call_slot", slot_body, writer_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let activation_body = try {
-    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    let writer = @encode.writer(writer_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     for
       (name, value) in [
@@ -233,7 +255,8 @@ pub fn prepare_client_keyed_native_activation(
   }
   let activation = match
     native_lookup_seal(
-      "native_file_lookup_activation", activation_body, max_bytes, max_nodes, max_depth,
+      "native_file_lookup_activation", activation_body, writer_bytes, max_nodes,
+      max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

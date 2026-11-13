@@ -5,18 +5,24 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {installedSourceFor} from './installed-source.mjs';
+import {performance} from 'node:perf_hooks';
+import {bytesCid, originalLocalContentStoragePolicy} from './local-account-config.mjs';
+import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
+import {keyedInputRetentionSelection, localOutputLimits, localContractLimits} from './local-values-plan.mjs';
 
 export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedRun,
-  infer, selected, originalPreparation, plan, captures, sourceProfile, ledger,
-  contentRun, store, principalId, signal, now, current, retain}) {
+  infer, selected, originalPreparation, plan, captures, sources, sourceProfile, ledger,
+  contentRun, store, principalId, signal, now, current, retain, requestJournal, runRef, originalHost}) {
   const acquisition = checked(moon.clientProgramEffectComposedModelKeyedAcquisition(
     acquired.prepared, infer.graph));
   if (acquisition === undefined) return undefined;
-  if (captures.length !== 2 || selected === undefined || originalPreparation?.scope === undefined ||
+  const sourceCount = moon.clientProgramEffectAcquisitionCount?.(acquired.prepared);
+  if (!Number.isSafeInteger(sourceCount) || sourceCount < 1 || captures.length !== sourceCount ||
+      selected === undefined || originalPreparation?.scope === undefined ||
       plan?.compiled === undefined || typeof retain !== 'function') {
     throw new TypeError('InstalledComposedKeyedOriginalUnavailable');
   }
-  let prefix, execution, lookup, keyedContent, failureRecovery, uncertain = false, closed = false;
+  let prefix, execution, lookup, keyedContent, publication, failureRecovery, uncertain = false, closed = false;
   const cleanup = async () => {
     if (closed) return true;
     if (uncertain) return false;
@@ -30,6 +36,7 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
       if (await lookup.cleanup() === false || lookup.cleanupPending() !== false) return false;
       lookup = undefined;
     }
+    if (publication !== undefined && await publication.cleanup() !== true) return false;
     if (keyedContent !== undefined) {
       if (await keyedContent.cleanup() === false || keyedContent.cleanupPending() !== false) return false;
       keyedContent = undefined;
@@ -48,23 +55,34 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
   const adapter = installedSourceFor(sourceProfile, facts[0]);
   const access = adapter.sourceAccess;
   const capacity = adapter.keyedLedgerCapacity(acquisition);
-  prefix = acquired.control.startInstalledOriginalComposedKeyedPrefix(managedRun,
-    plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures);
-  execution = moon.clientProgramOriginalComposedKeyedPrefixExecution(prefix);
-  current();
-  for (;;) {
-    signal?.throwIfAborted();
-    const poll = checked(moon.clientProgramOriginalComposedKeyedPrefixAdvance(prefix, 64));
-    current();
-    if (runtimeField(poll, 0)) break;
-    if (runtimeField(poll, 2) !== undefined) {
-      throw Object.assign(new Error('InstalledComposedKeyedPrefixFailed'),
-        {code: 'MoonBitHostFailure', cause: runtimeField(poll, 2)});
-    }
-    if (runtimeField(poll, 1)) throw new Error('InstalledComposedKeyedPrefixStopped');
-    await yieldEventLoop();
+  let left;
+  if (originalHost !== undefined) {
+    const original = acquired.control.prepareInstalledOriginalComposedKeyedHostInput(managedRun,
+      plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures, originalHost);
+    left = original.left; prefix = original.prefix;
+  } else {
+    prefix = acquired.control.startInstalledOriginalComposedKeyedPrefix(managedRun,
+      plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures);
   }
-  const left = checked(moon.clientProgramCompleteOriginalComposedKeyedPrefix(prefix));
+  if (prefix !== undefined) {
+    execution = moon.clientProgramOriginalComposedKeyedPrefixExecution(prefix);
+    current();
+    for (;;) {
+      signal?.throwIfAborted();
+      const poll = checked(moon.clientProgramOriginalComposedKeyedPrefixAdvance(prefix, 64));
+      current();
+      if (runtimeField(poll, 0)) break;
+      if (runtimeField(poll, 2) !== undefined) {
+        throw Object.assign(new Error('InstalledComposedKeyedPrefixFailed'),
+          {code: 'MoonBitHostFailure', cause: runtimeField(poll, 2)});
+      }
+      if (runtimeField(poll, 1)) throw new Error('InstalledComposedKeyedPrefixStopped');
+      await yieldEventLoop();
+    }
+    left = checked(moon.clientProgramCompleteOriginalComposedKeyedPrefix(prefix));
+  }
+  current();
+  if (left === undefined) throw new Error('OriginalKeyedHostLeftUnavailable');
   const prepared = await adapter.prepareKeyed({preparedEffect: acquired.prepared,
     keyedAcquisition: acquisition, requestIdentity: acquired.requestIdentity, sourceAccess: access});
   current();
@@ -80,8 +98,12 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
     const child = keyedContent;
     keyedContent = Object.freeze({...child, frame});
   }
+  publication = originalKeyedLookupPublication({moon, acquired, plan, infer,
+    captures, sources, requestJournal, runRef, capacity, signal, now, current, store,
+    fileReadDeclarations: sourceProfile.fileReadDeclarations});
   try {
     lookup = await adapter.openKeyedLookup({preparedEffect: acquired.prepared,
+      publication,
       managedRun, keyedAcquisition: acquisition, left, ledger, signal,
       preparedKeyed: prepared.prepared, sourceAccess: access,
       originalCaptures: captures.map(value => value.capture),
@@ -104,4 +126,110 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
   return Object.freeze({lookup: original, observation: observation.observation, evidence,
     ...(keyedContent === undefined ? {} : {capturedInput: Object.freeze({
       recovery: keyedContent.frame.recoveryInventory(), binding: keyedContent.frame.sourceBinding})})});
+}
+
+// Same lookup/Source/Journal originals, not a second acquisition owner. The
+// installing Source calls initialize before planning and activate before send.
+function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, sources,
+  requestJournal, runRef, capacity, signal, now, current, store, fileReadDeclarations}) {
+  if (typeof requestJournal?.persistOriginalKeyedLookupActivation !== 'function' ||
+      typeof requestJournal?.persistOriginalKeyedLookupPage !== 'function' ||
+      typeof store?.prepareLookupRawEvidence !== 'function' ||
+      typeof store?.confirmLookupRawEvidence !== 'function' ||
+      typeof store?.commitPhysicalHolding !== 'function' ||
+      runRef?.runDefinitionCid !== acquired.runDefinition.identity ||
+      typeof acquired.control.prepareKeyedLookupSourceMetadata !== 'function' ||
+      typeof acquired.control.prepareKeyedLookupRawCapture !== 'function' ||
+      typeof acquired.control.prepareKeyedLookupCapturedPage !== 'function' ||
+      !Array.isArray(sources) || sources.length !== captures.length) {
+    throw new TypeError('OriginalKeyedLookupJournalUnavailable');
+  }
+  let lookup, retention, storage;
+  const holdings = [];
+  const originalCurrent = () => {signal?.throwIfAborted(); current();};
+  return Object.freeze({
+    initialize(original) {
+      originalCurrent();
+      if (lookup !== undefined) throw new TypeError('OriginalKeyedLookupAlreadyInitialized');
+      lookup = original;
+      const selection = keyedInputRetentionSelection(acquired);
+      storage = Object.freeze({namespaceId:runRef.namespaceId, storeAuthorityCid:store?.storeAuthorityCid,
+        ...originalLocalContentStoragePolicy({storeAuthorityCid:store?.storeAuthorityCid,
+          authorityScopeCid:acquired.authorityScopeCid, runDefinitionCid:acquired.runDefinition.identity,
+          expiresAt:selection.expiresAt})});
+      retention = acquired.control.prepareKeyedLookupSourceMetadata(lookup,
+        acquired.requestIdentity, captures, sources, selection,
+        localOutputLimits, capacity.maxWork, localContractLimits, fileReadDeclarations);
+      originalCurrent();
+      checked(moon.clientProgramKeyedLookupStartDeclaredFileRequestPlan(lookup, now(),
+        BigInt(Math.floor(performance.now())), acquired.authorityScopeCid));
+      originalCurrent();
+    },
+    async cleanup() {
+      for (const holding of holdings) {
+        await holding.abort();
+        const state = holding.status();
+        if (state.operationPending || state.preparedPending || (!state.committed && !state.abandoned)) return false;
+      }
+      holdings.length = 0;
+      return true;
+    },
+    async retainRawResponse(original, request, attempt, bytes) {
+      originalCurrent();
+      if (lookup !== original || retention === undefined || !(bytes instanceof Uint8Array) ||
+          typeof store?.prepareLookupRawEvidence !== 'function') {
+        throw new TypeError('ForeignOriginalKeyedRawResponse');
+      }
+      const captured = acquired.control.prepareKeyedLookupRawCapture(request, plan.compiled,
+        plan.runDefinition, retention, storage, bytesCid(bytes), bytes.byteLength, now(),
+        BigInt(Math.floor(performance.now())), {maxBytes:capacity.maxBytes,
+          maxNodes:256, maxDepth:32, maxTextUnits:capacity.maxBytes});
+      originalCurrent();
+      const holding = preparePrivatePublicationHolding(store, captured.binding, bytes);
+      // Retain the original partial writer/commit owner BEFORE its first await.
+      holdings.push(holding);
+      await holding.commit();
+      originalCurrent();
+      return captured.original;
+    },
+    adopt(original, request, attempt, capture, raw) {
+      originalCurrent();
+      if (lookup !== original || raw === undefined) throw new TypeError('ForeignOriginalKeyedPage');
+      const page = acquired.control.prepareKeyedLookupCapturedPage(request, capture, raw,
+        now(), localOutputLimits, capacity.maxWork, localContractLimits);
+      originalCurrent();
+      requestJournal.persistOriginalKeyedLookupPage(runRef, {page, keyedRequest:request,
+        activationRecord:attempt.record, identity:acquired.requestIdentity,
+        preparedEffect:acquired.prepared, compilation:acquired.compilation,
+        compiled:plan.compiled, runDefinition:plan.runDefinition, graph:infer.graph,
+        limits:localContractLimits}, moon, acquired.control);
+      originalCurrent();
+    },
+    finishInput(original) {
+      originalCurrent();
+      if (lookup !== original || holdings.some(owner => owner.status().committed !== true)) {
+        throw new TypeError('OriginalKeyedRawHoldingUnavailable');
+      }
+      const read = checked(moon.clientProgramKeyedLookupDeclaredFilePublicationInput(
+        lookup, now(), BigInt(Math.floor(performance.now())),
+        localContractLimits.maxWireBytes, localContractLimits.maxNodes, localContractLimits.maxDepth));
+      originalCurrent();
+      return read;
+    },
+    activate(original, request) {
+      originalCurrent();
+      if (lookup !== original || retention === undefined) throw new TypeError('ForeignOriginalKeyedLookup');
+      const activation = checked(moon.clientProgramKeyedLookupPrepareActivation(lookup,
+        request, acquired.requestIdentity, acquired.authorityScopeCid, now(),
+        BigInt(Math.floor(performance.now())), localContractLimits.maxWireBytes,
+        localContractLimits.maxNodes, localContractLimits.maxDepth));
+      const record = requestJournal.persistOriginalKeyedLookupActivation(runRef, {
+        activation, identity: acquired.requestIdentity, preparedEffect: acquired.prepared,
+        compilation: acquired.compilation, compiled: plan.compiled,
+        runDefinition: plan.runDefinition, graph: infer.graph, limits: localContractLimits,
+      }, moon, acquired.control);
+      originalCurrent();
+      return Object.freeze({activation, record});
+    },
+  });
 }

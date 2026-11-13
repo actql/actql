@@ -23,6 +23,12 @@ pub(all) enum NativeClientSourceWorkIssue {
   OriginalOperation(NativeClientValuesWorkIssue)
   RelationFile(@row_file.NativeRelationFileIssue)
   LocalExecution(@local.LocalValuesExecutionIssue)
+  InstalledRun(@local.ClientInstalledManagedRunIssue)
+  InstalledRead(@local.ClientInstalledSourceReadIssue)
+  InstalledCapture(@local.ClientInstalledCaptureHostIssue)
+  SourceEvidence(@rows.RowHostIssue)
+  InputLogical(@host.ClientCapturedSourceLogicalIssue)
+  Preparation(@local.ClientClosedValuesPreparationIssue)
   LocalExport(@local.LocalValuesResultExportIssue)
   CaptureIdentity(@execution_query.CapturedSourceIssue)
   AuthorizationDenied

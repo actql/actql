@@ -134,7 +134,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
   const bindingCid = contentCid({version: 'actql-installed-duckdb-source-binding/0.1',
     root, principalId, physicalBinding, sourceRef: profile.sourceRef});
   const preparations = new WeakMap();
-  const retainPrepared = (prepared, captureCapacity, retainedOnly = false) => {
+  const retainPrepared = (prepared, captureCapacity, retainedOnly = false, original = preparations.get(prepared)) => {
     const matches = catalogs.filter(value => value.source_views.some(view =>
       view.contract_cid === prepared.checkedSource.sourceViewContractCid));
     const catalog = matches.length === 1 ? matches[0] : undefined;
@@ -145,7 +145,9 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       throw new TypeError('InstalledSourcePreparationMismatch');
     }
     preparations.set(prepared, Object.freeze({physicalBinding: prepared.physicalBinding, binding,
-      captureCapacity, retainedOnly}));
+      captureCapacity, retainedOnly, checkedOwner: original?.checkedOwner,
+      requestIdentity: original?.requestIdentity, managedRun: original?.managedRun,
+      occurrence: original?.occurrence}));
     return prepared;
   };
   const wholeCapacities = new WeakMap(), wholeReads = new Set();
@@ -225,7 +227,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       occurrence: original.occurrence, physicalBinding,
       readTuple: Object.freeze({connection: sourceAccess.connection ?? 'local-database',
         resource: sourceAccess.resource ?? profile.database, operation: 'read'})});
-      retainPrepared(prepared, original.capacity);
+      retainPrepared(prepared, original.capacity, false, original);
       Object.assign(original, preparations.get(prepared), {wholeInput: true, prepared});
       preparations.set(prepared, original);
       const decision = await authorizeWhole(sourceAccess);
@@ -332,11 +334,15 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     ...(sourceInitialization === undefined ? {} : {environmentOriginal: environment}),
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
       Object.freeze({connectorId, bindingCid}))),
-    ordinaryRecoveryBinding(prepared) {
+    ordinaryRecoveryBinding(prepared, expected) {
       current();
       const original = preparations.get(prepared);
       if (original === undefined || prepared.physicalBinding !== original.physicalBinding ||
-          prepared.checkedSource.sourceRef !== profile.sourceRef) {
+          prepared.checkedSource.sourceRef !== profile.sourceRef ||
+          expected !== undefined && (original.checkedOwner !== expected.checkedOwner ||
+            original.requestIdentity !== expected.requestIdentity ||
+            ['stage', 'input', 'task', 'computeTask'].some(name =>
+              original.occurrence?.[name] !== expected.occurrence?.[name]))) {
         throw new TypeError('InstalledSourcePreparationMismatch');
       }
       return original.binding;
@@ -425,7 +431,8 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
         preparedProgram, requestIdentity, occurrence, registry, values, fragment, ordered, sourceAccess,
         transportLimits: profile.transportLimits});
       current();
-      return retainPrepared(prepared, undefined, true);
+      return retainPrepared(prepared, undefined, true,
+        {checkedOwner: preparedProgram, requestIdentity, occurrence: prepared.occurrence});
     },
     prepareRetainedCapture(facts) {
       // This checked metadata constructor opens no database or Source reader.
@@ -463,7 +470,9 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       queryTimePreparation, requestIdentity, originalCapture, originalContracts: capacityContracts,
       sourceAccess, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits});
       current();
-      retainPrepared(prepared, originalCapture?.capacity);
+      retainPrepared(prepared, originalCapture?.capacity, false,
+        {checkedOwner: preparedEffect ?? preparedProgram, requestIdentity, managedRun,
+          occurrence: prepared.occurrence});
       return prepared;
     },
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,

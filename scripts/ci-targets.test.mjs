@@ -1,3 +1,4 @@
+import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -10,9 +11,16 @@ import {parse} from 'yaml';
 import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
+import {readCiInput} from './ci-input.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
+const nativeGroups = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
+const nativeWorkload = family => jobs[family + '-workloads'];
+const nativeCases = family => [...nativeWorkload(family).steps,
+  ...nativeGroups[family].flatMap(group => group.steps.map(step => ({...step, 'timeout-minutes': step.timeoutMinutes})))];
+const nativeCaseCondition = (family, step) => step.if ??
+  nativeWorkload(family).steps.find(value => value.id === 'native-background-start').if;
 
 function nativeScratchSourceFixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'actql-native-scratch-source-'));
@@ -44,7 +52,7 @@ function nativeScratchSourceFixture(t) {
 
 test('Linux Native scratch output leaves Source clean for delayed bundle admission', t => {
   const f = nativeScratchSourceFixture(t);
-  const step = jobs.native.steps.find(row => row.name === 'Test Node-free native storage publication and control');
+  const step = jobs['native-http'].steps.find(row => row.name === 'Test Node-free native storage publication and control');
   const scratch = step.env.ACTQL_TEST_SCRATCH_ROOT
     .replaceAll('${{ github.workspace }}', f.repository)
     .replaceAll('${{ runner.temp }}', f.runner);
@@ -87,9 +95,9 @@ test('Linux Native profile compilers retain their commands and existing stack pr
     ['native-separated-network', 'Verify native direct and outbound-only Store profiles', 'check:native-separated-network'],
   ]) {
     assert.equal(jobs[job]['runs-on'], 'ubuntu-24.04');
-    const step = jobs[job].steps.find(row => row.name === name);
+    const step = (job === 'native' ? [...nativeCases('native'), ...jobs['native-http'].steps] : jobs[job].steps).find(row => row.name === name);
     assert.ok(step);
-    assert.equal(step.if, job === 'native' ? "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}" : undefined);
+    assert.equal(step.if, undefined);
     assert.equal(step['continue-on-error'], undefined);
     assert.match(step.run, /ulimit -S -s 65536\s+?(?:node |npm run )/u);
     // Observe exact shell ordering and child inheritance without starting a
@@ -226,12 +234,16 @@ test('Native consumers keep all original commands and collect independent failur
     'exit "$ACTQL_FIXTURE_EXIT"\n');
   chmodSync(join(root, 'node'), 0o755);
   for (const name of ['native', 'native-macos']) {
-    const steps = jobs[name].steps.filter(step => step.id?.startsWith('native-') &&
-      step.id !== 'native-preparation');
+    const http = name === 'native' ? jobs['native-http'].steps.find(step => step.id === 'native-http')
+      : nativeCases(name).find(step => step.id === 'native-http');
+    const steps = [http,
+      ...nativeCases(name).filter(step => step.id?.startsWith('native-') && step.id !== 'native-http' && step.name.startsWith('Test '))]
+      .sort((a, b) => expected.indexOf(a.run.trim().split('\n').at(-1)) - expected.indexOf(b.run.trim().split('\n').at(-1)));
     assert.deepEqual(steps.map(step => step.run.trim().split('\n').at(-1)), expected);
     assert.equal(new Set(steps.map(step => step.env.ACTQL_TEST_SCRATCH_ROOT)).size, expected.length);
     const results = steps.map((step, index) => {
-      assert.equal(step.if, condition);
+      assert.equal(name === 'native' && step.id === 'native-http' ? step.if : nativeCaseCondition(name, step),
+        name === 'native' && step.id === 'native-http' ? undefined : condition);
       assert.equal(step['continue-on-error'], undefined, 'a failed case must still fail the job');
       return spawnSync('bash', ['-eo', 'pipefail', '-c',
         (name === 'native' ? 'ulimit() { test \"$*\" = \"-S -s 65536\"; }\n' : '') + step.run], {
@@ -242,16 +254,89 @@ test('Native consumers keep all original commands and collect independent failur
     });
     assert.equal(results[0].status, 7, results[0].stderr);
     assert(results.slice(1).every(result => result.status === 0));
-    assert(jobs[name].steps.find(step => step.id === 'native-preparation').run
+    assert(nativeWorkload(name).steps.find(step => step.id === 'native-preparation').run
       .includes('prepare-native-runtime-bundle-fixture.mjs'));
   }
   assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, expected.length * 2);
   for (const id of ['packed-materials', 'packed-redelivery', 'packed-output-report'])
-    assert.equal(jobs.native.steps.find(step => step.id === id).if, condition);
+    assert.equal(nativeCaseCondition('native', nativeCases('native').find(step => step.id === id)), condition);
+});
+
+test('finite SQLite regressions have portable lint and required prepared macOS Native owners', () => {
+  const selection = selectTargets(['src/platform_native/sqlite/sqlite_stub.c'], {draft: false});
+  assert.equal(selection.profile, 'full');
+  assert.equal(gateJobRequired(selection, 'native-macos'), true);
+  const step = nativeCases('native-macos').find(row =>
+    row.name === 'Test finite original SQLite statement and selected API custody');
+  assert.ok(step);
+  assert.equal(nativeCaseCondition('native-macos', step), "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+  assert.equal(step['continue-on-error'], undefined);
+  assert.equal(step['timeout-minutes'], 5);
+  assert.equal(step.run, 'node scripts/test-native-sqlite-read-statement.mjs');
+  assert(nativeWorkload('native-macos').steps.findIndex(row => row.id === 'native-background-start') >
+    nativeWorkload('native-macos').steps.findIndex(row => row.id === 'native-preparation'));
+  const runner = readFileSync(new URL('./test-native-sqlite-read-statement.mjs', import.meta.url), 'utf8');
+  assert.match(runner, /ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION/u);
+  assert.match(runner, /expectedTests: 3/u);
+  const env = {...process.env};
+  delete env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION;
+  const missing = spawnSync(process.execPath, ['scripts/test-native-sqlite-read-statement.mjs'],
+    {encoding: 'utf8', timeout: 5000, maxBuffer: 65536, env});
+  assert.equal(missing.status, 1);
+  assert(!missing.signal && !missing.error);
+  assert.match(missing.stderr, /same job exact-source Native component preparation is required/u);
+  const consumer = readFileSync(new URL('./native-sqlite-read-statement.test.mjs', import.meta.url), 'utf8');
+  assert.match(consumer, /prepareNativeRuntimeBundleLibraries/u);
+  assert.match(consumer, /preparation: process\.env\.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION/u);
+  assert.match(consumer, /xcrun', \['--show-sdk-path'\]/u);
+  assert.doesNotMatch(consumer, /MacOSX26\.2\.sdk|CommandLineTools\/usr\/bin\/clang/u);
+  const compiler = readFileSync(new URL('./prepare-native-sqlite-read-statement-fixture.py', import.meta.url), 'utf8');
+  assert(compiler.includes('sqlite-component/fixtures/read_statement.c'));
+  assert(!compiler.includes("'component.c'"), 'The consumer compiles no replacement engine/component');
+  assert(!compiler.includes('urlopen'), 'The consumer downloads no replacement input');
+  const sourceOwner = readFileSync(new URL('./native-approval-performance.test.mjs', import.meta.url), 'utf8');
+  assert(sourceOwner.includes("test('finite read statement keeps exact row admission and private selected ABI bindings'"));
+  assert(jobs.lint.steps.some(row => row.run?.includes('scripts/native-approval-performance.test.mjs')));
+});
+
+test('macOS HTTP retains its original command under shared preparation and a mandatory joined outcome', t => {
+  const workload = nativeWorkload('native-macos');
+  assert.equal(workload['runs-on'], 'macos-15');
+  const runtime = nativeGroups['native-macos'].find(group => group.name === 'runtime');
+  const index = runtime.steps.findIndex(step => step.id === 'native-http');
+  assert(index > runtime.steps.findIndex(step => step.name === 'Test native macOS retained task file ownership'));
+  const http = runtime.steps[index];
+  assert.equal(http.name, 'Test Node-free native storage publication and control');
+  assert.equal(http.run, 'node scripts/test-native-http-client.mjs\n');
+  assert.equal(http.timeoutMinutes, 115);
+  assert.deepEqual(http.env, {ACTQL_TEST_SCRATCH_ROOT: '${{ runner.temp }}/native-tests/native-http'});
+  assert.equal(nativeCases('native-macos').filter(step => step.id === 'native-http').length, 1);
+  assert.equal(workload.outputs['native-http-result'], '${{ steps.native-background.outputs.native-http-result }}');
+  const gate = jobs['native-http-macos'];
+  assert.deepEqual(gate.needs, ['select-targets', 'preflight', 'native-macos-workloads']);
+  assert.equal(gate['runs-on'], 'ubuntu-24.04');
+  assert.match(gate.if, /always\(\)/u);
+  assert.equal(gate['timeout-minutes'], 5);
+  assert.equal(gate['continue-on-error'], undefined);
+  assert.equal(gate.steps.length, 1, 'No second compiler/toolchain/component producer is selected');
+  const selected = gate.steps[0];
+  assert.equal(selected.env.WORKLOAD_RESULT, '${{ needs.native-macos-workloads.result }}');
+  assert.equal(selected.env.HTTP_RESULT, '${{ needs.native-macos-workloads.outputs.native-http-result }}');
+  for (const workloadResult of ['success', 'failure', 'cancelled', 'skipped', ''])
+    for (const httpResult of ['success', 'failure', 'unexecuted', 'skipped', '']) {
+      const result = spawnSync('bash', ['-eo', 'pipefail', '-c', selected.run], {
+        encoding: 'utf8', timeout: 5000,
+        env: {...process.env, WORKLOAD_RESULT: workloadResult, HTTP_RESULT: httpResult},
+      });
+      assert.equal(result.error, undefined); assert.equal(result.signal, null);
+      assert.equal(result.status, workloadResult === 'success' && httpResult === 'success' ? 0 : 1);
+    }
+  assert(jobs['native-macos'].needs.includes('native-http-macos'));
+  assert(jobs['native-macos'].needs.includes('native-macos-workloads'));
 });
 
 test('Native retained verification builds exactly its checked release module inventory', () => {
-  const step = jobs.native.steps.find(step => step.name === 'Verify registered Native retained product path');
+  const step = nativeCases('native').find(step => step.name === 'Verify registered Native retained product path');
   assert(step);
   const source = readFileSync(new URL('../benchmarks/retained-results/release-artifacts.mjs', import.meta.url), 'utf8');
   const inventory = /const modules = Object\.freeze\((\[[\s\S]*?\])\);/u.exec(source);
@@ -262,7 +347,8 @@ test('Native retained verification builds exactly its checked release module inv
   assert.equal(new Set(targets).size, targets.length);
   const commands = step.run.replace(/\\\n\s*/gu, ' ').trim().split('\n').map(line => line.trim().replace(/\s+/gu, ' '));
   assert.deepEqual(commands[0].split(/\s+/u), ['moon', 'build', '--target', 'js', '--release', ...targets]);
-  assert.equal(step.if, "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
+  assert.equal(nativeCaseCondition('native', step),
+    "${{ !cancelled() && steps.native-preparation.outcome == 'success' && steps.native-background.outcome == 'success' }}");
   assert.deepEqual(commands.slice(1), [
     'moon build src/cmd/native_retained_case_probe --target native --release',
     'node benchmarks/retained-results/native-case-probe.mjs native-acquisition-full-validation-low-selectivity/narrow/100',
@@ -275,15 +361,23 @@ test('Native retained verification builds exactly its checked release module inv
 test('normal lint executes behavioral operation performance assessment tests', () => {
   const step = jobs.lint.steps.find(row =>
     row.name === 'Test ordinary operation performance assessment');
+  const policy = jobs.lint.steps.find(row =>
+    row.name === 'Test ordinary operation performance policy oracles');
   assert.ok(step);
-  assert.equal(step.run, 'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
+  assert.ok(policy);
+  assert.equal(policy.run, 'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs');
+  assert.equal(policy.if, undefined);
+  assert.equal(step.run, 'node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
+  const files = [policy, step].flatMap(row => row.run.split(' ').slice(2));
+  assert.equal(files.length, 11);
+  assert.equal(new Set(files).size, 11, 'each full-suite file must execute exactly once');
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
   const observed = jobs.host.steps.find(row =>
     row.name === 'Test operation authorization and unchanged Run observations');
-  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/local-run-authorization.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs');
+  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/local-run-authorization.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-node/in-process-result-observation.test.mjs');
   assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
     row.run === 'npm run check:retained-boundary'));
 });
@@ -355,7 +449,9 @@ test('Host collection retains original command bodies and their actual build pre
   assert.equal(step('Test portable Run Host compilation package').run, runHost[2]);
   assert.equal(step('Test packed Run Host compilation package').run, runHost[3]);
   assert.equal(step('Test original Local result authorization').run,
-    'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-policy.test.mjs');
+    'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs');
+  assert.equal(steps.filter(row => row.run?.includes('ordinary-local-account.test.mjs')).length, 1,
+    'Actual standard Account bootstrap/current cases run once behind the existing runtime preparation');
   assert.equal(steps.filter(row => row.run === retained[0]).length, 1,
     'the two identical Common build prefixes are shared, without another build');
 });
@@ -504,7 +600,7 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
   ['native-separated-network', 'bundle', 2, 900, 25],
 ]) {
   test(`Native preparation outer budgets retain every producer and consumer window (${name})`, () => {
-    const job = jobs[name];
+    const job = jobs[name + '-workloads'] ?? jobs[name];
     assert.equal(job['runs-on'], name === 'native-macos' ? 'macos-15' : 'ubuntu-24.04');
     const preparation = job.steps.find(step =>
       step.name === 'Prepare exact-source scoped Native commands and components once');
@@ -529,7 +625,7 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
 }
 
 test('ordinary Read activation regressions run on the selected Native toolchain', () => {
-  const steps = jobs.native.steps;
+  const steps = nativeWorkload('native').steps;
   const setup = steps.findIndex(step => step.uses === './.github/actions/setup-toolchain');
   const process = steps.findIndex(step => step.name ===
     'Test selected Linux x64 process-provider ABI and original physical custody');
@@ -554,7 +650,7 @@ for (const [name, driver, output] of [
   ['working carrier custody', 'test_native_working_origin.py', '_build/native-working-origin/'],
 ]) {
   test(`original ${name} execute on selected Native toolchain and retain failed diagnostics`, () => {
-    const steps = jobs.native.steps;
+    const steps = nativeWorkload('native').steps;
     const setup = steps.findIndex(step => step.uses === './.github/actions/setup-toolchain');
     const read = steps.findIndex(step => step.run === 'python3 -B scripts/test_native_read_activation.py');
     const index = steps.findIndex(step => step.run === `python3 -B scripts/${driver}`);
@@ -579,11 +675,11 @@ test('whole-family scheduling retains the core matrix and complete selected proo
       {matrix: {target}}, {timeout: 100}), target === 'native' ? 90 : 30);
   }
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
-  assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);
-  assert.equal(jobs['native-macos']['timeout-minutes'], 115);
-  assert.equal(jobs.native['timeout-minutes'], 110);
+  assert.deepEqual(jobs['native-macos-workloads'].needs, ['select-targets', 'preflight']);
+  assert.equal(jobs['native-macos-workloads']['timeout-minutes'], 115);
+  assert.equal(jobs['native-workloads']['timeout-minutes'], 110);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
-  for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
+  for (const name of ['session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
     assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight']);
   }
@@ -593,7 +689,7 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.match(capacity, /node proofs\/relation-pipeline\/run\.mjs all/u);
   const check = jobs.check;
   assert(check.needs.includes('select-targets'));
-  assert.equal(check.steps.find(step => step.run).env.CI_PLAN, '${{ needs.select-targets.outputs.plan }}');
+  assert.equal(check.steps.find(step => step.run).env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
   assert.match(check.if, /always\(\)/u);
 });
 const head = 'b'.repeat(40);
@@ -605,39 +701,61 @@ const changes = paths => paths.map(path => ({path, before: {mode: '100644', obje
   after: {mode: '100644', object: 'd'.repeat(40)}}));
 const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
 
-test('Native Core matrix owns two required isolated partitions without multiplying portable targets', t => {
+test('Native Core matrix owns four ordinary and three physical partitions without multiplying portable targets', t => {
   const core = jobs.core, matrix = core.strategy.matrix;
-  assert.deepEqual(matrix.partition, [1, 2]);
-  assert.deepEqual(matrix.exclude, [{target: 'js', partition: 2}, {target: 'wasm', partition: 2}]);
+  assert.deepEqual(matrix.partition, ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped']);
+  assert.deepEqual(matrix.partition, nativeCoreCiPartitions);
+  assert.deepEqual(matrix.exclude, ['js', 'wasm'].flatMap(target => matrix.partition.slice(1).map(partition => ({target, partition}))));
   const selected = all.flatMap(target => matrix.partition.map(partition => ({target, partition})))
     .filter(row => !matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition));
-  assert.deepEqual(selected, [{target: 'js', partition: 1}, {target: 'wasm', partition: 1},
-    {target: 'native', partition: 1}, {target: 'native', partition: 2}]);
-  assert.equal(core.name, "core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}/2', matrix.partition) || '' }})");
+  assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
+    ...matrix.partition.map(partition => ({target: 'native', partition}))]);
+  assert.equal(core.name, "core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})");
   assert.equal(core.strategy['fail-fast'], false);
   assert(jobs.check.needs.includes('core'));
   assert.equal(core['continue-on-error'], undefined);
+  const checks = core.steps.filter(step => step.name === 'Check common core');
+  assert.equal(checks.length, 1);
+  const [check] = checks;
+  assert.equal(check.run, 'moon check --target "${{ matrix.target }}" --deny-warn');
+  assert.equal(check.if, "${{ matrix.target != 'native' || matrix.partition == '1/4' }}");
+  assert.equal(check['continue-on-error'], undefined);
+  const checked = selected.filter(matrix => runInNewContext(check.if.slice(3, -2), {matrix}));
+  assert.deepEqual(checked, [{target: 'js', partition: '1/4'},
+    {target: 'wasm', partition: '1/4'}, {target: 'native', partition: '1/4'}]);
+  // The complete matrix above requires this Native owner. The existing final
+  // gate must reject missing, failed, cancelled or skipped Core matrix work.
+  const full = selectTargets(['.github/workflows/ci.yml']);
+  assert(full.targets.includes('native'));
+  assert.equal(gateJobRequired(full, 'core'), true);
+  assert.doesNotThrow(() => verifyGate(plan(full), results(full), context));
+  for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+    assert.throws(() => verifyGate(plan(full), {...results(full), core: {result}}, context));
+  }
   const command = core.steps.find(step => step.name === 'Test common core');
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_PARTITION,
-    "${{ matrix.target == 'native' && format('{0}/2', matrix.partition) || '' }}");
+    "${{ matrix.target == 'native' && matrix.partition || '' }}");
+  assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,
+    "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}");
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
-  assert(artifact.with.name.includes('${{ matrix.partition }}'));
+  assert(artifact.with.name.includes('${{ strategy.job-index }}'));
+  assert(!artifact.with.name.includes('${{ matrix.partition }}'), 'Partition slashes are invalid artifact names');
   const root = mkdtempSync(join(tmpdir(), 'actql-native-partition-workflow-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   writeFileSync(join(root, 'node'), '#!/bin/sh\nprintf "%s|%s|%s\\n" "$ACTQL_TEST_NATIVE_CORE_PARTITION" "$MOONBIT_NEW_NATIVE" "$*"\nexit "$ACTQL_FIXTURE_EXIT"\n');
   chmodSync(join(root, 'node'), 0o755);
-  for (const partition of [1, 2]) for (const status of [0, 7]) {
+  for (const partition of matrix.partition) for (const status of [0, 7]) {
     const run = command.run.replaceAll('${{ matrix.target }}', 'native')
       .replaceAll('${{ matrix.partition }}', String(partition));
     const env = {...process.env, PATH: root + ':' + process.env.PATH, ACTQL_FIXTURE_EXIT: String(status)};
-    env.ACTQL_TEST_NATIVE_CORE_PARTITION = `${partition}/2`; delete env.MOONBIT_NEW_NATIVE;
+    env.ACTQL_TEST_NATIVE_CORE_PARTITION = partition; delete env.MOONBIT_NEW_NATIVE;
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c', run], {cwd: root, env, encoding: 'utf8', timeout: 5000});
     assert.equal(result.error, undefined); assert.equal(result.signal, null);
     assert.equal(result.status, status, result.stderr);
     const lines = result.stdout.trim().split('\n');
     assert.equal(lines[0], '||scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock');
     assert.equal(lines.length, status === 0 ? 2 : 1);
-    if (status === 0) assert.equal(lines[1], `${partition}/2|0|scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose`);
+    if (status === 0) assert.equal(lines[1], `${partition}|0|scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose`);
   }
 });
 
@@ -952,9 +1070,9 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 });
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
+    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
@@ -998,8 +1116,11 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   writeFileSync(eventPath, JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   const selection = maintenanceSelection(['docs/development.md']);
   const script = jobs.check.steps.find(step => step.run).run;
-  const run = value => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {cwd: new URL('../', import.meta.url),
-    encoding: 'utf8', env: {...process.env, CI_PLAN: value, RESULTS: JSON.stringify(results(selection)),
+  const run = value => spawnSync('bash', ['-eo', 'pipefail', '-c', script
+    .replaceAll('${{ needs.select-targets.outputs.plan }}', value)
+    .replaceAll('${{ toJSON(needs) }}', JSON.stringify(results(selection)))], {cwd: new URL('../', import.meta.url),
+    encoding: 'utf8', env: {...process.env, CI_PLAN: '', RESULTS: '',
+      CI_PLAN_PATH: join(dir, 'plan.json'), RESULTS_PATH: join(dir, 'results.json'),
       GITHUB_SHA: head, GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: eventPath, GITHUB_STEP_SUMMARY: ''}});
   const good = run(JSON.stringify(plan(selection)));
   assert.equal(good.status, 0, good.stderr);
@@ -1012,6 +1133,102 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   assert.equal(run(JSON.stringify(plan(selection))).status, 0);
   for (const value of ['', 'undefined', '{}', JSON.stringify({...plan(selection), sourceRevision: 'a'.repeat(40)})]) {
     assert.notEqual(run(value).status, 0);
+  }
+});
+
+test('CI JSON file input preserves originals and refuses conflicting, absent or malformed evidence', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'actql-ci-input-'));
+  t.after(() => rmSync(dir, {recursive: true, force: true}));
+  const path = join(dir, 'plan.json'), original = plan(selectTargets(['src/original.mbt']));
+  writeFileSync(path, JSON.stringify(original));
+  assert.deepEqual(readCiInput('CI_PLAN', {CI_PLAN_PATH: path}), original);
+  assert.deepEqual(readCiInput('CI_PLAN', {CI_PLAN: JSON.stringify(original)}), original);
+  assert.equal(readCiInput('CI_PLAN', {}), undefined);
+  assert.throws(() => readCiInput('CI_PLAN', {CI_PLAN_PATH: path, CI_PLAN: '{}'}), /Conflicting/u);
+  assert.throws(() => readCiInput('CI_PLAN', {CI_PLAN_PATH: join(dir, 'missing')}), {code: 'ENOENT'});
+  for (const invalid of ['', '{', 'undefined']) {
+    writeFileSync(path, invalid);
+    assert.throws(() => readCiInput('CI_PLAN', {CI_PLAN_PATH: path}), SyntaxError);
+  }
+  // No fallback from an unreadable/malformed file to a different inline plan.
+  assert.throws(() => readCiInput('CI_PLAN', {CI_PLAN_PATH: path, CI_PLAN: JSON.stringify(original)}), /Conflicting/u);
+});
+
+test('large CI plans reach the original aggregate through files without shell interpretation', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'actql-large-ci-plan-'));
+  t.after(() => rmSync(dir, {recursive: true, force: true}));
+  const selection = selectTargets(Array.from({length: 6000}, (_, i) => `src/changed/package-${i}/original-file.mbt`),
+    {event: 'push'});
+  selection.paths.push('src/$(touch injected)', 'src/`touch injected`');
+  const original = JSON.stringify(plan(selection));
+  assert(Buffer.byteLength(original) > 128 * 1024, 'Exceed Linux single-environment-string limit');
+  const outcomes = results(selection);
+  // The real needs object repeats the full plan in select-targets outputs.
+  outcomes['select-targets'].outputs = {plan: original};
+  for (const [job, name] of [['focused-tests', 'Check package and execute changed tests plus owning JS family'],
+    ['core', 'Test common core'], ['check', 'Require every selected integration obligation']]) {
+    const step = (job === 'native' ? [...nativeCases('native'), ...jobs['native-http'].steps] : jobs[job].steps).find(step => step.name === name);
+    assert.equal(step.env.CI_PLAN, undefined, job);
+    assert.equal(step.env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json', job);
+  }
+  const step = jobs.check.steps.find(step => step.name === 'Require every selected integration obligation');
+  const run = (value, needs = outcomes, revision = head) => {
+    const script = step.run.replaceAll('${{ needs.select-targets.outputs.plan }}', value)
+      .replaceAll('${{ toJSON(needs) }}', JSON.stringify(needs));
+    const scriptPath = join(dir, 'step.sh');
+    writeFileSync(scriptPath, script);
+    return spawnSync('bash', ['-eo', 'pipefail', scriptPath], {cwd: new URL('../', import.meta.url),
+      encoding: 'utf8', env: {...process.env, CI_PLAN: '', RESULTS: '',
+        CI_PLAN_PATH: join(dir, 'plan.json'), RESULTS_PATH: join(dir, 'results.json'),
+        GITHUB_SHA: revision, GITHUB_EVENT_NAME: 'push', GITHUB_STEP_SUMMARY: ''}});
+  };
+  const good = run(original);
+  assert.equal(good.status, 0, good.stderr);
+  assert.match(good.stdout, /PASS core/u);
+  assert.equal(readFileSync(join(dir, 'plan.json'), 'utf8'), original + '\n');
+  assert.notEqual(run('{}').status, 0);
+  assert.notEqual(run(original, outcomes, 'a'.repeat(40)).status, 0);
+  assert.notEqual(run(original, {...outcomes, core: {result: 'failure'}}).status, 0);
+  assert(!readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')
+    .includes('CI_PLAN: ${{ needs.select-targets.outputs.plan }}'));
+  assert.throws(() => readFileSync(new URL('../injected', import.meta.url)), {code: 'ENOENT'});
+});
+
+test('large CI plans launch both original portable Core step command sequences', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-core-ci-transport-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  mkdirSync(join(root, 'bin'));
+  const selection = selectTargets(Array.from({length: 6000}, (_, i) => `src/package-${i}/original-code.mbt`),
+    {event: 'push'});
+  const original = JSON.stringify(plan(selection));
+  assert(Buffer.byteLength(original) > 128 * 1024);
+  // Only process/argument transport is under test: no compiler or product
+  // runtime is invoked by these executable recording ports.
+  const recorder = `#!${process.execPath}\nconst fs = require('node:fs');
+    const plan = JSON.parse(fs.readFileSync(process.env.CI_PLAN_PATH, 'utf8'));
+    fs.appendFileSync(process.env.CALLS, JSON.stringify({
+      command: require('node:path').basename(process.argv[1]), args: process.argv.slice(2),
+      revision: plan.sourceRevision, paths: plan.selection.paths.length}) + '\\n');\n`;
+  for (const command of ['moon', 'node']) {
+    writeFileSync(join(root, 'bin', command), recorder, {mode: 0o755});
+  }
+  writeFileSync(join(root, 'bin/getconf'), '#!/bin/sh\nprintf "2\\n"\n', {mode: 0o755});
+  const step = jobs.core.steps.find(step => step.name === 'Test common core');
+  for (const target of ['js', 'wasm']) {
+    const script = step.run.replaceAll('${{ needs.select-targets.outputs.plan }}', original)
+      .replaceAll('${{ matrix.target }}', target)
+      .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false');
+    const scriptPath = join(root, `${target}.sh`), calls = join(root, `${target}.jsonl`);
+    writeFileSync(scriptPath, script);
+    const child = spawnSync('bash', ['-eo', 'pipefail', scriptPath], {encoding: 'utf8',
+      env: {...process.env, CI_PLAN: '', CI_PLAN_PATH: join(root, 'plan.json'),
+        PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: calls}});
+    assert.equal(child.status, 0, child.stderr);
+    const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    assert.deepEqual(observed[0].args, ['test', '--target', target, '--deny-warn', '-j', '2']);
+    assert.deepEqual(observed.map(entry => entry.command), target === 'js' ? ['moon'] : ['moon', 'moon', 'node', 'node']);
+    assert(observed.every(entry => entry.revision === head && entry.paths === selection.paths.length));
+    assert.equal(readFileSync(join(root, 'plan.json'), 'utf8'), original + '\n');
   }
 });
 
@@ -1122,9 +1339,9 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 });
 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
+    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
   for (const profile of ['draft', 'draft-focused']) {
@@ -1165,7 +1382,11 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
     'node --test scripts/source-read-current-control.test.mjs',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
-    'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs']);
+    'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs',
+    'node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs',
+    'node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs',
+    'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs',
+    'node --test scripts/native-cli-default-numeric.test.mjs']);
   assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',
     'npm run check:local-resource-completion', 'npm run check:execution-authorization-vectors', 'git diff --exit-code']);
   for (const name of ['lint', 'spec']) {
@@ -1380,15 +1601,15 @@ test('unclassified safety changes require proof success while reviewed shallow c
   ]) {
     const selection = selectTargets([path], {event});
     const needs = results(selection);
-    for (const name of ['session-evidence', 'pipeline-evidence']) needs[name].result = deep ? 'success' : 'skipped';
+    for (const name of ['session-evidence', 'session-controls', 'pipeline-evidence']) needs[name].result = deep ? 'success' : 'skipped';
     const lines = verifyGate(plan(selection), needs, {...context, event});
-    for (const name of ['session-evidence', 'pipeline-evidence']) {
+    for (const name of ['session-evidence', 'session-controls', 'pipeline-evidence']) {
       assert(lines.some(line => line.startsWith(`${deep ? 'PASS' : 'NOT APPLICABLE'} ${name}:`)));
       assert.throws(() => verifyGate(plan(selection), {...needs,
         [name]: {result: deep ? 'skipped' : 'success'}}, {...context, event}), undefined, `${event}/${path}/${name}`);
     }
     const scheduleNeeds = {'select-targets': {outputs: {profile: 'full', deep_proofs: String(deepProofRequired(selection))}}};
-    for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants']) {
+    for (const name of ['session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants']) {
       assert.equal(scheduled(name, scheduleNeeds), deep, `${event}/${path}/${name}`);
     }
   }
@@ -1469,7 +1690,7 @@ test('same-environment duplicate checks retain one explicit owner without weaken
 
 test('mandatory packed query CI selects its finite full-corpus envelope inside the job', () => {
   const job = jobs['client-packed'];
-  assert.equal(job['timeout-minutes'], 75);
+  assert.equal(job['timeout-minutes'], 45);
   const step = job.steps.find(value => value.id === 'packed-query');
   assert.ok(step);
   assert.equal(step.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');

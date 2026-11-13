@@ -6,6 +6,7 @@ pub(all) struct SequencePreparationDemand {
   authored_literal_rows : Int
   authored_literal_cells : Int
   projection_name_bytes_bound : Int
+  authored_expression_nodes : Int
   work_used : Int
 } derive(Eq, Debug)
 
@@ -47,6 +48,7 @@ pub fn prepared_sequence_preparation_demand(
   let mut rows = 0L
   let mut cells = 0L
   let mut projection_names = 0L
+  let mut expression_nodes = 0L
   let mut remaining = max_work - count
   for index in 0..<count {
     match prepared.nodes[index].payload {
@@ -61,6 +63,46 @@ pub fn prepared_sequence_preparation_demand(
         cells += added
       }
       _ => ()
+    }
+    // Reuse the checked bindings' cached annotation counts during this same
+    // original-node inventory. No expression tree or literal is walked again.
+    let operation = match prepared.nodes[index].payload {
+      Derive(op)
+      | Where(op)
+      | Select(op)
+      | Limit(op)
+      | TopK(op)
+      | TopKBy(op)
+      | Pivot(op)
+      | Unnest(op)
+      | Unpivot(op)
+      | Distinct(op)
+      | Dedupe(op)
+      | Sort(op)
+      | CountGroup(op)
+      | WindowGroup(op)
+      | Lag(op)
+      | Watermark(op)
+      | Analytic(op)
+      | AssertRows(op)
+      | JsonPick(op) => Some(op)
+      _ => None
+    }
+    if operation is Some(operation) {
+      let bindings = @relation.binding_count(operation)
+      if bindings > remaining {
+        return Err(WorkLimit)
+      }
+      remaining -= bindings
+      for binding in 0..<bindings {
+        if @relation.binding_expression_at(operation, binding) is Some(original) {
+          let nodes = @typing.node_count(original).to_int64()
+          if nodes > 2147483647L - expression_nodes {
+            return Err(CountOverflow)
+          }
+          expression_nodes += nodes
+        }
+      }
     }
     let projection = match prepared.nodes[index].payload {
       Select(operation) => Some(operation)
@@ -89,6 +131,7 @@ pub fn prepared_sequence_preparation_demand(
     authored_literal_rows: rows.to_int(),
     authored_literal_cells: cells.to_int(),
     projection_name_bytes_bound: projection_names.to_int(),
+    authored_expression_nodes: expression_nodes.to_int(),
     work_used: max_work - remaining,
   })
 }

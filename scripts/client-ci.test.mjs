@@ -749,6 +749,34 @@ test('source-only evaluation tests have one early bounded CI owner', () => {
   }
 });
 
+test('three-Source packed approval publishes three distinct bound input names', async () => {
+  const {mockProjectFiles: original} = await import('./fixtures/hubspot-approval/mock-project.mjs');
+  const {mockProjectFiles: threeSource} = await import('./fixtures/hubspot-approval/three-source-mock-project.mjs');
+  const selection = {recordId: '9007199254740993', previousName: 'Before', nextName: 'After'};
+  const originalFiles = original(selection), selectedFiles = threeSource(selection);
+  const originalCatalog = JSON.parse(originalFiles['mock/catalog.json']);
+  const selectedCatalog = JSON.parse(selectedFiles['mock/catalog.json']);
+  const aliases = selectedCatalog.connections.hubspot.query_aliases;
+  assert.deepEqual(aliases, [
+    {name: 'hubspot.companies', resource: 'companies'},
+    {name: 'hubspot.companies_middle', resource: 'companies'},
+    {name: 'hubspot.companies_right', resource: 'companies'},
+  ]);
+  const program = readFileSync(new URL('./fixtures/hubspot-approval/three-source-update.aql', import.meta.url), 'utf8');
+  const relations = [...program.matchAll(/\b(?:FROM|JOIN)\s+(\S+)\s+AS\b/gu)].map(match => match[1]);
+  assert.deepEqual(relations, aliases.map(alias => alias.name));
+  assert.equal(new Set(relations).size, 3, 'SQL range aliases alone do not create separate published inputs');
+  // Only published-name DATA differs; all schema, backing data, write and
+  // approval policy, original identifiers and default fixture files remain.
+  selectedCatalog.connections.hubspot.query_aliases = originalCatalog.connections.hubspot.query_aliases;
+  assert.deepEqual(selectedCatalog, originalCatalog);
+  selectedFiles['mock/catalog.json'] = originalFiles['mock/catalog.json'];
+  assert.deepEqual(selectedFiles, originalFiles);
+  const runner = readFileSync(new URL('./test-packed-hubspot-source.mjs', import.meta.url), 'utf8');
+  assert(runner.includes("threeSourceMock && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'"));
+  assert(runner.includes("? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'"));
+});
+
 test('each Client group retains its acceptance commands exactly once', () => {
   const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     .scripts['check:distribution-client'].split(' && ');
@@ -781,8 +809,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'normal tar acceptance does not rebuild the checkout runtime');
   assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);
   assert.deepEqual(runs('client-packed'), [
-    `sudo apt-get update
-sudo apt-get install --yes clang-19
+    `bash scripts/ci-install-linux-clang.sh
 compiler_bin="$RUNNER_TEMP/packed-query-compiler"
 mkdir -m 700 "$compiler_bin"
 ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
@@ -794,25 +821,29 @@ echo "$compiler_bin" >> "$GITHUB_PATH"`,
     'node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval',
+    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-binary-source-approval',
     'node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval',
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
     'node scripts/test-packed-infer-evaluation.mjs',
     'node scripts/test-packed-acquired-infer.mjs',
+    `node --test scripts/packed-query-evidence.test.mjs
+node scripts/test-packed-public-query.mjs --ci-part=portable`,
+    'node scripts/test-packed-result-description.mjs',
     `test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
 cc --version
-node --test scripts/packed-query-evidence.test.mjs
-node scripts/test-packed-public-query.mjs`,
-    'node scripts/test-packed-result-description.mjs',
+node scripts/test-packed-public-query.mjs --ci-part=native`,
   ]);
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
     step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
-  assert.equal(approvalSteps.length, 5, 'Each connector consumer is independently scheduled');
-  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 5);
+  assert.equal(approvalSteps.length, 8, 'Each connector/acquisition consumer is independently scheduled');
+  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 8);
   for (const step of approvalSteps) {
     assert(step.name.startsWith('Test packed '));
     assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});
-    assert.equal(step.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+    assert.equal(step.if, "${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
     assert.equal(step['continue-on-error'], undefined);
   }
   assert.deepEqual(runs('client-packed-composition'), ['node scripts/test-packed-salesforce-source.mjs']);
@@ -833,8 +864,11 @@ done`,
   for (const name of groups.filter(name => name !== 'client-supported-versions')) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
-    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 75 : 30, name);
-    assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
+    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 45 : 30, name);
+    if (name === 'client-packed') {
+      assert.equal(jobs[name].strategy['fail-fast'], false, 'no fail-fast sibling cancellation');
+      assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable', 'query-native']);
+    } else assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
       if (step.name?.startsWith('Test ')) {
@@ -842,7 +876,14 @@ done`,
         else if (name === 'client-distribution-native') preparation = 'native-client-preparation';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
-      assert.equal(step.if, preparation
+      if (name === 'client-packed') {
+        const group = /matrix\.group == '([^']+)'/u.exec(step.if)?.[1];
+        assert(jobs[name].strategy.matrix.group.includes(group));
+        const terms = step.if.slice(3, -2).split('&&').map(term => term.trim()).sort();
+        assert.deepEqual(terms, [`matrix.group == '${group}'`, ...(preparation
+          ? ['!cancelled()', `steps.${preparation}.outcome == 'success'`] : [])].sort(),
+        'matrix ownership retains the original preparation/current-cancellation barrier');
+      } else assert.equal(step.if, preparation
         ? '${{ !cancelled() && steps.' + preparation + ".outcome == 'success' }}" : undefined,
       'independent cases require their original successful preparation, not a previous case');
       assert.equal(step['continue-on-error'], undefined);
@@ -857,17 +898,17 @@ done`,
 test('packed Native Graph compiler setup retains exact cc and ar selection', () => {
   const job = jobs['client-packed'];
   const setup = job.steps.find(step => step.name === 'Select the packed Native Graph compiler');
-  const query = job.steps.find(step => step.id === 'packed-query');
+  const query = job.steps.find(step => step.id === 'packed-query-native');
   assert(setup && query);
   assert(job.steps.indexOf(setup) < job.steps.indexOf(query));
   assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
-  assert.equal(job['timeout-minutes'], 75);
+  assert.equal(job['timeout-minutes'], 45);
   assert.equal(setup['continue-on-error'], undefined);
   assert.equal(query['continue-on-error'], undefined);
   assert.equal(query.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
   assert.equal(query.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');
-  assert(setup.run.startsWith('sudo apt-get update\nsudo apt-get install --yes clang-19\n'));
+  assert(setup.run.startsWith('bash scripts/ci-install-linux-clang.sh\n'));
   const directory = mkdtempSync(join(tmpdir(), 'actql-packed-compiler-control-'));
   try {
     const cc = join(directory, 'selected-clang-19');
@@ -887,7 +928,7 @@ test('packed Native Graph compiler setup retains exact cc and ar selection', () 
     assert.equal(readFileSync(pathFile, 'utf8'), compilerBin + '\n');
     assert.equal(realpathSync(join(compilerBin, 'cc')), realpathSync(cc));
     assert.equal(realpathSync(join(compilerBin, 'ar')), realpathSync(ar));
-    const prefix = query.run.slice(0, query.run.indexOf('node --test '));
+    const prefix = query.run.slice(0, query.run.indexOf('node scripts/test-packed-public-query'));
     assert(prefix.startsWith('test "$(realpath "$(command -v cc)")" = '));
     const selected = run(paths(prefix), {PATH: compilerBin + ':' + process.env.PATH});
     assert.equal(selected.status, 0, selected.stderr);
@@ -950,12 +991,16 @@ test('packed evidence uploads remain always-on after their original command', ()
   for (const [id, name] of [['packed-infer', 'packed-single-infer'],
     ['packed-infer-evaluation', 'packed-infer-evaluation'],
     ['packed-acquired-infer', 'packed-acquired-infer'],
-    ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description']]) {
+    ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description'],
+    ['packed-query-native', 'packed-public-query-native']]) {
     const command = steps.findIndex(step => step.id === id);
     const upload = steps[command + 1];
     assert(command >= 0);
     assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
-    assert.equal(upload.if, `always() && steps.${id}.outputs.evidence-directory != ''`);
+    const group = id.includes('infer') ? 'infer' : id === 'packed-query' ? 'query-portable' : id === 'packed-query-native' ? 'query-native' : 'connectors';
+    assert.equal(upload.if, id === 'packed-query-native'
+      ? `always() && matrix.group == '${group}' && steps.${id}.outputs.evidence-directory != ''`
+      : `matrix.group == '${group}' && always() && steps.${id}.outputs.evidence-directory != ''`);
     assert.deepEqual(upload.with, {
       directory: '${{ steps.' + id + '.outputs.evidence-directory }}',
       name: name + '-${{ github.sha }}',

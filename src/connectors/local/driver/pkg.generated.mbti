@@ -54,6 +54,10 @@ pub fn local_dispatch_rejection(LocalDispatchModule, Int) -> String?
 
 pub fn local_dispatch_work_slots() -> Int
 
+pub fn local_managed_advance_capture_work(LocalDispatchIssue) -> Array[Int]?
+
+pub fn local_managed_advance_control_work_limit(LocalDispatchIssue) -> Int?
+
 pub fn[T] local_managed_captured_relation_input() -> LocalManagedAvailableOutput[T]
 
 pub fn[T] local_managed_carrier_output(@execution_relation.CarrierManagedCompletedOutput, @managed_carrier_runtime.Material) -> LocalManagedAvailableOutput[T]
@@ -63,6 +67,8 @@ pub fn[T] local_managed_dispatch_duration(LocalManagedDispatchConfiguration[T]) 
 pub fn[T] local_managed_dispatch_site_capacity(LocalManagedDispatchConfiguration[T]) -> (Int64, Int64)?
 
 pub fn[T] local_managed_dispatch_uses_provider(LocalManagedDispatchConfiguration[T]) -> Bool
+
+pub fn local_managed_failure_resource_dimension(LocalDispatchIssue) -> String?
 
 pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
 
@@ -116,6 +122,7 @@ pub(all) enum LocalDispatchIssue {
   ManagedCompletion(@execution_relation.TrustedOutputIssue)
   IdentityExport(@execution_relation.CompletedExportIssue)
   CarrierSnapshot(@managed_carrier_runtime.SnapshotIssue)
+  ControlWorkLimit(Int)
 }
 
 type LocalDispatchModule

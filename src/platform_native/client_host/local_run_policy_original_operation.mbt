@@ -169,6 +169,7 @@ pub fn NativeLocalJournalCapture::accept_policy_run_in_original_read(
   definition : @publication.PublicationContract,
   original : @host.ClientLocalRunPolicyOriginal,
   now : Double,
+  managed? : @local.ClientInstalledManagedRun? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeLocalAdoptionIssue] {
   self.with_current_adoption_material_in_original_read((
     host,
@@ -189,6 +190,7 @@ pub fn NativeLocalJournalCapture::accept_policy_run_in_original_read(
       now,
       () => binding.current_in_original_read(self, Some(request), true),
       operations=Some(operations),
+      managed~,
     )
     .map_err(issue => Journal(issue))
   })
@@ -208,6 +210,7 @@ pub fn NativeLocalJournalCapture::accept_issued_policy_run_in_original_read(
   retention : @publication.PublicationContract,
   issued_at : String,
   now : Double,
+  managed? : @local.ClientInstalledManagedRun? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeLocalAdoptionIssue] {
   let original = match
     binding.issued_policy_original(
@@ -217,7 +220,15 @@ pub fn NativeLocalJournalCapture::accept_issued_policy_run_in_original_read(
     Err(issue) => return Err(Journal(issue))
   }
   self.accept_policy_run_in_original_read(
-    binding, reference, preparation, request, compiled, definition, original, now,
+    binding,
+    reference,
+    preparation,
+    request,
+    compiled,
+    definition,
+    original,
+    now,
+    managed~,
   )
 }
 

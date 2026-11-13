@@ -152,6 +152,20 @@ pub fn reclaim_bounded_admitted_output(
 }
 
 ///|
+fn reclaim_bounded_admitted_output_counted(
+  output : AdmittedOutput,
+  accepted : Bool,
+) -> (Bool, Int) {
+  if accepted {
+    return (true, 0)
+  }
+  if !output.buffer.open && output.buffer.deferred_reclamation {
+    output.buffer.reclaiming = true
+  }
+  advance_admitted_buffer_reclamation_counted(output.buffer, 64)
+}
+
+///|
 pub fn append_admitted_output(
   output : AdmittedOutput,
   supplied : Array[@admitted.CheckedValue],

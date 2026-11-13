@@ -42,11 +42,30 @@ fn read_initial_host_signing_subject(
   host : NativeLocalHostConnection,
   control : Bytes,
   fields : NativeLocalInitialSigningFields,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
 ) -> Result[(String, String, String)?, NativeLocalAdoptionIssue] {
   let header = match local_initial_signing_control_header(control) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  read_initial_host_signing_subject_after_header(
+    host,
+    header,
+    fields,
+    signing_original~,
+  )
+}
+
+///|
+// Immediate DATA handoff from this same control's closed canonical reader.
+// This reuses no HMAC result: the original packet, subject and role checks below
+// still run. Independent callers retain complete header admission above.
+fn read_initial_host_signing_subject_after_header(
+  host : NativeLocalHostConnection,
+  header : Array[String],
+  fields : NativeLocalInitialSigningFields,
+  signing_original? : NativeLocalInitialSigningOriginal? = None,
+) -> Result[(String, String, String)?, NativeLocalAdoptionIssue] {
   if header.length() != 4 {
     return Ok(None)
   }
@@ -55,7 +74,11 @@ fn read_initial_host_signing_subject(
     return Err(CustodyLost)
   }
   let payload = match
-    read_local_installation_authenticated_payload(host, packet) {
+    read_local_installation_authenticated_payload(
+      host,
+      packet,
+      signing_original~,
+    ) {
     Ok(value) if value.length() <= 2048 => value
     _ => return Err(CustodyLost)
   }

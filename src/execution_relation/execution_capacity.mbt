@@ -357,7 +357,10 @@ pub fn generated_bounded_sequence_capacity(
       borrowed_binary ||
       borrowed_cross ||
       borrowed_join,
+    // Append uses the same workspace-funded binary input scan as CROSS JOIN;
+    // its constructor receives no physical measurement forest or wire buffer.
     bounded_measurement=(borrowed_row && !borrowed_group) ||
+      operation is @lower.AppendStep(_) ||
       borrowed_cross ||
       borrowed_join,
   )
@@ -585,10 +588,27 @@ fn generated_sequence_capacity_with_roots(
         ])
     }
     guard live_capacity is Some(live_capacity) else { return None }
+    // This exact bounded leaf reads required immediate Number/Boolean
+    // cells and returns the same admitted scalars. Its measuring writer and
+    // charged row cursor construct neither a canonical body nor a decoded
+    // value forest. Preserve all root/row/workspace/depth occurrences and
+    // the unchanged runtime host limits. Text, recursive or constructing
+    // expressions retain their complete original physical envelope.
+    let immediate_leaf = leaf is Some(_) &&
+      bounded_immediate_binding_schema(
+        @lower.kernel_input_schema(context.kernel),
+      ) &&
+      bounded_immediate_binding_schema(
+        @lower.kernel_output_schema(context.kernel),
+      )
     guard execution_capacity_inventory_bytes([
         {
           unit: ValueNodeSlots,
-          count: physical.max_body_nodes.to_int64(),
+          count: if immediate_leaf {
+            0L
+          } else {
+            physical.max_body_nodes.to_int64()
+          },
           copies: 1,
         },
         {
@@ -598,7 +618,11 @@ fn generated_sequence_capacity_with_roots(
         },
         {
           unit: CanonicalWireBytes,
-          count: physical.max_body_bytes.to_int64(),
+          count: if immediate_leaf {
+            0L
+          } else {
+            physical.max_body_bytes.to_int64()
+          },
           copies: 1,
         },
         { unit: QuotedBytes, count: live_capacity, copies: 1, },

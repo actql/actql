@@ -686,7 +686,8 @@ test('workflow producer guard rejects unsuccessful, missing or ambiguous produce
 });
 
 test('global check continues to require the final pipeline-evidence verdict', t => {
-  const eventPath = put(scratch(t), 'event.json', JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
+  const root = scratch(t);
+  const eventPath = put(root, 'event.json', JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   assert(jobs.check.needs.includes('pipeline-evidence'));
   assert(!producerJobs.some(name => jobs.check.needs.includes(name)), 'Final audited join remains the required check boundary');
   const script = jobs.check.steps.find(step => step.run).run;
@@ -697,11 +698,14 @@ test('global check continues to require the final pipeline-evidence verdict', t 
   assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
   assert.equal(selection.macos, true);
   const gateEnv = { GITHUB_EVENT_PATH: eventPath, GITHUB_SHA: revision, GITHUB_EVENT_NAME: 'pull_request', GITHUB_STEP_SUMMARY: '',
-    CI_PLAN: JSON.stringify({ sourceRevision: revision, selection }) };
+    CI_PLAN: '', RESULTS: '', CI_PLAN_PATH: join(root, 'plan.json'), RESULTS_PATH: join(root, 'results.json') };
+  const invoke = outcomes => shell(script
+    .replaceAll('${{ needs.select-targets.outputs.plan }}', JSON.stringify({ sourceRevision: revision, selection }))
+    .replaceAll('${{ toJSON(needs) }}', JSON.stringify(outcomes)), gateEnv);
   for (const result of ['failure', 'cancelled', 'skipped']) {
-    const child = shell(script, { RESULTS: JSON.stringify({ ...needs, 'pipeline-evidence': { result } }), ...gateEnv });
+    const child = invoke({ ...needs, 'pipeline-evidence': { result } });
     assert.notEqual(child.status, 0, result);
   }
-  assert.equal(shell(script, { RESULTS: JSON.stringify(needs), ...gateEnv }).status, 0);
+  assert.equal(invoke(needs).status, 0);
 });
 

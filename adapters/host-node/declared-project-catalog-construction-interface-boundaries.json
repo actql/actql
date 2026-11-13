@@ -3,11 +3,12 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "db84f4fa4892d01ec7614ab6957118f61aea0ef4ac39ea9a5ec95daa755cd78b",
+      "sha256": "f215db3c0343e54051fa914834d789ea02df433730b27bd5639ce72cc5cf9148",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
       "exports": [
+        "declaredFileReadProfileBindingConstructionGeometry",
         "declaredProjectCatalogEntryConstructionGeometry",
         "declaredProjectCatalogEntryProjectionConstructionGeometry",
         "declaredProjectCatalogFileFactsConstructionGeometry",
@@ -41,6 +42,13 @@
             "units",
             "weighted",
             "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredFileReadProfileBindingConstructionGeometry",
+          "parameters": [
+            "bindingCount"
           ],
           "async": false
         },
@@ -254,7 +262,8 @@
             "physicalOverridesFromImmutableEntry",
             "stage/stage",
             "stringUnits/stringUnits",
-            "zero/zero"
+            "zero/zero",
+            "declaredFileReadProfileBindingConstructionGeometry"
           ],
           "exports": [
             "declaredProjectCatalogEntryConstructionGeometry",
@@ -266,7 +275,8 @@
             "declaredProjectCatalogMappingInputsConstructionGeometry",
             "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
             "declaredProjectCatalogSavedInputConstructionGeometry",
-            "declaredProjectCatalogScopeConstructionGeometry"
+            "declaredProjectCatalogScopeConstructionGeometry",
+            "declaredFileReadProfileBindingConstructionGeometry"
           ],
           "attributes": {
             "responsibility": [

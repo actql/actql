@@ -53,6 +53,8 @@ pub fn advance_native_decision_projection(NativeDecisionProjection) -> Result[Na
 
 pub fn advance_openai_chat_projection(OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, OpenAIChatProjectionIssue]
 
+pub fn bind_original_model_mock_answers(ModelMockInstallation, ModelMockAnswers) -> Result[Unit, ModelMockInstallationIssue]
+
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
 
 pub fn bind_prepared_model_entry_persistence(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> ModelCallEntryPersistence?) -> Result[Unit, ModelExecutionIssue]
@@ -130,6 +132,8 @@ pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
 pub fn model_capture_export_identity(ModelCaptureExport) -> String?
 
 pub fn model_capture_export_response_pending(ModelCaptureExport) -> Bool
+
+pub fn model_capture_export_wire_usage(ModelCaptureExport) -> (Int, Int, Int)?
 
 pub fn model_cleanup_progress(ModelExecution) -> Int
 
@@ -237,6 +241,8 @@ pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
 pub fn original_completed_model_matches_parent(ModelExecution, @physical_resources.Ledger) -> Bool
 
+pub fn original_model_mock_declaration(ModelMockInstallation) -> Result[@check_environment.NormalizedPublicModelTask, ModelMockInstallationIssue]
+
 pub fn original_model_mock_installation_construction_extent() -> @decode_shape.CollectionConstructionExtent
 
 pub fn original_model_mock_installation_retained_extent() -> @decode_shape.CollectionConstructionExtent
@@ -256,6 +262,8 @@ pub fn prepare_model_raw_capture_save(ModelPhysicalCall, @run_publication_host.C
 pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
 
 pub fn prepare_original_model_consumer_startup(@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
+
+pub fn prepare_original_model_mock(@check_environment.ModelMockProfile, @check_environment.PublicModelTaskDeclaration, @check_environment.NormalizedPublicModelTask, () -> String) -> Result[ModelMockInstallation, ModelMockInstallationIssue]
 
 pub fn prepare_original_model_provider_consumer_startup(@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, ModelProvider, ModelExecutionLimits, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
 

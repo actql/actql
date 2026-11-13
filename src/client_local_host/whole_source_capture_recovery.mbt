@@ -204,7 +204,10 @@ pub fn retain_accounted_client_source_capture_input(
     physical_equal(value.ledger, @strategy.captured_dag_ledger(dag)) &&
     accounted_client_source_capture_source(value) is Some(_) &&
     accounted_client_source_original_read(value) is Some(read) &&
-    @strategy.source_input_dag_matches_read_at(dag, read, task) else {
+    (
+      @strategy.source_input_dag_matches_read_at(dag, read, task) ||
+      @strategy.source_input_dag_retains_completed_read_at(dag, read, task)
+    ) else {
     return Err(BindingMismatch)
   }
   value.input_dag = Some(dag)

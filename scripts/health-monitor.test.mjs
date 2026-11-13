@@ -122,8 +122,12 @@ for (const deal of [false, true]) {
     assert.equal(observations.length, 1);
     assert.equal(observations[0].samples[0].completed, false);
     assert.equal(observations[0].samples[0].verified, false);
-    assert.deepEqual(observations[0].samples[0].phases, []);
-    assert.equal((await readdir(join(root, 'mock-project-0'))).includes('node_modules'), false);
+    assert.equal(observations[0].samples[0].phases.length, 1);
+    assert.equal(observations[0].samples[0].phases[0].phase, 'capture');
+    assert.equal(observations[0].samples[0].phases[0].completed, false);
+    const project = join(root, `mock-project-${template}-readme-0`);
+    assert.equal(JSON.parse(await readFile(join(project, 'capture.observation.json'), 'utf8')).completed, false);
+    assert.equal((await readdir(project)).includes('node_modules'), false);
     await scratch.passed();
   });
 }
@@ -1357,8 +1361,12 @@ test('two-Model deal-review uses the same existing public workflow and retains i
   assert.equal(calls, 1);
   assert.equal(observations.length, 1);
   assert.equal(observations[0].samples[0].completed, false);
-  assert.deepEqual(observations[0].samples[0].phases, []);
-  assert.equal((await readdir(join(root, 'mock-project-0'))).includes('node_modules'), false);
+  assert.equal(observations[0].samples[0].phases.length, 1);
+  assert.equal(observations[0].samples[0].phases[0].phase, 'capture');
+  assert.equal(observations[0].samples[0].phases[0].completed, false);
+  const project = join(root, 'mock-project-deal-review-mock-two-models-0');
+  assert.equal(JSON.parse(await readFile(join(project, 'capture.observation.json'), 'utf8')).completed, false);
+  assert.equal((await readdir(project)).includes('node_modules'), false);
   scratch.passed();
 });
 

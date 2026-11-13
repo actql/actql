@@ -2,7 +2,7 @@
 // The common Run/Source/candidate and Store owners decide identity, admission,
 // byte retention and resource settlement; there is no capture journal here.
 import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
-import {contentCid} from './local-account-config.mjs';
+import {originalLocalContentStoragePolicy} from './local-account-config.mjs';
 import {retainCapturedContent} from './captured-content-holding.mjs';
 import {issueStoredCapturedContent, consumeStoredContentOriginal,
   closeStoredContentReaders} from './generated-content-holding.mjs';
@@ -152,17 +152,16 @@ export function installRunKeyedContentCapture({moon, publications, control,
   const storageForContent = binding => selectedForContent(binding)?.storedOriginal;
   const storageCurrentForContent = (stored, binding) => stored !== undefined &&
     selectedForContent(binding)?.storedOriginal === stored;
-  const bindingFor = captureAuthorityCid => ({content_store_id: namespaceId,
-    content_store_cid: storeAuthorityCid, workspace_scope_cid: authorityScopeCid,
-    storage_scope: 'workspace', retention_class: 'local-content',
-    expires_at: definition.valid_until,
-    availability_evidence_cid: contentCid({version: 'actql-installed-local-policy/0.1',
-      name: 'content-availability', storeAuthorityCid,
-      runDefinitionCid: plan.runDefinition.identity, expiresAt: definition.valid_until}),
-    effective_data_policy_cid: source[3], data_classification: source[4],
-    issuer_contract_cid: contentCid({version: 'actql-installed-local-policy/0.1',
-      name: 'content-issuer', storeAuthorityCid, authorityScopeCid}),
-    capture_authority_cid: captureAuthorityCid});
+  const bindingFor = captureAuthorityCid => {
+    const policy = originalLocalContentStoragePolicy({storeAuthorityCid, authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity, expiresAt: definition.valid_until});
+    return {content_store_id: namespaceId,
+      content_store_cid: storeAuthorityCid, workspace_scope_cid: authorityScopeCid,
+      storage_scope:'workspace', retention_class:'local-content', expires_at:definition.valid_until,
+      availability_evidence_cid:policy.availabilityEvidenceCid,
+      effective_data_policy_cid:source[3], data_classification:source[4],
+      issuer_contract_cid:policy.issuerContractCid, capture_authority_cid:captureAuthorityCid};
+  };
   const capture = options => {
     if (!inventoryReady || inventoryGrowing || cleaned || cleanupFlight !== undefined || flight !== undefined || inventoryFlight !== undefined ||
         options.keyedAcquisition !== acquisition || typeof options.verifyRead !== 'function') {

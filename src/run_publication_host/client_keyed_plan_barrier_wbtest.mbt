@@ -1,7 +1,12 @@
 ///|
 // Fresh authored compiler input; no Source IO, rows, physical authority or
 // expected output is supplied by declaration generation.
-fn client_keyed_plan_test_inputs() -> (
+fn client_keyed_plan_test_inputs(
+  plural? : Bool = false,
+  declared? : Bool = false,
+  imported_left? : Bool = false,
+  joined_producer? : Bool = false,
+) -> (
   ClientInferOccurrence,
   ClientKeyedAcquisition,
   @publication.PublicationContract,
@@ -51,21 +56,45 @@ fn client_keyed_plan_test_inputs() -> (
     declaration,
     view.source_ref,
   ).unwrap()
-  let profile = @publication.seal_publication_contract(
-    "native_file_content_read",
-    "{\"physical_source_view_contract_cid\":\"sha256:" +
-    "b".repeat(64) +
-    "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"id\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
-    request +
-    "\",\"response_schema_cid\":\"" +
-    response +
-    "\",\"source_view_contract_cid\":\"" +
-    view.view_cid +
-    "\",\"version\":\"actql-native-file-content-read/0.1\"}",
-    16384,
-    1024,
-    20,
-  ).unwrap()
+  let profile = if declared {
+    let bound = @row_host.bind_declared_file_read_profile(
+      declaration,
+      view.source_ref,
+      declaration,
+      "files",
+      {
+        identity: "id",
+        name: "id",
+        version: "version",
+        media_type: "mime",
+        content_utf8: "text",
+        path: None,
+        items_path: ["items"],
+        key_path: ["id"],
+      },
+    ).unwrap()
+    @row_host.row_declaration_file_read_profile(bound, view.source_ref).unwrap()
+  } else {
+    @publication.seal_publication_contract(
+      "native_file_content_read",
+      "{\"physical_source_view_contract_cid\":\"" +
+      (if plural {
+        declaration.views.filter(view => view.resource == "files")[0].view_cid
+      } else {
+        "sha256:" + "b".repeat(64)
+      }) +
+      "\",\"projection\":{\"content_utf8_field\":\"text\",\"identity_field\":\"id\",\"items_path\":[\"items\"],\"key_path\":[\"id\"],\"media_type_field\":\"mime\",\"name_field\":\"id\",\"path_field\":null,\"version_field\":\"version\"},\"request_schema_cid\":\"" +
+      request +
+      "\",\"response_schema_cid\":\"" +
+      response +
+      "\",\"source_view_contract_cid\":\"" +
+      view.view_cid +
+      "\",\"version\":\"actql-native-file-content-read/0.1\"}",
+      16384,
+      1024,
+      20,
+    ).unwrap()
+  }
   let (base, _) = client_infer_prefix_test_environment()
   guard @json.parse(base) is Object(fields) else { fail("Model environment") }
   fields.remove("evidence_bundle_cid")
@@ -133,6 +162,55 @@ fn client_keyed_plan_test_inputs() -> (
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"keyed-first-plan","stages":[{"id":"capture","inputs":{"files":{"connector":"lookup-fixture","resource":"files"}},"steps":[{"from":"files","filter":"id <> ''"},{"select":["id","text","mime","version"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id","text","mime","version"]}}},{"id":"main","inputs":{"remote":{"connector":"lookup-fixture","resource":"contents","request":{"tenant":"original"}},"left_rows":{"result":{"stage":"capture","result":"rows"}}},"steps":[{"from":"left_rows","filter":"id <> ''","as":"left"},{"from":"left","join":{"with":"remote","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","text":"right.text"}},"as":"joined"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let document = if joined_producer {
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) &&
+      stages[0] is Object(producer) &&
+      producer["inputs"] is Object(inputs) else {
+      fail("joined original producer fixture")
+    }
+    inputs["right_files"] = @json.parse(
+      "{\"connector\":\"lookup-fixture\",\"resource\":\"files\"}",
+    )
+    producer["from"] = Json::string("files")
+    producer["steps"] = @json.parse(
+      (
+        #|[{"join":{"with":"right_files","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id","text":"right.text","mime":"right.mime","version":"right.version"}},"as":"captured"}]
+      ),
+    )
+    Json::object(fields).stringify()
+  } else {
+    document
+  }
+  let document = if imported_left {
+    document.replace(
+      old="{\"from\":\"left_rows\",\"filter\":\"id <> ''\",\"as\":\"left\"},{\"from\":\"left\",\"join\":",
+      new="{\"from\":\"left_rows\",\"join\":",
+    )
+  } else {
+    document
+  }
+  let document = if plural {
+    guard @json.parse(document) is Object(fields) &&
+      fields["stages"] is Array(stages) else {
+      fail("original keyed authored stages")
+    }
+    stages.push(
+      @json.parse(
+        (
+          #|{"id":"confirm","inputs":{"reviewed":{"result":{"stage":"main","result":"rows"}}},"from":"reviewed","steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"literal":"confirm original"}}},"as":"confirmed"}],"results":{"rows":{"from":"confirmed","fields":["id","outcome","value"]}}}
+        ),
+      ),
+    )
+    fields["results"] = @json.parse(
+      (
+        #|{"answer":{"from":{"stage":"confirm","result":"rows"}}}
+      ),
+    )
+    Json::object(fields).stringify()
+  } else {
+    document
+  }
   let prepared = match
     prepare_effect_free_client_program(
       document,
@@ -151,7 +229,13 @@ fn client_keyed_plan_test_inputs() -> (
     Err(NeedsInputs(_)) => fail("original keyed missing input")
     Err(_) => fail("original keyed compiler preparation")
   }
-  let occurrence = prepared_client_composed_infer_occurrence(prepared).unwrap()
+  let occurrence = if plural {
+    let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+    assert_eq(occurrences.length(), 2)
+    occurrences[0]
+  } else {
+    prepared_client_composed_infer_occurrence(prepared).unwrap()
+  }
   let (stage, input, step) = client_composed_keyed_source_coordinates(prepared)
     .unwrap()
     .unwrap()
@@ -351,4 +435,142 @@ fn client_keyed_plan_test_text(
     Some(@canonical.String(text)) => Some(text)
     _ => None
   }
+}
+
+///|
+// The original imported Result is already the left input. No dummy filter or
+// replacement Source is introduced to manufacture a preceding Step.
+test "keyed Model construction retains original imported Result as its direct left input" {
+  let (occurrence, keyed, profile) = client_keyed_plan_test_inputs(
+    imported_left=true,
+  )
+  assert_true(
+    @acquisition.keyed_join_left(keyed.binding.join) is @pipeline.Input(_),
+  )
+  assert_true(
+    client_keyed_plan_metadata_storage(occurrence) is Some(_),
+    msg="original imported Result left metadata must remain measurable",
+  )
+  match
+    prepare_client_keyed_plan_fragment_inputs(
+      occurrence,
+      keyed,
+      client_standard_values_sequence_limits(),
+      100000,
+    ) {
+    Ok(input) => {
+      assert_eq(@lower.sequence_count(input.left.sequence), 0)
+      let (left, joined) = issue_client_keyed_plan_fragments(
+        input, 1000000, 100000, 100,
+      ).unwrap()
+      assert_eq(left.output_port, input.left.output)
+      assert_eq(input.left_sources.length(), 1)
+      let barrier = prepare_client_keyed_plan_barrier_input(
+        input, profile, 1000000, 1000000, 100000, 100,
+      ).unwrap()
+      assert_true(physical_equal(barrier.fragments, input))
+      assert_eq(joined.output_port, input.joined.output)
+    }
+    Err(_) => fail("original imported Result left fragment is unsupported")
+  }
+}
+
+///|
+test "keyed Model whole graph preserves one imported Result from two original Source ports" {
+  let (occurrence, keyed, profile) = client_keyed_plan_test_inputs(
+    imported_left=true,
+    joined_producer=true,
+  )
+  let execution = client_infer_graph_test_execution(
+    occurrence.owner,
+    occurrence=Some(occurrence),
+  )
+  let graph = issue_installed_client_composed_infer_plan_graph(
+    occurrence,
+    execution,
+    client_standard_values_sequence_limits(),
+    1000000,
+    100000,
+    100,
+    keyed_native_read=Some((keyed, profile)),
+  ).unwrap()
+  match
+    issue_client_task_plan_graph(
+      occurrence.owner,
+      client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+      false,
+      [],
+      infer=Some(graph),
+    ) {
+    Ok(_) => ()
+    Err(InvalidLimits) => fail("joined graph:invalid_limits")
+    Err(UnsupportedGraph) => fail("joined graph:unsupported_graph")
+    Err(Fragment(_)) => fail("joined graph:fragment")
+    Err(Root(_)) => fail("joined graph:root")
+    Err(InvalidEdge) => fail("joined graph:invalid_edge")
+    Err(ContractMismatch) => fail("joined graph:contract_mismatch")
+    Err(Encoding) => fail("joined graph:encoding")
+  }
+}
+
+///|
+test "joined keyed Result graph refuses foreign owner and invalid original Model coordinates" {
+  let (occurrence, keyed, profile) = client_keyed_plan_test_inputs(
+    imported_left=true,
+    joined_producer=true,
+  )
+  let execution = client_infer_graph_test_execution(
+    occurrence.owner,
+    occurrence=Some(occurrence),
+  )
+  let component = issue_installed_client_composed_infer_plan_graph(
+    occurrence,
+    execution,
+    client_standard_values_sequence_limits(),
+    1000000,
+    100000,
+    100,
+    keyed_native_read=Some((keyed, profile)),
+  ).unwrap()
+  assert_true(
+    @strategy.graph_keyed_model_plan_inputs_complete(
+      occurrence.owner.graph,
+      component.task,
+      component.source_ordinal,
+    ),
+  )
+  for
+    (task, step) in [
+      (-1, component.source_ordinal),
+      (100000, component.source_ordinal),
+      (component.task, -1),
+    ] {
+    assert_false(
+      @strategy.graph_keyed_model_plan_inputs_complete(
+        occurrence.owner.graph,
+        task,
+        step,
+      ),
+    )
+  }
+  let (foreign, _, _) = client_keyed_plan_test_inputs(
+    imported_left=true,
+    joined_producer=true,
+  )
+  assert_true(
+    issue_client_task_plan_graph(
+      foreign.owner,
+      client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+      false,
+      [],
+      infer=Some(component),
+    )
+    is Err(UnsupportedGraph),
+  )
 }

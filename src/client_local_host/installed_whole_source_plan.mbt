@@ -497,6 +497,73 @@ pub fn begin_installed_managed_whole_source_read(
 }
 
 ///|
+/// Native's original entered Ledger and the selected transport are checked
+/// with this same read acquisition. Do not call a second callbackful Ledger
+/// getter immediately after creating the read. Original partial read custody
+/// remains on the same Run if a post-current constructor fence refuses.
+pub fn begin_installed_managed_whole_source_read_on_ledger(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  declaration : @row_source_host.RowDeclaration,
+  expected : ClientInstalledWholeSourceCapacity,
+  ledger : @resources.Ledger,
+  transfer : Int64,
+  scratch : Int64,
+) -> Result[
+  (
+    ClientInstalledSourceRead,
+    @sourceviews.SourceAcquisition,
+    @row_source_host.RowInputAcquisition,
+    ClientInstalledWholeSourceCapacity,
+  ),
+  ClientInstalledManagedRunIssue,
+] {
+  guard owner.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    plan.whole_sources.length() == 1 &&
+    physical_equal(plan.whole_sources[0], expected) &&
+    plan.transport_bytes.length() == 1 &&
+    plan.transport_bytes[0] == transfer &&
+    plan.transport_execution_bytes.length() == 1 &&
+    plan.transport_execution_bytes[0] == scratch &&
+    owner.ledger is Some(original) &&
+    physical_equal(original, ledger) else {
+    return Err(ForeignOriginal)
+  }
+  let acquired = match
+    begin_installed_managed_whole_source_read_original(
+      owner,
+      prepared,
+      request,
+      Some(declaration),
+      Some(expected),
+      0,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  guard owner.captured_preparation is Some(after) &&
+    physical_equal(after, plan) &&
+    owner.ledger is Some(original) &&
+    physical_equal(original, ledger) &&
+    acquired.0.ledger is Some(actual) &&
+    physical_equal(actual, ledger) else {
+    return Err(ForeignOriginal)
+  }
+  if !installed_managed_capture_parent_fits(
+      owner,
+      prepared,
+      ledger,
+      plan.limits,
+    ) {
+    return Err(InsufficientCapacity)
+  }
+  Ok(acquired)
+}
+
+///|
 pub fn begin_installed_managed_catalog_whole_source_read(
   owner : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,

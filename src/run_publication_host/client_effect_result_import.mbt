@@ -239,3 +239,123 @@ pub fn issue_imported_client_effect_local_invocation(
     max_depth,
   )
 }
+
+///|
+// The original completed pre-Model input already retains the producer
+// Artifact/Manifest and kernel proof. This is a semantic body association,
+// never a final Effect inventory, permission or independent cleanup owner.
+priv struct ClientScopeResultImportObservation {
+  input : ClientInferResultArtifactInput
+  cid : String
+  wire : String
+}
+
+///|
+fn issue_scope_model_result_import_observations(
+  owner : PreparedClientEffectComputation,
+  scope : ClientInferCallScope,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
+) -> Result[
+  Array[ClientScopeResultImportObservation],
+  ClientEffectLocalInvocationIssue,
+] {
+  let occurrence = scope.plan.occurrence
+  let program = @checked.effect_program_static_checked_computation(
+    owner.candidate,
+  )
+  guard client_infer_occurrence_matches_effect(occurrence, owner) &&
+    client_infer_call_scope_matches(scope, occurrence.owner, scope.input) &&
+    @checked.unit_result_import_count(program, occurrence.stage) is Some(count) &&
+    count > 0 &&
+    @checked.unit_import_cid_count(program, occurrence.stage) == Some(count) &&
+    scope.result_inputs.length() == count &&
+    @checked.unit_definition_cid(program, occurrence.stage) is Some(consumer) else {
+    return Err(IncompleteResultImports)
+  }
+  for index in 0..<count {
+    guard @checked.unit_result_import_at(program, occurrence.stage, index)
+      is Some(interface) else {
+      return Err(IncompleteResultImports)
+    }
+    let mut matches = 0
+    for original in scope.original_result_inputs {
+      if physical_equal(original.interface, interface) {
+        matches += 1
+      }
+    }
+    if matches != 1 {
+      return Err(IncompleteResultImports)
+    }
+  }
+  let observations : Array[ClientScopeResultImportObservation] = []
+  for original in scope.result_inputs {
+    // The original opaque Scope just checked its complete kernel-bound input
+    // inventory. These immutable body fields need no second current callback.
+    if before_body is Some(back) {
+      let measure = @encode.construction_measuring_writer(
+        max_bytes, max_nodes, max_depth,
+      ) catch {
+        _ => return Err(Encoding)
+      }
+      let shape = try {
+        emit_client_effect_result_import(
+          measure,
+          consumer,
+          original.interface.input_name,
+          original.interface.cid,
+          original.manifest.cid,
+          client_effect_local_result_artifact_cid(original.artifact),
+          Some(consumer),
+        )
+        @encode.finish_construction_measurement(measure)
+      } catch {
+        _ => {
+          @encode.cancel_writer(measure)
+          return Err(Encoding)
+        }
+      }
+      if !back("result_import_observation", shape) {
+        return Err(Encoding)
+      }
+      if !client_infer_result_input_inventory_current(scope) {
+        return Err(ForeignResultImport)
+      }
+    }
+    let hash = @encode.hashing_writer(max_bytes, max_nodes, max_depth) catch {
+      _ => return Err(Encoding)
+    }
+    emit_client_effect_result_import(
+      hash,
+      consumer,
+      original.interface.input_name,
+      original.interface.cid,
+      original.manifest.cid,
+      client_effect_local_result_artifact_cid(original.artifact),
+      None,
+    ) catch {
+      _ => return Err(Encoding)
+    }
+    let cid = "sha256:" +
+      (@encode.finish_hash(hash) catch { _ => return Err(Encoding) })
+    let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+      _ => return Err(Encoding)
+    }
+    emit_client_effect_result_import(
+      writer,
+      consumer,
+      original.interface.input_name,
+      original.interface.cid,
+      original.manifest.cid,
+      client_effect_local_result_artifact_cid(original.artifact),
+      Some(cid),
+    ) catch {
+      _ => return Err(Encoding)
+    }
+    let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
+    observations.push({ input: original, cid, wire, })
+  }
+  Ok(observations)
+}

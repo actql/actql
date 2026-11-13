@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './acquired-effect-unknown-primary.test.mjs';
+import './effect-preflight-custody.test.mjs';
+import './acquired-effect-before-compute-custody.test.mjs';
+import './acquired-model-failed-publication-close.test.mjs';
+import './acquired-model-publication.test.mjs';
+import './acquired-direct-publication.test.mjs';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {graphResultDataPolicy} from '../../scripts/fixtures/graph-infer-effect-input.mjs';
@@ -426,7 +432,7 @@ test('one-of-three Effect opens only its checked Source and preserves its access
   assert.deepEqual(operations, ['prepare', 'enter', 'read', 'release', 'continuation-release']);
 });
 
-for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-owner', 'missing-owner']) {
+for (const fault of ['unsupported-realization', 'ambiguous-owner', 'missing-owner']) {
   test(`selected Effect ${fault} rejects before any preparation or provider I/O`, async () => {
     let custody;
     const calls = [];
@@ -434,8 +440,8 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
       admitsSource: ref => refs.includes(ref),
       prepare() { calls.push(`${name}:prepare`); }, open() { calls.push(`${name}:open`); },
       resolveSecret() { calls.push(`${name}:secret`); }});
-    const first = adapter('first', fault === 'duplicate-owner' ? ['first', 'second'] : ['first']);
-    const second = adapter('second', fault === 'duplicate-owner' || fault === 'missing-owner'
+    const first = adapter('first', ['first']);
+    const second = adapter('second', fault === 'missing-owner'
       ? ['other'] : ['second'], fault === 'unsupported-realization' ? 'installed-row-source' : undefined);
     const unused = adapter('unused', fault === 'ambiguous-owner' ? ['second'] : ['unused']);
     await assert.rejects(openAcquiredEffectComputation({
@@ -446,8 +452,7 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
       rowSourceTasks: fault === 'unsupported-realization' ? [1] : [],
       acquired: {prepared: {}}, sourceProfile: {sources: [first, unused, second]},
       retainComputationOwner(value) { custody = value; },
-    }), {message: fault === 'duplicate-owner' ? 'DuplicateEffectSourceOwner'
-      : fault === 'unsupported-realization' ? 'UnsupportedEffectSourceRealization'
+    }), {message: fault === 'unsupported-realization' ? 'UnsupportedEffectSourceRealization'
         : 'InstalledSourceProgramMismatch'});
     assert.deepEqual(calls, []);
     await custody.close();
@@ -455,12 +460,29 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
   });
 }
 
-test('three Effect acquisitions remain unsupported with three installed Sources', async () => {
-  await assert.rejects(openEffectComputation({
+test('three Effect acquisitions retain custody and all exact preparations before any provider read', async () => {
+  const failure = new Error('ThirdOriginalSourceRefused'), events = [];
+  let custody;
+  const adapter = Object.freeze({realizationKey: 'row-source-acquired',
+    admitsSource: ref => ref === 'same-source',
+    ledgerCapacity() {assert.fail('The third preparation refuses before resource construction');},
+    prepare({occurrence}) {
+      assert.equal(custody.cleanupPending(), true);
+      events.push(occurrence);
+      if (occurrence.task === 2) throw failure;
+      return {};
+    },
+    open() {assert.fail('All original preparations precede provider entry');},
+  });
+  await assert.rejects(openAcquiredEffectComputation({
     moon: {clientProgramEffectAcquisitionCount: () => 3}, acquired: {prepared: {}},
-    sourceProfile: {sources: [{}, {}, {}]},
-    retainComputationOwner() { assert.fail('UnsupportedAcquisitionCount'); },
-  }), {message: 'InvalidAcquiredEffectComputationPort'});
+    rowSourceTasks: [0, 1, 2], sourceRefs: ['same-source', 'same-source', 'same-source'],
+    sourceProfile: {sources: [adapter]}, retainComputationOwner(value) {custody = value;},
+  }), error => error === failure);
+  assert.deepEqual(events, [0, 1, 2].map(task => ({stage: task, input: 0, task})));
+  assert.equal(await custody.cleanup(), false);
+  await custody.close();
+  assert.equal(await custody.cleanup(), true);
 });
 
 
@@ -474,7 +496,9 @@ function acquiredCleanupFixture({dagRetired = true, physicalReady = true, keyedR
     .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openAcquiredEffectComputation');
   const custody = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(item => item.id.name === 'custody'));
-  assert.ok(custody);
+  const beforeEntry = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(item => item.id.name === 'retireUnenteredCompute'));
+  assert.ok(custody && beforeEntry);
   const events = [], checkedHost = {};
   const moon = {clientProgramRefreshAcquiredEffectCleanup(value) {
     assert.strictEqual(value, checkedHost); events.push('dag-retirement'); return dagRetired;
@@ -486,9 +510,11 @@ function acquiredCleanupFixture({dagRetired = true, physicalReady = true, keyedR
   const value = new Function('moon', 'checkedHost', 'execution', 'keyedCleanup', `
     let pending=true,closed=true,settled=true,unresolved=false;
     let recovery,contentFamily,contentFamilyCleanup,contentRecovery,sourceContinuation,modelToken,restoredModelOutput,modelGroup;
-    const restoredModelHostAttempted=false;
+    let restoredModelHostAttempted=false;
+    let hostOpenAttempted=true,computeEntered=true;
     const captures=[]; let originalPreparationRetained=false;
     const cleanupInfer=async()=>true; const observeUsage=()=>{};
+    ${source.slice(beforeEntry.start, beforeEntry.end)}
     ${source.slice(custody.start, custody.end)}
     return custody;
   `)(moon, checkedHost, physical, keyed);
@@ -573,7 +599,7 @@ for (const [name, options] of [
 // Core/Store/Task owner ports are explicit; this is not ordinary funding proof.
 function persistedModelScratchFixture({retire = true, release = true,
   releaseFailure, closeFailure, heldOutput = false, stopBeforeRetirement = false,
-  stop, current = () => {}, childPending = false} = {}) {
+  stop, current = () => {}, childPending = false, liveModelOriginal = false} = {}) {
   const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = ast.body.map(node => node.declaration ?? node)
@@ -587,9 +613,12 @@ function persistedModelScratchFixture({retire = true, release = true,
     source.slice(node.start, node.end).includes('(await inferCapture.persist()).plan'));
   const custody = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'custody'));
+  const beforeEntry = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'retireUnenteredCompute'));
   const close = custody.declarations[0].init.arguments[0].properties.find(value => value.key.name === 'close');
   assert.ok(cleanup && persisted && close);
-  const events = [], diagnostics = [], plan = {}, content = {live: true};
+  const events = [], diagnostics = [], plan = liveModelOriginal
+    ? {localEvidenceContext: {modelOriginalByUnit: {0: {}}}} : {}, content = {live: true};
   let modelClosed = false, physicallyStopped = !stopBeforeRetirement;
   const inferCapture = {persist: async () => {events.push('persist'); return {plan};},
     custody: {retirePublication: async () => {
@@ -624,6 +653,8 @@ function persistedModelScratchFixture({retire = true, release = true,
     const originalPreparation={},component={},restoredModelOutput=${heldOutput ? '{}' : 'undefined'};
     let publicationPlan,modelGroup;
     const faultInjection=async()=>{events.push('capture-committed');};
+    let hostOpenAttempted=true,computeEntered=true,restoredModelHostAttempted=false,unresolved=false;
+    ${source.slice(beforeEntry.start, beforeEntry.end)}
     const helper=Object.freeze({${source.slice(close.start, close.end)}});
     let closed=false;
     const settled=true,contentFamilyCleanup=undefined,contentFamily=undefined,contentRecovery=undefined;
@@ -902,7 +933,9 @@ function restoredHostCallerFixture({hostFailure, waiting = false} = {}) {
   assert.equal(source.slice(cold.test.start, cold.test.end), 'restoredModel');
   const custody = main.body.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'custody'));
-  assert.ok(cold && custody);
+  const beforeEntry = main.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'retireUnenteredCompute'));
+  assert.ok(cold && custody && beforeEntry);
   const pin = {}, compiled = {}, definition = {}, managedRun = {}, owner = {}, graph = {}, host = {};
   const capture = {}, settlement = {}, events = [];
   let complete = false, started = 0, retired = false, constructorCalls = 0;
@@ -943,9 +976,11 @@ function restoredHostCallerFixture({hostFailure, waiting = false} = {}) {
   const invoke = new Function(...Object.keys(context), `
     const restoredModel=true;
     let restoredModelOutput,restoredModelHostAttempted=false,checkedHost;
+    let hostOpenAttempted=false,computeEntered=false;
     let closed=false,settled=false,unresolved=false,pending=true;
     let recovery,contentFamily,contentFamilyCleanup,contentRecovery,keyedCleanup,sourceContinuation,modelToken,modelGroup;
     let originalPreparationRetained=false;
+    ${source.slice(beforeEntry.start, beforeEntry.end)}
     ${source.slice(custody.start, custody.end)}
     return {custody, async run() {try {${source.slice(cold.start, cold.end)}
       return checkedHost;} finally {settled=true;}}};
@@ -1134,11 +1169,19 @@ test('plural Effect rejects foreign saved inventory and lost current before jour
 
 test('plural Effect downstream Model retains original Source provenance and consumes its own Result rather than an earlier keyed input', async () => {
   const f = effectModelGroupFixture({keyed:true}); await f.prime(); f.bind();
+  assert.equal(f.events.filter(event => event[0] === 'sources').length, 0,
+    'binding retains the original continuation before preparing Source inputs');
+  const first = f.contexts[0].prepareSourceContext();
+  const second = f.contexts[1].prepareSourceContext();
   assert.equal(f.events.filter(event => event[0] === 'sources').length, 1);
-  assert.strictEqual(f.contexts[0].sources, f.sourceClosureOriginal);
-  assert.strictEqual(f.contexts[1].sources, f.sourceClosureOriginal);
-  assert.strictEqual(f.contexts[0].capturedInput, f.capturedInput);
-  assert.equal(f.contexts[1].capturedInput, undefined);
+  assert.strictEqual(first.sources, f.sourceClosureOriginal);
+  assert.strictEqual(second.sources, f.sourceClosureOriginal);
+  assert.strictEqual(first.capturedInput, f.capturedInput);
+  assert.equal(second.capturedInput, undefined);
+  assert.strictEqual(f.contexts[0].prepareSourceContext(), first);
+  assert.strictEqual(f.contexts[1].prepareSourceContext(), second);
+  assert.equal(f.events.filter(event => event[0] === 'sources').length, 1,
+    'the same prepared Source context is reused without another admission');
   assert.equal(await f.group.cleanup(true), true);
 });
 
@@ -1271,4 +1314,14 @@ test('plural persisted publication retirement preserves both original pending Mo
   f.settle();
   assert.equal(await f.group.cleanup(true), true);
   assert.equal(f.group.cleanupPending(), false);
+});
+
+
+test('original Model observation stays bound through final Effect dependency consumption before enclosing cleanup',async()=>{
+  const f=persistedModelScratchFixture({liveModelOriginal:true});
+  assert.strictEqual(await f.run(),f.plan);
+  assert.deepEqual(f.events,['persist','stop-model','refresh-original-scratch','capture-committed']);
+  assert.equal(await f.cleanup(),true);
+  assert.deepEqual(f.events.slice(4),['stop-model','retire-publication','release-capacity','close-model']);
+  assert.equal(f.events.filter(value=>value==='retire-publication').length,1);
 });

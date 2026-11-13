@@ -20,6 +20,78 @@ fn identity_scan_fixture(
 }
 
 ///|
+test "identity workspace quote shares writer metadata and traversal without observing current" {
+  let source = export_fixture(capture_fixture())
+  let calls = Ref(0)
+  let guarded = restrict_completed_output(source, () => {
+    calls.val += 1
+    false
+  })
+  let wire = { ..row_wire_limits(), max_nodes: 10, max_depth: 10, }
+  // Three ten-node writers, two actual columns' eight entries each, and
+  // the existing two-frames-per-level traversal envelope plus eight controls.
+  assert_eq(
+    completed_relation_identity_scan_workspace_slots(
+      guarded,
+      stream_value_limits(),
+      wire,
+      wire,
+    ),
+    Some(74),
+  )
+  assert_eq(
+    completed_relation_identity_scan_workspace_slots(
+      guarded,
+      stream_value_limits(),
+      wire,
+      { ..wire, max_depth: 12, },
+    ),
+    Some(78),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(
+    start_completed_relation_identity_scan(
+      guarded,
+      2,
+      stream_value_limits(),
+      wire,
+      wire,
+      publication_schema_limits(),
+      1000,
+      74,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(calls.val > 0)
+}
+
+///|
+test "identity workspace quote refuses fixed and composed overflow without saturation" {
+  let source = export_fixture(capture_fixture())
+  for nodes in [715827882, 715827870] {
+    let wire = { ..row_wire_limits(), max_nodes: nodes, max_depth: 10, }
+    assert_true(
+      completed_relation_identity_scan_workspace_slots(
+        source,
+        stream_value_limits(),
+        wire,
+        wire,
+      )
+      is None,
+    )
+  }
+  assert_true(
+    completed_relation_identity_scan_workspace_slots(
+      source,
+      { ..stream_value_limits(), max_depth: -1, },
+      row_wire_limits(),
+      row_wire_limits(),
+    )
+    is None,
+  )
+}
+
+///|
 test "incremental completed identity preserves the canonical receipt and exact limits" {
   let source = export_fixture(capture_fixture())
   let (reference, _) = export_relation_all(source)

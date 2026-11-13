@@ -9,6 +9,7 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {moonGraphCandidate, readMoonTestPlan, validateMoonTestPlan, nonMoonRequirements} from './ci-moon-test-plan.mjs';
 import {readmeQuickstart} from './readme-quickstart.mjs';
+import {readCiInput} from './ci-input.mjs';
 
 const all = ['js', 'wasm', 'native'];
 const sha = /^[0-9a-f]{40}$/u;
@@ -44,8 +45,8 @@ export const maintenanceFiles = Object.freeze([
 ]);
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
-  'native-cli-installed', 'native-cli-linux-local', 'native', 'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
-  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick']);
+  'native-cli-installed', 'native-cli-linux-local', 'native', 'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
+  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick', 'client-readme-packed']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
 // Canonical identity, runtime ownership, platform/FFI and build changes keep
@@ -79,10 +80,11 @@ export function deepProofRequired(selection) {
 }
 export function gateJobRequired(selection, name) {
   if (['select-targets', 'preflight', 'lint', 'spec'].includes(name)) return true;
+  if (name === 'client-readme-packed') return selection.profile === 'full';
   if (['main-performance', 'health-quick'].includes(name)) return selection.event === 'push';
   if (name === 'focused-tests') return ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (name === 'python-wheels') return pythonWheelAcceptanceRequired(selection);
-  if (['session-evidence', 'pipeline-evidence'].includes(name)) return deepProofRequired(selection);
+  if (['session-evidence', 'session-controls', 'pipeline-evidence'].includes(name)) return deepProofRequired(selection);
   return selection.profile === 'full' && (name !== 'native-macos' || selection.macos);
 }
 
@@ -345,7 +347,7 @@ export function readPushChanges(payload, testedRevision, git = args => execFileS
 }
 async function main() {
   if (process.argv[2] === 'gate') {
-    const lines = verifyGate(JSON.parse(process.env.CI_PLAN), JSON.parse(process.env.RESULTS),
+    const lines = verifyGate(readCiInput('CI_PLAN'), readCiInput('RESULTS'),
       {event: process.env.GITHUB_EVENT_NAME, sourceRevision: process.env.GITHUB_SHA,
         draft: pullRequestDraft(process.env.GITHUB_EVENT_NAME,
           process.env.GITHUB_EVENT_NAME === 'pull_request'

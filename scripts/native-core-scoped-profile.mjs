@@ -156,7 +156,14 @@ export function runNativeCoreScopedCompiler(configPath, kind, args) {
   const information = args.length > 0 && args.every(value =>
     ['--version', '-v', '-dumpmachine', '-dumpversion', '-print-search-dirs'].includes(value));
   const selected = information ? args : nativeCoreScopedCArguments(config, args);
+  const started = performance.now();
   const result = spawnSync(config.compilers[kind], selected, {stdio: 'inherit'});
+  try {
+    console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({phase: 'scoped-c-compiler',
+      profile: config.profile, operation: information ? 'information' : args.includes('-c') ? 'compile' : 'link',
+      milliseconds: Math.round(performance.now() - started),
+      succeeded: !result.error && !result.signal && result.status === 0}));
+  } catch { /* Timing diagnostics never replace the original compiler result. */ }
   if (result.error) throw result.error;
   if (result.signal) process.kill(process.pid, result.signal);
   process.exitCode = result.status ?? 1;

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
+import {runtimeTriple} from '../host-common/compiler-binding.generated.mjs';
 
 test('a prepared Effect Plan retains one Model provider and binds its original execution context once', () => {
   const occurrence = {}, graph = {}, prefix = {}, provider = {}, sources = {},
@@ -226,4 +227,54 @@ test('a generated Model provider selects its purpose before binding the same lat
   assert.strictEqual(component.bindOriginal({...context, generatedInput: generation}), component);
   assert.throws(() => component.bindOriginal({...context, generatedInput: generation}), {message: 'ComposedInferAlreadyBound'});
   assert.deepEqual([factories, generations], [1, 0]);
+});
+
+
+test('actual Model component typed call-scope failure retains the same cause and original occurrence', () => {
+  const occurrence = {}, issue = {}, coordinates = runtimeTriple(4, 2, 5);
+  let observe;
+  const moon = {
+    clientProgramComposedInferLocalProvider(actual, _open, callback) {
+      assert.strictEqual(actual, occurrence); observe = callback; return {};
+    },
+    clientProgramInferCallScopeIssueKind(actual) {
+      assert.strictEqual(actual, issue); return 'call_scope.foreign_input';
+    },
+    clientProgramInferOccurrenceCoordinates(actual) {
+      assert.strictEqual(actual, occurrence); return coordinates;
+    },
+  };
+  const component = openNodeComposedInferProvider({moon, selected: {occurrence}, deferred: true});
+  observe(issue);
+  const failure = component.failure();
+  assert.strictEqual(failure.cause, issue); assert.equal(component.hasFailure(), true);
+  assert.deepEqual(failure.primaryDiagnostic, {code: 'MoonBitHostFailure',
+    phase: 'original_infer_component', kind: 'call_scope.foreign_input', task: 4, unit: 2, step: 5});
+  coordinates._0 = 9;
+  assert.equal(failure.primaryDiagnostic.task, 4); assert(Object.isFrozen(failure.primaryDiagnostic));
+  observe(issue); assert.strictEqual(component.failure(), failure);
+});
+
+test('Model component optional typed diagnostic cannot replace the original or invent another issue family', () => {
+  for (const projection of [() => undefined, () => 'run.foreign_original', () => {throw undefined;}]) {
+    const issue = {}; let observe;
+    const moon = {clientProgramComposedInferLocalProvider(_owner, _open, callback) {observe = callback; return {};},
+      clientProgramInferCallScopeIssueKind: projection, clientProgramInferOccurrenceCoordinates: () => runtimeTriple(4, 2, 5)};
+    const component = openNodeComposedInferProvider({moon, selected: {occurrence: {}}, deferred: true});
+    observe(issue); assert.strictEqual(component.failure().cause, issue);
+    assert.equal(Object.hasOwn(component.failure(), 'primaryDiagnostic'), false);
+  }
+});
+
+
+test('actual Model diagnostic reads only the existing compiler tuple ABI and bounded ordinals', () => {
+  for (const coordinates of [[4, 2, 5], undefined, runtimeTriple(-1, 2, 5), runtimeTriple(4, 2, 2147483648)]) {
+    const issue = {}; let observe;
+    const moon = {clientProgramComposedInferLocalProvider(_owner, _open, callback) {observe = callback; return {};},
+      clientProgramInferCallScopeIssueKind: () => 'call_scope.foreign_input',
+      clientProgramInferOccurrenceCoordinates: () => coordinates};
+    const component = openNodeComposedInferProvider({moon, selected: {occurrence: {}}, deferred: true});
+    observe(issue); assert.strictEqual(component.failure().cause, issue);
+    assert.equal(Object.hasOwn(component.failure(), 'primaryDiagnostic'), false);
+  }
 });

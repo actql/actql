@@ -140,11 +140,22 @@ pub fn prepare_sequence(
 /// Prepare only an exact checked prefix before an acquisition barrier. The
 /// bound invocation is retained; neither suffix execution nor acquisition
 /// success is implied. A barrier inside the prefix is still rejected.
+/// An explicitly selected original input permits its empty prefix. Ordinary
+/// negative Step requests still refuse; no replacement input or observation
+/// is manufactured.
 pub fn prepare_sequence_prefix(
   owner : BoundPrepared,
   terminal : Int,
   limits : SequenceLimits,
+  original_input? : Int? = None,
 ) -> Result[PreparedSequence, SequenceIssue] {
+  if original_input is Some(input) {
+    guard terminal == -1 &&
+      @pipeline.input_at(pipeline(owner.prepared), input) is Some(_) else {
+      return Err(SequenceLimit)
+    }
+    return prepare_sequence_count(owner, 0, limits)
+  }
   if terminal < 0 || terminal >= owner.prepared.nodes.length() {
     return Err(SequenceLimit)
   }

@@ -543,6 +543,123 @@ pub fn client_program_effect_whole_source_input_identity(
 }
 
 ///|
+/// Borrow the SAME admitted Plan's Direct inventory and whole-input recipe.
+/// The existing Core Source-Unit issuer checks provenance; this bridge neither
+/// selects another inventory nor treats a Model contribution as a whole Unit.
+#export_name("clientProgramIssueInstalledWholeEffectSourceUnit")
+pub fn client_program_issue_installed_whole_effect_source_unit(
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  slot : Int,
+  captured : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  capacity : @client_local_host.ClientInstalledWholeSourceCapacity,
+  input : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  retention : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectAcquiredEvidence,
+  @publication_host.ClientEffectAcquiredEvidenceIssue,
+] {
+  let direct = match
+    @client_local_host.prepared_installed_effect_source_occurrences(
+      plan, prepared, request,
+    ) {
+    Ok(Some(value)) => value
+    _ => return Err(Invocation(ForeignCapturedInput))
+  }
+  guard @client_local_host.prepared_installed_effect_managed_whole_source(
+      plan, slot,
+    )
+    is Ok((original, _, selected)) &&
+    physical_equal(selected, capacity) &&
+    physical_equal(
+      original,
+      @client_local_host.installed_whole_source_original(capacity),
+    ) else {
+    return Err(Invocation(ForeignCapturedInput))
+  }
+  @publication_host.issue_client_whole_native_effect_source_unit(
+    prepared, direct, slot, captured, identity, original, input, observation, authority_scope_cid,
+    retention, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramIssueInstalledEffectDirectSourcesInvocation")
+pub fn client_program_issue_installed_effect_direct_sources_invocation(
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  compilation : @publication_host.ClientEffectCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  sources : Array[@publication.RunEvidenceValue],
+  inputs : Array[@publication.RunEvidenceValue],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  let direct = match
+    @client_local_host.prepared_installed_effect_source_occurrences(
+      plan, prepared, request,
+    ) {
+    Ok(Some(value)) => value
+    _ => return Err(@publication.RunEvidenceReferenceMismatch("effect_run"))
+  }
+  let count = @publication_host.client_direct_acquisition_occurrence_count(
+    direct,
+  )
+  if count < 1 ||
+    count > max_nodes ||
+    captures.length() != count ||
+    identities.length() != count ||
+    sources.length() != count ||
+    inputs.length() != count {
+    return Err(@publication.RunEvidenceReferenceMismatch("source_coverage"))
+  }
+  let originals : Array[@publication_host.ClientDirectSourceOriginal] = []
+  for slot in 0..<count {
+    match
+      @client_local_host.prepared_installed_effect_managed_whole_source(
+        plan, slot,
+      ) {
+      Ok((acquisition, _, _)) =>
+        originals.push(@publication_host.WholeSourceOriginal(acquisition))
+      Err(_) =>
+        match
+          @client_local_host.prepared_installed_effect_managed_query_requirement(
+            plan, slot,
+          ) {
+          Ok(requirement) =>
+            originals.push(@publication_host.QuerySourceOriginal(requirement))
+          Err(_) =>
+            return Err(@publication.RunEvidenceReferenceMismatch("source_task"))
+        }
+    }
+  }
+  @publication_host.issue_client_effect_direct_sources_invocation(
+    prepared, compilation, admission, definition, direct, captures, identities, originals,
+    sources, inputs, authority_scope_cid, data_policy_cid, capture_started_at, capture_completed_at,
+    max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectManagedPlanWholeSource")
 pub fn client_program_installed_effect_managed_plan_whole_source(
   plan : @client_local_host.ClientInstalledEffectManagedPlan,
@@ -766,10 +883,7 @@ pub fn client_program_admit_composed_infer_whole_sources(
   @publication_host.ClientInferCallScopeIssue,
 ] {
   let count = logicals.length()
-  if count < 1 ||
-    count > 2 ||
-    evidence.length() != count ||
-    capacities.length() != count {
+  if count < 1 || evidence.length() != count || capacities.length() != count {
     return Err(@publication_host.ForeignInput)
   }
   for index in 0..<count {

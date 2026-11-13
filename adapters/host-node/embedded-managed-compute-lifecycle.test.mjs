@@ -221,7 +221,8 @@ test('prepared Mock Source entry retains its original receiver without a Compute
 
 function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, retire = () => {},
   runtime = {}, source, capturePlan = () => assert.fail('No capture Plan constructor selected'),
-  originalRequest = value => value, controlClose = async () => ({pending: false}), invocationControl}) {
+  originalRequest = value => value, controlClose = async () => ({pending: false}), invocationControl,
+  readWorkspace}) {
   const declarations = declared('openPreparedInstalledHost').body.body
     .filter(node => node.type === 'VariableDeclaration').flatMap(node => node.declarations);
   const initial = declarations.find(node => node.id.name === 'initialControl');
@@ -256,11 +257,12 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     originalSourceManagedHostRequest(held, value) {assert.strictEqual(held, originals); return originalRequest(value);},
     prepareInstalledSequenceContractOriginal(held) {assert.strictEqual(held, originals); return {admission: held.installation.sequenceContracts};},
     runtimeCore(actual) {assert.equal(actual,runtime);return {publicationControl:invocationControl};},
-    beforeChild, beforeChildClose, source,
+    beforeChild, beforeChildClose, source, originalResultReadWorkspace: readWorkspace,
   };
   return new Function(...Object.keys(ports), `
     let computeManaged, computeManagedClose, computeManagedFlight, observedClose;
     let resultPublication, resultPublicationClose, resultPublicationFlight;
+    let resultReadWorkspace=originalResultReadWorkspace;
     let sourceManaged=source??beforeChild, sourceManagedClose=source?.close??beforeChildClose, hostJournal;
     let moon=runtime, mockPreparation=source===undefined?undefined:{}, projectSourcePreparation;
     let control={}, duty, hostInitialization, originalInstallation=originals.installation;
@@ -268,7 +270,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     const profiles={bindSourceRequest(...args){record.lineage=args;}};
     const initialControl=${text(initial.init)};
     const preparation={${methods.join(',\n')}};
-    return {preparation,initialControl,record,originals};
+    return {preparation,initialControl,record,originals,get readWorkspace(){return resultReadWorkspace;}};
   `)(...Object.values(ports));
 }
 
@@ -632,6 +634,32 @@ test('pending Compute close retains its original and blocks final control retire
   assert.equal(controls, 0); assert.strictEqual(f.record.computeManaged, raw);
   await f.initialControl.close();
   assert.equal(closes, 2); assert.equal(controls, 1);
+});
+
+test('pending Result READ cleanup retains the same workspace before final control retirement', async () => {
+  let reads = 0, computes = 0, controls = 0, retirements = 0;
+  const trace = [];
+  const readWorkspace = {async closeAll() {
+    assert.strictEqual(this, readWorkspace);
+    trace.push('read'); return {pending: ++reads === 1};
+  }};
+  const raw = {close() {computes++; trace.push('compute'); return {pending: false};}};
+  const f = lifecycle({factory: async () => raw, readWorkspace,
+    retire() {retirements++; trace.push('retire');},
+    controlClose() {controls++; trace.push('control'); return {pending: false};}});
+  await f.preparation.prepareManagedCompute();
+  await assert.rejects(f.initialControl.close(), {code: 'ResultReadCleanupPending'});
+  assert.strictEqual(f.readWorkspace, readWorkspace);
+  assert.equal(computes, 1); assert.equal(controls, 0); assert.equal(retirements, 0);
+  assert.deepEqual(trace, ['compute', 'read']);
+  const closed = await f.initialControl.close();
+  assert.equal(closed.pending, false);
+  assert.equal(f.readWorkspace, undefined);
+  assert.equal(computes, 1); assert.equal(reads, 2);
+  assert.equal(controls, 1); assert.equal(retirements, 1);
+  assert.deepEqual(trace, ['compute', 'read', 'read', 'retire', 'control']);
+  assert.strictEqual(await f.initialControl.close(), closed);
+  assert.equal(reads, 2); assert.equal(controls, 1);
 });
 
 test('Compute SDK lineage is the same view while Mock Source selection stays absent', async () => {

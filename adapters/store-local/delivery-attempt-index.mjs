@@ -352,15 +352,17 @@ export async function openDeliveryAttemptIndex(path, {
     const retireMetadataFence = prepare('UPDATE metadata_deletion_fences SET retired=1 WHERE metadata_key=? AND run_cid=?');
     const metadataFenceCoverage = prepare('SELECT complete,ack_revision FROM metadata_deletion_fence_coverage WHERE id=1');
     const acknowledgeMetadataFences = prepare('UPDATE metadata_deletion_fence_coverage SET ack_revision=ack_revision+1 WHERE id=1');
-    const nativeInventory = prepare('SELECT * FROM native_publication_inventories WHERE public_index_cid=?');
+    const nativeInventorySql = 'SELECT * FROM native_publication_inventories WHERE public_index_cid=?';
+    const nativeInventory = prepare(nativeInventorySql);
     const nativeInventories = prepare('SELECT * FROM native_publication_inventories ORDER BY public_index_cid LIMIT ?');
     const nativeReferenceOwners = prepareOnUse(`SELECT n.public_index_cid,n.inventory_wire
       FROM native_publication_references r JOIN native_publication_inventories n
         ON n.public_index_cid=r.public_index_cid
       WHERE r.kind=? AND r.reference_cid=? AND r.public_index_cid<>?
       ORDER BY r.public_index_cid LIMIT ?`);
-    const nativeIndexByKey = prepareOnUse(`SELECT i.*,c.name,c.wire,c.byte_count FROM native_publication_indexes i
-      JOIN publication_contracts c ON c.semantic_cid=i.public_index_cid WHERE i.metadata_key=?`);
+    const nativeIndexSql = `SELECT i.*,c.name,c.wire,c.byte_count FROM native_publication_indexes i
+      JOIN publication_contracts c ON c.semantic_cid=i.public_index_cid WHERE i.metadata_key=?`;
+    const nativeIndexByKey = prepareOnUse(nativeIndexSql);
     const nativeIndexInsert = prepareOnUse('INSERT INTO native_publication_indexes VALUES(?,?,?,?,?,1)');
     const nativeIndexAcknowledge = prepareOnUse(`UPDATE native_publication_indexes SET ack_revision=ack_revision+1
       WHERE metadata_key=? AND public_index_cid=?`);
@@ -389,16 +391,18 @@ export async function openDeliveryAttemptIndex(path, {
       LEFT JOIN initial_records USING(attempt_cid) WHERE logical_key=?`);
     const byAttempt = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE attempt_cid=?`);
-    const nativeContract = prepare(`SELECT 'delivery_attempt' AS name,attempt_wire AS wire
+    const nativeContractSql = `SELECT 'delivery_attempt' AS name,attempt_wire AS wire
       FROM attempts JOIN initial_records USING(attempt_cid) WHERE attempt_cid=? AND initial_cid IS NOT NULL
       UNION ALL SELECT 'result_read_grant',grant_wire FROM attempts JOIN initial_records USING(attempt_cid)
       WHERE grant_cid=? AND initial_cid IS NOT NULL
       UNION ALL SELECT 'delivery_record',initial_wire FROM initial_records WHERE initial_cid=?
       UNION ALL SELECT 'delivery_record',record_wire FROM completions WHERE record_cid=?
-      UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`);
+      UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`;
+    const nativeContract = prepare(nativeContractSql);
     // These tables have already passed exact schema admission above. Their
     // optional readers/writers belong to this connection, not every open.
-    const publication = prepareOnUse('SELECT * FROM publication_contracts WHERE semantic_cid=?');
+    const publicationSql = 'SELECT * FROM publication_contracts WHERE semantic_cid=?';
+    const publication = prepareOnUse(publicationSql);
     const publicationAttempt = prepareOnUse('SELECT * FROM publication_attempts WHERE attempt_cid=?');
     const insertPublicationAttempt = prepareOnUse('INSERT INTO publication_attempts VALUES(?,?)');
     const removePublicationAttempts = prepareOnUse('DELETE FROM publication_attempts WHERE run_cid=?');
@@ -806,6 +810,33 @@ export async function openDeliveryAttemptIndex(path, {
           Buffer.byteLength(row.wire,'utf8') !== row.byte_count) fail('InvalidDeliveryAttemptIndex');
       return Object.freeze({...row});
     };
+    // Scalar extents cross the Node boundary before any variable row text.
+    // The selected wire query repeats the SAME extent predicate. A changed
+    // original refuses; it never becomes a Native miss/file fallback. Sibling
+    // rows or a database-wide revision do not affect this original selection.
+    const metadataRead = (legacy, sql, fields) => {
+      const extent = fields.map(field => `octet_length(${field})`).join('+');
+      const quote = prepareOnUse(`SELECT ${extent} AS bytes FROM (${sql}) AS metadata_original`);
+      const bounded = prepareOnUse(`SELECT * FROM (${sql}) AS metadata_original WHERE ${extent}=?`);
+      return (args, demand) => {
+        if (demand === undefined) return legacy.get(...args);
+        if (typeof demand !== 'function') fail('InvalidDeliveryAttemptIndex');
+        const original = quote.get(...args);
+        if (original === undefined) return undefined;
+        if (!Number.isSafeInteger(original.bytes) || original.bytes < 0 || original.bytes > 2147483647) {
+          fail('InvalidDeliveryAttemptIndex');
+        }
+        if (demand(original.bytes) !== undefined) fail('InvalidDeliveryAttemptIndex');
+        const row = bounded.get(...args, original.bytes);
+        if (row === undefined) fail('InvalidDeliveryAttemptIndex');
+        return row;
+      };
+    };
+    const readPublicationMetadata = metadataRead(publication, publicationSql, ['semantic_cid','name','wire']);
+    const readNativeContractMetadata = metadataRead(nativeContract, nativeContractSql, ['name','wire']);
+    const readNativeIndexMetadata = metadataRead(nativeIndexByKey, nativeIndexSql,
+      ['metadata_key','namespace_id','authority_scope_cid','run_cid','public_index_cid','name','wire']);
+    const readNativeInventoryMetadata = metadataRead(nativeInventory, nativeInventorySql, ['public_index_cid','inventory_wire']);
     const samePublication = (left,right) => left !== undefined && right !== undefined &&
       ['semantic_cid','name','wire','byte_count'].every(key => left[key] === right[key]);
     const selectedPublicationRows = originals => {
@@ -1355,15 +1386,15 @@ export async function openDeliveryAttemptIndex(path, {
         if(rows.length>maxEntries)fail('DeliveryAttemptIndexLimit');
         return Object.freeze(rows.map(preparationOriginal));
       },
-      nativePublicationInventory(publicIndexCid) {
+      nativePublicationInventory(publicIndexCid, readDemand) {
         requireComplete();if(!cid(publicIndexCid))fail('InvalidDeliveryAttemptIndex');
-        inventoryUsage();const row=nativeInventory.get(publicIndexCid);
+        inventoryUsage();const row=readNativeInventoryMetadata([publicIndexCid],readDemand);
         return row===undefined?undefined:recoveryOriginal(row);
       },
-      nativePublicationIndex(metadataKey) {
+      nativePublicationIndex(metadataKey, readDemand) {
         requireComplete();
         if (typeof metadataKey !== 'string' || !/^[0-9a-f]{64}$/u.test(metadataKey)) fail('InvalidDeliveryAttemptIndex');
-        return nativeIndexCopy(nativeIndexByKey.get(metadataKey));
+        return nativeIndexCopy(readNativeIndexMetadata([metadataKey],readDemand));
       },
       commitNativePublicationIndex: commitNativeIndex,
       confirmNativePublicationIndex: confirmNativeIndex,
@@ -1490,7 +1521,7 @@ export async function openDeliveryAttemptIndex(path, {
         }
       },
       publicationUsage() { requireComplete(); return usage(); },
-      publicationContract(semanticCid) { requireComplete(); return publicationCopy(publication.get(semanticCid)); },
+      publicationContract(semanticCid, readDemand) { requireComplete(); return publicationCopy(readPublicationMetadata([semanticCid],readDemand)); },
       publicationContracts(semanticCids) {
         requireComplete();
         if (!Array.isArray(semanticCids) || semanticCids.length > maxEntries) fail('InvalidDeliveryAttemptIndex');
@@ -1548,11 +1579,11 @@ export async function openDeliveryAttemptIndex(path, {
       attempt(attemptCid) { requireComplete(); return copy(byAttempt.get(attemptCid)); },
       run(runCid) { requireComplete(); return Object.freeze(byRun.all(runCid,maxEntries+1).map(copy)); },
       completion(attemptCid) {requireComplete();return completionCopy(completion.get(attemptCid));},
-      contract(semanticCid) {
+      contract(semanticCid, readDemand) {
         requireComplete();
-        const metadata = publicationCopy(publication.get(semanticCid));
+        const metadata = publicationCopy(readPublicationMetadata([semanticCid],readDemand));
         if (metadata !== undefined) return Object.freeze({name:metadata.name,wire:metadata.wire,publication:true});
-        const row=nativeContract.get(semanticCid,semanticCid,semanticCid,semanticCid,semanticCid);
+        const row=readNativeContractMetadata([semanticCid,semanticCid,semanticCid,semanticCid,semanticCid],readDemand);
         if(row===undefined) return undefined;
         const {name,wire}=row;
         if(typeof wire!=='string' || Buffer.byteLength(wire,'utf8')>maxWireBytes) fail('InvalidDeliveryAttemptIndex');

@@ -195,7 +195,7 @@ fn issue_client_effect_compilation_internal(
   let prefix = @strategy.graph_captured_prefix(graph)
   // Acquired roots may feed further checked Local Units. Their actual graph
   // edges, not the number of consumers, bind every input occurrence.
-  let mut acquired = (prefix == 1 && units >= 1) || (prefix == 2 && units > 2)
+  let mut acquired = prefix >= 1 && prefix <= units
   if acquired {
     // Acquisition coordinates come from the checked Direct originals. A
     // complete Input can precede authored joins without becoming a Query Step.

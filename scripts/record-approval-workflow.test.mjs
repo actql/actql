@@ -2,11 +2,12 @@
 // failure preservation, not provider authentication or ordinary Run acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile, unlink} from 'node:fs/promises';
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
+import {pathToFileURL} from 'node:url';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
@@ -74,7 +75,13 @@ function publicDouble(value) {
   }, async status() {
     events.push('effect:status');return approved ? {status: 'succeeded', run_id: 'same-run'}
       : {status: 'waiting_checkpoint', run_id: 'same-run', checkpoint};
-  }, result(name) {assert.equal(name, value.effect.resultName);events.push('effect:result');
+  }, result(name) {
+    if (name !== value.effect.resultName) {
+      assert(Object.hasOwn(value.effect.additionalResults ?? {}, name));
+      events.push('effect:result:' + name);
+      return {async all() {events.push('effect:rows:' + name);return structuredClone(value.effect.additionalResults[name]);}};
+    }
+    events.push('effect:result');
     return {async all() {events.push('effect:rows');return structuredClone(value.effect.expectedRows);}};}};
   const client = {async startSource(document, options) {
     if (document === value.effect.document) {
@@ -100,6 +107,42 @@ function publicDouble(value) {
 async function phase(which, value, f, changes = {}) {
   return runRecordUpdateApprovalPhase({phase: which, definition: value, ...f, ...changes});
 }
+
+test('record wrapper persists original primary before pending first close and never replaces it with diagnostic failure', async () => {
+  for (const diagnosticFails of [false, true]) for (const closeFails of [false, true]) {
+    const primary = Object.assign(new Error('OriginalCaseRefusal'), {code: 'OriginalCaseRefusal'});
+    const cleanup = Object.assign(new Error('OriginalClosePending'), {code: 'ClientCleanupPending'});
+    const observations = [];
+    let release, entered, closes = 0;
+    const waiting = new Promise(resolve => {release = resolve;});
+    const started = new Promise(resolve => {entered = resolve;});
+    const result = runRecordUpdateApprovalPhase({phase: 'capture', createDefinition() {throw primary;},
+      client: {async close() {closes++;entered();await waiting;if (closeFails) throw cleanup;}},
+      async observeClose(value) {
+        observations.push(structuredClone(value));
+        if (diagnosticFails) throw new Error('OriginalDiagnosticWriteFailed');
+      }});
+    const rejected = assert.rejects(result, error => {
+      if (!closeFails) return error === primary;
+      assert.strictEqual(error.cause, primary); assert.deepEqual(error.errors, [primary, cleanup]);return true;
+    });
+    await started;
+    assert.equal(observations.length, 1); assert.equal(observations[0].stage, 'started');
+    assert.equal(observations[0].primary.code, primary.code); assert.equal(observations[0].primaryPresent, true);
+    assert.deepEqual(observations[0].firstClose, {attempted: true, returned: false, state: 'pending'});
+    release(); await rejected;
+    assert.equal(closes, 1); assert.equal(observations[1].stage, closeFails ? 'threw' : 'returned');
+    assert.equal(observations[1].firstClose.returned, !closeFails);
+  }
+});
+
+test('record wrapper cannot pass lost diagnostics after successful workflow and first close', async () => {
+  const value = await definition('hubspot'), sdk = publicDouble(value), primary = new Error('OriginalDiagnosticWriteFailed');
+  await assert.rejects(phase('capture', value, sdk, {observeClose() {throw primary;}}), error => {
+    assert(error instanceof AggregateError); assert.deepEqual(error.errors, [primary, primary]);return true;
+  });
+  assert.equal(sdk.events.filter(value => value === 'close').length, 1);
+});
 
 for (const connector of ['salesforce', 'hubspot', 'kintone']) {
   test(`shared ${connector} fixture preserves original reference, explicit approval and Saved-first order`, async () => {
@@ -333,6 +376,72 @@ async function commandFixture(t, connector, configuration = {selection, connect:
       connect: async () => {events.push('connect'); throw new Error('Unexpected connection');},
       runPhase: async () => {throw new Error('Unexpected workflow');}, log: value => log.push(value)}};
 }
+
+async function retainedCommandFixture(t) {
+  const command = await commandFixture(t, 'hubspot'), value = await definition('hubspot');
+  const sdk = publicDouble(value), directory = join(command.root, 'programs');
+  await mkdir(directory);
+  await writeFile(join(directory, 'update.aql'), value.effect.document);
+  await writeFile(join(directory, 'read.aql'), value.read.document);
+  command.options.programDirectory = pathToFileURL(directory + '/');
+  command.options.retainProgramInputs = true;
+  command.options.argv[0] = 'capture';
+  command.options.connect = async () => {command.events.push('connect'); return sdk.client;};
+  command.options.runPhase = ({programs, selection: selected, ...rest}) =>
+    runRecordUpdateApprovalPhase({...rest, createDefinition: () => hubspotUpdateCase(programs, selected),
+      approve: sdk.approve});
+  return {command, sdk, directory};
+}
+
+test('retained fixture Programs allow approval and Saved first after original files are removed', async t => {
+  // Actual fixture file IO and workflow, with the existing explicit public SDK
+  // double. This does not qualify installed Source, approval or physical close.
+  const {command: f, sdk, directory} = await retainedCommandFixture(t);
+  await runRecordApprovalCommand(f.options);
+  const path = f.options.argv[2] + '.programs.json';
+  const original = await readFile(path, 'utf8'), before = await stat(path);
+  assert.equal(before.mode & 0o777, 0o600);
+  assert.equal(sdk.events.at(-1), 'close');
+  await unlink(join(directory, 'update.aql')); await unlink(join(directory, 'read.aql'));
+  f.options.argv[0] = 'approve'; await runRecordApprovalCommand(f.options);
+  const split = sdk.events.length;
+  f.options.argv[0] = 'recover'; await runRecordApprovalCommand(f.options);
+  const recovered = sdk.events.slice(split);
+  assert(recovered.indexOf('effect:rows') < recovered.indexOf('effect:status'));
+  assert(!recovered.some(value => value.startsWith('submit:') || value === 'approve'));
+  assert.equal(sdk.events.filter(value => value === 'approve').length, 1);
+  assert.equal(sdk.events.filter(value => value === 'close').length, 3);
+  assert.equal(await readFile(path, 'utf8'), original);
+  const after = await stat(path); assert.equal(after.ino, before.ino); assert.equal(after.dev, before.dev);
+  await assert.rejects(readFile(join(directory, 'update.aql')), {code: 'ENOENT'});
+  await assert.rejects(readFile(join(directory, 'read.aql')), {code: 'ENOENT'});
+});
+
+test('retained fixture Programs keep original binding and reject changed inputs before attach or approval', async t => {
+  for (const change of ['program', 'selection']) {
+    const {command: f, sdk, directory} = await retainedCommandFixture(t);
+    await runRecordApprovalCommand(f.options);
+    await unlink(join(directory, 'update.aql')); await unlink(join(directory, 'read.aql'));
+    if (change === 'program') {
+      const path = f.options.argv[2] + '.programs.json', programs = JSON.parse(await readFile(path, 'utf8'));
+      programs.update += '\n-- changed'; await writeFile(path, JSON.stringify(programs));
+    } else await writeFile(f.path, JSON.stringify({selection: {...selection, nextName: 'foreign'}, connect: {mode: 'local'}}));
+    const split = sdk.events.length; f.options.argv[0] = 'approve';
+    await assert.rejects(runRecordApprovalCommand(f.options), {code: 'ERR_ASSERTION'});
+    assert.deepEqual(sdk.events.slice(split), ['close']);
+  }
+});
+
+test('retained fixture Programs refuse missing malformed or incompatible receipt before connection', async t => {
+  for (const retained of [undefined, '{private malformed', JSON.stringify({update: {}, read: 'original'})]) {
+    const {command: f} = await retainedCommandFixture(t);
+    f.options.argv[0] = 'approve';
+    if (retained !== undefined) await writeFile(f.options.argv[2] + '.programs.json', retained);
+    await assert.rejects(runRecordApprovalCommand(f.options), retained === undefined
+      ? {code: 'ENOENT'} : /InvalidRecordApprovalRetainedPrograms/u);
+    assert.deepEqual(f.events, []); assert.deepEqual(f.log, []);
+  }
+});
 
 for (const connector of ['salesforce', 'hubspot', 'kintone']) {
   test(`shared ${connector} check validates its original case without connection or key IO`, async t => {
@@ -612,4 +721,45 @@ test('kintone approval provider requires credential-bearing Form and exact selec
   assert.equal(response.body.records[0].Subject.value, selection.previousName);
   assert.throws(() => read.handle(f.exchange('POST', read.pathname, {...body, query: 'all'}, headers)));
   assert.equal(f.value.snapshot().writes, 0);
+});
+
+
+test('binary Whole JOIN fixture reads full permitted answer rows and updates before cold same-Run status', async () => {
+  const update = await readFile(new URL('./fixtures/hubspot-approval/binary-source-update.aql', import.meta.url), 'utf8');
+  const read = await readFile(new URL('./fixtures/hubspot-approval/read.aql', import.meta.url), 'utf8');
+  assert.equal(update.split('\nJOIN ').length - 1, 1, 'One existing binary JOIN, no N-ary extension');
+  const {mockProjectFiles} = await import('./fixtures/hubspot-approval/binary-source-mock-project.mjs');
+  const files = mockProjectFiles(selection), catalog = JSON.parse(files['mock/catalog.json']);
+  assert.deepEqual(catalog.connections.hubspot.query_aliases, [
+    {name: 'hubspot.companies', resource: 'companies'},
+    {name: 'hubspot.companies_peer', resource: 'companies'},
+  ]);
+  assert(update.includes('|> RESULT answer\n'));
+  assert(!update.includes('|> RESULT joined'));
+  const value = hubspotUpdateCase({update, read}, {...selection, variant: 'binary-source'});
+  assert.deepEqual(value.effect.additionalResults, {answer: [{id: 'record-1', left_name: 'before',
+    right_id: 'record-1', right_name: 'before', next_name: 'after'}]});
+  const f = publicDouble(value);
+  await phase('capture', value, f); await phase('approve', value, f);
+  const split = f.events.length;
+  await phase('recover', value, f);
+  const cold = f.events.slice(split);
+  assert(cold.indexOf('effect:rows:answer') < cold.indexOf('effect:status'));
+  assert(!cold.some(value => value.startsWith('submit:') || value === 'approve'));
+  assert.deepEqual(f.saved.get('approved').additionalResults, value.effect.additionalResults);
+  assert.deepEqual(f.saved.get('recovered').additionalResults, value.effect.additionalResults);
+  assert.deepEqual(f.saved.get('submitted').ref, f.saved.get('recovered').ref);
+  assert.equal(f.events.filter(value => value === 'effect:result:answer').length, 2);
+  assert.equal(f.events.filter(value => value === 'close').length, 3);
+});
+
+test('binary Whole JOIN fixture refuses incomplete answer Result without losing first close', async () => {
+  const value = hubspotUpdateCase({update: 'authored binary JOIN', read: 'authored source read'},
+    {...selection, variant: 'binary-source'}), f = publicDouble(value);
+  await phase('capture', value, f);
+  const original = f.effect.result;
+  f.effect.result = name => name === 'answer' ? {all: async () => []} : original.call(f.effect, name);
+  await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
+  assert.equal(f.events.at(-1), 'close');
+  assert.equal(f.saved.has('approved'), false);
 });

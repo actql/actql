@@ -1,6 +1,6 @@
 import {fileGenerationWordPattern} from './run-publication-contracts.mjs';
 import {nativeFileLookupTransportSchema} from './native-file-lookup-contract.mjs';
-import {verifyNativeFileReadProfile} from './native-file-read-profile-contract.mjs';
+import {verifyNativeFileReadProfile, verifyDeclaredFileReadProfile} from './native-file-read-profile-contract.mjs';
 import {execFileSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -13,6 +13,7 @@ import {generateEffectReviewVectors} from './effect-review-projection-vectors.mj
 import {checkInstallationPublicationStorageSchema} from './installation-publication-storage-contract.mjs';
 
 verifyNativeFileReadProfile();
+verifyDeclaredFileReadProfile();
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -690,6 +691,9 @@ export function shareProtocolRuleConstructors(constructors) {
 // physical memory guarantee or a numerical Model profile.
 registerArtifactSchema('native_file_content_read', {
   schema: 'native_file_content_read', identity: 'transport_cid', registry: 'profiles',
+});
+registerArtifactSchema('declared_file_content_read', {
+  schema: 'declared_file_content_read', identity: 'transport_cid', registry: 'profiles',
 });
 registerArtifactSchema('native_file_lookup_transport', {
   schema: 'transport_plan', identity: 'self_cid', registry: 'lookup',

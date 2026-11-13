@@ -42,6 +42,308 @@ fn original_read_group_fixture() -> (
 }
 
 ///|
+test "two original Model children grow their retained input bodies on the same read before handoff" {
+  let (ledger, _, claim, origins, children) = original_read_group_fixture()
+  let token = claim.read
+  let admitted = claim.admitted
+  let serial = ledger.next_capacity_serial
+  let quantities = quantity_usage(ledger)
+  enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+  grow_funded_read_consumer_capacity(children[0], origins[0], 10L, 8L).unwrap()
+  assert_true(physical_equal(token, claim.read))
+  assert_eq(claim.read.reservation.retention, 17L)
+  assert_eq(claim.read.reservation.execution, 13L)
+  assert_eq(ledger.next_capacity_serial, serial)
+  assert_eq(quantity_usage(ledger), quantities)
+  assert_true(claim.admitted == admitted)
+  assert_true(funded_read_consumer_available(children[1], origins[1], 7L, 5L))
+  let (same, first) = handoff_funded_read_consumer_capacity(
+    children[0],
+    origins[0],
+    10L,
+    8L,
+  ).unwrap()
+  assert_true(physical_equal(same, ledger))
+  charge_planning(ledger, 1).unwrap()
+  enter_funded_read_consumer(children[1], origins[1], 7L, 5L).unwrap()
+  grow_funded_read_consumer_capacity(children[1], origins[1], 12L, 9L).unwrap()
+  assert_eq(claim.read.reservation.retention, 22L)
+  assert_eq(claim.read.reservation.execution, 17L)
+  assert_true(claim.admitted == admitted)
+  assert_eq(ledger_usage(ledger).planning_work, 1)
+  let (_, second) = handoff_funded_read_consumer_capacity(
+    children[1],
+    origins[1],
+    12L,
+    9L,
+  ).unwrap()
+  let before = ledger_usage(ledger)
+  assert_true(
+    grow_funded_read_consumer_capacity(children[0], origins[0], 11L, 9L)
+    is Err(SpentClaim),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  settle_capacity(ledger, first).unwrap()
+  settle_funded_read_consumer(children[0], true).unwrap()
+  assert_true(capacity_reservation_open(token))
+  settle_capacity(ledger, second).unwrap()
+  settle_funded_read_consumer(children[1], true).unwrap()
+  assert_true(finish_funded_read_inventory(claim, origins[0], true).unwrap())
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(ledger_usage(ledger).planning_work, 1)
+}
+
+///|
+// Explicit current/backing ports on the actual Resource owner, not physical
+// VM/Host evidence. The normal installation supplies those original ports.
+fn original_read_group_install_current(
+  ledger : Ledger,
+  current : (Int64) -> Int,
+  window? : Ref[Int64]? = None,
+  acquire? : ((Int64, Int64) -> Result[Unit, LedgerIssue])? = None,
+) -> Unit {
+  ledger.imported_child = Some({
+    nonce: 1L,
+    admit: _ => 0,
+    current,
+    limit: (_, _) => 0L,
+    capacity: (_, _) => 0L,
+    report: (_, _) => 0,
+    stop: _ => 0,
+    fixed_capacities: false,
+    working: None,
+    current_window: window,
+    acquire_window: acquire,
+    acquiring_window: false,
+    ledger: Some(ledger),
+    stopping: false,
+    unavailable: false,
+  })
+}
+
+///|
+test "group Read grow refuses foreign unused shrink overflow and budget without changing peaks" {
+  let (ledger, _, claim, origins, children) = original_read_group_fixture()
+  assert_true(
+    grow_funded_read_consumer_capacity(children[0], origins[0], 10L, 8L)
+    is Err(SpentClaim),
+  )
+  enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+  let before = ledger_usage(ledger)
+  let state = claim.read_state
+  let serial = ledger.next_capacity_serial
+  let quantities = quantity_usage(ledger)
+  for
+    (r, e) in [
+      (101L, 8L),
+      (10L, 101L),
+      (6L, 5L),
+      (7L, 4L),
+      (9223372036854775807L, 8L),
+    ] {
+    assert_true(
+      grow_funded_read_consumer_capacity(children[0], origins[0], r, e)
+      is Err(Resource(_)),
+    )
+    assert_eq(ledger_usage(ledger), before)
+    assert_true(claim.read_state == state)
+    assert_eq(
+      original_read_child(claim, children[0]).unwrap().retained_bytes,
+      7L,
+    )
+    assert_eq(
+      original_read_child(claim, children[0]).unwrap().execution_bytes,
+      5L,
+    )
+    assert_eq(ledger.next_capacity_serial, serial)
+    assert_eq(quantity_usage(ledger), quantities)
+  }
+  let copy : FundedReadConsumer[OriginalReadTestOrigin] = {
+    claim: Some(claim),
+  }
+  assert_true(
+    grow_funded_read_consumer_capacity(copy, origins[0], 10L, 8L)
+    is Err(SpentClaim),
+  )
+  assert_true(
+    grow_funded_read_consumer_capacity(children[0], origins[1], 10L, 8L)
+    is Err(ForeignOrigin),
+  )
+  let calls = Ref(0)
+  original_read_group_install_current(ledger, _ => {
+    calls.val += 1
+    0
+  })
+  grow_funded_read_consumer_capacity(children[0], origins[0], 10L, 8L).unwrap()
+  assert_eq(calls.val, 1)
+  settle_funded_read_consumer(children[0], true).unwrap()
+  assert_true(
+    grow_funded_read_consumer_capacity(children[0], origins[0], 11L, 9L)
+    is Err(SpentClaim),
+  )
+  assert_true(capacity_reservation_open(claim.read))
+  settle_funded_read_consumer(children[1], true).unwrap()
+  assert_true(finish_funded_read_inventory(claim, origins[0], true).unwrap())
+}
+
+///|
+test "group Read grow current reentry cannot hand off settle or allocate after original stop" {
+  let (ledger, _, claim, origins, children) = original_read_group_fixture()
+  enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+  let before = ledger_usage(ledger)
+  let state = claim.read_state
+  let calls = Ref(0)
+  let armed = Ref(true)
+  let grow_refused = Ref(false)
+  let handoff_refused = Ref(false)
+  let settle_refused = Ref(false)
+  let stop_pending = Ref(false)
+  original_read_group_install_current(ledger, _ => {
+    calls.val += 1
+    if armed.val {
+      armed.val = false
+      grow_refused.val = grow_funded_read_consumer_capacity(
+          children[0],
+          origins[0],
+          10L,
+          8L,
+        )
+        is Err(CleanupPending)
+      handoff_refused.val = handoff_funded_read_consumer_capacity(
+          children[0],
+          origins[0],
+          1L,
+          1L,
+        )
+        is Err(CleanupPending)
+      settle_refused.val = settle_funded_read_consumer(children[0], true)
+        is Err(CleanupPending)
+      stop_pending.val = stop_funded_read_consumer(children[0])
+        is Err(CleanupPending)
+    }
+    0
+  })
+  assert_true(
+    grow_funded_read_consumer_capacity(children[0], origins[0], 10L, 8L)
+    is Err(CleanupPending),
+  )
+  assert_true(
+    grow_refused.val &&
+    handoff_refused.val &&
+    settle_refused.val &&
+    stop_pending.val,
+  )
+  assert_eq(calls.val, 1)
+  assert_eq(ledger_usage(ledger), before)
+  assert_true(claim.read_state == state)
+  assert_true(
+    original_read_child(claim, children[0]).unwrap().phase == Stopping,
+  )
+  settle_funded_read_consumer(children[0], true).unwrap()
+  settle_funded_read_consumer(children[1], true).unwrap()
+  assert_true(finish_funded_read_inventory(claim, origins[0], true).unwrap())
+}
+
+///|
+test "group Read grow keeps an actual backing resize when its callback stops the same child" {
+  let (ledger, _, claim, origins, children) = original_read_group_fixture()
+  enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+  let before = ledger_usage(ledger)
+  let admitted = claim.admitted
+  let serial = ledger.next_capacity_serial
+  let window = Ref(29L) // Existing retention17 plus execution12.
+  let acquired = Ref(0)
+  original_read_group_install_current(
+    ledger,
+    _ => 0,
+    window=Some(window),
+    acquire=Some((r, e) => {
+      acquired.val += 1
+      guard stop_funded_read_consumer(children[0]) is Err(CleanupPending) else {
+        return Err(ForeignOwner)
+      }
+      window.val = r + e
+      Ok(())
+    }),
+  )
+  assert_true(
+    grow_funded_read_consumer_capacity(children[0], origins[0], 10L, 8L)
+    is Err(CleanupPending),
+  )
+  assert_eq(acquired.val, 1)
+  assert_eq(claim.read.reservation.retention, 17L)
+  assert_eq(claim.read.reservation.execution, 13L)
+  assert_eq(
+    ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes + 3L,
+  )
+  assert_eq(
+    ledger_usage(ledger).reserved_execution_bytes,
+    before.reserved_execution_bytes + 3L,
+  )
+  assert_true(
+    claim.read_state == original_reservation_snapshot(claim.read.reservation),
+  )
+  assert_true(claim.admitted == admitted)
+  assert_eq(ledger.next_capacity_serial, serial)
+  assert_true(
+    original_read_child(claim, children[0]).unwrap().phase == Stopping,
+  )
+  assert_eq(
+    original_read_child(claim, children[0]).unwrap().retained_bytes,
+    10L,
+  )
+  let grown = ledger_usage(ledger)
+  assert_true(
+    settle_funded_read_consumer(children[0], false) is Err(CleanupPending),
+  )
+  assert_eq(ledger_usage(ledger), grown)
+  settle_funded_read_consumer(children[0], true).unwrap()
+  assert_true(capacity_reservation_open(claim.read))
+  settle_funded_read_consumer(children[1], true).unwrap()
+  assert_true(finish_funded_read_inventory(claim, origins[0], true).unwrap())
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+test "group Read grow retains acquired backing but refuses construction after original inventory closes" {
+  let (ledger, _, claim, origins, children) = original_read_group_fixture()
+  enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+  let window = Ref(29L)
+  let acquired = Ref(0)
+  original_read_group_install_current(
+    ledger,
+    _ => 0,
+    window=Some(window),
+    acquire=Some((r, e) => {
+      acquired.val += 1
+      guard finish_original_ledger_inventory(ledger, false) is Ok(false) else {
+        return Err(ForeignOwner)
+      }
+      window.val = r + e
+      Ok(())
+    }),
+  )
+  assert_true(
+    grow_funded_read_consumer_capacity(children[0], origins[0], 10L, 8L)
+    is Err(CleanupPending),
+  )
+  assert_eq(acquired.val, 1)
+  assert_eq(claim.read.reservation.retention, 17L)
+  assert_eq(claim.read.reservation.execution, 13L)
+  assert_true(
+    claim.read_state == original_reservation_snapshot(claim.read.reservation),
+  )
+  assert_false(funded_read_consumer_available(children[0], origins[0], 10L, 8L))
+  assert_false(funded_read_consumer_available(children[1], origins[1], 7L, 5L))
+  settle_funded_read_consumer(children[0], true).unwrap()
+  settle_funded_read_consumer(children[1], true).unwrap()
+  assert_true(finish_funded_read_inventory(claim, origins[0], true).unwrap())
+}
+
+///|
 test "closed original read group hands off two planned children on one claim and keeps pending cleanup" {
   let (ledger, identity, claim, origins, children) = original_read_group_fixture()
   let admitted = claim.admitted
@@ -200,4 +502,78 @@ test "closed original read first declaration refuses duplicate foreign order and
   settle_funded_read_consumer(children[0], true).unwrap()
   settle_funded_read_consumer(children[1], true).unwrap()
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+}
+
+///|
+// Same Resource owner/tokens and actual resize. No provider execution, new
+// allowance or physical callback adequacy is claimed by these finite bounds.
+test "later declared Model child keeps the same funded bootstrap growth without refreshing its snapshot" {
+  let (ledger, _, claim, origins, children) = original_read_group_fixture()
+  let bootstrap = claim.descriptor.bootstrap
+  let first_snapshot = claim.descriptor.bootstrap_state
+  let admitted = claim.admitted
+  enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+  let (_, first) = handoff_funded_read_consumer_capacity(
+    children[0],
+    origins[0],
+    7L,
+    5L,
+  ).unwrap()
+  charge_planning(ledger, 1).unwrap()
+  // The existing preparation owner, not generic public grow, owns bootstrap.
+  resize_capacity_reservation(ledger, bootstrap, 4L, 2L).unwrap()
+  assert_true(funded_read_consumer_available(children[1], origins[1], 7L, 5L))
+  assert_true(claim.descriptor.bootstrap_state == first_snapshot)
+  assert_true(claim.admitted == admitted)
+  assert_false(funded_read_snapshot_matches(claim, origins[0]))
+  assert_false(original_tokens_match(claim.descriptor, completed_outputs=true))
+  assert_eq(ledger_usage(ledger).planning_work, 1)
+  enter_funded_read_consumer(children[1], origins[1], 7L, 5L).unwrap()
+  let (_, second) = handoff_funded_read_consumer_capacity(
+    children[1],
+    origins[1],
+    7L,
+    5L,
+  ).unwrap()
+  settle_capacity(ledger, first).unwrap()
+  settle_capacity(ledger, second).unwrap()
+  settle_funded_read_consumer(children[0], true).unwrap()
+  settle_funded_read_consumer(children[1], true).unwrap()
+  assert_true(finish_funded_read_inventory(claim, origins[0], true).unwrap())
+}
+
+///|
+test "Model child bootstrap growth preserves initial shrink and closing-inventory refusal" {
+  for phase in 0..<3 {
+    let (ledger, _, claim, origins, children) = original_read_group_fixture()
+    let bootstrap = claim.descriptor.bootstrap
+    if phase != 0 {
+      enter_funded_read_consumer(children[0], origins[0], 7L, 5L).unwrap()
+    }
+    if phase == 2 {
+      // Only the original inventory may retire its bootstrap. An ordinary
+      // capacity caller cannot bypass that live shared Read responsibility.
+      assert_true(settle_capacity(ledger, bootstrap) is Err(_))
+      assert_true(capacity_reservation_open(bootstrap))
+      assert_false(finish_original_ledger_inventory(ledger, false).unwrap())
+    } else {
+      resize_capacity_reservation(
+        ledger,
+        bootstrap,
+        if phase == 0 {
+          4L
+        } else {
+          2L
+        },
+        2L,
+      ).unwrap()
+    }
+    assert_false(
+      funded_read_consumer_available(children[1], origins[1], 7L, 5L),
+    )
+    assert_true(
+      enter_funded_read_consumer(children[1], origins[1], 7L, 5L)
+      is Err(ChangedOriginalState),
+    )
+  }
 }

@@ -209,7 +209,7 @@ test('CapturedRun generated contract retains existing Native Lookup dependency k
   for (const kind of ['request_schema', 'request_key_set', 'carrier_schema',
     'carrier_contract', 'task_fragment', 'lookup_execution_policy',
     'lookup_evidence', 'lookup_accounting', 'acquisition_attempt_receipt',
-    'lookup_barrier', 'native_file_content_read', 'native_file_lookup_transport',
+    'lookup_barrier', 'native_file_content_read', 'declared_file_content_read', 'native_file_lookup_transport',
     'native_file_lookup_batch_plan', 'native_file_lookup_request',
     'native_file_lookup_call_slot', 'native_file_lookup_activation',
     'native_file_lookup_raw_response', 'native_file_lookup_attempt_event',
@@ -583,7 +583,7 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2',
       captured_run:
-        'sha256:448867a9bd6adcded16d4314552713764837d77719419272ff56e814e8f40fb2',
+        'sha256:8dced4c09cfcf30f3275ba05289b41becaee8019848f511bc3ca5dbd0bf5b3a4',
     },
   );
 });

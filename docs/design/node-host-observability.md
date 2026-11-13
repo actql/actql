@@ -134,6 +134,19 @@ Unavailable measurements stay unavailable; no exporter derives logical work or
 usage from spans. Duration selection controls optional metric instruments, not
 the truthful timestamps of the finite span being represented.
 
+At the original Model acquired-evidence boundary, MoonBit may project a
+technical failure kind from the same returned Result. The JS bridge forwards
+that DATA with the already-read task, Unit and step through `dispatch_failed`;
+it does not decode a compiler tag, repeat validation or observe current again.
+Diagnostic selection may expose the code, phase and kind; task correlation
+also enables the three ordinals. No body, Account, path or credential is part
+of this projection. Missing or lost delivery remains unavailable, and neither
+projection nor delivery failure replaces the original outcome or cleanup.
+The same typed Model failure is also selectable under the existing `infer`
+signal, so a finite work collector need not subscribe to Run lifecycle or
+selected-row measurements. The original Run failure event remains available;
+observation loss and repeated facts are not erased by this projection.
+
 The optional Node package can explicitly select standard environment
 configuration. It never overlays an application-owned provider. Generic
 destinations enable traces only; signal-specific settings and exporter choices
@@ -206,3 +219,19 @@ candidate set and pending request, with authorized bounded disclosure and its
 own deadline/volume cap. Unknown estimates remain unknown. It cannot relax
 admission, reorder approved calls or authorize dispatch/retry. This unit does
 not implement that sidecar or any CBO sampling/training pipeline.
+
+## Retained Effect preflight failure
+
+The Effect apply boundary can project the original returned Core preflight
+issue through the existing optional diagnostic channel. Core alone distinguishes
+`Guard(Current(StalePreview))` from missing observations, unavailable inputs or
+other failed obligations. This projection matches that already-returned value;
+it does not rerun validation, read current targets, serialize inputs or issue a
+new permission. The same original error and its cleanup responsibility remain
+unchanged when classification or delivery is absent or fails.
+
+Only this typed target-version mismatch emits `EffectTargetVersionMismatch`,
+with phase `effect_apply_preflight` and kind `target_version_mismatch`, under the
+original Run reference. Missing task coordinates stay absent. An opaque
+`MoonBitHostFailure` or generic failed Run cannot supply that classification.
+The event is not a new Run-state field, mutation outcome or cleanup receipt.

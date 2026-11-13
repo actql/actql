@@ -33,6 +33,7 @@ import {
   "actql/actql/stage_syntax",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -110,7 +111,7 @@ pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogR
 
 pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
 
-pub fn checked_local_catalog_dependency_body(CheckedProgram, Int, String, String, Int, Int, Int) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
+pub fn checked_local_catalog_dependency_body(CheckedProgram, Int, String, String, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 
 pub fn checked_local_dependency_bodies(CheckedProgram, Int, Int, Int, Int, Int) -> Result[Array[(String, CheckedLocalDependencyBody)], LocalDependencyBodyIssue]
 
@@ -155,6 +156,8 @@ pub fn clear_parsed_source_registration(ParsedSourceRegistration) -> Unit
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
 pub fn closed_values_local_owner_layout(Int) -> ClosedValuesLocalOwnerLayout?
+
+pub fn combine_classification(@check_environment.DataClassification, @check_environment.DataClassification) -> @check_environment.DataClassification
 
 pub fn complete_template_check(TemplateDeclarationPreparation) -> Result[TemplateCheckedProgram, TemplateConstructionIssue]
 
@@ -492,7 +495,7 @@ pub fn nest_resource_subject(NestResourceSource, NestResourceScope, Int) -> Stri
 
 pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 
-pub fn observe_finish_parsed_check_registry(ParsedCheckRegistry) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue]
+pub fn observe_finish_parsed_check_registry(ParsedCheckRegistry, calls_out? : @ref.Ref[Int64]?) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue]
 
 pub fn observe_finish_parsed_effect_check_registry(ParsedCheckRegistry) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
 

@@ -566,7 +566,7 @@ test "bounded cross join charges exact metadata and pair work" {
   while !failed {
     match advance_bounded_cross_join(rejected, 1).unwrap() {
       BoundedCrossJoinContinue(..) => ()
-      BoundedCrossJoinFailed(Rows(RowLimit), ..) => failed = true
+      BoundedCrossJoinFailed(ControlWorkLimit, ..) => failed = true
       _ => fail("one-short cross join work had another result")
     }
   }

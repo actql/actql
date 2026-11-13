@@ -221,6 +221,13 @@ fn contract_spec(name : String) -> ContractSpec? {
         identity: "transport_cid",
         fields: [],
       })
+    "declared_file_content_read" =>
+      Some({
+        name,
+        version: "actql-declared-file-content-read/0.1",
+        identity: "transport_cid",
+        fields: [],
+      })
     "request_key_set" =>
       Some({
         name,
@@ -1383,6 +1390,23 @@ pub fn admit_publication_contract(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  admit_publication_contract_material(
+    spec, complete, complete_wire, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// The same full admission after exactly one bounded wire parse. Closed
+// file-profile selection supplies only its existing spec, never authority.
+fn admit_publication_contract_material(
+  spec : ContractSpec,
+  complete : @json.CanonicalValue,
+  complete_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, PublicationContractIssue] {
+  let name = spec.name
   match
     validate_bounded_contract(
       spec, complete, true, max_wire_bytes, max_nodes, max_depth,
@@ -1632,6 +1656,13 @@ pub fn validate_delivery_record_transition(
 ///|
 pub fn publication_contract_name(contract : PublicationContract) -> String {
   contract.name
+}
+
+///|
+/// The existing owned contract registry supplies the identity-field spelling
+/// before a body is constructed. This issues no contract, identity or evidence.
+pub fn publication_contract_identity_field_for_name(name : String) -> String? {
+  contract_spec(name).map(value => value.identity)
 }
 
 ///|

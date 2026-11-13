@@ -246,9 +246,17 @@ test "backed Request fixed prefix needs actual original controls not unused poli
   assert_eq(prefix.reserved_retention_bytes, controls)
   // Unbacked variable data still refuses BEFORE construction and remains on
   // the same child. No quote, logical ceiling or actual debit is reduced.
-  assert_true(
-    reserve_request_snapshot(parent, input, 1L, 1L) is Err(Capacity(_)),
-  )
+  let refusal = match reserve_request_snapshot(parent, input, 1L, 1L) {
+    Err(SnapshotCapacityExceeded(Resource(RetentionLimit), value)) => value
+    _ => fail("Expected original snapshot retention shortage with amounts")
+  }
+  let data = request_snapshot_data_bytes(1L, 1L).unwrap()
+  assert_eq(refusal.phase, "request_snapshot")
+  assert_eq(refusal.dimension, "retention")
+  assert_eq(refusal.required_retention, controls + data)
+  assert_eq(refusal.required_execution, data)
+  assert_eq(refusal.available_retention, controls)
+  assert_eq(refusal.available_execution, workspace)
   assert_eq(@resources.ledger_usage(parent.ledger), prefix)
   assert_eq(@resources.ledger_usage(root), root_before)
   assert_eq(parent.snapshot_units, 0L)

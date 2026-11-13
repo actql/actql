@@ -311,16 +311,24 @@ fn clear_keyed_lookup_identity_bodies(lookup : ClientKeyedLookupInput) -> Unit {
       @query.cancel_captured_source_cell_identity(scan) |> ignore
     }
     state.source_scan = None
-    if state.source_identity is Some(identity) {
+    if state.source_identity_custody is ScannedHere &&
+      state.source_identity is Some(identity) {
       @query.clear_captured_source_relation_dependency_bodies(identity)
     }
     state.source_identity = None
     for entry in state.sources {
-      @query.clear_captured_source_relation_dependency_bodies(entry.identity)
+      // Borrowed capture bodies belong to their still-live original Source.
+      // Dropping this alias retires no Source and clears no foreign preimage.
+      if entry.identity_custody is ScannedHere {
+        @query.clear_captured_source_relation_dependency_bodies(entry.identity)
+      }
     }
     state.sources.clear()
     state.sources.shrink_to_fit()
     state.relation = None
+    state.retention_base = None
+    state.dependency_bodies = None
+    state.physical_source = None
     state.request = None
   }
   lookup.native_sources = None

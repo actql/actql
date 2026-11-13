@@ -1,6 +1,7 @@
 ///|
 priv enum ClientRequestPreparationPhase {
   Open
+  ResultRead
   Selecting
   QuerySyntaxQuoted
   QuerySyntaxParsed
@@ -114,10 +115,16 @@ priv enum ClientRequestDomainCompilationInputs {
 /// This record owns no second Ledger, byte allowance, parser or serializer.
 struct ClientRequestPreparation[I] {
   initial : ClientPreparationInitial[I]
+  mut _observed_query_parse_calls : Int64
+  mut _observed_query_lower_calls : Int64
+  mut _observed_semantic_check_calls : Int64
+  mut _observed_program_compile_calls : Int64
   ledger : @resources.Ledger
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
   mut snapshot_base : (Int64, Int64)?
+  mut result_read : ClientRequestResultReadBudget?
+  mut result_read_metadata : ClientRequestResultMetadataBudget?
   mut snapshot_units : Int64
   mut snapshot_values : Int64
   snapshot_key_units : Ref[Int]
@@ -180,6 +187,7 @@ struct ClientRequestPreparation[I] {
   // One existing resident output slot for either ordinary or Model emission.
   // Its original sum is moved to the selected Plan, never a parallel cache.
   mut program_compilation : @publication_host.ClientRunCompilation?
+  mut program_source_free_max_work : Int?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
   mut program_model_direct : @publication_host.ClientDirectAcquisitionOccurrences?
@@ -207,6 +215,10 @@ pub(all) enum ClientRequestPreparationIssue {
   Policy
   Initial(@resources.ImportedChildLedgerIssue)
   Capacity(@resources.PreparationCapacityIssue)
+  SnapshotCapacityExceeded(
+    @resources.PreparationCapacityIssue,
+    ClientPreparationCapacityRefusal
+  )
   ProgramJson(ClientProgramJsonPreparationIssue)
   ProgramCheck(ClientProgramCheckPreparationIssue)
   Parameters(@local_preparation.LocalProgramInputIssue)
@@ -244,10 +256,14 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 // Input/AST/wire/row/operation storage, selected domain construction and live
 // child overlap remain separately charged before their actual constructors.
 // The fixed envelope is immutable DATA, not a reservation, phase or RSS bound.
+// Four scalar observations (4W) remain on this SAME Request through its typed
+// continuation. No new observer record, parent backreference or callback exists.
+// Explicit source-free work selection retains one Some/header, its scalar and
+// two references on the SAME Request (1H/2R/1W), including failed construction.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 233L,
-  reference_slots: 416L,
-  scalar_words: 477L,
+  record_headers: 234L,
+  reference_slots: 418L,
+  scalar_words: 482L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -277,6 +293,11 @@ pub fn client_request_preparation_control_capacity(
   // The same group covers later Run growth entry. Its original owner fences
   // recursion before payload construction, so only one refused nested entry
   // overlaps. The fixed carriers are backed NOW, not by a later resize.
+  // Optional Native scalar diagnostics retain only bounded before/after tuples
+  // and the SAME light parent, plus parser/lowerer Ref/Some call observations
+  // (together under 512 bytes), within this fixed 4096 group.
+  // The exclusive ResultRead phase retains its bounded budget/control tuple
+  // in this same group; variable frames/rows/output reserve separately.
   let growth = @resources.preparation_inventory_growth_entry_construction()
   guard @execution.preparation_representation_cost({
       record_headers: growth.record_headers,
@@ -325,8 +346,14 @@ fn[I] begin_request_preparation_original(
   }
   let available = @resources.ledger_limits(ledger)
   let fits = match initial {
-    // Preserve the existing Node supplier's full sealed installation envelope.
-    NodeRequestInitial(_) => installed_effect_limits_fit(expected, available)
+    // Keep the original nominal supplier and non-byte controls. Byte ceilings
+    // are not constructor demand: the actual fixed quote below, then every
+    // phase/grow, must fit this SAME initial Ledger even below the default.
+    NodeRequestInitial(_) =>
+      installed_effect_limits_fit(
+        { ..expected, retained_bytes: 0L, execution_bytes: 0L, },
+        available,
+      )
     // This nominal scoped child supplies actual backing, not the policy's
     // unused maxima. Keep its original grant within that policy ceiling;
     // every fixed/variable constructor still reserves its full actual quote.
@@ -349,10 +376,16 @@ fn[I] begin_request_preparation_original(
   // The manager stores this original before any shape-specific constructor.
   Ok({
     initial,
+    _observed_query_parse_calls: 0L,
+    _observed_query_lower_calls: 0L,
+    _observed_semantic_check_calls: 0L,
+    _observed_program_compile_calls: 0L,
     ledger,
     capacity,
     input: Some(input),
     snapshot_base: None,
+    result_read: None,
+    result_read_metadata: None,
     snapshot_units: 0L,
     snapshot_values: 0L,
     snapshot_key_units: Ref(-1),
@@ -395,6 +428,7 @@ fn[I] begin_request_preparation_original(
     program_artifact_inputs: None,
     program_domain_compilation_inputs: None,
     program_compilation: None,
+    program_source_free_max_work: None,
     program_source_free: None,
     program_captured: None,
     program_model_direct: None,
@@ -615,6 +649,35 @@ fn[I] prepare_request_check_preparation_owned(
 }
 
 ///|
+/// Actual observed work on this SAME Request, including attempted work that
+/// returned a parser/checker/compiler failure. Foreign input, pre-work refusal
+/// and cached projections cannot increment it. DATA only, never permission or
+/// currentness. Scalar history survives payload retirement without retaining
+/// the input/body. The caller funds this bounded tuple before projection.
+pub fn[I] request_preparation_work_calls(
+  owner : ClientRequestPreparation[I],
+) -> (Int64, Int64, Int64, Int64) {
+  let (checked, compiled) = match owner.program_check {
+    Some(child) =>
+      (
+        child._observed_semantic_check_calls,
+        child._observed_program_compile_calls,
+      )
+    None =>
+      (
+        owner._observed_semantic_check_calls,
+        owner._observed_program_compile_calls,
+      )
+  }
+  (
+    owner._observed_query_parse_calls,
+    owner._observed_query_lower_calls,
+    checked,
+    compiled,
+  )
+}
+
+///|
 /// Only after this fixed callback's construction/snapshot aliases unwound.
 /// Pending original report/stop remains on this same admission; a later callback
 /// cannot replace its original unknown outcome with an acknowledgement.
@@ -654,7 +717,11 @@ pub fn[I] abort_request_preparation_after_cleanup(
         owner.phase = previous
         return Err(ProgramCheck(issue))
       }
-      Ok(_) => owner.program_check = None
+      Ok(_) => {
+        owner._observed_semantic_check_calls = child._observed_semantic_check_calls
+        owner._observed_program_compile_calls = child._observed_program_compile_calls
+        owner.program_check = None
+      }
     }
     owner.phase = previous
   }
@@ -693,6 +760,8 @@ pub fn[I] abort_request_preparation_after_cleanup(
   clear_request_source_input(owner)
   owner.submitted_intent = None
   owner.snapshot_base = None
+  owner.result_read = None
+  owner.result_read_metadata = None
   owner.snapshot_key_units.val = -1
   owner.intent_base = None
   owner.intent_source_quote = None
@@ -720,6 +789,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_artifact_inputs = None
   owner.program_compilation = None
   owner.program_domain_compilation_inputs = None
+  owner.program_source_free_max_work = None
   owner.program_source_free = None
   owner.program_captured = None
   owner.program_model_direct = None

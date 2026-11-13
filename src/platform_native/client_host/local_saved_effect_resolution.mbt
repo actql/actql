@@ -132,14 +132,35 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
         // twelve borrowed field tuples, Writer controls and two digest slots.
         // This emitter has eleven pairs and two shorter original operation IDs.
         // Two retained slots plus the acknowledged record option/map frame.
+        // One scoped signing tuple borrows the same capture and material;
+        // its option/tuple headers and references are retained before restore.
+        // Three initial scope constructors (approval, resolution, Host) also
+        // hand off their existing scope/subject pair without a second read.
+        // Fund those transient pair headers/references before any constructor.
+        // The Submission continuation adds one borrowed capture option and a
+        // closure slot; strict Account selection adds only transient scalars.
+        // The SAME admitted control now retains one optional Host public-key
+        // pair. Its full-reader result, legacy wrapper and correspondence
+        // matcher overlap with that pair and four scoped forwarding options.
+        // The retained PublicKey owns encoded44/body<=256/CID71 characters;
+        // its SAME canonical PEM has113. Back all484 retained UTF16 units
+        // and their string/object controls, even where the reader aliases
+        // existing storage. No EVP/private key or wire buffer is retained.
+        // Two control/Result frames plus four borrowed references/scalars
+        // cover same-operation HMAC and boundary custody refresh. The key is
+        // already retained by the existing Epoch operation's custody slot.
         record_headers: saved_effect_decision_emission_controls.record_headers +
-        measurement.record_headers,
+        measurement.record_headers +
+        28L,
         reference_slots: saved_effect_decision_emission_controls.reference_slots +
-        measurement.reference_slots,
+        measurement.reference_slots +
+        46L,
         scalar_words: saved_effect_decision_emission_controls.scalar_words +
-        measurement.scalar_words,
+        measurement.scalar_words +
+        16L,
         owned_utf16_units: saved_effect_decision_emission_controls.owned_utf16_units +
-        measurement.owned_utf16_units,
+        measurement.owned_utf16_units +
+        484L,
         owned_wire_bytes: saved_effect_decision_emission_controls.owned_wire_bytes,
       }),
     ) {
@@ -151,7 +172,8 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
     Some(value) => value
     None => return Err(SavedResolutionUnavailable)
   }
-  let initial = match host.restore_initial_signing_original() {
+  let initial = match
+    host.restore_initial_signing_original(capture=Some(self.capture)) {
     Ok(value) => value
     Err(issue) => return Err(SavedResolutionOriginal(issue))
   }
@@ -317,11 +339,7 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
     Ok(value) => value
     Err(issue) => return Err(SavedResolutionHost(issue))
   }
-  match signing.sign_once() {
-    Ok(_) => ()
-    Err(issue) => return Err(SavedResolutionHost(issue))
-  }
-  let record = match signing.admit_original_resolution() {
+  let record = match signing.sign_and_admit_original_resolution() {
     Ok(value) => value
     Err(issue) => return Err(SavedResolutionHost(issue))
   }

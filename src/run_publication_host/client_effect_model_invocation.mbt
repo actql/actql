@@ -34,16 +34,25 @@ fn issue_model_effect_local_invocation(
   max_nodes : Int,
   max_depth : Int,
   imports? : (ClientEffectImportedEvidence, ClientInferComposedSources)? = None,
+  scope_imports? : Array[ClientScopeResultImportObservation] = [],
+  scope_sources? : ClientInferComposedSources? = None,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
   guard compiled.compilation is Effects(allowed) &&
     physical_equal(compiled.owner, scope.owner) &&
-    allowed.compilation.compiled.infers.length() <= 1 &&
-    client_effect_compilation_infer_original(allowed.compilation)
-    is Some((plan, occurrence)) &&
-    physical_equal(scope.plan, plan) &&
+    physical_equal(scope.plan.owner, compiled.owner) &&
+    allowed.compilation.compiled.infers.any(original => {
+      physical_equal(original, scope.plan)
+    }) &&
+    client_infer_occurrence_matches_effect(
+      scope.plan.occurrence,
+      allowed.compilation.owner,
+    ) &&
+    client_infer_occurrence_matches_plan(scope.plan.occurrence, scope.plan) &&
     client_infer_call_scope_matches(scope, compiled.owner, scope.input) else {
     return Err(ForeignCapturedInput)
   }
+  let occurrence = scope.plan.occurrence
   let owner = allowed.compilation.owner
   let unit = occurrence.stage
   let program = @checked.effect_program_static_checked_computation(
@@ -51,28 +60,59 @@ fn issue_model_effect_local_invocation(
   )
   guard @checked.unit_definition_cid(program, unit) is Some(definition) &&
     @checked.unit_used_values_cid(program, unit) is Some(values) &&
-    @checked.unit_contracts_cid(program, unit) is Some(contracts) &&
-    model_effect_imports_match(owner, scope, occurrence, imports) &&
-    @publication.local_model_observation_matches_input(
+    @checked.unit_contracts_cid(program, unit) is Some(contracts) else {
+    return Err(MissingUnit)
+  }
+  if !model_effect_imports_match(
+      owner, scope, occurrence, imports, scope_imports,
+    ) {
+    return Err(
+      if imports is None {
+        IncompleteResultImports
+      } else {
+        ForeignResultImport
+      },
+    )
+  }
+  if !@publication.local_model_observation_matches_input(
       model,
       definition,
       occurrence.step,
       scope.artifact,
-    ) else {
+    ) {
     return Err(ForeignSourceObservation)
   }
   let observations = [@publication.captured_effect_dependency_body_cid(model)]
+  for observed in scope_imports {
+    observations.push(observed.cid)
+  }
   if imports is Some((original, _)) {
     for observed in original.observations {
       observations.push(observed.cid)
     }
   }
-  for
-    source in (if imports is None {
-      client_infer_call_scope_source_observations(scope)
-    } else {
-      []
-    }) {
+  for source in client_infer_call_scope_source_observations(scope) {
+    if scope_sources is Some(sources) &&
+      sources.inputs.any(input => {
+        physical_equal(input.observation, source) &&
+        model_effect_scope_imported_source(scope_imports, input)
+      }) {
+      continue
+    }
+    if imports is Some((original, sources)) &&
+      sources.inputs.any(input => {
+        physical_equal(input.observation, source) &&
+        model_effect_imported_source(original, input)
+      }) {
+      continue
+    }
+    if imports is Some((original, sources)) &&
+      client_infer_occurrence_coordinates(sources.occurrence) !=
+      client_infer_occurrence_coordinates(occurrence) &&
+      sources.keyed.map(entry => physical_equal(entry.2, source)) == Some(true) &&
+      model_effect_imported_keyed(original, sources) {
+      continue
+    }
     let (evidence, _, _, _) = @publication.model_source_observation_originals(
       source,
     )
@@ -103,6 +143,7 @@ fn issue_model_effect_local_invocation(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    before_body~,
   )
 }
 
@@ -114,6 +155,7 @@ fn model_effect_imports_match(
   scope : ClientInferCallScope,
   occurrence : ClientInferOccurrence,
   imports : (ClientEffectImportedEvidence, ClientInferComposedSources)?,
+  scope_imports : Array[ClientScopeResultImportObservation],
 ) -> Bool {
   let program = @checked.effect_program_static_checked_computation(
     owner.candidate,
@@ -124,16 +166,43 @@ fn model_effect_imports_match(
     return false
   }
   if count == 0 {
-    return imports is None
+    return imports is None && scope_imports.is_empty()
   }
-  guard imports is Some((original, sources)) &&
+  if imports is None &&
+    scope_imports.length() == count &&
+    scope.result_inputs.length() == count {
+    if !client_infer_result_input_inventory_current(scope) {
+      return false
+    }
+    // Every checked port appears exactly once, including repeated imports of
+    // the same producer Result under distinct original input labels.
+    for index in 0..<count {
+      guard @checked.unit_result_import_at(program, occurrence.stage, index)
+        is Some(interface) else {
+        return false
+      }
+      let mut matches = 0
+      for observed in scope_imports {
+        if physical_equal(observed.input.interface, interface) &&
+          scope.original_result_inputs.any(original => {
+            physical_equal(original, observed.input)
+          }) {
+          matches += 1
+        }
+      }
+      if matches != 1 {
+        return false
+      }
+    }
+    return true
+  }
+  guard scope_imports.is_empty() &&
+    imports is Some((original, sources)) &&
     physical_equal(original.owner, owner) &&
     original.invocation.unit == occurrence.stage &&
     original.observations.length() == count &&
-    sources.inputs.length() == count &&
     physical_equal(sources.occurrence.owner, scope.owner) &&
-    client_infer_occurrence_coordinates(sources.occurrence) ==
-    client_infer_occurrence_coordinates(occurrence) &&
+    client_infer_composed_source_origin_matches(sources.occurrence, occurrence) &&
     @strategy.captured_effect_inputs_match_computation(
       original.inputs,
       owner.graph,
@@ -144,27 +213,21 @@ fn model_effect_imports_match(
     let producer = @strategy.captured_effect_result_import_producer(
       observed.captured,
     )
-    let interface = @strategy.captured_effect_result_import_interface(
+    guard @strategy.captured_effect_result_import_matches(
       observed.captured,
-    )
-    guard sources.inputs
-      .iter()
-      .find_first(input => input.name == interface.input_name)
-      is Some(input) &&
-      scope.named_sources.any(entry => {
+      original.inputs,
+      occurrence.stage,
+      producer,
+    ) else {
+      return false
+    }
+  }
+  for input in sources.inputs {
+    if !scope.named_sources.any(entry => {
         entry.0 == input.name && physical_equal(entry.1, input.observation)
-      }) &&
-      @strategy.captured_effect_result_import_matches(
-        observed.captured,
-        original.inputs,
-        occurrence.stage,
-        producer,
-      ) &&
-      @strategy.captured_effect_inputs_acquired_source_matches(
-        original.inputs,
-        @strategy.captured_effect_local_result_stage(producer),
-        input.identity,
-      ) else {
+      }) ||
+      !(model_effect_imported_source(original, input) ||
+      model_effect_inline_source(program, occurrence.stage, input.original)) {
       return false
     }
   }

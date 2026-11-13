@@ -33,6 +33,25 @@ pending cleanup. Source-free closed material keeps its existing prepaid route.
 
 ## Separate units
 
+An entirely audited bounded Relation chain uses its existing child capacity
+composition: all retained outputs, the simultaneous child scratch peak and the
+exact-count chain/selection handles. It constructs no generic sequence table or
+generic measurement forest, so that unused execution floor is excluded. The
+original retained output-copy bound stays funded. An unaudited or family suffix
+keeps the complete generic execution floor and its original overlap accounting.
+
+The Node installation may select a complete finite `requestMemory` pair of
+retained and execution byte ceilings. Common projects the same nominal Local
+policy into the existing initial supplier before Request construction; that
+original Ledger is adopted by the Run. Omission retains the existing 512 MiB
+defaults. A smaller positive ceiling is valid when the actual fixed controls
+and subsequent demand fit. A larger ceiling does not reserve its unused bytes
+or allocate RAM. Each phase still reserves and grows only its real simultaneous
+demand on that same Ledger; failed growth keeps the original cleanup duty.
+The same detached installation selection also bounds collection reads and
+same-original Saved reads. It grants no permission, currentness, work, rows,
+wire allowance, physical memory guarantee or cleanup acknowledgement.
+
 Value-node and text demand come from the original checked schema/occurrence
 inventory in [`schema_proof_inventory.mbt`](../../src/client_local_host/schema_proof_inventory.mbt),
 [`value_node_demand.mbt`](../../src/client_local_host/value_node_demand.mbt) and

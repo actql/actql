@@ -14,7 +14,8 @@ import {declaredProjectCatalogJsonParseConstructionGeometry,
   declaredProjectCatalogFileFactsProjectionConstructionGeometry,
   declaredProjectCatalogPhysicalOverridesConstructionGeometry,
   declaredProjectCatalogMappingInputsConstructionGeometry,
-  declaredProjectCatalogFinalDescriptorsConstructionGeometry}
+  declaredProjectCatalogFinalDescriptorsConstructionGeometry,
+  declaredFileReadProfileBindingConstructionGeometry}
   from '../host-node/declared-project-catalog-construction.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -80,7 +81,13 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
       ['clientProgramInstalledSourceConstructionCapacity', 'clientProgramRelationRestoreConstructionCapacity'])]
     .map(name => [name, moon?.[name]]));
   if (Object.values(methods).some(value => typeof value !== 'function')) fail('InstalledProjectRuntimeUnavailable');
+  const fileMethods = Object.freeze(Object.fromEntries([
+    'clientProgramRowSourceFileReadProfileConstructionCapacity',
+    'clientProgramRowSourceBindFileReadProfile',
+    'clientProgramComposeInstalledSourceConstructionCapacity',
+  ].map(name => [name, moon?.[name]])));
   const call = (name, ...args) => Reflect.apply(methods[name], moon, args);
+  const fileCall = (name, ...args) => Reflect.apply(fileMethods[name], moon, args);
   if (installationInventory !== undefined && connectionOriginal?.connections !== connections) {
     fail('ForeignDeclaredFileInstallation');
   }
@@ -101,13 +108,13 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
     schemas: selected.map(view => view.schema_wire), requests: selected.map(view => view.request_schema_wire),
     facts: selected.map(view => view.facts_wire), acquisitions: selected.map(view => view.acquisition_wire),
     identities: selected.map(view => view.resource_identity_wire)});
-  const restoreInput = (member, connectorId, registration, revision, input, final = false) => {
+  const restoreInput = (member, connectorId, registration, revision, input, final = false, originalOnly = false) => {
     const project = () => {
       const declaration = checked(call('clientProgramRowSourceRestoreRelationDeclaration',
         connectorId, registration, revision, input.wire, undefined));
       // Final installed export belongs to prepareNativeDeclaration. Intermediate
       // File/physical exports are each covered by this invocation's own quote.
-      if (final && installationInventory !== undefined) return Object.freeze({declaration});
+      if (originalOnly || final && installationInventory !== undefined) return Object.freeze({declaration});
       const exported = call('clientProgramRowSourceDeclarationJson', declaration);
       if (typeof exported !== 'string') fail('InvalidHostRuntimeResult');
       return Object.freeze({declaration, wire: exported});
@@ -313,7 +320,54 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
       overrideInputs.set(resource, restoreInput(sourceMember, connectorId,
         registration + '_data', registration + '_data/0.1', input).declaration);
     }
-    const sourcePrepared = restoreInput(sourceMember, connectorId, registration, revision, finalInput, true);
+    let sourcePrepared;
+    if (fileBindings.length === 0) {
+      sourcePrepared = restoreInput(sourceMember, connectorId, registration, revision, finalInput, true);
+    } else {
+      if (Object.values(fileMethods).some(method => typeof method !== 'function')) {
+        fail('InstalledFileReadProfileUnavailable');
+      }
+      // Restore ONCE under the existing Source, retaining that typed original
+      // before its profile constructor. No intermediate declaration export.
+      const pending = restoreInput(sourceMember, connectorId, registration, revision, finalInput, false, true);
+      const argumentsFor = binding => {
+        const physical = data.get(binding.data_resource);
+        return [overrideInputs?.get(binding.data_resource) ?? pending.declaration,
+          binding.identity_field, binding.name_field, binding.version_field,
+          binding.media_type_field, binding.content_utf8_field, binding.path_field,
+          physical.items_path, physical.key_path];
+      };
+      const projection = Object.freeze({
+        capacity() {
+          // The existing declared-Catalog caller inventory owns its fixed
+          // argument vectors and descriptor loop. Native quotes own the SAME
+          // actual declaration/profile bodies, not file or wire policy limits.
+          const geometry = declaredFileReadProfileBindingConstructionGeometry(fileBindings.length);
+          let quantity = checked(call('clientProgramInstalledSourceConstructionCapacity',
+            geometry.retained.nodes, geometry.retained.text, geometry.retained.wire,
+            geometry.workspace.nodes, geometry.workspace.text, geometry.workspace.wire));
+          for (const [index, binding] of fileBindings.entries()) {
+            const provider = fileCall('clientProgramRowSourceFileReadProfileConstructionCapacity',
+              pending.declaration, ...argumentsFor(binding), index);
+            quantity = checked(fileCall('clientProgramComposeInstalledSourceConstructionCapacity', quantity, [provider]));
+          }
+          return quantity;
+        },
+        project() {
+          let declaration = pending.declaration;
+          for (const binding of fileBindings) {
+            const [physical, ...fields] = argumentsFor(binding);
+            declaration = checked(fileCall('clientProgramRowSourceBindFileReadProfile',
+              declaration, binding.content_resource, physical, binding.data_resource, ...fields));
+          }
+          return Object.freeze({declaration});
+        },
+      });
+      if (installationInventory === undefined) {
+        const {declaration} = projection.project();
+        sourcePrepared = Object.freeze({declaration, wire: call('clientProgramRowSourceDeclarationJson', declaration)});
+      } else sourcePrepared = sourceMember.prepareNativeDeclaration(projection);
+    }
     const {declaration, wire: declarationWire} = sourcePrepared;
     if (typeof declarationWire !== 'string') fail('InvalidHostRuntimeResult');
     let effectMember, effectPrepared, mappingOriginals;
@@ -363,5 +417,21 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
     sources.push(source);
     assertCurrent();
   }
-  return Object.freeze({original, originalWire, sources: Object.freeze(sources)});
+  // Retain the actual opaque declaration inventory once on the SAME metadata
+  // owner. Model Graph selection borrows it; it never reconstructs Catalogs or
+  // accepts a profile label/wire as an implementation binding.
+  let fileReadDeclarations;
+  if (sources.some(source => source.fileBindings.length !== 0)) {
+    const projection = Object.freeze({
+      capacity() {
+        const count = BigInt(sources.length);
+        return checked(call('clientProgramInstalledSourceConstructionCapacity',
+          6n + count, 0n, 0n, 2n + count, 0n, 0n));
+      },
+      project: () => Object.freeze(sources.map(source => source.declaration)),
+    });
+    fileReadDeclarations = installationInventory === undefined ? projection.project()
+      : installationInventory.prepareMetadataInput(projection);
+  }
+  return Object.freeze({original, originalWire, sources: Object.freeze(sources), fileReadDeclarations});
 }

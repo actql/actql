@@ -653,6 +653,7 @@ priv struct BoundedBindingRowsState {
   mut input_logical : SteppedLogicalRow[BoundedBindingRow]?
   mut output_logical : BindingLogicalOutput?
   mut output : AdmittedOutput?
+  mut reclamation_steps : Int64
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
@@ -861,7 +862,12 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     state.predicate_execution = None
   }
   if state.output is Some(output) {
-    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+    let (released, removed) = reclaim_bounded_admitted_output_counted(
+      output,
+      state.accepted.val,
+    )
+    state.reclamation_steps += removed.to_int64()
+    if !released {
       return false
     }
     state.output = None
@@ -1692,7 +1698,8 @@ fn bounded_binding_rows_step(
         let small = state.input_logical is None &&
           bounded_small_logical_row(state.input_names, source)
         let root = if small {
-          match retain_logical_row(logical, state.input_names, source) {
+          match
+            retain_bounded_input_logical_row(logical, state.input_names, source) {
             Ok(value) => value
             Err(issue) =>
               return fail_bounded_binding_rows(
@@ -1729,18 +1736,22 @@ fn bounded_binding_rows_step(
               return fail_bounded_binding_rows(Rows(issue), progress, used)
           }
         }
+        // Each retained input root occupies this same finite workspace. Fund
+        // its registry/input entry before either array can be extended.
+        if !reserve_slots(state.workspace, 1) {
+          release_logical_root(logical, root) |> ignore
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
         let lease = match register_scope_root(scope, root) {
           Ok(value) => value
-          Err(issue) =>
+          Err(issue) => {
+            release_slots(state.workspace, 1)
             return fail_bounded_binding_rows(
               Rows(LogicalRows(issue)),
               progress,
               used,
             )
-        }
-        if !reserve_slots(state.workspace, 1) {
-          release_expression_root(lease) |> ignore
-          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
         }
         state.input_roots.push(lease)
         state.input_row += 1
@@ -2392,7 +2403,7 @@ fn bounded_binding_rows_step(
                   Some(
                     expression_roots(
                       logical,
-                      state.control.max_frames,
+                      state.workspace.limit,
                       query_time=state.scope.bind(s => s.query_time),
                     ),
                   ),
@@ -2437,37 +2448,12 @@ fn bounded_binding_rows_step(
           }
           continue
         }
-        if state.name_charge is None {
-          if !reserve_slots(state.workspace, 1) ||
-            !spend_control(state.control, 1) {
-            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-          }
-          if state.input_names[state.column].length() > 64 {
-            guard start_row_name_charge(
-                state.input_names[state.column],
-                state.workspace,
-              )
-              is Some(cursor) else {
-              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-            }
-            state.name_charge = Some(cursor)
-            used += 1
-            continue
-          }
-          if !spend_control_text(state.control, state.input_names[state.column]) {
-            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-          }
-        } else {
-          let cursor = state.name_charge.unwrap()
-          match advance_row_name_charge(cursor, Some(state.control), None) {
-            Err(_) =>
-              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
-            Ok(false) => {
-              used += 1
-              continue
-            }
-            Ok(true) => state.name_charge = None
-          }
+        // Snapshot construction copies existing checked name references only.
+        // Actual expression lookup and semantic row/name measurement keep
+        // their original full charges; no name bytes are traversed here.
+        if !reserve_slots(state.workspace, 1) ||
+          !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         let field = @schema.field_at(
           bounded_binding_input_schema(state.input),
@@ -3193,26 +3179,59 @@ fn bounded_binding_rows_step(
             bounded_small_logical_row(state.output_names, state.output_row)
           }
           if state.output_logical is None && small {
+            guard state.output is Some(output) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            let measured = if state.preserve_presence ||
+              !state.output_requires_steps {
+              state.output_values
+            } else {
+              output.buffer.budget
+            }
+            let usage : ValueUsage = {
+              nodes: measured.nodes,
+              text_bytes: measured.text,
+              work: measured.work,
+            }
+            // Fund complete actual DATA while all producing roots still live,
+            // before the logical transfer and persistent storage constructor.
+            // Commit keeps its original current/admission check and same peak.
+            if !fund_output_retention(
+                output.buffer.budget,
+                usage.nodes,
+                usage.text_bytes,
+              ) ||
+              !output.buffer.open {
+              return fail_bounded_binding_rows(
+                Capture(CaptureLimit),
+                progress,
+                used,
+              )
+            }
             let result = if state.preserve_presence {
               if !reserve_slots(state.workspace, 1) {
                 return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
               }
-              let result = row_event_output(
+              let result = row_event_funded_output(
                 scope,
                 state.output_names,
                 Ref(state.presence_cells),
                 state.slot_roots,
                 root,
+                output.buffer.budget,
+                usage,
               )
               release_slots(state.workspace, 1)
               result
             } else {
-              row_event_output(
+              row_event_funded_output(
                 scope,
                 state.output_names,
                 state.output_row,
                 state.slot_roots,
                 root,
+                output.buffer.budget,
+                usage,
               )
             }
             if result is Err(issue) {
@@ -4132,6 +4151,20 @@ fn start_bounded_binding_rows_with_input(
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = working_row_workspace(generated, max_entries)
+  // The scope retains every admitted input root alongside the unchanged
+  // transient expression allowance. max_entries alone is not a row ceiling.
+  let scope_limit = if logical is Some(_) {
+    match
+      checked_row_slots_add(max_entries, bounded_binding_input_row_count(input)) {
+      Some(value) => value
+      None => {
+        cancel_admitted_output(output) |> ignore
+        return Err(Rows(RowLimit))
+      }
+    }
+  } else {
+    max_entries
+  }
   if !reserve_slots(workspace, metadata_entries) ||
     (
       watermark_kind &&
@@ -4263,7 +4296,7 @@ fn start_bounded_binding_rows_with_input(
           budget: logical,
           slots: [],
           free: [],
-          limit: max_entries,
+          limit: scope_limit,
         } : ExpressionRoots)
     }),
     control,
@@ -4272,6 +4305,7 @@ fn start_bounded_binding_rows_with_input(
     input_logical: None,
     output_logical: None,
     output: Some(output),
+    reclamation_steps: 0L,
     rows,
     live,
     accepted,
@@ -4359,4 +4393,24 @@ pub fn bounded_binding_rows_cleanup_pending(
   value : BoundedBindingRowsExecution,
 ) -> Bool {
   @bounded.cleanup_pending(value.session)
+}
+
+///|
+/// Observe only this stopped, unpublished buffer's actual reference removals.
+/// Borrowed readers and unfinished stop/cleanup do not become release ACKs.
+pub fn bounded_binding_rows_cleanup_continuation(
+  value : BoundedBindingRowsExecution,
+) -> Int64 {
+  if !@bounded.session_stopped(value.session) ||
+    value.accepted.val ||
+    !@bounded.cleanup_pending(value.session) {
+    return -1L
+  }
+  guard value.state.output is Some(output) &&
+    !output.buffer.open &&
+    output.buffer.reclaiming &&
+    !output.buffer.reading else {
+    return -1L
+  }
+  value.state.reclamation_steps
 }

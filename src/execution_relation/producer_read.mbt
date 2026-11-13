@@ -365,3 +365,14 @@ pub fn execute_fixed_producer_inputs(
     produced=inputs.map(input => input.bound),
   )
 }
+
+///|
+/// Existing bound producer only; callers still validate the receiving Run and
+/// operation. No completed output, binding or independent lifetime is issued.
+pub fn producer_read_original_output(value : ProducerRead) -> CompletedOutput? {
+  if producer_read_available(value) {
+    Some(value.bound.output)
+  } else {
+    None
+  }
+}

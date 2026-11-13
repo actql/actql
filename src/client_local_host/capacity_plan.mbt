@@ -43,6 +43,7 @@ fn client_local_capacity_plan(
   graph? : @strategy.CheckedDAG? = None,
   graph_offset? : Int = 0,
   content? : ClientInstalledEffectContentPreparation? = None,
+  source_free_max_work? : Int? = None,
 ) -> ClientLocalCapacityPlan {
   let ordinary_inventory = if scalar_values {
     client_local_schema_proof_inventory(sequences, graph~, graph_offset~)
@@ -125,6 +126,7 @@ fn client_local_capacity_plan(
     scalar_inventory=inventory,
     scalar_demand~,
     value_node_demand~,
+    source_free_max_work~,
   )
   let original_values_text = if scalar_demand is None {
     value_node_demand.bind(demand => {
@@ -222,6 +224,22 @@ fn client_local_capacity_plan(
   let fields = dispatch_inventory.map(value => value.fields)
   let imports = {
     ..original_imports,
+    // The SAME complete checked record inventory already bounds every input
+    // occurrence and output. Carry its per-row node width into the default
+    // decoder as well as the aggregate wire budget; it is not rows * width.
+    // Unknown inventories keep the original profile, and callers selecting
+    // explicit import limits remain on their separate existing entry.
+    row: {
+      ..original_imports.row,
+      max_nodes: match value_node_demand {
+        Some(demand) if demand.original.max_node_width <= 2147483644L =>
+          Int::max(
+            original_imports.row.max_nodes,
+            (demand.original.max_node_width + 3L).to_int(),
+          )
+        _ => original_imports.row.max_nodes
+      },
+    },
     wire: {
       ..original_imports.wire,
       max_columns: fields.unwrap_or(original_imports.wire.max_columns),

@@ -30,7 +30,45 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current(
     Err(issue) => return Err(OriginalSigningProof(issue))
     Ok(value) => value
   }
+  self.initial_signing_current_after_original_scope(
+    scope,
+    subject,
+    original_use~,
+  )
+}
 
+///|
+// Closed constructor handoff only: these originals just came from this SAME
+// material's scope builder. Keep its actual subject instead of discarding it
+// and immediately traversing the same Scope/Submission/clock chain again.
+fn NativeLocalReviewerProofMaterials::prepare_initial_signing_current(
+  self : NativeLocalReviewerProofMaterials,
+  attempt_id : String,
+) -> Result[
+  NativeLocalInitialSigningCurrent,
+  NativeLocalInitialResolutionSigningIssue,
+] {
+  let (scope, subject) = match
+    self.prepare_signing_scope_with_original_subject(attempt_id) {
+    Err(issue) => return Err(OriginalSigningProof(issue))
+    Ok(value) => value
+  }
+  self.initial_signing_current_after_original_scope(scope, subject)
+}
+
+///|
+fn NativeLocalReviewerProofMaterials::initial_signing_current_after_original_scope(
+  self : NativeLocalReviewerProofMaterials,
+  scope : @credential.LocalSigningCredentialScope,
+  subject : NativeLocalOriginalEffectSigningSubjectRead,
+  original_use? : (
+    NativeLocalGrantOriginal,
+    @credential.LocalSigningCredentialUse,
+  )? = None,
+) -> Result[
+  NativeLocalInitialSigningCurrent,
+  NativeLocalInitialResolutionSigningIssue,
+] {
   if self.original.cancellation_requested &&
     self.proof.decision() == @checkpoint.Approved {
     return Err(OriginalSigningJournal(Checkpoint(NeedsOriginalContinuation)))
@@ -47,6 +85,7 @@ fn NativeLocalReviewerProofMaterials::initial_signing_current(
       reviewer.connection,
       reviewer.request,
       ReadRunMaterials,
+      fresh_account=true,
       capture=match reviewer.approval_scope {
         SavedApproval(saved) => Some(saved.capture)
         ResidentApproval(_) => None
@@ -83,7 +122,7 @@ fn NativeLocalInitialSigningCurrent::require_locked(
   if !host.journal.transaction_active ||
     host.journal.fenced ||
     !physical_equal(host, self.key.original.host) ||
-    !self.authority.current_for(host.journal, reviewer.request) ||
+    !self.authority.current_signing_for(host.journal, reviewer.request) ||
     !self.key.installed.current() ||
     self.key.require_current() is Err(_) {
     return Err(AuthorizationDenied)
@@ -115,7 +154,7 @@ fn NativeLocalInitialSigningCurrent::require_locked(
     installed.reviewer.public_key_pem != registration.public_key_pem ||
     self.key.fields.authority_scope_cid != registration.authority_context_cid ||
     self.key.fields.account_configuration_cid != registration.policy_cid ||
-    !self.authority.current_for(host.journal, reviewer.request) ||
+    !self.authority.current_signing_for(host.journal, reviewer.request) ||
     !installed.current() ||
     self.key.finish_original_projection() is Err(_) {
     return Err(AuthorizationDenied)

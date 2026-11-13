@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {checkWorkersArtifact, conformanceModules, hostModules,
   finiteConformanceModules, finiteRuntimeModules} from './artifact.mjs';
 import {build} from 'esbuild';
+import {parse as parseJavaScript} from 'acorn';
 import {mkdtempSync,mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -339,5 +340,50 @@ test('shared Ledger review keeps Node paths siblings and hidden dependencies rej
     assert.throws(() => checkWorkersArtifact({inputs: {[leaf]: {
       imports: [{path: leaf, kind: 'dynamic-import'}]}}, outputs: {'bundle.mjs': {imports: []}}},
     'export {};', modules), /WorkersDynamicDependency/);
+  }
+});
+
+test('managed advance diagnostic has one exact reviewed pure Workers closure', async () => {
+  const root = new URL('../../', import.meta.url);
+  const module = 'adapters/local-node/managed-advance-diagnostic.mjs';
+  const binding = 'adapters/host-common/compiler-binding.generated.mjs';
+  const source = readFileSync(new URL(module, root), 'utf8');
+  const imports = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .filter(node => node.type === 'ImportDeclaration');
+  assert.equal(imports.length, 1);
+  assert.equal(imports[0].source.value, '../host-common/compiler-binding.generated.mjs');
+  assert.deepEqual(imports[0].specifiers.map(node => [node.imported.name, node.local.name]),
+    [['runtimeIsBoxedSome', 'runtimeIsBoxedSome'], ['runtimeField', 'runtimeField']]);
+  checkPureRuntime(source.slice(0, imports[0].start) + source.slice(imports[0].end));
+  checkPureRuntime(readFileSync(new URL(binding, root), 'utf8'));
+  const result = await build({absWorkingDir: fileURLToPath(root), entryPoints: [module],
+    bundle: true, platform: 'browser', format: 'esm', metafile: true, write: false});
+  assert.deepEqual(Object.keys(result.metafile.inputs).sort(), [module, binding].sort());
+  assert.deepEqual(result.metafile.inputs[module].imports.map(value => [value.path, value.kind]),
+    [[binding, 'import-statement']]);
+  assert.deepEqual(result.metafile.inputs[binding].imports, []);
+  checkPureRuntime(result.outputFiles[0].text);
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert.equal(modules.filter(path => path === module).length, 1);
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
+});
+
+test('managed advance diagnostic classification grants no sibling builtin or dynamic allowance', () => {
+  const module = 'adapters/local-node/managed-advance-diagnostic.mjs';
+  const sibling = 'adapters/local-node/managed-advance-diagnostic-unreviewed.mjs';
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    assert.throws(() => checkWorkersArtifact({inputs: {[sibling]: {imports: []}},
+      outputs: {'bundle.mjs': {imports: []}}}, 'export {};', modules), /WorkersModuleRejected/);
+    for (const dependency of [sibling, 'node:fs']) {
+      assert.throws(() => checkWorkersArtifact({
+        inputs: {[module]: {imports: [{path: dependency, kind: 'import-statement'}]}},
+        outputs: {'bundle.mjs': {imports: []}},
+      }, 'export {};', modules), /WorkersDependencyRejected/);
+    }
+    assert.throws(() => checkWorkersArtifact({
+      inputs: {[module]: {imports: [{path: module, kind: 'dynamic-import'}]}},
+      outputs: {'bundle.mjs': {imports: []}},
+    }, 'export {};', modules), /WorkersDynamicDependency/);
   }
 });

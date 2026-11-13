@@ -9,6 +9,8 @@ fn original_observation_test_start(
   spare_publication_slot? : Bool = false,
   input_body? : Bool = false,
   input_read_ceiling? : Int64? = None,
+  restored_input? : Bool = false,
+  restored_custody? : () -> Bool = () => true,
 ) -> (Execution, @resources.Ledger, @publication_host.ClientModelReadConsumer) {
   let prepared = fixture_prepared(source~)
   let plan = call_identity_plan(prepared)
@@ -59,7 +61,37 @@ fn original_observation_test_start(
   let consumer = @publication_host.claim_client_model_read_preparation(
     read, compiled, definition, plan, 7L, 5L,
   ).unwrap()
-  let active = if input_body {
+  let active = if restored_input {
+    let (occurrence, prefix) = original_composed_test_input(prepared)
+    let (saved, exported) = original_restored_composed_test_saved(
+      prepared, compiled, definition, occurrence, plan, restored_custody,
+    ) catch {
+      _ =>
+        abort(
+          "actual restored observation fixture must admit its original scope",
+        )
+    }
+    start_original_restored_composed(
+      occurrence,
+      plan,
+      prefix,
+      provider,
+      @input.client_infer_retained_input_export_binding(exported),
+      @input.client_infer_retained_input_export_descriptor(exported),
+      @input.client_infer_retained_input_export_rows(exported),
+      restored_custody,
+      saved,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+      input_body_read=if input_body { Some(read) } else { None },
+    ).unwrap()
+  } else if input_body {
     let (occurrence, prefix) = original_composed_test_input(prepared)
     start_original_composed(
       occurrence,
@@ -406,6 +438,9 @@ test "complete original observation keeps compiler order when the second Model o
   let identity = @resources.begin_original_ledger_inventory(
     ledger, bootstrap, 64, 64, 0,
   ).unwrap()
+  // Real byte-only parent capacity, registered BEFORE the original Read
+  // descriptor/child scopes. This is not an attempt or a replacement token.
+  let parent_window = @resources.reserve_capacity(ledger, 13L, 17L).unwrap()
   let scopes = @publication_host.bind_client_model_read_scopes(
     compiled,
     definition,
@@ -456,6 +491,7 @@ test "complete original observation keeps compiler order when the second Model o
       // total ceiling beside this startup; neither is removed or relaxed.
       100L,
       5L,
+      input_body_read=Some(reads[index]),
     ).unwrap()
     // Multi-Model dispatch selects the existing original per-occurrence
     // BoundModelInvocationScope. The singular no-scope getter must refuse;
@@ -493,9 +529,29 @@ test "complete original observation keeps compiler order when the second Model o
         )
     }
     owners[index] = Some(active)
+    assert_true(active.identity_body.unwrap().retained > 7L)
   }
   assert_eq(calls[0].val + calls[1].val, 2)
   let ordered = [owners[0].unwrap(), owners[1].unwrap()]
+  // Join the ordinary sequence: both Model inputs already grew on the same
+  // Read, then the original parent window grows before publication uses its
+  // retained descriptor. Its first snapshot remains the original minimum.
+  let before_window = @resources.ledger_usage(ledger)
+  let quantities = @resources.quantity_usage(ledger)
+  @resources.grow_capacity_reservation(ledger, parent_window, 29L, 31L).unwrap()
+  let after_window = @resources.ledger_usage(ledger)
+  assert_eq(
+    after_window.reserved_retention_bytes,
+    before_window.reserved_retention_bytes + 16L,
+  )
+  assert_eq(
+    after_window.reserved_execution_bytes,
+    before_window.reserved_execution_bytes + 14L,
+  )
+  assert_eq(after_window.live_reservations, before_window.live_reservations)
+  assert_eq(after_window.attempts, before_window.attempts)
+  assert_eq(after_window.planning_work, before_window.planning_work)
+  assert_eq(@resources.quantity_usage(ledger), quantities)
   // Actual flat metadata still needs 16*4096 +2*128 +1*256 =66048.
   // Start with fixed bytes, then exercise the same parent growth below.
   let publication = reserve_original_infer_publication_capacity(
@@ -526,12 +582,70 @@ test "complete original observation keeps compiler order when the second Model o
   issuance_finish(issued)
   let (observation, _) = observation_issuance_value(issued).unwrap()
   assert_eq(@publication.model_observation_slot_count(observation), Some(2))
+  // Bind EVERY original execution to the SAME complete issuer. The second
+  // execution still owns the one publication borrow; child order is not a
+  // substitute for the checked Unit coordinate in either observation.
+  let bindings = ordered.map(active => {
+    bind_issued_invocation(active, compiled, definition, issued).unwrap()
+  })
+  let originals = bindings.mapi((index, binding) => {
+    let outcomes = invocation_binding_original_model_outcomes(binding).unwrap()
+    let receipt = local_model_observation_test_export(outcomes)
+    let projection = invocation_binding_original_model_observation_capacity(
+      binding, receipt, 4096,
+    ).unwrap()
+    grow_original_infer_publication_capacity(
+      ordered[1],
+      publication,
+      child.retained_bytes +
+      1L +
+      @relation.execution_capacity_retained_bytes(projection),
+      child.execution_bytes +
+      1L +
+      @relation.execution_capacity_execution_bytes(projection),
+    ).unwrap()
+    let original = issue_invocation_binding_original_model_observation(
+      binding, receipt, 4096, 1024, 20,
+    ).unwrap()
+    assert_eq(
+      original_local_model_observation_coordinates(original).unwrap().1,
+      index,
+    )
+    let inputs = original_local_model_observation_input_bodies(original).unwrap()
+    assert_eq(
+      inputs[0],
+      (
+        "relation_value",
+        "{\"sort\":\"relation\",\"value\":[{\"id\":\"a\",\"text\":\"" +
+        (if index == 0 { "first" } else { "second" }) +
+        "\"}]}",
+      ),
+    )
+    @relation.cancel_completed_relation_export_receipt(receipt)
+    original
+  })
+  assert_false(
+    @publication.captured_effect_dependency_body_cid(
+      original_local_model_observation_body(originals[0]).unwrap(),
+    ) ==
+    @publication.captured_effect_dependency_body_cid(
+      original_local_model_observation_body(originals[1]).unwrap(),
+    ),
+  )
+  assert_false(cleanup_observation_issuance(issued).unwrap())
+  for binding in bindings {
+    assert_true(release_invocation_binding(binding))
+  }
+  for original in originals {
+    assert_true(original_local_model_observation_coordinates(original) is None)
+  }
   assert_true(cleanup_observation_issuance(issued).unwrap())
   assert_true(release_original_infer_publication_capacity(publication).unwrap())
   for index in 0..<2 {
     assert_true(cleanup(ordered[index]).unwrap())
     @publication_host.settle_client_model_read(reads[index], true).unwrap()
   }
+  @resources.settle_capacity(ledger, parent_window).unwrap()
   assert_false(
     @publication_host.finish_client_model_read_scope(
       scopes[0],

@@ -187,6 +187,7 @@ test "original few long Values retain their complete text working demand" {
           Driver(original) =>
             match original {
               Configuration(_) => "OriginalValuesExecution:Configuration"
+              ControlWorkLimit(_) => "OriginalValuesExecution:ControlWorkLimit"
               Preparation(_) => "OriginalValuesExecution:Preparation"
               Dispatch(_) => "OriginalValuesExecution:Dispatch"
               Execution(cause) =>

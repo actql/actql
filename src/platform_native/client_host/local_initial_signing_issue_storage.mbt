@@ -40,7 +40,11 @@ fn local_initial_signing_issue_storage_locked(
     Ok(_) => ()
     Err(issue) => return Err(InitialStorageJournal(issue))
   }
-  match host.local_grant_custody(host.epoch.crypto) {
+  match
+    host.local_grant_custody(
+      host.epoch.crypto,
+      capture=key.original.original_read.map(value => value.0),
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(InitialStorageJournal(issue))
   }
@@ -124,6 +128,7 @@ fn local_initial_signing_issue_storage_locked(
       original,
       current,
       resolution_proof~,
+      capture=key.original.original_read.map(value => value.0),
     ) {
     Ok(_) => ()
     Err(issue) => return Err(InitialStorageJournal(issue))

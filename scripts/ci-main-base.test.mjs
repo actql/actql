@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {actionsReader, fullCheckpointJobs, policyPaths, resolveMainBaseline} from './ci-main-base.mjs';
 import {gateJobs} from './ci-targets.mjs';
+import {parse} from 'yaml';
 const sha = char => char.repeat(40);
 const head = sha('d'), previous = sha('c'), base = sha('b');
 const requiredJobs = fullCheckpointJobs(['select-targets', 'preflight', 'lint', 'spec', 'core', 'native-macos', 'client', 'pipeline-evidence']);
@@ -43,9 +44,10 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
-  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
-  'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
-  'native-separated-network (direct)', 'native-separated-network (store)', 'workers', 'connector-addition', 'duckdb-node'];
+  'core (js)', 'core (wasm)', 'core (native 1/4)', 'core (native 2/4)', 'core (native 3/4)', 'core (native 4/4)', 'core (native http)', 'core (native source)', 'core (native scoped)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native',
+  'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
+  'native-separated-network (direct)', 'native-separated-network (store)', 'workers', 'connector-addition', 'duckdb-node',
+  'client-readme-packed (22.22.0)', 'client-readme-packed (24)'];
 function fullWorkflowFixture() {
   const f = fixture();
   f.options.requiredJobs = fullCheckpointJobs(gateJobs);
@@ -61,8 +63,34 @@ test('real gate inventory accepts complete full main with skipped focused-only j
   assert.equal((await resolveMainBaseline(options)).baseSha, base);
   assert.deepEqual(options.requiredJobs, fullWorkflowJobs);
 });
-test('full checkpoint requires both original Native partitions and refuses missing failed cancelled or skipped coverage', async () => {
-  for (const name of ['core (native 1/2)', 'core (native 2/2)']) {
+test('full checkpoint README identities match both exact supported Node workflow matrix jobs', () => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const job = workflow.jobs['client-readme-packed'];
+  assert.equal(job.name, 'client-readme-packed (${{ matrix.node }})');
+  assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
+  assert.deepEqual(job.strategy.matrix.node.map(node => job.name.replace('${{ matrix.node }}', node)),
+    fullWorkflowJobs.filter(name => name.startsWith('client-readme-packed (')));
+});
+test('full checkpoint refuses missing failed skipped or cancelled README matrix evidence', async () => {
+  for (const event of ['push', 'workflow_dispatch']) {
+    const complete = fullWorkflowFixture(); complete.state.run.event = event;
+    assert.equal((await resolveMainBaseline(complete.options)).baseSha, base, `${event}: complete`);
+    for (const name of ['client-readme-packed (22.22.0)', 'client-readme-packed (24)']) {
+      for (const outcome of ['missing', 'failure', 'skipped', 'cancelled']) {
+        const f = fullWorkflowFixture(); f.state.run.event = event;
+        if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);
+        else f.state.jobs.jobs.find(job => job.name === name).conclusion = outcome;
+        // A historical abstract row cannot replace either real matrix child.
+        f.state.jobs.jobs.push({name: 'client-readme-packed', run_id: 101,
+          run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'success'});
+        f.state.jobs.total_count = f.state.jobs.jobs.length;
+        assert.equal((await resolveMainBaseline(f.options)).baseSha, null, `${event}: ${name}: ${outcome}`);
+      }
+    }
+  }
+});
+test('full checkpoint requires all original Native partitions and physical profiles and refuses missing failed cancelled or skipped coverage', async () => {
+  for (const name of ['core (native 1/4)', 'core (native 2/4)', 'core (native 3/4)', 'core (native 4/4)', 'core (native http)', 'core (native source)', 'core (native scoped)']) {
     for (const outcome of ['missing', 'failure', 'cancelled', 'skipped']) {
       const f = fullWorkflowFixture();
       if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);

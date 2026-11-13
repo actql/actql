@@ -1,0 +1,205 @@
+{
+  "native": [
+    {
+      "name": "runtime",
+      "steps": [
+        {
+          "name": "Test Native Salesforce Effect preview",
+          "run": "ulimit -S -s 65536\nnode scripts/test-native-salesforce-effect-preview.mjs\n",
+          "id": "native-preview",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-preview"
+          }
+        },
+        {
+          "name": "Test Native runtime bundle CLI",
+          "run": "ulimit -S -s 65536\nnode scripts/test-native-runtime-bundle-cli.mjs\n",
+          "id": "native-bundle-cli",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-bundle-cli"
+          }
+        },
+        {
+          "name": "Test Native publication Store lock",
+          "run": "ulimit -S -s 65536\nnode scripts/test-native-publication-store-lock.mjs\n",
+          "id": "native-publication-lock",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-publication-lock"
+          }
+        },
+        {
+          "name": "Test Native remote runtime",
+          "run": "ulimit -S -s 65536\nnode scripts/test-native-remote-runtime.mjs\n",
+          "id": "native-remote",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-remote"
+          }
+        }
+      ]
+    },
+    {
+      "name": "resident-controls",
+      "steps": [
+        {
+          "name": "Test Native Resident Source",
+          "run": "ulimit -S -s 65536\nnode scripts/test-native-resident-site.mjs --source-only\n",
+          "id": "native-source",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-source"
+          }
+        },
+        {
+          "name": "Test Native observation replay",
+          "run": "ulimit -S -s 65536\nnode scripts/test-native-resident-site.mjs --observation-replay-only\n",
+          "id": "native-observation",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-observation"
+          }
+        },
+        {
+          "name": "Test Native release recovery",
+          "run": "ulimit -S -s 65536\nnode scripts/test-native-resident-site.mjs --release-recovery-only\n",
+          "id": "native-release",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-release"
+          }
+        },
+        {
+          "name": "Test Native cancellation",
+          "run": "ulimit -S -s 65536\nnode scripts/test-native-resident-site.mjs --cancel-only\n",
+          "id": "native-cancel",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "resident-product",
+      "steps": [
+        {
+          "name": "Test public packed Run materials against native resident Site",
+          "run": "node scripts/test-packed-resident-materials.mjs",
+          "id": "packed-materials",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/packed-resident-materials"
+          }
+        },
+        {
+          "name": "Test packed exact dispatch recovery against native resident Site",
+          "run": "node scripts/test-packed-resident-materials.mjs --redelivery-only",
+          "id": "packed-redelivery",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/packed-resident-redelivery"
+          }
+        },
+        {
+          "name": "Test packed Output report custody and ACK crash boundaries",
+          "run": "node scripts/test-packed-resident-materials.mjs --output-report-only",
+          "id": "packed-output-report",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/packed-output-report"
+          }
+        }
+      ]
+    }
+  ],
+  "native-macos": [
+    {
+      "name": "runtime",
+      "steps": [
+        {
+          "name": "Verify native macOS arm64 profile",
+          "run": "test \"$(uname -m)\" = arm64\nmoon version --all\n"
+        },
+        {
+          "name": "Test finite original SQLite statement and selected API custody",
+          "run": "node scripts/test-native-sqlite-read-statement.mjs",
+          "timeoutMinutes": 5
+        },
+        {
+          "name": "Test native macOS retained task file ownership",
+          "run": "npm run check:native-retained-task-file"
+        },
+        {
+          "name": "Test Node-free native storage publication and control",
+          "run": "node scripts/test-native-http-client.mjs\n",
+          "id": "native-http",
+          "timeoutMinutes": 115,
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http"
+          }
+        },
+        {
+          "name": "Test Native Salesforce Effect preview",
+          "run": "node scripts/test-native-salesforce-effect-preview.mjs\n",
+          "id": "native-preview",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-preview"
+          }
+        },
+        {
+          "name": "Test Native runtime bundle CLI",
+          "run": "node scripts/test-native-runtime-bundle-cli.mjs\n",
+          "id": "native-bundle-cli",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-bundle-cli"
+          }
+        },
+        {
+          "name": "Test Native publication Store lock",
+          "run": "node scripts/test-native-publication-store-lock.mjs\n",
+          "id": "native-publication-lock",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-publication-lock"
+          }
+        },
+        {
+          "name": "Test Native remote runtime",
+          "run": "node scripts/test-native-remote-runtime.mjs\n",
+          "id": "native-remote",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-remote"
+          }
+        }
+      ]
+    },
+    {
+      "name": "resident-controls",
+      "steps": [
+        {
+          "name": "Test Native Resident Source",
+          "run": "node scripts/test-native-resident-site.mjs --source-only\n",
+          "id": "native-source",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-source"
+          }
+        },
+        {
+          "name": "Test Native observation replay",
+          "run": "node scripts/test-native-resident-site.mjs --observation-replay-only\n",
+          "id": "native-observation",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-observation"
+          }
+        },
+        {
+          "name": "Test Native release recovery",
+          "run": "node scripts/test-native-resident-site.mjs --release-recovery-only\n",
+          "id": "native-release",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-release"
+          }
+        },
+        {
+          "name": "Test Native cancellation",
+          "run": "node scripts/test-native-resident-site.mjs --cancel-only\n",
+          "id": "native-cancel",
+          "env": {
+            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-cancel"
+          }
+        }
+      ]
+    }
+  ]
+}

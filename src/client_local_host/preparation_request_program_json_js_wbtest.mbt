@@ -185,22 +185,26 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
   // 2H/2R/2W =64 bytes before any domain construction or growth.
   // The same Native intake baseline tuple/Some and Request slot add 2H/2R;
   // its two Int64 baselines plus monotone byte scalar add 3W =72 bytes.
+  // Four original observation counters add 4W. The separately retained
+  // source-free work selection adds its Some and scalar plus two reference
+  // slots (1H/2R/1W =40 bytes), before any later module constructor.
   // The existing 4096-byte entry group remains separate.
   // This independent tariff expansion includes no domain Source or Check body.
   let (retained, execution) = client_request_preparation_control_capacity(
     client_local_resource_policy(),
   ).unwrap()
-  assert_eq(retained, 14968L)
+  assert_eq(retained, 15040L)
   assert_eq(
-    16L * (225L + 2L + 2L + 2L + 2L) +
-    8L * (409L + 1L + 2L + 2L + 2L) +
-    8L * (468L + 3L + 1L + 2L + 3L) +
+    16L * (225L + 2L + 2L + 2L + 2L + 1L) +
+    8L * (409L + 1L + 2L + 2L + 2L + 2L) +
+    8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L) +
     4096L,
-    14968L,
+    15040L,
   )
   assert_eq(16L * 4L + 8L * 3L + 8L * 4L, 120L)
   assert_eq(16L * 2L + 8L * 2L + 8L * 2L, 64L)
   assert_eq(16L * 2L + 8L * 2L + 8L * 3L, 72L)
+  assert_eq(16L + 8L * 2L + 8L, 40L)
   assert_eq(execution, 0L)
   assert_eq(16L * 10L + 8L * 7L + 8L * 13L, 320L)
 }
@@ -219,7 +223,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
       let usage = @resources.ledger_usage(parent.ledger)
       backed_before_resize.val = parent.phase == Selecting &&
         parent.program_json is None &&
-        usage.reserved_retention_bytes == 14968L &&
+        usage.reserved_retention_bytes == 15040L &&
         usage.reserved_execution_bytes == 0L
     }
     true
@@ -244,7 +248,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
   // =593H232R1274W=21536, once. It neither
   // replaces nor supplies the pre-entry carriers observed by that callback.
   assert_eq(16L * (585L + 8L) + 8L * (228L + 4L) + 8L * (1254L + 20L), 21536L)
-  assert_eq(usage.reserved_retention_bytes, 14968L + 21536L)
+  assert_eq(usage.reserved_retention_bytes, 15040L + 21536L)
   assert_eq(usage.reserved_execution_bytes, 21536L)
   assert_true(physical_equal(child.capacity, parent.capacity))
   abort_request_preparation_after_cleanup(parent).unwrap()

@@ -520,6 +520,7 @@ pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
         ManagedCompletion(_) => 79
         IdentityExport(_) => 80
         CarrierSnapshot(_) => 81
+        ControlWorkLimit(_) => 82
       }
     Some(Estimate(issue)) =>
       match issue {

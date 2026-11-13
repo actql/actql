@@ -247,7 +247,7 @@ fn advance_ordered_bindings_execution(
       Some(
         expression_roots(
           execution.scope.budget,
-          execution.control.max_frames,
+          execution.workspace.limit,
           query_time=execution.scope.query_time,
         ),
       ),

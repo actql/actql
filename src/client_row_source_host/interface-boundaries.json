@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "a5bc2af4ef94245257fab3a8f19269be2da7cdd7568c62d72f26657b90fe5022",
+      "sha256": "eaf4d172cc2941a97dfd7a065fcb79214c6813b8c629da545f298f1b532dc805",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -394,6 +394,7 @@
         "pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_response_attempt(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]",
+        "pub fn bind_declared_file_read_profile(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Result[RowDeclaration, RowMappingIssue]",
         "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]",
         "pub fn borrow_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
         "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
@@ -420,6 +421,7 @@
         "pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]",
         "pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
         "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]",
+        "pub fn declared_file_read_profile_construction_inventory(RowDeclaration, RowDeclaration, DeclaredFileReadFields, prior_profiles? : Int) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView",
         "pub fn discard_relation_document_original(RelationDocument) -> Bool",
         "pub fn discard_relation_target_document_original(RelationTargetDocument) -> Bool",
@@ -441,6 +443,8 @@
         "pub fn keyed_row_capacity_bytes(RowKeyedCapacity) -> (Int64, Int64)",
         "pub fn keyed_row_capacity_matches(RowKeyedCapacity, @lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts) -> Bool",
         "pub fn keyed_row_capacity_target(RowKeyedCapacity, RowDeclaration) -> Result[(String, Array[String]), RowHostIssue]",
+        "pub fn keyed_row_capture_dimensions(RowKeyedSourceCapture) -> (Int, Int)",
+        "pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?",
         "pub fn keyed_row_capture_identity(RowKeyedSourceCapture) -> Result[@execution_relation.RowWireIdentity, RowHostIssue]",
         "pub fn keyed_row_capture_matches_request(RowKeyedSourceCapture, @sourceview_resolution.KeyedRowRequest) -> Bool",
         "pub fn keyed_row_capture_read(RowKeyedSourceCapture) -> Result[@execution_relation.SuppliedRelationRead, RowHostIssue]",
@@ -538,6 +542,10 @@
         "pub fn row_captures_original_prefix_available(RowCapturedInputs, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> Bool",
         "pub fn row_declaration_catalog_cid(RowDeclaration) -> String",
         "pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure",
+        "pub fn row_declaration_file_read_physical_source(RowDeclaration, @run_publication.PublicationContract) -> (String, String)?",
+        "pub fn row_declaration_file_read_profile(RowDeclaration, String) -> @run_publication.PublicationContract?",
+        "pub fn row_declaration_file_read_profile_matches(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Bool",
+        "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?",
         "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?",
         "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
         "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?",
@@ -551,6 +559,7 @@
         "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]",
         "pub fn row_input_acquisition_schema(RowInputAcquisition) -> @relation_schema.Schema",
         "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])",
+        "pub fn row_input_acquisition_target_resource(RowInputAcquisition) -> String",
         "pub fn row_input_capture_identity(RowInputAcquisition) -> Array[String]?",
         "pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?",
         "pub fn row_keyed_acquisition_resource(RowKeyedAcquisition) -> String",
@@ -728,6 +737,10 @@
           "declaration": "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]"
         },
         {
+          "name": "bind_declared_file_read_profile",
+          "declaration": "pub fn bind_declared_file_read_profile(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Result[RowDeclaration, RowMappingIssue]"
+        },
+        {
           "name": "bind_row_run_response_borrow_cleanup",
           "declaration": "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]"
         },
@@ -832,6 +845,10 @@
           "declaration": "pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]"
         },
         {
+          "name": "declared_file_read_profile_construction_inventory",
+          "declaration": "pub fn declared_file_read_profile_construction_inventory(RowDeclaration, RowDeclaration, DeclaredFileReadFields, prior_profiles? : Int) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
           "name": "declared_row_view",
           "declaration": "pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView"
         },
@@ -914,6 +931,14 @@
         {
           "name": "keyed_row_capacity_target",
           "declaration": "pub fn keyed_row_capacity_target(RowKeyedCapacity, RowDeclaration) -> Result[(String, Array[String]), RowHostIssue]"
+        },
+        {
+          "name": "keyed_row_capture_dimensions",
+          "declaration": "pub fn keyed_row_capture_dimensions(RowKeyedSourceCapture) -> (Int, Int)"
+        },
+        {
+          "name": "keyed_row_capture_export_construction_capacity",
+          "declaration": "pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "keyed_row_capture_identity",
@@ -1304,6 +1329,22 @@
           "declaration": "pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure"
         },
         {
+          "name": "row_declaration_file_read_physical_source",
+          "declaration": "pub fn row_declaration_file_read_physical_source(RowDeclaration, @run_publication.PublicationContract) -> (String, String)?"
+        },
+        {
+          "name": "row_declaration_file_read_profile",
+          "declaration": "pub fn row_declaration_file_read_profile(RowDeclaration, String) -> @run_publication.PublicationContract?"
+        },
+        {
+          "name": "row_declaration_file_read_profile_matches",
+          "declaration": "pub fn row_declaration_file_read_profile_matches(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Bool"
+        },
+        {
+          "name": "row_declaration_keyed_read_schema_identities",
+          "declaration": "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?"
+        },
+        {
           "name": "row_declaration_view",
           "declaration": "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?"
         },
@@ -1354,6 +1395,10 @@
         {
           "name": "row_input_acquisition_target",
           "declaration": "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])"
+        },
+        {
+          "name": "row_input_acquisition_target_resource",
+          "declaration": "pub fn row_input_acquisition_target_resource(RowInputAcquisition) -> String"
         },
         {
           "name": "row_input_capture_identity",
@@ -1591,7 +1636,9 @@
             "start_keyed_row_acquisition",
             "start_original_accounted_keyed_row_acquisition",
             "start_row_acquisition",
-            "row_acquisition_listing_capacity"
+            "row_acquisition_listing_capacity",
+            "keyed_row_capture_export_construction_capacity",
+            "row_declaration_keyed_read_schema_identities"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -1698,7 +1745,9 @@
             "pub struct RowRunResponseBorrow {",
             "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
             "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
-            "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
+            "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
+            "pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?",
+            "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?"
           ],
           "attributes": {
             "responsibility": [
@@ -2420,7 +2469,8 @@
             "row_input_acquisition_request_wire",
             "row_input_acquisition_target",
             "start_accounted_row_input_acquisition",
-            "start_row_input_acquisition"
+            "start_row_input_acquisition",
+            "row_input_acquisition_target_resource"
           ],
           "exports": [
             "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]",
@@ -2438,7 +2488,8 @@
             "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]",
             "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])",
             "pub fn start_accounted_row_input_acquisition(RowInputAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
-            "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
+            "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
+            "pub fn row_input_acquisition_target_resource(RowInputAcquisition) -> String"
           ],
           "attributes": {
             "responsibility": [
@@ -4543,7 +4594,8 @@
             "row_input_capture_identity",
             "row_input_capture_schema_geometry",
             "row_keyed_acquisition_resource",
-            "row_run_normal_available"
+            "row_run_normal_available",
+            "keyed_row_capture_dimensions"
           ],
           "exports": [
             "pub fn accept_charged_relation_input_document(RowRun, RowPageCharge, RowInputAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
@@ -4569,7 +4621,8 @@
             "pub fn row_input_capture_schema_geometry(RowInputAcquisition) -> (Int, Int, Int, Int)?",
             "pub fn row_keyed_acquisition_resource(RowKeyedAcquisition) -> String",
             "pub fn row_run_normal_available(RowRun) -> Bool",
-            "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, response_capacity? : Bool) -> Result[RowRun, RowHostIssue]"
+            "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, response_capacity? : Bool) -> Result[RowRun, RowHostIssue]",
+            "pub fn keyed_row_capture_dimensions(RowKeyedSourceCapture) -> (Int, Int)"
           ],
           "attributes": {
             "responsibility": [
@@ -4850,6 +4903,292 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "### Selected-schema capture measurement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bind_declared_file_read_profile",
+            "declared_file_read_profile_construction_inventory",
+            "row_declaration_file_read_physical_source",
+            "row_declaration_file_read_profile",
+            "row_declaration_file_read_profile_matches"
+          ],
+          "exports": [
+            "pub fn bind_declared_file_read_profile(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Result[RowDeclaration, RowMappingIssue]",
+            "pub fn declared_file_read_profile_construction_inventory(RowDeclaration, RowDeclaration, DeclaredFileReadFields, prior_profiles? : Int) -> @execution_relation.PreparationRepresentationUnits?",
+            "pub fn row_declaration_file_read_physical_source(RowDeclaration, @run_publication.PublicationContract) -> (String, String)?",
+            "pub fn row_declaration_file_read_profile(RowDeclaration, String) -> @run_publication.PublicationContract?",
+            "pub fn row_declaration_file_read_profile_matches(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Bool"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Supplementary provider overlap"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Responsibility: existing RowDeclaration/Mapping and vendor Catalog Owners"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "pub fn start_accounted_provider_row_acquisition"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Inputs and outputs: original declaration, selected resource/primary field,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "row_response_configuration_matches("
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Identity: original View output reference, carrier-schema CID and manifest"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "provider_capacity : @execution.ExecutionCapacity?"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Ownership: `RecordDeleteMapping` retains its original declaration/Form and"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical.cleanup_confirmed = Some(cleanup)"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Before any provider page or completion"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Synchronization: this synchronous projection and nominal matching confer no"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "return Err(Physical(InvalidLimits))"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope missing and one short refuse"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Failure: foreign/mutated original members, absent/nullable primary fields,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn close_accounted_row_run"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "False retirement keeps the same debt for retry"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Cancellation: metadata completion is not transport stop or cleanup ACK;"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "9223372036854775807L - retained"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "execution and remaining retention survive evidence generation"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Resources: original declaration strings, selected View, retained Form/page,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Ordinary and listing-report entries keep their existing selection semantics"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Extension: the existing typed Node/RelA bridge forwards the same opaque"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile.mbt",
+                "anchor": "/// The installing declared-file supplier's immutable projection DATA. This"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/salesforce_row_declaration_projection_wbtest.mbt",
+                "anchor": "Salesforce row projection preserves every original declaration and evidence byte"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope survives capture callback completion"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope requires the exact reader cleanup binding"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Verification: strict Common and vendor whitebox counters cover original"
+              },
+              {
+                "path": "src/client_row_source_host/delete_mapping_wbtest.mbt",
+                "anchor": "DELETE Mapping retains original manifest full schema and no proposed-value fields"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_delete_mapping_wbtest.mbt",
+                "anchor": "kintone delete Mapping and request retain the same original App Form and API ID"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-delete-mapping.test.mjs",
+                "anchor": "actual original matching rejects equal foreign declaration, Catalog and incomplete page"
+              },
+              {
+                "path": "src/physical_resources/borrowed_captured_inputs_wbtest.mbt",
+                "anchor": "test \"shared captured inputs borrow exact originals after retained preparation without resetting history\""
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile_wbtest.mbt",
+                "anchor": "test \"declared-file profile binds actual original physical roles and canonical capability before IO\" {"
+              },
+              {
+                "path": "src/client_row_source_host/declared_file_read_profile_wbtest.mbt",
+                "anchor": "test \"declared-file binding rejects equal-CID view replacement in the original mutable declaration\" {"
               }
             ]
           }

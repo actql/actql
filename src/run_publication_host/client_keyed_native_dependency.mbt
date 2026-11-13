@@ -26,6 +26,33 @@ pub fn client_keyed_lookup_native_dependency_bodies(
   max_nodes : Int,
   max_depth : Int,
   physical_source? : (String, String)? = None,
+  before_body? : ((Int, Int, Int) -> Bool)? = None,
+) -> Result[
+  Array[@publication.CapturedEffectDependencyBody],
+  ClientEffectDependencyCaptureIssue,
+] {
+  guard client_keyed_lookup_native_completion(lookup) is Some(completed) else {
+    return Err(ForeignInput)
+  }
+  keyed_lookup_native_dependency_bodies_from_original(
+    lookup, completed, retention, limits, max_nodes, max_depth, physical_source,
+    before_body,
+  )
+}
+
+///|
+// The completion constructor uses its SAME retained original before the
+// reservation becomes a holding/Model Read. The public wrapper above still
+// requires the existing completed-input entrance; no phase flag escapes.
+fn keyed_lookup_native_dependency_bodies_from_original(
+  lookup : ClientKeyedLookupInput,
+  completed : ClientKeyedNativeCompletion,
+  retention : @publication.PublicationContract,
+  limits : @publication.CapturedEffectDependencyLimits,
+  max_nodes : Int,
+  max_depth : Int,
+  physical_source : (String, String)?,
+  before_body : ((Int, Int, Int) -> Bool)?,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -40,7 +67,10 @@ pub fn client_keyed_lookup_native_dependency_bodies(
     max_depth < 1 {
     return Err(Dependency(InvalidLimits))
   }
-  guard client_keyed_lookup_native_completion(lookup) is Some(completed) &&
+  guard !lookup.closed &&
+    lookup.left.lookup_issue is None &&
+    lookup.native_completion is Some(same_completion) &&
+    physical_equal(same_completion, completed) &&
     lookup.left.composed is Some(original) &&
     original.plan.keyed is Some(component) &&
     original.keyed.program is KeyedEffect(prepared) &&
@@ -58,7 +88,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
     return Err(ForeignInput)
   }
   if physical_source is Some((cid, _)) &&
-    @publication.native_file_read_profile_physical_source_contract_cid(profile) !=
+    @publication.file_read_profile_physical_source_contract_cid(profile) !=
     Some(cid) {
     return Err(ForeignInput)
   }
@@ -86,19 +116,23 @@ pub fn client_keyed_lookup_native_dependency_bodies(
     if wire.length() > remaining {
       raise NativeLookupDependencyStop(Dependency(ByteLimit))
     }
-    let bytes = @utf8.encode(wire).length()
-    if bytes > remaining {
-      raise NativeLookupDependencyStop(Dependency(ByteLimit))
-    }
-    let body = require_native_lookup_dependency(
-      @publication.admit_captured_effect_dependency_body(
+    let (body, bytes) = require_native_lookup_dependency(
+      admit_client_effect_dependency_capture_body(
         kind,
         Some(cid),
         wire,
         remaining,
         max_nodes,
         max_depth,
-      ).map_err(issue => Dependency(issue)),
+        before_body,
+        () => {
+          !lookup.closed &&
+          lookup.left.lookup_issue is None &&
+          lookup.native_completion
+          .map(value => physical_equal(value, completed))
+          .unwrap_or(false)
+        },
+      ),
     )
     bodies.push(body)
     seen[key] = wire
@@ -129,6 +163,21 @@ pub fn client_keyed_lookup_native_dependency_bodies(
     cid : String,
     produce : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
   ) -> Unit raise NativeLookupDependencyStop {
+    if before_body is Some(prepare) {
+      let measure = try {
+        let writer = @encode.measuring_writer(remaining, max_nodes, max_depth)
+        produce(writer)
+        @encode.finish_measurement_usage(writer)
+      } catch {
+        _ => raise NativeLookupDependencyStop(Dependency(InvalidBody))
+      }
+      if !prepare(measure.0, measure.1, measure.2) {
+        raise NativeLookupDependencyStop(ConstructionRefused)
+      }
+      if lookup.closed || lookup.left.lookup_issue is Some(_) {
+        raise NativeLookupDependencyStop(ForeignInput)
+      }
+    }
     let wire = try {
       let writer = @encode.writer(remaining, max_nodes, max_depth)
       produce(writer)
@@ -187,7 +236,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
         ("result_retention_policy", left.retention),
         ("native_file_lookup_transport", transport),
         ("native_file_lookup_batch_plan", batch),
-        ("native_file_content_read", profile),
+        (@publication.publication_contract_name(profile), profile),
       ] {
       contract(kind, value)
     }
@@ -228,11 +277,11 @@ pub fn client_keyed_lookup_native_dependency_bodies(
       @execution.relation_schema_cid(right_schema),
       right_bodies.1,
     )
-    guard @lower.node_at(
+    guard @lower.preparation_carrier_at(
         @lower.bound_preparation(original.keyed.owner),
-        component.original.fragments.left_step,
+        component.original.fragments.left_target,
       )
-      is Some(left_node) &&
+      is Some(left_carrier) &&
       @pipeline.input_at(
         @lower.pipeline(@lower.bound_preparation(original.keyed.owner)),
         @acquisition.keyed_join_input(original.keyed.binding.join),
@@ -241,7 +290,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
       return Err(ForeignInput)
     }
     carrier(
-      @lower.node_output_carrier(left_node),
+      left_carrier,
       component.left.output_contract_cid,
       left_identity.relation_schema_cid,
       left_identity.schema_wire,
@@ -263,10 +312,16 @@ pub fn client_keyed_lookup_native_dependency_bodies(
       @canonical.object_field(node, "pipeline") is Some(pipeline) else {
       return Err(ForeignInput)
     }
-    let pipeline_wire = @canonical.stringify_value(
-      pipeline, remaining, max_nodes, max_depth,
-    )
-    append("task_fragment", component.left.logical_cid, pipeline_wire)
+    if before_body is None {
+      let pipeline_wire = @canonical.stringify_value(
+        pipeline, remaining, max_nodes, max_depth,
+      )
+      append("task_fragment", component.left.logical_cid, pipeline_wire)
+    } else {
+      emit("task_fragment", component.left.logical_cid, writer => {
+        @canonical.emit_value(pipeline, writer)
+      })
+    }
     for index, source in native.sources {
       evidence("source_input_logical", source.logical)
       evidence("source_evidence", source.observation)
@@ -356,6 +411,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
             max_nodes,
             retain_catalog=true,
             retained_body_keys=Some(seen),
+            before_body~,
           ).map_err(issue => Static(issue)),
         )
         for (kind, cid, wire) in selected {
@@ -404,6 +460,7 @@ pub fn client_keyed_lookup_native_dependency_bodies(
               remaining,
               max_nodes,
               max_depth,
+              before_body~,
             ).map_err(issue => Static(issue)),
           )
           append(kind, cid, @checked.checked_local_dependency_body_json(body))

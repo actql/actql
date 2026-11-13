@@ -39,7 +39,7 @@ fn check_client_keyed_native_acquisition_profile(
       ),
     ).2
   guard @planning.keyed_source_evidence_facts(keyed.facts) is Some(facts) &&
-    @publication.native_file_read_profile_contract_bindings(profile)
+    @publication.file_read_profile_contract_bindings(profile)
     is Some((source, request_schema, response)) &&
     source == facts.source_view_contract_cid &&
     request_schema == request &&
@@ -81,7 +81,7 @@ fn prepare_client_keyed_native_transport(
     Ok(value) => value
   }
   lookup.growing = true
-  let result = @publication.issue_native_file_lookup_transport(
+  let result = @publication.issue_file_lookup_transport(
     profile, document, max_bytes, max_nodes, max_depth,
   )
   lookup.growing = false

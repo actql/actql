@@ -12,8 +12,8 @@ import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {projectEffectApplication} from '../host-common/observation.mjs';
-import {isEffectApplyPreflightRejection} from './effect-run-apply.mjs';
+import {projectEffectApplication, projectEffectPreflightFailure} from '../host-common/observation.mjs';
+import {isEffectApplyPreflightRejection, effectApplyPreflightFailureObservation} from './effect-run-apply.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
 import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from
@@ -420,7 +420,15 @@ export function createInstalledEffectSite({environmentWire,
         // An entered Model attempt is neither an Effect failure nor a
         // fabricated Effect ledger. Keep its original physical custody and
         // stop before Preview/Effect authorization or any Effect write.
-        return Object.freeze({status: 'needs_reconciliation', modelUnknown: true});
+        let originalFailure;
+        try {
+          const primary = Object.getOwnPropertyDescriptor(opened, 'primaryFailure');
+          if (primary !== undefined && Object.hasOwn(primary, 'value')) {
+            originalFailure = {primaryFailure: primary.value};
+          }
+        } catch { /* Failure inspection cannot change the existing Unknown. */ }
+        return Object.freeze({status: 'needs_reconciliation', modelUnknown: true,
+          ...originalFailure});
       }
       const {execution, checkedHost} = opened ?? {};
       if (execution === undefined || checkedHost === undefined) {
@@ -514,6 +522,7 @@ export function createInstalledEffectSite({environmentWire,
           try { result = await completeInterruptedEffectRun(options, false); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoAttemptedSend') {
+              projectEffectPreflightFailure(facts.observation, facts.ref, effectApplyPreflightFailureObservation(error));
               if (terminalPreSendRefusal(error, options)) {
                 releaseMode = 'retire';
                 return Object.freeze({status: 'failed_without_effect_dispatch'});
@@ -723,6 +732,7 @@ export function createInstalledEffectSite({environmentWire,
           try { result = await completeInterruptedEffectRun(options, true); }
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoAttemptedSend') {
+              projectEffectPreflightFailure(facts.observation, facts.ref, effectApplyPreflightFailureObservation(error));
               if (terminalPreSendRefusal(error, options)) {
                 checkpointJournal.completeResume(claimed.claim,
                   {status: 'failed'});

@@ -154,6 +154,30 @@ owner in the installed runtime. Local does not load a second Run Host Core
 runtime or recompile the Program to compare CIDs. The separately distributed
 `@actql/run-host-core` keeps its standalone API and private handle custody.
 
+Ordinary materializing Local uses finite initial Request/Run memory ceilings
+of 512 MiB retained and 512 MiB execution by default. Select both together with
+`installation: {requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824}}`.
+Common validates the pair and derives checking and collection row ceilings from
+the same effective selection. These ceilings are not prepaid memory: the same
+original owner reserves and grows only actual constructor/live-output demand.
+Explicit Host row limits can narrow this bound; omitted optional dimensions
+remain unresolved. Wire, per-row, batch, work and saved retention/current limits
+remain independent. Exceeding any applicable limit refuses rather than silently
+expanding the budget. Reopen the installation with the same memory selection;
+Saved reads retain their original Run and do not re-execute the Program.
+
+For source-free ordinary Local Compute, select
+`installation: {sourceFreeMaxWork: 30000000}` (or `sourceFreeMaxWork` on the HTTP
+Host). The positive signed 32-bit value is captured as Host installation DATA
+and bound to the same Request before its original Plan and fragment requests
+are constructed. Omission keeps the Core default of 20,000,000. Each applicable
+fragment/sequence has its own cumulative counter; this is not a global Run or
+Host-lifetime quota, a compiler/check budget, or a change to managed-memory
+admission. Acquired Source, Model and Effect work policies remain separate.
+A successful computation can still refuse a later copy under the selected
+retained/workspace policy. Reopen with the same installation selection;
+reading an original Saved Result does not resubmit or re-execute its Program.
+
 The source-free Values profile derives its row demand from the checked authored
 input and closed outputs. For a single-task Values Program a Host may explicitly
 select `installation: {valuesMaxRows: 121}` (or `valuesMaxRows` in the HTTP Host
@@ -161,8 +185,8 @@ options), with a positive signed 32-bit integer budget. This representation boun
 a workload admission guarantee; there is no separate 10,000-row product cap. The
 already checked Program uses that selected ceiling in compilation,
 compute/import/export capacity and Named Result row-index workspace; cells,
-values, work, wire and the 512 MiB
-ceiling remain independently bounded. Sort scratch still consumes that finite
+values, work, wire and the selected memory
+ceilings remain independently bounded. Sort scratch still consumes that finite
 workspace and can require more than one index per row. This option does not
 enable acquired, Graph, INFER, multi-task or Effect profiles. A configured
 profile's original is saved with request acceptance and bound into the Run's

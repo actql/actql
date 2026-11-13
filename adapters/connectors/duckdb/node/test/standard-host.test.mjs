@@ -11001,12 +11001,14 @@ async function exerciseStrategyGraph(
       expected: [{id: 1}, {id: 2}, {id: 3}]},
     {name: 'append-work-short', program: appendBoundary, work: 25, space: 10},
     {name: 'append-space-short', program: appendBoundary, work: 26, space: 9},
+    // Shared snapshot names reduce logical control to 75; the unchanged
+    // cumulative Append/handoff/filter work is 78 and remains the bound.
     {name: 'append-chain-exact', program: appendChainBoundary,
-      work: 81, space: 10, expected: [{id: 2}, {id: 3}]},
+      work: 78, space: 10, expected: [{id: 2}, {id: 3}]},
     {name: 'append-chain-work-short', program: appendChainBoundary,
-      work: 80, space: 10},
+      work: 77, space: 10},
     {name: 'append-chain-space-short', program: appendChainBoundary,
-      work: 81, space: 9},
+      work: 78, space: 9},
     {name: 'set-work-exact', program: setWorkBoundary, work: 19, space: 100,
       expected: [{id: 1}]},
     {name: 'set-work-short', program: setWorkBoundary, work: 18, space: 100},
@@ -11082,6 +11084,9 @@ async function exerciseStrategyGraph(
         assert(execution.failure.cause, `${name}: preserve the typed failure`);
         const resourceCause = fixture.strategyFixtureRetainedRowLimit(
           execution.failure.cause) ||
+          (name === 'cross-work-short' &&
+            fixture.strategyFixtureRetainedControlWorkLimit(
+              execution.failure.cause)) ||
           (name === 'append-chain-work-short' &&
             fixture.strategyFixtureRetainedInputLimit(
               execution.failure.cause));

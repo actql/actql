@@ -46,6 +46,13 @@ that the selected workload fits. Other work, cell, value, wire and the 512 MiB
 capacity limits still apply. The installed Host saves the selected profile's
 original with request acceptance and binds it to the Run; attaching to an
 already successful Run does not re-execute it under current configuration.
+For source-free ordinary Local Compute, `installation: {sourceFreeMaxWork: 30000000}`
+explicitly selects a positive signed 32-bit work limit. Core keeps its existing
+20,000,000 default when omitted. This is a cumulative limit for each applicable
+fragment/sequence counter, not a global Run/Host quota or a memory grant.
+Compiler/check work, acquired Source, Model and Effect policies are separate.
+The same checked Plan binds the selected limit before execution; an installed
+budget does not guarantee that the workload fits the independent 512 MiB limits.
 See the [Local Host profile](https://github.com/actql/actql/blob/main/packages/local-node/README.md) for scope and HTTP options.
 
 Embedded Local and Remote HTTP expose the same public submit, lookup, Run

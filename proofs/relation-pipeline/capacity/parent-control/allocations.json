@@ -33,6 +33,10 @@
         {
           "name": "retained_completion",
           "type": "(() -> Bool)?"
+        },
+        {
+          "name": "cleanup_continuation",
+          "type": "(() -> Int64)?"
         }
       ]
     },

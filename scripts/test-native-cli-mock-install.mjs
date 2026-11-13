@@ -14,11 +14,14 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
-import {mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
+import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases} from './native-approval-performance.mjs';
+import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, ...extra] = process.argv.slice(2);
-assert(input && extra.length === 0, 'usage: test-native-cli-mock-install.mjs <fixed-CLI-RC>');
+const measureResources = extra.length === 1 && extra[0] === '--measure-approval-resources';
+assert(input && (extra.length === 0 || measureResources),
+  'usage: test-native-cli-mock-install.mjs <fixed-CLI-RC> [--measure-approval-resources]');
 const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
 const source = checkoutState(repository);
 assert(source.clean, 'Installed mock acceptance requires clean source');
@@ -42,16 +45,33 @@ const env = {PATH: process.env.PATH, HOME: join(root, 'home'), TMPDIR: join(root
 const execute = promisify(execFile);
 let receipt;
 async function run(command, args, cwd = root, timeoutMs = 120_000) {
-  const started = Date.now();
+  const started = process.hrtime.bigint();
+  const resources = measureResources && command === process.execPath && args[1] === 'approve'
+    ? join(root, `approval-resources-${records.length}.txt`) : undefined;
+  const observedCommand = resources ? '/usr/bin/time' : command;
+  const observedArgs = resources ? [...(process.platform === 'darwin'
+    ? ['-l', '-p', '-o', resources] : ['--verbose', '--output', resources]), command, ...args] : args;
   let result;
   try {
-    result = {...await execute(command, args, {cwd, env, timeout: timeoutMs,
-      killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024}), code: 0, signal: null};
+    const options = {cwd, env, timeout: timeoutMs, killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024};
+    const captured = command === process.execPath
+      ? await captureNativeMockCommand(observedCommand, observedArgs,
+        {...options, stderrPath: join(root, `command-${records.length}.stderr`)})
+      : await execute(observedCommand, observedArgs, options);
+    result = {...captured, code: 0, signal: null};
   } catch (error) {
     result = {code: error.code ?? null, signal: error.signal ?? null,
-      killed: error.killed ?? false, stdout: error.stdout ?? '', stderr: error.stderr ?? ''};
+      killed: error.killed ?? false, stdout: error.stdout ?? '', stderr: error.stderr ?? '',
+      ...(error.exitCode !== undefined ? {childExitCode: error.exitCode} : {})};
   }
-  const record = {command, args, cwd, timeoutMs, elapsedMs: Date.now() - started, ...result};
+  const wallNs = Number(process.hrtime.bigint() - started);
+  assert(Number.isSafeInteger(wallNs) && wallNs >= 0);
+  const record = {command, args, cwd, timeoutMs, elapsedMs: wallNs / 1e6, wallNs, ...result};
+  if (resources && result.code === 0 && result.signal === null) {
+    try { record.resources = approvalResources(await readFile(resources, 'utf8'), process.platform); }
+    catch (error) { record.resourceObservationIssue = error.message; }
+    record.measurement = {sampler: '/usr/bin/time', wallIncludesSampler: true};
+  }
   records.push(record);
   // Persist before any assertion, including the first unsupported binding.
   await writeFile(join(root, 'commands.json'), `${JSON.stringify(records, null, 2)}\n`);
@@ -84,6 +104,14 @@ try {
   for (const template of mockTemplates) scenarios.push(await runNativeCliMockScenario({root, template, launcherTimings: 'required',
     run: (args, cwd) => run(process.execPath, [launcher, ...args], cwd)}));
   assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips');
+  for (const scenario of scenarios) {
+    const approvals = scenario.commands.filter(record => record.args.includes('approve'));
+    assert.equal(approvals.length, 1);
+    const approval = approvals[0];
+    approval.validationCalls = approvalCallCounts(approval);
+    approval.phases = approvalPhases(approval, {requireCompleted: false});
+    assertApprovalCallCounts(approval.validationCalls, approval.acceptance.writes.length);
+  }
   assert.deepEqual(await readFile(join(platformRoot, 'bin/actql-native-client')), binary);
   assert.deepEqual(checkoutState(repository), source);
   receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'local-mock-approval-recovery',

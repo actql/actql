@@ -253,3 +253,106 @@ test "local Result Artifact keeps local producer and Invocation separate" {
     is Err(ProducerMismatch),
   )
 }
+
+///|
+test "local Result metadata geometry matches original evidence and Artifact emitters" {
+  let local_definition = ordering_test_cid("1")
+  let local_invocation = ordering_test_cid("2")
+  let policy = ordering_test_cid("8")
+  let retention = seal_publication_contract(
+    "result_retention_policy",
+    "{\"version\":\"actql-result-retention-policy/0.1\"," +
+    "\"retention_contract_cid\":\"" +
+    ordering_test_cid("9") +
+    "\",\"effective_data_policy_cid\":\"" +
+    policy +
+    "\",\"available_until\":\"2026-09-18T01:00:00.000Z\"," +
+    "\"delete_by\":\"2026-09-18T02:00:00.000Z\"," +
+    "\"extension_ceiling_at\":\"2026-09-18T03:00:00.000Z\"," +
+    "\"metadata_retention_policy_cid\":\"" +
+    ordering_test_cid("a") +
+    "\",\"metadata_delete_by\":\"2026-09-18T04:00:00.000Z\"," +
+    "\"clock_contract_cid\":\"" +
+    ordering_test_cid("b") +
+    "\"}",
+    8192,
+    64,
+    5,
+  ).unwrap()
+  for inputs in [[], [ordering_test_cid("c"), ordering_test_cid("d")]] {
+    let geometry = local_result_metadata_construction_geometry(
+      local_definition,
+      local_invocation,
+      ordering_test_cid("3"),
+      ordering_test_cid("4"),
+      ordering_test_cid("5"),
+      inputs,
+      ordering_test_cid("6"),
+      policy,
+      "common-host",
+      ordering_test_cid("7"),
+      publication_contract_identity(retention),
+      3,
+      16384,
+      128,
+      5,
+    ).unwrap()
+    let evidence = issue_local_result_occurrence_evidence(
+      local_definition,
+      ordering_test_cid("3"),
+      ordering_test_cid("4"),
+      ordering_test_cid("5"),
+      inputs,
+      ordering_test_cid("6"),
+      policy,
+      "common-host",
+      ordering_test_cid("7"),
+      16384,
+      128,
+      5,
+    ).unwrap()
+    let artifact = issue_complete_local_result_artifact(
+      local_definition, local_invocation, evidence, retention, 3, 16384, 128, 5,
+    ).unwrap()
+    let contracts = [
+      result_ordering_derivation_contract(evidence),
+      result_ordering_evidence_contract(evidence),
+      artifact,
+    ]
+    assert_eq(geometry.length(), contracts.length())
+    for index, original in contracts {
+      let (bytes, nodes, depth) = publication_contract_wire_usage(original).unwrap()
+      let identity_field = ",\"" +
+        publication_contract_identity_field(original) +
+        "\":\"" +
+        publication_contract_identity(original) +
+        "\""
+      assert_eq(
+        geometry[index].bytes + @utf8.encode(identity_field).length(),
+        bytes,
+      )
+      assert_eq(geometry[index].nodes + 1, nodes)
+      assert_eq(geometry[index].depth, depth)
+    }
+    assert_true(
+      local_result_metadata_construction_geometry(
+        local_definition,
+        local_invocation,
+        ordering_test_cid("3"),
+        ordering_test_cid("4"),
+        ordering_test_cid("5"),
+        inputs,
+        ordering_test_cid("6"),
+        policy,
+        "common-host",
+        ordering_test_cid("7"),
+        publication_contract_identity(retention),
+        3,
+        1,
+        128,
+        5,
+      )
+      is Err(IssuanceEncoding),
+    )
+  }
+}

@@ -598,6 +598,13 @@ fn advance_model(
     state.reservations.get(state.progress.slot) is Some(reservation) else {
     return @bounded.Failed(CallEntryRefused, 1, 1)
   }
+  // Historical/restored outcome branches above consume their original DATA
+  // without another answer file. Only an actual NEW Mock Slot needs answers,
+  // before any new IO duty, attempt or entered-call responsibility is claimed.
+  if provider.invocation is OriginalMock(original) &&
+    original.require_original() is Err(_) {
+    return @bounded.Failed(InvalidProvider, 1, 1)
+  }
   match claim_model_slot_io(state) {
     Err(issue) => return @bounded.Failed(issue, 1, 1)
     Ok(_) => ()

@@ -1,7 +1,7 @@
 import {openSync, fstatSync, readSync, closeSync} from 'node:fs';
 import {resolve, relative, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy}
+import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, snapshotRequestMemory}
   from './installed-host-policy.mjs';
 
 // Ordinary in-process initialization trusts the supported platform and caller.
@@ -23,7 +23,8 @@ function copyOwnValues(value) {
     // unknown fields for the existing semantic validator; do not drop them.
     const supplied = value[name];
     const field = name === 'hostCapacityPolicy' ? snapshotHostCapacityPolicy(supplied)
-      : name === 'hostLookupExecutionPolicy' ? snapshotHostLookupExecutionPolicy(supplied) : supplied;
+      : name === 'hostLookupExecutionPolicy' ? snapshotHostLookupExecutionPolicy(supplied)
+      : name === 'requestMemory' ? snapshotRequestMemory(supplied) : supplied;
     Object.defineProperty(result, name, {value: ['consentRefs', 'runners', 'sourceProfilePaths', 'effectProfilePaths'].includes(name) &&
       Array.isArray(field) ? Object.freeze([...field]) : field, enumerable: property.enumerable,
       writable: false, configurable: false});

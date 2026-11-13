@@ -7,6 +7,23 @@ fn NativeLocalReviewerProofMaterials::original_signing_submission_scope_after_cu
   self : NativeLocalReviewerProofMaterials,
 ) -> Result[String, NativeLocalReviewerProofMaterialsIssue] {
   let reviewer = self.reviewer
+  // Only the initial key's SAME current captured Read may supply immutable
+  // Host material. A configured/legacy caller retains its complete old path;
+  // a selected expired or foreign capture must refuse rather than fall back.
+  let capture = if self.key is InitialReviewerKey(key) &&
+    reviewer.approval_scope is SavedApproval(saved) &&
+    key.original.original_read is Some((capture, _)) {
+    if !physical_equal(saved.capture, capture) {
+      return Err(ProofUnavailable)
+    }
+    match key.original.check_host_current() {
+      Ok(_) => ()
+      Err(issue) => return Err(ProofKey(SigningCustody(issue)))
+    }
+    Some(capture)
+  } else {
+    None
+  }
   // Keep the large retained intent/admission inside this read phase; only its
   // existing Submission identity is returned to the final current fence.
   let read = fn() -> Result[String, NativeLocalReviewerProofMaterialsIssue] {
@@ -18,6 +35,8 @@ fn NativeLocalReviewerProofMaterials::original_signing_submission_scope_after_cu
         reviewer.connection,
         reviewer.request,
         ReadRunMaterials,
+        capture~,
+        fresh_account=true,
       ) {
       Ok(value) => value
       Err(issue) => return Err(ProofOriginal(issue))
@@ -27,7 +46,7 @@ fn NativeLocalReviewerProofMaterials::original_signing_submission_scope_after_cu
         reviewer.host.epoch,
         reviewer.reference,
         authority.scope,
-        authority.current_for(reviewer.host.journal, reviewer.request),
+        authority.current_signing_for(reviewer.host.journal, reviewer.request),
         (reviewer.now)(),
       ) {
       Ok(Submitted(value)) => value

@@ -53,6 +53,20 @@ a complete Program with mock fixtures that runs without credentials. The
 [Quickstart](getting-started/quickstart.md) starts from
 `actql init --template churn-risk-mock`.
 
+Fresh Native Local projects select the existing finite retained-record count
+of 100,000 for the Journal and Store. Journal snapshot storage remains bounded
+at 8 MiB; the count is not an allocation or a promise that every record fits.
+Each different admitted intent consumes its original retained slot and bytes.
+Checks and Saved reads do not consume a fresh-intent slot, and an original
+reference replay keeps its existing identity. Expiry does not erase history.
+Existing projects keep their original configuration; initialization does not
+resize an admitted owner. Operators can select smaller finite
+`native.local.journal_record_limit` and `journal_snapshot_bytes` values before
+adoption. Exhaustion reports `CapacityExceeded` before a fresh append. Preserve
+the retained project and use a separately initialized project for new work;
+do not delete Journal history or keys to recover capacity or recreate Saved
+results. The legacy absolute-profile initializer keeps its eight-record limit.
+
 ## Quick queries
 
 ```text

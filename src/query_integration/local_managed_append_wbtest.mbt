@@ -245,7 +245,9 @@ test "ordinary append filter chain retains both outputs with one scratch envelop
   // Audited Append cleanup retires its scratch before the next child starts;
   // the separate built-in chain lifetime fixtures observe that ordering and
   // retain cleanup responsibility on false/error, retry and cancellation.
-  // Keep both child handle allowances and the two preparation metadata handles.
+  // Both children are audited bounded leaves; the generic sequence scratch
+  // is not constructed. Keep its output retention floor, both child handle
+  // allowances, and the two preparation metadata handles.
   // These are reservation envelopes, not a measured physical-memory bound.
   assert_true(retained_children > 0L)
   assert_true(peak_scratch < summed_scratch)
@@ -253,7 +255,7 @@ test "ordinary append filter chain retains both outputs with one scratch envelop
   assert_eq(
     capacity.execution_bytes,
     Int64::max(
-      base.execution_bytes,
+      base.retained_bytes,
       retained_children + peak_scratch + 512L + 512L,
     ),
   )
@@ -547,11 +549,13 @@ test "ordinary append filter chain admits exact work and workspace" {
   // Append: 17 input transitions, one field, three rows with one begin,
   // one cell, and four output-charge transitions, then finalization = 37
   // steps. One handoff precedes filter's 40 steps, reporting 78 total.
-  // Filter control costs 3 input rows + 3 * (1 row + 3 snapshot + 8
-  // predicate units) + 4 output-name units = 43. Thus 37 + 1 + 43 = 81.
+  // Filter control costs 3 input rows + 3 * (1 row + 1 shared snapshot + 8
+  // predicate units) + 4 output-name units = 37. Logical control is 75;
+  // the three id name references no longer traverse six bytes. The original
+  // step/handoff work remains 78, so that independent cumulative bound wins.
   // Workspace peaks at ten: append's metadata and rows, or filter's three
   // metadata slots, three input roots, snapshot, frame and continuation.
-  verify_append_filter_resources(81, 10, true)
-  verify_append_filter_resources(80, 10, false)
-  verify_append_filter_resources(81, 9, false)
+  verify_append_filter_resources(78, 10, true)
+  verify_append_filter_resources(77, 10, false)
+  verify_append_filter_resources(78, 9, false)
 }

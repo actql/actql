@@ -677,7 +677,7 @@ pub fn relation_restore_construction_inventory(
       // records created while quoting; RowField/RowDeclaredView descriptors;
       // ordering/index tuples, callback controls and their array growth.
       records: 32L + 128L * view_count + 8L * field_count,
-      record_references: 64L + 256L * view_count + 16L * field_count,
+      record_references: 65L + 256L * view_count + 16L * field_count,
       record_words: 32L + 128L * view_count + 8L * field_count,
       reference_arrays: 24L + 16L * view_count,
       reference_items: 64L + 128L * view_count + 8L * field_count,

@@ -3357,7 +3357,7 @@ pub fn strategy_host_managed_result_import_cancel(
 pub fn strategy_host_output_export_next(
   value : StrategyHostOutputExport,
 ) -> String? raise NodeHostFailure {
-  strategy_publication_output_result(value.core.next())
+  strategy_publication_output_result(value.core.next(batch=true))
 }
 
 ///|
@@ -3366,7 +3366,7 @@ pub fn strategy_host_output_export_advance(
   value : StrategyHostOutputExport,
   quantum : Int,
 ) -> (String?, Bool, Int, @publication_host.PublicationOutputExportIssue?) {
-  let (progress, work, issue) = value.core.advance(quantum)
+  let (progress, work, issue) = value.core.advance(quantum, batch=true)
   match progress {
     Some(progress) => (progress.batch, progress.complete, work, None)
     None => (None, false, work, issue)

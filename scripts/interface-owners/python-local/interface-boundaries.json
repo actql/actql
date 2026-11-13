@@ -78354,12 +78354,16 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "271023bf4cfa33ad9e95f65b67a1cceed54953e66f8bbaa6729ee931e861d358",
+      "sha256": "7e13c5a807b84f6b20d1965b4a66eec75446a5de04c8b2533e01889fbe2d6e02",
       "exports": [],
       "operations": [
         {
           "name": "local_aql_intent_input",
           "declaration": "local_aql_intent_input ( root : String , text : String , format : String , child : @ argparse . Matches , ) - > Json raise ClientStop"
+        },
+        {
+          "name": "local_captured_run_operation_allowed",
+          "declaration": "local_captured_run_operation_allowed ( original : @ local_host . NativeLocalJournalCapture , settings : LocalHostSettings , scope : String , operation : String , ) - > Bool"
         },
         {
           "name": "local_generation_cid",
@@ -78391,7 +78395,7 @@
         },
         {
           "name": "local_submit_allowed",
-          "declaration": "local_submit_allowed ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , scope : String , ) - > Bool"
+          "declaration": "local_submit_allowed ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , scope : String , business ? : LocalCommandBusinessPreparation ?"
         },
         {
           "name": "local_utc_now",
@@ -78419,7 +78423,8 @@
             "local_submission_start",
             "local_submit_allowed",
             "local_utc_now",
-            "local_utc_now_ffi"
+            "local_utc_now_ffi",
+            "local_captured_run_operation_allowed"
           ],
           "exports": [],
           "attributes": {

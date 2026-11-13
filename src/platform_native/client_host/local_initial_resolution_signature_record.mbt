@@ -134,6 +134,7 @@ fn store_local_initial_resolution_signature_locked(
   approval? : @checkpoint.PreparedEffectApprovalProof? = None,
   attested? : @checkpoint.AdmittedResolution? = None,
   attested_limits? : @checkpoint.WireLimits = native_checkpoint_limits(),
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if !host.journal.transaction_active || host.journal.fenced {
     return Err(Fenced)
@@ -252,7 +253,8 @@ fn store_local_initial_resolution_signature_locked(
   }
   // The wire and its small authenticated packet spend the same existing
   // per-Run grant bucket. No new reservation, quota or physical holding is made.
-  let (_, _, runs) = match host.local_grant_custody(host.epoch.crypto) {
+  let (_, _, runs) = match
+    host.local_grant_custody(host.epoch.crypto, capture~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

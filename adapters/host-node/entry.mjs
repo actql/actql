@@ -175,7 +175,7 @@ async function runPublishedCapturedStrategyTarget({
 // apply or publication success. The exact captured owner remains with the
 // caller for Result pins, Preview, and subsequent durable Effect progress.
 async function runCapturedEffectComputationTarget({
-  owner, options, control, composition,
+  owner, options, control, composition, cleanup,
 }) {
   const moon = await composition.loadRuntime();
   if (typeof moon.clientProgramLocalEffectHostRuntime !== 'function') {
@@ -188,7 +188,7 @@ async function runCapturedEffectComputationTarget({
     throw new TypeError('InvalidCapturedEffectComputation');
   }
   return runCapturedStrategyTarget({setup, options, control, composition,
-    results: {publishCheckedResults: false}});
+    results: {publishCheckedResults: false}, cleanup});
 }
 
 // Build-time composition selects a concrete MoonBit artifact and its matching
@@ -203,13 +203,13 @@ export function createNodeHostEntry(loadRuntime, install) {
     runCapturedStrategy: (setup, options = {}, signal, observer, cleanup) =>
       runCapturedStrategyTarget({setup, options, composition,
         control: {signal, observer}, results: {publishCheckedResults: true}, cleanup}),
-    runCapturedInternalStrategy: (setup, options = {}, signal, observer) =>
+    runCapturedInternalStrategy: (setup, options = {}, signal, observer, cleanup) =>
       runCapturedStrategyTarget({setup, options, composition,
-        control: {signal, observer}, results: {publishCheckedResults: false}}),
+        control: {signal, observer}, results: {publishCheckedResults: false}, cleanup}),
     runCapturedEffectComputation: (
-      owner, options = {}, signal, observer,
+      owner, options = {}, signal, observer, cleanup,
     ) => runCapturedEffectComputationTarget({owner, options, composition,
-      control: {signal, observer}}),
+      control: {signal, observer}, cleanup}),
     runPublishedCapturedStrategy: (
      setup, publication, options = {}, signal, observer, retainExecution, taskObservation,
      preparationHolder, beforePublication,

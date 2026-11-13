@@ -219,3 +219,34 @@ test "multiple values nodes share row and cell preparation ceilings" {
     is Err(@lowering_relation.ValuesFailure(1, @lowering_relation.ValuesLimit)),
   )
 }
+
+///|
+test "original input empty prefix preserves its owner and ordinary negative refusal" {
+  let owner = vector_expression_pipeline("{\"literal\":1}")
+  let limits = sequence_limits()
+  let prefix = @lowering_relation.prepare_sequence_prefix(
+    owner,
+    -1,
+    limits,
+    original_input=Some(0),
+  ).unwrap()
+  assert_true(physical_equal(@lowering_relation.sequence_owner(prefix), owner))
+  assert_eq(@lowering_relation.sequence_count(prefix), 0)
+  for
+    (terminal, input) in [
+      (-1, None),
+      (-2, Some(0)),
+      (0, Some(0)),
+      (-1, Some(999)),
+    ] {
+    assert_true(
+      @lowering_relation.prepare_sequence_prefix(
+        owner,
+        terminal,
+        limits,
+        original_input=input,
+      )
+      is Err(@lowering_relation.SequenceLimit),
+    )
+  }
+}

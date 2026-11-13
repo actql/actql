@@ -372,6 +372,62 @@ foreign Account state cannot reuse the prior Allow. This count is neither a
 permission nor a durable receipt, and does not change the original delivery
 claim, quota, byte exposure, COMMIT Unknown, non-resend or cleanup duties.
 
+### Bounded installed READ workspace and physical writes
+
+An installed Local Result READ admits one original ClientRequestPreparation
+using the installation's existing requestMemory policy and physical supplier.
+It does not borrow the retired producing Run, initialization spare capacity or
+a Host-wide RAM pool. Concurrent reads of the same Result retain distinct
+Request originals. The existing fixed Common controls cover this exclusive
+READ phase and its finite caller roles; variable constructors reserve on that
+same capacity. A refusal never becomes an unfunded delivery fallback.
+
+Metadata file readers observe the actual extent on the same original FD before
+allocating bytes or decoding text. Native metadata readers project scalar text
+extents first, reserve the same READ capacity, then select the original row
+under that extent predicate. A changed selected row refuses rather than being
+treated as Native absence followed by a file fallback. An unrelated sibling
+row change does not invalidate this original selection.
+
+Wire bytes bound the next decoder's node demand only during construction. Its
+upper bound is not a retained node count or a cumulative charge for finished
+scratch. After admission, the caller observes the same opaque contract's
+cached usage and immutable representation without another parse, hash or
+issuer. Closed inventory and holding producers observe their validated field
+and array occupancy. The existing Resource reconcile operation replaces ended
+scratch with those actual retained roles. Service, delivery and selected Store
+Index bodies can be different originals even when their CIDs match.
+
+The Store's temporary schema decode tree ends before its metadata consumer;
+its wire and field-name holding remain. The prepared serializer has a distinct
+schema tree and field-array copy. Observation of that same serializer replaces
+its constructor peak with its retained representation. No completed decoder
+or duplicate schema peak remains charged as though it were still live. Failed
+construction or physical cleanup keeps its original peak until the same
+reader/FD duty acknowledges retirement.
+
+The output window is bounded by actual payload, frame and wire limits and the
+original ledger's available retention and execution capacity. Raw-row demand
+grows geometrically before parse and serialization; rows within the acquired
+high-water use local counters. Staged immutable text is flushed before growth.
+A larger row may reduce the window or use one funded write. These Common
+representation tariffs are not an exact managed-heap allocation claim.
+
+Several canonical rows may share one physical sink write. Their concatenated
+bytes, digest and confirmed prefix remain unchanged. Each actual write and
+finish retains the original current Account, grant, expiry, cancellation and
+exposure checks. A callback can change authority before the next protected
+write; there is no authorization cache spanning that callback. Outgoing byte
+backing is not reused while a callback can retain it.
+
+The READ owner retires only after delivery and its original physical-reader
+and terminal-record cleanup duties have settled. A completed record alone
+cannot release pending reader custody; a throwing or unknown cleanup status
+keeps the same parent retained. Completed entries leave the owner map. Raw or
+manual services without an installed workspace retain their one-row route.
+This connection does not replace the original claim, receipt, durability,
+non-resend or cleanup owners.
+
 ### Selected publication metadata observation
 
 The initial Result resolution already acquires and admits one selected Index

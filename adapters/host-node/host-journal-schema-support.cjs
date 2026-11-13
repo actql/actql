@@ -5,6 +5,19 @@
 // construction, not a SQL parser, format authority or operational issuer.
 // Automatic native indexes have NULL SQL and are checked separately.
 const sql = Object.freeze([
+  `CREATE TABLE client_keyed_lookup_originals (
+  namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL,
+  run_definition_cid TEXT NOT NULL REFERENCES client_requests(run_definition_cid),
+  batch_plan_cid TEXT NOT NULL,
+  call_slot_cid TEXT NOT NULL,
+  batch_index INTEGER NOT NULL CHECK (batch_index >= 0),
+  batch_count INTEGER NOT NULL CHECK (batch_count > 0 AND batch_index < batch_count),
+  activation_wire TEXT NOT NULL,
+  page_wire TEXT,
+  PRIMARY KEY (namespace_id, authority_scope_cid, run_definition_cid, call_slot_cid),
+  UNIQUE (namespace_id, authority_scope_cid, run_definition_cid, batch_plan_cid, batch_index)
+) STRICT`,
   "CREATE TABLE client_local_execution_owners (\n  namespace_id TEXT NOT NULL,\n  authority_scope_cid TEXT NOT NULL,\n  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,\n  owner_token TEXT NOT NULL CHECK (length(owner_token) = 36),\n  anchor_identity TEXT NOT NULL CHECK (length(anchor_identity) = 36),\n  anchor_device TEXT NOT NULL CHECK (length(anchor_device) BETWEEN 1 AND 32),\n  anchor_inode TEXT NOT NULL CHECK (length(anchor_inode) BETWEEN 1 AND 32)\n) STRICT",
   "CREATE TABLE client_cancellation_custody (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)\n        ) STRICT",
   "CREATE TABLE client_cancellation_operations (\n          namespace_id TEXT NOT NULL,\n          authority_scope_cid TEXT NOT NULL,\n          cancel_id TEXT NOT NULL,\n          run_definition_cid TEXT NOT NULL REFERENCES client_requests(run_definition_cid),\n          expected_revision INTEGER NOT NULL CHECK (expected_revision >= 0),\n          intent_fingerprint_cid TEXT NOT NULL,\n          outcome_wire TEXT,\n          outcome_cid TEXT,\n          CHECK ((outcome_wire IS NULL) = (outcome_cid IS NULL)),\n          PRIMARY KEY (namespace_id, authority_scope_cid, cancel_id)\n        ) STRICT",

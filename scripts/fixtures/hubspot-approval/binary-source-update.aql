@@ -1,0 +1,9 @@
+SELECT a.id AS id, a.name AS left_name, b.id AS right_id, b.name AS right_name, @next_name AS next_name
+FROM hubspot.companies AS a
+JOIN hubspot.companies_peer AS b ON a.id = b.id
+|> WHERE id = @record_id
+|> ASSERT UNIQUE BY (id)
+|> RESULT answer
+|> SELECT id, left_name AS previous_name, next_name
+|> RESULT updates
+|> EFFECT UPDATE hubspot.companies ID id SET (name = next_name);

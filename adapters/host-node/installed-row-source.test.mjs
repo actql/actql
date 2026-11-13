@@ -55,7 +55,22 @@ test('ordinary row binding is issued by the original preparation owner and reche
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
   preparation.registry = checked(moon.clientPrepareInstalledSequenceContracts(
     preparation.registry, preparation.values, preparation.fragment, preparation.ordered));
+  const requestIdentity = moon.clientProgramRequestIdentity(preparedProgram,
+    'sha256:' + 'b'.repeat(64), 'original-source-request', 'sha256:' + 'c'.repeat(64));
+  assert.ok(requestIdentity);
+  preparation.requestIdentity = requestIdentity;
   const prepared = await adapter.prepare(preparation);
+  const original = {checkedOwner: preparedProgram, requestIdentity, occurrence: prepared.occurrence};
+  assert.deepEqual(adapter.ordinaryRecoveryBinding(prepared, original), expectedBinding);
+  const foreignRequest = moon.clientProgramRequestIdentity(preparedProgram,
+    'sha256:' + 'b'.repeat(64), 'foreign-source-request', 'sha256:' + 'c'.repeat(64));
+  assert.ok(foreignRequest);
+  assert.throws(() => adapter.ordinaryRecoveryBinding(prepared,
+    {...original, requestIdentity: foreignRequest}), {code: 'InstalledSourcePreparationMismatch'});
+  assert.throws(() => adapter.ordinaryRecoveryBinding(prepared,
+    {...original, checkedOwner: {}}), {code: 'InstalledSourcePreparationMismatch'});
+  assert.throws(() => adapter.ordinaryRecoveryBinding(prepared,
+    {...original, occurrence: {...prepared.occurrence, input: 1}}), {code: 'InstalledSourcePreparationMismatch'});
   assert.deepEqual(adapter.ordinaryRecoveryBinding(prepared), expectedBinding);
   assert.equal(Object.isFrozen(adapter.ordinaryRecoveryBinding(prepared)), true);
   assert.throws(() => adapter.ordinaryRecoveryBinding({...prepared}),

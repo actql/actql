@@ -35,6 +35,25 @@ export function snapshotHostCapacityPolicy(value) {
   } catch { fail('PolicySnapshot'); }
 }
 
+// Only a detached representation of the finite pair. Common validates the
+// installed envelope and the SAME original supplier admits actual capacity.
+const requestMemorySnapshots = new WeakSet();
+export function snapshotRequestMemory(value) {
+  if (value === undefined) return undefined;
+  if (value !== null && typeof value === 'object' && requestMemorySnapshots.has(value)) return value;
+  const invalid = () => {throw Object.assign(new TypeError('InvalidInstalledRequestMemory'),
+    {code: 'InvalidInstalledRequestMemory'});};
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      Object.getPrototypeOf(value) !== Object.prototype) invalid();
+  const entries = Object.entries(value);
+  if (entries.length !== 2 || !entries.some(([name]) => name === 'retainedBytes') ||
+      !entries.some(([name]) => name === 'executionBytes') ||
+      entries.some(([, amount]) => !Number.isSafeInteger(amount) || Object.is(amount, -0))) invalid();
+  const snapshot = Object.freeze(Object.fromEntries(entries));
+  requestMemorySnapshots.add(snapshot);
+  return snapshot;
+}
+
 const lookupSnapshots = new WeakSet();
 
 // Validate finite lookup ceilings at the Host boundary, never from caller
@@ -125,6 +144,34 @@ export function localResourceLookupExecutionPolicy(moon, original, selected) {
     max_total_response_bytes: Math.min(policy.max_total_response_bytes, Number(transfer))});
 }
 
+// The materializing Local Task and SDK collection share one installed byte
+// policy. Common derives its necessary row ceiling; this projection grants
+// no allocation or permission. Streaming keeps per-row/wire/batch backpressure,
+// not collection's cumulative retained-row/byte ceiling.
+export function localResourceResultReadLimits(moon, requestMemory) {
+  const memory = snapshotRequestMemory(requestMemory);
+  const original = moon.clientLocalResourcePolicyOriginal();
+  const limits = moon.clientLocalPreparationResourceLimits(original,
+    memory === undefined ? undefined : BigInt(memory.retainedBytes),
+    memory === undefined ? undefined : BigInt(memory.executionBytes));
+  const maxRows = moon.clientLocalResourcePolicyRowCeiling(original,
+    memory === undefined ? undefined : BigInt(memory.retainedBytes),
+    memory === undefined ? undefined : BigInt(memory.executionBytes));
+  if (!Array.isArray(limits) || limits.length !== 6 ||
+      [limits[3], limits[4]].some(value => typeof value !== 'bigint' ||
+        value < 1n || value > BigInt(Number.MAX_SAFE_INTEGER)) ||
+      !Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 2147483647) {
+    fail('LocalResultReadPolicyProjection');
+  }
+  const maxReadWireBytes = Math.min(10 * 1024 * 1024, Number(limits[3]));
+  const maxRetainedValueBytes = Number(limits[4]);
+  return Object.freeze({maxReadWireBytes,
+    maxRowWireBytes: Math.min(1024 * 1024, maxReadWireBytes),
+    maxRowRetainedValueBytes: Math.min(1024 * 1024, maxRetainedValueBytes),
+    maxRetainedValueBytes, maxRows, maxBatchRows: 1000,
+    maxBatchRetainedValueBytes: Math.min(10 * 1024 * 1024, maxRetainedValueBytes)});
+}
+
 export function selectInstalledHostEnvironment(moon, baseWire, selection, lookupSelection) {
   const policy = snapshotHostCapacityPolicy(selection);
   const lookup = snapshotHostLookupExecutionPolicy(lookupSelection);
@@ -149,11 +196,14 @@ export function selectInstalledHostEnvironment(moon, baseWire, selection, lookup
 // Generic Hosts and independently installed Effect/streaming profiles retain
 // their original selector and policy identity.
 export function selectInstalledLocalMaterializationEnvironment(
-  moon, baseWire, selection, lookupSelection,
+  moon, baseWire, selection, lookupSelection, requestMemory,
 ) {
   const explicit = snapshotHostCapacityPolicy(selection);
+  const memory = snapshotRequestMemory(requestMemory);
   const original = moon.clientLocalResourcePolicyOriginal();
-  const rows = moon.clientLocalResourcePolicyRowCeiling(original);
+  const rows = moon.clientLocalResourcePolicyRowCeiling(original,
+    memory === undefined ? undefined : BigInt(memory.retainedBytes),
+    memory === undefined ? undefined : BigInt(memory.executionBytes));
   if (!Number.isSafeInteger(rows) || rows < 1 || rows > 2147483647) {
     fail('LocalResourcePolicyProjection');
   }

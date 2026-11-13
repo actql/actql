@@ -42,6 +42,57 @@ priv enum IdentityWireCursor {
 }
 
 ///|
+// The three writers and fixed-width metadata coexist with the one live value
+// traversal. Keep this structural count shared by the quote and reservation;
+// value-node admission is a different dimension from these container slots.
+fn identity_scan_fixed_workspace_slots(
+  width : Int,
+  payload_wire : RowWireLimits,
+  logical_wire : RowWireLimits,
+) -> Int? {
+  guard checked_row_slots_add(payload_wire.max_nodes, logical_wire.max_nodes)
+    is Some(writer_slots) &&
+    checked_row_slots_add(writer_slots, payload_wire.max_nodes)
+    is Some(writer_slots) &&
+    width >= 0 &&
+    width <= (2147483647 - writer_slots) / 8 else {
+    return None
+  }
+  Some(writer_slots + width * 8)
+}
+
+///|
+/// Structural slots for this original table's identity scan. Immutable
+/// metadata only: this neither observes current nor allocates or funds a scan.
+/// Actual per-transition backing still uses its construction-capacity quote.
+pub fn completed_relation_identity_scan_workspace_slots(
+  source : CompletedOutput,
+  values : ValueLimits,
+  payload_wire : RowWireLimits,
+  logical_wire : RowWireLimits,
+) -> Int? {
+  guard source.table is Some(table) &&
+    identity_scan_fixed_workspace_slots(
+      IndexedRows::column_count(table),
+      payload_wire,
+      logical_wire,
+    )
+    is Some(fixed) &&
+    completed_output_export_workspace_slots(
+      values,
+      if payload_wire.max_depth >= logical_wire.max_depth {
+        payload_wire
+      } else {
+        logical_wire
+      },
+    )
+    is Some(traversal) else {
+    return None
+  }
+  checked_row_slots_add(fixed, traversal)
+}
+
+///|
 pub fn start_completed_relation_identity_scan(
   source : CompletedOutput,
   max_rows : Int,
@@ -75,13 +126,9 @@ pub fn start_completed_relation_identity_scan(
   // Reserve metadata and a conservative envelope for the three writers'
   // open key/frame storage before creating them. Traversal frames reserve
   // incrementally from the remaining allowance. No payload copy is retained.
-  guard checked_row_slots_add(payload_wire.max_nodes, logical_wire.max_nodes)
-    is Some(writer_slots) &&
-    checked_row_slots_add(writer_slots, payload_wire.max_nodes)
-    is Some(writer_slots) &&
-    width >= 0 &&
-    width <= (2147483647 - writer_slots) / 8 &&
-    reserve_slots(workspace, writer_slots + width * 8) else {
+  guard identity_scan_fixed_workspace_slots(width, payload_wire, logical_wire)
+    is Some(fixed_slots) &&
+    reserve_slots(workspace, fixed_slots) else {
     return Err(Admission(CaptureLimit))
   }
   let prepared = if source_input is Some(_) {

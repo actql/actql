@@ -16,6 +16,7 @@ test "formal capture export retains checked raw response and owner through clean
   assert_true(@model.release_verified_model_capture(saved))
   assert_true(!cleanup(original).unwrap())
   assert_true(@model.model_capture_export_identity(stream) is None)
+  assert_true(@model.model_capture_export_wire_usage(stream) is None)
   let wire = StringBuilder()
   let mut last = 0L
   let mut done = false
@@ -32,6 +33,13 @@ test "formal capture export retains checked raw response and owner through clean
   }
   assert_true(done)
   let body = wire.to_string()
+  let (bytes, nodes, depth) = @model.model_capture_export_wire_usage(stream).unwrap()
+  assert_eq(bytes, @utf8.encode(body).length())
+  assert_true(nodes > 0 && depth > 0)
+  assert_eq(
+    @model.model_capture_export_wire_usage(stream),
+    Some((bytes, nodes, depth)),
+  )
   assert_true(body.contains("\"version\":\"actql-model-capture-bundle/0.1\""))
   assert_true(
     body.contains("\"structured_response\":{\"reason\":null,\"risk\":\"high\"}"),
@@ -47,6 +55,7 @@ test "formal capture export retains checked raw response and owner through clean
   assert_true(@model.cleanup_model_capture_export(stream).unwrap())
   assert_true(@model.cleanup_model_capture_export(stream).unwrap())
   assert_true(@model.model_capture_export_identity(stream) is None)
+  assert_true(@model.model_capture_export_wire_usage(stream) is None)
   assert_true(cleanup(original).unwrap())
   assert_eq(calls.val, 1)
 }
