@@ -36,6 +36,9 @@ export const nativeRelationCaptureTestFiles = Object.freeze([
 const nativeRequestEffectHandoffTestFile =
   'src/platform_native/client_host/native_test/request_effect_test.mbt';
 
+const nativeJournalMetadataOriginalReadTestFile =
+  'src/platform_native/client_host/journal_metadata_original_read_physical_scoped_wbtest.mbt';
+
 // These two independent fixtures use the same existing 8192-page backing.
 // All other selected Arena cases retain their original 256-page declarations.
 export function nativeCoreScopedBackingPages(source) {
@@ -44,10 +47,11 @@ export function nativeCoreScopedBackingPages(source) {
     ? 8192 : 256;
 }
 
-// Keep the established profile prefixes. Only this one new public-API case
-// joins them; its package siblings and client_host retain their prior profile.
+// Keep the established profile prefixes. Explicit original-Read cases join
+// them without replacing their package siblings' ordinary allocation profile.
 export function nativeCoreScopedAllocationProfile(source) {
   return source === nativeRequestEffectHandoffTestFile || source === nativeRelationWorkTestFile ||
+    source === nativeJournalMetadataOriginalReadTestFile ||
     source === nativeClientFileResponseTestFile ||
     source === 'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt' ||
@@ -71,6 +75,7 @@ export function nativeCoreScopedTestEnvironment({source, index}) {
 // must not be replaced globally. Both profiles remain required.
 export const nativeScopedTestFiles = Object.freeze([
   nativeRequestEffectHandoffTestFile,
+  nativeJournalMetadataOriginalReadTestFile,
   'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt',
   'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt',
   // Its first-member control uses that same real Request/Arena facility.

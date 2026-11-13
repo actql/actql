@@ -10,6 +10,17 @@ import {nativeCoreTestSelection, portableMoonTestCount, nativeCoreHttpArguments,
   nativeCoreScopedTestEnvironment, nativeCoreCheckpointRequired} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
+test('Journal metadata original Read selects its scoped allocator without changing sibling profiles', () => {
+  const source = 'src/platform_native/client_host/journal_metadata_original_read_physical_scoped_wbtest.mbt';
+  assert.equal(nativeScopedTestFiles.filter(file => file === source).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(source), 'scoped-review-values');
+  for (const sibling of ['run_plan_fresh_construction_native_wbtest.mbt',
+    'run_plan_cold_construction_native_wbtest.mbt', 'run_effect_receipt_wbtest.mbt']) {
+    assert.equal(nativeCoreScopedAllocationProfile('src/platform_native/client_host/' + sibling), 'runtime-values');
+  }
+  assert.deepEqual(nativeCoreScopedTestEnvironment({source, index: 0}), {});
+});
+
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-test-selection-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
