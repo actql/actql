@@ -4011,6 +4011,8 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
     const phase = process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE;
     const rowState = process.env.ACTQL_TEST_PARTIAL_EFFECT_ROW;
     const refusal = process.env.ACTQL_TEST_PARTIAL_EFFECT_REFUSAL;
+    const fenceRecoveredStage = phase === 'recover' &&
+      process.env.ACTQL_TEST_PARTIAL_EFFECT_FENCE === 'recovered_stage';
     const directory = process.env.ACTQL_TEST_HOST_CRASH_ROOT;
     const recordPath = join(directory, 'partial-effect-observation.json');
     const fixture = await effectFixture();
@@ -4086,6 +4088,14 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
         const stage = await managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned}),
           () => liveStage === undefined);
         recoveredStage = liveStage = stage;
+        if (fenceRecoveredStage) {
+          // Advance this child's test clock across the SAME original lease
+          // after its real Stage exists. No sleep, new claim or weaker guard.
+          const originalNow = Date.now;
+          const lease = facts.checkpointJournal.currentResume(facts.view.checkpointCid);
+          const offset = lease.leaseExpiresMs + 1 - originalNow();
+          t.mock.method(Date, 'now', () => originalNow() + offset);
+        }
         if (phase === 'seed') {
           const dispatch = stage.apply.dispatchRow;
           const crash = () => {
@@ -4150,15 +4160,24 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
         commonCustody = owner;facts.retainExecution(owner);
       }});
     }, async resume(facts) {
-      const result = await installed.resume(facts);
-      if (result.result?.issuedSet !== undefined) {
-        const wires = issuedEffectSetReceiptWires(result.result.issuedSet,
-          recoveredStage.apply.ledger, recoveredStage.preview);
-        receipts.push(JSON.parse(wires.setWire));
-        memberReceipts.push(...wires.memberWires.map(wire => JSON.parse(wire)));
+      try {
+        const result = await installed.resume(fenceRecoveredStage ? {...facts,
+          retainExecution(owner) {
+            commonCustody = owner;
+            Reflect.apply(facts.retainExecution, facts, [owner]);
+          }} : facts);
+        if (result.result?.issuedSet !== undefined) {
+          const wires = issuedEffectSetReceiptWires(result.result.issuedSet,
+            recoveredStage.apply.ledger, recoveredStage.preview);
+          receipts.push(JSON.parse(wires.setWire));
+          memberReceipts.push(...wires.memberWires.map(wire => JSON.parse(wire)));
+        }
+        return result;
+      } finally {
+        // The original invocation has ended on both return and refusal. Drop
+        // only this fixture's observer aliases before its retained owner drains.
+        liveStage = recoveredStage = undefined;
       }
-      liveStage = recoveredStage = undefined;
-      return result;
     }};
     const observationConfiguration = (read, commit) => {
       const body = JSON.parse(effectCommitConfiguration(read, commit));
@@ -4240,6 +4259,19 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
     assert.deepEqual(original.submissionRef, submissionRef);
     assert.deepEqual(original.admission.ref, saved.ref);
     const run = await client.attach(saved.ref);
+    if (fenceRecoveredStage) {
+      await waitFor(() => diagnostics.some(event => event.name === 'effect_resume_failed' &&
+        event.detail?.code === 'ResumeClaimStale'));
+      await host.close();
+      assert.equal(liveStage, undefined, 'the failed invocation relinquishes its original Stage alias');
+      assert.equal(recoveredStage, undefined);
+      assert.notEqual(commonCustody, undefined, 'the actual installed Site transferred its original custody');
+      assert.equal(commonCustody.cleanupPending(), false,
+        'the first Host close released that same original custody');
+      assert.deepEqual(sends, [], 'a fenced continuation cannot send another row');
+      assert.equal(captureCount, 0, 'recovery must not recapture the original input');
+      return;
+    }
     let state;
     await waitFor(async () => {
       state = await run.status();
