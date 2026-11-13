@@ -396,7 +396,7 @@ test('the explicit Resident cold-build budget leaves the other preparation windo
   const optionsStart=source.indexOf('const args=process.argv.slice(2)'),
     optionsEnd=source.indexOf('const target=',optionsStart);
   const prepareStart=source.indexOf('const entries={};'),
-    prepareEnd=source.indexOf("assert.equal(run('git'",prepareStart);
+    prepareEnd=source.indexOf('  return {entries,components,httpReceipt,portableReceipt};',prepareStart);
   const timingStart=source.indexOf('function timedPreparation('),
     timingEnd=source.indexOf('mkdirSync(destination',timingStart);
   assert(optionsStart>=0 && optionsEnd>optionsStart && prepareStart>=0 && prepareEnd>prepareStart);
