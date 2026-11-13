@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {cpSync,existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
+import {chmodSync,cpSync,existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {preparedNativeCommand,preparedNativeComponents,preparedNativeHttpReceipt} from './native-preparation-originals.mjs';
@@ -148,6 +148,7 @@ function compiledCommandFixture(t,entry='native_runtime_bundle') {
   const generated=put(join(directory,'derived-read-source/original.h'),'exact original generated allocator header');
   const executable=put(join(directory,`emission/native/release/build/cmd/${entry}/${entry}.exe`),
     'explicit inert compiled-command port, never executed');
+  chmodSync(executable,0o700);
   const generatedC=put(executable.slice(0,-4)+'.c','explicit original generated C port');
   const selected=[context.clang,'-O2','-o',executable,generatedC];
   put(join(directory,'commands.json'),JSON.stringify([selected]));
