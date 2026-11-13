@@ -34,7 +34,7 @@ if (${enabled}) {
   assert.deepEqual(records.map(record => record.counts.priorArtifactChecks), [0, 1]);
   assert.deepEqual(records.map(record => record.counts.archivedFiles), [1, 0]);
   for (const record of records) {
-    assert.equal(record.version, 'actql-pipeline-execution-phase-timing/1');
+    assert.equal(record.version, 'actql-pipeline-execution-phase-timing/0.1');
     assert.equal(record.target, 'js');
     assert.equal(record.lastPhase, 'receiptIO');
     assert.equal(record.counts.cases, 1);

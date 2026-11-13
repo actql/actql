@@ -58,7 +58,7 @@ function executionPhaseTiming(target) {
         // Diagnostic failure must never replace an original result or throw,
         // including a thrown undefined. This does not authorize any execution.
         try {
-          const record = { version: 'actql-pipeline-execution-phase-timing/1',
+          const record = { version: 'actql-pipeline-execution-phase-timing/0.1',
             part: part || null, target, sequence, returned, lastPhase: current,
             milliseconds: phases, counts, totalMilliseconds: settle() - started };
           const bytes = JSON.stringify(record) + '\n';
