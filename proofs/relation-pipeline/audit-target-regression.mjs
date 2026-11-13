@@ -3,6 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, symlinkS
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import {mutationPartIds} from './proof-parts.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = resolve(process.argv[2] ?? join(root, '.artifacts/relation-pipeline'));
@@ -11,7 +12,8 @@ const directory = resolve(process.argv[2] ?? join(root, '.artifacts/relation-pip
 const parent = join(root, '.artifacts/relation-pipeline-target-regression');
 mkdirSync(parent, { recursive: true });
 const output = mkdtempSync(join(parent, 'run-'));
-const baselineSlots = existsSync(join(directory, 'base-js-L-M0.json')) ? ['base-js-L-M0.json', 'base-js-L-M1.json'] : ['base-js.json'];
+const partBaselines = mutationPartIds.map(id => `base-js-${id}.json`);
+const baselineSlots = partBaselines.some(path => existsSync(join(directory, path))) ? partBaselines : ['base-js.json'];
 const reports = new Set([...baselineSlots, 'js.json', 'wasm.json', 'native.json']);
 const cases = [
   { name: 'healthy-three-targets', replacements: {}, expected: null },
