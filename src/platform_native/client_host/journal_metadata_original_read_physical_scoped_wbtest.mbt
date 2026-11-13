@@ -13,6 +13,23 @@ priv struct JournalMetadataOriginalReadFixture {
 }
 
 ///|
+suberror JournalMetadataFixtureDomainFailure {
+  JournalMetadataFixtureDomainFailure(
+    String,
+    @bootstrap.NativeBackedExecutionIssue
+  )
+}
+
+///|
+impl Show for JournalMetadataFixtureDomainFailure with fn output(self, logger) {
+  let JournalMetadataFixtureDomainFailure(stage, issue) = self
+  logger.write_string("Journal metadata fixture ")
+  logger.write_string(stage)
+  logger.write_string(" domain pending: ")
+  logger.write_string(@debug.to_string(issue))
+}
+
+///|
 fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixture raise {
   let mib = 1048576L
   let host = @arena.prepare_installed_arena_host(
@@ -21,9 +38,9 @@ fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixtur
     1L,
     256L * mib,
     {
-      planning_work: 1024,
-      attempts: 512,
-      holdings: 256,
+      planning_work: 4096,
+      attempts: 2048,
+      holdings: 1024,
       transfer_bytes: 16L * mib,
       retained_bytes: 0L,
       execution_bytes: 256L * mib,
@@ -45,7 +62,8 @@ fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixtur
     })
     .unwrap() {
     @arena.PreparedDomain(value) => value
-    @arena.PendingDomain(_, _) => fail("metadata original Read domain pending")
+    @arena.PendingDomain(_, issue) =>
+      raise JournalMetadataFixtureDomainFailure("Read", issue)
   }
   host.transfer_domain(read_domain).unwrap()
   let sqlite_domain = match
@@ -60,8 +78,8 @@ fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixtur
     })
     .unwrap() {
     @arena.PreparedDomain(value) => value
-    @arena.PendingDomain(_, _) =>
-      fail("metadata original SQLite domain pending")
+    @arena.PendingDomain(_, issue) =>
+      raise JournalMetadataFixtureDomainFailure("SQLite", issue)
   }
   host.transfer_domain(sqlite_domain).unwrap()
   host.leave_backing_borrow_scope(backing).unwrap()
