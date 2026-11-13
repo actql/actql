@@ -60,7 +60,8 @@ test('macOS remote scheduling retains every exact original step in the same two 
   assert(after.native.find(group=>group.name==='runtime').steps.some(step=>step.id==='native-remote'));
   const remote=after['native-macos'].find(group=>group.steps.some(step=>step.id==='native-remote'));
   const http=after['native-macos'].find(group=>group.steps.some(step=>step.id==='native-http'));
-  assert.notEqual(remote.name,http.name);assert.equal(remote.steps.at(-1).id,'native-remote');
+  assert.notEqual(remote.name,http.name);
+  assert.deepEqual(remote.steps.slice(-2).map(step=>step.id),['native-remote','native-http-controls']);
   assert.equal(http.steps.find(step=>step.id==='native-http').timeoutMinutes,115);
 });
 
@@ -108,3 +109,4 @@ test('private Query output forwards the complete original default-profile select
   assert(!command.includes('--strip')&&!command.includes('--release'));
   await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env:{...env,FIXTURE_SHORT:'1'},targetDirectory}),/coverage mismatch/u);
 });
+import './native-http-phases.test.mjs';

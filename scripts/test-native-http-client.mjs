@@ -1,4 +1,5 @@
 import {prepareNativeResidentPortableCore} from './native-resident-portable-preparation.mjs';
+import {prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
 import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
 import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
@@ -45,7 +46,7 @@ import {pinnedEngineContracts} from
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 if (focus !== undefined &&
-    !['effect-control-replay', 'remote-client-poll', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
+    !['http-packages', 'http-controls', 'effect-control-replay', 'remote-client-poll', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
       'http-constructor-retirement', 'resident-review-regressions',
       'resident-review-provider', 'resident-review-checkpoint',
       'resident-review-write'].includes(focus)) {
@@ -1050,7 +1051,10 @@ verification: try {
     host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
   });
-  const moon = join(
+  const compilerScope = ['http-packages', 'http-controls'].includes(focus)
+    ? prepareNativeHttpCompilerScope(fileURLToPath(new URL('../', import.meta.url)), root) : undefined;
+  const nativeBuildRoot = compilerScope?.targetDirectory ?? fileURLToPath(new URL('../_build', import.meta.url));
+  const moon = compilerScope?.moon ?? join(
     process.env.MOON_HOME ?? '',
     'bin',
     'moon',
@@ -1353,7 +1357,8 @@ verification: try {
   });
   const testEnvironment = {
     ...process.env,
-    ...(focus === undefined || focus === 'core-source' || focus === 'resident-review-write' ||
+    ...(compilerScope?.environment ?? {}),
+    ...(focus === undefined || focus === 'http-packages' || focus === 'http-controls' || focus === 'core-source' || focus === 'resident-review-write' ||
         focus === 'resident-review-regressions'
       ? {ACTQL_TEST_NATIVE_EFFECT_CREATE_FIXTURE: '1'} : {}),
     ...(effectReviewOrigin ? {
@@ -1479,7 +1484,7 @@ verification: try {
     }
     break verification;
   }
-  for (const packagePath of [
+  for (const packagePath of focus === 'http-controls' ? [] : [
     'src/platform_native/filesystem',
     'src/platform_native/sqlite',
     'src/platform_native/publication_store',
@@ -1507,6 +1512,7 @@ verification: try {
       nativeStandardTransferCompletions.length = 0;
       await runNativeQueryTests(moon, 'http-client', {
         cwd: new URL('../', import.meta.url), env: testEnvironment,
+        ...(compilerScope ? {targetDirectory: compilerScope.targetDirectory} : {}),
       });
       await Promise.all(nativeStandardTransferCompletions);
       assert.equal(standardGateway.pending(), 0);
@@ -1573,6 +1579,7 @@ verification: try {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
     }
   }
+  if (focus === 'http-packages') break verification;
   // The control replay case must use a fresh finite peer: original report
   // bytes and accepted counts belong to this case, not the earlier client test.
   await effectCheckpointServer.close();
@@ -1587,8 +1594,8 @@ verification: try {
     'build', '--target', 'native', 'src/cmd/native_remote_credential',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
   const credentialExecutable = join(
-    new URL('../', import.meta.url).pathname,
-    '_build/native/debug/build/cmd/native_remote_credential/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_credential/' +
       'native_remote_credential.exe',
   );
   const credentialHelp = execFileSync(
@@ -1689,8 +1696,8 @@ verification: try {
     'build', '--target', 'native', 'src/cmd/native_remote_site',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
   const executable = join(
-    new URL('../', import.meta.url).pathname,
-    '_build/native/debug/build/cmd/native_remote_site/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_site/' +
       'native_remote_site.exe',
   );
   const journalPath = join(root, 'native-site-agent.sqlite3');
@@ -1787,8 +1794,8 @@ verification: try {
     'src/cmd/native_remote_application_site',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
   const applicationExecutable = join(
-    new URL('../', import.meta.url).pathname,
-    '_build/native/debug/build/cmd/native_remote_application_site/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_application_site/' +
       'native_remote_application_site.exe',
   );
   const applicationVersion = await new Promise(resolve => {
@@ -2147,28 +2154,28 @@ verification: try {
     'src/cmd/native_remote_coordinator',
   ], {cwd: repositoryRoot, stdio: 'inherit'});
   const transferReceiver = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_remote_transfer_receive/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_transfer_receive/' +
       'native_remote_transfer_receive.exe',
   );
   const applicationInspector = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_remote_application_inspect/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_application_inspect/' +
       'native_remote_application_inspect.exe',
   );
   const nativeDirectTransferSite = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_direct_transfer_site/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_direct_transfer_site/' +
       'native_direct_transfer_site.exe',
   );
   const nativeTransferStoreSite = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_transfer_store_site/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_transfer_store_site/' +
       'native_transfer_store_site.exe',
   );
   const nativeRemoteCoordinator = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_remote_coordinator/' +
+    nativeBuildRoot,
+    'native/debug/build/cmd/native_remote_coordinator/' +
       'native_remote_coordinator.exe',
   );
 

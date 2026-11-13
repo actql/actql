@@ -1220,6 +1220,14 @@ an offered preparation, the original standalone builder is retained; focused
 HTTP review builders keep their original explicit compiler scheduling. This
 keeps concurrent CI consumers from rewriting the prepared shared JS artifact.
 
+The macOS HTTP harness assigns its original complete package/Query loop and
+its subsequent CLI control sequence to the existing two background workers.
+Each phase owns its peers, Stores, pinned compiler copy and Native output tree;
+only completed verified preparation inputs are shared. Nested test wrappers use
+the same phase-local compiler entrance. The joined HTTP result requires both
+phases, retaining the original parent deadline, flags, assertions and cleanup.
+The complete standalone/Linux entrance still executes both phases in order.
+
 No Native preparation is transplanted across runners: existing descriptors bind
 physical compiler aliases and generated toolchain inputs. A mismatched original
 still refuses; there is no metadata rewrite or implicit rebuild fallback.
