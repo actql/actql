@@ -12,6 +12,52 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', impor
 const original = JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json', import.meta.url), 'utf8'));
 const background = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
 
+test('normal Native object caching selects only the four mandatory ordinary jobs and retains their complete Core command', () => {
+  assert.equal(workflow.on.workflow_dispatch.inputs.ordinary_native_c_cache, undefined);
+  const steps = workflow.jobs.core.steps;
+  const prepare = steps.find(step => step.id === 'native-c-object-cache');
+  const restore = steps.find(step => step.id === 'native-c-object-cache-restore');
+  const save = steps.find(step => step.name === 'Save ordinary Native C objects');
+  assert(prepare && restore && save);
+  const evaluate = (target, partition) => runInNewContext(
+    prepare.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, ''), {
+      matrix: {target, partition},
+      contains: (values, value) => values.includes(value), fromJSON: JSON.parse,
+    });
+  for (const target of ['js', 'wasm', 'native'])
+    for (const partition of ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped'])
+      assert.equal(evaluate(target, partition), target === 'native' && partition.endsWith('/4'));
+  const action = 'actions/cache/';
+  const pin = '@caa296126883cff596d87d8935842f9db880ef25';
+  assert.equal(restore.uses, action + 'restore' + pin);
+  assert.equal(save.uses, action + 'save' + pin);
+  assert.equal(restore.if, "${{ steps.native-c-object-cache.outcome == 'success' }}");
+  assert(save.if.includes('success()') && save.if.includes("outputs.cache-hit != 'true'"));
+  assert.equal(restore.with.key, '${{ steps.native-c-object-cache.outputs.key-prefix }}${{ github.sha }}');
+  assert.equal(restore.with['restore-keys'], '${{ steps.native-c-object-cache.outputs.key-prefix }}');
+  assert.equal(save.with.key, '${{ steps.native-c-object-cache-restore.outputs.cache-primary-key }}');
+  assert.equal(restore.with.path, save.with.path);
+  assert.equal(restore.with.path.trim(), [
+    '${{ runner.temp }}/actql-core-ordinary-c-cache',
+    '!${{ runner.temp }}/actql-core-ordinary-c-cache/tmp',
+    '!${{ runner.temp }}/actql-core-ordinary-c-cache/compiler.log',
+  ].join('\n'));
+  assert(prepare.run.includes('nativeCoreCCachePin'));
+  assert(prepare.run.includes('pin.archiveSha256') && prepare.run.includes('pin.binarySha256'));
+  assert(prepare.run.includes('SDKSettings.json') === false, 'actual compiler/SDK checking belongs to the wrapper');
+  assert(prepare.run.includes('--strip-components=1'));
+  assert(prepare.run.includes('ACTQL_TEST_NATIVE_CORE_CCACHE=') &&
+    prepare.run.includes('ACTQL_TEST_NATIVE_CORE_CCACHE_DIR='));
+  assert(prepare.run.includes('process.env.ImageVersion') && prepare.run.includes('toolchain.json'));
+  const compile = steps.findIndex(step => step.name === 'Test common core');
+  assert(steps.indexOf(prepare) < steps.indexOf(restore) && steps.indexOf(restore) < compile);
+  assert(steps.indexOf(save) > compile);
+  const source = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.equal(source.split('ACTQL_TEST_NATIVE_CORE_CCACHE=').length - 1, 1);
+  assert(steps[compile].run.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
+  assert.equal(workflow.jobs.core['timeout-minutes'], "${{ matrix.target == 'native' && 90 || 30 }}");
+});
+
 test('every original Native command and environment has one same-VM execution owner', () => {
   for (const [family, obligations] of Object.entries(original.jobs)) {
     validateGroups(background[family]);

@@ -398,6 +398,57 @@ jobs:
         run: |
           test "$(uname -s)" = Darwin
           test "$(uname -m)" = arm64
+      - name: Prepare pinned ordinary Native C object caching
+        id: native-c-object-cache
+        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/4","2/4","3/4","4/4"]'), matrix.partition) }}
+        env:
+          CACHE_PARTITION: ${{ matrix.partition }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          import {appendFileSync, chmodSync, lstatSync, mkdirSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          import {nativeCoreCCachePin as pin} from './scripts/native-core-c-compiler.mjs';
+          const tool = join(process.env.RUNNER_TEMP, 'actql-core-ordinary-c-cache-tool');
+          const cache = join(process.env.RUNNER_TEMP, 'actql-core-ordinary-c-cache');
+          mkdirSync(tool, {mode: 0o700});
+          mkdirSync(cache, {mode: 0o700});
+          const archive = join(tool, 'original.tar.gz');
+          execFileSync('/usr/bin/curl', ['--fail', '--location', '--silent', '--show-error',
+            '--connect-timeout', '20', '--max-time', '60', pin.url, '--output', archive],
+            {stdio: 'inherit', timeout: 65000});
+          const hash = value => createHash('sha256').update(value).digest('hex');
+          assert.equal(hash(readFileSync(archive)), pin.archiveSha256);
+          execFileSync('/usr/bin/tar', ['-xzf', archive, '-C', tool, '--strip-components=1',
+            `ccache-${pin.version}-darwin/ccache`], {stdio: 'inherit', timeout: 10000});
+          const binary = join(tool, 'ccache'), stat = lstatSync(binary);
+          assert(stat.isFile() && !stat.isSymbolicLink());
+          assert.equal(hash(readFileSync(binary)), pin.binarySha256);
+          chmodSync(binary, 0o700);
+          execFileSync(binary, ['--version'], {stdio: 'inherit', timeout: 5000});
+          const image = process.env.ImageVersion ?? 'unreported-image';
+          assert(/^[A-Za-z0-9_.-]+$/u.test(image));
+          assert(/^[1-4]\/4$/u.test(process.env.CACHE_PARTITION));
+          const profile = hash(Buffer.concat([readFileSync('toolchain.json'),
+            readFileSync('scripts/native-core-c-compiler.mjs')]));
+          const prefix = `ordinary-c-v1-${process.platform}-${process.arch}-${image}-${profile}-${process.env.CACHE_PARTITION}-`;
+          appendFileSync(process.env.GITHUB_OUTPUT, `key-prefix=${prefix}\n`);
+          appendFileSync(process.env.GITHUB_ENV,
+            `ACTQL_TEST_NATIVE_CORE_CCACHE=${binary}\nACTQL_TEST_NATIVE_CORE_CCACHE_DIR=${cache}\n`);
+          NODE
+      - name: Restore ordinary Native C objects
+        id: native-c-object-cache-restore
+        if: ${{ steps.native-c-object-cache.outcome == 'success' }}
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ${{ runner.temp }}/actql-core-ordinary-c-cache
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/tmp
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/compiler.log
+          key: ${{ steps.native-c-object-cache.outputs.key-prefix }}${{ github.sha }}
+          restore-keys: ${{ steps.native-c-object-cache.outputs.key-prefix }}
       - name: Install existing scoped component producer dependencies
         if: ${{ matrix.target == 'native' && matrix.partition == 'scoped' }}
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
@@ -472,6 +523,32 @@ jobs:
               node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json non_sdk_source_restore_wbtest.mbt
             fi
           fi
+      - name: Report ordinary Native C cache results
+        if: ${{ !cancelled() && steps.native-c-object-cache.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import {existsSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
+          const text = existsSync(log) ? readFileSync(log, 'utf8') : '';
+          const results = {};
+          for (const match of text.matchAll(/ Result: (\w+)/gu))
+            results[match[1]] = (results[match[1]] ?? 0) + 1;
+          // Each key is separate: auxiliary storage results are not compilations.
+          console.log('Current-job compiler cache result keys:', JSON.stringify(results));
+          const links = [...text.matchAll(/^ACTQL_NATIVE_C_LINK (.+)$/gmu)].map(match => JSON.parse(match[1]));
+          console.log('Current-job fresh links:', JSON.stringify({attempts: links.length,
+            succeeded: links.filter(value => value.status === 0 && !value.signal && !value.error).length}));
+          NODE
+      - name: Save ordinary Native C objects
+        if: ${{ success() && steps.native-c-object-cache.outcome == 'success' && steps.native-c-object-cache-restore.outcome == 'success' && steps.native-c-object-cache-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ${{ runner.temp }}/actql-core-ordinary-c-cache
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/tmp
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/compiler.log
+          key: ${{ steps.native-c-object-cache-restore.outputs.cache-primary-key }}
       - name: Collect only current original Native compiler crash cause metadata
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         timeout-minutes: 1
