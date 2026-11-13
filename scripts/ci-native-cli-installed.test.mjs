@@ -4,7 +4,9 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
-import {nativeCliTestCohort, requireNativeCliCiInputs, requireNativeHostAuthorizationReceipt}
+import {spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {nativeCliTestCohort, requireNativeCliCiInputs, requireNativeHostAuthorizationReceipt, runInstalledNativeCliTransport}
   from './ci-native-cli-installed.mjs';
 import {admitNativeReleaseCohort} from './native-cli-release.mjs';
 import {gateJobs, gateJobRequired, selectTargets} from './ci-targets.mjs';
@@ -17,6 +19,7 @@ test('ordinary Native CLI installed acceptance is required by the final full CI 
   assert.match(job.if, /outputs\.profile == 'full'/u);
   assert.doesNotMatch(job.if, /always\(|failure\(|cancelled\(/u);
   assert.equal(job['continue-on-error'], undefined);
+  assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with['fetch-depth'], 0);
   assert(gateJobs.includes('native-cli-installed'));
   assert(jobs.check.needs.includes('native-cli-installed'));
   const full = selectTargets(['packages/native-cli/bin/actql.mjs']);
@@ -29,6 +32,56 @@ test('ordinary Native CLI installed acceptance is required by the final full CI 
   assert(execution); assert.equal(execution.if, undefined);
   assert.equal(execution['continue-on-error'], undefined);
   assert.match(execution.run, /runner\.temp/u);
+});
+
+test('the Client gate requires the installed Remote transport owner and retires only its duplicate compiler', () => {
+  const obligation = JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json', import.meta.url))).remoteClientTransport;
+  assert.equal(jobs[obligation.previousJob], undefined);
+  assert(jobs.client.needs.includes(obligation.owner));
+  assert(jobs.check.needs.includes(obligation.owner));
+  assert.equal(obligation.owner, 'native-cli-installed');
+  const source = readFileSync(new URL('./test-native-client.mjs', import.meta.url));
+  assert.equal(createHash('sha256').update(source).digest('hex'), obligation.scriptSha256);
+  const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).scripts['check:distribution-client'];
+  assert(local.includes(obligation.retiredCiBuild));
+  assert(local.includes('node ' + obligation.script));
+  const owner = readFileSync(new URL('./ci-native-cli-installed.mjs', import.meta.url), 'utf8');
+  assert(owner.indexOf('assert.equal(artifact.localRuntime, undefined)') < owner.indexOf('await runInstalledNativeCliTransport(binary, env)'));
+  const run = owner.indexOf('await runInstalledNativeCliTransport(binary, env)');
+  assert(owner.indexOf('assert.equal(hash(await readFile(binary)), artifact.binarySha256)') < run);
+  assert(owner.indexOf('assert.equal(hash(await readFile(binary)), artifact.binarySha256)', run) > run);
+  assert(run < owner.indexOf('await registry.close()'));
+});
+
+test('same installed Remote binary reaches the unchanged transport fixture and preserves failure or signal', async () => {
+  const environment = Object.freeze({PATH: process.env.PATH, HOME: '/fresh-consumer/home', TMPDIR: '/fresh-consumer/tmp'});
+  for (const mode of ['success', 'failure', 'signal']) {
+    let calls = 0;
+    const outcome = await runInstalledNativeCliTransport('/same-installed/versioned-native', environment, {
+      launch(command, args, options) {
+        calls++;
+        assert.equal(command, process.execPath);
+        assert(args[0].endsWith('/scripts/test-native-client.mjs'));
+        assert.equal(args.length, 1);
+        assert.equal(options.env.ACTQL_TEST_NATIVE_CLIENT_BINARY, '/same-installed/versioned-native');
+        assert.deepEqual(options.env, {...environment, ACTQL_TEST_NATIVE_CLIENT_BINARY: '/same-installed/versioned-native'});
+        assert.equal(options.stdio, 'inherit');
+        assert.equal(options.timeout, undefined, 'Only the original enclosing CI deadline applies');
+        return spawn(process.execPath, ['-e', mode === 'signal'
+          ? 'process.kill(process.pid,"SIGTERM")' : `process.exit(${mode === 'success' ? 0 : 7})`],
+        {stdio: 'ignore'});
+      },
+    }).then(() => ({success: true}), error => ({success: false, error}));
+    assert.equal(calls, 1);
+    assert.equal(outcome.success, mode === 'success');
+    if (mode !== 'success') assert.match(outcome.error.message, /Original Native Client transport/u);
+  }
+  assert.equal(environment.ACTQL_TEST_NATIVE_CLIENT_BINARY, undefined);
+  for (const primary of [undefined, new Error('original launch error')]) {
+    const outcome = await runInstalledNativeCliTransport('/same-installed', environment,
+      {launch() {throw primary;}}).then(() => ({rejected: false}), reason => ({rejected: true, reason}));
+    assert.equal(outcome.rejected, true); assert.equal(outcome.reason, primary);
+  }
 });
 
 test('private CI cohort retains ordinary release validation without proposing a publication', () => {

@@ -2,6 +2,7 @@
 // This is a private CI cohort, never a registry release or Linux Local claim.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {spawn} from 'node:child_process';
 import {copyFile, mkdir, readFile, readdir, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -54,6 +55,25 @@ export function requireNativeHostAuthorizationReceipt(value) {
     }
   }
   return value;
+}
+
+// Run the original transport fixture against the same verified installed
+// Remote binary. Its own TLS/scratch/cleanup and the enclosing CI deadline
+// remain unchanged; this adds no compilation or per-command time allowance.
+export async function runInstalledNativeCliTransport(binary, environment, {launch = spawn} = {}) {
+  const child = launch(process.execPath, [join(repository, 'scripts/test-native-client.mjs')], {
+    cwd: repository, env: {...environment, ACTQL_TEST_NATIVE_CLIENT_BINARY: binary}, stdio: 'inherit',
+  });
+  await new Promise((resolveRun, rejectRun) => {
+    child.once('error', rejectRun);
+    child.once('close', (code, signal) => {
+      try {
+        assert.equal(signal, null, 'Original Native Client transport terminated by signal');
+        assert.equal(code, 0, 'Original Native Client transport failed');
+        resolveRun();
+      } catch (error) {rejectRun(error);}
+    });
+  });
 }
 
 export async function acceptInstalledNativeCli(directory) {
@@ -159,6 +179,7 @@ export async function acceptInstalledNativeCli(directory) {
     const authorizationEnv = {...env, NODE_EXTRA_CA_CERTS: join(host, 'remote.crt')};
     await run(process.execPath, ['release-native-host-authorization.mjs', binary],
       {cwd: host, env: authorizationEnv});
+    await runInstalledNativeCliTransport(binary, env);
     assert.equal(hash(await readFile(binary)), artifact.binarySha256);
     assert.deepEqual(checkoutState(repository), source);
     await verifyNativeCliRelease(directory);
@@ -173,7 +194,8 @@ export async function acceptInstalledNativeCli(directory) {
         authorization,
       },
       scope: ['fresh npm installation', 'npm launcher Remote real Host', 'finite Account refusals',
-        'Node-free installed executable', 'closed state descriptors', 'unavailable Local init leaves no files'],
+        'Node-free installed executable', 'closed state descriptors', 'unavailable Local init leaves no files',
+        'original Native Client mTLS and contract corpus'],
       unverified: ['Linux Local execution', 'mock workflow execution', 'other platforms']};
   } catch (error) {failure = error; rejected = true;}
   try {await registry.close();}

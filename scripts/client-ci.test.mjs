@@ -37,7 +37,8 @@ import {machineCid} from './actql-spec-family.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const normal = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
-const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce'];
+const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce'];
+const acceptanceGroups = [...groups.slice(0, 6), 'native-cli-installed', ...groups.slice(6)];
 const consumers = ['client-distribution', 'client-distribution-callers',
   'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition'];
 const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
@@ -797,7 +798,6 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'client-distribution-callers': Array.from({length: 36}, (_, index) => index + 17),
     'client-distribution-mutations': [6, 7, 8, 9],
     'client-distribution-packed': [5, 10, 11, 12, 13, 14],
-    'client-distribution-native': [15, 16],
   };
   for (const [name, indexes] of Object.entries(partitions)) {
     assert.deepEqual(runs(name), [
@@ -806,11 +806,14 @@ test('each Client group retains its acceptance commands exactly once', () => {
     ], name);
   }
   assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
-    Array.from({length: 49}, (_, index) => index + 4),
-    'every original command keeps its owner; source-only arguments move to lint and only four preparation commands repeat');
+    Array.from({length: 49}, (_, index) => index + 4).filter(index => ![15, 16].includes(index)),
+    'only the duplicate Native compiler is retired and its transport suite moves to the installed Remote owner');
+  assert(jobs.client.needs.includes('native-cli-installed'));
+  const installed = readFileSync(new URL('./ci-native-cli-installed.mjs', import.meta.url), 'utf8');
+  assert(installed.includes('await runInstalledNativeCliTransport(binary, env)'));
+  assert.equal(original[16], 'node scripts/test-native-client.mjs');
   assert(!jobs['client-distribution-packed'].steps.some(step => step.id === 'distribution-preparation'),
     'normal tar acceptance does not rebuild the checkout runtime');
-  assert.deepEqual(jobs['client-distribution-native'].needs, ['select-targets', 'preflight']);
   assert.deepEqual(runs('client-packed'), [
     `bash scripts/ci-install-linux-clang.sh
 compiler_bin="$RUNNER_TEMP/packed-query-compiler"
@@ -876,7 +879,6 @@ done`,
       let preparation;
       if (step.name?.startsWith('Test ')) {
         if (['client-packed', 'client-packed-composition', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
-        else if (name === 'client-distribution-native') preparation = 'native-client-preparation';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
       if (name === 'client-packed') {
@@ -1012,14 +1014,14 @@ test('packed evidence uploads remain always-on after their original command', ()
 });
 
 test('the original client check succeeds only when every producer and acceptance group succeeds', () => {
-  assert.deepEqual(jobs.client.needs, groups);
+  assert.deepEqual(jobs.client.needs, acceptanceGroups);
   assert.match(jobs.client.if, /always\(\)/u);
   assert.match(jobs.client.if, /!\(needs\.client-packages\.result == 'skipped'/u);
   assert(jobs.check.needs.includes('client'));
   const script = jobs.client.steps[0].run;
-  const results = Object.fromEntries(groups.map(name => [name, {result: 'success'}]));
+  const results = Object.fromEntries(acceptanceGroups.map(name => [name, {result: 'success'}]));
   assert.equal(run(script, {RESULTS: JSON.stringify(results)}).status, 0);
-  for (const name of groups) {
+  for (const name of acceptanceGroups) {
     for (const result of ['failure', 'cancelled', 'skipped', 'in_progress', undefined]) {
       const candidate = {...results, [name]: {result}};
       const child = run(script, {RESULTS: JSON.stringify(candidate)});
@@ -1030,7 +1032,7 @@ test('the original client check succeeds only when every producer and acceptance
 });
 
 test('local commands remain available for each independently retryable group', () => {
-  for (const name of [...consumers, 'client-distribution-native', 'client-salesforce']) {
+  for (const name of [...consumers, 'client-salesforce']) {
     const child = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'run', name, '--dry-run'], {cwd: root, encoding: 'utf8'});
     assert.equal(child.status, 0, child.stderr);
     for (const command of runs(name)) {
