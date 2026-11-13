@@ -13,7 +13,10 @@ Problems surface at four points, and each has its own tool:
 | The Program itself | `actql check` | no |
 | The plan and limits | `actql explain` | no |
 | The Run | `actql status`, `actql run --json` | yes |
-| The environment | `actql doctor`, `actql catalog show` | no |
+| Available command syntax | `actql --help`, `actql check --help` | no |
+
+Environment inspection is separate: see [The environment](#the-environment).
+Help lists supported arguments; it does not validate project configuration.
 
 Start at the top. Most failures are caught by `check` without touching any
 system, and under `--profile mock` you can take a Program all the way to a
@@ -40,7 +43,7 @@ most:
 | Reason | Typical cause | Fix |
 | --- | --- | --- |
 | `query_syntax_invalid`, `query_lexical_invalid` | A typo, an unsupported clause, a missing `|>` | Compare with [Writing Programs](../authoring.md) |
-| `source_selector_unregistered` | `salesforce.accounts` is not a source of any configured connection | Check `actql catalog list`; fix the connection name or the resource |
+| `source_selector_unregistered` | `salesforce.accounts` is not a source of any configured connection | Inspect the configured Catalog material; fix the connection name or resource, then check the same Program |
 | `expression_type_mismatch` | Comparing or combining values of different types | Cast explicitly, or fix the literal |
 | `parameter_undeclared`, `parameter_value_required` | `@name` is used but not declared, or declared but not supplied | Declare it, and pass `--params` |
 | `query_alias_absent` | A column is referenced through an alias that does not exist | Check `AS` names, including the `INFER … AS` name |
@@ -125,22 +128,40 @@ Store with its evidence for the retention period, so you can compare.
 
 ## The environment
 
-`actql doctor` checks the installation: the Host, the Store directory and its
-keys, the configuration files it found, and whether each configured
-connection and provider can be reached. `actql catalog show <connection>`
-prints what a connection exposes; if a resource or column is missing there,
-the Program cannot see it either, whatever the external system holds.
+The current Native CLI does not implement `doctor` or the `catalog` commands.
+Those are [v0.1 target interfaces](../cli.md#discovery), not available
+environment probes. The help output describes syntax; it does not inspect
+configuration, Store files, keys or provider connectivity.
+
+Inspect `actql.config.json` and the connector/model files it actually names.
+For example, an initialized `churn-risk-mock` project selects its independent
+Catalog through `mock.catalog` at `./mock/catalog.json`. Compare its declared
+connection, resource and column names with the Program. Reading those files
+does not establish provider reachability or current permission.
+
+From that initialized Local project, use the same Program and configuration
+for check and plan diagnostics. For status, substitute an existing Run ID
+from that project; do not submit a replacement Run just to inspect its state:
+
+```text
+actql --mode local --config actql.config.json check churn-risk.aql --json
+actql --mode local --config actql.config.json explain churn-risk.aql --json
+actql --mode local --config actql.config.json status <existing-run-id> --json
+```
+
+These commands report the Program, plan or retained Run state. They are not
+a replacement for the unavailable combined installation diagnosis or a
+connection-wide Catalog listing.
 
 ## Getting help
 
-When asking for help, include the output of `actql check --json --redact`,
-`actql explain --json --redact` and `actql status <run> --json --redact`.
-`--redact` replaces system names, resource names, parameter values and
-Preview values with stable placeholders and keeps the structure, codes and
-locations, so the report stays diagnosable without disclosing your systems
-or data. Without `--redact` these outputs name your connections and resources
-and, for `status`, carry the Preview's values; treat them as you would treat
-the data itself.
+Collect the same-Program `check --json` and `explain --json` reports and,
+when relevant, the existing Run's `status --json` report using the forms
+above. The current Native CLI has no `--redact` option. These outputs may
+contain connection/resource names, parameters, Run references and Preview
+values. Before sharing, manually remove secrets and private values while
+retaining the relevant reason codes and report structure. This is a review
+you perform, not automatic CLI redaction.
 
 ## Next
 
