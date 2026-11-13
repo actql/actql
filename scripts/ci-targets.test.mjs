@@ -1197,7 +1197,8 @@ test('large CI plans reach the original aggregate through files without shell in
   // The real needs object repeats the full plan in select-targets outputs.
   outcomes['select-targets'].outputs = {plan: original};
   for (const [job, name] of [['focused-tests', 'Check package and execute changed tests plus owning JS family'],
-    ['core', 'Test common core'], ['check', 'Require every selected integration obligation']]) {
+    ['core-common', 'Test common core'], ['core-darwin', 'Test common core'],
+    ['check', 'Require every selected integration obligation']]) {
     const step = (job === 'native' ? [...nativeCases('native'), ...jobs['native-http'].steps] : jobs[job].steps).find(step => step.name === name);
     assert.equal(step.env.CI_PLAN, undefined, job);
     assert.equal(step.env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json', job);
