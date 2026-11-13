@@ -55,7 +55,7 @@ def check(args: argparse.Namespace) -> int:
             raise ValueError('Clean exact allocator Source required')
         recipe_path = P.SOURCE / 'source.json'
         recipe = json.loads(recipe_path.read_bytes())
-        inputs = {str(recipe_path): P.original(recipe_path), str(args.clang): P.original(args.clang)}
+        inputs = {str(recipe_path): P.original(recipe_path), str(args.clang): P.original(args.clang, 512 * 1024 * 1024)}
         for name, expected in recipe['local'].items():
             actual = P.original(P.SOURCE / name)
             if actual != expected:
