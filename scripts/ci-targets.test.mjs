@@ -750,7 +750,7 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   assert.equal(check['continue-on-error'], undefined);
   const checked = selected.filter(matrix => runInNewContext(check.if.slice(3, -2), {matrix}));
   assert.deepEqual(checked, [{target: 'js', partition: '1/4'},
-    {target: 'wasm', partition: '1/4'}, {target: 'native', partition: '1/4'}]);
+    {target: 'wasm', partition: '1/4'}, {target: 'native', partition: '1/2'}]);
   // The complete matrix above requires this Native owner. The existing final
   // gate must reject missing, failed, cancelled or skipped Core matrix work.
   const full = selectTargets(['.github/workflows/ci.yml']);

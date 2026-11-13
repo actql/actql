@@ -416,26 +416,40 @@ test('Native partition caller passes the complete compiler inventory before sele
   const profiles = {ordinary: {cases: 5, partitions: parts},
     http: {args: ['src/http'], cases: 1}, source: {args: ['src/source'], cases: 1},
     scoped: {args: ['src/scoped'], cases: 1, tests: []}};
-  for (const partition of ['1/2', '2/2']) {
-    let discoveries = 0;
-    const args = ['--release', '--strip'], env = {original: true};
-    const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
-      full: true, root: '/original', args, compilerEnvironment: env, partition, executionPackages: undefined,
-      platformPackages: undefined,
-      nativeCorePartitionProfiles,
-      nativeCoreTestSelection(root, originalArgs, options) {
-        discoveries++;
-        assert.equal(root, '/original'); assert.equal(originalArgs, args);
-        assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
-        assert.equal(options.ordinaryPartitions, true);
-        assert.equal(options.timeoutMs, 300_000);
-        assert.equal(options.executionPackages, undefined, 'Unscoped local fixture retains the complete inventory');
-        return {profiles};
-      }, console: {log() {}},
-    });
-    assert.equal(discoveries, 1);
-    assert.equal(selected.profiles.ordinary, parts[Number(partition[0]) - 1]);
-    assert.equal(selected.profiles.http.args === null, partition === '2/2');
+  for (const role of ['local', 'darwin', 'linux']) {
+    const linuxCommonImporters = role === 'linux';
+    const labels = linuxCommonImporters ? Array.from({length: 8}, (_, i) => `${i + 1}/8`) : ['1/2', '2/2'];
+    const originalParts = linuxCommonImporters
+      ? Array.from({length: 8}, (_, i) => ({args: [`src/package-${i}`], cases: i + 1})) : parts;
+    const originalProfiles = linuxCommonImporters ? {
+      ordinary: {cases: 36, partitions: originalParts}, http: {args: null, cases: 0},
+      source: {args: null, cases: 0}, scoped: {args: null, cases: 0, tests: []},
+    } : profiles;
+    const executionPackages = role === 'local' ? undefined : ['src/original'];
+    for (const partition of labels) {
+      let discoveries = 0;
+      const args = ['--release', '--strip'], env = {original: true};
+      const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
+        full: true, root: '/original', args, compilerEnvironment: env, partition, executionPackages,
+        linuxCommonImporters, platformScope: role === 'darwin' ? 'darwin-differences' : linuxCommonImporters ? 'linux-common-importers' : undefined,
+        platformPackages: role === 'local' ? undefined : {common: [], importers: [], darwin: []},
+        nativeCorePartitionProfiles,
+        nativeCoreTestSelection(root, originalArgs, options) {
+          discoveries++;
+          assert.equal(root, '/original'); assert.equal(originalArgs, args);
+          assert.equal(options.env, env); assert.equal(options.partitionProfiles, true);
+          assert.equal(options.ordinaryPartitions, linuxCommonImporters ? 8 : true);
+          assert.equal(options.timeoutMs, 300_000);
+          assert.equal(options.executionPackages, executionPackages);
+          assert.equal(options.allowNestedFileInputs, role !== 'local');
+          return {profiles: originalProfiles, executionScope: {mode: 'subset'}};
+        }, console: {log() {}},
+      });
+      assert.equal(discoveries, 1);
+      assert.equal(selected.profiles.ordinary, originalParts[Number(partition[0]) - 1]);
+      assert.equal(selected.profiles.http.args === null, linuxCommonImporters || partition === '2/2');
+      if (role !== 'local') for (const name of ['source', 'scoped']) assert.equal(selected.profiles[name].args, null);
+    }
   }
 });
 
