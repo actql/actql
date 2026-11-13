@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -138,8 +138,8 @@ test('the actual Query preparation call keeps the enclosing selected Moon home o
 
 test('Query preparation retains the tracked skill directory alias and every original target file',async t=>{
   const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
-  const target=join(f.repository,'.agents/skills/actql-local-verification');
-  const member=join(target,'SKILL.md'),alias=join(f.repository,'.claude/skills/actql-local-verification');
+  const repository=realpathSync(f.repository),target=join(repository,'.agents/skills/actql-local-verification');
+  const member=join(target,'SKILL.md'),alias=join(repository,'.claude/skills/actql-local-verification');
   const skill=readFileSync(new URL('../.agents/skills/actql-local-verification/SKILL.md',import.meta.url));
   f.put(member,skill);mkdirSync(join(alias,'..'),{recursive:true});
   symlinkSync('../../.agents/skills/actql-local-verification',alias);
@@ -165,4 +165,20 @@ test('Query preparation refuses foreign and empty tracked directory aliases befo
     assert.equal(existsSync(f.commands),false);
     assert.equal(existsSync(join(f.destination,'query-software.json')),false);
   }
+});
+
+test('Query reuse refuses a changed contained alias target even while the tracked tree remains clean',async t=>{
+  const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
+  const repository=realpathSync(f.repository),bridge=join(repository,'.source-bridge');
+  for(const name of ['first','second'])f.put(join(repository,name,'original.txt'),'same immutable bytes');
+  f.put(join(repository,'.gitignore'),'.source-bridge\n');
+  symlinkSync('first',bridge);symlinkSync('.source-bridge',join(repository,'original-alias'));
+  f.git('add','.');f.git('-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','test: original resolved alias target');
+  const receipt=prepareNativeQuerySoftware(repository,f.destination,{env:f.env});
+  const env={...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt},original=preparedNativeQuerySoftware(repository,env);
+  original.verify();unlinkSync(bridge);symlinkSync('second',bridge);
+  assert.equal(f.git('status','--porcelain').toString(),'');
+  assert.throws(()=>original.verify(),/Foreign Query source\/toolchain\/compiler settings/u);
+  assert.throws(()=>preparedNativeQuerySoftware(repository,env));
+  unlinkSync(bridge);symlinkSync('first',bridge);original.verify();assert.equal(f.calls().length,1);
 });
