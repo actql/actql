@@ -1206,6 +1206,15 @@ global Moon build must not hold the build lock during bounded npm prepack.
 No Native preparation is transplanted across runners: existing descriptors bind
 physical compiler aliases and generated toolchain inputs. A mismatched original
 still refuses; there is no metadata rewrite or implicit rebuild fallback.
+Explicit compiled-command inputs use a separate inert-data path for the two
+closed bundle/Resident entries. Export preserves the original successful build,
+command and complete selected-input receipts. Receive rechecks the same Source,
+target, compiler profile and current source/tool/SDK bytes, then publishes a new
+receiver file and physical descriptor. Generated producer inputs remain immutable
+provenance data; they are not executed as receiver tools. Original paths and
+inodes are never relabeled as local prepared originals. This path neither starts
+a provider nor replaces the subsequent fresh runtime, currentness or cleanup
+checks, and a refused explicit input never triggers a rebuild fallback.
 Local `run native` retains one preparation and every original case serially.
 Job and case deadlines stay unchanged. Parallelism is CI orchestration, not a
 product lifetime, permission, capacity or successful cleanup claim.
