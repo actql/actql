@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -389,4 +389,12 @@ test('Scoped software preparation failure and replaced-path retirement preserve 
   const invalid=join(f.repository,'_build/invalid');mkdirSync(invalid);
   assert.throws(()=>prepareNativeCoreScopedProfile(f.repository,invalid,['--target','native'],{
     ...f.options,softwareDirectory:join(f.repository,'_build/foreign')}),/profile software directory/u);
+});
+
+test('Scoped software parent alias refuses before creating any foreign child', t => {
+  const f=softwareFixture(t),foreign=join(f.root,'foreign-software');mkdirSync(foreign);
+  mkdirSync(join(f.repository,'_build/native-core-scoped'),{recursive:true});
+  symlinkSync(foreign,join(f.repository,'_build/native-core-scoped/compiler-software'),'dir');
+  assert.throws(()=>prepareNativeCoreScopedProfile(f.repository,f.scratch,['--target','native'],f.options),/never a path alias/u);
+  assert(!existsSync(join(foreign,'runtime-values')));
 });

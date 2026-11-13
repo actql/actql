@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {accessSync, constants, lstatSync, mkdirSync, readFileSync, realpathSync,
+import {accessSync, constants, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync,
   renameSync, symlinkSync, writeFileSync} from 'node:fs';
 import {basename, delimiter, dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -214,6 +214,10 @@ export function prepareNativeCoreScopedProfile(repository, scratch, args, {
   if (softwareDirectory !== undefined) {
     assert.equal(softwareDirectory, join(repository, '_build/native-core-scoped/compiler-software', profile),
       'Only the original profile software directory may be selected');
+    let existingParent = dirname(softwareDirectory);
+    while (!existsSync(existingParent)) existingParent = dirname(existingParent);
+    assert.equal(realpathSync(existingParent), existingParent,
+      'Actual software directory required, never a path alias');
     mkdirSync(dirname(softwareDirectory), {recursive: true, mode: 0o700});
     assert.equal(realpathSync(dirname(softwareDirectory)), dirname(softwareDirectory),
       'Actual software directory required, never a path alias');

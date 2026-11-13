@@ -67,7 +67,7 @@ test('Core runner aggregate requires every selected matrix and refuses missing f
     assert.notEqual(run({CORE_TARGETS: targets, COMMON_RESULT: 'success', DARWIN_RESULT: 'success'}).status, 0);
 });
 
-test('normal Native object caching selects only the four mandatory ordinary jobs and retains their complete Core command', () => {
+test('normal Native object caching selects ordinary and Scoped jobs and retains their complete Core command', () => {
   assert.equal(workflow.on.workflow_dispatch.inputs.ordinary_native_c_cache, undefined);
   const steps = workflow.jobs['core-darwin'].steps;
   const prepare = steps.find(step => step.id === 'native-c-object-cache');
@@ -81,7 +81,7 @@ test('normal Native object caching selects only the four mandatory ordinary jobs
     });
   for (const target of ['js', 'wasm', 'native'])
     for (const partition of ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped'])
-      assert.equal(evaluate(target, partition), target === 'native' && partition.endsWith('/4'));
+      assert.equal(evaluate(target, partition), target === 'native' && (partition.endsWith('/4') || partition === 'scoped'));
   const action = 'actions/cache/';
   const pin = '@caa296126883cff596d87d8935842f9db880ef25';
   assert.equal(restore.uses, action + 'restore' + pin);

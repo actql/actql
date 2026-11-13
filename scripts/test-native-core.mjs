@@ -53,6 +53,13 @@ const platformPackages = full && platformScope
 const executionPackages = platformPackages?.darwin ?? (full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
   ? (await import('./ci-moon-tests.mjs')).nativeMoonPackages() : undefined);
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
+const scopedSoftwareRoot = full && partition === 'scoped'
+  ? process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT : undefined;
+if (scopedSoftwareRoot !== undefined && (process.env.GITHUB_ACTIONS !== 'true' ||
+    process.env.ACTQL_TEST_NATIVE_CORE_CCACHE === undefined ||
+    scopedSoftwareRoot !== join(root, '_build/native-core-scoped/compiler-software'))) {
+  throw new Error('Original hosted Scoped software/cache owner required');
+}
 const scopedJobs = process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS ?? '1';
 if (!['1', '2'].includes(scopedJobs)) throw new Error('One or two original scoped allocation profiles required');
 if (partition && !full) throw new Error('Native Core partitions require the complete original selection');
@@ -276,13 +283,15 @@ if (full) {
       if (tests.length === 0) return {status: 0};
       const profileStarted = performance.now();
       let attemptedCases = 0, passedCases = 0;
+      let scoped;
       try {
         const profileNamespace = join(scopedScratch.path, profile);
         mkdirSync(profileNamespace, {mode: 0o700});
         // Start from the original PATH, not the ordinary test-only compiler shim.
-        const scoped = prepareNativeCoreScopedProfile(root, profileNamespace,
+        scoped = prepareNativeCoreScopedProfile(root, profileNamespace,
           ['--target', 'native', ...args, ...new Set(tests.map(test => test.source))],
-          {env: fixtureEnvironment, profile});
+          {env: fixtureEnvironment, profile,
+            ...(scopedSoftwareRoot ? {softwareDirectory: join(scopedSoftwareRoot, profile)} : {})});
         console.log(`Native Core ${profile}: ${tests.length} required cases`);
         // Each original case initializes its own physical region header. Closing
         // that region does not erase the header, and the cases require different
@@ -352,6 +361,9 @@ if (full) {
             attemptedCases, passedCases, failedCases: attemptedCases - passedCases,
             unexecutedCases: tests.length - attemptedCases, succeeded: passedCases === tests.length}));
         } catch { /* Case accounting diagnostics never replace an original failure. */ }
+        // Every original case child has closed before this finally. Retire only
+        // this profile's generated software; physical/runtime roots stay put.
+        scoped?.retireSoftware?.();
       }
     };
     const profiles = ['runtime-values', 'scoped-review-values'];

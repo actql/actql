@@ -419,9 +419,9 @@ jobs:
       - name: Test pinned Native C compiler orchestration
         if: ${{ matrix.target == 'native' && matrix.partition == '1/4' }}
         run: node --test scripts/native-core-c-compiler.test.mjs
-      - name: Prepare pinned ordinary Native C object caching
+      - name: Prepare pinned Native C object caching
         id: native-c-object-cache
-        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/4","2/4","3/4","4/4"]'), matrix.partition) }}
+        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/4","2/4","3/4","4/4","scoped"]'), matrix.partition) }}
         env:
           CACHE_PARTITION: ${{ matrix.partition }}
         run: |
@@ -451,13 +451,16 @@ jobs:
           execFileSync(binary, ['--version'], {stdio: 'inherit', timeout: 5000});
           const image = process.env.ImageVersion ?? 'unreported-image';
           assert(/^[A-Za-z0-9_.-]+$/u.test(image));
-          assert(/^[1-4]\/4$/u.test(process.env.CACHE_PARTITION));
+          assert(/^(?:[1-4]\/4|scoped)$/u.test(process.env.CACHE_PARTITION));
           const profile = hash(Buffer.concat([readFileSync('toolchain.json'),
-            readFileSync('scripts/native-core-c-compiler.mjs')]));
+            readFileSync('scripts/native-core-c-compiler.mjs'),
+            readFileSync('scripts/native-core-scoped-profile.mjs')]));
           const prefix = `ordinary-c-v1-${process.platform}-${process.arch}-${image}-${profile}-${process.env.CACHE_PARTITION}-`;
           appendFileSync(process.env.GITHUB_OUTPUT, `key-prefix=${prefix}\n`);
           appendFileSync(process.env.GITHUB_ENV,
             `ACTQL_TEST_NATIVE_CORE_CCACHE=${binary}\nACTQL_TEST_NATIVE_CORE_CCACHE_DIR=${cache}\n`);
+          if (process.env.CACHE_PARTITION === 'scoped') appendFileSync(process.env.GITHUB_ENV,
+            `ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT=${join(process.cwd(), '_build/native-core-scoped/compiler-software')}\n`);
           NODE
       - name: Restore ordinary Native C objects
         id: native-c-object-cache-restore
