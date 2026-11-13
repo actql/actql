@@ -993,8 +993,8 @@ test('Native command parsing remains a full execution input when its implementat
 });
 
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 25);
-  assert.equal(new Set(maintenanceFiles).size, 25);
+  assert.equal(maintenanceFiles.length, 24);
+  assert.equal(new Set(maintenanceFiles).size, 24);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);
@@ -1008,7 +1008,8 @@ test('maintenance inventory is exact and every existing reviewed modification qu
     'docs/spec/language.md', 'docs/design/something.md', 'docs/reviews/report.json',
     'scripts/local-checks.mjs', 'proofs/relation-pipeline/ci-artifacts.mjs',
     'scripts/ci-review.config.json', 'scripts/new-reporter.mjs',
-    'scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.test.mjs']) {
+    'scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.test.mjs',
+    'scripts/verification-actions.mjs']) {
     assert.equal(maintenanceSelection([path]).profile, 'full', path);
     assert.equal(maintenanceSelection([maintenanceFiles[0], path]).profile, 'full', path);
   }
