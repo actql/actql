@@ -181,12 +181,15 @@ function assertRemoteAgentOriginalRoot(t,foreignParent) {
   let observation;
   runInNewContext(remoteAgentLaunchSource(),{
     valuesHttpsOnly:false,moon:'original-selected-moon',repositoryRoot:root,
+    nativeTargetArguments:['--target-dir',join(root,'native-strip-build')],
+    nativeEnvironment:environment=>({...environment,MOON_HOME:join(root,'compiler-tool')}),
     process:{env:parent},agentRoot,sqliteLibrary:'original-sqlite',cryptoLibrary:'original-crypto',
     targetTriple:'original-target',keys:{publicKey:{export:()=> 'original-public-key'}},
     envelope:{body:'original-body',runtimeBundleCid:'original-cid',signature:'original-signature'},
     execFileSync:(command,args,options)=>{
       assert.equal(command,'original-selected-moon');
-      assert.deepEqual(Array.from(args),['test','src/platform_native/remote_agent/native_test','--target','native','--strip']);
+      assert.deepEqual(Array.from(args),['test','src/platform_native/remote_agent/native_test','--target','native','--strip','--target-dir',join(root,'native-strip-build')]);
+      assert.equal(options.env.MOON_HOME,join(root,'compiler-tool'));
       assert.equal(options.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,'original-sqlite');
       assert.equal(options.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY,'original-crypto');
       // Execute the exact caller environment in a real child. This is a

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
@@ -36,13 +36,36 @@ test('remote Native outputs and tool homes remain private for all five stripped 
 });
 
 test('macOS remote scheduling retains every exact original step in the same two slots with the HTTP lane independent',()=>{
-  const before=JSON.parse(execFileSync('git',['show','b492d5071d:scripts/ci-native-background-groups.json'],{cwd:repository,encoding:'utf8'}));
+  const original=JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json',import.meta.url)));
   const after=JSON.parse(readFileSync(new URL('./ci-native-background-groups.json',import.meta.url)));
-  assert.deepEqual(after.native,before.native);
   assert.equal(after['native-macos'].length,2);
-  const inventory=groups=>groups.flatMap(group=>group.steps).sort((a,b)=>a.name.localeCompare(b.name));
-  assert.deepEqual(inventory(after['native-macos']),inventory(before['native-macos']));
+  for(const family of ['native','native-macos']) {
+    const actual=after[family].flatMap(group=>group.steps).filter(step=>/^(?:Test |Verify registered)/u.test(step.name));
+    assert.equal(actual.length,original.jobs[family].length);
+    for(const expected of original.jobs[family]) {
+      const found=actual.filter(step=>step.name===expected.name);assert.equal(found.length,1);
+      assert.equal(createHash('sha256').update(found[0].run).digest('hex'),expected.commandSha256);
+      assert.deepEqual(found[0].env??{},expected.env);
+    }
+  }
+  assert(after.native.find(group=>group.name==='runtime').steps.some(step=>step.id==='native-remote'));
   const remote=after['native-macos'].find(group=>group.steps.some(step=>step.id==='native-remote'));
   const http=after['native-macos'].find(group=>group.steps.some(step=>step.id==='native-http'));
   assert.notEqual(remote.name,http.name);assert.equal(remote.steps.at(-1).id,'native-remote');
+  assert.equal(http.steps.find(step=>step.id==='native-http').timeoutMinutes,115);
+});
+
+test('all overlapping portable consumers select their existing verified original before importing its returned URL',()=>{
+  for(const path of ['test-native-http-client.mjs','test-native-remote-runtime.mjs','test-native-runtime-bundle-cli.mjs']) {
+    const body=readFileSync(new URL(path,import.meta.url),'utf8');
+    const tree=parse(body,{ecmaVersion:'latest',sourceType:'module'});
+    const core=nodes(tree,n=>n.type==='CallExpression'&&n.callee.name==='prepareNativeResidentPortableCore');
+    assert.equal(core.length,1);
+    const callback=core[0].arguments[1].properties.find(p=>p.key.name==='prepare').value;
+    const builds=nodes(callback,n=>n.type==='CallExpression'&&n.callee.name==='execFileSync');assert.equal(builds.length,1);
+    assert.deepEqual(builds[0].arguments[1].elements.slice(0,5).map(value),
+      ['build','--target','js','--release','src/connectors_builtin_node']);
+    assert(body.includes('const portableCorePath = prepareNativeResidentPortableCore('));
+    assert(body.includes('await import(pathToFileURL(portableCorePath).href)'));
+  }
 });

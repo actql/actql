@@ -470,16 +470,12 @@ try {
   copyNativePreparationTools(process.env.MOON_HOME, nativeMoonHome,
     JSON.stringify({pin: JSON.parse(await readFile(join(repositoryRoot, 'toolchain.json'), 'utf8')),
       platform: process.platform + '-' + process.arch}));
-  prepareNativeResidentPortableCore(repositoryRoot, {
+  const portableCorePath = prepareNativeResidentPortableCore(repositoryRoot, {
     prepare: () => execFileSync(portableMoon, [
-    'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
-  ], {cwd: repositoryRoot, stdio: 'inherit'})
+      'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+    ], {cwd: repositoryRoot, stdio: 'inherit'})
   });
-  const moonModule = await import(pathToFileURL(join(
-    repositoryRoot,
-    '_build/js/release/build/connectors_builtin_node/' +
-      'connectors_builtin_node.js',
-  )).href);
+  const moonModule = await import(pathToFileURL(portableCorePath).href);
   const control = runtimeCore(moonModule).remoteBundleControl;
   const keys = generateKeyPairSync('ed25519');
   const component = Buffer.from('native-runtime');

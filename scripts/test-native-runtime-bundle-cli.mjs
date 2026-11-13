@@ -47,20 +47,16 @@ if (targetTriple === undefined) {
 
 let passed = false;
 try {
-  prepareNativeResidentPortableCore(repositoryRoot, {
+  const portableCorePath = prepareNativeResidentPortableCore(repositoryRoot, {
     prepare: () => execFileSync(moon, [
-    'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
-  ], {cwd: repositoryRoot, stdio: 'inherit'})
+      'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+    ], {cwd: repositoryRoot, stdio: 'inherit'})
   });
   const executable = prepareNativeRuntimeBundle(repositoryRoot,
     join(root, 'runtime-bundle-producer'));
   const bundleLibraries = prepareNativeRuntimeBundleLibraries(repositoryRoot,
     join(root, 'runtime-bundle-components'));
-  const moonModule = await import(pathToFileURL(join(
-    repositoryRoot,
-    '_build/js/release/build/connectors_builtin_node/' +
-      'connectors_builtin_node.js',
-  )).href);
+  const moonModule = await import(pathToFileURL(portableCorePath).href);
   const control = runtimeCore(moonModule).remoteBundleControl;
   const keysA = generateKeyPairSync('ed25519');
   const keysB = generateKeyPairSync('ed25519');
