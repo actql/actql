@@ -26,6 +26,10 @@ test('the pinned Moon ordinary release command reaches the closed Darwin cache p
       '(async()=>{const {writeFileSync}=await import("node:fs");' +
       `const {nativeCoreCObjectCommands}=await import(${JSON.stringify(module)});` +
       'const args=process.argv.slice(2);' +
+      'if(!args.some(x=>/\\.(?:internal|whitebox|blackbox)_test\\.c$/u.test(x))){' +
+      'const {spawnSync}=await import("node:child_process");' +
+      'const r=spawnSync("/usr/bin/cc",args,{stdio:"inherit"});' +
+      'if(r.signal)process.kill(process.pid,r.signal);process.exit(r.status??1);}' +
       `writeFileSync(${JSON.stringify(captured)},JSON.stringify({args,` +
       'plan:nativeCoreCObjectCommands(process.cwd(),"/usr/bin/cc",args)}));process.exit(23);})();\n', {mode: 0o700});
     symlinkSync(realpathSync('/usr/bin/ar'), join(tools, 'ar'));
