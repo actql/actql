@@ -11,7 +11,6 @@ import {exportNativeCompiledCommand,originalDescriptor} from './native-preparati
 import {prepareNativeResidentHttpComponent,prepareNativeResidentSite,prepareNativeRuntimeBundle,
   prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import {prepareNativeResidentPortableRuntime} from './native-resident-portable-preparation.mjs';
-import {prepareNativeQuerySoftware} from './native-query-preparation.mjs';
 
 const sameStat=(path,original)=>{
   const current=lstatSync(path,{bigint:true});
@@ -79,20 +78,11 @@ function timed(destination,source,target,phase,prepare) {
 }
 
 export function prepareNativeConstructionLane(lane,configuration,ports={}) {
-  assert(['commands','components','query'].includes(lane));
+  assert(['commands','components'].includes(lane));
   const {repository,destination,source,target,selection,seconds,residentSeconds,httpJobs,moonHome,
     receiverMoonHome=moonHome}=configuration;
   assert(['bundle','resident','all'].includes(selection));
   const prepare=(phase,operation)=>timed(destination,source,target,phase,operation);
-  if(lane==='query') {
-    assert(target==='darwin-arm64'&&selection==='all'&&configuration.lanes===3,
-      'Query construction requires the explicit three-lane Darwin selection');
-    const queryReceipt=prepare('query_software',()=>(ports.query??prepareNativeQuerySoftware)(
-      repository,destination,{env:{...process.env,MOON_HOME:moonHome}}));
-    assert.equal(queryReceipt,join(destination,'query-software.json'),
-      'Missing original Query preparation receipt');
-    return {queryReceipt};
-  }
   if(lane==='commands') {
     const builds=join(destination,'command-builds'),inputs=join(destination,'command-inputs');
     mkdirSync(builds,{mode:0o700});mkdirSync(inputs,{mode:0o700});
@@ -146,10 +136,6 @@ function startWorker(lane,configuration) {
 }
 export async function prepareNativeParallel(configuration,{copyTools=copyNativePreparationTools,startLane=startWorker}={}) {
   const {repository,destination,moonHome,target}=configuration;
-  const lanes=configuration.lanes??2;
-  assert([2,3].includes(lanes));
-  if(lanes===3)assert(target==='darwin-arm64'&&configuration.selection==='all',
-    'Three-lane preparation requires the complete Darwin selection');
   const pin=JSON.parse(readFileSync(join(repository,'toolchain.json'),'utf8'));
   const toolBase=join(repository,'.toolchains');mkdirSync(toolBase,{recursive:true});
   const baseStat=lstatSync(toolBase);
@@ -158,15 +144,6 @@ export async function prepareNativeParallel(configuration,{copyTools=copyNativeP
   const toolDirectory=join(realpathSync(toolBase),basename(destination)+'-commands');
   const copied=copyTools(moonHome,toolDirectory,JSON.stringify({pin,platform:target}));
   writeFileSync(join(destination,'command-tool-copy.json'),JSON.stringify(copied)+'\n',{flag:'wx',mode:0o600});
-  let queryConfiguration;
-  if(lanes===3) {
-    // Snapshot installed originals before any lane mutates a tool's Core build
-    // directories. Query still makes its own original checked tool/target copy.
-    const queryHome=join(realpathSync(toolBase),basename(destination)+'-query');
-    const queryCopy=copyTools(moonHome,queryHome,JSON.stringify({pin,platform:target}));
-    writeFileSync(join(destination,'query-tool-copy.json'),JSON.stringify(queryCopy)+'\n',{flag:'wx',mode:0o600});
-    queryConfiguration={...configuration,moonHome:queryHome};
-  }
   const launch=(lane,options)=>{
     try {return Promise.resolve(startLane(lane,options));}
     catch(error) {return Promise.reject(error);}
@@ -174,12 +151,12 @@ export async function prepareNativeParallel(configuration,{copyTools=copyNativeP
   const results=await Promise.allSettled([
     launch('commands',{...configuration,moonHome:toolDirectory,receiverMoonHome:moonHome}),
     launch('components',configuration),
-    ...(lanes===3?[launch('query',queryConfiguration)]:[]),
   ]);
-  // No failed lane can publish Ready. Join every started original owner,
-  // including synchronous launch failures, without retry or replacement.
+  // A failed lane cannot publish Ready; still wait for the other original owner
+  // to close naturally, retaining its exact partial outputs and original error.
+  // A synchronous launch failure also joins every owner that did start.
   const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
-  return Object.assign({},...results.map(result=>result.value));
+  return {...results[0].value,...results[1].value};
 }
 if(!isMainThread&&workerData?.kind==='native-preparation-lane') {
   parentPort.postMessage(prepareNativeConstructionLane(workerData.lane,workerData.configuration));

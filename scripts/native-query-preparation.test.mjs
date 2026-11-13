@@ -107,7 +107,7 @@ test('Query reuse retains the actual selected compiler override bytes and refuse
 
 test('the existing Darwin preparation publishes Query software before either original caller can borrow it',()=>{
   const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  assert(source.includes("if(target==='darwin-arm64'&&selection==='all'&&lanes!==3)timedPreparation('query_software',()=>{"));
+  assert(source.includes("if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{"));
   const prepare=source.indexOf('queryReceipt=prepareNativeQuerySoftware(repository,destination,');
   assert(prepare>source.indexOf('?await prepareNativeParallel('));
   assert(prepare<source.indexOf("writeFileSync(join(destination,'preparation.json')"));

@@ -117,94 +117,23 @@ test('Native parallel preparation refuses a shared tool-output alias before copy
   assert.equal(touched,false);assert.equal(existsSync(join(f.destination,'command-tool-copy.json')),false);
 });
 
-test('three-lane Darwin preparation joins the failed Query and both original owners before refusing Ready',async t=>{
-  const f={...fixture(t),lanes:3},started=[],copies=[],finished=[];
-  let releaseCommands,releaseComponents;
-  const commands=new Promise(resolve=>{releaseCommands=resolve;});
-  const components=new Promise(resolve=>{releaseComponents=resolve;});
-  const original=new Error('original Query compiler failure');
-  const operation=prepareNativeParallel(f,{
-    copyTools:(from,to)=>{copies.push([from,to]);return {from,to};},
-    startLane:async(lane,options)=>{
+test('Native parallel preparation joins both original owners after either synchronous launch failure',async t=>{
+  for(const failed of ['commands','components']) {
+    const f=fixture(t),started=[],finished=[];let release;
+    const held=new Promise(resolve=>{release=resolve;});
+    const original=new Error('same '+failed+' launch failure');
+    const operation=prepareNativeParallel(f,{copyTools:()=>({}),startLane:lane=>{
       started.push(lane);
-      assert.equal(copies.length,2,'both checked snapshots precede any mutable Core build');
-      if(lane==='query') {
-        assert.equal(options.moonHome,copies[1][1]);
-        assert.notEqual(options.moonHome,f.moonHome);
-        assert.notEqual(options.moonHome,copies[0][1]);
-        throw original;
-      }
-      await (lane==='commands'?commands:components);finished.push(lane);
-      return lane==='commands'?{entries:{original:'command'}}:{components:'original component'};
-    },
-  });
-  assert.deepEqual(started,['commands','components','query']);
-  let settled=false;operation.then(()=>{settled=true;},()=>{settled=true;});
-  await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
-  releaseComponents();await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
-  releaseCommands();await assert.rejects(operation,error=>error===original);
-  assert.deepEqual(finished,['components','commands']);
-  assert.equal(existsSync(join(f.destination,'preparation.json')),false);
-});
-
-test('three-lane Darwin preparation joins started owners even when a launch throws synchronously',async t=>{
-  const f={...fixture(t),lanes:3},started=[];let release;
-  const held=new Promise(resolve=>{release=resolve;});
-  const original=new Error('same synchronous launch error');
-  const operation=prepareNativeParallel(f,{copyTools:()=>({}),startLane:lane=>{
-    started.push(lane);
-    if(lane==='components')throw original;
-    return held.then(()=>lane==='query'?{queryReceipt:'same receipt'}:{entries:{same:'command'}});
-  }});
-  assert.deepEqual(started,['commands','components','query']);
-  let settled=false;operation.then(()=>{settled=true;},()=>{settled=true;});
-  await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
-  release();await assert.rejects(operation,error=>error===original);
-  assert.equal(existsSync(join(f.destination,'preparation.json')),false);
-});
-
-test('three-lane Query calls the unchanged constructor once with its selected tool and original environment',async t=>{
-  const f={...fixture(t),lanes:3},calls=[];
-  const receipt=join(f.destination,'query-software.json');
-  const query=prepareNativeConstructionLane('query',f,{query:(...args)=>{calls.push(args);return receipt;}});
-  assert.deepEqual(query,{queryReceipt:receipt});assert.equal(calls.length,1);
-  assert.deepEqual(calls[0],[f.repository,f.destination,{env:{...process.env,MOON_HOME:f.moonHome}}]);
-  const commands={entries:{same:'original command'}},components={components:'same components',
-    httpReceipt:'same HTTP',portableReceipt:'same portable'};
-  const result=await prepareNativeParallel(f,{copyTools:()=>({}),startLane:async lane=>
-    lane==='commands'?commands:lane==='components'?components:query});
-  assert.deepEqual(result,{...commands,...components,...query});
-  assert.equal(existsSync(join(f.destination,'preparation.json')),false,
-    'only the enclosing CLI publishes the complete index and environment');
-});
-
-test('three-lane preparation refuses unsupported selections before copying or starting work',async t=>{
-  for(const change of [{target:'linux-x64'},{selection:'bundle'},{selection:'resident'}]) {
-    const f={...fixture(t),lanes:3,...change};let touched=false;
-    const ports={copyTools:()=>{touched=true;},startLane:()=>{touched=true;}};
-    await assert.rejects(prepareNativeParallel(f,ports));assert.equal(touched,false);
-    assert.throws(()=>prepareNativeConstructionLane('query',f,{query:()=>{touched=true;}}));
-    assert.equal(touched,false);assert.equal(existsSync(join(f.repository,'.toolchains')),false);
+      if(lane===failed)throw original;
+      return held.then(()=>{finished.push(lane);return lane==='commands'?{entries:{same:'command'}}
+        :{components:'same component'};});
+    }});
+    assert.deepEqual(started,['commands','components']);
+    let settled=false;operation.then(()=>{settled=true;},()=>{settled=true;});
+    await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
+    release();await assert.rejects(operation,error=>error===original);
+    assert.deepEqual(finished,[failed==='commands'?'components':'commands']);
+    assert.equal(existsSync(join(f.destination,'preparation.json')),false);
+    assert.equal(existsSync(join(f.destination,'query-tool-copy.json')),false);
   }
-  const f=fixture(t);
-  assert.throws(()=>prepareNativeConstructionLane('query',f,{query:()=>assert.fail('not selected')}));
-});
-
-test('three-lane preparation retains a failed Query tool snapshot without starting a mutable lane',async t=>{
-  const f={...fixture(t),lanes:3};let copies=0,started=0;
-  const original=new Error('original Query tool copy failed');
-  await assert.rejects(prepareNativeParallel(f,{copyTools:()=>{
-    if(++copies===2)throw original;
-    return {};
-  },startLane:()=>{started++;}}),error=>error===original);
-  assert.equal(copies,2);assert.equal(started,0);
-  assert.equal(existsSync(join(f.destination,'command-tool-copy.json')),true);
-  assert.equal(existsSync(join(f.destination,'preparation.json')),false);
-});
-
-test('three-lane Query refuses a missing constructor receipt without substituting another build',t=>{
-  const f={...fixture(t),lanes:3};let calls=0;
-  assert.throws(()=>prepareNativeConstructionLane('query',f,{query:()=>{calls++;}}),
-    /Missing original Query preparation receipt/);
-  assert.equal(calls,1);assert.equal(existsSync(join(f.destination,'preparation.json')),false);
 });
