@@ -1166,6 +1166,9 @@ jobs:
       - name: Test original Local Source inventory and lookup policy
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: node --test adapters/host-node/ordinary-source-inventory.test.mjs adapters/host-node/local-files-lookup-policy.test.mjs
+      - name: Test original Model registration and material inventories
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/host-node/installed-model-registration-snapshot.test.mjs adapters/host-node/request-model-material-resources.test.mjs
       - name: Build runtime packages without prebuilt bundles
         id: cold-runtime-preparation
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}

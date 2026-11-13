@@ -470,6 +470,12 @@ test('Host collection retains original command bodies and their actual build pre
     "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
   assert.equal(steps.filter(row => row.run?.includes('ordinary-source-inventory.test.mjs')).length, 1,
     'Original Source inventory cases use existing Host preparation without another supplier');
+  assert.equal(step('Test original Model registration and material inventories').run,
+    'node --test adapters/host-node/installed-model-registration-snapshot.test.mjs adapters/host-node/request-model-material-resources.test.mjs');
+  assert.equal(step('Test original Model registration and material inventories').if,
+    "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
+  assert.equal(steps.filter(row => row.run?.includes('request-model-material-resources.test.mjs')).length, 1,
+    'Original Model metadata cases use existing Host preparation without another supplier');
   assert.equal(steps.filter(row => row.run === retained[0]).length, 1,
     'the two identical Common build prefixes are shared, without another build');
 });
