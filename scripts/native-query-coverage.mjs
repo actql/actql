@@ -344,22 +344,39 @@ export async function runNativeQueryTests(moon, owner, {cwd, env, targetDirector
       throw new Error('Original absolute Native Query output directory required');
     args.push('--target-dir', targetDirectory);
   }
-  const child = spawn(moon, args,
-    {cwd, env, stdio: ['ignore', 'pipe', 'pipe']});
-  // Keep bounded summary tails while forwarding normal compiler/test output.
-  let stdout = '';
-  let stderr = '';
-  child.stdout.setEncoding('utf8');
-  child.stderr.setEncoding('utf8');
-  child.stdout.on('data', chunk => {
-    process.stdout.write(chunk); stdout = (stdout + chunk).slice(-65536);
-  });
-  child.stderr.on('data', chunk => {
-    process.stderr.write(chunk); stderr = (stderr + chunk).slice(-65536);
-  });
-  const result = await new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('close', (status, signal) => resolve({status, signal, stdout, stderr}));
-  });
-  assertNativeQueryExecution(selection, result);
+  // Keep one enclosing caller budget and the exact original build tree and
+  // execution argv. Build-only executes no cases; Moon's unchanged execution
+  // command includes its normal incremental freshness check.
+  async function runPhase(phase, commandArgs) {
+    const started = performance.now(); let succeeded = false;
+    try {
+      const child = spawn(moon, commandArgs,
+        {cwd, env, stdio: ['ignore', 'pipe', 'pipe']});
+      // Keep bounded summary tails while forwarding normal compiler/test output.
+      let stdout = '';
+      let stderr = '';
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', chunk => {
+        process.stdout.write(chunk); stdout = (stdout + chunk).slice(-65536);
+      });
+      child.stderr.on('data', chunk => {
+        process.stderr.write(chunk); stderr = (stderr + chunk).slice(-65536);
+      });
+      const result = await new Promise((resolve, reject) => {
+        child.once('error', reject);
+        child.once('close', (status, signal) => resolve({status, signal, stdout, stderr}));
+      });
+      if (phase === 'execute' || result.status !== 0 || result.signal)
+        assertNativeQueryExecution(selection, result);
+      succeeded = true;
+    } finally {
+      try {
+        console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({scope: 'native-query',
+          owner, phase, milliseconds: Math.round(performance.now() - started), succeeded}));
+      } catch { /* Timing output cannot replace the original return or failure. */ }
+    }
+  }
+  await runPhase('compile', [...args, '--build-only']);
+  await runPhase('execute', args);
 }

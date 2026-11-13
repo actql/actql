@@ -109,8 +109,11 @@ test('private Query output forwards the complete original default-profile select
   await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env,targetDirectory:'relative'}));
   assert.equal(existsSync(commands),false);
   await runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env,targetDirectory});
-  const command=JSON.parse(readFileSync(commands,'utf8').trim());
+  const observed=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(observed.length,2);
+  const command=observed[1];
   assert.deepEqual(command,['test',...selected.paths,'--target','native','--target-dir',targetDirectory]);
+  assert.deepEqual(observed[0],[...command,'--build-only']);
   assert(!command.includes('--strip')&&!command.includes('--release'));
   await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env:{...env,FIXTURE_SHORT:'1'},targetDirectory}),/coverage mismatch/u);
 });
