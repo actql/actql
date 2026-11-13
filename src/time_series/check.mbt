@@ -71,7 +71,7 @@ fn endpoint(
     let checked = @value.admit(
       @contract.primitive(TimestampType, nullable=false),
       c,
-      { max_nodes: 1, max_depth: 0, max_text_bytes: 24, },
+      { max_nodes: 1, max_depth: 0, max_text_bytes: 30, },
     )
     if checked is Err(_) {
       fail(c, InvalidTimestamp)
@@ -128,7 +128,7 @@ pub fn check(
     let end = endpoint(b, end_source, params)
     if start is Literal(a) &&
       end is Literal(z) &&
-      @canonical.compare_utf16(a, z) > 0 {
+      @value.compare_timestamp_text(a, z) == Some(1) {
       fail(end_source, ReversedRange)
     }
     let step = match
