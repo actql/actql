@@ -597,7 +597,7 @@ test('workflow partitions complete campaigns into exactly four owners with manda
     const job=jobs[name], part=partNames[name], lines=runLines(name);
     assert.equal(job.if,normalSchedule.replace(" }}", " && needs.select-targets.outputs.deep_proofs == 'true' }}")); assert.deepEqual(job.needs,['select-targets','preflight']);
     assert.equal(job.strategy,undefined);assert.equal(job['runs-on'],'ubuntu-24.04');
-    assert.deepEqual(job.env,{ACTQL_PIPELINE_PART:part});
+    assert.deepEqual(job.env,{ACTQL_PIPELINE_PART:part,ACTQL_PIPELINE_PHASE_TIMING:'1'});
     assert(!lines.some(line=>line.includes('node --test')),'Synthetic tests run once elsewhere');
     assert.equal(lines.at(-1),`node proofs/relation-pipeline/ci-parts.mjs seal ${part}`);
     for(const step of job.steps.filter(step=>step.run)) {
@@ -615,6 +615,13 @@ test('workflow partitions complete campaigns into exactly four owners with manda
   assert.equal(jobs['pipeline-validation'].if,normalSchedule);
   assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets','preflight']);
   assert(runLines('pipeline-validation').includes('node proofs/relation-pipeline/ci-parts.mjs validation'));
+  // Phase timing is stdout diagnostics for the four existing producers only.
+  // Validation and the final authoritative evidence join keep their own gates.
+  assert.equal(workflow.env?.ACTQL_PIPELINE_PHASE_TIMING,undefined);
+  for(const [name,job] of Object.entries(jobs)) {
+    assert.equal(job.env?.ACTQL_PIPELINE_PHASE_TIMING,producerJobs.includes(name)?'1':undefined);
+    for(const step of job.steps??[]) assert.equal(step.env?.ACTQL_PIPELINE_PHASE_TIMING,undefined);
+  }
 });
 
 test('workflow downloads exact producer IDs only after its success and identity guard', () => {

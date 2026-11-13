@@ -733,6 +733,7 @@ jobs:
     timeout-minutes: 60
     env:
       ACTQL_PIPELINE_PART: L-M0
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
     outputs:
       artifact-id: ${{ steps.evidence.outputs.artifact-id }}
       artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
@@ -787,6 +788,7 @@ jobs:
     timeout-minutes: 60
     env:
       ACTQL_PIPELINE_PART: L-M1
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
     outputs:
       artifact-id: ${{ steps.evidence.outputs.artifact-id }}
       artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
@@ -841,6 +843,7 @@ jobs:
     timeout-minutes: 60
     env:
       ACTQL_PIPELINE_PART: L-C0
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
     outputs:
       artifact-id: ${{ steps.evidence.outputs.artifact-id }}
       artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
@@ -895,6 +898,7 @@ jobs:
     timeout-minutes: 60
     env:
       ACTQL_PIPELINE_PART: L-C1
+      ACTQL_PIPELINE_PHASE_TIMING: '1'
     outputs:
       artifact-id: ${{ steps.evidence.outputs.artifact-id }}
       artifact-digest: ${{ steps.evidence.outputs.artifact-digest }}
