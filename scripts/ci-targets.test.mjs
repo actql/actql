@@ -462,6 +462,12 @@ test('Host collection retains original command bodies and their actual build pre
     'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs');
   assert.equal(steps.filter(row => row.run?.includes('ordinary-local-account.test.mjs')).length, 1,
     'Actual standard Account bootstrap/current cases run once behind the existing runtime preparation');
+  assert.equal(step('Test original Local Source inventory and lookup policy').run,
+    'node --test adapters/host-node/ordinary-source-inventory.test.mjs adapters/host-node/local-files-lookup-policy.test.mjs');
+  assert.equal(step('Test original Local Source inventory and lookup policy').if,
+    "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
+  assert.equal(steps.filter(row => row.run?.includes('ordinary-source-inventory.test.mjs')).length, 1,
+    'Original Source inventory cases use existing Host preparation without another supplier');
   assert.equal(steps.filter(row => row.run === retained[0]).length, 1,
     'the two identical Common build prefixes are shared, without another build');
 });
