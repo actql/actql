@@ -1,74 +1,34 @@
-# TEMPORARY VALIDATION REF ONLY. Never merge this workflow/helper replacement.
-name: Linux Crypto context guard conformance
-
+# TEMPORARY DIAGNOSTIC REF ONLY. Never merge into an integration branch.
+name: Original Linux Crypto close observation
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-
+  actions: read
 jobs:
-  crypto-context:
-    name: Existing three C modes with original pinned Linux inputs
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+  original-close:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
-    permissions:
-      contents: read
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 22.22.0
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: '3.12.16'
-      - name: Install existing pinned compiler
-        timeout-minutes: 5
-        run: bash scripts/ci-install-linux-clang.sh
-      - name: Install pinned provider tooling without ActQL runtime preparation
-        timeout-minutes: 4
-        run: |
-          node scripts/setup-moonbit.mjs
-          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
-          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
-      - name: Download only the original pinned official package archives
-        timeout-minutes: 2
-        run: |
-          python3 - <<'PYTHON'
-          from pathlib import Path
-          import hashlib, json, os, urllib.request
-          root=Path(os.environ['RUNNER_TEMP'])/'crypto-context-inputs'
-          root.mkdir(mode=0o700)
-          recipe=json.loads(Path('packages/python-local-runtime/native/crypto-component/source.json').read_text())
-          selected=recipe['source_targets']['x86_64-unknown-linux-gnu']
-          for item in [selected['package'],selected['license']['package']]:
-              with urllib.request.urlopen(item['url'],timeout=30) as stream:
-                  data=stream.read(item['bytes']+1)
-              if len(data)!=item['bytes'] or hashlib.sha256(data).hexdigest()!=item['sha256']:
-                  raise ValueError('Pinned original package mismatch')
-              (root/(item['name']+'.deb')).write_bytes(data)
-          PYTHON
-      - name: Execute only existing bounded-search split-merge and partial C modes
-        timeout-minutes: 3
-        run: |
-          python3 scripts/test-native-crypto-allocator.py \
-            --source "$GITHUB_SHA" --clang "$(realpath /usr/bin/clang-19)" \
-            --openssl-package-archive "$RUNNER_TEMP/crypto-context-inputs/libssl-dev.deb" \
-            --openssl-package-archive "$RUNNER_TEMP/crypto-context-inputs/libssl3t64.deb" \
-            --output "$RUNNER_TEMP/crypto-context-conformance" --seconds 150
-      - name: Preserve exact source inputs and all original mode outcomes
+          fetch-depth: 0
+      - name: Install debugger only
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq gdb
+      - name: Inspect original partial close from exact retained ELF
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/replay-native-crypto-close.py
+      - name: Preserve original observations
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: crypto-context-conformance-${{ github.sha }}
+          name: crypto-close-replay-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/crypto-context-conformance/summary.json
-            ${{ runner.temp }}/crypto-context-conformance/inputs.json
-            ${{ runner.temp }}/crypto-context-conformance/partial.stdout
-            ${{ runner.temp }}/crypto-context-conformance/partial.stderr
-            ${{ runner.temp }}/crypto-context-conformance/allocator-conformance
+            ${{ runner.temp }}/crypto-close-replay/summary.json
+            ${{ runner.temp }}/crypto-close-replay/gdb.stdout
+            ${{ runner.temp }}/crypto-close-replay/gdb.stderr
+            ${{ runner.temp }}/crypto-close-replay/original-inputs.json
           if-no-files-found: error
           retention-days: 7
