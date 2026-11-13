@@ -150,7 +150,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/effect-partial-refusal.test.mjs",
-                "anchor": "test(`restarted ${rowState} Effect preserves its row partition on ${refusal} refusal`, async t => {"
+                "anchor": "test(fence === undefined\n    ? `restarted ${rowState} Effect preserves its row partition on ${refusal} refusal`\n    : 'restarted applied Effect releases its original recovered stage after resume fencing', async t => {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -262,7 +262,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/effect-partial-refusal.test.mjs",
-                "anchor": "test(`restarted ${rowState} Effect preserves its row partition on ${refusal} refusal`, async t => {"
+                "anchor": "test(fence === undefined\n    ? `restarted ${rowState} Effect preserves its row partition on ${refusal} refusal`\n    : 'restarted applied Effect releases its original recovered stage after resume fencing', async t => {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
