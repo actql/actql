@@ -312,7 +312,8 @@ test('macOS HTTP retains its original command under shared preparation and a man
   assert.equal(http.run, 'node scripts/test-native-http-client.mjs\n');
   assert.equal(http.timeoutMinutes, 115);
   assert.deepEqual(http.env, {ACTQL_TEST_SCRATCH_ROOT: '${{ runner.temp }}/native-tests/native-http',
-    ACTQL_TEST_NATIVE_HTTP_FOCUS: 'http-packages', ACTQL_TEST_PRESERVE_SCRATCH: '1'});
+    ACTQL_TEST_NATIVE_HTTP_FOCUS: 'http-packages', ACTQL_TEST_PRESERVE_SCRATCH: '1',
+    ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER: 'linux-http+darwin-core-source'});
   const controls = nativeGroups['native-macos'].flatMap(group => group.steps)
     .filter(step => step.id === 'native-http-controls');
   assert.equal(controls.length, 1);
@@ -323,7 +324,7 @@ test('macOS HTTP retains its original command under shared preparation and a man
   assert.equal(nativeCases('native-macos').filter(step => step.id === 'native-http').length, 1);
   assert.equal(workload.outputs['native-http-result'], '${{ steps.native-background.outputs.native-http-result }}');
   const gate = jobs['native-http-macos'];
-  assert.deepEqual(gate.needs, ['select-targets', 'preflight', 'native-macos-workloads']);
+  assert.deepEqual(gate.needs, ['select-targets', 'preflight', 'native-macos-workloads', 'native-http', 'core']);
   assert.equal(gate['runs-on'], 'ubuntu-24.04');
   assert.match(gate.if, /always\(\)/u);
   assert.equal(gate['timeout-minutes'], 5);
@@ -336,7 +337,8 @@ test('macOS HTTP retains its original command under shared preparation and a man
     for (const httpResult of ['success', 'failure', 'unexecuted', 'skipped', '']) {
       const result = spawnSync('bash', ['-eo', 'pipefail', '-c', selected.run], {
         encoding: 'utf8', timeout: 5000,
-        env: {...process.env, WORKLOAD_RESULT: workloadResult, HTTP_RESULT: httpResult},
+        env: {...process.env, WORKLOAD_RESULT: workloadResult, HTTP_RESULT: httpResult,
+          LINUX_HTTP_RESULT: 'success', DARWIN_CORE_RESULT: 'success', CORE_TARGETS: '["js","wasm","native"]'},
       });
       assert.equal(result.error, undefined); assert.equal(result.signal, null);
       assert.equal(result.status, workloadResult === 'success' && httpResult === 'success' ? 0 : 1);

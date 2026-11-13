@@ -35,11 +35,12 @@ test('Source coverage redistribution requires current Linux HTTP and complete Da
   const step = gate.steps[0];
   assert.equal(step.env.LINUX_HTTP_RESULT, '${{ needs.native-http.result }}');
   assert.equal(step.env.DARWIN_CORE_RESULT, '${{ needs.core.result }}');
+  assert.equal(step.env.CORE_TARGETS, '${{ needs.select-targets.outputs.targets }}');
   const selected = groups['native-macos'].flatMap(group => group.steps).filter(step => step.env?.ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER);
   assert.equal(selected.length, 1); assert.equal(selected[0].id, 'native-http');
   assert.equal(selected[0].env.ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER, 'linux-http+darwin-core-source');
   const keys = ['WORKLOAD_RESULT', 'HTTP_RESULT', 'LINUX_HTTP_RESULT', 'DARWIN_CORE_RESULT'];
-  const success = Object.fromEntries(keys.map(key => [key, 'success']));
+  const success = {...Object.fromEntries(keys.map(key => [key, 'success'])), CORE_TARGETS: '["js","wasm","native"]'};
   const run = env => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
     encoding: 'utf8', timeout: 5000, env: {...process.env, ...env},
   });
@@ -49,6 +50,10 @@ test('Source coverage redistribution requires current Linux HTTP and complete Da
     assert.equal(result.error, undefined); assert.equal(result.signal, null);
     assert.notEqual(result.status, 0, `${key}=${value || 'missing'} cannot certify coverage`);
   }
+  for (const value of ['', '[]', '["js","wasm"]', 'null', 'invalid'])
+    assert.notEqual(run({...success, CORE_TARGETS: value}).status, 0);
+  assert(workflow.jobs.core.strategy.matrix.partition.includes('source'));
+  assert(!workflow.jobs.core.strategy.matrix.exclude.some(row => row.target === 'native' && row.partition === 'source'));
   const core = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
   assert(core.run.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
   const linux = workflow.jobs['native-http'];

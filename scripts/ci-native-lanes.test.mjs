@@ -83,7 +83,7 @@ test('Linux HTTP remains independent while macOS HTTP shares the original same-V
     const workload = workflow.jobs[family + '-workloads'];
     const http = family === 'native' ? 'native-http' : 'native-http-macos';
     assert.deepEqual(workflow.jobs[http].needs, ['select-targets', 'preflight',
-      ...(family === 'native-macos' ? ['native-macos-workloads'] : [])]);
+      ...(family === 'native-macos' ? ['native-macos-workloads', 'native-http', 'core'] : [])]);
     assert.deepEqual(workload.needs, ['select-targets', 'preflight']);
     assert.equal(workload.strategy, undefined);
     assert.equal(workload.steps.filter(step => step.run?.includes('prepare-native-runtime-bundle-fixture.mjs')).length, 1);

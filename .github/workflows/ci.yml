@@ -2531,7 +2531,7 @@ jobs:
   # Ready PRs keep macOS for target/runtime-sensitive or unknown
   # inputs. The selector records why a portable PR omits this job.
   native-http-macos:
-    needs: [select-targets, preflight, native-macos-workloads]
+    needs: [select-targets, preflight, native-macos-workloads, native-http, core]
     if: >-
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
@@ -2542,10 +2542,15 @@ jobs:
         env:
           WORKLOAD_RESULT: ${{ needs.native-macos-workloads.result }}
           HTTP_RESULT: ${{ needs.native-macos-workloads.outputs.native-http-result }}
+          LINUX_HTTP_RESULT: ${{ needs.native-http.result }}
+          DARWIN_CORE_RESULT: ${{ needs.core.result }}
+          CORE_TARGETS: ${{ needs.select-targets.outputs.targets }}
         run: |
           node -e '
-            if (process.env.WORKLOAD_RESULT !== "success" || process.env.HTTP_RESULT !== "success") {
-              console.error(`macOS Native workload=${process.env.WORKLOAD_RESULT || "missing"}, HTTP=${process.env.HTTP_RESULT || "missing"}`);
+            const targets = JSON.parse(process.env.CORE_TARGETS || "null");
+            if (!Array.isArray(targets) || !targets.includes("native") ||
+                ["WORKLOAD_RESULT", "HTTP_RESULT", "LINUX_HTTP_RESULT", "DARWIN_CORE_RESULT"].some(key => process.env[key] !== "success")) {
+              console.error(`macOS Native workload=${process.env.WORKLOAD_RESULT || "missing"}, HTTP=${process.env.HTTP_RESULT || "missing"}, Linux HTTP=${process.env.LINUX_HTTP_RESULT || "missing"}, Darwin Core=${process.env.DARWIN_CORE_RESULT || "missing"}`);
               process.exitCode = 1;
             }
           '

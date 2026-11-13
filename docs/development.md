@@ -1228,6 +1228,15 @@ the same phase-local compiler entrance. The joined HTTP result requires both
 phases, retaining the original parent deadline, flags, assertions and cleanup.
 The complete standalone/Linux entrance still executes both phases in order.
 
+The hosted Darwin package phase assigns the complete default Native Source
+package to the required Linux HTTP job, while the required Darwin Core Source
+partition retains every original case with its C/release/strip profile. Darwin
+keeps the other default Native filesystem, SQLite, HTTP and control checks.
+This intentionally reduces the OS/backend cross-product; the two profiles are
+not claimed equivalent. The HTTP gate requires both current Linux HTTP and
+complete Core outcomes, and missing, skipped or failed owners cannot pass.
+The unconfigured standalone/Linux and Core Source entrances remain complete.
+
 No Native preparation is transplanted across runners: existing descriptors bind
 physical compiler aliases and generated toolchain inputs. A mismatched original
 still refuses; there is no metadata rewrite or implicit rebuild fallback.

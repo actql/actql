@@ -163,6 +163,7 @@
         "env": {
           "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http",
           "ACTQL_TEST_NATIVE_HTTP_FOCUS": "http-packages",
+          "ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER": "linux-http+darwin-core-source",
           "ACTQL_TEST_PRESERVE_SCRATCH": "1"
         }
       },
