@@ -12,27 +12,21 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', impor
 const original = JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json', import.meta.url), 'utf8'));
 const background = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
 
-test('ordinary Native object caching is explicit default-off and retains the complete original Core command', () => {
-  assert.deepEqual(workflow.on.workflow_dispatch.inputs.ordinary_native_c_cache, {
-    description: 'Use the pinned private C object cache for ordinary Native Core only',
-    type: 'boolean', default: false,
-  });
+test('normal Native object caching selects only the four mandatory ordinary jobs and retains their complete Core command', () => {
+  assert.equal(workflow.on.workflow_dispatch.inputs.ordinary_native_c_cache, undefined);
   const steps = workflow.jobs.core.steps;
   const prepare = steps.find(step => step.id === 'native-c-object-cache');
   const restore = steps.find(step => step.id === 'native-c-object-cache-restore');
   const save = steps.find(step => step.name === 'Save optional ordinary Native C objects');
   assert(prepare && restore && save);
-  const evaluate = (event, selected, target, partition) => runInNewContext(
+  const evaluate = (target, partition) => runInNewContext(
     prepare.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, ''), {
-      github: {event_name: event}, inputs: {ordinary_native_c_cache: selected}, matrix: {target, partition},
+      matrix: {target, partition},
       contains: (values, value) => values.includes(value), fromJSON: JSON.parse,
     });
   for (const target of ['js', 'wasm', 'native'])
     for (const partition of ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped'])
-      for (const event of ['workflow_dispatch', 'pull_request', 'push', 'schedule'])
-        for (const selected of [true, false, undefined])
-          assert.equal(evaluate(event, selected, target, partition),
-            event === 'workflow_dispatch' && selected === true && target === 'native' && partition.endsWith('/4'));
+      assert.equal(evaluate(target, partition), target === 'native' && partition.endsWith('/4'));
   const action = 'actions/cache/';
   const pin = '@caa296126883cff596d87d8935842f9db880ef25';
   assert.equal(restore.uses, action + 'restore' + pin);
