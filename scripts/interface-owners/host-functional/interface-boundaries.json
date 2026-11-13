@@ -27883,7 +27883,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "338c1f635ed9ea2585da64703d03b317ee855c07421b76d0dc71ee1f6b0de216",
+      "sha256": "cb2bc51f79b7ce069e9e6efe272ff223716f6fd758007981f1fc0710b3c628a2",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [

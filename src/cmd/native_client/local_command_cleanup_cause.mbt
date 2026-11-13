@@ -18,6 +18,7 @@ fn command_preparation_cleanup_cause(
         NativeStorageSqliteDomainMissing => "NativeStorageSqliteDomainMissing"
       }
     CommandUnavailable => "CommandUnavailable"
+    CommandBusinessCapacity => "BusinessCapacityExceeded"
     CommandRequestPreparation(cause) =>
       match cause {
         ForeignOriginal => "ForeignOriginal"

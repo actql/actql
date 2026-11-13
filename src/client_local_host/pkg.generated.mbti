@@ -1008,6 +1008,8 @@ pub fn prepare_single_captured_local_installed_ledger(@run_publication_host.Prep
 
 pub fn prepare_source_free_local_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
 
+pub fn prepare_source_free_runtime_requirements(@run_publication_host.PreparedClientProgram, ClientInstalledSequenceContracts, String, String?, String?) -> ClientLocalRequirements?
+
 pub fn prepared_installed_effect_managed_capture_children(ClientInstalledEffectManagedPlan) -> Int
 
 pub fn prepared_installed_effect_managed_operation(ClientInstalledEffectManagedPlan, Int, Bool, Int, String) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]

@@ -52,6 +52,8 @@ pub fn diagnostic_origin(value : CheckDiagnostic) -> DiagnosticOrigin? {
     CapacityInputs(InvalidLimits) => Some(CheckConfiguration)
     CapacityInputs(_) => Some(CapacityEvidence)
     Environment(_) => Some(CheckEnvironment)
+    Closure(Operations(Index(MissingAnalyticCeiling(_, _)))) =>
+      Some(CheckEnvironment)
     Source(UnsupportedBindings(_) | UnsupportedEffects(_)) =>
       Some(ProgramDocument)
     Closure(UnresolvedOperation(_)) => Some(ProgramDocument)
