@@ -1,3 +1,4 @@
+import './native-remote-runtime-timing.test.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync,mkdtempSync,writeFileSync,rmSync,existsSync} from 'node:fs';
@@ -75,7 +76,11 @@ test('all overlapping portable consumers select their existing verified original
     const builds=nodes(callback,n=>n.type==='CallExpression'&&n.callee.name==='execFileSync');assert.equal(builds.length,1);
     assert.deepEqual(builds[0].arguments[1].elements.slice(0,5).map(value),
       ['build','--target','js','--release','src/connectors_builtin_node']);
-    assert(body.includes('const portableCorePath = prepareNativeResidentPortableCore('));
+    const selected=nodes(tree,n=>n.type==='VariableDeclarator'&&n.id.name==='portableCorePath');
+    assert.equal(selected.length,1);
+    const initializer=selected[0].init;
+    assert.equal(initializer.callee.name==='timedRemotePhase'
+      ? initializer.arguments[1].body : initializer,core[0]);
     assert(body.includes('await import(pathToFileURL(portableCorePath).href)'));
   }
 });
