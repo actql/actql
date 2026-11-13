@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { basename, join } from 'node:path';
 import { snapshot } from '../inventory.mjs';
-import { prepareCapacityRegressionInputs } from './regression-inputs.mjs';
+import { prepareCapacityRegressionInputs, substituteCapacityRegressionParts } from './regression-inputs.mjs';
 import { retainCapacityRegressionFixture, retainCapacityRegressionText, capacityRegressionDescriptor } from './regression-fixtures.mjs';
 import { runCapacityRegressionWorkers } from './regression-workers.mjs';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -94,11 +94,7 @@ async function prepare() {
       // controls still reach semantic audits rather than a stale digest check.
       // Stage them serially, preserving each original pretty JSON wire.
       phase = performance.now();
-      const parts = prepared.parts();
-      for (const { report: part } of parts) {
-        for (const key of Object.keys(part)) if (Object.hasOwn(report, key) &&
-          !['part', 'kind', 'executions', 'executionOwners', 'timings', 'complete', 'targets'].includes(key)) part[key] = structuredClone(report[key]);
-      }
+      const parts = substituteCapacityRegressionParts(prepared.parts(), report);
       timing.cloneAndOverridePartsMs = performance.now() - phase;
       phase = performance.now();
       const archives = [];

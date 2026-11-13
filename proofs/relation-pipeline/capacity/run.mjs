@@ -6,6 +6,7 @@ import { execute, executions, root, toolchain } from '../execute.mjs';
 import { finishCapacityCampaign } from './finish.mjs';
 import { replayRestoredMinima } from './restored.mjs';
 import { recordCapacityOwner } from './parts.mjs';
+import { capacityPartIds, capacityObligationsByPart, capacityMutationNames, partRole } from '../proof-parts.mjs';
 import { hash, snapshot } from '../inventory.mjs';
 import { generate, shrink, candidates } from '../engine.mjs';
 import { fixedCorpus } from '../corpus.mjs';
@@ -21,12 +22,18 @@ import { checkCensus } from './census.mjs';
 import { runCoreProbe } from './backing/core-probe.mjs';
 import { inspectPipelineBacking } from './backing/pipeline.mjs';
 const targets = process.argv[2] === 'js' ? ['js'] : ['js', 'wasm', 'native'];
-assert(process.argv[3] === undefined || ['normal', 'L-C0', 'L-C1'].includes(process.argv[3]), 'Unknown capacity mode');
-const part = ['L-C0', 'L-C1'].includes(process.argv[3]) ? process.argv[3] : process.env.ACTQL_PIPELINE_PART;
-assert(part === undefined || ['L-C0', 'L-C1'].includes(part), 'Unknown capacity part');
+assert(process.argv[3] === undefined || process.argv[3] === 'normal' || capacityPartIds.includes(process.argv[3]), 'Unknown capacity mode');
+const part = capacityPartIds.includes(process.argv[3]) ? process.argv[3] : process.env.ACTQL_PIPELINE_PART;
+assert(part === undefined || capacityPartIds.includes(part), 'Unknown capacity part');
 if (part && process.env.ACTQL_PIPELINE_PART) assert.equal(part, process.env.ACTQL_PIPELINE_PART, 'Capacity part namespace differs');
 if (part) assert.deepEqual(targets, ['js', 'wasm', 'native'], 'Capacity parts require all three targets');
-const normalPart = part !== 'L-C1', mutationPart = part !== 'L-C0';
+const role = part === undefined ? undefined : partRole(part);
+const normalPart = role === undefined || role === 'capacity-normal';
+const supportPart = role === undefined || role === 'capacity-support';
+const mutationPart = role === undefined || role === 'capacity-mutants';
+assert.deepEqual(mutations.map(m => m.name), capacityMutationNames, 'Capacity mutations differ from canonical plan');
+const selectedMutations = part === undefined ? mutations : (capacityObligationsByPart[part].mutations ?? [])
+  .map(name => mutations.find(m => m.name === name));
 const directory = join(root, '.artifacts/relation-pipeline/capacity');
 mkdirSync(directory, { recursive: true });
 const source = snapshot(root), revision = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
@@ -77,7 +84,7 @@ const report = { version: 'actql-relation-pipeline-structure/0.1', revision, sou
   mutationTimingMeaning: 'durationMs is wall span through restored completion, including intervening mutations; activeDurationMs sums this mutation\'s mutated and healthy blocks, excluding the shared restored installation; phase timers include build, execution, hashing and I/O',
   timings: { boundaries: {} } };
 if (part) Object.assign(report, { kind: 'capacity-part', part, targets, complete: false, executionOwners: {} });
-if (normalPart) {
+if (supportPart) {
   report.backingCore = runCoreProbe(targets);
   const backingModel = spawnSync(process.execPath, ['proofs/relation-pipeline/capacity/backing/check.mjs'], { cwd: root, encoding: 'utf8' });
   const backingModelLog = `${backingModel.stdout ?? ''}${backingModel.stderr ?? ''}`;
@@ -129,7 +136,7 @@ try {
     }
   }
   const pending = [];
-  if (mutationPart && process.argv[3] !== 'normal') for (const variant of mutations) {
+  if (mutationPart && process.argv[3] !== 'normal') for (const variant of selectedMutations) {
     install(variant);
     const started = performance.now();
     const observations = probe(search, 'js', `${variant.name}-search`);
@@ -177,20 +184,23 @@ try {
     report.mutations.push(result);
     console.log(`${result.name}: fresh JS detection/shrink, same-resource minimum, ${targets.length} mutated/restored targets`);
   }
-} finally { restore(); }
+} finally {
+  if (normalPart || mutationPart) restore();
+  else assert.deepEqual(snapshot(root), source, 'Support verification changed source');
+}
 // Save receipts and close this executor before either child verification uses
 // the same checkout. The children retain their own independent ownership.
 finishCapacityCampaign(report, targets, part);
-if (part) {
+if (part && role !== 'capacity-support') {
   const primary = recordCapacityOwner(executions, 'instrumented');
   report.executionOwners[primary.id] = primary;
-  if (part === 'L-C1') {
+  if (role === 'capacity-mutants') {
     const restored = replayRestoredMinima({ report, targets, source, predecessor: primary, probe });
     report.postRestore = restored.evidence;
     report.executionOwners[restored.owner.id] = restored.owner;
   }
 }
-if (normalPart) {
+if (supportPart) {
   const custody = spawnSync(process.execPath,
     ['proofs/relation-pipeline/capacity/parent-control/custody-check.mjs', targets.length === 1 ? 'js' : 'all'],
     { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });

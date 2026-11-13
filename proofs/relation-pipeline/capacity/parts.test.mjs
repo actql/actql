@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { hash } from '../inventory.mjs';
 import { recordCapacityOwner, validateCapacityOwners, unionCapacityParts, resolveCapacityUnion, assembleCapacityParts } from './parts.mjs';
-import { prepareCapacityRegressionInputs } from './regression-inputs.mjs';
+import { prepareCapacityRegressionInputs, substituteCapacityRegressionParts } from './regression-inputs.mjs';
+import { capacityPartIds, capacityObligationsByPart, capacityMutationNames, partRole } from '../proof-parts.mjs';
 import { capacityRegressionDescriptor, retainCapacityRegressionText } from './regression-fixtures.mjs';
 import { runCapacityRegressionWorkers } from './regression-workers.mjs';
 
@@ -14,18 +15,33 @@ function fixture() {
   const source = { digest: 'source', sources: {} };
   const make = (part, phase, count) => Array.from({ length: count }, (_, i) => ({ path: `${part}/${phase}/${i}.json`,
     receipt: { boundary: { workspace: `${part}-${phase}`, root: `/checkout/${part}`, role: 'normal' } } }));
-  const normal = make('L-C0', 'instrumented', 12), mutated = make('L-C1', 'instrumented', 45), restored = make('L-C1', 'post-restore', 15);
-  const owner0 = recordCapacityOwner(normal, 'instrumented'), owner1 = recordCapacityOwner(mutated, 'instrumented');
-  const owner2 = recordCapacityOwner(restored, 'post-restore', owner1.id);
   const common = { version: 'structure', revision: 'sha', source, toolchain: {}, claim: {}, overlays: {}, corpus: [], seed: 148256,
     search: [], shrinkMeaning: 'minimum', mutationTimingMeaning: 'wall time', targets: ['js', 'wasm', 'native'], kind: 'capacity-part', complete: true };
-  const reports = [{ ...structuredClone(common), part: 'L-C0', normal: {}, boundaries: {}, backingCore: {}, backingModel: {}, model: {}, custody: {}, parentStartup: {},
-    executions: normal, executionOwners: { [owner0.id]: owner0 }, timings: {} },
-  { ...structuredClone(common), part: 'L-C1', mutations: [], postRestore: { owner: owner2.id, predecessor: owner1.id, sourceDigest: source.digest, records: [] },
-    executions: [...mutated, ...restored], executionOwners: { [owner1.id]: owner1, [owner2.id]: owner2 }, timings: {} }];
+  const reports = capacityPartIds.map(part => {
+    const role = partRole(part), obligations = capacityObligationsByPart[part];
+    const report = { ...structuredClone(common), part, executions: [], executionOwners: {}, timings: {} };
+    if (role === 'capacity-support') return Object.assign(report,
+      { backingCore: {}, backingModel: {}, model: {}, custody: {}, parentStartup: {} });
+    const normal = role === 'capacity-normal';
+    const primary = make(part, 'instrumented', normal
+      ? obligations.normal.targets.length * (1 + obligations.boundaries.values.length)
+      : obligations.mutations.length * (3 + 2 * report.targets.length));
+    const owner = recordCapacityOwner(primary, 'instrumented');
+    report.executions = primary; report.executionOwners[owner.id] = owner;
+    if (normal) return Object.assign(report, { normal: {}, boundaries: {} });
+    const restored = make(part, 'post-restore', obligations.ownerLocalRestoration.caseCount * report.targets.length);
+    const successor = recordCapacityOwner(restored, 'post-restore', owner.id);
+    report.executions.push(...restored); report.executionOwners[successor.id] = successor;
+    report.mutations = obligations.mutations.map(name => ({ name, minimal: { id: name }, history: [{ accepted: 0 }] }));
+    report.postRestore = { owner: successor.id, predecessor: owner.id, sourceDigest: source.digest,
+      records: report.mutations.map(m => ({ name: m.name, minimal: m.minimal, observations: {} })) };
+    return report;
+  });
   const parts = reports.map(report => ({ path: `.artifacts/relation-pipeline/capacity/parts/${report.part}.json`, report }));
   const files = new Map(parts.map(({ path, report }) => [path, JSON.stringify(report, null, 2) + '\n']));
-  return { parts, files, read: path => { assert(files.has(path)); return files.get(path); } };
+  return { parts, files, reports, mutants: reports.filter(r => partRole(r.part) === 'capacity-mutants'),
+    support: reports.find(r => partRole(r.part) === 'capacity-support'),
+    read: path => { assert(files.has(path)); return files.get(path); } };
 }
 test('regression preparation reads each original once and freezes a detached source snapshot', () => {
   const f = fixture(), original = unionCapacityParts(f.parts, f.read);
@@ -38,7 +54,8 @@ test('regression preparation reads each original once and freezes a detached sou
   for (let i = 0; i < 10; i++) assert.deepEqual(prepared.parts(), f.parts);
   assert.deepEqual(reads, original.parts.map(ref => ref.path));
 });
-for (const order of [['L-C0', 'L-C1'], ['L-C1', 'L-C0']]) {
+for (const order of [[...capacityPartIds].filter(id => partRole(id) !== 'capacity-support'),
+  [...capacityPartIds].filter(id => partRole(id) !== 'capacity-support').reverse()]) {
   test(`regression cases cannot leak dirty nested state in ${order.join('/')} order`, () => {
     const f = fixture(), original = unionCapacityParts(f.parts, f.read), before = structuredClone(original);
     const prepared = prepareCapacityRegressionInputs(original, original.source, f.read);
@@ -76,15 +93,22 @@ test('regression preparation does not hide missing or malformed original inputs'
   assert.throws(() => prepareCapacityRegressionInputs(original, original.source, () => { throw new Error('missing original'); }), /missing original/);
   assert.throws(() => prepareCapacityRegressionInputs(original, original.source, () => '{'), SyntaxError);
 });
-test('capacity union retains immutable originals and three distinct owner inventories', () => {
+test('capacity union retains all original fields and both distinct restored owner pairs without inventing support owners', () => {
   const { parts, files, read } = fixture(), originals = structuredClone(parts);
   const union = unionCapacityParts(parts, read);
   assert.equal(union.kind, 'capacity-union'); assert.equal(union.part, undefined);
-  assert.equal(union.executions.length, 72); assert.equal(Object.keys(union.executionOwners).length, 3);
+  assert.equal(union.executions.length, 72); assert.equal(Object.keys(union.executionOwners).length, 5);
   assert.deepEqual(parts, originals);
   assert.deepEqual(resolveCapacityUnion(union, read), parts);
   for (const ref of union.parts) assert.equal(ref.digest, hash(files.get(ref.path)));
-  assert.deepEqual(union.executionOwners['L-C1-post-restore'].paths, parts[1].report.executionOwners['L-C1-post-restore'].paths);
+  const mutants = parts.filter(({ report }) => partRole(report.part) === 'capacity-mutants');
+  assert.deepEqual(union.mutations.map(m => m.name), capacityMutationNames);
+  assert.deepEqual(union.postRestore.parts, mutants.map(({ report: r }) => ({ part: r.part, ...r.postRestore })));
+  assert.deepEqual(union.postRestore.records, mutants.flatMap(({ report }) => report.postRestore.records));
+  for (const { report } of mutants) assert.deepEqual(union.executionOwners[report.postRestore.owner].paths,
+    report.executionOwners[report.postRestore.owner].paths);
+  const support = parts.find(({ report }) => partRole(report.part) === 'capacity-support').report;
+  assert.deepEqual(support.executions, []); assert.deepEqual(support.executionOwners, {});
 });
 for (const [name, corrupt] of [
   ['missing part', f => f.parts.pop()],
@@ -92,12 +116,17 @@ for (const [name, corrupt] of [
   ['stale source', f => { f.parts[1].report.source.digest = 'stale'; }],
   ['incomplete fragment', f => { f.parts[1].report.complete = false; }],
   ['cross-part claim', f => { f.parts[1].report.normal = {}; }],
-  ['missing close', f => { f.parts[1].report.executionOwners['L-C1-post-restore'].closed = false; }],
-  ['missing restored receipt', f => { f.parts[1].report.executions.pop(); }],
-  ['wrong predecessor', f => { f.parts[1].report.postRestore.predecessor = 'other-owner'; }],
-  ['wrong restored checkout', f => { f.parts[1].report.executionOwners['L-C1-post-restore'].root = '/elsewhere'; }],
-  ['duplicated receipt', f => { f.parts[1].report.executions.push(f.parts[1].report.executions[0]); }],
+  ['missing close', f => { const r = f.mutants[0]; r.executionOwners[r.postRestore.owner].closed = false; }],
+  ['missing restored receipt', f => { f.mutants[0].executions.pop(); }],
+  ['wrong predecessor', f => { f.mutants[0].postRestore.predecessor = 'other-owner'; }],
+  ['wrong restored checkout', f => { const r = f.mutants[0]; r.executionOwners[r.postRestore.owner].root = '/elsewhere'; }],
+  ['duplicated receipt', f => { f.parts[0].report.executions.push(f.parts[0].report.executions[0]); }],
   ['changed original bytes', f => { f.files.set(f.parts[0].path, '{}'); }],
+  ['support claims a pipeline owner', f => { f.support.executionOwners = structuredClone(f.reports[0].executionOwners); }],
+  ['support claims pipeline executions', f => { f.support.executions = structuredClone(f.reports[0].executions); }],
+  ['missing support field', f => { delete f.support.backingModel; }],
+  ['mutant from another subset', f => { f.mutants[0].mutations[0] = f.mutants[1].mutations[0]; }],
+  ['missing subset minimum', f => { f.mutants[1].postRestore.records.pop(); }],
 ]) test(`capacity union rejects ${name}`, () => {
   const f = fixture(); corrupt(f); assert.throws(() => unionCapacityParts(f.parts, f.read));
 });
@@ -122,9 +151,37 @@ test('union writes a new report once without rewriting either original', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 test('fragment cannot hide an execution behind an unrepresented owner', () => {
-  const { parts } = fixture(), report = parts[1].report;
+  const { mutants } = fixture(), report = mutants[0];
   report.executions[0].receipt.boundary.workspace = 'foreign-owner';
   assert.throws(() => validateCapacityOwners(report));
+});
+
+test('negative union substitutions retain each exact mutant subset and its real restoration pair', () => {
+  const f = fixture(), original = unionCapacityParts(f.parts, f.read), before = structuredClone(f.parts);
+  const changed = structuredClone(original);
+  changed.mutations.at(-1).history[0].accepted = -2;
+  const prepared = prepareCapacityRegressionInputs(original, original.source, f.read);
+  const substituted = substituteCapacityRegressionParts(prepared.parts(), changed);
+  const overrides = new Map(substituted.map(({ path, report }) => [path, JSON.stringify(report)]));
+  const rebuilt = unionCapacityParts(substituted, path => overrides.get(path));
+  assert.deepEqual(rebuilt.mutations, changed.mutations);
+  assert.deepEqual(rebuilt.postRestore, original.postRestore);
+  for (const { report } of substituted.filter(p => partRole(p.report.part) === 'capacity-mutants')) {
+    assert.deepEqual(report.mutations.map(m => m.name), capacityObligationsByPart[report.part].mutations);
+    assert.deepEqual(report.postRestore.records.map(r => r.name), capacityObligationsByPart[report.part].mutations);
+  }
+  assert.deepEqual(prepared.parts(), before);
+  assert.deepEqual(f.parts, before);
+});
+
+for (const [name, change] of [
+  ['foreign restored owner', r => { r.postRestore.parts[0].owner = 'foreign'; }],
+  ['omitted mutant', r => { r.mutations.pop(); }],
+]) test(`substituted union still rejects ${name} before semantic audit`, () => {
+  const f = fixture(), report = unionCapacityParts(f.parts, f.read); change(report);
+  const parts = substituteCapacityRegressionParts(structuredClone(f.parts), report);
+  const overrides = new Map(parts.map(({ path, report }) => [path, JSON.stringify(report)]));
+  assert.throws(() => unionCapacityParts(parts, path => overrides.get(path)), { code: 'ERR_ASSERTION' });
 });
 
 test('actual worker reconstructs independent full union and reaches the original compiler validator', async t => {
@@ -137,7 +194,8 @@ test('actual worker reconstructs independent full union and reaches the original
     for (const { path, report } of f.parts) {
       report.version = 'actql-relation-pipeline-structure/0.1';
       report.toolchain = { version: 'unreviewed' };
-      if (slot === 'owner') report.executionOwners[Object.keys(report.executionOwners)[0]].closed = false;
+      if (slot === 'owner' && Object.keys(report.executionOwners).length)
+        report.executionOwners[Object.keys(report.executionOwners)[0]].closed = false;
       const retained = await retainCapacityRegressionText(join(root, `${slot}-${report.part}.json`),
         JSON.stringify(report, null, 2) + '\n');
       parts.push({ path, archive: capacityRegressionDescriptor(retained) });
