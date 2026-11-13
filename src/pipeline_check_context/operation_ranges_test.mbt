@@ -142,6 +142,35 @@ test "bound UTC ranges accept equality and reject reversed endpoints without hos
 }
 
 ///|
+test "bound mixed-width UTC ranges retain original parameter values and exact order" {
+  let literal = "\"2000-01-01T00:00:00.123Z\""
+  let symbolic = "{\"$param\":\"n\"}"
+  let bound = "2000-01-01T00:00:00.122999999Z"
+  for calendar in [false, true] {
+    let fills = range_fixture(calendar, symbolic, literal, bound)
+    let ranges = check_program_operation_ranges(fills, 10000000, 3).unwrap()
+    for i in 0..<3 {
+      let range = operation_range_at(ranges, i).unwrap()
+      let parameter = range.start_parameter.unwrap()
+      assert_eq(range.start, bound)
+      assert_true(
+        parameter.value.value is @value.Timestamp(text) && text == bound,
+      )
+      assert_true(parameter.origin is Supplied)
+      assert_true(range.end_parameter is None)
+    }
+    assert_true(
+      check_program_operation_ranges(
+        range_fixture(calendar, literal, symbolic, bound),
+        10000000,
+        3,
+      )
+      is Err(ReversedRange(_)),
+    )
+  }
+}
+
+///|
 test "identical bound endpoints are empty while calendar rejects year zero" {
   let endpoint = "{\"$param\":\"n\"}"
   for calendar in [false, true] {
