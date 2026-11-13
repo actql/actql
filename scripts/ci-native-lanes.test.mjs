@@ -167,7 +167,16 @@ test('local Native route retains every original case serially with one preparati
 test('required lint directly selects Native preparation controls and only macOS opts into isolated construction overlap',()=>{
   const required=workflow.jobs.lint.steps.filter(step=>step.name==='Test Native preparation originals and bounded compiler orchestration');
   assert.equal(required.length,1);assert.equal(required[0].if,undefined,'Drafts require these source/port controls too');
-  assert.equal(required[0].run,'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-core-c-compiler.test.mjs scripts/native-preparation-lanes.test.mjs');
+  assert.equal(required[0].run,'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs');
+  const core=workflow.jobs.core.steps;
+  const compiler=core.find(step=>step.name==='Test pinned Native C compiler orchestration');
+  assert.equal(compiler.run,'node --test scripts/native-core-c-compiler.test.mjs');
+  assert.equal(compiler.if,"${{ matrix.target == 'native' && matrix.partition == '1/4' }}");
+  assert(core.findIndex(step=>step.uses==='./.github/actions/setup-toolchain')<core.indexOf(compiler));
+  const mac=workflow.jobs['native-macos-workloads'].steps;
+  const actualMac=mac.find(step=>step.name==='Test pinned macOS Native C compiler orchestration');
+  assert.equal(actualMac.run,'node --test scripts/native-core-c-compiler.test.mjs');
+  assert(mac.findIndex(step=>step.name==='Install pinned MoonBit')<mac.indexOf(actualMac));
   const prepare=family=>workflow.jobs[family+'-workloads'].steps.find(step=>step.id==='native-preparation');
   assert(prepare('native-macos').run.endsWith('--resident-seconds 1200 --lanes 2'));
   assert(!prepare('native').run.includes('--lanes'));
