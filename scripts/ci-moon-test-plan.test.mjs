@@ -172,7 +172,7 @@ test('a backend without runnable compiler cases retains its full nonzero suite',
   assert.equal(invoked, 1);
 });
 
-test('Native caller consumes the same checked package closure without changing its full entry classification', () => {
+test('Native caller consumes the same checked package closure without changing its full entry classification', async () => {
   const selection = selectTargets(['src/a/code.mbt'], {moonTests:fixture().plan});
   const env = {CI_PLAN:JSON.stringify({sourceRevision:hash, selection}), GITHUB_EVENT_NAME:'pull_request', GITHUB_EVENT_PATH:'original-event'};
   let reads = 0;
@@ -191,16 +191,27 @@ test('Native caller consumes the same checked package closure without changing i
   const end = source.indexOf('if (selection?.executionScope)', start);
   assert(start > 0 && end > start);
   const packages = selection.moonTests.packages;
+  const platformStart = source.indexOf('const platformPackages = full && platformScope');
+  const platformEnd = source.indexOf('\nconst executionPackages', platformStart);
+  assert(platformStart > 0 && platformEnd > platformStart);
+  // This PR closure has no platform override. Evaluate the actual preceding
+  // production binding rather than fabricating an empty Darwin package set.
+  const platformPackages = await runInNewContext('(async () => {\n' +
+    source.slice(platformStart, platformEnd) + '\nreturn platformPackages;})()', {
+    full: true, platformScope: env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE,
+  });
+  assert.equal(platformPackages, undefined);
   for (const partition of [undefined, '1/2', '2/2', '1/4', '4/4', 'http', 'source', 'scoped']) {
     let calls = 0;
     runInNewContext(source.slice(start, end), {
       full: true, root: '/same/source', args: ['--release'], partition,
-      executionPackages: packages, compilerEnvironment: {},
+      executionPackages: packages, platformPackages, compilerEnvironment: {},
       nativeCoreTestSelection(root, args, options) {
         calls++;
         assert.equal(root, '/same/source');
         assert.equal(options.timeoutMs, 300_000);
         assert.equal(options.partitionProfiles, true);
+        assert.equal(options.allowNestedFileInputs, false);
         assert.equal(options.ordinaryPartitions, partition?.endsWith('/4') ? 4 :
           Boolean(partition) && !['http', 'source', 'scoped'].includes(partition));
         assert.equal(options.executionPackages, ['http', 'source', 'scoped'].includes(partition) ? undefined : packages,
