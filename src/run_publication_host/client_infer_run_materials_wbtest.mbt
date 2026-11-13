@@ -832,7 +832,6 @@ test "plural saved inventory uses original checked Model occurrences beyond128 a
     {
       ..preparation,
       checking: {
-        ..preparation.checking,
         input: { ..preparation.checking.input, max_stages: 130, },
         compilation: {
           ..preparation.checking.compilation,
