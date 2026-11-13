@@ -9,6 +9,34 @@ import {nativeCoreCArguments, nativeCoreCCompiler} from './native-core-c-compile
 import * as compilerModule from './native-core-c-compiler.mjs';
 import {nativeRuntimeReaderCustodyFixture, nativeRuntimeReaderCustodyCacheInput} from './native-runtime-reader-custody-fixture.mjs';
 
+test('the pinned Moon ordinary release command reaches the closed Darwin cache planner',
+  {skip: process.platform !== 'darwin'}, t => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-moon-cache-command-')));
+    t.after(() => rmSync(root, {recursive: true, force: true}));
+    writeFileSync(join(root, 'moon.mod'), 'name = "fixture/cache-command"\n');
+    writeFileSync(join(root, 'moon.pkg'), '');
+    writeFileSync(join(root, 'main_test.mbt'), 'test "original command" { assert_eq(1, 1) }\n');
+    const result = spawnSync(join(process.env.MOON_HOME, 'bin/moon'),
+      ['test', '--target', 'native', '--release', '--strip', '--dry-run'],
+      {cwd: root, encoding: 'utf8', timeout: 10000, env: {...process.env, MOONBIT_NEW_NATIVE: '0'}});
+    assert.ifError(result.error); assert.equal(result.status, 0, result.stderr);
+    const command = result.stdout.split('\n').find(line => line.includes('.internal_test.c') && !line.includes('moonc'));
+    assert(command);
+    // This private fixture has no whitespace in its paths. Preserve the exact
+    // actual driver arguments while running the planner in that same cwd.
+    const parts = command.trim().split(/\s+/u);
+    const module = new URL('./native-core-c-compiler.mjs', import.meta.url).href;
+    const check = spawnSync(process.execPath, ['--input-type=module', '-e',
+      `import {nativeCoreCObjectCommands} from ${JSON.stringify(module)};` +
+      'console.log(JSON.stringify(nativeCoreCObjectCommands(process.cwd(),process.argv[1],JSON.parse(process.argv[2]))));',
+      '--', parts[0], JSON.stringify(parts.slice(1))], {cwd: root, encoding: 'utf8', timeout: 5000});
+    assert.ifError(check.error); assert.equal(check.status, 0, check.stderr);
+    assert.notEqual(check.stdout.trim(), 'undefined', command);
+    const plan = JSON.parse(check.stdout);
+    assert(plan.compile.includes('-O0')); assert(!plan.compile.includes('-O2'));
+    assert(plan.link.includes('-O0')); assert.equal(plan.compile[0], '-c');
+  });
+
 test('Reader compiler cache inputs refuse changed physical or recipe data without keying fresh library identities',
   {skip: process.platform !== 'darwin'}, t => {
     const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-reader-cache-input-')));
