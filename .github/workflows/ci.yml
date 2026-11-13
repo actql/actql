@@ -292,7 +292,7 @@ jobs:
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_native_compiler_diagnostics.py
       - name: Test Native preparation originals and bounded compiler orchestration
-        run: node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-core-c-compiler.test.mjs scripts/native-preparation-lanes.test.mjs
+        run: node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs
       - name: Test CI lane coverage and bounded Native phase measurement
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-balanced-lanes.test.mjs scripts/ci-session-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
@@ -400,6 +400,9 @@ jobs:
         run: |
           test "$(uname -s)" = Darwin
           test "$(uname -m)" = arm64
+      - name: Test pinned Native C compiler orchestration
+        if: ${{ matrix.target == 'native' && matrix.partition == '1/4' }}
+        run: node --test scripts/native-core-c-compiler.test.mjs
       - name: Prepare pinned ordinary Native C object caching
         id: native-c-object-cache
         if: ${{ matrix.target == 'native' && contains(fromJSON('["1/4","2/4","3/4","4/4"]'), matrix.partition) }}
