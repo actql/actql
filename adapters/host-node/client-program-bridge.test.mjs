@@ -2714,7 +2714,9 @@ async function effectFixture({splitSource = false,
   const environmentDocument = JSON.parse(environmentBody);
   const baseEnvironment = JSON.parse(await readFile(new URL(
     '../../spec/local-check-environment.json', import.meta.url), 'utf8'));
-  environmentDocument.host_policy_profile.text_time_evaluation = baseEnvironment.host_policy_profile.text_time_evaluation;
+  // This new Effect publication must use the same complete policy as the
+  // installing Host and Source before its evidence identity is computed.
+  environmentDocument.host_policy_profile = structuredClone(baseEnvironment.host_policy_profile);
   mapping.connector_manifest_cid = withFixtureConnector(environmentDocument,
     mapping.target_ref);
   mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
