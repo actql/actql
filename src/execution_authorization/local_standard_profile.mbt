@@ -98,7 +98,9 @@ pub fn local_standard_account_configuration(
     (if subjects.signing_key_resource is Some(_) { 1 } else { 0 })
   match
     local_profile_entry_inventory(
-      subjects.configured_connections.length(), subjects.model_tasks.length(), fixed,
+      subjects.configured_connections.length(),
+      subjects.model_tasks.length(),
+      fixed,
     ) {
     Err(issue) => return Err(Configuration(issue))
     Ok(_) => ()
