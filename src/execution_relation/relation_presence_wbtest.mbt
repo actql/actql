@@ -503,11 +503,13 @@ test "presence output stream retains exact bytes and reloads through the existin
     ).unwrap()
   }
   let reloaded = finish_completed_output_import(conversion).unwrap()
+  let read_wire = prepare_completed_output_row_wire_reader(reloaded, 100, 10).unwrap()
   for index, wire in wires {
     assert_eq(
       completed_output_row_wire(reloaded, index, 4096, 100, 10).unwrap(),
       wire,
     )
+    assert_eq(read_wire(index, 4096).unwrap(), wire)
   }
   let exporting = prepare_completed_output_export(
     reloaded,
