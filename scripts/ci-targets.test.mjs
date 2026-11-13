@@ -81,7 +81,7 @@ test('preflight checks Native counter assignments before the build toolchain', (
   assert.ok(index >= 0);
   assert.equal(steps[index].run, 'python3 scripts/test_native_timings.py CommandCounterMap');
   assert.ok(index < steps.findIndex(row => row.name === 'Install pinned MoonBit'));
-  assert.ok(jobs.native.needs.includes('preflight'));
+  assert.ok(!jobs.native.needs.includes('preflight'));
 });
 
 test('Linux Native profile compilers retain their commands and existing stack prerequisite', t => {
@@ -335,7 +335,7 @@ test('macOS HTTP retains its original command under shared preparation and a man
   assert.equal(nativeCases('native-macos').filter(step => step.id === 'native-http').length, 1);
   assert.equal(workload.outputs['native-http-result'], '${{ steps.native-background.outputs.native-http-result }}');
   const gate = jobs['native-http-macos'];
-  assert.deepEqual(gate.needs, ['select-targets', 'preflight', 'native-macos-workloads', 'native-http', 'core']);
+  assert.deepEqual(gate.needs, ['select-targets', 'native-macos-workloads', 'native-http', 'core']);
   assert.equal(gate['runs-on'], 'ubuntu-24.04');
   assert.match(gate.if, /always\(\)/u);
   assert.equal(gate['timeout-minutes'], 5);
@@ -704,7 +704,7 @@ for (const [name, driver, output] of [
 
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
-  assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight', 'core-common', 'core-darwin']);
+  assert.deepEqual(jobs.core.needs, ['select-targets', 'core-common', 'core-darwin']);
   assert.equal(jobs['core-common'].strategy['fail-fast'], false);
   assert.equal(jobs['core-darwin'].strategy['fail-fast'], false);
   for (const target of ['js', 'wasm', 'native']) {
@@ -712,13 +712,13 @@ test('whole-family scheduling retains the core matrix and complete selected proo
       {matrix: {target}}, {timeout: 100}), target === 'native' ? 90 : 30);
   }
   assert.equal(jobs['core-common'].strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
-  assert.deepEqual(jobs['native-macos-workloads'].needs, ['select-targets', 'preflight']);
+  assert.deepEqual(jobs['native-macos-workloads'].needs, ['select-targets']);
   assert.equal(jobs['native-macos-workloads']['timeout-minutes'], 115);
   assert.equal(jobs['native-workloads']['timeout-minutes'], 110);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
   for (const name of ['session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
-    assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight']);
+    assert.deepEqual(jobs[name].needs, ['select-targets']);
   }
   assert.deepEqual(jobs['pipeline-evidence'].needs, [...Object.values(partJobs), 'pipeline-validation']);
   const capacity = jobs['pipeline-capacity'].steps.map(step => step.run ?? '').join('\n');
@@ -1123,7 +1123,7 @@ test('every heavy primitive is selected as one complete job and lint/spec always
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', macos: 'true'}}}), false);
   }
   assert.deepEqual(jobs.check.needs, gateJobs);
-  for (const name of ['lint', 'spec']) assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight']);
+  for (const name of ['lint', 'spec']) assert.deepEqual(jobs[name].needs, ['select-targets']);
   const lint = jobs.lint.steps.map(step => step.run ?? '');
   assert(lint.includes('node --test scripts/ci-evidence.test.mjs'));
   assert(lint.includes('node --test scripts/worktree-inventory.test.mjs'));
@@ -1537,7 +1537,7 @@ test('main CLI selects full checks from a fresh checkout without API token or pr
 test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
   const job = jobs['python-wheels'];
   assert.equal(job['runs-on'], 'macos-15');
-  assert.deepEqual(job.needs, ['select-targets', 'preflight']);
+  assert.deepEqual(job.needs, ['select-targets']);
   assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', macos: 'false'}}}), true);
   assert(job.steps.some(step => step.run?.includes('test "$(uname -m)" = arm64')));
   assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));

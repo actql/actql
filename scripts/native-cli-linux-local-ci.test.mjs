@@ -14,7 +14,7 @@ const job = workflow.jobs['native-cli-linux-local'];
 
 test('normal Linux Local job is separate, mandatory and explicitly bounded', () => {
   assert(job);
-  assert.deepEqual(job.needs, ['select-targets', 'preflight']);
+  assert.deepEqual(job.needs, ['select-targets']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
   assert.equal(job['timeout-minutes'], 50);
   assert.match(job.if, /outputs\.profile == 'full'/u);

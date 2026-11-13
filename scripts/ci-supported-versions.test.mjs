@@ -13,7 +13,7 @@ const {jobs} = parse(await readFile(new URL('../.github/workflows/ci.yml', impor
 
 test('supported Node versions consume one explicit normal artifact and retain aggregate refusal', () => {
   const job = jobs['client-supported-versions'];
-  assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert.equal(job.strategy['fail-fast'], false);
   assert.deepEqual(job.strategy.matrix.include, supportedNodeCases.map(({profile, version}) => ({profile, node: version})));
   assert(job.if.includes("outputs.profile == 'full'"));

@@ -142,7 +142,7 @@ jobs:
       python-package-run-id: ${{ inputs.performance_python_package_run_id }}
       python-package-artifact-id: ${{ inputs.performance_python_package_artifact_id }}
       python-package-producer-job: ${{ fromJSON(inputs.performance_process_package_jobs || '{}').python || '' }}
-  # Admission checks complete before any normal runtime/proof runner starts.
+  # Mandatory admission runs independently and remains required by the final gate.
   preflight:
     needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -202,9 +202,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci-preflight.mjs
-  # Remaining independent lint diagnostics run after mandatory admission.
+  # Independent lint diagnostics need not wait for mandatory admission.
   lint:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -313,7 +313,7 @@ jobs:
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node scripts/check-node-without-duckdb.mjs
   focused-tests:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && (needs.select-targets.outputs.profile == 'focused-tests' || needs.select-targets.outputs.profile == 'draft-focused') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -352,7 +352,7 @@ jobs:
   # four-job cap, leaving another macOS slot for the original long workloads.
   # Both matrices use the same step owner; Core requires their selected outcomes.
   core-common:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
@@ -617,7 +617,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   core-darwin:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
     strategy:
@@ -630,7 +630,7 @@ jobs:
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps: *core_steps
   core:
-    needs: [select-targets, preflight, core-common, core-darwin]
+    needs: [select-targets, core-common, core-darwin]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -653,7 +653,7 @@ jobs:
           '
   # Conditional proof and correspondence evidence beside the existing gates.
   session-controls:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -670,7 +670,7 @@ jobs:
       - name: Reject invalid incremental action inputs and origins
         run: node scripts/ci-session-controls.mjs
   session-evidence:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -748,7 +748,7 @@ jobs:
   # Evidence is from this run AND attempt; rerun all jobs after partial retries.
   # Fixed four-part plan: no matrix, shared mutable root or result reuse.
   pipeline-capacity:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -803,7 +803,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-capacity-support:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -854,7 +854,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-capacity-mutants:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -905,7 +905,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-capacity-mutants-rest:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -956,7 +956,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-mutations:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -1011,7 +1011,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-mutations-second:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -1066,7 +1066,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-mutations-rest:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -1121,7 +1121,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-mutations-rest-second:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -1176,7 +1176,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-validation:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -1355,7 +1355,7 @@ jobs:
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
   host:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -1477,7 +1477,7 @@ jobs:
   # Share only clean-checkout tarballs and their source/digest manifest.
   # Consumers retain fresh installs and private target/native build outputs.
   client-packages:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -1510,7 +1510,7 @@ jobs:
   # This is functional once per variant/Node, independent of speed profiles.
   client-readme-packed:
     name: client-readme-packed (${{ matrix.node }})
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -1568,7 +1568,7 @@ jobs:
   # Reuse the normal producer; this small trend lane is not the release matrix.
   main-performance:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [preflight, client-packages]
+    needs: [client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -1642,7 +1642,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
   client-supported-versions:
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -1675,7 +1675,7 @@ jobs:
         run: node scripts/ci-supported-node.mjs '${{ matrix.profile }}' '${{ matrix.node }}' "$RUNNER_TEMP"
   client-distribution:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -1724,7 +1724,7 @@ jobs:
         run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/local-analytic-preparation.test.mjs adapters/host-node/local-analytic-public.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/client-keyed-lookup-journal.test.mjs adapters/store-local/lookup-raw-evidence.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs
   client-distribution-callers:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -1948,7 +1948,7 @@ jobs:
         run: node scripts/local-checks.mjs test node -- adapters/host-node/installed-content-family-custody.test.mjs adapters/host-node/table-owned-site-retirement.test.mjs adapters/host-node/table-original-metadata.test.mjs
   client-distribution-mutations:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
@@ -2005,7 +2005,7 @@ jobs:
         run: node scripts/${{ matrix.script }}
   client-distribution-packed:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -2062,7 +2062,7 @@ jobs:
         run: node scripts/test-packed-client-checkpoint.mjs
   client-distribution-native:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -2084,7 +2084,7 @@ jobs:
         run: node scripts/test-native-client.mjs
   client-packed:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     name: client-packed (${{ matrix.group }})
     # Every group consumes the one same-run Client artifact. Private installed
@@ -2267,7 +2267,7 @@ jobs:
   # The preceding installed-query workloads must not consume its execution time.
   client-packed-composition:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -2290,7 +2290,7 @@ jobs:
         run: node scripts/test-packed-salesforce-source.mjs
   # These source-backed checks need no packed artifact or other Client job.
   client-salesforce:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -2346,7 +2346,7 @@ jobs:
   # Ordinary install acceptance is separate from transport mocks and source
   # unit tests. It consumes the same run's prepack-enabled Client tarballs.
   native-cli-installed:
-    needs: [select-targets, preflight, client-packages]
+    needs: [select-targets, client-packages]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -2379,7 +2379,7 @@ jobs:
           retention-days: 14
   # Separate positive Local cohort; the Remote/no-runtime regression is independent.
   native-cli-linux-local:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 50
@@ -2491,7 +2491,7 @@ jobs:
           retention-days: 14
   # Native storage, publication and control, and the Native retained path.
   native-http:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 110
@@ -2523,7 +2523,6 @@ jobs:
   native-workloads:
     needs:
       - select-targets
-      - preflight
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 110
@@ -2705,7 +2704,6 @@ jobs:
   native:
     needs:
       - select-targets
-      - preflight
       - native-workloads
       - native-http
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
@@ -2787,7 +2785,7 @@ jobs:
           path: .artifacts/pipeline-action-consumer/verified-actions.json
           if-no-files-found: error
   spec:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -2825,7 +2823,7 @@ jobs:
   # Ready PRs keep macOS for target/runtime-sensitive or unknown
   # inputs. The selector records why a portable PR omits this job.
   native-http-macos:
-    needs: [select-targets, preflight, native-macos-workloads, native-http, core]
+    needs: [select-targets, native-macos-workloads, native-http, core]
     if: >-
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
@@ -2851,7 +2849,6 @@ jobs:
   native-macos-workloads:
     needs:
       - select-targets
-      - preflight
     if: |-
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
@@ -2929,7 +2926,6 @@ jobs:
   native-macos:
     needs:
       - select-targets
-      - preflight
       - native-macos-workloads
       - native-http-macos
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
@@ -2950,7 +2946,7 @@ jobs:
             }
           '
   python-wheels:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
     runs-on: macos-15
     timeout-minutes: 40
@@ -3004,7 +3000,7 @@ jobs:
           retention-days: 14
   native-separated-network:
     name: native-separated-network (${{ matrix.profile }})
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -3075,7 +3071,7 @@ jobs:
           ulimit -S -s 65536
           npm run check:native-separated-network
   workers:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -3115,7 +3111,7 @@ jobs:
       - name: Build inspect and execute the Workers JS profile
         run: npm test --prefix adapters/workers
   connector-addition:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -3159,7 +3155,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   duckdb-node:
-    needs: [select-targets, preflight]
+    needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20

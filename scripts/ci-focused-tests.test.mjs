@@ -254,7 +254,7 @@ test('aggregate requires focused success and legitimate explicit skips, bound to
 test('workflow selects focused job only for this profile and retains mandatory gates', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['focused-tests'];
-  assert.deepEqual(job.needs, ['select-targets', 'preflight']);
+  assert.deepEqual(job.needs, ['select-targets']);
   assert.match(job.if, /profile == 'focused-tests'/u);
   assert(job.steps.some(step => step.run?.endsWith('node scripts/ci-focused-tests.mjs\n') &&
     step.env.CI_PLAN_PATH === '${{ runner.temp }}/actql-ci-plan.json'));
