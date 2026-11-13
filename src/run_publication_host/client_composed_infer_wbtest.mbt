@@ -1210,3 +1210,12 @@ test "composed Model measurement retains foreign inventory refusal and bounded c
   assert_true(result is Err(_))
   assert_true(count.val >= 0L && count.val <= 2L * one_short.to_int64())
 }
+
+///|
+test "plural inventory count does not admit two Model boundaries inside one Whole Unit" {
+  let authored =
+    #|{"version":"actql/0.1","id":"same-unit-model-boundaries","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":false}},"rows":[{"id":"a","text":"original"}]},"as":"items"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"first"},{"select":["id"]},{"derive":{"text":{"literal":"second"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"second"}],"results":{"rows":{"from":"second","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let prepared = client_composed_infer_test_program(authored=Some(authored))
+  assert_true(prepared_client_composed_infer_occurrences(prepared) is None)
+  assert_true(prepared_client_composed_infer_occurrence(prepared) is None)
+}
