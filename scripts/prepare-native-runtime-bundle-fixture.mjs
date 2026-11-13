@@ -98,7 +98,7 @@ const {entries,components,httpReceipt,portableReceipt}=lanes===2
 // keys, ports, environment, original Moon commands and exact execution counts.
 let queryReceipt;
 if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{
-  queryReceipt=prepareNativeQuerySoftware(repository,destination);
+  queryReceipt=prepareNativeQuerySoftware(repository,destination,{env:{...process.env,MOON_HOME:moonHome}});
 });
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
