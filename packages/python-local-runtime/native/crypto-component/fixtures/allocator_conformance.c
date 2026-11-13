@@ -169,6 +169,9 @@ int main(int argc, char **argv) {
     assert(acquired == 1);
     if (partial) {
         assert(bound == ACTQL_CRYPTO_COMPONENT_FAILED);
+        assert(actql_crypto_component_enter_current() != 0);
+        assert(actql_crypto_component_borrow_library() != 0);
+        assert(actql_crypto_component_symbol("EVP_MD_fetch") == NULL);
     } else {
         assert(bound == 0);
         assert(actql_crypto_component_borrow_library() == 0);
