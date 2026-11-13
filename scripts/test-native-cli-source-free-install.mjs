@@ -164,11 +164,74 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
   return observations;
 }
 
-// Cross both former metadata boundaries (64 KiB plan view and 128 KiB Run
-// observation) with the ordinary init profile, not enlarged test arenas.
+// Exercise the former 64 KiB Plan boundary with the ordinary init profile.
+// Public explain bytes do not measure the separately stored Run metadata row.
 export const nativeDefaultUnionCases = Object.freeze([
   {branches: 11, total: 55}, {branches: 17, total: 136}, {branches: 24, total: 276},
 ]);
+
+// This fixture has N literal SELECTs, N-1 UNION ALL appends and one SUM.
+// Assert those original logical occurrences and their complete input/output
+// connections, rather than accepting any nonempty JSON as a retained Plan.
+function assertNativeUnionPlan(value, originalRef, branches) {
+  assert.equal(value.version, 'actql-run-plan-view/0.1');
+  assert.deepEqual(value.run_ref, originalRef, 'Saved explain must select the original Run reference');
+  const plan = value.plan_view;
+  assert.equal(plan?.version, 'actql-plan-view/0.1', 'Complete retained Plan required');
+  const cid = /^sha256:[0-9a-f]{64}$/u;
+  assert.match(plan.compiled_plan_cid, cid);
+  assert.equal(plan.observation, 'static');
+  assert.equal(plan.provider_io, 0);
+  const map = plan.logical_map;
+  assert.equal(map?.version, 'actql-logical-map/0.1');
+  assert.equal(map.compiled_plan_cid, plan.compiled_plan_cid);
+  assert.match(map.program_definition_cid, cid);
+  assert.match(map.self_cid, cid);
+  assert(Array.isArray(map.steps) && map.steps.length > 0, 'Complete logical steps required');
+  const counts = new Map(), outputs = new Map(), steps = new Set(), ports = new Set();
+  let lastOperator;
+  for (const step of map.steps) {
+    const arity = new Map([['values', 0], ['select', 1], ['append', 2], ['group', 1], [null, 1]]).get(step.operator);
+    assert.notEqual(arity, undefined, 'Unexpected operation in the original UNION/SUM fixture');
+    assert.match(step.step_id, cid);
+    assert(!steps.has(step.step_id), 'Distinct original logical occurrences required');
+    steps.add(step.step_id);
+    assert.equal(step.key?.version, 'actql-logical-step-key/0.1');
+    assert.equal(step.key.compiled_plan_cid, plan.compiled_plan_cid);
+    assert.equal(step.key.self_cid, step.step_id);
+    assert(Array.isArray(step.ports));
+    const inputs = step.ports.filter(port => port.role === 'input');
+    const output = step.ports.filter(port => port.role === 'output');
+    assert.equal(inputs.length, arity, 'Retain every original input port');
+    assert.equal(output.length, 1, 'Retain the original output port');
+    assert.equal(step.ports.length, arity + 1);
+    for (const port of step.ports) {
+      assert.match(port.port_id, cid);
+      assert(!ports.has(port.port_id), 'Distinct original logical ports required');
+      ports.add(port.port_id);
+      assert.equal(port.carrier, 'relation');
+      if (port.role === 'input') {
+        assert(port.source, 'Original input producer required');
+        if (port.source.kind === 'logical_output') {
+          assert(outputs.has(port.source.output_port_id), 'Original earlier output port required');
+          assert.equal(outputs.get(port.source.output_port_id), port.source.step_id,
+            'Retain the exact earlier logical producer, not a truncated graph');
+        } else assert.equal(port.source.kind, 'stage_input');
+      }
+    }
+    outputs.set(output[0].port_id, step.step_id);
+    counts.set(step.operator, (counts.get(step.operator) ?? 0) + 1);
+    if (step.operator !== null) lastOperator = step.operator;
+  }
+  assert.equal(counts.get('values'), branches, 'Retain every literal SELECT branch');
+  assert.equal(counts.get('append'), branches - 1, 'Retain every UNION ALL occurrence');
+  assert.equal(counts.get('group'), 1, 'Retain the original SUM aggregate');
+  assert((counts.get('select') ?? 0) >= branches + 1, 'Retain branch projections and the final total projection');
+  assert.equal(lastOperator, 'select', 'Retain the final aggregate projection');
+  const planBytes = Buffer.byteLength(JSON.stringify(plan), 'utf8');
+  assert(planBytes > 65536, 'The complete inner Plan must actually cross the former 64 KiB boundary');
+  return {planBytes, logicalSteps: map.steps.length};
+}
 
 export async function observeNativeDefaultUnionMetadata({root, cli}) {
   const project = join(root, 'ordinary-union-metadata');
@@ -195,11 +258,19 @@ export async function observeNativeDefaultUnionMetadata({root, cli}) {
     assert.deepEqual(rows((await cli(['sql', 'SELECT 9821 AS n', '--format', 'jsonl'], project)).stdout), [{n: 9821}]);
     const saved = await cli(['result', state.run_id, '--format', 'jsonl'], project);
     assert.deepEqual(rows(saved.stdout), [{total}]);
+    const status = JSON.parse((await cli(['status', '--run-id', state.run_id, '--json'], project)).stdout);
+    assert.equal(status.kind, 'local_saved_run_state');
+    assert.equal(status.state?.version, 'actql-run-state/0.1');
+    assert.equal(status.state.run_id, state.run_id, 'Observe the same originally returned Run');
+    assert.equal(status.state.status, 'succeeded');
+    const originalRef = status.ref;
+    assert(originalRef && typeof originalRef === 'object' && !Array.isArray(originalRef));
+    assert.equal(typeof originalRef.namespaceId, 'string'); assert(originalRef.namespaceId.length > 0);
+    for (const field of ['authorityScopeCid', 'runDefinitionCid'])
+      assert.match(originalRef[field], /^sha256:[0-9a-f]{64}$/u);
     const explain = await cli(['explain', '--run', state.run_id, '--json'], project);
     const value = JSON.parse(explain.stdout);
-    assert.equal(value.version, 'actql-run-plan-view/0.1');
-    assert(value.plan_view && typeof value.plan_view === 'object' && !Array.isArray(value.plan_view));
-    assert(value.run_ref && typeof value.run_ref === 'object' && !Array.isArray(value.run_ref));
+    const plan = assertNativeUnionPlan(value, originalRef, branches);
     const again = await cli(['explain', '--run', state.run_id, '--json'], project);
     assert.equal(again.stdout, explain.stdout, 'Repeated cold Saved explain must retain exact bytes');
     assert.equal(await readFile(join(project, 'actql.config.json'), 'utf8'), configuration,
@@ -207,6 +278,7 @@ export async function observeNativeDefaultUnionMetadata({root, cli}) {
     retained.push({runId: state.run_id, total});
     observations.push({branches, total, runId: state.run_id, coldSavedWithoutProgram: true,
       recoveryAfterInvalidQuery: true, repeatedExplainBytesIdentical: true,
+      planBytes: plan.planBytes, logicalSteps: plan.logicalSteps, storedRunMetadataBytes: null,
       runElapsedMs: run.elapsedMs, savedElapsedMs: saved.elapsedMs,
       explainElapsedMs: explain.elapsedMs, repeatedExplainElapsedMs: again.elapsedMs});
   }

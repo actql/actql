@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm, access, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -146,6 +147,37 @@ for (const fault of ['live', 'saved', 'source']) test(`File CASE oracle refuses 
   assert.equal(fixture.calls.filter(args => args[0] === 'init').length, 1);
 });
 
+const fixtureCid = value => 'sha256:' + createHash('sha256').update(value).digest('hex');
+
+// Independent command-port Plan: N values/select pairs feed N-1 appends,
+// then one aggregate and its projection. Long synthetic binding names cross
+// 64 KiB; these ports are oracle tests, never evidence of Native Plan sizes.
+function unionPlanFixture(branches, small = false) {
+  const compiled = fixtureCid(`compiled-${branches}`), steps = [];
+  const append = (operator, producers = []) => {
+    const index = steps.length, step = fixtureCid(`step-${branches}-${index}`);
+    const output = fixtureCid(`output-${branches}-${index}`);
+    steps.push({step_id: step, key: {version: 'actql-logical-step-key/0.1',
+      compiled_plan_cid: compiled, self_cid: step, stage_ordinal: 0,
+      occurrence: {kind: 'step', step_ordinal: index}}, operator,
+      names: [`binding-${index}` + (!small && operator === 'values' ? '-synthetic'.repeat(600) : '')],
+      ports: [...producers.map((producer, ordinal) => ({
+        port_id: fixtureCid(`input-${branches}-${index}-${ordinal}`), role: 'input',
+        port_ordinal: ordinal, carrier: 'relation',
+        source: {kind: 'logical_output', step_id: producer.step, output_port_id: producer.output},
+      })), {port_id: output, role: 'output', port_ordinal: 0, carrier: 'relation'}]});
+    return {step, output};
+  };
+  const terms = Array.from({length: branches}, () => append('select', [append('values')]));
+  let combined = terms[0];
+  for (const term of terms.slice(1)) combined = append('append', [combined, term]);
+  append('select', [append('group', [combined])]);
+  return {version: 'actql-plan-view/0.1', compiled_plan_cid: compiled,
+    observation: 'static', provider_io: 0,
+    logical_map: {version: 'actql-logical-map/0.1', compiled_plan_cid: compiled,
+      program_definition_cid: fixtureCid(`program-${branches}`), self_cid: fixtureCid(`map-${branches}`), steps}};
+}
+
 async function unionFixture(t, fault) {
   const root = await mkdtemp(join(tmpdir(), 'native-union-metadata-oracle-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -176,17 +208,33 @@ async function unionFixture(t, fault) {
       assert.equal(id, 'SELECT 9821 AS n');
       return reply(fault === 'recovery' ? '{"n":0}\n' : '{"n":9821}\n');
     }
-    const runId = operation === 'explain' ? args[2] : id;
+    const runId = operation === 'explain' || operation === 'status' ? args[2] : id;
     const entry = runs.get(runId); assert(entry);
     await assert.rejects(access(join(project, runId)), {code: 'ENOENT'});
+    const ref = {namespaceId: 'workspace:original', authorityScopeCid: fixtureCid('original-scope'),
+      runDefinitionCid: fixtureCid(runId)};
+    if (operation === 'status') {
+      assert.deepEqual(args, ['status', '--run-id', runId, '--json']);
+      return reply({kind: 'local_saved_run_state', ref, state: {version: 'actql-run-state/0.1',
+        status: 'succeeded', run_id: fault === 'status-run' ? 'foreign-run' : runId}});
+    }
     if (operation === 'result') {
       const wrong = fault === 'saved' || (fault === 'old-saved' && runs.size === 3 && runId === 'union-11.sql');
       return reply(JSON.stringify({total: wrong ? -1 : entry.total}) + '\n');
     }
     assert.equal(operation, 'explain'); assert.equal(args[3], '--json');
     const count = explains.get(runId) ?? 0; explains.set(runId, count + 1);
-    return reply({version: 'actql-run-plan-view/0.1', run_ref: {runDefinitionCid: runId},
-      plan_view: {branches: entry.branches, changed: fault === 'explain' && count > 0}});
+    const plan = unionPlanFixture(entry.branches, fault === 'small-plan');
+    if (fault === 'explain' && count > 0) plan.logical_map.steps[0].names = ['changed'];
+    if (fault === 'truncated-plan') plan.logical_map.steps.pop();
+    if (fault === 'missing-branch') plan.logical_map.steps.splice(0, 2);
+    if (fault === 'truncated-ports') plan.logical_map.steps.at(-1).ports.pop();
+    if (fault === 'dangling-producer') plan.logical_map.steps.at(-1).ports[0].source = {kind: 'logical_output'};
+    if (fault === 'plan-binding') plan.logical_map.compiled_plan_cid = fixtureCid('foreign-plan');
+    const envelope = {version: 'actql-run-plan-view/0.1', run_ref: fault === 'foreign-run' ?
+      {...ref, runDefinitionCid: fixtureCid('foreign-run')} : ref,
+      plan_view: fault === 'empty-plan' ? {} : plan};
+    return reply(fault === 'truncated-json' ? JSON.stringify(envelope).slice(0, -1) : envelope);
   };
   return {root, cli, calls, runs, explains};
 }
@@ -201,6 +249,9 @@ test('UNION metadata oracle requires ordinary 11/17/24, cold Saved and identical
   assert.equal(fixture.calls.filter(value => value.args[0] === 'result').length, 6);
   assert.deepEqual([...fixture.explains.values()], [2, 2, 2]);
   assert(result.cases.every(value => value.runElapsedMs === 17 && value.recoveryAfterInvalidQuery));
+  assert(result.cases.every(value => value.planBytes > 65536 && value.logicalSteps > 0));
+  assert(result.cases.every(value => value.storedRunMetadataBytes === null));
+  assert.equal(fixture.calls.filter(value => value.args[0] === 'status').length, 3);
 });
 
 for (const fault of ['profile', 'run', 'recovery', 'saved', 'explain', 'old-saved']) {
@@ -210,5 +261,19 @@ for (const fault of ['profile', 'run', 'recovery', 'saved', 'explain', 'old-save
     assert.equal(fixture.calls.filter(value => value.args[0] === 'init').length, 1);
     assert.equal(fixture.calls.filter(value => value.args[0] === 'run').length, fixture.runs.size);
     assert(fixture.runs.size <= 3);
+  });
+}
+
+for (const fault of ['empty-plan', 'foreign-run', 'status-run', 'truncated-plan', 'missing-branch',
+  'truncated-ports', 'dangling-producer', 'plan-binding', 'small-plan', 'truncated-json']) {
+  test(`UNION metadata oracle rejects ${fault} at the first original without replacement`, async t => {
+    const fixture = await unionFixture(t, fault);
+    await assert.rejects(observeNativeDefaultUnionMetadata(fixture), error =>
+      error.code === 'ERR_ASSERTION' || (fault === 'truncated-json' && error instanceof SyntaxError));
+    assert.equal(fixture.runs.size, 1);
+    assert.equal(fixture.calls.filter(value => value.args[0] === 'init').length, 1);
+    assert.equal(fixture.calls.filter(value => value.args[0] === 'run').length, 1);
+    assert.equal(fixture.calls.filter(value => value.args[0] === 'explain').length,
+      fault === 'status-run' ? 0 : 1);
   });
 }
