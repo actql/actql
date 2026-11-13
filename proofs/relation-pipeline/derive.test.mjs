@@ -45,7 +45,9 @@ test('existing generator completes derive obligations and existing shrinker pres
   const retained = fixedCorpus(corpusBaseline, registrations);
   assert.deepEqual(cases.slice(0, retained.length), retained);
   assert.equal(retained.length, 86);
-  assert.equal(cases.length, plan.parts['L-C0'].obligations.finalNormal.caseCount);
+  const normal = Object.values(plan.parts).filter(part => part.role === 'capacity-normal');
+  assert.equal(normal.length, 1);
+  assert.equal(cases.length, normal[0].obligations.finalNormal.caseCount);
   assert.equal(new Set(cases.map(value => value.id)).size, cases.length);
   assert(cases.slice(retained.length).every(value => value.steps.some(step => step.op === 'derive')));
   const pairs = cases.filter(value => value.id.startsWith('pair:'));

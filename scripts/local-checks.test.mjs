@@ -5,15 +5,20 @@ import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSyn
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {partJobs} from '../proofs/relation-pipeline/proof-parts.mjs';
+
+const pipelineJobs = [...Object.values(partJobs), 'pipeline-validation', 'pipeline-evidence'];
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'actql-local-checks-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  for (const directory of ['scripts', '.github/workflows', 'bin', 'home']) mkdirSync(join(root, directory), {recursive: true});
+  for (const directory of ['scripts', 'proofs/relation-pipeline', '.github/workflows', 'bin', 'home']) mkdirSync(join(root, directory), {recursive: true});
   for (const name of ['local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'test-execution-reporter.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(root, 'scripts', name));
   }
+  copyFileSync(new URL('../proofs/relation-pipeline/proof-parts.mjs', import.meta.url),
+    join(root, 'proofs/relation-pipeline/proof-parts.mjs'));
   symlinkSync(new URL('../node_modules', import.meta.url), join(root, 'node_modules'));
   const job = {steps: [{name: 'actual job step', env: {EXPECTED: 'from workflow'},
     run: 'printf "%s\\n" "$EXPECTED" >> calls; printf "done\\n"'}], 'timeout-minutes': 20};
@@ -22,7 +27,7 @@ function fixture(t) {
     'timeout-minutes': 60};
   writeFileSync(join(root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {
     lint: job, core: job, future: job, 'native-macos': job,
-    'pipeline-mutations': pipelineJob, 'pipeline-capacity': pipelineJob, 'pipeline-mutations-rest': pipelineJob, 'pipeline-capacity-mutants': pipelineJob, 'pipeline-validation': pipelineJob, 'pipeline-evidence': pipelineJob,
+    ...Object.fromEntries(pipelineJobs.map(name => [name, pipelineJob])),
   }}));
   const moon = join(root, 'bin/moon');
   writeFileSync(moon, `#!${process.execPath}\nconst fs=require('fs');
@@ -231,7 +236,7 @@ test('ambiguous and unsupported Moon matrix targets keep explicit-budget admissi
 
 test('CI-only pipeline wrappers refuse even heavy overrides and supplied GitHub metadata without side effects', t => {
   const f = fixture(t);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
+  for (const name of pipelineJobs) {
     for (const options of [[], ['--allow-heavy'], ['--allow-heavy', '--timeout-seconds', '7']]) {
       const refused = f.run(['run', name, ...options], {
         GITHUB_SHA: 'a'.repeat(40), GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1',
@@ -252,7 +257,7 @@ test('CI-only pipeline list and dry-run report literal commands without fake con
   const f = fixture(t);
   const listed = f.run(['list']);
   assert.equal(listed.status, 0, listed.stderr);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
+  for (const name of pipelineJobs) {
     assert.match(listed.stdout, new RegExp(`${name} \\(CI only:`, 'u'));
     for (const options of [['--dry-run'], ['--allow-heavy', '--dry-run']]) {
       const dry = f.run(['run', name, ...options]);
@@ -281,7 +286,7 @@ test('changed pipeline paths report all CI-only wrappers without suggesting a he
   chmodSync(git, 0o755);
   const result = f.run(['changed']);
   assert.equal(result.status, 0, result.stderr);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
+  for (const name of pipelineJobs) {
     assert.match(result.stdout, new RegExp(`run ${name} --dry-run  # CI only:`, 'u'));
   }
   assert.doesNotMatch(result.stdout, /--allow-heavy/u);
