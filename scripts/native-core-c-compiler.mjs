@@ -100,7 +100,8 @@ function ordinaryObjectCache(compiler) {
     CCACHE_CONFIGPATH: '/dev/null', CCACHE_DIR: cache, CCACHE_TEMPDIR: join(cache, 'tmp'),
     CCACHE_LOGFILE: join(cache, 'compiler.log'),
     CCACHE_COMPILERCHECK: 'content', CCACHE_EXTRAFILES: [actualClang, join(sdk, 'SDKSettings.json')].join(delimiter),
-    CCACHE_SLOPPINESS: '', CCACHE_REMOTE_STORAGE: '', CCACHE_NAMESPACE: 'actql-core-ordinary-' + namespace};
+    CCACHE_MAXSIZE: '1GiB', CCACHE_SLOPPINESS: '', CCACHE_REMOTE_STORAGE: '',
+    CCACHE_NAMESPACE: 'actql-core-ordinary-' + namespace};
   return {tool, environment};
 }
 
