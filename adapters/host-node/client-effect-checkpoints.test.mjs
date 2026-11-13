@@ -2,7 +2,12 @@
 // encrypted evidence Store and public Client signature format. Full Program
 // capture/apply/publication acceptance is a separate installed-Host test.
 import assert from 'node:assert/strict';
-import {generateKeyPairSync, sign} from 'node:crypto';
+import {createHash, generateKeyPairSync, sign} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import fsPromises from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
+import {compileFunction} from 'node:vm';
+import {parseExpressionAt} from 'acorn';
 import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -21,6 +26,10 @@ import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {authorizationDispatchFacts} from
   '../host-common/authorization-gate.mjs';
+import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
+import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {createPublicationContractControlFixture} from
+  '../host-common/publication-contract-control.fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const reviewer = generateKeyPairSync('ed25519');
@@ -74,6 +83,93 @@ async function fixture(t, {read = 'allow', effectRequiredClaims = [],
   });
   return {open, close, clock, root, preserve() {preserved = true;}, advance(ms) { clock += ms; }};
 }
+
+test('Host first close joins the original pre-dispatch Effect resume Store reader', async t => {
+  // Exercise the actual Host port expression, Checkpoint stop, Store FD and
+  // shutdown. The resume callback and unused dispatch/journal ports are
+  // explicit fixtures; this issues no business Run, send or physical-stop ACK.
+  const latch = () => {let resolve; const promise = new Promise(done => {resolve = done;}); return {promise, resolve};};
+  const allowRead = latch(), readEntered = latch(), drainEntered = latch();
+  const originalOpen = fsPromises.open;
+  let store, readFlight, closing, originalFd;
+  t.after(async () => {
+    allowRead.resolve();
+    fsPromises.open = originalOpen; syncBuiltinESMExports();
+    await readFlight?.catch(() => {});
+    await closing?.catch(() => {});
+    // Fixture hygiene after an original red, never a replacement first-close
+    // positive. The same real FD must finish before this Store can release.
+    if (store !== undefined && !store.status().closed) await store.close();
+  });
+  const f = await fixture(t), installed = await f.open();
+  const directory = join(f.root, 'pending-publication');
+  store = await openLocalPublicationStore({directory, storeAuthorityCid: cid('a'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64}, createPublicationContractControlFixture());
+  const wire = '{"answer":{"nullable":false,"type":"string"}}';
+  const identity = 'sha256:' + createHash('sha256').update(wire).digest('hex');
+  await store.putSemantic(wire, identity);
+  const selected = join(directory, 'contracts', identity.slice(7) + '.json');
+  fsPromises.open = async function(path, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (path === selected) {
+      originalFd = handle;
+      const stat = handle.stat;
+      handle.stat = async function(...args) {
+        readEntered.resolve(); await allowRead.promise;
+        return Reflect.apply(stat, this, args);
+      };
+    }
+    return handle;
+  };
+  syncBuiltinESMExports();
+  const flights = new Map(), values = flights.values;
+  flights.values = function() {drainEntered.resolve(); return Reflect.apply(values, this, []);};
+  const sweep = async () => {
+    if (readFlight !== undefined) return true;
+    readFlight = store.readSemanticBytes(identity, false);
+    flights.set('original-resume', readFlight);
+    readFlight.finally(() => flights.delete('original-resume')).catch(() => {});
+    return true;
+  };
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const marker = 'await checkpoints.start(', start = source.indexOf(marker) + marker.length;
+  assert(start >= marker.length && source.indexOf(marker, start) < 0);
+  const expression = parseExpressionAt(source, start, {ecmaVersion: 'latest', sourceType: 'module'});
+  const port = compileFunction('return (' + source.slice(expression.start, expression.end) + ');',
+    ['inspectHeld', 'resumeHeld', 'abandonHeld', 'observeHeldRun', 'cancelHeldRun',
+      'modelController', 'sweepModelRuns', 'modelResumeFlights', 'effectRun', 'sweepEffectRuns', 'effectResumeFlights'])(
+    ...Array.from({length: 5}, () => () => assert.fail('No business continuation is issued')),
+    undefined, undefined, new Map(), {}, sweep, flights);
+  await installed.start(port);
+  await readEntered.promise;
+  assert(originalFd.fd >= 0, 'the same original semantic read really owns an open FD');
+  let storeCloses = 0, fdAtStoreClose;
+  const shutdown = installedHostShutdown({
+    checkpoints: {stop: () => installed.stop(), close: () => f.close(installed)},
+    dispatchOwner: {drain() {}}, retireTerminalEffects() {}, journal: {close() {}},
+    store: {close() {storeCloses++; fdAtStoreClose = originalFd.fd; return store.close();}},
+  });
+  closing = shutdown.close();
+  const boundary = await Promise.race([drainEntered.promise.then(() => ({kind: 'joined'})),
+    closing.then(() => ({kind: 'closed'}), error => ({kind: 'failed', error}))]);
+  if (boundary.kind === 'failed') {
+    const original = boundary.error.cleanupErrors?.find(item => item.owner === 'store')?.error;
+    t.diagnostic(JSON.stringify({code: boundary.error.code,
+      storeCode: original?.code, semanticReaders: original?.cleanupDiagnostic?.resources?.semanticReaders}));
+    throw boundary.error;
+  }
+  assert.equal(boundary.kind, 'joined');
+  assert.equal(storeCloses, 0, 'stop must join this original before entering Store close');
+  assert(originalFd.fd >= 0);
+  allowRead.resolve();
+  assert.equal((await readFlight).toString(), wire);
+  await closing;
+  assert.equal(storeCloses, 1, 'the first Host close succeeds without a retry');
+  assert.equal(fdAtStoreClose, -1, 'only the original FD close supplied the physical observation');
+  assert.equal(flights.size, 0);
+  assert.equal(store.status().closed, true);
+});
 
 for (const boundary of ['preparation', 'acquisition']) {
   test(`epoch-bound ${boundary} does not enter an unsupported pre-Run wait`, async t => {
