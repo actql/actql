@@ -121,11 +121,11 @@ fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixtur
     }
     let db = database.val.unwrap()
     initialize_native_client_run_journal(db)
-    .map_err(issue => Journal(issue))
+    .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
     .unwrap()
     journal.val = Some(
       open_native_client_run_journal(db, 256)
-      .map_err(issue => Journal(issue))
+      .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
       .unwrap(),
     )
     Ok(())
@@ -187,14 +187,14 @@ fn journal_metadata_decode_original(
       invalidate_snapshot: _ => (),
     }
     let reads = queries.access()
-    let decoded = match
-      client_journal_read(reads.database, "client_runs", key, reads=Some(reads)) {
-      Err(issue) => Err(Physical(issue))
+    let decoded : Result[NativeClientRunRecord, NativeLocalAdoptionIssue] = match
+      read_client_journal_value(reads.database, "client_runs", key, Some(reads)) {
+      Err(issue) => Err(NativeLocalAdoptionIssue::Physical(issue))
       Ok(row) =>
         fixture.journal.val
         .unwrap()
         .admit_retained_record(key, row, reads=Some(reads))
-        .map_err(issue => Journal(issue))
+        .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
     }
     match queries.failure {
       Some(primary) => Err(primary)
@@ -215,7 +215,12 @@ test "Journal metadata retains multiple decoded originals on one real Read throu
     .stage(@arena.HostSqlite, fn() {
       fixture.database.val
       .unwrap()
-      .insert_with_body_extent("client_runs", key, body)
+      .insert_with_body_extent(
+        "client_runs",
+        key,
+        body,
+        body.length().to_int64(),
+      )
       .map(_ => ())
       .map_err(issue => Physical(issue))
     })
@@ -226,7 +231,7 @@ test "Journal metadata retains multiple decoded originals on one real Read throu
         previous = fixture.original.metadata_retained
         assert_eq(@host.client_request_scope_cid(record.request), key)
         assert_true(record.observation_original is Some(_))
-        held.val = held.val.concat([record])
+        held.val.push(record)
         assert_true(physical_equal(fixture.original.read, fixture.read))
         fixture.host
         .require_local_host_consuming_read_current(fixture.pair, fixture.read)
