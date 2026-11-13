@@ -27,6 +27,7 @@ good={'signal':None,'inferiorExitCode':0,'killedAfterStop':False}
 assert m.assess(0,output(good))['passed']
 assert not m.assess(0,output({**good,'signal':'SIGSEGV','inferiorExitCode':None,'killedAfterStop':True}))['passed']
 assert not m.assess(0,output({**good,'inferiorExitCode':1}))['passed']
+assert not m.assess(0,output({**good,'watchdogFired':True}))['passed']
 assert not m.assess(1,output(good))['passed']
 assert not m.assess(0,m.MARKER+json.dumps(good)+'\n')['passed']
 try: m.assess(0,'')
@@ -35,6 +36,7 @@ else: raise AssertionError('missing observation accepted')
 script=m.debugger_script(Path('/tmp/fixture'),[('main','entry')])
 assert script.count("gdb.execute('run'")==1
 assert "gdb.execute('kill'" in script
+assert 'threading.Timer(30' in script
 assert 'frame.read_var' not in script and 'bt full' not in script
 print('original inferior status, no false signal pass, bounded one-run script verified')
 `;

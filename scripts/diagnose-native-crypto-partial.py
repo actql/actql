@@ -30,6 +30,7 @@ def assess(gdb_status: int, stdout: str) -> dict:
     rows = [row for row in rows if row.get('case') == 'partial']
     passed = (gdb_status == 0 and observed.get('inferiorExitCode') == 0
               and observed.get('signal') is None and not observed.get('debuggerError')
+              and not observed.get('watchdogFired')
               and not observed.get('killedAfterStop') and len(rows) == 1
               and rows[0].get('passed') is True and rows[0].get('original_cleanup') is True)
     return {'passed': passed, 'gdbExitCode': gdb_status, 'observed': observed,
@@ -45,8 +46,8 @@ def debugger_script(binary: Path, stages: list[tuple[str, str]]) -> str:
         'set auto-load off', 'set debuginfod enabled off', 'set startup-with-shell off',
         'set disable-randomization off', 'handle SIGSEGV stop nopass noprint',
         'file ' + str(binary), 'set args partial', 'python',
-        'import gdb, json, os, re',
-        "observed = {'stages': [], 'signal': None, 'inferiorExitCode': None, 'stack': [], 'killedAfterStop': False}",
+        'import gdb, json, os, re, signal, threading',
+        "observed = {'stages': [], 'signal': None, 'inferiorExitCode': None, 'stack': [], 'killedAfterStop': False, 'watchdogFired': False}",
         'class Stage(gdb.Breakpoint):',
         '    def __init__(self, location, label):',
         '        super().__init__(location, internal=True)',
@@ -60,8 +61,14 @@ def debugger_script(binary: Path, stages: list[tuple[str, str]]) -> str:
         '    if isinstance(event, gdb.SignalEvent):',
         "        observed['signal'] = event.stop_signal",
         'gdb.events.exited.connect(exited)', 'gdb.events.stop.connect(stopped)',
+        'def interrupt_owned_debugger():',
+        "    observed['watchdogFired'] = True",
+        '    os.kill(os.getpid(), signal.SIGINT)',
+        'timer = threading.Timer(30, interrupt_owned_debugger)',
+        'timer.daemon = True',
         'try:',
         '    for location, label in ' + repr(stages) + ': Stage(location, label)',
+        '    timer.start()',
         "    gdb.execute('run', to_string=False)",
         "    if observed['signal'] is not None:",
         '        frame = gdb.newest_frame()',
@@ -71,9 +78,10 @@ def debugger_script(binary: Path, stages: list[tuple[str, str]]) -> str:
         '            sal = frame.find_sal()',
         "            observed['stack'].append({'function': name, 'file': None if sal.symtab is None else os.path.basename(sal.symtab.filename), 'line': sal.line or None})",
         '            frame = frame.older()',
-        'except Exception as error:',
+        'except BaseException as error:',
         "    observed['debuggerError'] = type(error).__name__",
         'finally:',
+        '    timer.cancel()',
         '    if gdb.selected_inferior().pid:',
         "        observed['killedAfterStop'] = True",
         "        gdb.execute('kill', to_string=True)",
