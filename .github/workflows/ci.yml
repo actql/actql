@@ -1951,6 +1951,14 @@ jobs:
     needs: [select-targets, preflight, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {mutation: read-row, script: check-read-row-mutations.mjs}
+          - {mutation: submission-input, script: check-submission-input-mutations.mjs}
+          - {mutation: submission-check-observation, script: check-submission-check-observation-mutations.mjs}
+          - {mutation: effect-uncertainty, script: check-effect-uncertainty-mutations.mjs}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1990,26 +1998,11 @@ jobs:
         env:
           TMPDIR: ${{ github.workspace }}/_build
         run: node scripts/generate-client-host-wire.mjs
-      - name: Test check read row mutations
+      - name: Test check ${{ matrix.mutation }} mutations
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/check-read-row-mutations.mjs
-      - name: Test check submission input mutations
-        if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
-        env:
-          TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/check-submission-input-mutations.mjs
-      - name: Test check submission check observation mutations
-        if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
-        env:
-          TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/check-submission-check-observation-mutations.mjs
-      - name: Test check effect uncertainty mutations
-        if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
-        env:
-          TMPDIR: ${{ github.workspace }}/_build
-        run: node scripts/check-effect-uncertainty-mutations.mjs
+        run: node scripts/${{ matrix.script }}
   client-distribution-packed:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
