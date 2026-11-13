@@ -276,3 +276,16 @@ test('compiled command external tools bind the current selected bytes and origin
   assert.equal(readFileSync(binary,'utf8'),'explicit inert compiled-command port, never executed');
   assert(selected.every(([role,target])=>role==='python'&&target==='darwin-arm64'));
 });
+
+test('compiled command retains original allocator objects declared by the actual C plan outside general source inventory',t=>{
+  const f=compiledCommandFixture(t),object=f.put(join(f.directory,'derived-read-source/libmoonbitrun.o'),'original copied runtime object');
+  const planPath=join(f.directory,'cc-plan.json'),plan=JSON.parse(readFileSync(planPath));
+  plan.allocator_inputs.push(descriptor(object));f.put(planPath,JSON.stringify(plan));
+  const inputPath=join(f.directory,'inputs.json'),inputs=JSON.parse(readFileSync(inputPath));
+  const at=inputs.findIndex(x=>x.path===planPath);inputs[at]=descriptor(planPath);f.put(inputPath,JSON.stringify(inputs));
+  const originalInputs=readFileSync(inputPath),input=f.publish();
+  assert(readFileSync(inputPath).equals(originalInputs));
+  const record=JSON.parse(readFileSync(input.path));assert(record.members.some(x=>x.original.path===object));
+  rmSync(f.origin,{recursive:true});
+  assert.equal(readFileSync(f.receive(input),'utf8'),'explicit inert compiled-command port, never executed');
+});
