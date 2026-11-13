@@ -1,3 +1,4 @@
+import {testNativeRemoteSiteControls} from './fixtures/native-remote-site-controls.mjs';
 import {prepareNativeResidentPortableCore} from './native-resident-portable-preparation.mjs';
 import {nativeHttpSourceCoverage, prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
@@ -47,7 +48,7 @@ import {pinnedEngineContracts} from
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 const sourceCoverage = nativeHttpSourceCoverage(focus);
 if (focus !== undefined &&
-    !['http-packages', 'http-controls', 'effect-control-replay', 'remote-client-poll', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
+    !['http-packages', 'http-controls', 'effect-control-replay', 'remote-client-poll', 'site-cli-controls', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
       'http-constructor-retirement', 'resident-review-regressions',
       'resident-review-provider', 'resident-review-checkpoint',
       'resident-review-write'].includes(focus)) {
@@ -1166,6 +1167,15 @@ verification: try {
     });
     break verification;
   }
+  if (focus === 'site-cli-controls') {
+    await testNativeRemoteSiteControls({
+      moon, nativeBuildRoot, repository: new URL('../', import.meta.url), root,
+      sqliteLibrary, library, nativeHttpOrigin, remoteRequestCid,
+      stalePollObserved, releaseStalePoll,
+    });
+    console.log('Native Site CLI query and stale-generation controls passed.');
+    break verification;
+  }
   if (focus === 'remote-client-poll') {
     // Reuse the real HTTPS peer and authored dispatch above. The child keeps
     // this event loop free to serve mTLS while enforcing nonzero test execution.
@@ -1696,103 +1706,11 @@ verification: try {
       throw new Error('revoked native credential started external I/O');
     }
   }
-  execFileSync(moon, [
-    'build', '--target', 'native', 'src/cmd/native_remote_site',
-  ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
-  const executable = join(
-    nativeBuildRoot,
-    'native/debug/build/cmd/native_remote_site/' +
-      'native_remote_site.exe',
-  );
-  const journalPath = join(root, 'native-site-agent.sqlite3');
-  const revisionA = `sha256:${'a'.repeat(64)}`;
-  const revisionB = `sha256:${'b'.repeat(64)}`;
-  const common = [
-    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-    '--journal-path', journalPath,
-    '--site-key', 'native-site',
-    '--site-generation', '1',
-    '--runtime-revision', revisionA,
-  ];
-  const startAgent = arguments_ => {
-    const child = spawn(executable, [...common, ...arguments_], {
-      cwd: new URL('../', import.meta.url),
-      env: {PATH: '/usr/bin:/bin', LANG: 'C'},
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    const stdout = [];
-    const stderr = [];
-    child.stdout.on('data', chunk => stdout.push(chunk));
-    child.stderr.on('data', chunk => stderr.push(chunk));
-    return (async () => {
-      const [code, signal] = await once(child, 'exit');
-      return Object.freeze({
-        code,
-        signal,
-        stdout: Buffer.concat(stdout).toString('utf8'),
-        stderr: Buffer.concat(stderr).toString('utf8'),
-      });
-    })();
-  };
-  const runAgent = arguments_ => startAgent(arguments_);
-  const rejectedDispatch = await runAgent([
-    '--http-library', library,
-    '--ca', join(root, 'ca.crt'),
-    '--cert', join(root, 'client.crt'),
-    '--key', join(root, 'client.key'),
-    '--poll-url', `${nativeHttpOrigin}/outbound/poll`,
-    '--observation-url',
-    `${nativeHttpOrigin}/outbound/observation`,
-    'poll-once',
-  ]);
-  assert.notEqual(rejectedDispatch.code, 0);
-  assert.equal(
-    rejectedDispatch.stdout,
-    'actql-native-remote-site: dispatch requires a runtime-linked ' +
-      'Site component\n',
-  );
-  const queried = await runAgent([
-    '--http-library', library,
-    '--ca', join(root, 'ca.crt'),
-    '--cert', join(root, 'client.crt'),
-    '--key', join(root, 'client.key'),
-    '--poll-url', `${nativeHttpOrigin}/outbound/poll`,
-    '--observation-url',
-    `${nativeHttpOrigin}/outbound/status-observation`,
-    'poll-once',
-  ]);
-  assert.equal(queried.code, 0, queried.stderr);
-  assert.deepEqual(JSON.parse(queried.stdout), {
-    kind: 'not-seen',
-    request_cid: remoteRequestCid,
-    revision: 0,
+  await testNativeRemoteSiteControls({
+    moon, nativeBuildRoot, repository: new URL('../', import.meta.url), root,
+    sqliteLibrary, library, nativeHttpOrigin, remoteRequestCid,
+    stalePollObserved, releaseStalePoll,
   });
-  const staleProcess = startAgent([
-    '--http-library', library,
-    '--ca', join(root, 'ca.crt'),
-    '--cert', join(root, 'client.crt'),
-    '--key', join(root, 'client.key'),
-    '--poll-url', `${nativeHttpOrigin}/outbound/stale-poll`,
-    '--observation-url',
-    `${nativeHttpOrigin}/outbound/stale-observation`,
-    'poll-once',
-  ]);
-  await stalePollObserved;
-  const restarted = await runAgent([
-    'restart',
-    '--next-generation', '2',
-    '--next-runtime-revision', revisionB,
-  ]);
-  assert.equal(restarted.code, 0, restarted.stderr);
-  assert.deepEqual(JSON.parse(restarted.stdout), {reconciled_records: 0});
-  releaseStalePoll();
-  const fenced = await staleProcess;
-  assert.notEqual(fenced.code, 0);
-  const stale = await runAgent(['restart',
-    '--next-generation', '2',
-    '--next-runtime-revision', revisionB,
-  ]);
-  assert.notEqual(stale.code, 0);
   execFileSync(moon, [
     'build', '--target', 'native',
     'src/cmd/native_remote_application_site',
