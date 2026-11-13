@@ -106,7 +106,7 @@ pub fn advance_cancel_completed_output_import(CompletedOutputImport, Int) -> Boo
 
 pub fn[T] advance_close_managed_producer_bridge(ManagedProducerBridge[T], Int) -> Bool
 
-pub fn advance_completed_output_export(CompletedOutputExport, Int, Int, batch? : Bool) -> Result[CompletedOutputExportAdvance, CompletedExportIssue]
+pub fn advance_completed_output_export(CompletedOutputExport, Int, Int, batch? : Bool, before_batch_growth? : ((Int) -> Result[Bool, CompletedExportIssue])?) -> Result[CompletedOutputExportAdvance, CompletedExportIssue]
 
 pub fn advance_completed_output_export_preparation(CompletedOutputExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 

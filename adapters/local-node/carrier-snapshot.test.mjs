@@ -217,17 +217,23 @@ test('cancellation after seal preserves custody and publishes no restored materi
 
 // The transport exercises the real common row framer. The public Host test
 // separately exercises the real completion export/import and Graph bridge.
-function relationFixture() {
+function relationFixture({parts} = {}) {
   const rows = [{id:1,p:7},{id:2,p:null},{id:3}];
   const serialized = JSON.stringify(rows);
   const identity = {bytes:Buffer.byteLength(serialized),
     cid:`sha256:${createHash('sha256').update(serialized).digest('hex')}`};
   const events = [], restored = [];
+  const chunks = parts ?? [serialized];
   let cursor = 0, available = true, released;
   const operation = {
     key:'relation-rows', frames:{maxBytes:256,maxFrameBytes:256,
       maxRows:3,maxRowBytes:128,maxDepth:8},
-    next() {events.push('save'); return cursor++ === 0 ? serialized : undefined;},
+    advance_save(quantum) {
+      assert.equal(quantum,32); events.push('save'); cursor++;
+      return {complete:cursor > chunks.length,work:1n,progress:BigInt(cursor)};
+    },
+    take_output() {return chunks[cursor - 1] ?? '';},
+    next() {throw new Error('LegacyUnboundedRelationSnapshotSelected');},
     content:() => identity,
     release_source(actual, physical) {
       assert.equal(actual, identity.cid); assert.equal(physical(),true);
@@ -355,4 +361,118 @@ test('Relation Store byte-limit failure does not revoke the original output or b
   await owner.cleanupHandle.retry();
   assert.equal(store.status().reservedBytes,0);
   assert.deepEqual(await readdir(directory),[]);
+});
+
+for (const mode of ['bounded batched append', 'zero-work buffered drain']) {
+  test(`Relation ${mode} writes the exact original body with real Store append acknowledgements`, async () => {
+    const {directory,store} = await fileFixture();
+    const f = relationFixture();
+    const originalAdvance = f.operation.advance_save;
+    let appended = 0, acknowledged = 0, bytes = 0;
+    if (mode === 'zero-work buffered drain') f.operation.advance_save = q => {
+      const value = originalAdvance(q);
+      return {...value,work:0n};
+    };
+    const lease = {...store,reserve(amount) {
+      const writer = store.reserve(amount);
+      return {...writer,async append(part) {
+        appended++; bytes += Buffer.byteLength(part);
+        await writer.append(part); acknowledged++;
+      }};
+    }};
+    const owner = prepareLocalRelationSnapshot(f.operations,() => lease,checked,undefined,moon);
+    const result = await owner.roundtrip();
+    assert.equal(appended,1); assert.equal(acknowledged,1);
+    assert.equal(bytes,f.identity.bytes); assert.equal(result.cid,f.identity.cid);
+    assert.deepEqual(f.restored,f.rows);
+    assert.equal(owner.cleanupHandle.status().pending,false);
+    assert.deepEqual(await readdir(directory),[]);
+  });
+}
+
+test('Relation empty zero-work save poll is rejected without physical append or restored material', async () => {
+  const {directory,store} = await fileFixture(); const f = relationFixture();
+  f.operation.advance_save = () => ({complete:false,work:0n,progress:0n});
+  f.operation.take_output = () => '';
+  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,undefined,moon);
+  await assert.rejects(owner.roundtrip(),/InvalidLocalSnapshotAdvance/);
+  assert.equal(f.events.includes('reload'),false);
+  assert.equal(owner.cleanupHandle.status().pending,true);
+  await owner.cleanupHandle.retry(); assert.deepEqual(await readdir(directory),[]);
+});
+
+for (const boundary of ['partial write', 'abort after append']) {
+  test(`Relation ${boundary} keeps original pending custody and never claims restored output`, async () => {
+    const {directory,store} = await fileFixture(); const f = relationFixture();
+    const controller = new AbortController(), failure = new Error('OriginalRelationAppendFailure');
+    let appended = 0;
+    const lease = {...store,reserve(amount) {
+      const writer = store.reserve(amount);
+      return {...writer,async append(part) {
+        appended++;
+        if (boundary === 'partial write') {await writer.append(part.slice(0,3)); throw failure;}
+        await writer.append(part);controller.abort(failure);
+      }};
+    }};
+    const owner = prepareLocalRelationSnapshot(f.operations,() => lease,checked,controller.signal,moon);
+    await assert.rejects(owner.roundtrip(),error => error === failure);
+    assert.equal(appended,1); assert.equal(f.events.includes('reload'),false);
+    assert.equal(f.events.includes('finish'),false);
+    assert.equal(owner.cleanupHandle.status().pending,true);
+    await owner.cleanupHandle.retry(); assert.equal(store.status().reservedBytes,0);
+    assert.deepEqual(await readdir(directory),[]);
+  });
+}
+
+test('Relation bounded grouping reduces real physical Store append calls for identical ordered bytes', async () => {
+  const rows = [{id:1,p:7},{id:2,p:null},{id:3}];
+  const rowParts = rows.map((row,index) => (index === 0 ? '[' : ',') + JSON.stringify(row));
+  const observations = [];
+  for (const parts of [[...rowParts,']'],[rowParts.join(''),']']]) {
+    const {directory,store} = await fileFixture(); const f = relationFixture({parts});
+    const physical = {appendCalls:0,acknowledgedCalls:0,bytes:0};
+    const lease = {...store,reserve(amount) {
+      const writer = store.reserve(amount);
+      return {...writer,async append(part) {
+        physical.appendCalls++; physical.bytes += Buffer.byteLength(part);
+        await writer.append(part); physical.acknowledgedCalls++;
+      }};
+    }};
+    const owner = prepareLocalRelationSnapshot(f.operations,() => lease,checked,undefined,moon);
+    const result = await owner.roundtrip();
+    assert.equal(physical.appendCalls,physical.acknowledgedCalls);
+    assert.equal(physical.bytes,f.identity.bytes);
+    assert.deepEqual(f.restored,rows); assert.equal(result.cid,f.identity.cid);
+    assert.equal(owner.cleanupHandle.status().pending,false);
+    assert.deepEqual(await readdir(directory),[]);
+    observations.push(physical);
+  }
+  assert.deepEqual(observations.map(value => value.appendCalls),[4,2]);
+  assert.equal(observations[0].bytes,observations[1].bytes);
+});
+
+test('carrier malformed save progress is refused before taking any output', async () => {
+  const {directory,store} = await fileFixture(); const f = operationFixture();
+  let reads = 0;
+  const original = f.operations.prepare_carrier_snapshot;
+  f.operations.prepare_carrier_snapshot = released => ({...original(released),
+    advance_save:() => ({complete:false,work:0n,progress:0n}),
+    take_output() {reads++;return text;}});
+  const owner = prepareLocalCarrierSnapshot(f.operations,() => store,checked);
+  await assert.rejects(owner.roundtrip(),/InvalidLocalSnapshotAdvance/);
+  assert.equal(reads,0);
+  await owner.cleanupHandle.retry(); assert.deepEqual(await readdir(directory),[]);
+});
+
+test('Relation cancellation inside bounded save cannot borrow staged output or append', async () => {
+  const {directory,store} = await fileFixture(); const f = relationFixture();
+  const controller = new AbortController(), failure = new Error('OriginalBoundedSaveCancelled');
+  const advance = f.operation.advance_save; let reads = 0;
+  f.operation.advance_save = quantum => {const result=advance(quantum);controller.abort(failure);return result;};
+  f.operation.take_output = () => {reads++;return JSON.stringify(f.rows);};
+  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,controller.signal,moon);
+  await assert.rejects(owner.roundtrip(),error => error === failure);
+  assert.equal(reads,0);assert.equal(f.events.includes('reload'),false);
+  assert.equal(owner.cleanupHandle.status().pending,true);
+  await owner.cleanupHandle.retry();assert.deepEqual(await readdir(directory),[]);
 });

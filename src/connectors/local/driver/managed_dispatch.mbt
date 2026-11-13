@@ -192,7 +192,8 @@ pub struct LocalManagedSnapshot {
 pub struct LocalManagedRelationSnapshot {
   key : String
   frames : LocalInputFrames
-  next : () -> Result[String?, LocalDispatchIssue]
+  advance_save : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
+  take_output : () -> Result[String, LocalDispatchIssue]
   content : () -> Result[@carrier_runtime.SnapshotContent, LocalDispatchIssue]
   release_source : (String, () -> Bool) -> Result[Unit, LocalDispatchIssue]
   source_available : () -> Bool
@@ -2854,7 +2855,6 @@ pub fn[T] start_local_managed_dispatch(
       let restored : Ref[@execution.CompletedOutput?] = Ref(None)
       let phase = Ref(SnapshotPhase::Saving)
       let emitted_bytes = Ref(0L)
-      let frame_bytes = Ref(0L)
       let reload_capacity : Ref[Int64?] = Ref(None)
       let fund_part = fn(part : String) -> Result[Unit, LocalDispatchIssue] {
         let bytes = match
@@ -2866,29 +2866,26 @@ pub fn[T] start_local_managed_dispatch(
           return Err(Configuration(InputUnavailable))
         }
         let total = emitted_bytes.val + bytes
-        let frame = Int64::max(frame_bytes.val, bytes)
         if setup.metered_retention {
-          // The saved body and the current outgoing/incoming frame overlap.
-          // Neither borrows the still-live completed cells' DATA allowance.
+          // Construction was already funded at the measured-row boundary.
+          // Validate that actual outgoing aliases fit that retained quote;
+          // never grow after constructing, nor retain an old peak frame as
+          // a new demand for a later tiny frame/tail.
           guard @execution.execution_capacity_inventory_add(
               0L,
               CanonicalWireBytes,
-              total + frame,
+              emitted_bytes.val + 3L * bytes,
               1,
             )
-            is Some(quoted) else {
+            is Some(quoted) &&
+            quoted <= transport_extra.val else {
             return Err(Configuration(InvalidLimits))
-          }
-          match reserve_transport(quoted) {
-            Ok(_) => ()
-            Err(issue) => return Err(issue)
           }
         }
         if !live.val || phase.val != Saving {
           return Err(Execution(Stopped))
         }
         emitted_bytes.val = total
-        frame_bytes.val = frame
         Ok(())
       }
       let remaining = Ref(0L)
@@ -2897,17 +2894,238 @@ pub fn[T] start_local_managed_dispatch(
           remaining.val = setup.execution.max_work.to_int64() - work
         _ => return Err(Configuration(InvalidLimits))
       }
-      // Each conversion advance/row is charged once by this same task owner.
-      // Typed value traversal retains its existing admission/work limits too.
-      let charge = fn() -> Result[Unit, LocalDispatchIssue] {
-        if !live.val || execution_failure.val is Some(_) || remaining.val < 1L {
-          execution_failure.val = Some(Configuration(InvalidLimits))
-          return Err(Configuration(InvalidLimits))
+      let save_output : Ref[String?] = Ref(None)
+      let save_work = Ref(0L)
+      let save_issue : Ref[LocalDispatchIssue?] = Ref(None)
+      let fund_batch_growth = fn(
+        pending : Int,
+      ) -> Result[Bool, @execution.CompletedExportIssue] {
+        if !live.val || phase.val != Saving || pending < 0 {
+          save_issue.val = Some(Execution(Stopped))
+          return Err(Closed)
+        }
+        if !setup.metered_retention {
+          return Ok(true)
+        }
+        // Actual saved bytes and this measured row/batch may overlap with its
+        // builder, drained String and Store Buffer. No future frame prequote.
+        guard @execution.execution_capacity_inventory_add(
+            0L,
+            CanonicalWireBytes,
+            emitted_bytes.val + 3L * pending.to_int64(),
+            1,
+          )
+          is Some(quoted) else {
+          save_issue.val = Some(Configuration(InvalidLimits))
+          return Err(Admission(InvalidCaptureLimits))
+        }
+        if quoted > transport_extra.val {
+          let ledger = @strategy.captured_dag_ledger(setup.run)
+          let limits = @resources.ledger_admission_limits(ledger)
+          let usage = @resources.ledger_usage(ledger)
+          if quoted - transport_extra.val >
+            limits.execution_bytes - usage.reserved_execution_bytes {
+            save_issue.val = Some(Execution(Physical(ExecutionLimit)))
+            return Ok(false)
+          }
+        }
+        match reserve_transport(quoted) {
+          Err(issue) => {
+            // Growth may already have acquired partial physical backing.
+            // Never reinterpret this failure as permission to flush/retry.
+            save_issue.val = Some(issue)
+            Err(Admission(CaptureLimit))
+          }
+          Ok(_) =>
+            if !live.val || phase.val != Saving {
+              save_issue.val = Some(Execution(Stopped))
+              Err(Unavailable)
+            } else {
+              Ok(true)
+            }
+        }
+      }
+      // The same existing final receipt and exact tail still require the
+      // physical Store's later write/seal acknowledgement.
+      let finish_save = fn(
+        value : @execution.CompletedOutputExport,
+      ) -> Result[String, LocalDispatchIssue] {
+        match fund_batch_growth(1) {
+          Ok(true) => ()
+          _ =>
+            return Err(save_issue.val.unwrap_or(Configuration(InvalidLimits)))
+        }
+        let (finished, tail) = match
+          @execution.finish_completed_output_export(value) {
+          Ok(result) => result
+          Err(issue) => return Err(IdentityExport(issue))
+        }
+        receipt.val = Some(finished)
+        stream.val = None
+        match fund_part(tail) {
+          Ok(_) => ()
+          Err(issue) => {
+            phase.val = Failed
+            if execution_failure.val is None {
+              execution_failure.val = Some(issue)
+            }
+            return Err(issue)
+          }
+        }
+        let content = @execution.completed_export_content(finished)
+        reload_capacity.val = local_relation_snapshot_reload_capacity(
+          setup.imports,
+          content,
+        )
+        if !live.val ||
+          phase.val != Saving ||
+          !(receipt.val is Some(actual) && physical_equal(actual, finished)) {
+          return Err(Execution(Stopped))
+        }
+        phase.val = Saved
+        Ok(tail)
+      }
+      let workspace_slots = match
+        @execution.completed_output_export_workspace_slots(
+          setup.imports.values,
+          wire,
+        ) {
+        Some(value) => value
+        None => return Err(Configuration(InvalidLimits))
+      }
+      let advance_save = fn(
+        quantum : Int,
+      ) -> Result[LocalManagedAdvance, LocalDispatchIssue] {
+        with_local_managed_import_mutation(import_mutating, fn() {
+          if !live.val ||
+            execution_failure.val is Some(_) ||
+            quantum <= 0 ||
+            quantum > 32 ||
+            save_output.val is Some(_) {
+            return Err(Configuration(InvalidLimits))
+          }
+          if phase.val == Saved {
+            return Ok({
+              complete: true,
+              waiting: false,
+              settlement: None,
+              progress: emitted_bytes.val,
+              work: 0L,
+            })
+          }
+          guard phase.val == Saving && stream.val is Some(value) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          save_issue.val = None
+          if remaining.val < 1L {
+            match @execution.completed_output_export_rows_complete(value) {
+              Ok(true) => ()
+              result => {
+                let issue = match result {
+                  Err(cause) => IdentityExport(cause)
+                  _ => ControlWorkLimit(setup.execution.max_work)
+                }
+                execution_failure.val = Some(issue)
+                phase.val = Failed
+                return Err(issue)
+              }
+            }
+          }
+          // The same mutation scope excludes another save/reload/finalization
+          // debit. Authorize only this finite allowance before entering poll.
+          let allowed = Int::max(
+            1,
+            Int64::min(remaining.val, quantum.to_int64()).to_int(),
+          )
+          let polled = @execution.advance_completed_output_export(
+            value,
+            allowed,
+            workspace_slots,
+            batch=true,
+            before_batch_growth=Some(fund_batch_growth),
+          )
+          // LAST-poll observation survives cancellation and encoder failure.
+          // The existing provider accounting owner remains writable after
+          // cleanup; unused authorized allowance is neither spent nor refunded.
+          let spent = @execution.completed_output_export_poll_steps(value)
+          if spent < 0 || spent > allowed || spent.to_int64() > remaining.val {
+            @local.managed_provider_record_handoff_work(active, -1L) |> ignore
+            let issue = Configuration(InvalidLimits)
+            execution_failure.val = Some(issue)
+            phase.val = Failed
+            return Err(issue)
+          }
+          match
+            @local.managed_provider_record_handoff_work(
+              active,
+              spent.to_int64(),
+            ) {
+            Err(_) => {
+              let issue = Configuration(InvalidLimits)
+              execution_failure.val = Some(issue)
+              phase.val = Failed
+              return Err(issue)
+            }
+            Ok(_) => ()
+          }
+          remaining.val -= spent.to_int64()
+          save_work.val += spent.to_int64()
+          let observation = match polled {
+            Ok(value) => value
+            Err(issue) => {
+              let failure = save_issue.val.unwrap_or(IdentityExport(issue))
+              execution_failure.val = Some(failure)
+              phase.val = Failed
+              return Err(failure)
+            }
+          }
+          if observation.batch is Some(part) {
+            match fund_part(part) {
+              Err(issue) => {
+                execution_failure.val = Some(issue)
+                phase.val = Failed
+                return Err(issue)
+              }
+              Ok(_) => save_output.val = Some(part)
+            }
+          }
+          if observation.complete {
+            let tail = match finish_save(value) {
+              Ok(value) => value
+              Err(issue) => {
+                execution_failure.val = Some(issue)
+                phase.val = Failed
+                return Err(issue)
+              }
+            }
+            save_output.val = Some(tail)
+          }
+          Ok({
+            complete: observation.complete,
+            waiting: false,
+            settlement: None,
+            progress: emitted_bytes.val,
+            work: spent.to_int64(),
+          })
+        })
+      }
+      let debit_reload = fn() -> Result[Unit, LocalDispatchIssue] {
+        if !live.val ||
+          phase.val != Reloading ||
+          execution_failure.val is Some(_) {
+          return Err(Execution(Stopped))
+        }
+        if remaining.val < 1L {
+          let issue = ControlWorkLimit(setup.execution.max_work)
+          execution_failure.val = Some(issue)
+          return Err(issue)
+        }
+        match @local.managed_provider_record_handoff_work(active, 1L) {
+          Err(_) => return Err(Configuration(InvalidLimits))
+          Ok(_) => ()
         }
         remaining.val -= 1L
-        @local.managed_provider_record_handoff_work(active, 1L).map_err(_ => {
-          Configuration(InvalidLimits)
-        })
+        Ok(())
       }
       snapshot_attempted.val = true
       snapshot_ready.val = false
@@ -2947,6 +3165,7 @@ pub fn[T] start_local_managed_dispatch(
         true
       }
       relation_snapshot_cancel.val = Some(fn() {
+        save_output.val = None
         if stream.val is Some(value) {
           @execution.cancel_completed_output_export(value)
         }
@@ -2964,64 +3183,14 @@ pub fn[T] start_local_managed_dispatch(
         Some({
           key: "relation-task-" + setup.task.to_string(),
           frames,
-          next: () => {
-            with_local_managed_import_mutation(import_mutating, fn() {
-              if phase.val == Saved {
-                return Ok(None)
-              }
-              guard phase.val == Saving && stream.val is Some(value) else {
-                return Err(Configuration(InvalidLimits))
-              }
-              if charge() is Err(issue) {
-                return Err(issue)
-              }
-              match @execution.next_completed_output_export(value) {
-                Ok(Some(part)) =>
-                  match fund_part(part) {
-                    Ok(_) => Ok(Some(part))
-                    Err(issue) => {
-                      phase.val = Failed
-                      if execution_failure.val is None {
-                        execution_failure.val = Some(issue)
-                      }
-                      Err(issue)
-                    }
-                  }
-                Ok(None) => {
-                  let (finished, tail) = match
-                    @execution.finish_completed_output_export(value) {
-                    Ok(result) => result
-                    Err(_) => return Err(Configuration(InputUnavailable))
-                  }
-                  receipt.val = Some(finished)
-                  stream.val = None
-                  match fund_part(tail) {
-                    Ok(_) => ()
-                    Err(issue) => {
-                      phase.val = Failed
-                      if execution_failure.val is None {
-                        execution_failure.val = Some(issue)
-                      }
-                      return Err(issue)
-                    }
-                  }
-                  let content = @execution.completed_export_content(finished)
-                  reload_capacity.val = local_relation_snapshot_reload_capacity(
-                    setup.imports,
-                    content,
-                  )
-                  if !live.val ||
-                    phase.val != Saving ||
-                    !(receipt.val is Some(actual) &&
-                    physical_equal(actual, finished)) {
-                    return Err(Execution(Stopped))
-                  }
-                  phase.val = Saved
-                  Ok(Some(tail))
-                }
-                Err(_) => Err(Configuration(InputUnavailable))
-              }
-            })
+          advance_save,
+          take_output: () => {
+            if !live.val || (phase.val != Saving && phase.val != Saved) {
+              return Err(Execution(Stopped))
+            }
+            let part = save_output.val.unwrap_or("")
+            save_output.val = None
+            Ok(part)
           },
           content: () => {
             guard phase.val == Saved && receipt.val is Some(value) else {
@@ -3117,7 +3286,7 @@ pub fn[T] start_local_managed_dispatch(
             guard phase.val == Reloading && importing.val is Some(value) else {
               return Err(Configuration(InvalidLimits))
             }
-            if charge() is Err(issue) {
+            if debit_reload() is Err(issue) {
               return Err(issue)
             }
             @execution.append_completed_output_import_wire(
@@ -3130,7 +3299,7 @@ pub fn[T] start_local_managed_dispatch(
             guard phase.val == Reloading && importing.val is Some(value) else {
               return Err(Configuration(InvalidLimits))
             }
-            if charge() is Err(issue) {
+            if debit_reload() is Err(issue) {
               return Err(issue)
             }
             let value = match @execution.finish_completed_output_import(value) {

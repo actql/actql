@@ -9,7 +9,7 @@
     {
       "module": "adapters/local-node/carrier-snapshot.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "89afd8dc97cc5460ba88d7ab52690e4d930e75f89e4515a3c438efd6c56f220a",
+      "sha256": "24d4661663ab3aaca47165c6386cf9385f6a663bf3d332e5ba5df9c21883de8b",
       "exports": [
         "prepareLocalCarrierSnapshot",
         "prepareLocalRelationSnapshot"
@@ -116,7 +116,8 @@
         {
           "name": "validateAdvance/validateAdvance",
           "parameters": [
-            "observation"
+            "observation",
+            "bufferedOutput"
           ],
           "async": false
         },
@@ -249,7 +250,12 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../store-local/moonbit-row-frames.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
