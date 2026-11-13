@@ -157,6 +157,7 @@ function stableCommandInput(path,roots) {
   if(kind==='directory')return {kind,name};
   if(kind==='repository'&&(name==='toolchain.json'||name==='moon.mod'||
     name==='scripts/produce-native-remote-scoped-runtime.py'||
+    /^src\/cmd\/(?:native_runtime_bundle|native_remote_resident_site)\/initial_control_recipe(?:\.linux-x64)?\.json$/u.test(name)||
     /^src\/.+\.(?:mbt|pkg|c|h|inc)$/u.test(name)||
     /^packages\/python-local-runtime\/native\/pre-root\/.+\.(?:mi|core|c|h|inc|json|py|patch)$/u.test(name)))return {kind,name};
   if(kind==='moon_home'&&(['installed.json','bin/moon','bin/moonc','lib/libmoonbitrun.o','lib/libbacktrace.a',
