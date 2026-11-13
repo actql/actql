@@ -33,7 +33,7 @@ typedef struct {
     block *first, *first_free;
     unsigned char *live_starts;
     atomic_flag lock;
-    unsigned initialized, closing, failed, operations, libraries, cleanup_active;
+    unsigned initialized, closing, failed, operations, libraries, cleanup_active, base_initialized;
     OSSL_PROVIDER *default_provider;
 } component_state;
 
@@ -244,6 +244,13 @@ static int bind_original(actql_read_context *original, size_t bytes, int *acquir
      * selected private instance and original lifetime remain explicit. */
     if (OPENSSL_init_crypto(OPENSSL_INIT_NO_LOAD_CONFIG | OPENSSL_INIT_NO_ATEXIT, NULL) != 1)
         return ACTQL_CRYPTO_COMPONENT_FAILED;
+    state->base_initialized = 1;
+    /* OpenSSL 3.0 can leave its static default-context carrier after failed
+     * construction, then dereference its absent lock in provider loading.
+     * This actual initializer reports failure without using that carrier.
+     * Keep the same partial extent/context for the original close below. */
+    if (OSSL_LIB_CTX_get0_global_default() == NULL)
+        return ACTQL_CRYPTO_COMPONENT_FAILED;
     state->default_provider = OSSL_PROVIDER_load(NULL, "default");
     if (!state->default_provider) return ACTQL_CRYPTO_COMPONENT_FAILED;
     state->initialized = 1;
@@ -349,7 +356,15 @@ int actql_crypto_component_close(void) {
             OPENSSL_thread_stop(); OPENSSL_cleanup(); state->cleanup_active = 0; cleanup_ack = 1;
         }
         if (!lock_state()) CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_BUSY);
-        int pending = state->blocks != 0 || state->failed;
+        /* A failed, unpublished constructor has never lent a Library or an
+         * operation. After successful base initialization and the original
+         * thread/global stop above, its one-shot private instance cannot be
+         * entered again. Retire its whole original extent, including any
+         * blocks stranded by partial default-context construction. Do not
+         * claim individual frees or clear allocator corruption. Published
+         * instances and an unconfirmed base cleanup still require zero blocks. */
+        int unpublished = state->base_initialized && !state->initialized;
+        int pending = state->failed || (state->blocks != 0 && !unpublished);
         unlock_state();
         if (pending) CLOSE_RETURN(ACTQL_CRYPTO_COMPONENT_BUSY);
     }
