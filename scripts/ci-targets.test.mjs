@@ -235,13 +235,14 @@ test('Native consumers keep all original commands and collect independent failur
     'exit "$ACTQL_FIXTURE_EXIT"\n');
   chmodSync(join(root, 'node'), 0o755);
   for (const name of ['native', 'native-macos']) {
+    const selectedCommands = name === 'native-macos' ? [expected[0], ...expected] : expected;
     const http = name === 'native' ? jobs['native-http'].steps.find(step => step.id === 'native-http')
       : nativeCases(name).find(step => step.id === 'native-http');
     const steps = [http,
       ...nativeCases(name).filter(step => step.id?.startsWith('native-') && step.id !== 'native-http' && step.name.startsWith('Test '))]
       .sort((a, b) => expected.indexOf(a.run.trim().split('\n').at(-1)) - expected.indexOf(b.run.trim().split('\n').at(-1)));
-    assert.deepEqual(steps.map(step => step.run.trim().split('\n').at(-1)), expected);
-    assert.equal(new Set(steps.map(step => step.env.ACTQL_TEST_SCRATCH_ROOT)).size, expected.length);
+    assert.deepEqual(steps.map(step => step.run.trim().split('\n').at(-1)), selectedCommands);
+    assert.equal(new Set(steps.map(step => step.env.ACTQL_TEST_SCRATCH_ROOT)).size, selectedCommands.length);
     const results = steps.map((step, index) => {
       assert.equal(name === 'native' && step.id === 'native-http' ? step.if : nativeCaseCondition(name, step),
         name === 'native' && step.id === 'native-http' ? undefined : condition);
@@ -258,7 +259,7 @@ test('Native consumers keep all original commands and collect independent failur
     assert(nativeWorkload(name).steps.find(step => step.id === 'native-preparation').run
       .includes('prepare-native-runtime-bundle-fixture.mjs'));
   }
-  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, expected.length * 2);
+  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, expected.length * 2 + 1);
   for (const id of ['packed-materials', 'packed-redelivery', 'packed-output-report'])
     assert.equal(nativeCaseCondition('native', nativeCases('native').find(step => step.id === id)), condition);
 });
@@ -310,7 +311,15 @@ test('macOS HTTP retains its original command under shared preparation and a man
   assert.equal(http.name, 'Test Node-free native storage publication and control');
   assert.equal(http.run, 'node scripts/test-native-http-client.mjs\n');
   assert.equal(http.timeoutMinutes, 115);
-  assert.deepEqual(http.env, {ACTQL_TEST_SCRATCH_ROOT: '${{ runner.temp }}/native-tests/native-http'});
+  assert.deepEqual(http.env, {ACTQL_TEST_SCRATCH_ROOT: '${{ runner.temp }}/native-tests/native-http',
+    ACTQL_TEST_NATIVE_HTTP_FOCUS: 'http-packages', ACTQL_TEST_PRESERVE_SCRATCH: '1'});
+  const controls = nativeGroups['native-macos'].flatMap(group => group.steps)
+    .filter(step => step.id === 'native-http-controls');
+  assert.equal(controls.length, 1);
+  assert.equal(controls[0].run, http.run);
+  assert.equal(controls[0].timeoutMinutes, http.timeoutMinutes);
+  assert.deepEqual(controls[0].env, {ACTQL_TEST_SCRATCH_ROOT: '${{ runner.temp }}/native-tests/native-http-controls',
+    ACTQL_TEST_NATIVE_HTTP_FOCUS: 'http-controls', ACTQL_TEST_PRESERVE_SCRATCH: '1'});
   assert.equal(nativeCases('native-macos').filter(step => step.id === 'native-http').length, 1);
   assert.equal(workload.outputs['native-http-result'], '${{ steps.native-background.outputs.native-http-result }}');
   const gate = jobs['native-http-macos'];
