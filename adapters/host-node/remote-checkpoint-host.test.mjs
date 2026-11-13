@@ -1958,6 +1958,14 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     const directory = await mkdtemp(join(scratch, 'second-source-approval-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const inputs = await loadTwoSourceFixtures(join(repository, 'adapters/host-node/fixtures/two-source'));
+    const base = JSON.parse(await readFile(join(repository,
+      'spec/local-check-environment.json'), 'utf8'));
+    // Author these Source publications with the same current Host policy as
+    // effectFixture before installing either role. Preserve old fixture wires.
+    for (const environment of Object.values(inputs.environments)) {
+      environment.host_policy_profile = structuredClone(base.host_policy_profile);
+      environment.evidence_bundle_cid = withoutCid(environment, 'evidence_bundle_cid');
+    }
     inputs.rows = {left: [{id: 1, amount: 10}, {id: 2, amount: 20}],
       right: [{id: 2, amount: 200}, {id: 1, amount: 100}], equal_content: []};
     const installation = await installTwoSourceFixtures({root: join(directory, 'sources'),
