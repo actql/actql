@@ -2,8 +2,8 @@
 // incremental freshness, its output lock and each original test execution.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync} from 'node:fs';
-import {delimiter, dirname, isAbsolute, join} from 'node:path';
+import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, writeFileSync} from 'node:fs';
+import {delimiter, dirname, isAbsolute, join, sep} from 'node:path';
 import {copyNativePreparationTools} from './native-preparation-lanes.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 import {originalDescriptor, verifyOriginal} from './native-preparation-originals.mjs';
@@ -47,7 +47,21 @@ function selection(repository,env) {
   assert.equal(git(['status','--porcelain']),'','Query preparation requires unchanged clean source');
   const source=git(['rev-parse','HEAD']);assert.match(source,/^[a-f0-9]{40}$/u);
   const home=realpathSync(env.MOON_HOME);
-  const paths=git(['ls-files','-z']).split('\0').filter(Boolean).map(path=>join(repository,path));
+  const tracked=git(['ls-files','-z']).split('\0').filter(Boolean).map(path=>join(repository,path));
+  const sourceAliases=[];
+  const paths=tracked.flatMap(path=>{
+    const target=realpathSync(path);
+    if(!lstatSync(target).isDirectory())return [path];
+    assert(lstatSync(path).isSymbolicLink(),'Unrecognized tracked source directory: '+path);
+    assert(target.startsWith(repository+sep),'Tracked directory alias leaves the original source: '+path);
+    // Retain this alias as link DATA, not as a regular-file descriptor. Its
+    // target leaves already belong to the same Git inventory below; never
+    // recurse through aliases or silently omit an original source input.
+    const members=tracked.filter(member=>member.startsWith(target+sep)&&!lstatSync(realpathSync(member)).isDirectory());
+    assert(members.length>0,'Tracked directory alias requires original tracked target files: '+path);
+    sourceAliases.push({path,link:readlinkSync(path),target,members});
+    return [];
+  });
   const tools=['cc','c++','ar','bash','uname',...(process.platform==='darwin'?['xcrun','brew']:[])];
   const resolved=tools.map(name=>{
     // The original Query linker resolves these same system tools through PATH.
@@ -69,7 +83,7 @@ function selection(repository,env) {
   }
   const installation=describe([...installationFiles,'installed.json'].map(path=>join(home,path)))
     .map(({bytes,sha256,mode},index)=>({file:[...installationFiles,'installed.json'][index],bytes,sha256,mode}));
-  return {identity:{repository,source,platform:process.platform,arch:process.arch,installation,
+  return {identity:{repository,source,platform:process.platform,arch:process.arch,installation,sourceAliases,
     environment:compilerEnvironment(env),tools:resolved,overrides,sdk,openssl,command},
     paths:[...new Set([...paths,...resolved.flatMap(([,path])=>path===null?[]:[path]),
       ...overrides.map(([,path])=>path),...(openssl===null?[]:[...files(join(openssl,'include/openssl')),
