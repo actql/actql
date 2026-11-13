@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
 import * as performance from './native-approval-performance.mjs';
+import {nativeApprovalTarget} from './operation-performance.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalResources, approvalPhases} from './native-approval-performance.mjs';
 
 const sourceSha = 'a'.repeat(40), fixtureSha256 = 'b'.repeat(64), runnerSha256 = 'c'.repeat(64);
@@ -11,7 +12,7 @@ const series = () => ({mode: 'final', sourceSha, fixtureSha256, runnerSha256,
   samples: Array.from({length: 30}, (_, iteration) => ({iteration, sourceSha, fixtureSha256,
     runnerSha256, wallNs: 4000000000, cpuUserUs: 1000, cpuSystemUs: 1000, cpuScope: 'synthetic OS sample', peakRssBytes: 4096, rssScope: 'synthetic OS sample', completed: true, verified: true}))});
 
-function smokeScenarios(wallNs = 10000000000) {
+function smokeScenarios(wallNs = 5000000000) {
   return ['deal-review-mock', 'churn-risk-mock'].map(template => ({template,
     commands: [{args: ['original-launcher', 'approve', 'original-checkpoint', '--wait', '--json'],
       code: 0, signal: null, wallNs}]}));
@@ -37,9 +38,9 @@ async function installedSmokeTail(scenarios, measureResources = false, writeFail
 }
 
 test('ordinary Native smoke persists the original slow approvals before rejecting and never marks them passed', async () => {
-  const original = smokeScenarios(11000000000);
+  const original = smokeScenarios(6000000000);
   const {events, pending} = await installedSmokeTail(original);
-  await assert.rejects(pending, /approval maximum exceeds 10000 ms/u);
+  await assert.rejects(pending, /approval maximum exceeds 5000 ms/u);
   assert.deepEqual(events.map(event => event.kind), ['receipt']);
   assert.deepEqual(events[0].value.scenarios, original);
   assert.equal(events[0].value.approvalSmoke.status, 'failed');
@@ -47,18 +48,19 @@ test('ordinary Native smoke persists the original slow approvals before rejectin
   assert.equal(events[0].options.flag, 'wx');
 });
 
-test('ordinary Native smoke accepts ten seconds and refuses one nanosecond above without a p95 claim', () => {
+test('ordinary Native smoke accepts five seconds and refuses one nanosecond above without a p95 claim', () => {
   const scenarios = smokeScenarios(), original = structuredClone(scenarios);
   const passed = performance.assessOrdinaryNativeApprovalSmoke(scenarios);
-  assert.equal(passed.status, 'passed'); assert.equal(passed.maximumMs, 10000);
+  assert.equal(passed.status, 'passed'); assert.equal(passed.maximumMs, 5000);
+  assert.equal(passed.maximumMs, nativeApprovalTarget.maxMs);
   assert.equal(passed.formalAcceptance, false); assert.equal(passed.samples.length, 2);
   assert.equal(Object.hasOwn(passed, 'p95Ms'), false);
   assert.deepEqual(scenarios, original);
   for (let index = 0; index < 2; index++) {
     const slow = structuredClone(scenarios); slow[index].commands[0].wallNs++;
     const result = performance.assessOrdinaryNativeApprovalSmoke(slow);
-    assert.equal(result.status, 'failed'); assert.equal(result.samples[index].wallNs, 10000000001);
-    assert(result.failures.some(reason => reason.includes('approval maximum exceeds 10000 ms')));
+    assert.equal(result.status, 'failed'); assert.equal(result.samples[index].wallNs, 5000000001);
+    assert(result.failures.some(reason => reason.includes('approval maximum exceeds 5000 ms')));
   }
 });
 

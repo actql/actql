@@ -16,7 +16,8 @@ fresh private installation/state; it never replays a failed business state.
 
 The required ordinary Linux Local producer already executes both installed Mock
 workflows. Its ordinary consumer now checks each complete approval process
-against a maximum of 10000 ms, using the existing monotonic `wallNs` observation.
+against the same maximum of 5000 ms as the formal profile, using the existing
+monotonic `wallNs` observation.
 Missing, invalid, failed or duplicate observations cannot pass. This is a
 two-fixture maximum-only smoke check; it supplies no p95 or formal acceptance.
 Both functional workflows and their counter checks finish first, and the
