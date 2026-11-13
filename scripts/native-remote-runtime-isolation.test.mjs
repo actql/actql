@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,writeFileSync,rmSync,existsSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join,delimiter} from 'node:path';
+import {runInNewContext} from 'node:vm';
+import {parse as parseYaml} from 'yaml';
+import {nativeQueryCoverage,runNativeQueryTests,readNativeQuerySources,selectNativeQueryTests} from './native-query-coverage.mjs';
 import test from 'node:test';
 import {parse} from 'acorn';
 
@@ -39,8 +44,11 @@ test('macOS remote scheduling retains every exact original step in the same two 
   const original=JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json',import.meta.url)));
   const after=JSON.parse(readFileSync(new URL('./ci-native-background-groups.json',import.meta.url)));
   assert.equal(after['native-macos'].length,2);
+  const workflow=parseYaml(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
   for(const family of ['native','native-macos']) {
-    const actual=after[family].flatMap(group=>group.steps).filter(step=>/^(?:Test |Verify registered)/u.test(step.name));
+    const actual=[...workflow.jobs[family+'-workloads'].steps,
+      ...workflow.jobs[family==='native'?'native-http':'native-http-macos'].steps,
+      ...after[family].flatMap(group=>group.steps)].filter(step=>/^(?:Test |Verify registered)/u.test(step.name));
     assert.equal(actual.length,original.jobs[family].length);
     for(const expected of original.jobs[family]) {
       const found=actual.filter(step=>step.name===expected.name);assert.equal(found.length,1);
@@ -68,4 +76,34 @@ test('all overlapping portable consumers select their existing verified original
     assert(body.includes('const portableCorePath = prepareNativeResidentPortableCore('));
     assert(body.includes('await import(pathToFileURL(portableCorePath).href)'));
   }
+});
+
+test('remote compiler environment changes only the private tool home and PATH while preserving original runtime inputs',()=>{
+  const declaration=nodes(ast,n=>n.type==='VariableDeclarator'&&n.id?.name==='nativeEnvironment');assert.equal(declaration.length,1);
+  const home='/owned/remote/compiler-tool';
+  const select=runInNewContext('('+source.slice(declaration[0].init.start,declaration[0].init.end)+')',
+    {nativeMoonHome:home,join,delimiter});
+  const original=Object.freeze({MOON_HOME:'/original/tool',PATH:'/original/bin',ACTQL_TEST_NATIVE_SQLITE_LIBRARY:'/original/sqlite',
+    ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY:'same body',ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE:'same signature',
+    ACTQL_TEST_NATIVE_VALUES_HTTPS_KEY:'/original/key'});
+  assert.deepEqual(JSON.parse(JSON.stringify(select(original))),{...original,MOON_HOME:home,PATH:join(home,'bin')+delimiter+original.PATH});
+  assert.equal(original.MOON_HOME,'/original/tool');
+});
+
+test('private Query output forwards the complete original default-profile selection and retains required-case refusal',async t=>{
+  const root=mkdtempSync(join(tmpdir(),'actql-remote-query-output-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const moon=join(root,'moon.mjs'),commands=join(root,'commands.jsonl'),targetDirectory=join(root,'native-query-build');
+  writeFileSync(moon,'#!'+process.execPath+'\n'+
+    'import {appendFileSync} from "node:fs";\n'+
+    'appendFileSync(process.env.FIXTURE_COMMANDS,JSON.stringify(process.argv.slice(2))+"\\n");\n'+
+    'const n=process.env.FIXTURE_SHORT?11:12;console.log("Total tests: "+n+", passed: "+n+", failed: 0.");\n',{mode:0o700});
+  const env={...process.env,...Object.fromEntries(nativeQueryCoverage.requiredEnvironment['remote-runtime'].map(name=>[name,'1'])),FIXTURE_COMMANDS:commands};
+  const selected=selectNativeQueryTests('remote-runtime',readNativeQuerySources(new URL('../',import.meta.url)),env);
+  await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env,targetDirectory:'relative'}));
+  assert.equal(existsSync(commands),false);
+  await runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env,targetDirectory});
+  const command=JSON.parse(readFileSync(commands,'utf8').trim());
+  assert.deepEqual(command,['test',...selected.paths,'--target','native','--target-dir',targetDirectory]);
+  assert(!command.includes('--strip')&&!command.includes('--release'));
+  await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env:{...env,FIXTURE_SHORT:'1'},targetDirectory}),/coverage mismatch/u);
 });

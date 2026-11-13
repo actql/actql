@@ -1261,7 +1261,7 @@ verification: try {
       'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
       ...(focus?.startsWith('resident-review-') ? ['--jobs', '2'] : []),
     ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'}),
-      preparation: focus?.startsWith('resident-review-') ? null : process.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION
+    preparation: focus?.startsWith('resident-review-') ? null : process.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION
   });
   const moonModule = await import(pathToFileURL(portableCorePath).href);
   const portableRuntime = runtimeCore(moonModule);
