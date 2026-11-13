@@ -5,8 +5,86 @@ import {tmpdir} from 'node:os';
 import {delimiter, join} from 'node:path';
 import test from 'node:test';
 import {prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
+import * as httpScope from './native-http-compiler-scope.mjs';
+import {parse as parseYaml} from 'yaml';
+import {parse} from 'acorn';
 
 const groups = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
+
+test('Source coverage defaults to complete and only the closed Darwin package owner can redistribute it', () => {
+  assert.equal(typeof httpScope.nativeHttpSourceCoverage, 'function');
+  for (const platform of ['linux', 'darwin'])
+    for (const focus of [undefined, 'http-packages', 'http-controls', 'core-source'])
+      assert.deepEqual(httpScope.nativeHttpSourceCoverage(focus, {platform, owner: undefined}),
+        {includeSource: true, effectTargets: {reads: 3, writes: 1}});
+  const owner = 'linux-http+darwin-core-source';
+  assert.deepEqual(httpScope.nativeHttpSourceCoverage('http-packages', {platform: 'darwin', owner}),
+    {includeSource: false, effectTargets: {reads: 0, writes: 0}});
+  for (const options of [{platform: 'linux', owner}, {platform: 'darwin', owner: ''},
+    {platform: 'darwin', owner: 'other'}, {platform: 'darwin', owner: null}])
+    assert.throws(() => httpScope.nativeHttpSourceCoverage('http-packages', options));
+  for (const focus of [undefined, 'http-controls', 'core-source', 'core-http'])
+    assert.throws(() => httpScope.nativeHttpSourceCoverage(focus, {platform: 'darwin', owner}));
+});
+
+test('Source coverage redistribution requires current Linux HTTP and complete Darwin Core outcomes', () => {
+  const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const gate = workflow.jobs['native-http-macos'];
+  assert.deepEqual(gate.needs, ['select-targets', 'preflight', 'native-macos-workloads', 'native-http', 'core']);
+  assert.equal(gate['runs-on'], 'ubuntu-24.04');
+  const step = gate.steps[0];
+  assert.equal(step.env.LINUX_HTTP_RESULT, '${{ needs.native-http.result }}');
+  assert.equal(step.env.DARWIN_CORE_RESULT, '${{ needs.core.result }}');
+  assert.equal(step.env.CORE_TARGETS, '${{ needs.select-targets.outputs.targets }}');
+  const selected = groups['native-macos'].flatMap(group => group.steps).filter(step => step.env?.ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER);
+  assert.equal(selected.length, 1); assert.equal(selected[0].id, 'native-http');
+  assert.equal(selected[0].env.ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER, 'linux-http+darwin-core-source');
+  const keys = ['WORKLOAD_RESULT', 'HTTP_RESULT', 'LINUX_HTTP_RESULT', 'DARWIN_CORE_RESULT'];
+  const success = {...Object.fromEntries(keys.map(key => [key, 'success'])), CORE_TARGETS: '["js","wasm","native"]'};
+  const run = env => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
+    encoding: 'utf8', timeout: 5000, env: {...process.env, ...env},
+  });
+  assert.equal(run(success).status, 0);
+  for (const key of keys) for (const value of ['failure', 'cancelled', 'skipped', '']) {
+    const result = run({...success, [key]: value});
+    assert.equal(result.error, undefined); assert.equal(result.signal, null);
+    assert.notEqual(result.status, 0, `${key}=${value || 'missing'} cannot certify coverage`);
+  }
+  for (const value of ['', '[]', '["js","wasm"]', 'null', 'invalid'])
+    assert.notEqual(run({...success, CORE_TARGETS: value}).status, 0);
+  assert(workflow.jobs.core.strategy.matrix.partition.includes('source'));
+  assert(!workflow.jobs.core.strategy.matrix.exclude.some(row => row.target === 'native' && row.partition === 'source'));
+  const core = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+  assert(core.run.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
+  const linux = workflow.jobs['native-http'];
+  assert.equal(linux['runs-on'], 'ubuntu-24.04');
+  assert(linux.steps.some(step => step.run?.includes('node scripts/test-native-http-client.mjs')));
+});
+
+test('Source coverage caller omits only the repeated complete package and keeps independent exact physical oracles', () => {
+  const source = readFileSync(new URL('./test-native-http-client.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const found = [];
+  function walk(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'ForOfStatement' && node.left.declarations?.[0]?.id.name === 'packagePath') found.push(node);
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) for (const value of child) walk(value);
+      else if (child && typeof child === 'object') walk(child);
+    }
+  }
+  walk(tree); assert.equal(found.length, 1);
+  const loop = found[0];
+  assert.equal(loop.right.alternate.elements.length, 15);
+  const skip = loop.body.body[0];
+  assert.equal(skip.type, 'IfStatement'); assert.equal(skip.consequent.type, 'ContinueStatement');
+  assert.equal(source.slice(skip.test.start, skip.test.end),
+    "packagePath === 'src/platform_native/remote_resident_source_compute_tests' && !sourceCoverage.includeSource");
+  assert(source.includes('assert.deepEqual(bearerServers.effectTargets(), sourceCoverage.effectTargets)'));
+  assert(source.includes('sourceCoverage.includeSource ? [{Id: \'001000000000001AAA\', Count__c: 3}] : []'));
+  assert(source.includes('assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 1})'),
+    'The complete original Core Source fixture keeps its independent 3/1 oracle');
+});
 
 test('macOS HTTP packages and original CLI controls use the existing two workers', () => {
   const mac = groups['native-macos'];

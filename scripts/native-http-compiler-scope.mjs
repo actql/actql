@@ -5,6 +5,19 @@ import {mkdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync} from 
 import {delimiter, join} from 'node:path';
 import {copyNativePreparationTools} from './native-preparation-lanes.mjs';
 
+// Hosted Darwin keeps the complete C/release Source profile in Core and the
+// platform-sensitive default Native packages here. Linux owns the complete
+// default Native Source profile. The downstream gate requires both owners.
+export function nativeHttpSourceCoverage(focus, {
+  platform = process.platform, owner = process.env.ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER,
+} = {}) {
+  if (owner === undefined) return {includeSource: true, effectTargets: {reads: 3, writes: 1}};
+  assert.equal(owner, 'linux-http+darwin-core-source', 'Unknown complete Source coverage owner');
+  assert.equal(platform, 'darwin', 'Only the Darwin package phase redistributes Source coverage');
+  assert.equal(focus, 'http-packages', 'Complete standalone and Core Source profiles cannot omit Source');
+  return {includeSource: false, effectTargets: {reads: 0, writes: 0}};
+}
+
 export function prepareNativeHttpCompilerScope(repository, root, {
   env = process.env, platform = process.platform, arch = process.arch,
   copyTools = copyNativePreparationTools,

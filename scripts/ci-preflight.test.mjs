@@ -69,7 +69,8 @@ test('mandatory preflight admits every normal heavy primitive and does not seria
     assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
     assert.equal(jobs[name]['continue-on-error'], undefined);
   }
-  assert.deepEqual(jobs['native-http-macos'].needs, ['select-targets', 'preflight', 'native-macos-workloads']);
+  assert.deepEqual(jobs['native-http-macos'].needs,
+    ['select-targets', 'preflight', 'native-macos-workloads', 'native-http', 'core']);
   assert.match(jobs['native-http-macos'].if, /always\(\)/u, 'The lightweight join must report a failed or missing original consumer');
   assert.equal(jobs['native-http-macos']['continue-on-error'], undefined);
   assert.deepEqual(permissions, {contents: 'read'});

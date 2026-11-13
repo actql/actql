@@ -1,5 +1,5 @@
 import {prepareNativeResidentPortableCore} from './native-resident-portable-preparation.mjs';
-import {prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
+import {nativeHttpSourceCoverage, prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
 import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
 import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
@@ -45,6 +45,7 @@ import {pinnedEngineContracts} from
   '../adapters/connectors/duckdb/node/test/pinned-engine-contracts.mjs';
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
+const sourceCoverage = nativeHttpSourceCoverage(focus);
 if (focus !== undefined &&
     !['http-packages', 'http-controls', 'effect-control-replay', 'remote-client-poll', 'core-http', 'core-source', 'http-retirement', 'http-symbol-unload',
       'http-constructor-retirement', 'resident-review-regressions',
@@ -1501,13 +1502,16 @@ verification: try {
     'src/platform_native/credential_resource',
     'src/query_integration',
   ]) {
+    if (packagePath === 'src/platform_native/remote_resident_source_compute_tests' && !sourceCoverage.includeSource) continue;
     if (packagePath === 'src/query_integration') {
       // The retained Preview, retained Checkpoint and original-holder review
       // each perform one Provider read. Denied/duplicate paths perform no
       // additional read; mapped-create applies its one scoped Effect.
-      assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 1});
+      // The redistributed Darwin phase performs none of those Source actions;
+      // Linux and complete Darwin Core keep the original independent 3/1 check.
+      assert.deepEqual(bearerServers.effectTargets(), sourceCoverage.effectTargets);
       assert.deepEqual(bearerServers.effectCreatedValues(),
-        [{Id: '001000000000001AAA', Count__c: 3}]);
+        sourceCoverage.includeSource ? [{Id: '001000000000001AAA', Count__c: 3}] : []);
       resetNativeStoreTransfer();
       nativeStandardTransferCompletions.length = 0;
       await runNativeQueryTests(moon, 'http-client', {
