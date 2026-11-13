@@ -171,7 +171,7 @@ test('required lint directly selects Native preparation controls and only macOS 
   const prepare=family=>workflow.jobs[family+'-workloads'].steps.find(step=>step.id==='native-preparation');
   assert(prepare('native-macos').run.endsWith('--resident-seconds 1200 --lanes 2'));
   assert(!prepare('native').run.includes('--lanes'));
-  for(const family of ['native','native-macos'])assert.equal(prepare(family).timeoutMinutes,undefined);
+  for(const family of ['native','native-macos'])assert.equal(prepare(family)['timeout-minutes'],70);
   const cli=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
   const awaited=cli.indexOf('?await prepareNativeParallel('),ready=cli.indexOf("writeFileSync(join(destination,'preparation.json')");
   const environment=cli.indexOf("if(process.env.GITHUB_ENV!==undefined)");
