@@ -781,16 +781,18 @@ test('ordinary process jobs execute the tested collector contract and retain ass
   // https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onworkflow_dispatchinputs
   assert(Object.keys(entry.on.workflow_dispatch.inputs).length <= 25);
   for (const adapter of ['native', 'python']) {
+    const originalProducer = ordinaryBuildProvenance(adapter);
+    assert.doesNotThrow(() => validatePerformanceProcessPackageProducer(originalProducer));
     for (const key of ['run-id', 'artifact-id', 'producer-job']) {
       const input = workflow.on.workflow_call.inputs[`${adapter}-package-${key}`];
-      assert.equal(input.required, adapter === 'native');
+      assert.equal(input.required, false);
       // Native-only approval does not need unrelated Python artifacts. The
       // ordinary Python job still authenticates every original producer field.
-      if (adapter === 'python') assert.equal(input.default, '');
+      assert.equal(input.default, '');
       assert(entry.jobs['performance-matrix'].with[`${adapter}-package-${key}`]);
       const field = {'run-id': 'runId', 'artifact-id': 'artifactId', 'producer-job': 'producerJob'}[key];
       assert.throws(() => validatePerformanceProcessPackageProducer({
-        ...provenance(), adapter, producerJob: 'client-packages', [field]: '',
+        ...originalProducer, [field]: '',
       }));
     }
     for (const nativeOnly of [false, true]) {
