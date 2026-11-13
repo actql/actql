@@ -149,19 +149,34 @@ fn NativeLocalSavedEffectReview::resolve_initial_original(
         // Two control/Result frames plus four borrowed references/scalars
         // cover same-operation HMAC and boundary custody refresh. The key is
         // already retained by the existing Epoch operation's custody slot.
+        // The SAME signing constructor now retains private immutable DATA
+        // through this original Read: at most three payload/tag byte pairs
+        // (2048+32 each) and the Host key projection (106+30 bytes). Its
+        // bounded field strings fit within those three 2048-byte payloads;
+        // the existing public-key/string allowance above remains additive.
+        // Thirty-two headers, sixty-four references and eight scalar words
+        // conservatively cover its private record, field/option/packet tuples,
+        // byte objects and temporary packet Array. The control body aliases
+        // the original row; no Header, wire copy or permission is retained.
         record_headers: saved_effect_decision_emission_controls.record_headers +
         measurement.record_headers +
-        28L,
+        28L +
+        32L,
         reference_slots: saved_effect_decision_emission_controls.reference_slots +
         measurement.reference_slots +
-        46L,
+        46L +
+        64L,
         scalar_words: saved_effect_decision_emission_controls.scalar_words +
         measurement.scalar_words +
-        16L,
+        16L +
+        8L,
         owned_utf16_units: saved_effect_decision_emission_controls.owned_utf16_units +
         measurement.owned_utf16_units +
-        484L,
-        owned_wire_bytes: saved_effect_decision_emission_controls.owned_wire_bytes,
+        484L +
+        3L * 2048L,
+        owned_wire_bytes: saved_effect_decision_emission_controls.owned_wire_bytes +
+        3L * (2048L + 32L) +
+        136L,
       }),
     ) {
     Ok(_) => ()
