@@ -299,10 +299,13 @@ export function nativeCoreFocusedTestCount(repository, args, options = {}) {
 function compilerTestSelection(repository, args, {
   env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
   ordinaryPartitions = false, timeoutMs = 60_000, now = Date.now, executionPackages,
+  allowNestedFileInputs = false,
 } = {}, target, countOnly) {
   assert(!countOnly || (!splitProfiles && !ordinaryPartitions && executionPackages === undefined));
   assert(!ordinaryPartitions || splitProfiles, 'Native partitions require original profile discovery');
   assert(executionPackages === undefined || splitProfiles, 'Dependency selection requires original Native profiles');
+  assert(typeof allowNestedFileInputs === 'boolean' && (!allowNestedFileInputs ||
+    splitProfiles && executionPackages !== undefined), 'Nested Native file inputs require an explicit package scope');
   assert(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 2147483647,
     'Native metadata timeout must be a finite positive timer duration');
   assert.equal(typeof now, 'function');
@@ -411,7 +414,7 @@ function compilerTestSelection(repository, args, {
       remaining(); complete = true;
       return {runnableCases};
     }
-    let executionScope;
+    let executionScope, scopedInputs;
     if (executionPackages !== undefined) {
       assert(Array.isArray(executionPackages) && executionPackages.length > 0 &&
         new Set(executionPackages).size === executionPackages.length, 'Invalid Native dependency package inventory');
@@ -424,6 +427,11 @@ function compilerTestSelection(repository, args, {
       const requested = new Set(executionPackages);
       const subset = records.filter(record => requested.has(record.directory));
       const preview = partitionProfiles(args, subset, false, compilerDirectories);
+      if (allowNestedFileInputs) {
+        assert.equal(preview.http.cases + preview.source.cases + preview.scoped.cases, 0,
+          'Explicit common Native files cannot select physical profiles');
+        scopedInputs = preview.ordinary.args?.slice(args.length);
+      }
       const ordinaryPaths = preview.ordinary.args?.slice(args.length) ?? [];
       const ordinaryPackages = new Set(subset.filter(record => runnableCompilerCase(record) &&
         (ordinaryPaths.includes(record.directory) || ordinaryPaths.includes(record.source))).map(record => record.directory));
@@ -441,7 +449,8 @@ function compilerTestSelection(repository, args, {
           subset.some(record => runnableCompilerCase(record) &&
             (partition.args.slice(args.length).includes(record.directory) ||
               partition.args.slice(args.length).includes(record.source))));
-      const admitted = subset.some(runnableCompilerCase) && !nestedOutside && nonemptyPartitions;
+      const admitted = subset.some(runnableCompilerCase) &&
+        (!nestedOutside || allowNestedFileInputs) && nonemptyPartitions;
       executionScope = {packages:[...executionPackages].sort(), originalCases:cases.length,
         mode:admitted ? 'subset' : 'full-fallback',
         reason:admitted ? 'compiler-owned reverse dependency closure' : nestedOutside
@@ -455,7 +464,9 @@ function compilerTestSelection(repository, args, {
       executionScope.selectedCases = cases.length;
     }
     assert(cases.length > 0, 'No compiler-owned Native test cases');
-    const paths = [...packages], selected = discover(paths), selectedCases = [];
+    const paths = executionScope?.mode === 'subset' && allowNestedFileInputs ? scopedInputs : [...packages];
+    assert(Array.isArray(paths) && paths.length > 0, 'Nonempty original Native inputs required');
+    const selected = discover(paths), selectedCases = [];
     for (const [key, driver] of selected) {
       const original = full.get(key);
       assert(original, 'Foreign selected Native driver');

@@ -1,3 +1,4 @@
+import {nativeCoreLinuxCommonPartitions} from './test-native-core-linux-common.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync, symlinkSync} from 'node:fs';
@@ -704,8 +705,8 @@ const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: 
 
 test('Native Core matrix retains Darwin profiles and adds Linux common without multiplying portable targets', t => {
   const core = jobs.core, matrix = core.strategy.matrix;
-  assert.deepEqual(matrix.partition, [...nativeCoreCiPartitions, 'linux-common']);
-  assert.deepEqual(matrix.partition.filter(value => value !== 'linux-common'), nativeCoreCiPartitions);
+  assert.deepEqual(matrix.partition, [...nativeCoreCiPartitions, ...nativeCoreLinuxCommonPartitions]);
+  assert.deepEqual(matrix.partition.filter(value => !value.startsWith('linux-common-')), nativeCoreCiPartitions);
   assert.deepEqual(matrix.exclude, ['js', 'wasm'].flatMap(target => matrix.partition.slice(1).map(partition => ({target, partition}))));
   const selected = all.flatMap(target => matrix.partition.map(partition => ({target, partition})))
     .filter(row => !matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition));
@@ -735,7 +736,7 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   }
   const command = core.steps.find(step => step.name === 'Test common core');
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_PARTITION,
-    "${{ matrix.target == 'native' && matrix.partition || '' }}");
+    "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}");
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,
     "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}");
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
@@ -749,11 +750,15 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
     const run = command.run.replaceAll('${{ matrix.target }}', 'native')
       .replaceAll('${{ matrix.partition }}', String(partition));
     const env = {...process.env, PATH: root + ':' + process.env.PATH, ACTQL_FIXTURE_EXIT: String(status)};
-    env.ACTQL_TEST_NATIVE_CORE_PARTITION = partition; delete env.MOONBIT_NEW_NATIVE;
+    env.ACTQL_TEST_NATIVE_CORE_PARTITION = partition.startsWith('linux-common-') ? '' : partition; delete env.MOONBIT_NEW_NATIVE;
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c', run], {cwd: root, env, encoding: 'utf8', timeout: 5000});
     assert.equal(result.error, undefined); assert.equal(result.signal, null);
     assert.equal(result.status, status, result.stderr);
     const lines = result.stdout.trim().split('\n');
+    if (partition.startsWith('linux-common-')) {
+      assert.deepEqual(lines, [`|0|scripts/test-native-core-linux-common.mjs ${partition}`]);
+      continue;
+    }
     assert.equal(lines[0], '||scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock');
     assert.equal(lines.length, status === 0 ? 2 : 1);
     if (status === 0) assert.equal(lines[1], `${partition}|0|scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose`);

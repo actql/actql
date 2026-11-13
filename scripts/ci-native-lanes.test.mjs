@@ -176,7 +176,7 @@ test('required lint directly selects Native preparation controls and only macOS 
   assert(setup>=0&&setup<core.indexOf(compiler));
   assert(core.indexOf(compiler)<core.findIndex(step=>step.id==='native-c-object-cache'),
     'compiler controls retain their own clean profile before CI cache configuration');
-  assert.equal(workflow.jobs.core['runs-on'],"${{ matrix.target == 'native' && matrix.partition != 'linux-common' && 'macos-15' || 'ubuntu-24.04' }}");
+  assert.equal(workflow.jobs.core['runs-on'],"${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'macos-15' || 'ubuntu-24.04' }}");
   const prepare=family=>workflow.jobs[family+'-workloads'].steps.find(step=>step.id==='native-preparation');
   assert(prepare('native-macos').run.endsWith('--resident-seconds 1200 --lanes 2'));
   assert(!prepare('native').run.includes('--lanes'));

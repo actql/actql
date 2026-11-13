@@ -349,7 +349,8 @@ jobs:
           retention-days: 7
   # Portable targets remain single jobs. Native keeps complete package drivers
   # in four ordinary jobs and three independent physical profiles. The initial
-  # Linux common cohort is additional until its actual execution is qualified.
+  # Linux common packages use eight whole-driver partitions. Darwin coverage
+  # remains intact until the corresponding actual Linux execution is qualified.
   core:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
@@ -358,7 +359,9 @@ jobs:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
-        partition: ['1/4', '2/4', '3/4', '4/4', http, source, scoped, linux-common]
+        partition: ['1/4', '2/4', '3/4', '4/4', http, source, scoped,
+          linux-common-1/8, linux-common-2/8, linux-common-3/8, linux-common-4/8,
+          linux-common-5/8, linux-common-6/8, linux-common-7/8, linux-common-8/8]
         exclude:
           - target: js
             partition: '2/4'
@@ -373,7 +376,21 @@ jobs:
           - target: js
             partition: scoped
           - target: js
-            partition: linux-common
+            partition: linux-common-1/8
+          - target: js
+            partition: linux-common-2/8
+          - target: js
+            partition: linux-common-3/8
+          - target: js
+            partition: linux-common-4/8
+          - target: js
+            partition: linux-common-5/8
+          - target: js
+            partition: linux-common-6/8
+          - target: js
+            partition: linux-common-7/8
+          - target: js
+            partition: linux-common-8/8
           - target: wasm
             partition: '2/4'
           - target: wasm
@@ -387,9 +404,23 @@ jobs:
           - target: wasm
             partition: scoped
           - target: wasm
-            partition: linux-common
+            partition: linux-common-1/8
+          - target: wasm
+            partition: linux-common-2/8
+          - target: wasm
+            partition: linux-common-3/8
+          - target: wasm
+            partition: linux-common-4/8
+          - target: wasm
+            partition: linux-common-5/8
+          - target: wasm
+            partition: linux-common-6/8
+          - target: wasm
+            partition: linux-common-7/8
+          - target: wasm
+            partition: linux-common-8/8
     # Physical Native fixtures use the existing Darwin arm64 profile.
-    runs-on: ${{ matrix.target == 'native' && matrix.partition != 'linux-common' && 'macos-15' || 'ubuntu-24.04' }}
+    runs-on: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'macos-15' || 'ubuntu-24.04' }}
     # Native keeps its full 60-minute child after the separate cold checkpoint
     # producers, with time for original failure diagnostics and cleanup.
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
@@ -403,7 +434,7 @@ jobs:
       - name: Require the supported Core Native platform
         if: ${{ matrix.target == 'native' }}
         run: |
-          if [ "${{ matrix.partition }}" = linux-common ]; then
+          if [[ "${{ matrix.partition }}" == linux-common-* ]]; then
             test "$(uname -s)" = Linux
             test "$(uname -m)" = x86_64
           else
@@ -481,7 +512,7 @@ jobs:
           python3 -B scripts/native-compiler-diagnostics.py --start
           --context .artifacts/native-compiler-diagnostics/context.json
       - name: Test actual Native Reader callbacks and original empty compiler driver
-        if: ${{ matrix.target == 'native' && matrix.partition != 'linux-common' }}
+        if: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') }}
         run: >-
           node scripts/local-checks.mjs test node --timeout-seconds 300 --
           --test-name-pattern '^Reader custody callbacks preserve'
@@ -497,7 +528,7 @@ jobs:
               (matrix.target != 'native' && success()) }}
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
-          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && matrix.partition != 'linux-common' && matrix.partition || '' }}
+          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}
           ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: ${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}
           CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
         run: |
@@ -513,8 +544,8 @@ jobs:
             if [ "$(uname -s)" = Linux ]; then
               ulimit -S -s 65536
             fi
-            if [ "${{ matrix.partition }}" = linux-common ]; then
-              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core-linux-common.mjs
+            if [[ "${{ matrix.partition }}" == linux-common-* ]]; then
+              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core-linux-common.mjs "${{ matrix.partition }}"
               exit $?
             fi
             # Reopen remains within a run; the full run below starts fresh.
