@@ -810,7 +810,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'only the duplicate Native compiler is retired and its transport suite moves to the installed Remote owner');
   assert(jobs.client.needs.includes('native-cli-installed'));
   const installed = readFileSync(new URL('./ci-native-cli-installed.mjs', import.meta.url), 'utf8');
-  assert(installed.includes('await runInstalledNativeCliTransport(binary, env)'));
+  assert(installed.includes("join(repository, 'scripts/test-native-client.mjs')"));
   assert.equal(original[16], 'node scripts/test-native-client.mjs');
   assert(!jobs['client-distribution-packed'].steps.some(step => step.id === 'distribution-preparation'),
     'normal tar acceptance does not rebuild the checkout runtime');
