@@ -6,6 +6,7 @@ import {execFileSync, spawnSync} from 'node:child_process';
 import {accessSync, constants, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs';
 import {version as kernelVersion} from 'node:os';
 import {basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
+import {nativeRuntimeReaderCustodyCacheInput} from './native-runtime-reader-custody-fixture.mjs';
 
 export function nativeCoreCArguments(repository, args) {
   const inputs = args.filter(arg => /\.(?:c|cc|cpp|cxx)$/u.test(arg));
@@ -65,10 +66,13 @@ export function nativeCoreCObjectCommands(repository, compiler, args, object) {
     link: ['-o', output, ...link]};
 }
 
-function ordinaryObjectCache(compiler) {
+function ordinaryObjectCache(repository, compiler) {
   const tool = process.env.ACTQL_TEST_NATIVE_CORE_CCACHE;
   if (tool === undefined || process.platform !== 'darwin' || process.arch !== 'arm64' ||
-      process.env.MOON_CC !== undefined || process.env.DYLD_INSERT_LIBRARIES || process.env.LD_PRELOAD) return;
+      process.env.MOON_CC !== undefined || process.env.LD_PRELOAD) return;
+  const reader = process.env.DYLD_INSERT_LIBRARIES
+    ? nativeRuntimeReaderCustodyCacheInput(repository, compiler) : undefined;
+  if (process.env.DYLD_INSERT_LIBRARIES && !reader) return;
   const actualClang = realpathSync(execFileSync('/usr/bin/xcrun', ['--find', 'clang'],
     {encoding: 'utf8', timeout: 5000}).trim());
   // Apple's cc and clang entry points are separate stock dispatcher files.
@@ -91,7 +95,7 @@ function ordinaryObjectCache(compiler) {
   const namespace = createHash('sha256').update(JSON.stringify({platform: process.platform,
     arch: process.arch, kernel: kernelVersion(), sdk,
     SDKROOT: process.env.SDKROOT, MACOSX_DEPLOYMENT_TARGET: process.env.MACOSX_DEPLOYMENT_TARGET,
-    DEVELOPER_DIR: process.env.DEVELOPER_DIR})).digest('hex');
+    DEVELOPER_DIR: process.env.DEVELOPER_DIR, readerRecipe: reader?.recipeSha256})).digest('hex');
   // An explicit empty config and cleared cache environment exclude global,
   // remote, ignored-header and sloppiness settings. Actual headers/flags still
   // form standard ccache keys; links and runtime owners are always fresh.
@@ -99,7 +103,8 @@ function ordinaryObjectCache(compiler) {
     .filter(([name]) => !name.startsWith('CCACHE_'))),
     CCACHE_CONFIGPATH: '/dev/null', CCACHE_DIR: cache, CCACHE_TEMPDIR: join(cache, 'tmp'),
     CCACHE_LOGFILE: join(cache, 'compiler.log'),
-    CCACHE_COMPILERCHECK: 'content', CCACHE_EXTRAFILES: [actualClang, join(sdk, 'SDKSettings.json')].join(delimiter),
+    CCACHE_COMPILERCHECK: 'content',
+    CCACHE_EXTRAFILES: [actualClang, join(sdk, 'SDKSettings.json'), ...(reader ? [reader.source] : [])].join(delimiter),
     CCACHE_MAXSIZE: '1GiB', CCACHE_SLOPPINESS: '', CCACHE_REMOTE_STORAGE: '',
     CCACHE_NAMESPACE: 'actql-core-ordinary-' + namespace};
   return {tool, environment};
@@ -194,7 +199,7 @@ export function runNativeCoreCCompiler(repository, compiler, args) {
   const selected = nativeCoreCArguments(repository, args);
   const eligible = process.env.ACTQL_TEST_NATIVE_CORE_CCACHE === undefined ? undefined
     : nativeCoreCObjectCommands(repository, compiler, args);
-  const cache = eligible && ordinaryObjectCache(compiler);
+  const cache = eligible && ordinaryObjectCache(repository, compiler);
   if (!cache) return finish(spawnSync(compiler, selected, {stdio: 'inherit'}));
   const temporary = mkdtempSync(join(dirname(resolve(eligible.output)), '.ordinary-c-object-'));
   const plan = nativeCoreCObjectCommands(repository, compiler, args, join(temporary, 'test.o'));
