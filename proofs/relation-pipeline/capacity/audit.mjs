@@ -67,10 +67,8 @@ export function validate(report, current, targets, read) {
     assert(read(report.backingModel.logPath).toString().includes('3 selected native Array extent propositions checked'));
   }
   admitClaim(report.claim);
-  if (supportPart && targets.includes('native')) {
-    auditParentStartup(report.parentStartup, current, read);
-    rejectParentSubstitutions(report.parentStartup, current, read);
-  } else assert.equal(report.parentStartup, undefined, 'Native parent evidence cannot apply to a portable-only campaign');
+  const nativeParent = supportPart && targets.includes('native');
+  if (!nativeParent) assert.equal(report.parentStartup, undefined, 'Native parent evidence cannot apply to a portable-only campaign');
   const corpus = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
   if (report.kind) assert.equal(corpus.length,
     capacityObligationsByPart[capacityPartIds.find(id => partRole(id) === 'capacity-normal')].normal.caseCount,
@@ -289,6 +287,10 @@ export function validate(report, current, targets, read) {
   assert(distinctInputs.some(rows => rows.some(r => Object.values(r.values).includes(null))));
   assert(distinctInputs.some(rows => new Set(rows.map(r => JSON.stringify(r.values))).size < rows.length));
   assert(distinctInputs.some(rows => rows.length > 1 && new Set(rows.map(r => JSON.stringify(r.values))).size === rows.length));
+  if (nativeParent) {
+    auditParentStartup(report.parentStartup, current, read);
+    rejectParentSubstitutions(report.parentStartup, current, read);
+  }
   // No successful audit escapes these byte checks. The original reader still
   // owns physical identity/currentness checks and invocation-local digest reuse.
   for (const { archive, digest } of artifactChecks) auditCapacityArtifact(archive, digest, read);

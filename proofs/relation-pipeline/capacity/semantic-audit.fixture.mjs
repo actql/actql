@@ -18,7 +18,7 @@ import { mapBounds } from './backing/maps.mjs';
 import { pipelineBounds } from './backing/pipeline.mjs';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
-export function semanticAuditFixture(artifact, artifactDigest) {
+export function semanticAuditFixture(artifact, artifactDigest, { supportTargets = ['js'] } = {}) {
   const files = new Map(), put = (path, bytes) => { files.set(path, Buffer.from(bytes)); return path; };
   const read = path => files.get(path) ?? readFileSync(new URL(path, `file://${root}`));
   const current = { sources: {}, digest: hash('{}') }, toolchain = JSON.parse(read('toolchain.json'));
@@ -117,18 +117,37 @@ export function semanticAuditFixture(artifact, artifactDigest) {
   const probe = 'proofs/relation-pipeline/capacity/backing/probe/';
   const probeSources = Object.fromEntries(['moon.mod', 'moon.pkg', 'backing_wbtest.mbt', 'backend_js_wbtest.mbt',
     'backend_wasm_wbtest.mbt', 'backend_native_wbtest.mbt', 'abi_native_wbtest.mbt', 'layout_stub.c'].map(p => [p, hash(read(probe + p))]));
-  const facts = [{ target: 'js', case: 'clear', before: 17, after: 0 },
-    { target: 'js', case: 'growth', prior: 9, current: 17 },
-    { target: 'js', case: 'map', default: 8, threeKeys: 8, seventhKey: 16, cleared: 16 }];
-  const coreLog = facts.map(f => `ACTQL_BACKING_CORE:${JSON.stringify(f)}`).join('\n') + '\nTotal tests: 4, passed: 4, failed: 0.';
-  const corePath = put('.artifacts/relation-pipeline/capacity/backing-core/js.log', coreLog);
   const small = 'synthetic non-runtime bytes', digest = hash(small);
-  const coreArtifact = put('.artifacts/relation-pipeline/capacity/backing-core/binaries/js/synthetic', small);
+  const nativeProfile = JSON.parse(read('proofs/relation-pipeline/capacity/backing/native-profile.json'));
+  const coreRuns = Object.fromEntries(supportTargets.map(target => {
+    // Authored model inputs, including the declared 64-bit Native profile;
+    // neither these byte strings nor decimal fields are compiler captures.
+    const js = target === 'js', facts = [
+      { target, case: 'clear', before: js ? 17 : 32, after: js ? 0 : 32 },
+      { target, case: 'growth', prior: js ? 9 : 16, current: js ? 17 : 32 },
+      { target, case: 'map', default: 8, threeKeys: 8, seventhKey: 16, cleared: 16 },
+      ...(target === 'native' ? [
+        { target, case: 'native-map', headerBytes: 8, pointerBytes: 8, mapBytes: 48,
+          tableBytes: 72, entryBytes: 48, emptyBytes: 120, threeKeysBytes: 264, replacementBytes: 240 },
+        { target, case: 'native-array', ownerBytes: 24, emptyBackingBytes: 8,
+          int8BackingBytes: 40, int16BackingBytes: 72, names3BackingBytes: 32 },
+      ] : []),
+    ];
+    const count = target === 'native' ? 6 : 4;
+    const log = facts.map(f => `ACTQL_BACKING_CORE:${JSON.stringify(f)}`).join('\n') +
+      `\nTotal tests: ${count}, passed: ${count}, failed: 0.`;
+    const path = put(`.artifacts/relation-pipeline/capacity/backing-core/${target}.log`, log);
+    const artifact = put(`.artifacts/relation-pipeline/capacity/backing-core/binaries/${target}/synthetic`, small);
+    return [target, { target, compiler: toolchain.moonc, exit: 0,
+      command: ['moon', 'test', '--target', target, '--deny-warn'], cwd: '_build/array-backing-probe', sources: probeSources,
+      logPath: path, logDigest: hash(log), facts, artifacts: { [artifact]: digest },
+      ...(target === 'native' ? { nativeRuntime: { platform: 'linux-x64',
+        sources: { ...nativeProfile.sources, ...nativeProfile.platformBinaries['linux-x64'] },
+        profileDigest: hash(JSON.stringify(nativeProfile)), archive: toolchain.archives['linux-x64'] } } : {}) }];
+  }));
   report.backingCore = { version: 'actql-array-core-probe/0.1', toolchain, sources: probeSources,
     profile: JSON.parse(read('proofs/relation-pipeline/capacity/backing/core-profile.json')),
-    runs: { js: { target: 'js', compiler: toolchain.moonc, exit: 0,
-      command: ['moon', 'test', '--target', 'js', '--deny-warn'], cwd: '_build/array-backing-probe', sources: probeSources,
-      logPath: corePath, logDigest: hash(coreLog), facts, artifacts: { [coreArtifact]: digest } } } };
+    runs: coreRuns };
   const site = 'src/physical_strategy_host/task_execution.mbt', code = read(site).toString();
   const custodyMutations = [
     ['drop-installed-scratch-release-condition', 'normal', '(execution.hooks.unwrap().scratch_released)()', 'physical_equal(execution, execution)'],
@@ -138,7 +157,7 @@ export function semanticAuditFixture(artifact, artifactDigest) {
     return { name, mode, target: 'js', site, beforeDigest: hash(code), source: { sources, digest: hash(JSON.stringify(sources)) },
       exit: 1, logPath: put(`.artifacts/${name}.log`, log), logDigest: hash(log) };
   });
-  report.custody = { source: current, mutations: custodyMutations, records: ['normal', 'pending', 'success'].map(mode => {
+  report.custody = { source: current, mutations: custodyMutations, records: supportTargets.flatMap(target => ['normal', 'pending', 'success'].map(mode => {
     const { overlay, fixture, variable } = custodyOverlay(read, mode);
     const overlays = Object.fromEntries(Object.entries({ ...generatedObservers, ...overlay }).map(([p, b]) => [p, hash(b)]));
     const exact = Object.fromEntries(Object.keys(overlays).sort().map(p => [p, overlays[p]]));
@@ -148,16 +167,16 @@ export function semanticAuditFixture(artifact, artifactDigest) {
     const lines = ['ACTQL_CUSTODY_CHAIN:started', ...(mode === 'success' ? ['ACTQL_CUSTODY_STAGE:before-success-settlement', 'ACTQL_CUSTODY_RETRY:false'] : []),
       after, ...(mode === 'pending' ? ['ACTQL_CUSTODY_RETRY:false'] : []), ...(mode !== 'normal' ? ['ACTQL_CUSTODY_RETRY:error'] : []),
       `ACTQL_CUSTODY_CLEANUP:${step}:before`, `ACTQL_CUSTODY_CLEANUP:${step}:after`, `ACTQL_CUSTODY:${JSON.stringify(o)}`, 'Total tests: 1, passed: 1, failed: 0.'];
-    const log = lines.join('\n'), prefix = `.artifacts/synthetic-custody-${mode}`;
+    const log = lines.join('\n'), prefix = `.artifacts/synthetic-custody-${target === 'js' ? '' : target + '-'}${mode}`;
     const binary = put(`.artifacts/relation-pipeline/capacity/custody/binaries/${digest}`, small);
-    const receipt = { version: 'actql-relation-custody/0.1', target: 'js', mode, toolchain, source: current, overlays,
-      executedSource: { sources: exact, digest: hash(JSON.stringify(exact)) }, command: ['moon', 'test', fixture, '--target', 'js', '--deny-warn'], exit: 0,
+    const compiled = `_build/${target}/debug/test/query_integration/query_integration.whitebox_test.${{ js: 'js', wasm: 'wasm', native: 'exe' }[target]}`;
+    const receipt = { version: 'actql-relation-custody/0.1', target, mode, toolchain, source: current, overlays,
+      executedSource: { sources: exact, digest: hash(JSON.stringify(exact)) }, command: ['moon', 'test', fixture, '--target', target, '--deny-warn'], exit: 0,
       inputVariable: variable, inputPath: put(`${prefix}.input`, JSON.stringify(custodyInput())), inputDigest: hash(JSON.stringify(custodyInput().program)),
       fixturePath: put(`${prefix}.fixture`, overlay[fixture]), physicalGcCompletion: false, completeAllocationUpper: false, prematureReleaseCandidate: false,
       logPath: put(`${prefix}.log`, log), logDigest: hash(log), observation: o,
-      artifacts: { '_build/js/debug/test/query_integration/query_integration.whitebox_test.js': digest },
-      archives: { '_build/js/debug/test/query_integration/query_integration.whitebox_test.js': binary } };
-    const path = put(`${prefix}.receipt`, JSON.stringify(receipt)); return { target: 'js', mode, path, digest: hash(read(path)) };
-  }) };
+      artifacts: { [compiled]: digest }, archives: { [compiled]: binary } };
+    const path = put(`${prefix}.receipt`, JSON.stringify(receipt)); return { target, mode, path, digest: hash(read(path)) };
+  })) };
   return { report, current, files, read };
 }
