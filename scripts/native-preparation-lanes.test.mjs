@@ -107,3 +107,12 @@ test('Native Linux command lane forwards an absent SDK and retains its actual en
   });
   assert.equal(checked,1);
 });
+
+test('Native parallel preparation refuses a shared tool-output alias before copying or starting either lane',async t=>{
+  const f=fixture(t),donor=join(f.repository,'protected-donor');mkdirSync(donor);
+  symlinkSync(donor,join(f.repository,'.toolchains'),'dir');let touched=false;
+  await assert.rejects(()=>prepareNativeParallel(f,{
+    copyTools:()=>{touched=true;return {};},startLane:async()=>{touched=true;return {};},
+  }));
+  assert.equal(touched,false);assert.equal(existsSync(join(f.destination,'command-tool-copy.json')),false);
+});
