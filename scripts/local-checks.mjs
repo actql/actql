@@ -26,6 +26,8 @@ const ciOnly = new Map([
   ['performance-matrix', 'registered performance runs'],
   ['check', 'aggregates the other jobs'],
   ['client', 'aggregates all required Client producers and consumers'],
+  ['core-common', 'uses the hosted Core matrix; select the complete local core entrance'],
+  ['core-darwin', 'uses the hosted Darwin matrix; select the complete local core entrance'],
   ...Object.entries(ciOnlyPipelineJobs),
 ]);
 const jobs = Object.entries(workflow.jobs)
@@ -50,7 +52,8 @@ const preparation = step => /^(npm ci|moon version|node scripts\/setup-moonbit)/
 // checkout. Runner preparation (`uses:` and install steps) is left to the
 // developer's own installed toolchain. CI-only inspection keeps expressions raw.
 function commands(name, target, raw = false) {
-  const job = workflow.jobs[name === 'native' && !raw && workflow.jobs['native-workloads'] ? 'native-workloads' : name];
+  const job = workflow.jobs[name === 'core' && !raw && workflow.jobs['core-common'] ? 'core-common'
+    : name === 'native' && !raw && workflow.jobs['native-workloads'] ? 'native-workloads' : name];
   if (job === undefined || !Array.isArray(job.steps)) {
     fail(`Unknown job: ${name}`);
   }
@@ -169,7 +172,8 @@ function requireHeavy(classification, options) {
 // is not an Actions expression evaluator; unfamiliar expressions require an
 // explicit local budget, just like missing/non-numeric workflow values.
 function workflowMinutes(name, target) {
-  const value = workflow.jobs[name === 'native' && workflow.jobs['native-workloads'] ? 'native-workloads' : name]?.['timeout-minutes'];
+  const value = workflow.jobs[name === 'core' && workflow.jobs['core-common'] ? 'core-common'
+    : name === 'native' && workflow.jobs['native-workloads'] ? 'native-workloads' : name]?.['timeout-minutes'];
   if (typeof value === 'number') return value;
   if (name !== 'core' || typeof value !== 'string' || target === undefined) return undefined;
   const match = /^\$\{\{\s*matrix\.target\s*==\s*'native'\s*&&\s*([1-9][0-9]*)\s*\|\|\s*([1-9][0-9]*)\s*\}\}$/u.exec(value);

@@ -693,13 +693,14 @@ for (const [name, driver, output] of [
 
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
-  assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
-  assert.equal(jobs.core.strategy['fail-fast'], false);
+  assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight', 'core-common', 'core-darwin']);
+  assert.equal(jobs['core-common'].strategy['fail-fast'], false);
+  assert.equal(jobs['core-darwin'].strategy['fail-fast'], false);
   for (const target of ['js', 'wasm', 'native']) {
-    assert.equal(runInNewContext(jobs.core['timeout-minutes'].slice(3, -2),
+    assert.equal(runInNewContext(jobs['core-common']['timeout-minutes'].slice(3, -2),
       {matrix: {target}}, {timeout: 100}), target === 'native' ? 90 : 30);
   }
-  assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
+  assert.equal(jobs['core-common'].strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(jobs['native-macos-workloads'].needs, ['select-targets', 'preflight']);
   assert.equal(jobs['native-macos-workloads']['timeout-minutes'], 115);
   assert.equal(jobs['native-workloads']['timeout-minutes'], 110);
@@ -727,14 +728,15 @@ const changes = paths => paths.map(path => ({path, before: {mode: '100644', obje
 const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
 
 test('Native Core matrix retains Darwin profiles and adds Linux common without multiplying portable targets', t => {
-  const core = jobs.core, matrix = core.strategy.matrix;
-  assert.deepEqual(matrix.partition, [...nativeCoreCiPartitions, ...nativeCoreLinuxCommonPartitions]);
-  assert.deepEqual(matrix.partition.filter(value => !value.startsWith('linux-common-')), nativeCoreCiPartitions);
-  assert.deepEqual(matrix.exclude, ['js', 'wasm'].flatMap(target => matrix.partition.slice(1).map(partition => ({target, partition}))));
-  const selected = all.flatMap(target => matrix.partition.map(partition => ({target, partition})))
-    .filter(row => !matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition));
+  const core = jobs['core-darwin'], common = jobs['core-common'];
+  const partitions = [...core.strategy.matrix.partition, ...common.strategy.matrix.partition.filter(value => value.startsWith('linux-common-'))];
+  assert.deepEqual(partitions, [...nativeCoreCiPartitions, ...nativeCoreLinuxCommonPartitions]);
+  const selected = all.flatMap(target => common.strategy.matrix.partition.map(partition => ({target, partition})))
+    .filter(row => !common.strategy.matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition))
+    .concat(core.strategy.matrix.partition.map(partition => ({target: 'native', partition})));
   assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
-    ...matrix.partition.map(partition => ({target: 'native', partition}))]);
+    ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
+    ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
   assert.equal(core.name, "core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})");
   assert.equal(core.strategy['fail-fast'], false);
   assert(jobs.check.needs.includes('core'));
@@ -769,7 +771,7 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   t.after(() => rmSync(root, {recursive: true, force: true}));
   writeFileSync(join(root, 'node'), '#!/bin/sh\nprintf "%s|%s|%s\\n" "$ACTQL_TEST_NATIVE_CORE_PARTITION" "$MOONBIT_NEW_NATIVE" "$*"\nexit "$ACTQL_FIXTURE_EXIT"\n');
   chmodSync(join(root, 'node'), 0o755);
-  for (const partition of matrix.partition) for (const status of [0, 7]) {
+  for (const partition of partitions) for (const status of [0, 7]) {
     const run = command.run.replaceAll('${{ matrix.target }}', 'native')
       .replaceAll('${{ matrix.partition }}', String(partition));
     const env = {...process.env, PATH: root + ':' + process.env.PATH, ACTQL_FIXTURE_EXIT: String(status)};
@@ -1242,7 +1244,7 @@ test('large CI plans launch both original portable Core step command sequences',
     writeFileSync(join(root, 'bin', command), recorder, {mode: 0o755});
   }
   writeFileSync(join(root, 'bin/getconf'), '#!/bin/sh\nprintf "2\\n"\n', {mode: 0o755});
-  const step = jobs.core.steps.find(step => step.name === 'Test common core');
+  const step = jobs['core-common'].steps.find(step => step.name === 'Test common core');
   for (const target of ['js', 'wasm']) {
     const script = step.run.replaceAll('${{ needs.select-targets.outputs.plan }}', original)
       .replaceAll('${{ matrix.target }}', target)

@@ -1237,6 +1237,16 @@ not claimed equivalent. The HTTP gate requires both current Linux HTTP and
 complete Core outcomes, and missing, skipped or failed owners cannot pass.
 The unconfigured standalone/Linux and Core Source entrances remain complete.
 
+Core runs the two portable targets and eight common Native partitions on Linux,
+and the seven existing Darwin partitions in a separate matrix capped at four
+concurrent jobs. The cap leaves macOS capacity for the other original workload
+and wheel jobs; it does not reserve global runner capacity. Both matrices share
+one YAML-anchored step definition and retain their original commands, profiles
+and deadlines. The existing Core gate requires both selected outcomes, including
+an explicit skipped Darwin outcome only when Native was not selected. Local
+`run core` still resolves the complete unpartitioned execution and its original
+budget, rather than running the hosted aggregate.
+
 No Native preparation is transplanted across runners: existing descriptors bind
 physical compiler aliases and generated toolchain inputs. A mismatched original
 still refuses; there is no metadata rewrite or implicit rebuild fallback.

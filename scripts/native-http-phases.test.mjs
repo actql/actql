@@ -52,9 +52,9 @@ test('Source coverage redistribution requires current Linux HTTP and complete Da
   }
   for (const value of ['', '[]', '["js","wasm"]', 'null', 'invalid'])
     assert.notEqual(run({...success, CORE_TARGETS: value}).status, 0);
-  assert(workflow.jobs.core.strategy.matrix.partition.includes('source'));
-  assert(!workflow.jobs.core.strategy.matrix.exclude.some(row => row.target === 'native' && row.partition === 'source'));
-  const core = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+  assert(workflow.jobs['core-darwin'].strategy.matrix.partition.includes('source'));
+  assert(!(workflow.jobs['core-darwin'].strategy.matrix.exclude ?? []).some(row => row.target === 'native' && row.partition === 'source'));
+  const core = workflow.jobs['core-darwin'].steps.find(step => step.name === 'Test common core');
   assert(core.run.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
   const linux = workflow.jobs['native-http'];
   assert.equal(linux['runs-on'], 'ubuntu-24.04');
