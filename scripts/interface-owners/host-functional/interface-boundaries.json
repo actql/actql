@@ -20976,7 +20976,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8875c750a185823764074d02e9fa89fc1b2e1266a91f0b68b34ca11a0df50536",
+      "sha256": "0c69073a2f0280e9e292ee7e05509fc0e4f4c494f55ce02c95d3dee91cad7cb2",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -23129,6 +23129,10 @@
               {
                 "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
                 "anchor": "test('same-stage Source waits have distinct bounded identities and cold original answer matching', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "test('Host first close joins the original pre-dispatch Effect resume Store reader'"
               }
             ]
           }

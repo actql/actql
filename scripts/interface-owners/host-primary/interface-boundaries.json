@@ -17447,7 +17447,8 @@
             "validateSourceNamespace",
             "validateValuesMaxRows",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
-            "validateSourceFreeMaxWork"
+            "validateSourceFreeMaxWork",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -18822,6 +18823,10 @@
               {
                 "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
                 "anchor": "test('actual wait borrows one same-Journal frame while fresh SQL and current gates remain live'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "test('Host first close joins the original pre-dispatch Effect resume Store reader'"
               }
             ]
           }
@@ -20598,6 +20603,11 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#3",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
@@ -24096,7 +24106,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "61beb61496998454fc6867c67c70c20d78fb3a07d7350a7669fd710ce5c92063"
+      "sha256": "61369b6f7798ab87396ff45c3d20f87a8f7247b7dd68d0cd39cc0e026ad00a8e"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
