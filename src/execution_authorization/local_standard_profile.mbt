@@ -39,6 +39,25 @@ pub(all) enum LocalStandardProfileIssue {
 } derive(Eq, Debug)
 
 ///|
+// Both Local materializers emit one finite Account configuration. Check its
+// actual entry inventory before allocating entries or duplicate indexes, using
+// the SAME admission Owner's bound rather than separate Source/Task ceilings.
+fn local_profile_entry_inventory(
+  sources : Int,
+  tasks : Int,
+  fixed : Int,
+) -> Result[Unit, ConfigurationIssue] {
+  let count = sources.to_int64() + tasks.to_int64() + fixed.to_int64()
+  if count > 2147483647L {
+    return Err(CanonicalDocumentTooLarge)
+  }
+  if count > MAX_ENTRIES.to_int64() {
+    return Err(TooManyEntries(count.to_int()))
+  }
+  Ok(())
+}
+
+///|
 fn local_standard_entry(
   name : String,
   subjects : LocalStandardAccountSubjects,
@@ -70,10 +89,19 @@ pub fn local_standard_account_configuration(
 ) -> Result[String, LocalStandardProfileIssue] {
   if !valid_name(subjects.account_id) ||
     !valid_name(subjects.principal) ||
-    !valid_name(subjects.control_connection) ||
-    subjects.configured_connections.length() > 128 ||
-    subjects.model_tasks.length() > 64 {
+    !valid_name(subjects.control_connection) {
     return Err(InvalidSubjects)
+  }
+  // run, Result and Effect, plus the exact optional request/sign entries.
+  let fixed = 3 +
+    (if subjects.request_target is Some(_) { 1 } else { 0 }) +
+    (if subjects.signing_key_resource is Some(_) { 1 } else { 0 })
+  match
+    local_profile_entry_inventory(
+      subjects.configured_connections.length(), subjects.model_tasks.length(), fixed,
+    ) {
+    Err(issue) => return Err(Configuration(issue))
+    Ok(_) => ()
   }
   let entries = [
     local_standard_entry(
