@@ -1338,6 +1338,13 @@ Both phases share the original absolute timeout. Execution still uses the
 nonzero/full-count guard and includes Moon's incremental freshness check.
 Neither successful compilation nor a timing record establishes test success.
 
+The Native Query harness likewise records a build-only interval followed by its
+unchanged execution command in the same target tree. Cases execute only in the
+second command, whose existing required-count check remains mandatory. The
+execution interval includes Moon's incremental graph check; it is not an
+exclusive binary CPU measurement. Neither phase changes the default Native
+flags, runtime inputs or enclosing caller budget.
+
 The preparation helper reuses the verified OpenSSL source archive from the
 compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the
 original digest and builds its own patched source/libraries; Homebrew and Linux
