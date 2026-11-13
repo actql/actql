@@ -285,6 +285,15 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk
           python3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py
+      - name: Check the Python source-caller CI selection
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node scripts/local-checks.mjs test node -- scripts/python-client-ci.test.mjs
+      - name: Install the pinned Python row-schema dependency
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: python3 -m pip install --disable-pip-version-check pydantic==2.12.5
+      - name: Test source-only Python SDK and Remote callers
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node scripts/check-python-client.mjs --remote-only
       - name: Test normal Python wheel acceptance harness guards
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_ci_python_wheels.py
