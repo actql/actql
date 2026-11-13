@@ -7,10 +7,11 @@ import {isAbsolute, join, posix} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {assertTestExecution} from './test-execution.mjs';
 import {tokens, readPackageTargetOptions} from './portable-core.mjs';
+import {nativeQueryPackages, preparedNativeQuerySoftware} from './native-query-preparation.mjs';
 
 export const nativeQueryCoverage = JSON.parse(readFileSync(
   new URL('./native-query-coverage.json', import.meta.url), 'utf8'));
-const packagePaths = ['src/query_integration', 'src/native_values_integration'];
+const packagePaths = nativeQueryPackages;
 const inHarnessPackage = path => packagePaths.some(root => path.startsWith(`${root}/`));
 const owners = ['http-client', 'remote-runtime'];
 const environmentReader = /\b(?:get_env_var|(?:secure_)?getenv|environ)\b|ACTQL_TEST_/u;
@@ -333,6 +334,10 @@ export function assertNativeQueryExecution(selection, result) {
 export async function runNativeQueryTests(moon, owner, {cwd, env, targetDirectory}) {
   const root = cwd instanceof URL ? fileURLToPath(cwd) : cwd;
   const selection = selectNativeQueryTests(owner, readNativeQuerySources(root), env);
+  const prepared = preparedNativeQuerySoftware(root, env);
+  if (prepared !== undefined) {
+    moon = prepared.moon; env = prepared.environment; targetDirectory = prepared.targetDirectory;
+  }
   console.log(`Native query ${owner}: ${selection.mode}, ${selection.expected} cases`);
   for (const reason of selection.reasons) console.log(`Full query fallback: ${reason}`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
@@ -379,4 +384,5 @@ export async function runNativeQueryTests(moon, owner, {cwd, env, targetDirector
   }
   await runPhase('compile', [...args, '--build-only']);
   await runPhase('execute', args);
+  prepared?.verify();
 }
