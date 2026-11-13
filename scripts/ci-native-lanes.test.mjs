@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {appendFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
@@ -114,6 +116,70 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
   assert.equal(source.split('ACTQL_TEST_NATIVE_CORE_CCACHE=').length - 1, 1);
   assert(steps[compile].run.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
   assert.equal(workflow.jobs['core-darwin']['timeout-minutes'], "${{ matrix.target == 'native' && 90 || 30 }}");
+});
+
+function compilerDiagnosticsFixture(t, prior = '') {
+  const root = mkdtempSync(join(tmpdir(), 'actql-current-compiler-log-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const cache = join(root, 'cache'); mkdirSync(cache);
+  const log = join(cache, 'compiler.log'), object = join(cache, 'retained.o');
+  if (prior) writeFileSync(log, prior);
+  writeFileSync(object, Buffer.from([0, 127, 255, 42]));
+  const original = lstatSync(object);
+  const steps = workflow.jobs['core-darwin'].steps;
+  const mark = steps.find(step => step.name === 'Mark current-job Native C compiler diagnostics');
+  const report = steps.find(step => step.name === 'Report ordinary Native C cache results');
+  const run = step => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
+    encoding: 'utf8', timeout: 5000,
+    env: {...process.env, RUNNER_TEMP: root, ACTQL_TEST_NATIVE_CORE_CCACHE_DIR: cache},
+  });
+  const retained = () => {
+    const after = lstatSync(object);
+    assert.deepEqual([after.dev, after.ino, after.mode], [original.dev, original.ino, original.mode]);
+    assert.deepEqual(readFileSync(object), Buffer.from([0, 127, 255, 42]));
+  };
+  return {log, mark, report, run, retained};
+}
+
+test('Native C diagnostics exclude restored compiler records and count only appended current-job results', t => {
+  const prior = '[old] Result: cache_miss\nACTQL_NATIVE_C_LINK {"status":0,"signal":null,"error":null}\n';
+  const f = compilerDiagnosticsFixture(t, prior);
+  if (f.mark) assert.equal(f.run(f.mark).status, 0);
+  assert.equal(readFileSync(f.log, 'utf8'), prior, 'Keep restored diagnostic bytes');
+  appendFileSync(f.log, '[new] Result: preprocessed_cache_hit\n' +
+    'ACTQL_NATIVE_C_LINK {"status":0,"signal":null,"error":null}\n' +
+    'ACTQL_NATIVE_C_LINK {"status":7,"signal":null,"error":null}\n');
+  const result = f.run(f.report);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, 'Current-job compiler cache result keys: {"preprocessed_cache_hit":1}\n' +
+    'Current-job fresh links: {"attempts":2,"succeeded":1}\n');
+  assert(f.mark);
+  f.retained();
+});
+
+test('Native C diagnostics accept an empty restore without creating or clearing compiler objects', t => {
+  const f = compilerDiagnosticsFixture(t);
+  assert(f.mark);
+  assert.equal(f.run(f.mark).status, 0);
+  const result = f.run(f.report);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, 'Current-job compiler cache result keys: {}\n' +
+    'Current-job fresh links: {"attempts":0,"succeeded":0}\n');
+  f.retained();
+});
+
+test('Native C diagnostics refuse a replaced or truncated restored prefix instead of misreporting current work', t => {
+  for (const changed of ['[old] Result: cache_hit\n', '']) {
+    const f = compilerDiagnosticsFixture(t, '[old] Result: cache_miss\n');
+    assert(f.mark);
+    assert.equal(f.run(f.mark).status, 0);
+    writeFileSync(f.log, changed);
+    const result = f.run(f.report);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Restored compiler log prefix changed/u);
+    assert.equal(result.stdout, '');
+    f.retained();
+  }
 });
 
 test('every original Native command and environment has one same-VM execution owner', () => {
