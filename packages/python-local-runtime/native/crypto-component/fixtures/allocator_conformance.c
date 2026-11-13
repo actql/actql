@@ -171,11 +171,12 @@ int main(int argc, char **argv) {
         assert(bound == ACTQL_CRYPTO_COMPONENT_FAILED);
         assert(actql_crypto_component_enter_current() != 0);
         assert(actql_crypto_component_borrow_library() != 0);
-        assert(actql_crypto_component_symbol("EVP_MD_fetch") == NULL);
+        assert(actql_crypto_component_symbol("EVP_sha256") == NULL);
     } else {
         assert(bound == 0);
         assert(actql_crypto_component_borrow_library() == 0);
         assert(actql_crypto_component_enter_current() == 0);
+        assert(actql_crypto_component_symbol("EVP_sha256") != NULL);
         audit();
         if (search) search_passed = bounded_search();
         else {
