@@ -92,3 +92,18 @@ test('Native parallel preparation keeps command profiles budgets original receip
   assert.deepEqual(merged,{...commands,...components});
   assert.equal(existsSync(join(f.destination,'preparation.json')),false,'Only the CLI complete owner publishes Ready');
 });
+
+test('Native Linux command lane forwards an absent SDK and retains its actual entry budget',t=>{
+  const f={...fixture(t),target:'linux-x64',selection:'bundle',sdk:null};let checked=0;
+  prepareNativeConstructionLane('commands',f,{
+    bundle:(_repository,path,options)=>{
+      if(options.compiledInput) {mkdirSync(path);writeFileSync(join(path,'received.json'),'received Linux DATA');}
+      else assert.equal(options.seconds,900);
+    },
+    exportCommand:(_directory,path,entry,context)=>{
+      checked++;assert.equal(context.target,'linux-x64');assert.equal(context.sdk,undefined);
+      return {path:join(path,'command.json'),entry};
+    },
+  });
+  assert.equal(checked,1);
+});
