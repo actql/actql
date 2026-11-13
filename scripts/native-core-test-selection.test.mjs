@@ -273,6 +273,30 @@ test('eight Linux ordinary partitions retain original case ownership without phy
     assert.throws(() => nativeCorePartitionProfiles(profiles, invalid), /Invalid/u);
 });
 
+test('four hosted Darwin jobs keep HTTP Source scoped and repeated geometry under their original profile owners', () => {
+  const partitions = [{args: ['--release', 'src/a'], cases: 4}, {args: ['--release', 'src/b'], cases: 7}];
+  const profiles = {ordinary: {args: ['--release', 'src/a', 'src/b'], cases: 11, partitions},
+    http: {args: ['src/http'], cases: 3}, source: {args: ['src/source'], cases: 5},
+    scoped: {args: ['src/scoped'], cases: 9, tests: [{source: 'original', index: 0}]},
+    physicalCases: 7, repeatedGeometryCases: 2};
+  const original = JSON.stringify(profiles);
+  const selected = ['1/2', '2/2', 'source', 'scoped'].map(value =>
+    nativeCorePartitionProfiles(profiles, value, {hostedDarwin: true}));
+  for (const name of ['ordinary', 'http', 'source', 'scoped'])
+    assert.equal(selected.reduce((sum, value) => sum + value[name].cases, 0), profiles[name].cases);
+  assert.equal(selected[0].ordinary, partitions[0]);
+  assert.equal(selected[1].ordinary, partitions[1]);
+  assert.equal(selected[0].http, profiles.http);
+  assert.equal(selected[2].source, profiles.source);
+  assert.equal(selected[3].scoped, profiles.scoped);
+  assert.equal(selected.reduce((sum, value) => sum + value.physicalCases, 0), 7);
+  assert.equal(selected.reduce((sum, value) => sum + value.repeatedGeometryCases, 0), 2);
+  assert.equal(JSON.stringify(profiles), original);
+  assert.throws(() => nativeCorePartitionProfiles({...profiles, http: {args: null, cases: 0}},
+    '1/2', {hostedDarwin: true}), /retain the original HTTP/u);
+  assert.throws(() => nativeCorePartitionProfiles(profiles, '1/2', {hostedDarwin: 'true'}), /Invalid/u);
+});
+
 test('four Native ordinary jobs and independent physical jobs exhaust the original profile inventory', () => {
   const paths = Array.from({length: 12}, (_, i) => `src/package-${i}`);
   const records = paths.flatMap(directory => Array.from({length: 3}, (_, index) => ({

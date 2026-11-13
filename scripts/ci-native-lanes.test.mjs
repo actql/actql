@@ -27,14 +27,14 @@ test('Core runner split caps only Darwin and retains the complete original matri
   assert.deepEqual({...darwin.strategy.matrix, partition: [...darwin.strategy.matrix.partition].sort()},
     {target: ['native'], partition: [...nativeCoreCiPartitions].sort()});
   assert.deepEqual(darwin.strategy.matrix.partition,
-    ['scoped', '1/4', 'source', '3/4', '2/4', '4/4', 'http']);
+    ['scoped', '1/2', 'source', '2/2']);
   assert.equal(common.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(common.strategy.matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   const rows = job => ['js', 'wasm', 'native'].flatMap(target => job.strategy.matrix.partition.map(partition => ({target, partition})))
     .filter(row => !job.strategy.matrix.exclude.some(x => x.target === row.target && x.partition === row.partition));
   const selected = [...rows(common), ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))];
-  assert.equal(selected.length, 17);
-  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 17);
+  assert.equal(selected.length, 14);
+  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 14);
   assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
     ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
     ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
@@ -86,7 +86,7 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
       contains: (values, value) => values.includes(value), fromJSON: JSON.parse,
     });
   for (const target of ['js', 'wasm', 'native'])
-    for (const partition of ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped'])
+    for (const partition of ['1/2', '2/2', 'source', 'scoped'])
       assert.equal(evaluate(target, partition), target === 'native' && (partition.endsWith('/4') || partition === 'scoped'));
   const action = 'actions/cache/';
   const pin = '@caa296126883cff596d87d8935842f9db880ef25';

@@ -417,11 +417,11 @@ jobs:
             test "$(uname -m)" = arm64
           fi
       - name: Test pinned Native C compiler orchestration
-        if: ${{ matrix.target == 'native' && matrix.partition == '1/4' }}
+        if: ${{ matrix.target == 'native' && matrix.partition == '1/2' }}
         run: node --test scripts/native-core-c-compiler.test.mjs
       - name: Prepare pinned Native C object caching
         id: native-c-object-cache
-        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/4","2/4","3/4","4/4","scoped"]'), matrix.partition) }}
+        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/2","2/2","scoped"]'), matrix.partition) }}
         env:
           CACHE_PARTITION: ${{ matrix.partition }}
         run: |
@@ -625,7 +625,7 @@ jobs:
       max-parallel: 4
       matrix:
         target: [native]
-        partition: [scoped, '1/4', source, '3/4', '2/4', '4/4', http]
+        partition: [scoped, '1/2', source, '2/2']
     runs-on: macos-15
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps: *core_steps

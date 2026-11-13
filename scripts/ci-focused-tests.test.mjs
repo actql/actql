@@ -275,7 +275,7 @@ test('focused runner installs only Node and MoonBit while preserving upstream ar
 test('full success checkpoint accepts focused-only job skipped but requires every full family', async () => {
   const fullJobs = fullCheckpointJobs(gateJobs.filter(name => name !== 'focused-tests'));
   assert(!fullJobs.includes('focused-tests'));
-  for (const name of ['core (js)', 'core (wasm)', 'core (native 1/4)', 'core (native 2/4)', 'core (native 3/4)', 'core (native 4/4)', 'core (native http)', 'core (native source)', 'core (native scoped)', 'host', 'client', 'native',
+  for (const name of ['core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native source)', 'core (native scoped)', 'host', 'client', 'native',
     'session-evidence', 'session-controls', 'pipeline-evidence', 'native-macos', 'workers', 'duckdb-node']) assert(fullJobs.includes(name));
   const run = {id: 101, run_attempt: 1, workflow_id: 7, path: '.github/workflows/ci.yml',
     event: 'push', head_branch: 'main', repository: {id: 12, full_name: 'actql/actql'},

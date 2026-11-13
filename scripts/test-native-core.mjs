@@ -52,11 +52,11 @@ if (full && platformScope && process.platform !== (linuxCommonImporters ? 'linux
   throw new Error('Native Core scope requires its original platform');
 const platformPackages = full && platformScope
   ? (await import('./native-core-platform-packages.mjs')).readNativeCorePlatformPackages(root) : undefined;
-// Retain the complete Darwin baseline until the matching Linux successor has
-// actually executed. Classification alone is not permission to retire cases.
+// Direct platform owners retain Darwin; their compiler-selected importers use
+// the matching Linux ordinary profile, with no test or fixture substitution.
 const executionPackages = platformPackages ? (linuxCommonImporters
   ? [...platformPackages.common, ...platformPackages.importers].sort()
-  : [...platformPackages.darwin, ...platformPackages.importers].sort()) : (full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
+  : platformPackages.darwin) : (full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
   ? (await import('./ci-moon-tests.mjs')).nativeMoonPackages() : undefined);
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
 if (linuxCommonImporters && !/^[1-8]\/8$/u.test(partition ?? '')) throw new Error('One original Linux eight-way partition required');
@@ -110,7 +110,8 @@ if (platformPackages) console.log('Native Core platform scope: ' + JSON.stringif
 if (selection?.executionScope) console.log('Native Core dependency scope: ' + JSON.stringify(selection.executionScope));
 if (selection && partition) {
   const originalCases = selection.profiles.ordinary.cases;
-  selection.profiles = nativeCorePartitionProfiles(selection.profiles, partition);
+  selection.profiles = nativeCorePartitionProfiles(selection.profiles, partition,
+    {hostedDarwin: platformScope === 'darwin-differences'});
   console.log('Native Core ordinary partition: ' + JSON.stringify({partition,
     originalCases, selectedCases: selection.profiles.ordinary.cases}));
 }

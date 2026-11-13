@@ -11,7 +11,7 @@ import {nativeCoreLinuxCommonArguments, nativeCoreLinuxCommonPartitions, runNati
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 
-test('Linux common Native is mandatory without removing the original Darwin matrix', () => {
+test('Linux importers retain eight mandatory shards and four explicit Darwin profile owners', () => {
   const core = workflow.jobs['core-common'], matrix = core.strategy.matrix;
   assert.deepEqual(matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   assert.equal(core.strategy['fail-fast'], false);
@@ -24,7 +24,7 @@ test('Linux common Native is mandatory without removing the original Darwin matr
   assert.equal(core['runs-on'], 'ubuntu-24.04');
   assert.equal(workflow.jobs['core-darwin']['runs-on'], 'macos-15');
   assert.deepEqual([...workflow.jobs['core-darwin'].strategy.matrix.partition].sort(),
-    ['1/4', '2/4', '3/4', '4/4', 'http', 'scoped', 'source']);
+    ['1/2', '2/2', 'scoped', 'source']);
 });
 
 test('Linux common Native uses its selected compiler profile rather than Darwin preparation', () => {
@@ -188,7 +188,8 @@ test('hosted Darwin Core selects the complementary scope without changing local 
   const core = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
   assert(core.includes("['darwin-differences', 'linux-common-importers'].includes(platformScope)"));
   assert(core.includes("process.platform !== (linuxCommonImporters ? 'linux' : 'darwin')"));
-  assert(core.includes('[...platformPackages.darwin, ...platformPackages.importers].sort()'));
+  assert(core.includes(': platformPackages.darwin)'));
+  assert(core.includes("{hostedDarwin: platformScope === 'darwin-differences'}"));
   assert(core.includes('[...platformPackages.common, ...platformPackages.importers].sort()'));
   assert(core.includes('allowNestedFileInputs: platformPackages !== undefined'));
   assert.equal((core.match(/ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: undefined/gu) ?? []).length, 2,
