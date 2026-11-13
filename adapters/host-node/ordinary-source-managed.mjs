@@ -2264,8 +2264,12 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     if (source) {
       await callbacks.prepare(originals, view);
       bundle = callbacks.read(originals);
-      if (!Array.isArray(bundle.sources) || bundle.sources.length < 1 ||
-          bundle.sources.length > 128) fail('InstalledSourcePreparationMismatch');
+      // Retain the SAME initializer's complete inventory. It already owns its
+      // construction and selected Project limits; a second count ceiling here
+      // neither supplies backing nor changes the actual Request's demand.
+      if (!Array.isArray(bundle.sources) || bundle.sources.length < 1) {
+        fail('InstalledSourcePreparationMismatch');
+      }
     }
     current(); return view;
   } catch (cause) {
