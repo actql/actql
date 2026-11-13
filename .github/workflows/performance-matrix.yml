@@ -8,6 +8,11 @@ on:
         type: boolean
         default: false
         required: false
+      native-approval-cpu-diagnostic:
+        description: Native-only flat CPU diagnosis of one original installed workflow; not formal acceptance
+        type: boolean
+        default: false
+        required: false
       native-approval-runner:
         description: Hosted Linux Local runner; Darwin has no hosted Local producer yet
         type: choice
@@ -74,6 +79,10 @@ on:
         type: boolean
         default: false
         required: false
+      native-approval-cpu-diagnostic:
+        type: boolean
+        default: false
+        required: false
       native-approval-runner:
         type: string
         default: ubuntu-24.04
@@ -127,7 +136,7 @@ permissions:
 jobs:
   native-approval:
     name: Native approval ${{ inputs.native-approval-runner }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && inputs['native-approval-only'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (inputs['native-approval-only'] || inputs['native-approval-cpu-diagnostic']) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -183,6 +192,22 @@ jobs:
           artifact-ids: ${{ inputs.native-package-artifact-id }}
           path: ${{ runner.temp }}/native-approval/packages
           merge-multiple: true
+      - name: Prepare the opt-in unprivileged flat CPU diagnostic
+        if: ${{ inputs['native-approval-cpu-diagnostic'] }}
+        run: |
+          cp scripts/test-native-approval-cpu-diagnostic.mjs "$RUNNER_TEMP/native-approval/cpu-diagnostic.mjs"
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends linux-tools-generic
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {appendFileSync, existsSync, readdirSync} from 'node:fs';
+          const root = '/usr/lib/linux-tools';
+          const versions = readdirSync(root).filter(value => /^[0-9][0-9A-Za-z.+-]*$/u.test(value))
+            .sort((a, b) => b.localeCompare(a, 'en', {numeric: true}));
+          const perf = versions.map(value => `${root}/${value}/perf`).find(value => existsSync(value));
+          assert(perf, 'Distribution perf binary unavailable');
+          appendFileSync(process.env.GITHUB_ENV, `NATIVE_APPROVAL_PERF=${perf}\n`);
+          JS
       - name: Bind the original Native build source before collection
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -199,6 +224,7 @@ jobs:
           git fetch --no-tags --depth=1 origin "$source_sha"
           git checkout --detach "$source_sha"
       - name: Measure thirty complete approvals for each original Native template
+        if: ${{ !inputs['native-approval-cpu-diagnostic'] }}
         env:
           NATIVE_APPROVAL_RUNNER: ${{ inputs.native-approval-runner }}
         run: |
@@ -216,8 +242,62 @@ jobs:
             --normal "$RUNNER_TEMP/native-approval/packages/release" \
             --output "$RUNNER_TEMP/native-approval/assessment.json" \
             --runner "$NATIVE_APPROVAL_RUNNER"
+      - name: Sample one unchanged installed Native workflow by actual approval PID
+        if: ${{ inputs['native-approval-cpu-diagnostic'] }}
+        run: |
+          original_paranoid=$(cat /proc/sys/kernel/perf_event_paranoid)
+          [[ "$original_paranoid" =~ ^-?[0-9]+$ ]]
+          adjusted=false
+          probe_status=0
+          finish_profiler_setup() {
+            result=$?
+            trap - EXIT
+            set +e
+            restore_status=0
+            if [ "$adjusted" = true ]; then
+              sudo sysctl -w "kernel.perf_event_paranoid=$original_paranoid" \
+                > "$RUNNER_TEMP/native-approval/profiler-restore.txt" 2>&1
+              restore_status=$?
+            fi
+            ORIGINAL_PARANOID="$original_paranoid" ADJUSTED="$adjusted" \
+              PROBE_STATUS="$probe_status" RESTORE_STATUS="$restore_status" node --input-type=module <<'JS'
+          import {readFileSync, writeFileSync} from 'node:fs';
+          const original = Number(process.env.ORIGINAL_PARANOID);
+          const restored = Number(readFileSync('/proc/sys/kernel/perf_event_paranoid', 'utf8').trim());
+          const restoreStatus = Number(process.env.RESTORE_STATUS);
+          const report = {original, initialProbeExitCode: Number(process.env.PROBE_STATUS),
+            adjusted: process.env.ADJUSTED === 'true', selected: process.env.ADJUSTED === 'true' ? 1 : original,
+            restoreExitCode: restoreStatus, restored, restorationVerified: restoreStatus === 0 && restored === original};
+          writeFileSync(process.env.RUNNER_TEMP + '/native-approval/profiler-setup.json',
+            JSON.stringify(report, null, 2) + '\n', {flag: 'wx'});
+          if (!report.restorationVerified) process.exitCode = 1;
+          JS
+            report_status=$?
+            if [ "$restore_status" -ne 0 ] || [ "$report_status" -ne 0 ]; then result=1; fi
+            exit "$result"
+          }
+          trap finish_profiler_setup EXIT
+          if "$NATIVE_APPROVAL_PERF" stat -e cpu-clock:u -- /usr/bin/true \
+              > "$RUNNER_TEMP/native-approval/profiler-probe.txt" 2>&1; then
+            probe_status=0
+          else
+            probe_status=$?
+            if [ "$original_paranoid" -gt 1 ] && grep -Eiq \
+                'operation not permitted|permission denied|perf_event_paranoid|access to performance monitoring' \
+                "$RUNNER_TEMP/native-approval/profiler-probe.txt"; then
+              adjusted=true
+              sudo sysctl -w kernel.perf_event_paranoid=1 \
+                > "$RUNNER_TEMP/native-approval/profiler-adjustment.txt"
+            fi
+          fi
+          node "$RUNNER_TEMP/native-approval/cpu-diagnostic.mjs" \
+            --root "$GITHUB_WORKSPACE" \
+            --normal "$RUNNER_TEMP/native-approval/packages/release" \
+            --binding "$RUNNER_TEMP/native-approval/source.json" \
+            --perf "$NATIVE_APPROVAL_PERF" \
+            --output "$RUNNER_TEMP/native-approval/cpu.json"
       - name: Retain Native approval failures partial samples and actual receipts
-        if: always()
+        if: ${{ always() && !inputs['native-approval-cpu-diagnostic'] }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}
@@ -229,9 +309,22 @@ jobs:
             ${{ runner.temp }}/native-approval/packages/release/mock-install-*.json
           if-no-files-found: error
           retention-days: 30
+      - name: Retain only sanitized CPU attribution and original artifact metadata
+        if: ${{ always() && inputs['native-approval-cpu-diagnostic'] }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-approval-cpu-diagnostic-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/native-approval/cpu.json
+            ${{ runner.temp }}/native-approval/profiler-setup.json
+            ${{ runner.temp }}/native-approval/producer.json
+            ${{ runner.temp }}/native-approval/source.json
+            ${{ runner.temp }}/native-approval/packages/release/release.json
+          if-no-files-found: error
+          retention-days: 14
   ordinary-operations:
     name: Required ordinary operation performance
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -359,7 +452,7 @@ jobs:
           retention-days: 30
   ordinary-native:
     name: Ordinary native ${{ matrix.operation }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
     runs-on: macos-15
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -471,7 +564,7 @@ jobs:
           retention-days: 30
   ordinary-python:
     name: Ordinary python ${{ matrix.operation }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
     runs-on: macos-15
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -597,7 +690,7 @@ jobs:
           retention-days: 30
   ordinary-python-priority:
     name: Ordinary Python priority collector
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -716,7 +809,7 @@ jobs:
           retention-days: 30
   ordinary-node-priority:
     name: Ordinary Node priority collector
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -806,7 +899,7 @@ jobs:
   ordinary-priority-assessment:
     name: Ordinary Node and Python priority checkpoint
     needs: [ordinary-node-priority, ordinary-python-priority]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && always() }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -875,7 +968,7 @@ jobs:
           retention-days: 30
   ordinary-platform-assessment:
     needs: [ordinary-operations, ordinary-native, ordinary-python]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && always() }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -896,7 +989,7 @@ jobs:
             }
           '
   registered-cases:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     outputs:
       cases: ${{ steps.list.outputs.cases }}
@@ -908,7 +1001,7 @@ jobs:
         run: echo "cases=$(node benchmarks/retained-results/equivalent-matrix-cases.mjs)" >> "$GITHUB_OUTPUT"
 
   equivalent-obligations:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
     needs: registered-cases
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -963,7 +1056,7 @@ jobs:
 
   equivalent-assessment:
     needs: [registered-cases, equivalent-obligations]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && always() && needs.registered-cases.result == 'success' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() && needs.registered-cases.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
