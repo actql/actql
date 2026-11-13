@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -17,7 +17,7 @@ function fixture(t) {
   const git=(...args)=>execFileSync('git',args,{cwd:repository,stdio:'pipe'});
   git('init','-q');git('add','.');git('-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','test: original source');
   for(const path of installationFiles)put(join(home,path),'original '+path);
-  put(join(home,'installed.json'),JSON.stringify({pin:{},platform:'darwin-arm64'}));
+  put(join(home,'installed.json'),JSON.stringify({pin:{},platform:process.platform+'-'+process.arch}));
   const commands=join(root,'commands.jsonl');
   put(join(home,'bin/moon'),'#!'+process.execPath+'\n'+String.raw`
 const {appendFileSync,existsSync,mkdirSync,writeFileSync}=require('node:fs');
@@ -75,4 +75,47 @@ test('Query compiler failure never publishes a preparation and absence retains t
     {env:{...f.env,QUERY_FIXTURE_BUILD_FAILURE:'1'}}));
   assert.equal(existsSync(join(f.destination,'query-software.json')),false);
   assert.equal(f.calls().length,1);
+});
+
+test('Query reuse allows the same pinned installation at a fresh owner path but refuses aliases and duplicate construction',async t=>{
+  const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
+  const {copyNativePreparationTools}=await import('./native-preparation-lanes.mjs');
+  const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
+  const fresh=join(f.destination,'fresh-tool');
+  copyNativePreparationTools(f.home,fresh,readFileSync(join(f.home,'installed.json'),'utf8'));
+  const original=preparedNativeQuerySoftware(f.repository,{...f.env,MOON_HOME:fresh,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
+  original.verify();assert.notEqual(original.environment.MOON_HOME,fresh);
+  assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env}));
+  const alias=join(f.destination,'alias.json');symlinkSync(receipt,alias);
+  for(const path of [alias,'',null])assert.throws(()=>preparedNativeQuerySoftware(f.repository,
+    {...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:path}));
+  assert.equal(f.calls().length,1);
+});
+
+test('Query reuse retains the actual selected compiler override bytes and refuses their later replacement',async t=>{
+  const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
+  const compiler=join(f.destination,'original-cc');f.put(compiler,'#!/bin/sh\nexit 0\n');
+  const env={...f.env,CC:compiler};
+  const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env});
+  const retained=preparedNativeQuerySoftware(f.repository,{...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
+  f.put(compiler,'#!/bin/sh\nexit 17\n');
+  assert.throws(()=>retained.verify());
+  assert.throws(()=>preparedNativeQuerySoftware(f.repository,{...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt}));
+  assert.equal(f.calls().length,1);
+});
+
+test('the existing Darwin preparation publishes Query software before either original caller can borrow it',()=>{
+  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  assert(source.includes("if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{"));
+  const prepare=source.indexOf('queryReceipt=prepareNativeQuerySoftware(repository,destination)');
+  assert(prepare>source.indexOf('?await prepareNativeParallel('));
+  assert(prepare<source.indexOf("writeFileSync(join(destination,'preparation.json')"));
+  assert(source.includes("'ACTQL_TEST_NATIVE_QUERY_PREPARATION='+queryReceipt+'\\n'"));
+  const caller=readFileSync(new URL('./native-query-coverage.mjs',import.meta.url),'utf8');
+  assert(caller.indexOf('selectNativeQueryTests(owner, readNativeQuerySources(root), env)')<
+    caller.indexOf('preparedNativeQuerySoftware(root, env)'));
+  assert(caller.includes('moon = prepared.moon; env = prepared.environment; targetDirectory = prepared.targetDirectory;'));
+  assert(caller.includes("await runPhase('execute', args);\n  prepared?.verify();"));
+  const entry=readFileSync(new URL('./native-query-coverage.test.mjs',import.meta.url),'utf8');
+  assert.equal(entry.split("import './native-query-preparation.test.mjs';").length,2);
 });
