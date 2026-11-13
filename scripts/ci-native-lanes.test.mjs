@@ -299,7 +299,7 @@ test('required lint directly selects Native preparation controls and only macOS 
   const core=workflow.jobs['core-darwin'].steps;
   const compiler=core.find(step=>step.name==='Test pinned Native C compiler orchestration');
   assert.equal(compiler.run,'node --test scripts/native-core-c-compiler.test.mjs');
-  assert.equal(compiler.if,"${{ matrix.target == 'native' && matrix.partition == '1/4' }}");
+  assert.equal(compiler.if,"${{ matrix.target == 'native' && matrix.partition == '1/2' }}");
   const setup=core.findIndex(step=>step.uses==='./.github/actions/setup-toolchain');
   assert(setup>=0&&setup<core.indexOf(compiler));
   assert(core.indexOf(compiler)<core.findIndex(step=>step.id==='native-c-object-cache'),

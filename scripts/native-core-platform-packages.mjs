@@ -12,8 +12,9 @@ export function partitionNativeCorePlatformPackages(graph, readManifest) {
   const direct = new Set();
   for (const pkg of graph.packages) {
     const metadata = tokens(readManifest(pkg.path));
-    // Retain all existing Native command/platform packages, explicit C stubs
-    // and linker overrides on Darwin, including their complete test importers.
+    // Direct command/platform packages, explicit C stubs and linker overrides
+    // retain Darwin. Keep their complete source/test importers as a distinct
+    // compiler-owned group for the matching Linux ordinary profile.
     if (/^src\/(?:platform_native|cmd)(?:\/|$)/u.test(pkg.path) ||
         metadata.some(token => token.value === 'native-stub' || token.value === 'link')) {
       direct.add(pkg.name);

@@ -746,7 +746,7 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   assert.equal(checks.length, 1);
   const [check] = checks;
   assert.equal(check.run, 'moon check --target "${{ matrix.target }}" --deny-warn');
-  assert.equal(check.if, "${{ matrix.target != 'native' || matrix.partition == '1/4' }}");
+  assert.equal(check.if, "${{ matrix.target != 'native' || matrix.partition == '1/2' }}");
   assert.equal(check['continue-on-error'], undefined);
   const checked = selected.filter(matrix => runInNewContext(check.if.slice(3, -2), {matrix}));
   assert.deepEqual(checked, [{target: 'js', partition: '1/4'},
