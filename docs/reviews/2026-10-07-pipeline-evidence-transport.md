@@ -110,6 +110,10 @@ GitHub artifact endpoints. Set `ARTIFACT_ID`, `EXPECTED_NAME` and
 require the index's ID/digest to match those records). Set `REPOSITORY`,
 `RUN_ID`, `RUN_HEAD_SHA`, `TESTED_SHA`, `RUN_ATTEMPT` and `DOWNLOADS` explicitly:
 
+The API digest includes `sha256:` while the index's `artifactDigest` contains
+only the 64 hexadecimal digits. Compare the index with
+`${EXPECTED_DIGEST#sha256:}` and retain the API form for the metadata check.
+
 ```sh
 gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID" > "$DOWNLOADS/$ARTIFACT_ID.metadata.json"
 jq -e --argjson id "$ARTIFACT_ID" --argjson run "$RUN_ID" \
@@ -141,6 +145,7 @@ ancestors. This reconstructs bytes for diagnosis, not an Actions original or a
 new passing execution:
 
 ```sh
+export REPOSITORY RUN_ID RUN_HEAD_SHA TESTED_SHA RUN_ATTEMPT RESTORE_ROOT INDEX
 node --input-type=module <<'NODE'
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
