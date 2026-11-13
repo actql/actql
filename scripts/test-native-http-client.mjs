@@ -1507,6 +1507,8 @@ verification: try {
       // The retained Preview, retained Checkpoint and original-holder review
       // each perform one Provider read. Denied/duplicate paths perform no
       // additional read; mapped-create applies its one scoped Effect.
+      // The redistributed Darwin phase performs none of those Source actions;
+      // Linux and complete Darwin Core keep the original independent 3/1 check.
       assert.deepEqual(bearerServers.effectTargets(), sourceCoverage.effectTargets);
       assert.deepEqual(bearerServers.effectCreatedValues(),
         sourceCoverage.includeSource ? [{Id: '001000000000001AAA', Count__c: 3}] : []);
