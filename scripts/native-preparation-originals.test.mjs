@@ -248,3 +248,31 @@ test('compiled command export and adoption refuse incomplete execution foreign e
   const path=join(other.received,member.file);rmSync(path);symlinkSync(join(other.directory,'emission/native/release/build/cmd/native_runtime_bundle/native_runtime_bundle.exe'),path);
   assert.throws(()=>other.receive(offered));assert(!existsSync(other.destination));
 });
+
+test('compiled command input scope refuses unknown files before payload reads',t=>{
+  for(const path of ['/unavailable/private/state.sqlite','/unavailable/keys.json','/unavailable/arbitrary-tool']) {
+    const f=compiledCommandFixture(t),file=join(f.directory,'inputs.json');
+    const inputs=JSON.parse(readFileSync(file));inputs.push({path,bytes:1,sha256:'0'.repeat(64)});
+    f.put(file,JSON.stringify(inputs));
+    assert.throws(()=>f.publish(),/Unknown stable compiler input/u);
+    assert(!existsSync(f.artifact));
+  }
+});
+
+test('compiled command external tools bind the current selected bytes and original finite receiver budget',t=>{
+  const f=compiledCommandFixture(t),tool=f.put(join(f.root,'current-tools/python3'),'original selected interpreter');
+  const file=join(f.directory,'inputs.json'),inputs=JSON.parse(readFileSync(file));
+  inputs.push(descriptor(tool));f.put(file,JSON.stringify(inputs));
+  const selected=[];
+  f.context.systemTool=(role,target)=>{selected.push([role,target]);return tool;};
+  const input=f.publish();f.current.systemTool=f.context.systemTool;
+  assert.throws(()=>originals.receiveNativeCompiledCommand(input,f.destination,'native_runtime_bundle',f.current,{seconds:0}));
+  assert(!existsSync(f.destination));
+  const changed=f.put(join(f.root,'changed-tools/python3'),'changed selected interpreter');
+  f.current.systemTool=()=>changed;
+  assert.throws(()=>originals.receiveNativeCompiledCommand(input,f.destination,'native_runtime_bundle',f.current));
+  assert(!existsSync(f.destination));f.current.systemTool=f.context.systemTool;
+  const binary=originals.receiveNativeCompiledCommand(input,f.destination,'native_runtime_bundle',f.current,{seconds:1});
+  assert.equal(readFileSync(binary,'utf8'),'explicit inert compiled-command port, never executed');
+  assert(selected.every(([role,target])=>role==='python'&&target==='darwin-arm64'));
+});

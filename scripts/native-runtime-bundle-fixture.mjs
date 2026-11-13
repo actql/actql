@@ -44,7 +44,7 @@ function prepareNativeCommand(repository, destination, entry, {
   if (compiledInput !== undefined) {
     assert(preparation === undefined || preparation === null, 'One explicit preparation mode required');
     const binary = receiveNativeCompiledCommand(compiledInput, destination, entry,
-      {source,target,clang,sdk,moon_home:realpathSync(moonHome),repository});
+      {source,target,clang,sdk,moon_home:realpathSync(moonHome),repository}, {seconds});
     assert.equal(run('git', ['rev-parse', 'HEAD']).trim(), source);
     assert.equal(run('git', ['status', '--porcelain']), '');
     return binary;
