@@ -1556,6 +1556,8 @@ fn bounded_binding_rows_step(
       }
       ChargeInput => {
         if state.charge_row == count {
+          // No value/frame references survive into input retention.
+          state.charge_measure = None
           state.phase = RetainInputs
           continue
         }
@@ -1568,7 +1570,8 @@ fn bounded_binding_rows_step(
           used += 1
         } else if state.charge_column < state.input_names.length() {
           let column = state.charge_column
-          if state.charge_measure is None {
+          if state.charge_measure is None ||
+            state.charge_measure.unwrap().frames.is_empty() {
             let charged = match
               bounded_binding_input_charge_cell(
                 state.input,
@@ -1603,11 +1606,27 @@ fn bounded_binding_rows_step(
               used += 1
               continue
             }
-            guard start_stepped_measure_result(value, state.workspace)
-              is Some(cursor) else {
-              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            match state.charge_measure {
+              Some(cursor) =>
+                if !restart_completed_stepped_measure(cursor, value) {
+                  return fail_bounded_binding_rows(
+                    Rows(RowLimit),
+                    progress,
+                    used,
+                  )
+                }
+              None => {
+                guard start_stepped_measure_result(value, state.workspace)
+                  is Some(cursor) else {
+                  return fail_bounded_binding_rows(
+                    Rows(RowLimit),
+                    progress,
+                    used,
+                  )
+                }
+                state.charge_measure = Some(cursor)
+              }
             }
-            state.charge_measure = Some(cursor)
           }
           let cursor = state.charge_measure.unwrap()
           match advance_stepped_measure_result(cursor, state.input_values) {
@@ -1618,7 +1637,6 @@ fn bounded_binding_rows_step(
             SteppedMeasureContinue => ()
             SteppedMeasureComplete => {
               clear_stepped_measure(cursor)
-              state.charge_measure = None
               state.charge_column += 1
             }
           }
