@@ -63,23 +63,28 @@ test "normal File boundary fixture retains thirty three checked tasks in thirty 
     publication,
   ).unwrap()
   let report = project_request_completed_check_outcome(
-    owner,
-    input,
-    publication_wire,
-    "ctx:" + "a".repeat(64),
-    "program",
-    "rev:" + "b".repeat(64),
-    document.length(),
-    Some("rev:" + "b".repeat(64)),
-    0,
-    None,
-    0,
-    "corr:" + "c".repeat(32),
-    None,
-    original_document=Some(document),
-  ).unwrap().unwrap()
+      owner,
+      input,
+      publication_wire,
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      document.length(),
+      Some("rev:" + "b".repeat(64)),
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+      original_document=Some(document),
+    )
+    .unwrap()
+    .unwrap()
   assert_true(report.contains("\"verdict\":\"verified\""), msg=report)
-  assert_true(report.contains("\"runnable\":{\"reasons\":[],\"verdict\":\"yes\"}"), msg=report)
+  assert_true(
+    report.contains("\"runnable\":{\"reasons\":[],\"verdict\":\"yes\"}"),
+    msg=report,
+  )
   abort_request_preparation_after_cleanup(owner).unwrap()
   let preparation = @publication_host.prepare_effect_free_client_program(
     native_file_task_boundary_document(),
