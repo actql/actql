@@ -4,6 +4,7 @@ import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, w
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {installationFiles} from './moonbit-installation.mjs';
 
 async function api() { return import('./native-query-preparation.mjs'); }
@@ -118,4 +119,19 @@ test('the existing Darwin preparation publishes Query software before either ori
   assert(caller.includes("await runPhase('execute', args);\n  prepared?.verify();"));
   const entry=readFileSync(new URL('./native-query-coverage.test.mjs',import.meta.url),'utf8');
   assert.equal(entry.split("import './native-query-preparation.test.mjs';").length,2);
+});
+
+test('the actual Query preparation call keeps the enclosing selected Moon home over ambient environment',()=>{
+  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  const calls=[...source.matchAll(/prepareNativeQuerySoftware\([^]*?\);/gu)];assert.equal(calls.length,1);
+  const ambient=Object.freeze({MOON_HOME:'/ambient/tool',PATH:'/original/bin',CC:'/original/cc',
+    ACTQL_NATIVE_CI_DEADLINE:'123456789'});
+  const selected='/selected/original/tool',observed=[];
+  runInNewContext(calls[0][0],{repository:'/original/source',destination:'/original/preparation',
+    process:{env:ambient},moonHome:selected,prepareNativeQuerySoftware:(...args)=>observed.push(args)});
+  assert.equal(observed.length,1);
+  assert.deepEqual(observed[0].slice(0,2),['/original/source','/original/preparation']);
+  assert.equal(observed[0][2]?.env?.MOON_HOME,selected);
+  assert.deepEqual(JSON.parse(JSON.stringify(observed[0][2].env)),{...ambient,MOON_HOME:selected});
+  assert.equal(ambient.MOON_HOME,'/ambient/tool');
 });
