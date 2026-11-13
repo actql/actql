@@ -76,7 +76,7 @@ export function validate(report, current, targets, read) {
     assert.equal(hash(read(report.model.logPath)), report.model.logDigest);
     assert(read(report.model.logPath).toString().includes('8 structural model propositions checked'));
   }
-  const byObservation = new Map(), receiptPaths = new Set(), observationIds = new Set();
+  const byObservation = new Map(), receiptPaths = new Set(), observationIds = new Set(), artifactChecks = [];
   function runs(label, target) {
     return report.executions.filter(e => e.receipt.target === target && e.receipt.logPath.includes(`capacity-${label}-${target}`));
   }
@@ -151,7 +151,10 @@ export function validate(report, current, targets, read) {
       assert(path.startsWith(`_build/${run.target}/debug/test/query_integration/`));
       const archive = execution.capacityArchives[path];
       assert(archive.startsWith(`.artifacts/relation-pipeline/capacity/binaries/${run.target}/`));
-      auditCapacityArtifact(archive, digest, read);
+      // Keep each receipt's path/target and inventory checks here. Its bytes
+      // cannot make an invalid semantic claim admissible; defer the expensive
+      // digest until all claims pass, retaining every independent expected hash.
+      artifactChecks.push({ archive, digest });
     }
     for (const c of run.cases) {
       assert(!observationIds.has(c.id), 'Duplicate capacity observation identity'); observationIds.add(c.id);
@@ -272,6 +275,9 @@ export function validate(report, current, targets, read) {
   assert(distinctInputs.some(rows => rows.some(r => Object.values(r.values).includes(null))));
   assert(distinctInputs.some(rows => new Set(rows.map(r => JSON.stringify(r.values))).size < rows.length));
   assert(distinctInputs.some(rows => rows.length > 1 && new Set(rows.map(r => JSON.stringify(r.values))).size === rows.length));
+  // No successful audit escapes these byte checks. The original reader still
+  // owns physical identity/currentness checks and invocation-local digest reuse.
+  for (const { archive, digest } of artifactChecks) auditCapacityArtifact(archive, digest, read);
   return { ...(report.kind === 'capacity-part' ? { part: report.part, scope: 'fragment', cases: normalPart ? corpus.length : 0 } : { cases: corpus.length }),
     targets, unconditionalAllocationBytes: false };
 }
