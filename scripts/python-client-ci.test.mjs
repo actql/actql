@@ -26,7 +26,7 @@ test('Linux lint owns source Python callers without a package producer or Local 
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const lint = workflow.jobs.lint;
   assert.equal(lint['runs-on'], 'ubuntu-24.04');
-  assert.deepEqual(lint.needs, ['select-targets', 'preflight']);
+  assert.deepEqual(lint.needs, ['select-targets']);
   const consumers = lint.steps.filter(step => step.run?.includes('scripts/check-python-client.mjs'));
   assert.equal(consumers.length, 1);
   assert.equal(consumers[0].run, 'node scripts/check-python-client.mjs --remote-only');
