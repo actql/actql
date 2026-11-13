@@ -244,6 +244,12 @@ static int bind_original(actql_read_context *original, size_t bytes, int *acquir
      * selected private instance and original lifetime remain explicit. */
     if (OPENSSL_init_crypto(OPENSSL_INIT_NO_LOAD_CONFIG | OPENSSL_INIT_NO_ATEXIT, NULL) != 1)
         return ACTQL_CRYPTO_COMPONENT_FAILED;
+    /* OpenSSL 3.0 can leave its static default-context carrier after failed
+     * construction, then dereference its absent lock in provider loading.
+     * This actual initializer reports failure without using that carrier.
+     * Keep the same partial extent/context for the original close below. */
+    if (OSSL_LIB_CTX_get0_global_default() == NULL)
+        return ACTQL_CRYPTO_COMPONENT_FAILED;
     state->default_provider = OSSL_PROVIDER_load(NULL, "default");
     if (!state->default_provider) return ACTQL_CRYPTO_COMPONENT_FAILED;
     state->initialized = 1;

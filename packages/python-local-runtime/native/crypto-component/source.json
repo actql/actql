@@ -25,8 +25,8 @@
   },
   "local": {
     "component.c": {
-      "bytes": 18514,
-      "sha256": "815b03babcd79ed5a0de76452fb53657b566b8ba76bf2b86f67e68361ddd9754"
+      "bytes": 18916,
+      "sha256": "4a591d07aa4e2165b18eae86f9efdc363a3cdb32d60a154b0a2043e8212404f1"
     },
     "component.h": {
       "bytes": 2938,
