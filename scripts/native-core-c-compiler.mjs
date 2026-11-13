@@ -71,7 +71,8 @@ function ordinaryObjectCache(compiler) {
       process.env.MOON_CC !== undefined || process.env.DYLD_INSERT_LIBRARIES || process.env.LD_PRELOAD) return;
   const actualClang = realpathSync(execFileSync('/usr/bin/xcrun', ['--find', 'clang'],
     {encoding: 'utf8', timeout: 5000}).trim());
-  if (![realpathSync('/usr/bin/clang'), actualClang].includes(realpathSync(compiler))) return;
+  // Apple's cc and clang entry points are separate stock dispatcher files.
+  if (![realpathSync('/usr/bin/cc'), realpathSync('/usr/bin/clang'), actualClang].includes(realpathSync(compiler))) return;
   assert(isAbsolute(tool), 'Explicit absolute pinned compiler-cache tool required');
   const binary = lstatSync(tool);
   assert(binary.isFile() && !binary.isSymbolicLink());
