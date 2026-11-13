@@ -2950,7 +2950,11 @@ pub fn[T] start_local_managed_dispatch(
       let finish_save = fn(
         value : @execution.CompletedOutputExport,
       ) -> Result[String, LocalDispatchIssue] {
-        match fund_batch_growth(1) {
+        // Empty output has not drained its initial '['; finish emits '[]'.
+        // A nonempty traversal already drained its rows and emits only ']'.
+        // Fund the exact pending tail before the writer constructs it.
+        let tail_bytes = if emitted_bytes.val == 0L { 2 } else { 1 }
+        match fund_batch_growth(tail_bytes) {
           Ok(true) => ()
           _ =>
             return Err(save_issue.val.unwrap_or(Configuration(InvalidLimits)))

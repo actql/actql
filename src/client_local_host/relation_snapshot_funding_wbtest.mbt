@@ -115,3 +115,86 @@ test "metered snapshot tiny rows fit without configured-frame headroom and byte-
     captured_tasks_close_source(value)
   }
 }
+
+///|
+test "metered empty snapshot funds both delimiters before zero-work finalization" {
+  for short in [false, true] {
+    let original = single_installed_prepared(
+      document=(
+        #|{"version":"actql/0.1","id":"snapshot-empty-tail-funding","stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 99"},{"derive":{}},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"finish","inputs":{"r":{"result":{"stage":"compute","result":"rows"}}},"steps":[{"filter":"id < 3"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"finish","result":"rows"}}}}
+      ),
+    )
+    let value = captured_tasks_fixture(original=Some(original))
+    let before = @resources.ledger_usage(value.ledger)
+    let (run, dispatch) = metered_tail_dispatch(value)
+    let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
+    let tasks : Array[LocalValuesTaskExecution?] = Array::make(3, None)
+    tasks[1] = Some({ operations, settled: false, completed: None, })
+    (operations.execute)().unwrap()
+    let original_work = (operations.cumulative_provider_work)().unwrap()
+    let released = Ref(false)
+    let snapshot = (operations.prepare_relation_snapshot)(() => released.val)
+      .unwrap()
+      .unwrap()
+    // Empty rows never drain the initial '['. The exact tail is '[]':
+    // two canonical UTF-8 bytes, three overlapping aliases at eight bytes each.
+    let available = if short { 47L } else { 48L }
+    let remaining = @resources.ledger_limits(value.ledger).execution_bytes -
+      @resources.ledger_usage(value.ledger).reserved_execution_bytes
+    assert_true(remaining > available)
+    let blocker = @resources.reserve_capacity(
+      value.ledger,
+      0L,
+      remaining - available,
+    ).unwrap()
+    let initial_reserved = @resources.ledger_usage(value.ledger).reserved_execution_bytes
+    let saved = (snapshot.advance_save)(1)
+    assert_eq((operations.cumulative_provider_work)().unwrap(), original_work)
+    if short {
+      assert_true(
+        saved is Err(@local_driver.Execution(Physical(ExecutionLimit))),
+      )
+      assert_eq(
+        @resources.ledger_usage(value.ledger).reserved_execution_bytes,
+        initial_reserved,
+      )
+      assert_true((snapshot.content)() is Err(_))
+      // The failed phase cannot expose even an empty output frame.
+      assert_true(
+        (snapshot.take_output)() is Err(@local_driver.Execution(Stopped)),
+      )
+    } else {
+      let next = saved.unwrap()
+      assert_true(next.complete)
+      assert_eq(next.work, 0L)
+      assert_eq(next.progress, 2L)
+      assert_eq((snapshot.take_output)().unwrap(), "[]")
+      let content = (snapshot.content)().unwrap()
+      assert_eq(content.bytes, 2)
+      // Independent SHA-256 of the literal canonical empty array.
+      assert_eq(
+        content.cid,
+        "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      )
+      assert_eq(
+        @resources.ledger_usage(value.ledger).reserved_execution_bytes,
+        initial_reserved + 48L,
+      )
+    }
+    // This component owns only the test chunk, not a physical file or Site ACK.
+    released.val = true
+    let mut closed = false
+    for _ in 0..<10000 {
+      if close_local_values_tasks(run, tasks) {
+        closed = true
+        break
+      }
+    }
+    assert_true(closed)
+    @resources.settle_capacity(value.ledger, blocker).unwrap()
+    let after = @resources.ledger_usage(value.ledger)
+    assert_eq(after.held_bytes, before.held_bytes)
+    assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+    captured_tasks_close_source(value)
+  }
+}
