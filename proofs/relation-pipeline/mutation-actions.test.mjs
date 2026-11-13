@@ -154,7 +154,7 @@ test('the exact archived mutation part projects nine historical observations wit
     {maxOutputLength: 4 * 1024 * 1024});
   assert.equal(hash(bytes), '5ce6b98807105317e43a3496e08045ff403afad2081d9e8dfeca61ea146d9e22');
   const report = JSON.parse(bytes), before = JSON.stringify(report);
-  const selected = mutationActions(report.decision).filter(action => action.part === 'L-M0a' && action.mode === 'fixed');
+  const selected = mutationActions(report.decision).filter(action => action.part === 'L-M2' && action.mode === 'fixed');
   assert.equal(selected.length, 9);
   // Current-plan admission must continue refusing this older plan unchanged.
   for (const action of selected) assert.throws(() => mutationActionObservation(report, action), /Foreign action part/);

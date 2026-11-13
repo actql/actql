@@ -1,3 +1,4 @@
+import {partJobs} from '../proofs/relation-pipeline/proof-parts.mjs';
 import {nativeCoreLinuxCommonPartitions} from './test-native-core-linux-common.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import assert from 'node:assert/strict';
@@ -709,7 +710,7 @@ test('whole-family scheduling retains the core matrix and complete selected proo
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
     assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight']);
   }
-  assert.deepEqual(jobs['pipeline-evidence'].needs, ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']);
+  assert.deepEqual(jobs['pipeline-evidence'].needs, [...Object.values(partJobs), 'pipeline-validation']);
   const capacity = jobs['pipeline-capacity'].steps.map(step => step.run ?? '').join('\n');
   assert.match(capacity, /node proofs\/relation-pipeline\/capacity\/run\.mjs all/u);
   assert.match(capacity, /node proofs\/relation-pipeline\/run\.mjs all/u);
@@ -1082,7 +1083,7 @@ test('pipeline evidence aggregates dependency failures but stops on workflow can
 });
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
   for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce']],
-    ['pipeline-evidence', ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']]]) {
+    ['pipeline-evidence', [...Object.values(partJobs), 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
     const skipped = Object.fromEntries(groups.map(group => [group, {result: 'skipped'}]));
@@ -1094,7 +1095,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
     assert.equal(scheduled(name, skipped, {performance_matrix: true}), false);
   }
   const evidence = jobs['pipeline-evidence'];
-  assert.equal(evidence.steps.find(step => step.name === 'Require all four producers and mandatory validation before transfer').env.PIPELINE_NEEDS,
+  assert.equal(evidence.steps.find(step => step.name === 'Require every producer and mandatory validation before transfer').env.PIPELINE_NEEDS,
     '${{ toJSON(needs) }}');
   assert.equal(evidence.steps.find(step => step.run === 'node proofs/relation-pipeline/ci-parts.mjs join').env.PIPELINE_NEEDS,
     '${{ toJSON(needs) }}');

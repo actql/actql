@@ -200,7 +200,7 @@ test('verified union member detects submillisecond source modification',t=>{
 const expected={context:{repository:'actql/actql',runId:'1',runAttempt:'1',testedSha:'b'.repeat(40),prHeadSha:null},
  source:{digest},exploration:{required:true},toolchain:{moonbit:{moonc:'pin'}},
  workflow:{ref:'actql/actql/.github/workflows/ci.yml@refs/heads/main',sha:'b'.repeat(40)},planDigest};
-function envelope(partId='L-C0a') {
+function envelope(partId='L-C2') {
  const path=`${partId}-123-45-0000-normal-js.json`,boundary={workspace:`owner-${partId}`,target:'js',role:'normal'};
  const value={schema:partSchema,partId,...structuredClone(expected),completedStages:[...partStages[partId]],
  restoration:{sourceRestored:true,fixtureClosed:true,workspacesClosed:true},
@@ -212,11 +212,11 @@ function envelope(partId='L-C0a') {
 }
 const inputs=()=>partIds.map((partId,index)=>({partId,result:'success',artifactId:String(index+1),artifactDigest:digest,archiveDigest:digest,manifestDigest:digest}));
 test('fixed plan names exactly four capacity and four mutation producers',()=>{
- assert.deepEqual(partIds,['L-C0a','L-C0b','L-C1a','L-C1b','L-M0a','L-M0b','L-M1a','L-M1b']);
+ assert.deepEqual(partIds,['L-C2','L-C3','L-C4','L-C5','L-M2','L-M3','L-M4','L-M5']);
  assert.equal(Object.keys(plan.parts).length,8);
- assert.equal(plan.parts['L-C0a'].obligations.finalNormal.caseCount,114);
- assert.equal(plan.parts['L-C1a'].obligations.ownerLocalRestoration.caseCount,3);
- assert.equal(plan.parts['L-C1a'].obligations.finalNormal,undefined);
+ assert.equal(plan.parts['L-C2'].obligations.finalNormal.caseCount,114);
+ assert.equal(plan.parts['L-C4'].obligations.ownerLocalRestoration.caseCount,3);
+ assert.equal(plan.parts['L-C4'].obligations.finalNormal,undefined);
 });
 for(const partId of partIds) test(`${partId} has distinct truthful PART envelope`,()=>{
  assert.doesNotThrow(()=>validatePartEnvelope(envelope(partId),expected,partId));
@@ -229,11 +229,11 @@ for(const [label,change] of Object.entries({
  foreignSource:m=>m.source.digest='c'.repeat(64),
  duplicateReceipt:m=>m.evidence.receipts.push(m.evidence.receipts[0]),duplicateObservation:m=>m.evidence.observations.push(m.evidence.observations[0]),
  foreignOwner:m=>m.evidence.observations[0].owner='other',foreignTarget:m=>m.evidence.observations[0].target='native',
- unknownReceipt:m=>m.evidence.observations[0].receipt='missing',foreignPart:m=>m.partId='L-C1a',unknownField:m=>m.fullSuccess=true,
+ unknownReceipt:m=>m.evidence.observations[0].receipt='missing',foreignPart:m=>m.partId='L-C4',unknownField:m=>m.fullSuccess=true,
  swappedCompiledOwner:m=>m.evidence.receipts[0].boundary.workspace='other',
  alteredFile:m=>m.files[0].sha256='c'.repeat(64),traversal:m=>m.files[0].path='../bad',
 })) test(`part seal rejects ${label}`,()=>{
- const m=envelope();change(m);assert.throws(()=>validatePartEnvelope(m,expected,'L-C0a'));
+ const m=envelope();change(m);assert.throws(()=>validatePartEnvelope(m,expected,'L-C2'));
 });
 test('aggregate accepts exactly eight successful distinct immutable inputs',()=>assert.doesNotThrow(()=>validatePartInputs(inputs())));
 for(const [label,change] of Object.entries({missing:x=>x.pop(),duplicate:x=>x[1]=x[0],extra:x=>x.push(x[0]),wrongOrder:x=>x.reverse(),
@@ -253,9 +253,9 @@ test('capacity transport keeps current Native evidence distinct from generic exe
  const primary={path:'primary'},restored={path:'restored'};
  const {report}=nativeParentInputs();
  assert.deepEqual(capacityPartExecutions({...report,executions:[]}),[]);
- assert.deepEqual(capacityPartExecutions({part:'L-C1a',executions:[primary,restored],postRestore:{executions:[restored]}}),[primary,restored]);
+ assert.deepEqual(capacityPartExecutions({part:'L-C4',executions:[primary,restored],postRestore:{executions:[restored]}}),[primary,restored]);
  assert.throws(()=>capacityPartExecutions({...report,executions:[primary]}));
- assert.throws(()=>capacityPartExecutions({part:'L-C0b',executions:[],parentStartup:{execution:primary}}));
+ assert.throws(()=>capacityPartExecutions({part:'L-C3',executions:[],parentStartup:{execution:primary}}));
 });
 
 // Synthetic transport bytes only. Production inspectPart first runs the real
@@ -286,7 +286,7 @@ function nativeParentInputs() {
   [directory+'binaries/'+hash(binary),binary],
   [directory+'originals/'+hash(JSON.stringify(body))+'.json',json(body)],
   [directory+'originals/'+hash(JSON.stringify(parent))+'.json',json(parent)]]);
- return {report:{part:'L-C0b',source,parentStartup:parent},files,read:path=>{
+ return {report:{part:'L-C3',source,parentStartup:parent},files,read:path=>{
   assert(files.has(path),'Missing native parent transport input');return files.get(path);
  }};
 }
