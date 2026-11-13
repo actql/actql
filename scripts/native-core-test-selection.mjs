@@ -194,7 +194,7 @@ export function nativeCoreOrdinaryPartitions(args, paths, records, count = 2) {
 
 export function nativeCorePartitionProfiles(profiles, value) {
   if (value === undefined || value === '') return profiles;
-  const match = /^([1-4])\/(2|4)$/u.exec(value);
+  const match = /^([1-8])\/(2|4|8)$/u.exec(value);
   const physical = nativeCoreCiPartitions.slice(4).includes(value);
   assert(physical || match && Number(match[1]) <= Number(match[2]), 'Invalid Native Core partition');
   const empty = {...profiles, ordinary: {args: null, cases: 0},

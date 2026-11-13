@@ -46,13 +46,21 @@ const full = !['focused', 'reporting'].includes(classifyMoon('test', args).class
 // Keep the unscoped classification and its original fixture/backing setup.
 // Only the compiler-owned case inventory below receives this checked closure.
 const platformScope = process.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE;
-if (platformScope && platformScope !== 'darwin-differences') throw new Error('Unknown Native Core platform scope');
-if (full && platformScope && process.platform !== 'darwin') throw new Error('Darwin differences require the original Darwin host');
+if (platformScope && !['darwin-differences', 'linux-common-importers'].includes(platformScope)) throw new Error('Unknown Native Core platform scope');
+const linuxCommonImporters = platformScope === 'linux-common-importers';
+if (full && platformScope && process.platform !== (linuxCommonImporters ? 'linux' : 'darwin'))
+  throw new Error('Native Core scope requires its original platform');
 const platformPackages = full && platformScope
   ? (await import('./native-core-platform-packages.mjs')).readNativeCorePlatformPackages(root) : undefined;
-const executionPackages = platformPackages?.darwin ?? (full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
+// Retain the complete Darwin baseline until the matching Linux successor has
+// actually executed. Classification alone is not permission to retire cases.
+const executionPackages = platformPackages ? (linuxCommonImporters
+  ? [...platformPackages.common, ...platformPackages.importers].sort()
+  : [...platformPackages.darwin, ...platformPackages.importers].sort()) : (full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
   ? (await import('./ci-moon-tests.mjs')).nativeMoonPackages() : undefined);
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
+if (linuxCommonImporters && !/^[1-8]\/8$/u.test(partition ?? '')) throw new Error('One original Linux eight-way partition required');
+if (!linuxCommonImporters && partition?.endsWith('/8')) throw new Error('Eight-way partitions require the Linux importer scope');
 const scopedSoftwareRoot = full && partition === 'scoped'
   ? process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT : undefined;
 if (scopedSoftwareRoot !== undefined && (process.env.GITHUB_ACTIONS !== 'true' ||
@@ -81,7 +89,7 @@ const selection = full ? nativeCoreTestSelection(root, args,
   // One absolute metadata-preparation envelope covers four dry-run plans and
   // all original driver generations. It grants no extra test or C-build time.
   {env: compilerEnvironment, partitionProfiles: true,
-    ordinaryPartitions: partition?.endsWith('/4') ? 4 : Boolean(partition) && !['http', 'source', 'scoped'].includes(partition),
+    ordinaryPartitions: linuxCommonImporters ? 8 : partition?.endsWith('/4') ? 4 : Boolean(partition) && !['http', 'source', 'scoped'].includes(partition),
     // Physical jobs retain their complete profile even when an ordinary PR
     // closure has no member in it. An empty job cannot establish execution.
     timeoutMs: 5 * 60_000,
@@ -89,11 +97,14 @@ const selection = full ? nativeCoreTestSelection(root, args,
     executionPackages: platformPackages ? executionPackages :
       ['http', 'source', 'scoped'].includes(partition) ? undefined : executionPackages}) : undefined;
 if (platformPackages && selection.executionScope?.mode !== 'subset') {
-  throw new Error('Darwin differences must retain their exact compiler-owned package/file scope');
+  throw new Error('Native platform scope must retain its exact compiler-owned package/file scope');
 }
+if (linuxCommonImporters && selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases !== 0)
+  throw new Error('Linux common/importers cannot adopt an unrelated physical fixture');
 if (platformPackages) console.log('Native Core platform scope: ' + JSON.stringify({
   mode: platformScope, graphSha256: platformPackages.graphSha256,
-  commonPackages: platformPackages.common.length, darwinPackages: platformPackages.darwin.length,
+  commonPackages: platformPackages.common.length, importerPackages: platformPackages.importers.length,
+  darwinPackages: platformPackages.darwin.length,
   originalCases: selection.executionScope.originalCases, selectedCases: selection.cases,
 }));
 if (selection?.executionScope) console.log('Native Core dependency scope: ' + JSON.stringify(selection.executionScope));

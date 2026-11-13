@@ -1,14 +1,10 @@
 // Establish actual Linux coverage before retiring any corresponding Darwin case.
 import assert from 'node:assert/strict';
 import {realpathSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeCoreFocusedTestCount, nativeCoreTestSelection} from './native-core-test-selection.mjs';
 import {readNativeCorePlatformPackages} from './native-core-platform-packages.mjs';
-import {createOwnedScratch} from './owned-scratch.mjs';
-import {runFocusedTests} from './test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 export const nativeCoreLinuxCommonArguments = Object.freeze([
@@ -17,22 +13,31 @@ export const nativeCoreLinuxCommonArguments = Object.freeze([
 export const nativeCoreLinuxCommonPartitions = Object.freeze(
   Array.from({length: 8}, (_, index) => `linux-common-${index + 1}/8`));
 
+async function executeOriginalNativeProfile(root, args, {env}) {
+  assert.equal(realpathSync(root), realpathSync(repository), 'The original Native entry must own this checkout');
+  // Enter the existing full ordinary profile in the SAME process. Its original
+  // compiler, fixture namespace, counted child and cleanup remain the owners;
+  // there is no new subprocess or second compiler wrapper to time out/leak.
+  Object.assign(process.env, env);
+  process.argv.splice(2, process.argv.length - 2, ...args);
+  await import('./test-native-core.mjs');
+  return process.exitCode ?? 0;
+}
+
 export async function runNativeCoreLinuxCommon({root = repository, env = process.env,
   platform = process.platform, partition, countTests = nativeCoreFocusedTestCount,
   platformPackages = readNativeCorePlatformPackages, selectTests = nativeCoreTestSelection,
-  selectCompiler = nativeCoreCCompiler, executeTests = runFocusedTests,
-  createScratch = createOwnedScratch} = {}) {
+  executeProfile = executeOriginalNativeProfile} = {}) {
   assert.equal(platform, 'linux', 'The common Native cohort requires an actual Linux runner');
   assert(nativeCoreLinuxCommonPartitions.includes(partition), 'One original Linux common partition required');
   root = realpathSync(root);
-  const scratch = await createScratch({parent: resolve(env.RUNNER_TEMP ?? tmpdir(), 'core-linux-common'),
-    prefix: 'native-', label: 'Linux common Native compiler'});
-  // Use the same generated-C test-only O0 adapter as full Native Core. Do not
-  // import Darwin ccache, xcrun, physical providers or checkpoint producers.
-  const environment = {...env, MOONBIT_NEW_NATIVE: '0', ...selectCompiler(root, scratch.path, env)};
+  // The full ordinary entry owns its one generated-C O0 adapter and fixtures.
+  // Metadata discovery itself must neither compile nor allocate another owner.
+  const environment = {...env, MOONBIT_NEW_NATIVE: '0'};
   const scope = platformPackages(root, {env: environment});
+  assert(Array.isArray(scope.importers), 'Missing original Native importer inventory');
   const selection = selectTests(root, [...nativeCoreLinuxCommonArguments], {env: environment,
-    timeoutMs: 5 * 60_000, executionPackages: scope.common, partitionProfiles: true, ordinaryPartitions: 8,
+    timeoutMs: 5 * 60_000, executionPackages: [...scope.common, ...scope.importers].sort(), partitionProfiles: true, ordinaryPartitions: 8,
     allowNestedFileInputs: true});
   assert.equal(selection.executionScope?.mode, 'subset', 'Linux common selection cannot fall back to physical profiles');
   assert.equal(selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases, 0,
@@ -44,11 +49,11 @@ export async function runNativeCoreLinuxCommon({root = repository, env = process
   assert(Number.isSafeInteger(expectedTests) && expectedTests > 0, 'Nonempty compiler-owned Native cohort required');
   console.log('Linux common Native: ' + JSON.stringify({partition, expectedTests,
     packages: args.slice(nativeCoreLinuxCommonArguments.length), graphSha256: scope.graphSha256}));
-  const status = executeTests('moon', ['--target', 'native', ...args], {
-    cwd: root, env: environment, expectedTests, timeout: 60 * 60_000,
+  return await executeProfile(root, [...nativeCoreLinuxCommonArguments], {
+    env: {...environment, ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: 'linux-common-importers',
+      ACTQL_TEST_NATIVE_CORE_PARTITION: partition.slice('linux-common-'.length)},
+    expectedTests,
   });
-  if (status === 0) scratch.passed();
-  return status;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
