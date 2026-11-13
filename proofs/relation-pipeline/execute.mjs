@@ -22,7 +22,6 @@ const compiler = spawnSync(join(home, 'bin/moonc'), ['-v'], { env: environment, 
 if (compiler.status !== 0 || compiler.stdout.trim() !== pin.moonc) throw new Error('Wrong MoonBit compiler');
 let serial = 0;
 const part = process.env.ACTQL_PIPELINE_PART ?? '';
-assert(part === '' || ['L-C0', 'L-C1', 'L-M0', 'L-M1'].includes(part), 'Unknown pipeline part');
 // Namespace at production, before receipt/observation identities are formed.
 // Aggregation never edits a receipt to resolve coincidental process IDs.
 const invocation = invocationIdentity(part);

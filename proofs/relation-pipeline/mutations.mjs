@@ -10,7 +10,7 @@ import { registry } from './registry.mjs';
 import { fileURLToPath } from 'node:url';
 import { mutationCampaignScope, fixedJsAction } from './fixed-js-scope.mjs';
 import { mutationNamesByPart } from './proof-parts.mjs';
-import { mutationPart, inspectMutationPart } from './mutation-parts.mjs';
+import { mutationPart, logicalMutationPart, inspectMutationPart } from './mutation-parts.mjs';
 import { mutationWorkspaces, workspaceIdentity } from './workspaces.mjs';
 import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { compareSemantics } from './evidence.mjs';
@@ -18,7 +18,7 @@ import { decision } from './exploration-impact.mjs';
 export async function runMutations(options = {}) {
   const {profile, mode, partId, revision, targets} = mutationCampaignScope(options);
   const {createExecutor, executions, root, toolchain} = await import('./execute.mjs');
-  const part = partId ? mutationPart(partId) : null;
+  const part = partId ? (profile === 'local-fixed-js' ? logicalMutationPart(partId) : mutationPart(partId)) : null;
   const selectedVariants = part ? part.variants.map(name => {
     const variant = variants.find(variant => variant.name === name);
     assert(variant, `Missing reviewed mutation ${name}`); return variant;

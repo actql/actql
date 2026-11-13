@@ -61,24 +61,24 @@ test('the existing final consumer installs the audited Lean pin before executing
 function reseal(entry) {entry.bytesDigest = hash(`${JSON.stringify(entry.report, null, 2)}\n`);}
 
 test('required obligations independently retain all parts, targets, modes and three phases', () => {
-  assert.equal(mutationActions({required: true}).length, 36);
-  assert.equal(mutationActions({required: false}).length, 18);
+  assert.equal(mutationActions({required: true}).length, 72);
+  assert.equal(mutationActions({required: false}).length, 36);
   const c = cohort(), bytes = c.reports.map(entry => JSON.stringify(entry.report));
   const records = mutationActionRecords(c);
-  assert.equal(records.actions.length, 36);
-  assert.equal(new Set(records.actions.map(entry => entry.action.id)).size, 36);
-  assert(records.actions.every(entry => entry.required.minimumUnits === 4 && !entry.application.reused &&
+  assert.equal(records.actions.length, 72);
+  assert.equal(new Set(records.actions.map(entry => entry.action.id)).size, 72);
+  assert(records.actions.every(entry => entry.required.minimumUnits === 2 && !entry.application.reused &&
     !entry.application.closed && !entry.application.mainOrigin));
   assert.equal(records.reuseAuthorized, false);
   assert(records.unresolved.length > 0);
   assert.equal(new Set(records.actions.flatMap(entry => entry.receipts.map(ref => ref.path))).size, 160);
   assert.deepEqual(c.reports.map(entry => JSON.stringify(entry.report)), bytes);
   const search = records.actions.filter(entry => entry.action.mode === 'explore' && entry.action.phase === 'mutated' && entry.action.target === 'js');
-  assert(search.every(entry => entry.application.units === 12));
+  assert(search.every(entry => entry.application.units === 6));
 });
 
-test('a reviewed non-exploration condition still requires both parts and every target/phase', () => {
-  assert.equal(mutationActionRecords(cohort(false)).actions.length, 18);
+test('a reviewed non-exploration condition still requires all hosted parts and every target/phase', () => {
+  assert.equal(mutationActionRecords(cohort(false)).actions.length, 36);
   assert.throws(() => mutationActions({}), /independent exploration/);
 });
 
@@ -154,10 +154,10 @@ test('the exact archived mutation part projects nine historical observations wit
     {maxOutputLength: 4 * 1024 * 1024});
   assert.equal(hash(bytes), '5ce6b98807105317e43a3496e08045ff403afad2081d9e8dfeca61ea146d9e22');
   const report = JSON.parse(bytes), before = JSON.stringify(report);
-  const selected = mutationActions(report.decision).filter(action => action.part === 'L-M0' && action.mode === 'fixed');
+  const selected = mutationActions(report.decision).filter(action => action.part === 'L-M0a' && action.mode === 'fixed');
   assert.equal(selected.length, 9);
   // Current-plan admission must continue refusing this older plan unchanged.
-  for (const action of selected) assert.throws(() => mutationActionObservation(report, action), /Wrong mutation part plan/);
+  for (const action of selected) assert.throws(() => mutationActionObservation(report, action), /Foreign action part/);
   const historical = archivedMutationActionObservations(bytes);
   assert.equal(historical.authority, 'immutable-historical-projection');
   assert.equal(historical.revision, '7c4bcb61b8d7e7c37b4be8eb986e1811842d345b');

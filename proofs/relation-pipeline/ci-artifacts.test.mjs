@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { parse } from 'yaml';
+import {partJobs} from './proof-parts.mjs';
 import { selectTargets } from '../../scripts/ci-targets.mjs';
 import { safePath, inventory, validateEnvelope, requiredStages, contextFromEnvironment,
   packArchive, unpackArchive, verifyArchive, joinEvidence, inspectProducerEvidence } from './ci-artifacts.mjs';
@@ -568,8 +569,8 @@ test('join independently rejects a capacity report claiming another tested revis
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 const workflow = parse(readFileSync(join(repositoryRoot, '.github/workflows/ci.yml'), 'utf8'));
 const { jobs } = workflow;
-const producerJobs = ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants'];
-const partNames = {'pipeline-mutations':'L-M0','pipeline-mutations-rest':'L-M1','pipeline-capacity':'L-C0','pipeline-capacity-mutants':'L-C1'};
+const producerJobs = Object.values(partJobs);
+const partNames = Object.fromEntries(Object.entries(partJobs).map(([part,job])=>[job,part]));
 const normalSchedule = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const runLines = job => jobs[job].steps.filter(step => step.run).flatMap(step => step.run.trim().split('\n'));
 const shell = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
@@ -582,7 +583,7 @@ function successfulNeeds() {
   } }])), 'pipeline-validation': {result:'success',outputs:{}}};
 }
 
-test('workflow partitions complete campaigns into exactly four owners with mandatory tests once', () => {
+test('workflow partitions complete campaigns into exactly eight owners with mandatory tests once', () => {
   const artifactCommand = 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs';
   assert.equal(runLines('preflight').filter(line => line === artifactCommand).length, 1);
   assert.equal(jobs.preflight.steps.find(step => step.run === artifactCommand).if, undefined);
@@ -615,7 +616,7 @@ test('workflow partitions complete campaigns into exactly four owners with manda
   assert.equal(jobs['pipeline-validation'].if,normalSchedule);
   assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets','preflight']);
   assert(runLines('pipeline-validation').includes('node proofs/relation-pipeline/ci-parts.mjs validation'));
-  // Phase timing is stdout diagnostics for the four existing producers only.
+  // Phase timing is stdout diagnostics for the eight selected producers only.
   // Validation and the final authoritative evidence join keep their own gates.
   assert.equal(workflow.env?.ACTQL_PIPELINE_PHASE_TIMING,undefined);
   for(const [name,job] of Object.entries(jobs)) {

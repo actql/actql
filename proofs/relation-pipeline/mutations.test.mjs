@@ -103,7 +103,7 @@ test('source restoration failure stops before healthy replay or success reports'
 });
 
 for (const part of Object.keys(mutationNamesByPart)) {
-  test(`${part} owns exactly its four fixed/fresh variants and fresh restored-source owner`, () => {
+  test(`${part} owns exactly its assigned fixed/fresh variants and fresh restored-source owner`, () => {
     const result = run('verify', { part });
     assert.equal(result.status, 0, result.stderr);
     const { calls, reports, lifecycle } = result.state;
@@ -115,7 +115,7 @@ for (const part of Object.keys(mutationNamesByPart)) {
       assert.notEqual(report.restorationOwner.id, report.workspaces.mutable.id);
       assert.deepEqual(report.closure, { mutable: true, pristine: true, restoration: true, sourceRestored: true });
     }
-    assert.equal(calls.length, 4 * (3 + 5 + 6 + 6));
+    assert.equal(calls.length, mutationNamesByPart[part].length * (3 + 5 + 6 + 6));
     assert.deepEqual(lifecycle.map(e => `${e.kind}:${e.id}`),
       ['create:mutable', 'create:pristine', 'close:mutable', 'close:pristine', 'create:restoration', 'close:restoration']);
     assert.equal(lifecycle.find(e => e.kind === 'create' && e.id === 'restoration').source, 'healthy');
@@ -125,7 +125,7 @@ for (const part of Object.keys(mutationNamesByPart)) {
     const result = run('verify', { part, required: false });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(Object.keys(result.state.reports), [`fixed-mutations-${part}.json`]);
-    assert.equal(result.state.calls.length, 4 * 9);
+    assert.equal(result.state.calls.length, mutationNamesByPart[part].length * 9);
   });
 }
 for (const fail of ['first-fixed-post-restore:wasm', 'first-explore-post-restore:native', 'mutable-close', 'pristine-close', 'restoration-close']) {

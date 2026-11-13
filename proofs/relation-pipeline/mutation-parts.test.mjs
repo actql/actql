@@ -45,22 +45,22 @@ function parts(mode = 'fixed') {
   return Object.keys(mutationNamesByPart).map(id => ({ path: mutationReportPath(id, mode), report: sample(id, mode) }));
 }
 
-test('the immutable canonical plan binds all four static parts and exact eight registry mutations', () => {
-  assert.deepEqual(partIds, ['L-C0', 'L-C1', 'L-M0', 'L-M1']);
+test('the immutable canonical plan binds all eight static parts and exact eight registry mutations', () => {
+  assert.deepEqual(partIds, ['L-C0a', 'L-C0b', 'L-C1a', 'L-C1b', 'L-M0a', 'L-M0b', 'L-M1a', 'L-M1b']);
   assert.deepEqual(Object.values(mutationNamesByPart).flat(), variants.map(v => v.name));
-  assert(Object.values(mutationNamesByPart).every(names => names.length === 4));
+  assert(Object.values(mutationNamesByPart).every(names => names.length === 2));
   assert.equal(planDigest, hash(plan));
-  assert.equal(capacityObligationsByPart['L-C1'].mutations.length, 5);
-  assert.equal(capacityObligationsByPart['L-C0'].finalNormal.caseCount, 114);
-  assert.equal(partFamily('L-M0'), 'mutations');
-  assert.equal(partFamily('L-C1'), 'capacity');
+  assert.equal(capacityObligationsByPart['L-C1a'].mutations.length + capacityObligationsByPart['L-C1b'].mutations.length, 5);
+  assert.equal(capacityObligationsByPart['L-C0a'].finalNormal.caseCount, 114);
+  assert.equal(partFamily('L-M0a'), 'mutations');
+  assert.equal(partFamily('L-C1a'), 'capacity');
   assert.throws(() => partFamily('L-M2'), /Unknown proof part/);
-  assert.throws(() => { plan.parts['L-M0'].variants.push('extra'); }, TypeError);
+  assert.throws(() => { plan.parts['L-M0a'].variants.push('extra'); }, TypeError);
 });
 for (const mode of ['fixed', 'explore']) {
   test(`${mode} part admission includes fresh recovery and union preserves all receipt bytes and owners`, () => {
     const inputs = parts(mode), bytes = inputs.map(p => JSON.stringify(p.report));
-    inputs.forEach(p => assert.equal(inspectMutationPart(p.report).length, 4 * (mode === 'fixed' ? 9 : 11)));
+    inputs.forEach(p => assert.equal(inspectMutationPart(p.report).length, p.report.part.variants.length * (mode === 'fixed' ? 9 : 11)));
     const joined = joinMutationParts(inputs.reverse());
     assert.deepEqual(joined.results.map(r => r.name), variants.map(v => v.name));
     for (const result of joined.results) {
@@ -79,8 +79,8 @@ const corruptions = [
   ['missing variant', r => r.results.pop(), /mutation variant/],
   ['duplicate variant', r => { r.results[1] = r.results[0]; }, /mutation variant/],
   ['extra variant', r => r.results.push(r.results[0]), /mutation variant/],
-  ['wrong assigned variant', r => { r.results[0].name = mutationNamesByPart['L-M1'][0]; }, /mutation variant/],
-  ['wrong result owner', r => { r.results[0].owner = 'L-M1'; }, /result owner/],
+  ['wrong assigned variant', r => { r.results[0].name = mutationNamesByPart['L-M1a'][0]; }, /mutation variant/],
+  ['wrong result owner', r => { r.results[0].owner = 'L-M1a'; }, /result owner/],
   ['wrong plan', r => { r.part.planDigest = 'f'.repeat(64); }, /part plan/],
   ['unknown part field', r => { r.unchecked = true; }, /Unknown mutation part fields/],
   ['unknown mode', r => { r.mode = 'arbitrary'; }, /Unknown mutation mode/],
@@ -104,17 +104,17 @@ const corruptions = [
 ];
 for (const [label, corrupt, expected] of corruptions) {
   test(`mutation admission rejects ${label}`, () => {
-    const report = sample('L-M0'); corrupt(report);
+    const report = sample('L-M0a'); corrupt(report);
     assert.throws(() => inspectMutationPart(report), expected);
   });
 }
 test('fresh evidence cannot omit search or shrinking or use another mode/target', () => {
   for (const corrupt of [r => r.results[0].executions.shift(), r => r.results[0].executions.splice(1, 1),
     r => { r.results[0].executions[0].receipt.target = 'wasm'; }, r => { r.decision.required = false; }]) {
-    const report = sample('L-M0', 'explore'); corrupt(report);
+    const report = sample('L-M0a', 'explore'); corrupt(report);
     assert.throws(() => inspectMutationPart(report));
   }
-  assert.throws(() => inspectMutationPart(sample('L-M0'), { mode: 'explore' }), /Wrong mutation report mode/);
+  assert.throws(() => inspectMutationPart(sample('L-M0a'), { mode: 'explore' }), /Wrong mutation report mode/);
 });
 test('union rejects incomplete, duplicate, cross-mode and shared owner inputs', () => {
   assert.throws(() => joinMutationParts(parts().slice(0, 1)), /Missing or extra/);
@@ -129,8 +129,8 @@ test('union rejects incomplete, duplicate, cross-mode and shared owner inputs', 
 test('derived full reports fail closed on rewritten, missing or reassigned observations and immutable originals', () => {
   const originals = parts();
   const read = path => originals.find(p => p.path === path).report;
-  for (const corrupt of [r => r.results.pop(), r => { r.results[0].owner = 'L-M1'; },
-    r => { r.partUnion.owners[r.results[0].name] = 'L-M1'; },
+  for (const corrupt of [r => r.results.pop(), r => { r.results[0].owner = 'L-M1a'; },
+    r => { r.partUnion.owners[r.results[0].name] = 'L-M1a'; },
     r => { r.results[0].postRestore.executions[0].receipt.boundary.workspace = 'borrowed'; },
     r => { r.results[0].healthy.js.id = 'rewritten'; }]) {
     const report = structuredClone(joinMutationParts(originals)); corrupt(report);

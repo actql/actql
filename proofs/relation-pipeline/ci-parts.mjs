@@ -1,4 +1,4 @@
-// Four independently owned fresh producers. Original report/receipt bytes are
+// Independently owned fresh producers. Original report/receipt bytes are
 // immutable; only the complete, audited union is a scientific success claim.
 import assert from 'node:assert/strict';
 import {existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSync, linkSync, unlinkSync} from 'node:fs';
@@ -11,22 +11,17 @@ import {fixedCorpus} from './corpus.mjs';
 import {baseRegistry, registry} from './registry.mjs';
 import {registrations} from './obligations.mjs';
 import {canonicalJson, canonicalExecutionReceipt, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
-import {partIds, planDigest, partFamily} from './proof-parts.mjs';
+import {partIds, capacityPartIds, mutationPartIds, partJobs, partStages, planDigest, partFamily, partRole} from './proof-parts.mjs';
 import {validateCapacityPart, unionCapacityParts} from './capacity/parts.mjs';
 import {inspectMutationPart, joinMutationParts} from './mutation-parts.mjs';
 import {pipelineEvidenceReader as reader} from './evidence-reader.mjs';
 
 export const partSchema = 'actql-pipeline-ci-part/0.1';
-export const partJobs = Object.freeze({'L-C0':'pipeline-capacity', 'L-C1':'pipeline-capacity-mutants',
-  'L-M0':'pipeline-mutations', 'L-M1':'pipeline-mutations-rest'});
-export const partStages = Object.freeze({
-  'L-C0':['source','capacity','final-normal'], 'L-C1':['source','capacity'],
-  'L-M0':['source','baseline','mutations'], 'L-M1':['source','baseline','mutations'],
-});
+export {partJobs, partStages};
 const targets = ['js','wasm','native'], prefix = '.artifacts/relation-pipeline/';
 const encode = value => `${JSON.stringify(value, null, 2)}\n`;
 const hex = /^[0-9a-f]{64}$/u;
-const receiptPattern = /^(L-[CM][01])-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\.json$/u;
+const receiptPattern = new RegExp(`^(${partIds.join('|')})-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\\.json$`, 'u');
 
 export function partState(root, env = process.env) {
   const state = sourceState(root);
@@ -35,9 +30,12 @@ export function partState(root, env = process.env) {
   return {...state, workflow: {ref:env.GITHUB_WORKFLOW_REF, sha:env.GITHUB_WORKFLOW_SHA}, planDigest};
 }
 export function capacityPartExecutions(report) {
-  assert(['L-C0','L-C1'].includes(report.part));
+  assert(capacityPartIds.includes(report.part));
   assert(Array.isArray(report.executions));
-  if(report.part==='L-C0') currentNativeParent(report);
+  if(partRole(report.part)==='capacity-support') {
+    currentNativeParent(report);
+    assert.equal(report.executions.length,0,'Support cannot manufacture generic executions');
+  }
   // The independent Native diagnostic has its own audited schema, not a
   // generic fixture/workspace receipt. Never manufacture a second execution.
   return [...report.executions];
@@ -57,7 +55,7 @@ function currentNativeParent(report) {
 // Source and ledger/custody facts). This binds its distinct transport files;
 // it is not another scientific validator or a generic receipt adapter.
 export function capacityNativeParentInputs(report,read) {
-  assert.equal(report.part,'L-C0');
+  assert.equal(partRole(report.part),'capacity-support');
   const parent=currentNativeParent(report),directory=prefix+'current-chain-native/';
   const paths=new Set();
   const input=path=>{safePath(path.slice(prefix.length));paths.add(path);return read(path);};
@@ -130,7 +128,7 @@ export function inspectPart(directory, partId, expected) {
     const value = acceptReport(`capacity/parts/${partId}.json`);
     validateCapacityPart(value,value.source,targets,read);
     refs.push(...capacityPartExecutions(value));
-    if (partId === 'L-C0') {
+    if (partRole(partId) === 'capacity-support') {
       assert.equal(value.parentStartup.revision,value.revision,'Foreign native parent revision');
       const path='capacity/parent-control-probe/all.json';
       assert.deepEqual(report(path),value.parentStartup,'Changed native parent report');
@@ -138,8 +136,9 @@ export function inspectPart(directory, partId, expected) {
       reports.push({path,sha256:fileDigest(join(directory,path))});
       // Keep the independently audited Native report and exact payloads in
       // their original schema, separate from these final corpus receipts.
-      for (const target of targets) normal(`${target}.json`,registry,target);
     }
+    if (partRole(partId) === 'capacity-normal')
+      for (const target of targets) normal(`${target}.json`,registry,target);
   } else {
     normal(`base-js-${partId}.json`,baseRegistry,'js');
     assert.deepEqual(report('exploration-decision.json'),expected.exploration);
@@ -176,17 +175,18 @@ export function inspectPart(directory, partId, expected) {
   // No hidden unclaimed execution may ride alongside a valid subset.
   for (const file of inventory(directory,{excludeManifest:true})) {
     if (receiptPattern.test(file.path)) assert(paths.has(file.path),'Unclaimed extra execution receipt');
-    assert(!/^L-[CM][01]-/u.test(file.path) || file.path.startsWith(`${partId}-`),'Foreign part payload');
+    assert(!/^L-[CM][0-9][a-z]*-/u.test(file.path) || file.path.startsWith(`${partId}-`),'Foreign part payload');
     const common=['session-model.log','chain-model.log'].includes(file.path)
       || /^sources\/[0-9a-f]{64}\.json$/u.test(file.path)
       || new RegExp(`^${partId}-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\\.(json|inputs\\.json|fixture\\.mbt|log)$`,'u').test(file.path);
     const owned=partFamily(partId)==='capacity'
-      ? (partId==='L-C0' ? file.path.startsWith('capacity/') || nativeParentPaths.has(file.path) : file.path.startsWith('capacity/binaries/') || file.path===`capacity/parts/${partId}.json`) || (partId==='L-C0' && (targets.some(t=>file.path===`${t}.json`) || file.path.startsWith('final-artifacts/')))
+      ? (partRole(partId)==='capacity-support' ? file.path.startsWith('capacity/') || nativeParentPaths.has(file.path) : file.path.startsWith('capacity/binaries/') || file.path===`capacity/parts/${partId}.json`) || (partRole(partId)==='capacity-normal' && (targets.some(t=>file.path===`${t}.json`) || file.path.startsWith('final-artifacts/')))
       : ['exploration-decision.json',`base-js-${partId}.json`,`fixed-mutations-${partId}.json`,...(expected.exploration.required?[`mutations-${partId}.json`]:[])].includes(file.path);
     assert(common||owned,'Unexpected part evidence file');
     if(file.path.startsWith('capacity/parts/')) assert.equal(file.path,`capacity/parts/${partId}.json`,'Foreign capacity part report');
   }
-  assert(receipts.length>0 && owners.size>0);
+  if (partRole(partId)==='capacity-support') assert.equal(refs.length,0,'Support cannot manufacture generic executions');
+  else assert(receipts.length>0 && owners.size>0);
   return {reports:reports.sort((a,b)=>a.path.localeCompare(b.path)),owners:[...owners].sort(),
     receipts:receipts.sort((a,b)=>a.path.localeCompare(b.path)),observations:observations.sort((a,b)=>a.id.localeCompare(b.id))};
 }
@@ -207,7 +207,11 @@ export function validatePartEnvelope(manifest, expected, partId) {
   }
   assert.deepEqual(manifest.files.map(f=>f.path),[...paths].sort());
   assert.deepEqual(Object.keys(manifest.evidence).sort(),['reports','owners','receipts','observations'].sort());
-  for (const key of ['reports','owners','receipts','observations']) assert(Array.isArray(manifest.evidence[key])&&manifest.evidence[key].length>0);
+  for (const key of ['reports','owners','receipts','observations']) {
+    assert(Array.isArray(manifest.evidence[key]));
+    if(partRole(partId)==='capacity-support' && key!=='reports') assert.equal(manifest.evidence[key].length,0,'Support cannot manufacture generic evidence');
+    else assert(manifest.evidence[key].length>0);
+  }
   assert.equal(new Set(manifest.evidence.owners).size,manifest.evidence.owners.length,'Duplicate owner');
   assert.equal(new Set(manifest.evidence.receipts.map(e=>e.path)).size,manifest.evidence.receipts.length,'Duplicate receipt');
   assert.equal(new Set(manifest.evidence.observations.map(e=>e.id)).size,manifest.evidence.observations.length,'Duplicate observation');
@@ -307,12 +311,12 @@ export function joinParts({inputs,expected,destination}) {
     materializeVerifiedMember(join(directory,file.path),to,file.sha256);
   }
   const {read,report}=reader(destination);
-  const capacity=unionCapacityParts(['L-C0','L-C1'].map(id=>({path:`${prefix}capacity/parts/${id}.json`,report:report(`capacity/parts/${id}.json`)})),read);
+  const capacity=unionCapacityParts(capacityPartIds.map(id=>({path:`${prefix}capacity/parts/${id}.json`,report:report(`capacity/parts/${id}.json`)})),read);
   writeFileSync(join(destination,'capacity/all.json'),encode(capacity),{flag:'wx'});
   for (const mode of expected.exploration.required?['fixed','explore']:['fixed']) {
     const name=mode==='fixed'?'fixed-mutations':'mutations';
-    const value=joinMutationParts(['L-M0','L-M1'].map(id=>({path:`${prefix}${name}-${id}.json`,report:report(`${name}-${id}.json`)})),
-      {mode,source:report(`${name}-L-M0.json`).source,decision:expected.exploration});
+    const value=joinMutationParts(mutationPartIds.map(id=>({path:`${prefix}${name}-${id}.json`,report:report(`${name}-${id}.json`)})),
+      {mode,source:report(`${name}-${mutationPartIds[0]}.json`).source,decision:expected.exploration});
     writeFileSync(join(destination,`${name}.json`),encode(value),{flag:'wx'});
   }
   // Derived provenance only. No original report or receipt is altered.
@@ -343,7 +347,7 @@ async function main() {
     for(const input of inputs) verifyArchive(join(staging,input.partId),input.directory,input.archiveDigest);
     const result=joinParts({inputs,expected,destination:directory});result.verificationMs=performance.now()-began;
     mkdirSync(stateRoot,{recursive:true});writeFileSync(join(stateRoot,'join.json'),encode(result));
-    console.log(`Verified four fresh parts: ${result.fileCount} files, ${result.expandedBytes} bytes, ${Math.round(result.verificationMs)}ms`);return;
+    console.log(`Verified ${partIds.length} fresh parts: ${result.fileCount} files, ${result.expandedBytes} bytes, ${Math.round(result.verificationMs)}ms`);return;
   }
   assert(partIds.includes(partId));assert.equal(process.env.ACTQL_PIPELINE_PART,partId,'Part environment differs');
   const output=join(stateRoot,partId);
