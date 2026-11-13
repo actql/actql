@@ -1,4 +1,61 @@
 ///|
+test "cold Unit validation preserves every temporary peak without escaping retention" {
+  let (_, prepared, compiled, definition) = journal_test_run(
+    "cold-temporary-request", "cold-temporary-run",
+  )
+  let original = capture_native_run_plan_original(
+      prepared, compiled, definition,
+    ).unwrap().original
+  let working : Array[(Int64, Int64, Int64)] = []
+  native_cold_plan_view_working(original, (r, e, raw) => {
+    working.push((r, e, raw))
+    Ok(())
+  }).unwrap()
+  let forwarded : Array[(Int64, Int64, Int64)] = []
+  native_cold_plan_view(original, (r, e, raw) => {
+    forwarded.push((r, e, raw))
+    Ok(())
+  }).unwrap()
+  assert_eq(forwarded.length(), working.length() + 1)
+  assert_eq(
+    forwarded[0],
+    (
+      0L, native_cold_validation_control_bytes, native_cold_validation_control_raw,
+    ),
+  )
+  let mut live = 0L
+  for index in 0..<working.length() {
+    let (r, e, raw) = working[index]
+    let actual = forwarded[index + 1]
+    assert_eq(actual.0, 0L)
+    assert_eq(
+      actual.1,
+      native_cold_validation_control_bytes + live + Int64::max(r, e),
+    )
+    assert_eq(actual.2, Int64::max(raw, native_cold_validation_control_raw))
+    live += r
+  }
+  assert_true(live > 0L)
+  // Every original failure remains first and stops before the next protected
+  // constructor. The new adapter's own prelude is included in that sequence.
+  for refused in 1..<=forwarded.length() {
+    let mut calls = 0
+    assert_true(
+      native_cold_plan_view(original, (_, _, _) => {
+        calls += 1
+        if calls == refused {
+          Err(Encoding)
+        } else {
+          Ok(())
+        }
+      })
+      is Err(Encoding),
+    )
+    assert_eq(calls, refused)
+  }
+}
+
+///|
 test "cold plan admission keeps canonical identity and requires every construction stage" {
   let (_, prepared, compiled, definition) = journal_test_run(
     "cold-plan-request", "cold-plan-run",

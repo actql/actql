@@ -198,7 +198,67 @@ fn native_cold_compiled_plan(
 }
 
 ///|
+// Price the adapter before request entry. One Int64 Ref and one closure with
+// that Ref, the original callback and its code word; no payload or authority.
+let native_cold_validation_control_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 2L,
+    scalar_words: 2L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
+let native_cold_validation_control_raw : Int64 = {
+  let (header, _, _, _, pointer) = @bootstrap.native_managed_value_layout()
+  header + 2L * pointer + 8L
+}
+
+///|
+// This validator returns Unit: its admitted view/map and quote forests do not
+// escape. Keep every temporary output live in the SAME execution peak instead
+// of permanently adding those local objects to the Read's retained outputs.
 fn native_cold_plan_view(
+  original : NativeClientRunPlanOriginal,
+  reserve : (Int64, Int64, Int64) -> Result[Unit, NativeClientRunJournalIssue],
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  match
+    reserve(
+      0L, native_cold_validation_control_bytes, native_cold_validation_control_raw,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let temporary = Ref(0L)
+  native_cold_plan_view_working(original, (retained, execution, raw) => {
+    // Preserve the original Owner's malformed-quote refusal, including its
+    // original cause/current/cleanup observation, rather than normalizing it.
+    if retained < 0L || execution < 0L || raw <= 0L {
+      return reserve(retained, execution, raw)
+    }
+    let peak = Int64::max(retained, execution)
+    if temporary.val > 9223372036854775807L - retained ||
+      temporary.val > 9223372036854775807L - peak ||
+      temporary.val + peak >
+      9223372036854775807L - native_cold_validation_control_bytes {
+      return Err(CapacityExceeded)
+    }
+    let next = temporary.val + retained
+    let result = reserve(
+      0L,
+      native_cold_validation_control_bytes + temporary.val + peak,
+      Int64::max(raw, native_cold_validation_control_raw),
+    )
+    if result is Ok(_) {
+      temporary.val = next
+    }
+    result
+  })
+}
+
+///|
+fn native_cold_plan_view_working(
   original : NativeClientRunPlanOriginal,
   reserve : (Int64, Int64, Int64) -> Result[Unit, NativeClientRunJournalIssue],
 ) -> Result[Unit, NativeClientRunJournalIssue] {
