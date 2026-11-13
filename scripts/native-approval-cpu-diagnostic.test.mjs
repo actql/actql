@@ -162,12 +162,14 @@ test('CPU mode is explicit and false by default while all unrelated jobs exclude
   }
   assert(workflow.jobs['native-approval'].if.includes("inputs['native-approval-cpu-diagnostic']"));
   for (const [name, job] of Object.entries(workflow.jobs)) {
-    if (name !== 'native-approval') assert(job.if.includes("!inputs['native-approval-cpu-diagnostic']"), name);
+    if (name === 'node-wait-cpu') assert(job.if.includes("inputs['node-wait-cpu-diagnostic'] == true"));
+    else if (name !== 'native-approval') assert(job.if.includes("!inputs['native-approval-cpu-diagnostic']"), name);
   }
 });
 
 test('normal Native and all other job bodies preserve the original performance matrix', () => {
   const native = structuredClone(workflow.jobs['native-approval']);
+  native.if = native.if.replace(" && !inputs['node-wait-cpu-diagnostic']", '');
   native.if = native.if.replace("(inputs['native-approval-only'] || inputs['native-approval-cpu-diagnostic'])", "inputs['native-approval-only']");
   native.steps = native.steps.filter(step => ![
     'Prepare the opt-in unprivileged flat CPU diagnostic',
@@ -177,8 +179,9 @@ test('normal Native and all other job bodies preserve the original performance m
   delete native.steps.find(step => step.name === 'Measure thirty complete approvals for each original Native template').if;
   native.steps.find(step => step.name === 'Retain Native approval failures partial samples and actual receipts').if = 'always()';
   assert.equal(hash(native), 'f7df7463e4f64be21597375edf49013b83db843ba8a228e8d37b45f9fe8232fb');
-  const others = Object.fromEntries(Object.entries(workflow.jobs).filter(([name]) => name !== 'native-approval')
+  const others = Object.fromEntries(Object.entries(workflow.jobs).filter(([name]) => !['native-approval', 'node-wait-cpu'].includes(name))
     .map(([name, original]) => {const job = structuredClone(original);
+      job.if = job.if.replace(" && !inputs['node-wait-cpu-diagnostic']", '');
       job.if = job.if.replace(" && !inputs['native-approval-cpu-diagnostic']", ''); return [name, job];}));
   assert.equal(hash(others), 'e241961270d1a120521425289d5e6cba999bafe6c2ad098c5323cb755da731bc');
 });

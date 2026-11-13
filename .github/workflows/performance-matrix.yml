@@ -3,6 +3,26 @@ name: Registered performance matrix
 on:
   workflow_dispatch:
     inputs:
+      node-wait-cpu-diagnostic:
+        description: One installed Node wait CPU diagnostic only; not formal acceptance
+        type: boolean
+        default: false
+        required: false
+      node-wait-event-head:
+        description: Exact reviewed event head of the selected original Node producer
+        type: string
+        default: ''
+        required: false
+      node-wait-build-source:
+        description: Exact original Node manifest build source
+        type: string
+        default: ''
+        required: false
+      node-wait-archive-sha256:
+        description: Exact original Node artifact ZIP SHA256
+        type: string
+        default: ''
+        required: false
       native-approval-only:
         description: Run only the fixed Native approval campaign using the Native artifact inputs
         type: boolean
@@ -49,15 +69,18 @@ on:
       native-package-run-id:
         description: Completed same-source normal CI package run
         type: string
-        required: true
+        required: false
+        default: ''
       native-package-artifact-id:
         description: Exact formal packages and complete offline wheelhouse when applicable
         type: string
-        required: true
+        required: false
+        default: ''
       native-package-producer-job:
         description: Exact successful normal package job name
         type: string
-        required: true
+        required: false
+        default: ''
       python-package-run-id:
         description: Completed same-source normal CI package run
         type: string
@@ -75,6 +98,22 @@ on:
         default: ''
   workflow_call:
     inputs:
+      node-wait-cpu-diagnostic:
+        type: boolean
+        default: false
+        required: false
+      node-wait-event-head:
+        type: string
+        default: ''
+        required: false
+      node-wait-build-source:
+        type: string
+        default: ''
+        required: false
+      node-wait-archive-sha256:
+        type: string
+        default: ''
+        required: false
       native-approval-only:
         type: boolean
         default: false
@@ -110,13 +149,16 @@ on:
 
       native-package-run-id:
         type: string
-        required: true
+        required: false
+        default: ''
       native-package-artifact-id:
         type: string
-        required: true
+        required: false
+        default: ''
       native-package-producer-job:
         type: string
-        required: true
+        required: false
+        default: ''
       python-package-run-id:
         type: string
         required: false
@@ -134,9 +176,59 @@ permissions:
   contents: read
 
 jobs:
+  node-wait-cpu:
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && inputs['node-wait-cpu-diagnostic'] == true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Stage the reviewed diagnostic separately from the original package source
+        run: |
+          mkdir "$RUNNER_TEMP/node-wait-cpu"
+          cp scripts/test-node-wait-cpu-diagnostic.mjs "$RUNNER_TEMP/node-wait-cpu/diagnostic.mjs"
+          cp scripts/fixtures/node-wait-cpu.actor.mjs "$RUNNER_TEMP/node-wait-cpu/actor.mjs"
+      - name: Verify the original producer source and exact artifact archive
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_RUN_ID: ${{ inputs.package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ inputs.node-wait-event-head }}
+          PACKAGE_BUILD_SOURCE_SHA: ${{ inputs.node-wait-build-source }}
+          PACKAGE_ARCHIVE_SHA256: ${{ inputs.node-wait-archive-sha256 }}
+        run: |
+          node "$RUNNER_TEMP/node-wait-cpu/diagnostic.mjs" artifact "$GITHUB_WORKSPACE" "$RUNNER_TEMP/node-wait-cpu"
+          source_sha=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.env.RUNNER_TEMP + "/node-wait-cpu/source.json", "utf8")).sourceSha)')
+          git diff --exit-code
+          git diff --cached --exit-code
+          git fetch --no-tags --depth=1 origin "$source_sha"
+          git checkout --detach "$source_sha"
+      - name: Sample one installed wait with unchanged normal packages
+        run: node "$RUNNER_TEMP/node-wait-cpu/diagnostic.mjs" collect "$GITHUB_WORKSPACE" "$RUNNER_TEMP/node-wait-cpu"
+      - name: Retain sanitized diagnostic results and original artifact metadata
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: node-wait-cpu-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/node-wait-cpu/cpu.json
+            ${{ runner.temp }}/node-wait-cpu/cpu-pending.json
+            ${{ runner.temp }}/node-wait-cpu/producer.json
+            ${{ runner.temp }}/node-wait-cpu/source.json
+            ${{ runner.temp }}/node-wait-cpu/packages/packed-client-packages.json
+          if-no-files-found: warn
+          retention-days: 30
+
   native-approval:
     name: Native approval ${{ inputs.native-approval-runner }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (inputs['native-approval-only'] || inputs['native-approval-cpu-diagnostic']) }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (inputs['native-approval-only'] || inputs['native-approval-cpu-diagnostic']) && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -324,7 +416,7 @@ jobs:
           retention-days: 14
   ordinary-operations:
     name: Required ordinary operation performance
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -452,7 +544,7 @@ jobs:
           retention-days: 30
   ordinary-native:
     name: Ordinary native ${{ matrix.operation }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: macos-15
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -564,7 +656,7 @@ jobs:
           retention-days: 30
   ordinary-python:
     name: Ordinary python ${{ matrix.operation }}
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: macos-15
     outputs:
       source-sha: ${{ steps.package-source.outputs.source-sha }}
@@ -690,7 +782,7 @@ jobs:
           retention-days: 30
   ordinary-python-priority:
     name: Ordinary Python priority collector
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: macos-15
     timeout-minutes: 30
     permissions:
@@ -809,7 +901,7 @@ jobs:
           retention-days: 30
   ordinary-node-priority:
     name: Ordinary Node priority collector
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -899,7 +991,7 @@ jobs:
   ordinary-priority-assessment:
     name: Ordinary Node and Python priority checkpoint
     needs: [ordinary-node-priority, ordinary-python-priority]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -968,7 +1060,7 @@ jobs:
           retention-days: 30
   ordinary-platform-assessment:
     needs: [ordinary-operations, ordinary-native, ordinary-python]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -989,7 +1081,7 @@ jobs:
             }
           '
   registered-cases:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     outputs:
       cases: ${{ steps.list.outputs.cases }}
@@ -1001,7 +1093,7 @@ jobs:
         run: echo "cases=$(node benchmarks/retained-results/equivalent-matrix-cases.mjs)" >> "$GITHUB_OUTPUT"
 
   equivalent-obligations:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && !inputs['node-wait-cpu-diagnostic'] }}
     needs: registered-cases
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -1056,7 +1148,7 @@ jobs:
 
   equivalent-assessment:
     needs: [registered-cases, equivalent-obligations]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() && needs.registered-cases.result == 'success' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs['native-approval-only'] && !inputs['native-approval-cpu-diagnostic'] && always() && needs.registered-cases.result == 'success' && !inputs['node-wait-cpu-diagnostic'] }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

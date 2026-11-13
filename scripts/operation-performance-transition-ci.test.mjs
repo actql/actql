@@ -210,7 +210,7 @@ test('Native approval only selects its original Native artifact without unrelate
     const inputs = workflow.on[event].inputs;
     assert.equal(inputs['native-approval-only'].default, false);
     for (const field of ['native-package-run-id', 'native-package-artifact-id', 'native-package-producer-job']) {
-      assert.equal(inputs[field].required, true);
+      assert.equal(inputs[field].required, false); assert.equal(inputs[field].default, '');
     }
     for (const field of ['package-run-id', 'package-artifact-id', 'python-package-run-id',
       'python-package-artifact-id', 'python-package-producer-job']) {
@@ -225,7 +225,8 @@ test('Native approval only selects its original Native artifact without unrelate
   assert(Object.keys(ci.on.workflow_dispatch.inputs).length <= 25);
   for (const enabled of [false, true]) {
     const context = {github: {event: {repository: {visibility: 'public', private: false}}},
-      inputs: {'native-approval-only': enabled}, toJSON: JSON.stringify};
+      inputs: {'native-approval-only': enabled, 'native-approval-cpu-diagnostic': false,
+        'node-wait-cpu-diagnostic': false}, toJSON: JSON.stringify};
     assert.equal(runInNewContext(job.if.slice(3, -2), context), enabled);
     if (enabled) for (const [name, other] of Object.entries(workflow.jobs)) {
       if (name !== 'native-approval') assert.equal(runInNewContext(other.if.slice(3, -2), context), false, name);
