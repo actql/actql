@@ -451,3 +451,16 @@ test('local Core keeps the original serial scoped profile despite hosted paralle
     assert.equal(result.status, 2); assert.match(result.stderr, /serial scoped profile/u);
   }
 });
+
+
+test('local packed query command preserves full portable acceptance after hosted partitioning', t => {
+  const f = fixture(t);
+  const job = {'timeout-minutes': 45, steps: [{name: 'Test original portable acceptance',
+    run: 'node scripts/test-packed-public-query.mjs --ci-part=${{ matrix.query-part }}'}]};
+  writeFileSync(join(f.root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {'client-packed': job}}));
+  const result = f.run(['run', 'client-packed', '--dry-run']);
+  assert.equal(result.status, 0, result.stderr);
+  assert(result.stdout.includes('node scripts/test-packed-public-query.mjs --ci-part=portable'));
+  assert(!result.stdout.includes('--ci-part=portable-'));
+  assert(!result.stdout.includes('${{ matrix.'));
+});

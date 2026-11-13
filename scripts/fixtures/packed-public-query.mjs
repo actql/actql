@@ -183,7 +183,7 @@ import {computedObjectPropertySuccesses, computedObjectPropertyRefusals, compute
   from './computed-object-property-source-input.mjs';
 import {groupPropertySuccesses, groupPropertyRefusals, groupHavingImplicitAliasSuccesses, groupHavingImplicitAliasRefusals, orderGroupedSubexpressionSuccesses, orderGroupedSubexpressionRefusals, groupedImplicitPropertyNameSuccesses, groupedImplicitPropertyNameRefusals, havingGroupedSubexpressionSuccesses, havingGroupedSubexpressionRefusals, sqlGroupedSubexpressionSuccesses, sqlGroupedSubexpressionRefusals, pipeAggregateOrderSuccesses, pipeAggregateOrderRefusals, pipeAggregateExpressionSuccesses, pipeAggregateExpressionRefusals}
   from './group-property-source-input.mjs';
-import {uniquePublicQueryCases} from './public-query-cases.mjs';
+import {uniquePublicQueryCases, publicQueryCohorts, partitionPublicQueryProfiles} from './public-query-cases.mjs';
 import {publicQueryProfiles} from './public-query-profiles.mjs';
 import {quotedIdentifierSuccesses, quotedIdentifierRefusals}
   from './quoted-identifier-source-input.mjs';
@@ -230,6 +230,9 @@ async function executePackedQueryFixture() {
 const prepareNativeGraph = process.argv.includes('--prepare-native-graph-fixture');
 if (prepareNativeGraph) assert.equal(process.argv.length, 3, 'Native fixture preparation cannot select cases');
 const transport = process.env.ACTQL_TEST_QUERY_TRANSPORT;
+const ciPart = process.env.ACTQL_TEST_QUERY_CI_PART;
+assert.ok(ciPart === undefined || /^portable-[123]$/u.test(ciPart), 'UnknownPackedPortablePart');
+const portablePart = ciPart === undefined || transport === 'tail' ? undefined : Number(ciPart.at(-1));
 if (prepareNativeGraph) assert.equal(transport, undefined, 'Native fixture owns its preparation');
 assert.ok(transport === undefined || ['local', 'remote', 'tail'].includes(transport));
 const worker = transport === 'local' || transport === 'remote' ? transportWorker() : undefined;
@@ -267,8 +270,8 @@ const groupedInOnly = process.env.ACTQL_TEST_GROUPED_IN_ONLY === '1';
 const subgraphOnly = process.env.ACTQL_TEST_SUBGRAPH_ONLY === '1';
 const analyticOffsetOnly = process.env.ACTQL_TEST_ANALYTIC_OFFSET_ONLY === '1';
 const graphDiagnosticsOnly = process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1';
-const graphArgumentChecksSelected = graphDiagnosticsOnly ||
-  process.env.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS === '1';
+const graphArgumentChecksSelected = (portablePart === undefined || portablePart === 1) &&
+  (graphDiagnosticsOnly || process.env.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS === '1');
 const graphArgumentCheckModes = new Set();
 const matchWithProducerOnly = process.env.ACTQL_TEST_MATCH_WITH_PRODUCER_ONLY === '1';
 const graphMatchOnly = process.env.ACTQL_TEST_GRAPH_MATCH_ONLY === '1';
@@ -850,65 +853,7 @@ if (scopedOrderOnly) {
 // close releases live owners but deliberately preserves those durable objects.
 // Bound independent fixture cohorts; a whole case, including attach/resend,
 // always stays in one installation. This does not change a Host capacity.
-function publicQueryCohorts(inputs) {
-  const cohorts = [];
-  let current = {successes: [], executionFailures: [], refusals: []};
-  // Count distinct references before any content-address deduplication. The
-  // Store owner allows 8R + 11 for publication; each read retains a grant,
-  // attempt, two records and receipt, and describe retains one manifest grant.
-  // Also reserve one fresh-process read/describe per Result for every case
-  // (only the first/last are exercised), plus the existing String restart.
-  const maxObjects = 10000;
-  const publicationObjects = results => 8 * results + 11;
-  // Each fresh delivery performs two complete prior-attempt scans. Keeping
-  // N(N-1) <= 4096 bounds those admission scans across a cohort; this is a
-  // harness work bound, not a product limit or an allowance for parallel work.
-  const maxDeliveryContractVisits = 4096;
-  const maxDeliveryAttempts = Math.floor((1 + Math.sqrt(1 +
-    4 * maxDeliveryContractVisits)) / 2);
-  const deliveryObjects = 5;
-  const descriptionObjects = 1;
-  let retainedObjectAllowance = 0;
-  let deliveryAttemptAllowance = 0;
-  for (const kind of ['successes', 'executionFailures', 'refusals']) {
-    for (const item of inputs[kind] ?? []) {
-      const results = kind === 'successes'
-        ? Math.max(1, Object.keys(item.results ?? {answer: null}).length)
-        : kind === 'executionFailures' ? Math.max(1, item.resultNames.length) : 0;
-      const allowance = kind === 'refusals' ? 0 : publicationObjects(results) +
-        results * (3 * deliveryObjects + 2 * descriptionObjects) +
-        (item.name === 'sql' ? deliveryObjects : 0) +
-        (item.name === 'exact-string-values' ? deliveryObjects + descriptionObjects : 0);
-      const deliveries = 3 * results +
-        (item.name === 'sql' ? 1 : 0) + (item.name === 'exact-string-values' ? 1 : 0);
-      assert.ok(allowance <= maxObjects && deliveries <= maxDeliveryAttempts,
-        `Public query case ${item.name} exceeds an indivisible cohort budget: ` +
-        `${allowance}/${maxObjects} objects, ${deliveries}/${maxDeliveryAttempts} deliveries`);
-      if (retainedObjectAllowance !== 0 &&
-          (retainedObjectAllowance + allowance > maxObjects ||
-            deliveryAttemptAllowance + deliveries > maxDeliveryAttempts)) {
-        cohorts.push(current);
-        current = {successes: [], executionFailures: [], refusals: []};
-        retainedObjectAllowance = 0;
-        deliveryAttemptAllowance = 0;
-      }
-      // Never split an authored multi-Result case or lower its own limits.
-      current[kind].push(item);
-      retainedObjectAllowance += allowance;
-      deliveryAttemptAllowance += deliveries;
-    }
-  }
-  if (Object.values(current).some(items => items.length > 0) || cohorts.length === 0) cohorts.push(current);
-  for (const kind of ['successes', 'executionFailures', 'refusals']) {
-    assert.deepEqual(cohorts.flatMap(cohort => cohort[kind]), inputs[kind] ?? [],
-      'cohorts preserve every authored case in original order');
-  }
-  for (const cohort of cohorts) for (const kind of ['successes', 'executionFailures']) {
-    assert.equal(new Set(cohort[kind].map(item => item.name)).size, cohort[kind].length,
-      'independent accepted cases cannot reuse a submission nonce within one cohort');
-  }
-  return cohorts;
-}
+
 const retainedCohorts = [];
 const timeSeriesPrimaryReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
   prefix: 'time-series-primary', version: 'actql-time-series-primary-acceptance/0.1',
@@ -955,18 +900,20 @@ const inventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executio
   });
 // Host profiles are immutable within an installation. Keep each fixture's
 // declared analytic envelope, including when the full corpus combines profiles.
-for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs}
-  of publicQueryProfiles(scopeInputs)) {
+const profileCohorts = publicQueryProfiles(scopeInputs).map(profile => ({...profile,
+  cohorts: graphRemainingOperationsOnly
+    ? graphRemainingOperationCohortInputs(profile.inputs).flatMap(publicQueryCohorts)
+    : publicQueryCohorts(profile.inputs)}));
+for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs,
+  cohorts, cohortIndexes, cohortInventories}
+  of partitionPublicQueryProfiles(profileCohorts, portablePart, inventoryKeys)) {
 if (transport === 'tail' && profileName !== 'standard') continue;
 if (prepareNativeGraph && profileName !== 'standard') continue;
 const completedOffsets = {};
 const scopeInputs = profileInputs;
-const cohorts = graphRemainingOperationsOnly
-  ? graphRemainingOperationCohortInputs(scopeInputs).flatMap(publicQueryCohorts)
-  : publicQueryCohorts(scopeInputs);
 if (transport !== 'tail') {
   const expectedOffsets = {};
-  expectedInventory.push(...(graphRemainingOperationsOnly
+  expectedInventory.push(...(portablePart !== undefined ? cohortInventories.flat() : graphRemainingOperationsOnly
     ? cohorts.flatMap(cohort => inventoryKeys(profileName, cohort, expectedOffsets))
     : inventoryKeys(profileName, profileInputs)));
   if (distinctJoinOrderOnly) requireDistinctJoinOrderInventory(expectedInventory);
@@ -1445,7 +1392,7 @@ try {
 } catch { /* A missing diagnostic cannot replace the original test outcome. */ }
 try {
 for (const [index, cohort] of cohorts.entries()) {
-  const directory = cohortDirectory(localDirectory, index);
+  const directory = cohortDirectory(localDirectory, cohortIndexes[index]);
   const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
     ? createRetainedGraphAuthorization() : undefined;
   const physicalDispatches = [];
@@ -1465,7 +1412,7 @@ for (const [index, cohort] of cohorts.entries()) {
   const acceptedRuns = observe(directory)().acceptedRuns;
   assert.equal(acceptedRuns, cohortRunCount(cohort));
   localAcceptedRuns += acceptedRuns;
-  completedInventory.push(...inventoryKeys(profileName, cohort, completedOffsets));
+  completedInventory.push(...(portablePart === undefined ? inventoryKeys(profileName, cohort, completedOffsets) : cohortInventories[index]));
 }
 assert.equal(localAcceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
@@ -1482,7 +1429,7 @@ try {
 } catch { /* A missing diagnostic cannot replace the original test outcome. */ }
 try {
   for (const [index, cohort] of cohorts.entries()) {
-    const directory = cohortDirectory(remoteDirectory, index);
+    const directory = cohortDirectory(remoteDirectory, cohortIndexes[index]);
     const authorization = graphRemainingOperationsOnly || inputStageResultOnly || typedSubscriptOnly
       ? createRetainedGraphAuthorization() : undefined;
     const physicalDispatches = [];
@@ -1513,7 +1460,7 @@ try {
       const acceptedRuns = observe(directory)().acceptedRuns;
       assert.equal(acceptedRuns, cohortRunCount(cohort));
       remoteAcceptedRuns += acceptedRuns;
-      if (transport === 'remote') completedInventory.push(...inventoryKeys(profileName, cohort, completedOffsets));
+      if (transport === 'remote') completedInventory.push(...(portablePart === undefined ? inventoryKeys(profileName, cohort, completedOffsets) : cohortInventories[index]));
     } finally {
       server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
@@ -1572,7 +1519,7 @@ if (transport !== 'tail') {
     `retained-cohort-results.${transport}.json`, encodeRetainedFixture(retainedCohorts));
   if (transport !== undefined) await writeFile(`transport-completion.${transport}.json`,
     JSON.stringify({mode: transport, expectedInventory, completedInventory, expectedRetainedCohorts,
-      needsTail: !scopeOnly, complete: true}) + '\n', {flag: 'wx'});
+      ciPart, needsTail: !scopeOnly && (portablePart === undefined || portablePart === 1), complete: true}) + '\n', {flag: 'wx'});
 }
 if (!scopeOnly && (transport === undefined || transport === 'tail'))
   await import('./packed-two-source-public-query.mjs');

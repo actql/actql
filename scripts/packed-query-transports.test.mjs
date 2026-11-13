@@ -1587,14 +1587,14 @@ test('canonical query launcher forwards one selected envelope to deadline and co
   };
   visit(syntax);
   assert.equal(declarations.length, 2);
-  const invoke = Function('run', 'process', 'root', 'runtimeEnvironment', 'acceptanceTimeout', 'Date',
+  const invoke = Function('run', 'process', 'root', 'runtimeEnvironment', 'acceptanceTimeout', 'Date', 'portablePart', 'ciPart',
     declarations.map(node => source.slice(node.start, node.end)).join('\n'));
-  for (const environment of [{}, {ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'}]) {
+  for (const portablePart of [undefined, 1, 2, 3]) for (const environment of [{}, {ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'}]) {
     const selected = selectAcceptanceTimeout(environment);
     const calls = [];
     invoke((...args) => { calls.push(args); return ''; },
       {execPath: process.execPath, argv: []}, 'owned-consumer', {original: 'unchanged'}, selected,
-      {now: () => 1000});
+      {now: () => 1000}, portablePart, portablePart === undefined ? undefined : `portable-${portablePart}`);
     assert.equal(calls.length, 1);
     const [command, args, root, passed, timeout] = calls[0];
     assert.equal(command, process.execPath);
@@ -1604,6 +1604,7 @@ test('canonical query launcher forwards one selected envelope to deadline and co
     assert.equal(passed.ACTQL_TEST_QUERY_TIMEOUT_MS, String(selected));
     assert.equal(passed.ACTQL_TEST_QUERY_DEADLINE, String(1000 + selected));
     assert.equal(passed.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS, '1');
+    assert.equal(passed.ACTQL_TEST_QUERY_CI_PART, portablePart === undefined ? undefined : `portable-${portablePart}`);
     assert.equal(timeout, selected);
     const owner = createTransportOwner({deadline: Date.now() + selected - 100, timeoutMs: selected,
       forward() {}});

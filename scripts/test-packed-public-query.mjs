@@ -16,6 +16,11 @@ import {selectAcceptanceTimeout} from './fixtures/packed-query-transport-owner.m
 
 validatePackedPublicQueryArguments(process.argv.slice(2));
 const ciPart = process.argv.find(argument => argument.startsWith('--ci-part='))?.slice('--ci-part='.length);
+const portablePart = /^portable-[123]$/u.test(ciPart ?? '') ? Number(ciPart.at(-1)) : undefined;
+const portableExtras = portablePart === undefined || portablePart === 1;
+const portableCi = ciPart === 'portable' || portablePart !== undefined;
+const portableReceiptPrefixes = portablePart === undefined ? undefined : JSON.parse(await readFile(
+  new URL('./fixtures/public-query-portable-parts.json', import.meta.url), 'utf8')).parts[ciPart].receiptPrefixes;
 const acceptanceTimeout = selectAcceptanceTimeout(process.env);
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -33,7 +38,7 @@ function run(command, args, cwd = root, env = environment,
   return capture(command, args, {cwd, env, timeout});
 }
 console.log(`Packed public-query evidence: ${directory}`);
-if (ciPart !== 'native') console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
+if (ciPart !== 'native' && portableExtras) console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
   'scripts/distinct-join-order-source-input.test.mjs',
   'scripts/graph-difference-source-input.test.mjs',
   'scripts/graph-relation-join-source-input.test.mjs',
@@ -218,6 +223,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/packed-infer-source.mjs', 'packed-infer-source.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
   ['scripts/fixtures/packed-query-transports.mjs', 'packed-query-transports.mjs'],
+  ['scripts/fixtures/public-query-portable-parts.json', 'public-query-portable-parts.json'],
   ['scripts/fixtures/public-query-inventory.json', 'public-query-inventory.json'],
   ['scripts/fixtures/packed-query-worker.mjs', 'packed-query-worker.mjs'],
   ['scripts/fixtures/packed-query-restart-transports.mjs', 'packed-query-restart-transports.mjs'],
@@ -744,7 +750,7 @@ if (process.argv.includes('--infer-source-only') ||
 // the existing public Client acceptance helper on HTTPS. No second pack/build.
 // These obligations belong to the portable CI part; Native has its own complete
 // public campaign below and must not repeat the portable cases.
-if (ciPart !== 'native') {
+if (ciPart !== 'native' && portableExtras) {
 console.log(run('bash', ['-eu', '-c', quickstart.run], root, runtimeEnvironment).trimEnd());
 assert.equal(await readFile(join(root, 'answer.jsonl'), 'utf8'), quickstart.expected);
 console.log(run(process.execPath, ['readme-acceptance.mjs'], root,
@@ -868,30 +874,30 @@ async function retainTransportReports(names, succeeded, primary, indexName) {
   } catch (error) { failed(indexName, error); }
   if (evidenceFailure !== undefined) throw evidenceFailure;
 }
-const graphArgumentChecksSelected = runtimeEnvironment.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1' ||
-  !process.argv.some(flag => flag.endsWith('-only'));
+const graphArgumentChecksSelected = portableExtras && (runtimeEnvironment.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1' ||
+  !process.argv.some(flag => flag.endsWith('-only')));
 let acceptanceStarted = false, acceptanceSucceeded = false, packedFailure;
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     acceptanceStarted = true;
     const acceptanceDeadline = Date.now() + acceptanceTimeout;
     const output = run(process.execPath, ['packed-query-transports.mjs'], root,
-      {...runtimeEnvironment, ACTQL_TEST_QUERY_TIMEOUT_MS: String(acceptanceTimeout),
+      {...runtimeEnvironment, ...(portablePart === undefined ? {} : {ACTQL_TEST_QUERY_CI_PART: ciPart}), ACTQL_TEST_QUERY_TIMEOUT_MS: String(acceptanceTimeout),
         ACTQL_TEST_QUERY_DEADLINE: String(acceptanceDeadline),
         ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'}, acceptanceTimeout);
     acceptanceSucceeded = true;
     console.log(output.trimEnd());
     // Reuse this exact installation and its producer artifact. Source INFER
     // is a separate authored corpus; narrow non-INFER selections stay narrow.
-    if (!process.argv.some(flag => flag.endsWith('-only'))) await exerciseInferSource();
+    if (portableExtras && !process.argv.some(flag => flag.endsWith('-only'))) await exerciseInferSource();
   }
   // The same packed installation executes this bounded candidate corpus once.
   // Cost inputs go to the Host profile; the public Program never chooses a route.
-  if (plannerSelectionOnly || !narrowPublicQuery && !twoSourceExampleOnly) {
+  if (portableExtras && (plannerSelectionOnly || !narrowPublicQuery && !twoSourceExampleOnly)) {
     console.log(run(process.execPath, ['packed-planner-selection.mjs'], root,
       runtimeEnvironment, 180_000).trimEnd());
   }
-  if (twoSourceExampleOnly || !plannerSelectionOnly && !narrowPublicQuery) {
+  if (portableExtras && (twoSourceExampleOnly || !plannerSelectionOnly && !narrowPublicQuery)) {
     console.log(run(process.execPath, ['packed-two-source-example.mjs'], root,
       runtimeEnvironment, 180_000).trimEnd());
   }
@@ -943,7 +949,9 @@ try {
       ...((process.argv.includes('--unpivot-row-label-only') ||
         (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
         ? ['unpivot-row-label-receipts.local.json', 'unpivot-row-label-receipts.remote.json'] : [])];
-    await retainTransportReports(reports, acceptanceSucceeded, packedFailure, 'transport-evidence-index.json');
+    await retainTransportReports(reports.filter(name => portableReceiptPrefixes === undefined ||
+      !name.includes('-receipts.') || portableReceiptPrefixes.some(prefix => name.startsWith(prefix + '-receipts.'))),
+    acceptanceSucceeded, packedFailure, 'transport-evidence-index.json');
   }
   try {
     await writeFile(join(directory, 'two-source-example.json'),
@@ -965,6 +973,7 @@ async function exerciseRetainedQueryRestart(extraEnvironment = {}) {
   try {
     console.log(run(process.execPath, ['packed-query-restart-transports.mjs'], root,
       {...runtimeEnvironment, ...extraEnvironment,
+        ...(portablePart !== undefined && portablePart !== 1 ? {ACTQL_TEST_RETAINED_COHORT_ONLY: '1'} : {}),
         ACTQL_TEST_QUERY_RESTART_DEADLINE: String(Date.now() + 120_000)}, 120_000).trimEnd());
     succeeded = true;
   } catch (error) { primary = error; throw error; }
@@ -1126,6 +1135,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
   process.argv.includes('--graph-difference-only') ||
   process.argv.includes('--graph-rows-only') ||
   process.argv.includes('--graph-traverse-paths-only')) return;
+if (!portableExtras) return;
 if (!process.argv.includes('--graph-source-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
@@ -1144,5 +1154,5 @@ for (const {name} of graphPublicHostCases) {
 console.log(run(process.execPath, ['--test', 'graph-source-snapshot.test.mjs'], root,
   {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1'}, 180000).trimEnd());
 if (process.argv.includes('--graph-source-only')) return;
-if (ciPart !== 'portable') await exerciseNativeGraphSource();
+if (!portableCi) await exerciseNativeGraphSource();
 });
