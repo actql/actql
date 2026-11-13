@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { mutations } from './capacity/instrument.mjs';
+import { capacityPartIds, capacityObligationsByPart, partRole } from './proof-parts.mjs';
+
+const normalPart = capacityPartIds.find(id => partRole(id) === 'capacity-normal');
+const supportPart = capacityPartIds.find(id => partRole(id) === 'capacity-support');
+const mutantParts = capacityPartIds.filter(id => partRole(id) === 'capacity-mutants');
 
 // These check the real CLI's scheduling and failure propagation with explicit
 // synthetic observations. Product/source/binary/oracle acceptance stays in CI.
@@ -139,59 +144,82 @@ for (const fail of ['close', 'custody-probe', 'parent-probe']) {
 
 
 
-test('L-C0 owns only corpus/boundaries/backing/models and closes before custody then native parent', () => {
-  const result = run({ part: 'L-C0' });
+test('normal fragment retains complete corpus/boundaries and closes without claiming support or mutants', () => {
+  const result = run({ part: normalPart });
   assert.equal(result.status, 0, result.stderr);
   const { calls, installs, report, closes, custodyProbes, parentProbes, restoredCloses } = result.state;
-  assert.equal(result.state.checkpoint, null, 'Successful fragment retains no provisional duplicate');
-  assert.equal(report.kind, 'capacity-part'); assert.equal(report.part, 'L-C0'); assert.equal(report.complete, true);
+  assert.equal(result.state.checkpoint, null);
+  assert.equal(report.kind, 'capacity-part'); assert.equal(report.part, normalPart); assert.equal(report.complete, true);
   assert.equal(calls.length, 12); assert.equal(installs.length, 4);
-  assert.equal(report.mutations, undefined); assert.equal(report.postRestore, undefined);
+  for (const field of ['backingCore', 'backingModel', 'model', 'custody', 'parentStartup', 'mutations', 'postRestore'])
+    assert.equal(report[field], undefined);
   assert.deepEqual(Object.keys(report.normal), ['js', 'wasm', 'native']);
   assert.deepEqual(closes, [{ afterCalls: 12, receipts: 12 }]);
-  assert.deepEqual(custodyProbes, [{ afterCalls: 12, afterClose: 1, target: 'all' }]);
-  assert.deepEqual(parentProbes, [{ afterCalls: 12, afterClose: 1, afterCustody: 1 }]);
-  assert.deepEqual(restoredCloses, []);
+  assert.deepEqual(custodyProbes, []); assert.deepEqual(parentProbes, []); assert.deepEqual(restoredCloses, []);
   assert.deepEqual(Object.values(report.executionOwners).map(o => o.phase), ['instrumented']);
+  assert.equal(result.state.source, 'healthy'); assert.equal(result.state.observerPresent, false);
 });
 
-test('L-C1 preserves all five searches/shrinks and fifteen healthy replays, then replays pristine minima with a new owner', () => {
-  const result = run({ part: 'L-C1' });
+test('support fragment retains its independent Core/models/custody/parent receipts with no fabricated pipeline owner', () => {
+  const result = run({ part: supportPart });
+  assert.equal(result.status, 0, result.stderr);
+  const { report, calls, installs, closes, custodyProbes, parentProbes } = result.state;
+  assert.equal(report.complete, true); assert.equal(report.part, supportPart);
+  assert.deepEqual(calls, []); assert.deepEqual(installs, []);
+  assert.deepEqual(report.executions, []); assert.deepEqual(report.executionOwners, {});
+  assert.deepEqual(closes, [{ afterCalls: 0, receipts: 0 }]);
+  assert.deepEqual(custodyProbes, [{ afterCalls: 0, afterClose: 1, target: 'all' }]);
+  assert.deepEqual(parentProbes, [{ afterCalls: 0, afterClose: 1, afterCustody: 1 }]);
+  assert.deepEqual(report.backingCore.targets, ['js', 'wasm', 'native']);
+  for (const name of ['backingModel', 'model', 'custody', 'parentStartup']) assert(report[name]);
+  for (const name of ['normal', 'boundaries', 'mutations', 'postRestore']) assert.equal(report[name], undefined);
+  assert.equal(result.state.checkpoint, null);
+  assert.equal(result.state.source, 'healthy'); assert.equal(result.state.observerPresent, false);
+});
+
+for (const part of mutantParts) test(`${part} preserves every assigned complete search/shrink/replay/restoration atom`, () => {
+  const result = run({ part });
   assert.equal(result.status, 0, result.stderr);
   const { calls, installs, report, closes, restoredCloses, custodyProbes, parentProbes, checks } = result.state;
-  assert.equal(result.state.checkpoint, null, 'Successful fragment retains no provisional duplicate');
-  assert.equal(report.kind, 'capacity-part'); assert.equal(report.part, 'L-C1'); assert.equal(report.complete, true);
+  const names = capacityObligationsByPart[part].mutations, count = names.length;
+  assert.equal(result.state.checkpoint, null);
+  assert.equal(report.kind, 'capacity-part'); assert.equal(report.part, part); assert.equal(report.complete, true);
   for (const field of ['normal', 'boundaries', 'backingCore', 'model', 'backingModel', 'custody', 'parentStartup']) assert.equal(report[field], undefined);
-  assert.deepEqual(report.mutations.map(m => m.name), mutations.map(m => m.name));
-  assert.equal(installs.length, 6);
-  assert.equal(calls.length, 60); assert.equal(report.executions.length, 60);
-  assert.deepEqual(closes, [{ afterCalls: 45, receipts: 45 }]);
-  assert.deepEqual(restoredCloses, [{ afterCalls: 60, receipts: 60 }]);
+  assert.deepEqual(report.mutations.map(m => m.name), names);
+  assert.equal(installs.length, count + 1);
+  assert.equal(calls.length, 12 * count); assert.equal(report.executions.length, 12 * count);
+  assert.deepEqual(closes, [{ afterCalls: 9 * count, receipts: 9 * count }]);
+  assert.deepEqual(restoredCloses, [{ afterCalls: 12 * count, receipts: 12 * count }]);
   assert.deepEqual(custodyProbes, []); assert.deepEqual(parentProbes, []);
   const primary = report.executionOwners['primary-owner'], restored = report.executionOwners['restored-owner'];
-  assert(primary.closed && restored.closed); assert.equal(primary.paths.length, 45); assert.equal(restored.paths.length, 15);
+  assert(primary.closed && restored.closed); assert.equal(primary.paths.length, 9 * count); assert.equal(restored.paths.length, 3 * count);
   assert.equal(restored.predecessor, primary.id); assert.equal(restored.root, primary.root);
-  assert.equal(report.postRestore.timings.totalMs, 150);
-  assert.deepEqual(Object.keys(report.postRestore.timings.replayMs), mutations.map(m => m.name));
-  for (const [i, mutation] of mutations.entries()) {
-    const mutant = calls.filter(c => c.label.startsWith(`capacity-${mutation.name}-`));
-    assert.deepEqual(mutant.map(c => c.label.slice(`capacity-${mutation.name}-`.length)),
+  assert.equal(report.postRestore.timings.totalMs, 30 * count);
+  assert.deepEqual(Object.keys(report.postRestore.timings.replayMs), names);
+  for (const [i, name] of names.entries()) {
+    const slot = mutations.findIndex(m => m.name === name);
+    const mutant = calls.filter(c => c.label.startsWith(`capacity-${name}-`));
+    assert.deepEqual(mutant.map(c => c.label.slice(`capacity-${name}-`.length)),
       ['search', 'shrink', 'shrink', 'minimal', 'minimal', 'minimal', 'restored', 'restored', 'restored', 'post-restore', 'post-restore', 'post-restore']);
-    assert(mutant.slice(0, 6).every(c => c.source === `instrumented:${mutation.name}`));
+    assert(mutant.slice(0, 6).every(c => c.source === `instrumented:${name}`));
     assert(mutant.slice(6, 9).every(c => c.source === 'instrumented:healthy'));
     assert(mutant.slice(9).every(c => c.source === 'healthy' && c.correspondence));
-    assert(mutant.slice(3).every(c => c.inputs.length === 1 && c.inputs[0].id === `minimum-${i}`));
-    assert.deepEqual(report.postRestore.timings.replayMs[mutation.name], { js: 10, wasm: 10, native: 10 });
+    assert(mutant.slice(3).every(c => c.inputs.length === 1 && c.inputs[0].id === `minimum-${slot}`));
+    assert.deepEqual(report.postRestore.timings.replayMs[name], { js: 10, wasm: 10, native: 10 });
     const record = report.postRestore.records[i];
-    assert.equal(record.name, mutation.name); assert.deepEqual(record.minimal, report.mutations[i].minimal);
+    assert.equal(record.name, name); assert.deepEqual(record.minimal, report.mutations[i].minimal);
     for (const [target, observation] of Object.entries(record.observations)) {
       assert.equal(observation.target, target); assert.deepEqual(observation.faults, []);
       assert.deepEqual(checks.filter(c => c.observationId === observation.observationId).map(c => c.kind), ['semantics']);
     }
   }
 });
-for (const part of ['L-C0', 'L-C1']) for (const fail of ['restore', 'close',
-  ...(part === 'L-C0' ? ['custody-probe', 'parent-probe'] : [`capacity-${mutations[0].name}-post-restore:wasm`, 'post-restore-close'])]) {
+for (const part of capacityPartIds) for (const fail of [
+  ...(partRole(part) === 'capacity-support' ? [] : ['restore']), 'close',
+  ...(partRole(part) === 'capacity-support' ? ['custody-probe', 'parent-probe'] : []),
+  ...(partRole(part) === 'capacity-mutants'
+    ? [`capacity-${capacityObligationsByPart[part].mutations[0]}-post-restore:wasm`, 'post-restore-close'] : []),
+]) {
   test(`${part} ${fail} cannot emit a successful immutable fragment`, () => {
     const result = run({ part, fail });
     assert.notEqual(result.status, 0); assert.equal(result.state.report, null);
@@ -200,7 +228,8 @@ for (const part of ['L-C0', 'L-C1']) for (const fail of ['restore', 'close',
   });
 }
 
-for (const options of [{ part: 'L-C9' }, { part: 'L-C0', environmentPart: 'L-C1' }, { part: 'L-C1', target: 'js' }]) {
+for (const options of [{ part: 'L-C9' }, { part: normalPart, environmentPart: mutantParts[0] },
+  { part: mutantParts[0], target: 'js' }, { part: 'L-C0' }, { part: 'L-C1' }]) {
   test(`capacity partition rejects invalid or conflicting selection ${JSON.stringify(options)}`, () => {
     const result = run(options);
     assert.notEqual(result.status, 0); assert.equal(result.state.report, null); assert.equal(result.state.calls.length, 0);

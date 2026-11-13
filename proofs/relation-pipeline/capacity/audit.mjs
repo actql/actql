@@ -17,7 +17,7 @@ import { auditCoreProbe } from './backing/core-probe.mjs';
 import { inspectPipelineBacking } from './backing/pipeline.mjs';
 import { auditParentStartup } from './parent-control/audit.mjs';
 import { rejectParentSubstitutions } from './parent-control/regression.mjs';
-import { capacityObligationsByPart } from '../proof-parts.mjs';
+import { capacityObligationsByPart, capacityPartIds, capacityMutationNames, partRole } from '../proof-parts.mjs';
 import { resolveCapacityUnion, validateCapacityOwners } from './parts.mjs';
 import { auditCustody, auditCustodyMutations } from './parent-control/custody.mjs';
 import { pipelineEvidenceReader } from '../evidence-reader.mjs';
@@ -37,11 +37,17 @@ export function validate(report, current, targets, read) {
     validateCapacityOwners(report);
     assert.deepEqual(targets, report.targets, 'Requested capacity targets differ from fragment');
   }
-  const normalPart = report.part !== 'L-C1', mutationPart = report.part !== 'L-C0';
+  const role = report.part === undefined ? undefined : partRole(report.part);
+  const normalPart = role === undefined || role === 'capacity-normal';
+  const supportPart = role === undefined || role === 'capacity-support';
+  const mutationPart = role === undefined || role === 'capacity-mutants';
+  const expectedMutationNames = report.part === undefined ? capacityMutationNames : capacityObligationsByPart[report.part].mutations;
+  const restorations = report.postRestore === undefined ? []
+    : report.kind === 'capacity-union' ? report.postRestore.parts : [report.postRestore];
   assert.equal(report.version, 'actql-relation-pipeline-structure/0.1');
   assert.deepEqual(report.source, current, 'Stale capacity source');
   assert.deepEqual(report.toolchain, JSON.parse(read('toolchain.json')), 'Unpinned compiler declaration');
-  if (normalPart) {
+  if (supportPart) {
     assert.deepEqual(report.custody.source, current, 'Stale custody campaign');
     auditCustodyMutations(report.custody.mutations, current, read);
     assert.deepEqual(report.custody.records.map(({ target, mode }) => ({ target, mode })),
@@ -61,16 +67,18 @@ export function validate(report, current, targets, read) {
     assert(read(report.backingModel.logPath).toString().includes('3 selected native Array extent propositions checked'));
   }
   admitClaim(report.claim);
-  if (normalPart && targets.includes('native')) {
+  if (supportPart && targets.includes('native')) {
     auditParentStartup(report.parentStartup, current, read);
     rejectParentSubstitutions(report.parentStartup, current, read);
   } else assert.equal(report.parentStartup, undefined, 'Native parent evidence cannot apply to a portable-only campaign');
   const corpus = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
-  if (report.kind) assert.equal(corpus.length, capacityObligationsByPart['L-C0'].normal.caseCount, 'Capacity corpus differs from canonical part plan');
+  if (report.kind) assert.equal(corpus.length,
+    capacityObligationsByPart[capacityPartIds.find(id => partRole(id) === 'capacity-normal')].normal.caseCount,
+    'Capacity corpus differs from canonical part plan');
   assert.deepEqual(report.corpus, corpus, 'Scope must come from the reviewed corpus, not caller labels');
   assert.equal(report.seed, 148256);
   assert.deepEqual(report.search, generate(registry, 148256, 24).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1));
-  if (normalPart) {
+  if (supportPart) {
     assert.deepEqual(report.model.command, ['node', 'proofs/relation-pipeline/capacity/check.mjs']);
     assert.equal(report.model.exit, 0); assert.equal(report.model.sourceDigest, current.digest);
     assert.equal(hash(read(report.model.logPath)), report.model.logDigest);
@@ -130,7 +138,7 @@ export function validate(report, current, targets, read) {
     }
     assert.deepEqual(source.sources, expected, 'Unknown observation or mutation source');
     if (postRestore) {
-      assert.equal(run.boundary.workspace, report.postRestore.owner, 'Wrong post-restore execution owner');
+      assert(restorations.some(r => r.owner === run.boundary.workspace), 'Wrong post-restore execution owner');
       assert.equal(run.sourceDigest, current.digest, 'Post-restore execution is not pristine');
     }
     const log = read(run.logPath).toString(); assert.equal(hash(log), run.logDigest);
@@ -194,8 +202,8 @@ export function validate(report, current, targets, read) {
     }
   }
   if (mutationPart) {
-    if (report.kind) assert.deepEqual(mutations.map(m => m.name), capacityObligationsByPart['L-C1'].mutations, 'Capacity mutations differ from canonical part plan');
-    assert.deepEqual(report.mutations.map(m => m.name), mutations.map(m => m.name), 'Missing actual resource mutation');
+    assert.deepEqual(mutations.map(m => m.name), capacityMutationNames, 'Capacity mutations differ from canonical part plan');
+    assert.deepEqual(report.mutations.map(m => m.name), expectedMutationNames, 'Missing actual resource mutation');
     for (const m of report.mutations) {
       const variant = mutations.find(v => v.name === m.name);
       assert.equal(m.anchor.event, variant.event); assert.equal(m.anchor.resource, variant.resource); assert.equal(m.anchor.fault, variant.fault);
@@ -252,21 +260,27 @@ export function validate(report, current, targets, read) {
     }
   }
   if (report.postRestore) {
-    assert.deepEqual(report.postRestore.records.map(record => record.name), mutations.map(m => m.name), 'Missing post-restore minimum');
-    for (const [index, record] of report.postRestore.records.entries()) {
-      assert.deepEqual(record.minimal, report.mutations[index].minimal, 'Post-restore replay changed minimum');
-      assert.deepEqual(Object.keys(record.observations), targets, 'Incomplete post-restore targets');
-      for (const target of targets) {
-        const observation = record.observations[target];
-        observed(observation, target, record.minimal);
-        assert.equal(observation.correspondence, true);
-        assert.deepEqual(observation.faults, [], 'Post-restore execution remains instrumented');
-        compareSemantics(record.minimal, observation, registry);
-        const matching = report.executions.filter(e => e.receipt.boundary.workspace === report.postRestore.owner &&
-          e.receipt.target === target && e.receipt.logPath.includes(`capacity-${record.name}-post-restore-`));
-        assert.equal(matching.length, 1, 'Missing independent post-restore execution');
-        assert.deepEqual(matching[0].receipt.cases.map(c => c.testCase), [record.minimal]);
-        assert.deepEqual(matching[0].receipt.cases.map(c => c.observation), [observation]);
+    assert.deepEqual(report.postRestore.records.map(record => record.name), expectedMutationNames, 'Missing post-restore minimum');
+    for (const restoration of restorations) {
+      const names = report.kind === 'capacity-union' ? capacityObligationsByPart[restoration.part].mutations : expectedMutationNames;
+      assert.deepEqual(restoration.records.map(record => record.name), names, 'Wrong post-restore fragment inventory');
+      assert.equal(restoration.sourceDigest, current.digest, 'Stale post-restore source');
+      for (const record of restoration.records) {
+        const mutation = report.mutations.find(m => m.name === record.name);
+        assert.deepEqual(record.minimal, mutation.minimal, 'Post-restore replay changed minimum');
+        assert.deepEqual(Object.keys(record.observations), targets, 'Incomplete post-restore targets');
+        for (const target of targets) {
+          const observation = record.observations[target];
+          observed(observation, target, record.minimal);
+          assert.equal(observation.correspondence, true);
+          assert.deepEqual(observation.faults, [], 'Post-restore execution remains instrumented');
+          compareSemantics(record.minimal, observation, registry);
+          const matching = report.executions.filter(e => e.receipt.boundary.workspace === restoration.owner &&
+            e.receipt.target === target && e.receipt.logPath.includes(`capacity-${record.name}-post-restore-`));
+          assert.equal(matching.length, 1, 'Missing independent post-restore execution');
+          assert.deepEqual(matching[0].receipt.cases.map(c => c.testCase), [record.minimal]);
+          assert.deepEqual(matching[0].receipt.cases.map(c => c.observation), [observation]);
+        }
       }
     }
   }
