@@ -44,6 +44,22 @@ test('Linux common Native uses its selected compiler profile rather than Darwin 
   assert(reader.if.includes("!startsWith(matrix.partition, 'linux-common-')"));
 });
 
+test('Linux dispatch leaves discovery and expected counts to the sole original Native entry', async () => {
+  let entered = 0;
+  const repeat = () => { throw new Error('Duplicate caller-side metadata discovery'); };
+  const actual = await runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-4/8',
+    platformPackages: repeat, selectTests: repeat, countTests: repeat,
+    executeProfile: (_root, args, options) => {
+      entered++;
+      assert.deepEqual(args, [...nativeCoreLinuxCommonArguments]);
+      assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE, 'linux-common-importers');
+      assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_PARTITION, '4/8');
+      assert.equal(options.expectedTests, undefined, 'The original counted entry owns its actual count');
+      return 19;
+    }});
+  assert.equal(entered, 1); assert.equal(actual, 19);
+});
+
 test('Linux importers enter the original ordinary profile with exact flags, case count and failure', async () => {
   assert.deepEqual(nativeCoreLinuxCommonArguments, [
     '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose',
