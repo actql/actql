@@ -1,3 +1,4 @@
+import {prepareNativeResidentPortableCore} from './native-resident-portable-preparation.mjs';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFile, execFileSync} from 'node:child_process';
@@ -46,9 +47,11 @@ if (targetTriple === undefined) {
 
 let passed = false;
 try {
-  execFileSync(moon, [
+  prepareNativeResidentPortableCore(repositoryRoot, {
+    prepare: () => execFileSync(moon, [
     'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
-  ], {cwd: repositoryRoot, stdio: 'inherit'});
+  ], {cwd: repositoryRoot, stdio: 'inherit'})
+  });
   const executable = prepareNativeRuntimeBundle(repositoryRoot,
     join(root, 'runtime-bundle-producer'));
   const bundleLibraries = prepareNativeRuntimeBundleLibraries(repositoryRoot,
