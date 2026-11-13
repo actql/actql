@@ -974,6 +974,24 @@ test('actual evaluation Source Git changes reject additions deletions renames an
   assert.equal(inspect(absent).profile, 'full', 'a reviewed pathname is not permission for a new file');
 });
 
+test('Native command parsing remains a full execution input when its implementation changes alone', () => {
+  const path = 'scripts/verification-actions.mjs';
+  for (const caller of ['native-core-test-selection.mjs', 'native-core-scoped-profile.mjs']) {
+    const source = readFileSync(new URL(caller, import.meta.url), 'utf8');
+    assert(source.includes("import {parseCommands} from './verification-actions.mjs'"), caller);
+  }
+  const selection = maintenanceSelection([path]);
+  assert.equal(selection.profile, 'full');
+  assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
+  assert.equal(selection.macos, true);
+  assert.equal(deepProofRequired(selection), true);
+  assert(!maintenanceFiles.includes(path));
+  for (const job of ['core', 'native', 'native-macos', 'host', 'client', 'pipeline-evidence', 'pipeline-validation'])
+    assert.equal(gateJobRequired(selection, job), true, job);
+  assert.throws(() => verifyGate(plan(selection), {...results(selection), core: {result: 'skipped'}}, context));
+  assert.equal(maintenanceSelection(['scripts/verification-actions.test.mjs']).profile, 'maintenance');
+});
+
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
   assert.equal(maintenanceFiles.length, 25);
   assert.equal(new Set(maintenanceFiles).size, 25);
