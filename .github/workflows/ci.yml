@@ -350,7 +350,7 @@ jobs:
   # Portable targets remain single jobs. Native keeps complete package drivers
   # in four ordinary jobs and three independent physical profiles. The initial
   # Linux common packages use eight whole-driver partitions. Darwin coverage
-  # remains intact until the corresponding actual Linux execution is qualified.
+  # keeps the FFI/platform/linker owners and their complete source/test importers.
   core:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
@@ -529,6 +529,7 @@ jobs:
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
           ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}
+          ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'darwin-differences' || '' }}
           ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: ${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}
           CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
         run: |

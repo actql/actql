@@ -88,7 +88,7 @@ function commands(name, target, raw = false) {
     .replaceAll('${{ matrix.target }}', target)
     // A local full Core invocation remains unpartitioned. Hosted-only Linux
     // partitions cannot silently narrow this existing diagnostic entrance.
-    .replaceAll('${{ matrix.partition }}', '')
+    .replaceAll('${{ matrix.partition }}', name === 'core' ? '' : '${{ matrix.partition }}')
     .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false')
     .replaceAll('${{ github.workspace }}', root.replace(/\/$/u, ''))
     .replaceAll('${{ runner.temp }}', scratch)
@@ -122,6 +122,12 @@ function commands(name, target, raw = false) {
         fail('Unsupported Native Core scheduling expression; local CI must retain the serial scoped profile');
       }
       return [key, '1'];
+    }
+    if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE') {
+      if (value !== "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'darwin-differences' || '' }}") {
+        fail('Unsupported Native Core platform scope; local CI must retain complete coverage');
+      }
+      return [key, ''];
     }
     return [key, resolve(value)];
   };
