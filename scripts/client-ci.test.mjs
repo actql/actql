@@ -1795,6 +1795,6 @@ test('distribution mutation matrix executes each unchanged script once after its
   assert.equal(tests[0]['continue-on-error'], undefined);
   const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).scripts['check:distribution-client'].split(' && ');
   assert.deepEqual(expected.map(({script}) => tests[0].run.replace('${{ matrix.script }}', script)), local.slice(6, 10));
-  assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert(jobs.client.needs.includes('client-distribution-mutations'));
 });
