@@ -271,6 +271,30 @@ fn start_stepped_measure_result(
 }
 
 ///|
+// Only the same operation's completed, empty cursor may begin another value.
+// Each active frame still owns a live workspace slot before it is appended.
+fn restart_completed_stepped_measure(
+  cursor : SteppedValueMeasure,
+  value : Value,
+) -> Bool {
+  if !cursor.frames.is_empty() || cursor.workspace_failed {
+    return false
+  }
+  if !reserve_slots(cursor.workspace, 1) {
+    cursor.workspace_failed = true
+    return false
+  }
+  cursor.frames.push(
+    match value {
+      Captured(value) => SteppedRead(value, 2)
+      Text(text) => SteppedText(text)
+      Null | Boolean(_) | Number(_) => SteppedScalar
+    },
+  )
+  true
+}
+
+///|
 fn clear_stepped_measure(cursor : SteppedValueMeasure) -> Unit {
   release_slots(cursor.workspace, cursor.frames.length())
   cursor.frames.clear()

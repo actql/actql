@@ -3161,6 +3161,63 @@ test "bounded selected take with offset beyond input completes empty" {
 }
 
 ///|
+test "bounded binding input reuses one cursor without retaining prior values" {
+  let (_, execution, input) = bounded_binding_rows_fixture(
+    "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]",
+  )
+  let mut original : SteppedValueMeasure? = None
+  let mut cells = 0
+  let mut retained = false
+  for _ in 0..<1000 {
+    guard advance_bounded_binding_rows(execution, 1).unwrap()
+      is BoundedBindingRowsContinue(..) else {
+      fail("input charge finished without its retention boundary")
+    }
+    let state = execution.state
+    if state.phase is ChargeInput {
+      if state.charge_measure is Some(cursor) {
+        match original {
+          None => original = Some(cursor)
+          Some(first) => {
+            assert_true(physical_equal(first, cursor))
+            assert_true(physical_equal(first.frames, cursor.frames))
+          }
+        }
+        if cursor.frames.is_empty() {
+          cells = Int::max(cells, state.charge_row * 3 + state.charge_column)
+        }
+      }
+    } else if state.phase is RetainInputs {
+      assert_true(state.charge_measure is None)
+      assert_true(original.unwrap().frames.is_empty())
+      assert_eq(cells, 6)
+      assert_eq(state.input_values.nodes, 16)
+      assert_eq(state.input_values.text, 22)
+      assert_eq(state.input_values.work, 38)
+      retained = true
+      break
+    }
+  }
+  assert_true(retained)
+  let mut completed = false
+  for _ in 0..<1000 {
+    match advance_bounded_binding_rows(execution, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 2)
+        assert_true(completed_cell(output, 1, 4) is Some(Number(11.0)))
+        completed = true
+        break
+      }
+      _ => fail("reused input measure changed the completed result")
+    }
+  }
+  assert_true(completed)
+  assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(producer_read_available(input))
+}
+
+///|
 test "bounded binding input value admission has an exact boundary" {
   let rows = "[{\"id\":1,\"left\":[1,2],\"right\":[3,4]},{\"id\":2,\"left\":[2,1],\"right\":[4,3]}]"
   // Each row contributes one row node, one number node, two vector nodes,
@@ -3203,7 +3260,12 @@ test "bounded binding input value admission has an exact boundary" {
     }
   }
   assert_true(producer_read_available(input))
+  assert_true(
+    advance_bounded_binding_rows(rejected, 1)
+    is Err(Execution(@bounded.Terminal)),
+  )
   assert_true(cleanup_bounded_binding_rows(rejected).unwrap())
+  assert_true(rejected.state.charge_measure is None)
 }
 
 ///|
@@ -3236,6 +3298,11 @@ test "bounded filter can stop inside an unused nested input cell" {
     is BoundedBindingRowsStopped(_, ..),
   )
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
+  assert_true(execution.state.charge_measure is None)
+  assert_true(
+    advance_bounded_binding_rows(execution, 1)
+    is Err(Execution(@bounded.Terminal)),
+  )
   assert_true(producer_read_available(input))
 }
 
