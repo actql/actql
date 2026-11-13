@@ -315,6 +315,71 @@ export async function observeNativeFileSourceNumeric({root, cli}) {
     coldSavedWithoutProgramOrSource: true};
 }
 
+// The exact same authored JSON is checked independently by the portable
+// client_local_host fixture. Its 30 Units retain 33 physical tasks, including
+// one real captured File Source; source-free UNION size is not its oracle.
+export async function observeNativeFileTaskBoundary({root, cli, environment}) {
+  const project = join(root, 'file-task-boundary');
+  await cli(['init', '--template', 'churn-risk-mock', project], root);
+  const file = 'file-task-boundary.json', source = join(project, 'mock/data.json');
+  const original = await readFile(source);
+  const wire = await readFile(new URL('./fixtures/native-file-task-boundary.json', import.meta.url));
+  await writeFile(join(project, file), wire, {flag: 'wx', mode: 0o600});
+  const checked = JSON.parse((await cli(['check', file, '--format', 'json', '--json'], project)).stdout);
+  assert.equal(checked.outcome, 'completed'); assert.equal(checked.report.verdict, 'verified');
+  assert.equal(checked.report.runnable.verdict, 'yes');
+  const command = async args => {
+    const flags = ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS'];
+    const previous = flags.map(key => [key, environment[key]]);
+    let record;
+    try {
+      for (const key of flags) environment[key] = '1';
+      record = await cli(args, project);
+    } finally {
+      for (const [key, value] of previous) {
+        if (value === undefined) delete environment[key]; else environment[key] = value;
+      }
+    }
+    assert.equal(record.code, 0); assert.equal(record.signal, null);
+    const native = nativeLauncherEnvelope(record.stderr, 'required').native;
+    const groups = nativeMockAcceptanceObservations(native);
+    assert.equal(groups.length, 1, 'One original Native process required');
+    assert.equal(groups[0].events.length, 0, 'No Model or Effect work in this File fixture');
+    const rows = native.trimEnd().split('\n').map(line => {
+      const space = line.indexOf(' ');
+      return {marker: line.slice(0, space), value: JSON.parse(line.slice(space + 1))};
+    });
+    const meta = rows.find(row => row.marker === 'ACTQL_NATIVE_TIMINGS').value;
+    for (const key of ['initializing_drops', 'invalid_tags', 'invalid_amounts', 'clock_failures', 'stack_overflows'])
+      assert.equal(meta[key], 0, `Incomplete Native File observation: ${key}`);
+    assert.equal(meta.overflow, false);
+    const close = rows.find(row => row.marker === 'ACTQL_NATIVE_PHASE' && row.value.tag === 5).value;
+    assert.equal(close.begins, 1, 'Observe the first original command cleanup, without a retry');
+    assert.equal(close.ends, 1); assert.equal(close.active, 0); assert.equal(close.unmatched_end, 0);
+    // Tag 5 surrounds the actual command cleanup. Successful exit is also
+    // required; neither fact is independent physical FD/whole-Host ACK.
+    return {record, pid: groups[0].pid};
+  };
+  const run = await command(['run', file, '--format', 'json', '--json']);
+  const state = JSON.parse(run.record.stdout);
+  assert.equal(state.version, 'actql-run-state/0.1'); assert.equal(state.status, 'succeeded');
+  assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+  const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const first = await command(['result', state.run_id, '--result', 'answer', '--format', 'jsonl']);
+  // The authored churn template contains two usage rows. Do not derive this
+  // expectation from the compiler, a preview, or the delivered result itself.
+  assert.deepEqual(rows(first.record.stdout), [{id: 2}]);
+  assert.deepEqual(await readFile(source), original, 'The complete File Source must remain unchanged');
+  await unlink(join(project, file)); await unlink(source);
+  const cold = await command(['result', state.run_id, '--result', 'answer', '--format', 'jsonl']);
+  assert.notEqual(cold.pid, first.pid, 'Saved must use a separate Native process');
+  assert.deepEqual(rows(cold.record.stdout), [{id: 2}]);
+  return {runId: state.run_id, rows: [{id: 2}], fixtureSha256: createHash('sha256').update(wire).digest('hex'),
+    independentCheckedFixture: {tasks: 33, units: 30, acquisitions: 1, capturedPrefix: 1},
+    firstCommandCleanupObserved: true, independentPhysicalAck: false,
+    completeResultBeforeInputRemoval: true, coldSavedWithoutProgramOrSource: true};
+}
+
 // Read the actual delivered file, including its last row. A count, preview or
 // aggregate alone cannot establish the contents of the original stored Result.
 export async function verifyNativeNumericRows(path, count = 100000) {
@@ -986,6 +1051,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli: sourceFreeCli});
     const defaultUnionMetadata = await observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli});
     const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
+    const fileTaskBoundary = await observeNativeFileTaskBoundary({root, cli, environment: env});
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const help = (await cli(['--help'])).stdout;
     assert.match(help, /Usage: actql/u);
@@ -1061,7 +1127,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, fileSourceNumeric,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, fileSourceNumeric, fileTaskBoundary,
       journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,

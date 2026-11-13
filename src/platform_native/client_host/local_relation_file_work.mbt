@@ -282,7 +282,6 @@ fn open_original_relation_file_work_selected(
     @host.prepared_client_acquisition_count(prepared) != 1 ||
     @strategy.graph_captured_prefix(@host.prepared_client_graph(prepared)) != 1 ||
     @strategy.graph_result_count(@host.prepared_client_graph(prepared)) != 1 ||
-    @strategy.graph_task_count(@host.prepared_client_graph(prepared)) > 32 ||
     @strategy.graph_program_has_effects(@host.prepared_client_graph(prepared)) ||
     @host.client_compiled_run_has_infers(compiled) {
     return Err(unstarted(Configuration))

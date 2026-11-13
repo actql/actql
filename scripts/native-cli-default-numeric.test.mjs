@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm, access, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeDefaultNumericQueries, observeNativeDefaultNumericQueries, observeNativeFileSourceNumeric,
-  nativeDefaultUnionCases, observeNativeDefaultUnionMetadata}
+  nativeDefaultUnionCases, observeNativeDefaultUnionMetadata, observeNativeFileTaskBoundary}
   from './test-native-cli-source-free-install.mjs';
 
 // Explicit command ports exercise the acceptance oracle, not Native execution.
@@ -146,6 +147,80 @@ for (const fault of ['live', 'saved', 'source']) test(`File CASE oracle refuses 
   assert.equal(fixture.calls.filter(args => args[0] === 'run').length, 1);
   assert.equal(fixture.calls.filter(args => args[0] === 'init').length, 1);
 });
+
+// These are command/oracle ports, never a Native execution claim. The same
+// fixture bytes also reach the real checker in native_file_task_boundary_js.
+function fileBoundaryObservation(pid, closes = 1, events = []) {
+  return 'ACTQL_NATIVE_TIMINGS ' + JSON.stringify({pid, origin:'first_hook',elapsed_ns:1,clock_current:true,nested_inclusive:true,
+    child_process_counters:false,phase_slots:39,counter_slots:70,initializing_drops:0,invalid_tags:0,invalid_amounts:0,clock_failures:0,overflow:false,stack_overflows:0,parallel_observed:false}) + '\n' +
+    Array.from({length:39},(_,tag)=>'ACTQL_NATIVE_PHASE '+JSON.stringify({tag,name:['startup','config_auth','preparation','execution','save','close','saved_result','journal'][tag] ?? {32:'approval_material_complete',33:'approval_reviewer_sign',34:'approval_host_sign',35:'approval_resolution_commit',36:'approval_apply',37:'approval_publish',38:'approval_checkpoint_restore'}[tag] ?? 'private_phase',begins:tag === 5 ? closes : 0,ends:tag === 5 ? closes : 0,inclusive_ns:0,exclusive_ns:0,active:0,overlap:0,unmatched_end:0,sql_prepares:0,current_calls:0})+'\n').join('') +
+    Array.from({length:70},(_,tag)=>'ACTQL_NATIVE_COUNTER '+JSON.stringify({tag,name:({0:'sqlite_open_calls',1:'sqlite_prepare_calls',2:'sqlite_step_calls',3:'sqlite_exec_calls',16:'member_hash_calls',17:'parse_check_calls',18:'current_calls',19:'account_auth_calls',20:'run_record_save_calls',22:'host_authorize_calls',23:'captured_read_authorize_calls',24:'publisher_authorize_calls',25:'run_record_read_calls',26:'adoption_digest_calls',46:'backing_allocated_bytes',47:'backing_explicit_zeroed_bytes',64:'signing_full_boundary_calls',65:'signing_helper_revalidation_calls',66:'request_query_parse_calls',67:'request_query_lower_calls',68:'request_semantic_check_calls',69:'request_program_compile_calls'})[tag] ?? 'private_counter',count:0})+'\n').join('') +
+    'ACTQL_NATIVE_ACCEPTANCE_BEGIN ' + JSON.stringify({pid, count: events.length, limit: 32, complete: true}) + '\n' +
+    events.map((event, seq) => 'ACTQL_NATIVE_ACCEPTANCE_EVENT ' + JSON.stringify({pid, seq, ...event}) + '\n').join('') +
+    'ACTQL_NATIVE_ACCEPTANCE_END ' + JSON.stringify({pid, count: events.length}) + '\n';
+}
+
+async function fileBoundaryFixture(t, fault) {
+  const root = await mkdtemp(join(tmpdir(), 'native-file-task-boundary-oracle-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const project = join(root, 'file-task-boundary'), source = join(project, 'mock/data.json');
+  const program = join(project, 'file-task-boundary.json');
+  const wire = await readFile(new URL('./fixtures/native-file-task-boundary.json', import.meta.url));
+  const original = projectTemplateFiles('churn-risk-mock')['mock/data.json'];
+  const calls = [], environment = {ACTQL_NATIVE_TIMINGS: 'prior'};
+  let reads = 0, pid = 1700;
+  const cli = async (args, cwd) => {
+    calls.push(args);
+    if (args[0] === 'init') {
+      assert.deepEqual(args, ['init', '--template', 'churn-risk-mock', project]); assert.equal(cwd, root);
+      await mkdir(join(project, 'mock'), {recursive: true}); await writeFile(source, original, {flag: 'wx'});
+      return {stdout: ''};
+    }
+    assert.equal(cwd, project);
+    if (args[0] === 'check' || args[0] === 'run') {
+      assert.deepEqual(await readFile(program), wire);
+      assert.deepEqual(args, [args[0], 'file-task-boundary.json', '--format', 'json', '--json']);
+      if (args[0] === 'check') return {stdout: JSON.stringify({outcome: 'completed', report: {
+        verdict: fault === 'check' ? 'undetermined' : 'verified', runnable: {verdict: 'yes'}}})};
+      assert.equal(calls.filter(value => value[0] === 'run').length, 1);
+      if (fault === 'source') await writeFile(source, 'changed');
+    } else {
+      assert.deepEqual(args, ['result', 'original-file-boundary', '--result', 'answer', '--format', 'jsonl']);
+      if (++reads === 1) {await access(program); await access(source);}
+      else for (const path of [program, source]) await assert.rejects(access(path), {code: 'ENOENT'});
+    }
+    assert.equal(environment.ACTQL_NATIVE_TIMINGS, '1');
+    assert.equal(environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS, '1');
+    const wrong = (fault === 'live' && reads === 1) || (fault === 'saved' && reads === 2);
+    const stdout = args[0] === 'run' ? JSON.stringify({version: 'actql-run-state/0.1',
+      status: 'succeeded', run_id: 'original-file-boundary'}) : JSON.stringify({id: wrong ? 1 : 2}) + '\n';
+    const native = fileBoundaryObservation(fault === 'same-process' ? 1701 : ++pid,
+      fault === 'close-missing' ? 0 : fault === 'close-retry' ? 2 : 1);
+    return {code: 0, signal: null, stdout, stderr: fault === 'observations' ? '' : native +
+      'ACTQL_NATIVE_LAUNCHER_TIMINGS {"units":"nanoseconds","preparation":0,"child":1,"total":1}\n'};
+  };
+  return {root, cli, environment, calls, reads: () => reads};
+}
+
+test('File task boundary oracle retains exact Program, two complete rows counted and original cold Saved', async t => {
+  const fixture = await fileBoundaryFixture(t);
+  const observed = await observeNativeFileTaskBoundary(fixture);
+  assert.equal(fixture.reads(), 2); assert.deepEqual(observed.rows, [{id: 2}]);
+  assert.deepEqual(observed.independentCheckedFixture, {tasks: 33, units: 30, acquisitions: 1, capturedPrefix: 1});
+  assert.equal(observed.firstCommandCleanupObserved, true); assert.equal(observed.independentPhysicalAck, false);
+  assert.equal(observed.coldSavedWithoutProgramOrSource, true);
+  assert.equal(fixture.calls.filter(args => args[0] === 'run').length, 1);
+  assert.deepEqual(fixture.environment, {ACTQL_NATIVE_TIMINGS: 'prior'});
+});
+
+for (const fault of ['check', 'live', 'saved', 'source', 'close-missing', 'close-retry', 'observations', 'same-process'])
+  test(`File task boundary oracle refuses ${fault} without another Run or replaced original`, async t => {
+    const fixture = await fileBoundaryFixture(t, fault);
+    await assert.rejects(observeNativeFileTaskBoundary(fixture), {code: 'ERR_ASSERTION'});
+    assert.equal(fixture.calls.filter(args => args[0] === 'run').length, fault === 'check' ? 0 : 1);
+    assert.equal(fixture.calls.filter(args => args[0] === 'init').length, 1);
+    assert.deepEqual(fixture.environment, {ACTQL_NATIVE_TIMINGS: 'prior'});
+  });
 
 const fixtureCid = value => 'sha256:' + createHash('sha256').update(value).digest('hex');
 
