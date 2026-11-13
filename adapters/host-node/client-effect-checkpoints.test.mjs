@@ -138,9 +138,9 @@ test('Host first close joins the original pre-dispatch Effect resume Store reade
   const expression = parseExpressionAt(source, start, {ecmaVersion: 'latest', sourceType: 'module'});
   const port = compileFunction('return (' + source.slice(expression.start, expression.end) + ');',
     ['inspectHeld', 'resumeHeld', 'abandonHeld', 'observeHeldRun', 'cancelHeldRun',
-      'modelController', 'sweepModelRuns', 'modelResumeFlights', 'effectRun', 'sweepEffectRuns', 'effectResumeFlights'])(
+      'modelController', 'sweepModelRuns', 'modelResumeFlights', 'effectRun', 'sweepEffectRuns', 'effectResumeFlights', 'effectRetirementFlights'])(
     ...Array.from({length: 5}, () => () => assert.fail('No business continuation is issued')),
-    undefined, undefined, new Map(), {}, sweep, flights);
+    undefined, undefined, new Map(), {}, sweep, flights, new Map());
   await installed.start(port);
   await readEntered.promise;
   assert(originalFd.fd >= 0, 'the same original semantic read really owns an open FD');
