@@ -14,6 +14,7 @@ import {prepareNativeResidentPortableRuntime, verifyNativeResidentPortablePrepar
 import * as portablePreparation from './native-resident-portable-preparation.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
+import {parse} from 'acorn';
 
 function portablePreparationFixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-portable-preparation-')));
@@ -163,11 +164,17 @@ test('Native Effect portable preparation verifies transfer before any runtime im
 
 function remoteAgentLaunchSource() {
   const source=readFileSync(new URL('./test-native-remote-runtime.mjs',import.meta.url),'utf8');
-  const marker="  if (!valuesHttpsOnly) execFileSync(moon, [\n    'test', 'src/platform_native/remote_agent/native_test',";
-  const start=source.indexOf(marker),end=source.indexOf('\n  verificationSucceeded = true;',start);
-  assert(start>=0 && end>start);
-  assert.equal(source.indexOf(marker,start+1),-1);
-  return source.slice(start,end);
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const launches=tree.body.filter(node=>node.type==='TryStatement').flatMap(node=>node.block.body)
+    .filter(node=>node.type==='IfStatement'&&node.consequent.type==='ExpressionStatement'&&
+      node.consequent.expression.callee?.name==='timedRemotePhase'&&
+      node.consequent.expression.arguments[0]?.value==='agent');
+  assert.equal(launches.length,1);
+  const launch=launches[0],call=launch.consequent.expression.arguments[1].body;
+  assert.equal(launch.test.operator,'!');assert.equal(launch.test.argument.name,'valuesHttpsOnly');
+  assert.equal(call.callee.name,'execFileSync');assert.equal(call.arguments[0].name,'moon');
+  assert.equal(call.arguments[1].elements[1].value,'src/platform_native/remote_agent/native_test');
+  return source.slice(launch.start,launch.end);
 }
 
 function assertRemoteAgentOriginalRoot(t,foreignParent) {
@@ -181,6 +188,7 @@ function assertRemoteAgentOriginalRoot(t,foreignParent) {
   let observation;
   runInNewContext(remoteAgentLaunchSource(),{
     valuesHttpsOnly:false,moon:'original-selected-moon',repositoryRoot:root,
+    timedRemotePhase:(phase,operation)=>{assert.equal(phase,'agent');return operation();},
     nativeTargetArguments:['--target-dir',join(root,'native-strip-build')],
     nativeEnvironment:environment=>({...environment,MOON_HOME:join(root,'compiler-tool')}),
     process:{env:parent},agentRoot,sqliteLibrary:'original-sqlite',cryptoLibrary:'original-crypto',
