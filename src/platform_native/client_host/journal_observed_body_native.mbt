@@ -21,6 +21,8 @@ fn journal_submitted_retained(
 ///|
 fn journal_submitted_decode_working(
   stage : @host.ClientSubmittedJournalConstruction,
+  outer_nodes? : Int = 16,
+  outer_depth? : Int = 2,
 ) -> (Int64, Int64, Int64)? {
   let (bytes, text_units, nodes, depth, parsing) = match stage {
     @host.SubmittedJournalParse(bytes) => (bytes, 0L, 65536, 64, true)
@@ -41,11 +43,13 @@ fn journal_submitted_decode_working(
       journal_submitted_retained(bytes, text_units),
     )
     is Some(retained) &&
-    @decode.preserving_json_admission_construction_inventory(bytes, 16, 2)
+    @decode.preserving_json_admission_construction_inventory(
+      bytes, outer_nodes, outer_depth,
+    )
     is Some(outer_parser) &&
     @source.json_tree_retained_construction_extent(
-      16,
-      15,
+      outer_nodes,
+      outer_nodes - 1,
       1,
       0,
       bytes.to_int64(),
@@ -121,7 +125,9 @@ fn journal_submitted_decode_working(
       is Some(text) &&
       @encode.hash_writer_construction_inventory(nodes + 4, depth + 1)
       is Some(hash) &&
-      @encode.text_writer_construction_inventory(bytes, 16, 2)
+      @encode.text_writer_construction_inventory(
+        bytes, outer_nodes, outer_depth,
+      )
       is Some(comparison) else {
       return None
     }
@@ -216,11 +222,28 @@ fn NativeLocalJournalReadQueries::prepare_submitted_working(
     !(self.original.active_phase is Some(@arena.HostRead)) {
     return Err(CustodyLost)
   }
+  // The metadata constructor may already have returned originals retained by
+  // this SAME Read. A later row/copy peak must coexist with them; the host's
+  // max-of-peaks backing is not a credit for previous retained allocation.
+  guard @execution.checked_preparation_add_product(
+      working.0,
+      self.original.metadata_retained,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      working.1,
+      self.original.metadata_retained,
+      1L,
+    )
+    is Some(execution) else {
+    return Err(CustodyLost)
+  }
   match
     self.original.host.prepare_domain_original_read_construction(
       self.original.read,
-      working.0,
-      working.1,
+      retained,
+      execution,
       working.2,
     ) {
     Ok(_) => Ok(())
@@ -229,4 +252,37 @@ fn NativeLocalJournalReadQueries::prepare_submitted_working(
       Err(CustodyLost)
     }
   }
+}
+
+///|
+// The Run row has a distinct closed outer shape. Reuse only the same physical
+// constructor recipes, not the submitted row's smaller 16-node/2-depth quote.
+fn NativeLocalJournalReadQueries::prepare_run_decode(
+  self : NativeLocalJournalReadQueries,
+  stage : @host.ClientRunJournalConstruction,
+) -> Result[Unit, @host.ClientJournalDecodingIssue] {
+  guard journal_run_decode_working(stage) is Some(working) else {
+    return Err(CustodyLost)
+  }
+  if stage is @host.RunJournalRetained(_, _, _, _) {
+    // The invocation wrapper accepts this exact handoff once, only after its
+    // canonical reservation and successful codec equality. Never grant or
+    // prepare here: merely carry the already-funded output into later peaks.
+    if self.failure is Some(_) ||
+      self.original.interrupted ||
+      !(self.original.active_phase is Some(@arena.HostRead)) {
+      return Err(CustodyLost)
+    }
+    guard @execution.checked_preparation_add_product(
+        self.original.metadata_retained,
+        working.0,
+        1L,
+      )
+      is Some(total) else {
+      return Err(CustodyLost)
+    }
+    self.original.metadata_retained = total
+    return Ok(())
+  }
+  self.prepare_submitted_working(working)
 }

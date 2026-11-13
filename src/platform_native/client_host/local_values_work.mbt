@@ -87,14 +87,14 @@ pub fn native_client_local_values_profile_supported(
 ) -> Bool {
   let graph = @host.prepared_client_graph(prepared)
   let task_count = @strategy.graph_task_count(graph)
-  // Keep the existing Local host's bounded task inventory. This shape check
-  // neither quotes its simultaneous holdings nor acquires their supplier.
+  // A checked graph's size is not a backend shape restriction. The original
+  // preparation and selected runtime must admit its actual task inventory on
+  // their same finite Ledger before construction; this check supplies nothing.
   if @host.prepared_client_acquisition_count(prepared) != 0 ||
     @host.prepared_client_uses_graph_carrier(prepared) ||
     @strategy.graph_program_has_effects(graph) ||
     !@strategy.graph_source_free_inputs_complete(graph) ||
-    task_count < 1 ||
-    task_count > 32 {
+    task_count < 1 {
     return false
   }
   for task in 0..<task_count {

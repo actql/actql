@@ -26,6 +26,7 @@ priv enum LocalCommandPreparationIssue {
   CommandInvalidProfile
   CommandNativeStorage(LocalCommandNativeStorageIssue)
   CommandUnavailable
+  CommandBusinessCapacity
   CommandRequestPreparation(@local_values.ClientRequestPreparationIssue)
   CommandHost(@initial_bootstrap.NativeBootstrapIssue)
   CommandDomain(@initial_bootstrap.NativeBackedExecutionIssue)

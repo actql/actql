@@ -6,6 +6,9 @@ priv struct NativeLocalJournalOriginalResources {
   host : @arena.InstalledArenaHost
   pair : @arena.InstalledArenaLocalHostResources
   read : @arena.InstalledArenaOriginalRead
+  // Live metadata belongs to this actual Read, not a short-lived query router.
+  // A returned selection may survive multiple callbacks and SQL phase changes.
+  mut metadata_retained : Int64
   mut active_phase : @arena.InstalledArenaLocalHostPhase?
   mut interrupted : Bool
   // One existing original flight, retained through a failed switch.
@@ -35,6 +38,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
       host,
       pair,
       read,
+      metadata_retained: 0L,
       active_phase: None,
       interrupted: false,
       store_operation: None,

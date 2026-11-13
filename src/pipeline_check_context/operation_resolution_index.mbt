@@ -29,6 +29,7 @@ pub(all) enum OperationResolutionIndexIssue {
   BudgetExceeded
   ForeignOccurrence(Int)
   DuplicateResolution(Int)
+  MissingAnalyticCeiling(Int, String)
 } derive(Eq, Debug)
 
 ///|
@@ -479,4 +480,36 @@ pub fn operation_resolution_values_metadata_usage(
   v : ProgramOperationResolutionIndex,
 ) -> (Int, Int) {
   (v.values_metadata_bytes, v.values_metadata_nodes)
+}
+
+///|
+/// Diagnose missing analytic policy only when final closure rejects an
+/// unresolved occurrence. Partial indexes keep their original open obligations.
+pub fn unresolved_analytic_policy_issue(
+  index : ProgramOperationResolutionIndex,
+  occurrence : Int,
+) -> ProgramOperationResolutionIssue? {
+  guard occurrence >= 0 &&
+    occurrence < index.states.length() &&
+    index.states[occurrence] is Unresolved else {
+    return None
+  }
+  let site = index.requirements.entries[occurrence]
+  guard site.requirement is @pipeline.RelationRequirement(pending) &&
+    pending.kind is @relation.AnalyticEnvelope else {
+    return None
+  }
+  let policy = @capacity.application_closure_policy(
+    index.requirements.stages.contexts[site.stage].context.capacity,
+  )
+  for
+    field in [
+      "max_analytic_input_wire_bytes", "max_analytic_output_wire_bytes", "max_analytic_partition_wire_bytes",
+      "max_analytic_frame_memberships", "max_relation_output_rows",
+    ] {
+    if @policy.ceiling(policy, field) is None {
+      return Some(Index(MissingAnalyticCeiling(site.step, field)))
+    }
+  }
+  None
 }

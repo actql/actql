@@ -15,7 +15,8 @@ const issueCodes = Object.freeze({
   values_profile_unsupported: 'ClientProgramUnsupported',
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
-  check_invalid_configuration: 'ClientProgramPreparationFailure',
+  // A typed checker configuration refusal precedes submission and Run admission.
+  check_invalid_configuration: 'ClientProgramRejected',
   check_unsupported: 'ClientProgramImplementationLimit',
   check_compile_limit: 'ClientProgramAnalysisLimit',
   check_missing_input: 'ClientProgramNeedsInputs',

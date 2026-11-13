@@ -433,10 +433,11 @@ fn NativeClientRunJournal::retained_submission_with_run(
     },
     row => {
       let record = match
-        self.admit_retained_record(row.key, {
-          body: row.body,
-          revision: row.revision,
-        }) {
+        self.admit_retained_record(
+          row.key,
+          { body: row.body, revision: row.revision, },
+          reads~,
+        ) {
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }
@@ -588,7 +589,14 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
       row => self.inspect_submitted_intent_row(row, reads~),
       row => {
         let record = match
-          read_run_record({ body: row.body, revision: row.revision, }) {
+          read_run_record(
+            { body: row.body, revision: row.revision, },
+            before_construction=run_decode_construction(self.database, reads),
+            before_metadata_construction=run_metadata_construction(
+              self.database,
+              reads,
+            ),
+          ) {
           Ok(value) => value
           Err(_) => return Err(CustodyLost)
         }

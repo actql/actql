@@ -646,7 +646,15 @@ fn NativeLocalRunPolicyBinding::accept_submitted_run_with_operations(
     Err(issue) => return Err(issue)
   }
   let plan = match
-    capture_native_run_plan_original(prepared, compiled, definition) {
+    capture_native_run_plan_original(
+      prepared,
+      compiled,
+      definition,
+      before_construction=run_metadata_construction(
+        self.host.journal.database,
+        operations.map(value => value.reads),
+      ),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

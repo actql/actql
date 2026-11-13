@@ -1353,6 +1353,16 @@ int32_t actql_native_sqlite_test_drop_capacity(
     actql_exec(database, "DROP TABLE actql_capacity") == SQLITE_OK;
 }
 
+// Whitebox-only type corruption preserves key, revision and byte extent.
+int32_t actql_native_sqlite_test_body_text(
+  actql_native_sqlite_database *database
+) {
+  return database != NULL && database->opened &&
+    actql_exec(database, "ALTER TABLE actql_records RENAME TO actql_records_original") == SQLITE_OK &&
+    actql_exec(database, "CREATE TABLE actql_records(" ACTQL_RECORDS_FIELDS ")") == SQLITE_OK &&
+    actql_exec(database, "INSERT INTO actql_records SELECT namespace, record_key, revision, CAST(body AS TEXT) FROM actql_records_original") == SQLITE_OK;
+}
+
 int32_t actql_native_sqlite_database_ready(
   actql_native_sqlite_database *database
 ) {
@@ -1613,7 +1623,9 @@ static int32_t actql_database_scan_after(
   int32_t namespace_length,
   moonbit_bytes_t after_key,
   int32_t after_key_length,
-  int64_t caller_body_limit
+  int64_t caller_body_limit, int extent_mode,
+  const unsigned char *expected_key, int32_t expected_key_length,
+  int64_t expected_revision, int64_t expected_bytes
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   if (database->test_name_scan_refusal && namespace_length == 23 &&
@@ -1622,9 +1634,11 @@ static int32_t actql_database_scan_after(
   sqlite3_stmt *statement = NULL;
   int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
-    "SELECT record_key, revision, body FROM actql_records "
-    "WHERE namespace = ?1 AND record_key > ?2 "
-    "ORDER BY record_key COLLATE BINARY LIMIT 1",
+    extent_mode == 1 ?
+      "SELECT record_key, revision, length(body), typeof(body) = 'blob' FROM actql_records "
+      "WHERE namespace = ?1 AND record_key > ?2 ORDER BY record_key COLLATE BINARY LIMIT 1" :
+      "SELECT record_key, revision, body, typeof(body) = 'blob' FROM actql_records "
+      "WHERE namespace = ?1 AND record_key > ?2 ORDER BY record_key COLLATE BINARY LIMIT 1",
     -1,
     &statement,
     NULL
@@ -1665,34 +1679,43 @@ static int32_t actql_database_scan_after(
       int key_length = database->library->column_bytes(statement, 0);
       const void *key = database->library->column_blob(statement, 0);
       sqlite3_int64 revision = database->library->column_int64(statement, 1);
-      int body_length = database->library->column_bytes(statement, 2);
-      const void *body = database->library->column_blob(statement, 2);
+      int64_t body_length = extent_mode == 1
+        ? database->library->column_int64(statement, 2)
+        : database->library->column_bytes(statement, 2);
+      const void *body = extent_mode == 1 ? NULL : database->library->column_blob(statement, 2);
       if (key_length <= 0 || key_length > 512 || revision < 0 ||
-          body_length < 0 || body_length > database->max_body_bytes ||
-          body_length > INT32_MAX) {
+          body_length < 0 || (extent_mode == 0 && body_length > database->max_body_bytes) ||
+          body_length > INT32_MAX || (extent_mode != 0 && database->library->column_int64(statement, 3) != 1)) {
         actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "invalid stored journal record");
         result = -1;
+      } else if (extent_mode == 2 && (key_length != expected_key_length ||
+          memcmp(key, expected_key, (size_t)key_length) != 0 ||
+          revision != expected_revision || body_length != expected_bytes)) {
+        // Re-run the ordered first-row query, not a point read by old key.
+        // A newly inserted predecessor must refuse rather than be skipped.
+        result = 2;
       } else if (caller_body_limit >= 0 && body_length > caller_body_limit) {
         result = 4;
       } else {
         unsigned char *key_copy = actql_adapter_allocate(database->library, (size_t)key_length);
-        unsigned char *body_copy = body_length == 0
+        unsigned char *body_copy = body_length == 0 || extent_mode == 1
           ? NULL
           : actql_adapter_allocate(database->library, (size_t)body_length);
-        if (key_copy == NULL || (body_length > 0 && body_copy == NULL)) {
+        if (key_copy == NULL || (body_length > 0 && extent_mode != 1 && body_copy == NULL)) {
           actql_adapter_free(database->library, key_copy);
           actql_adapter_free(database->library, body_copy);
           actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "journal scan allocation failed");
           result = -1;
         } else {
           memcpy(key_copy, key, (size_t)key_length);
-          if (body_length > 0) {
+          if (body_length > 0 && extent_mode != 1) {
             memcpy(body_copy, body, (size_t)body_length);
           }
           database->result_key = key_copy;
           database->result_key_length = key_length;
           database->result_body = body_copy;
-          database->result_body_length = body_length;
+          database->result_body_length = extent_mode == 1 ? 0 : (int32_t)body_length;
+          database->result_header_body_bytes = body_length;
           database->result_revision = (int64_t)revision;
         }
       }
@@ -1714,7 +1737,7 @@ int32_t actql_native_sqlite_database_scan_after(
   int32_t after_key_length
 ) {
   return actql_database_scan_after(database, namespace_bytes, namespace_length,
-    after_key, after_key_length, -1);
+    after_key, after_key_length, -1, 0, NULL, 0, 0, 0);
 }
 
 // A caller ceiling is only a physical copy bound, never a reservation or permit.
@@ -1728,7 +1751,34 @@ int32_t actql_native_sqlite_database_scan_after_with_body_limit(
 ) {
   if (max_body_bytes < 0) return 4;
   return actql_database_scan_after(database, namespace_bytes, namespace_length,
-    after_key, after_key_length, max_body_bytes);
+    after_key, after_key_length, max_body_bytes, 0, NULL, 0, 0, 0);
+}
+
+// A metadata-only first-row observation. The bounded key/control constructor
+// belongs to the original Read; no body copy or capacity is obtained here.
+int32_t actql_native_sqlite_database_observe_scan_body_extent(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t after_key, int32_t after_key_length
+) {
+  return actql_database_scan_after(database, namespace_bytes, namespace_length,
+    after_key, after_key_length, -1, 1, NULL, 0, 0, 0);
+}
+
+// The caller has backed the observed extent before either body copy. Preserve
+// key ordering, revision, Blob type and exact extent in this same SQL read.
+int32_t actql_native_sqlite_database_scan_exact_body_extent(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t after_key, int32_t after_key_length,
+  moonbit_bytes_t expected_key, int32_t expected_key_length,
+  int64_t expected_revision, int64_t expected_bytes
+) {
+  if (expected_key_length <= 0 || expected_key_length > 512 ||
+      expected_revision < 0 || expected_bytes < 0 || expected_bytes > INT32_MAX) return 4;
+  return actql_database_scan_after(database, namespace_bytes, namespace_length,
+    after_key, after_key_length, -1, 2, expected_key, expected_key_length,
+    expected_revision, expected_bytes);
 }
 
 static int32_t actql_database_insert(

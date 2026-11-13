@@ -318,6 +318,32 @@ fn protocol_unique_array(
 }
 
 ///|
+// Canonical string emission is injective over valid scalar text. Preserve its
+// exact codec refusal profile without allocating its escaped wire. The seen
+// entries borrow the original Strings; non-String values cannot satisfy the
+// selected StringRule and are rejected before any generic serialization.
+fn protocol_unique_string_array(
+  values : Array[@json.CanonicalValue],
+  budget : ProtocolValidationBudget,
+) -> Bool {
+  let seen : Array[String] = []
+  for value in values {
+    guard value is @json.String(text) &&
+      budget.max_nodes >= 1 &&
+      budget.max_depth >= 0 &&
+      @encode.quoted_string_construction_extent(text) is Some((bytes, _)) &&
+      bytes <= budget.max_wire_bytes.to_int64() else {
+      return false
+    }
+    if seen.contains(text) {
+      return false
+    }
+    seen.push(text)
+  }
+  true
+}
+
+///|
 fn validate_protocol_node(
   value : @json.CanonicalValue,
   index : Int,

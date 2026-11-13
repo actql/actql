@@ -127,6 +127,8 @@ pub fn checked_local_policy_cid(CheckedProgram) -> String
 
 pub fn checked_model_tasks(CheckedProgram) -> @check_environment.ModelTasks?
 
+pub fn checked_program_artifact_limits(CheckedProgram) -> (Int, Int, Int)
+
 pub fn checked_program_has_effects(CheckedProgram) -> Bool
 
 pub fn checked_source_program(CheckedProgram) -> @stage_syntax.Program

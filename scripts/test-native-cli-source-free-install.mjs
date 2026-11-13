@@ -164,6 +164,135 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
   return observations;
 }
 
+// Exercise the former 64 KiB Plan boundary with the ordinary init profile.
+// Public explain bytes do not measure the separately stored Run metadata row.
+export const nativeDefaultUnionCases = Object.freeze([
+  {branches: 11, total: 55}, {branches: 17, total: 136}, {branches: 24, total: 276},
+]);
+
+// The independent WITH-set golden emits values/derive/select for each
+// literal SELECT, N-1 UNION ALL appends, then SUM group/final projection.
+// Assert those original logical occurrences and their complete input/output
+// connections, rather than accepting any nonempty JSON as a retained Plan.
+function assertNativeUnionPlan(value, originalRef, branches) {
+  assert.equal(value.version, 'actql-run-plan-view/0.1');
+  assert.deepEqual(value.run_ref, originalRef, 'Saved explain must select the original Run reference');
+  const plan = value.plan_view;
+  assert.equal(plan?.version, 'actql-plan-view/0.1', 'Complete retained Plan required');
+  const cid = /^sha256:[0-9a-f]{64}$/u;
+  assert.match(plan.compiled_plan_cid, cid);
+  assert.equal(plan.observation, 'static');
+  assert.equal(plan.provider_io, 0);
+  const map = plan.logical_map;
+  assert.equal(map?.version, 'actql-logical-map/0.1');
+  assert.equal(map.compiled_plan_cid, plan.compiled_plan_cid);
+  assert.match(map.program_definition_cid, cid);
+  assert.match(map.self_cid, cid);
+  assert(Array.isArray(map.steps) && map.steps.length > 0, 'Complete logical steps required');
+  const counts = new Map(), outputs = new Map(), steps = new Set(), ports = new Set();
+  let lastOperator;
+  for (const step of map.steps) {
+    const arity = new Map([['values', 0], ['derive', 1], ['select', 1], ['append', 2], ['group', 1]]).get(step.operator);
+    assert.notEqual(arity, undefined, 'Unexpected operation in the original UNION/SUM fixture');
+    assert.match(step.step_id, cid);
+    assert(!steps.has(step.step_id), 'Distinct original logical occurrences required');
+    steps.add(step.step_id);
+    assert.equal(step.key?.version, 'actql-logical-step-key/0.1');
+    assert.equal(step.key.compiled_plan_cid, plan.compiled_plan_cid);
+    assert.equal(step.key.self_cid, step.step_id);
+    assert.equal(step.key.stage_ordinal, 0, 'This SQL retains the independent one-stage WITH-set shape');
+    assert.deepEqual(step.key.occurrence, {kind: 'operation', operation_ordinal: steps.size - 1});
+    assert(Array.isArray(step.ports));
+    const inputs = step.ports.filter(port => port.role === 'input');
+    const output = step.ports.filter(port => port.role === 'output');
+    assert.equal(inputs.length, arity, 'Retain every original input port');
+    assert.equal(output.length, 1, 'Retain the original output port');
+    assert.equal(step.ports.length, arity + 1);
+    for (const port of step.ports) {
+      assert.match(port.port_id, cid);
+      assert(!ports.has(port.port_id), 'Distinct original logical ports required');
+      ports.add(port.port_id);
+      assert.equal(port.carrier, 'relation');
+      if (port.role === 'input') {
+        assert(port.source, 'Original input producer required');
+        assert.equal(port.source.kind, 'logical_output', 'This source-free WITH uses same-stage producers');
+        assert(outputs.has(port.source.output_port_id), 'Original earlier output port required');
+        assert.equal(outputs.get(port.source.output_port_id), port.source.step_id,
+          'Retain the exact earlier logical producer, not a truncated graph');
+      }
+    }
+    outputs.set(output[0].port_id, step.step_id);
+    counts.set(step.operator, (counts.get(step.operator) ?? 0) + 1);
+    lastOperator = step.operator;
+  }
+  assert.equal(counts.get('values'), branches, 'Retain every literal SELECT seed');
+  assert.equal(counts.get('derive'), branches, 'Retain every literal evaluation before its projection');
+  assert.equal(counts.get('append'), branches - 1, 'Retain every UNION ALL occurrence');
+  assert.equal(counts.get('group'), 1, 'Retain the original SUM aggregate');
+  assert.equal(counts.get('select'), branches + 1, 'Retain branch projections and the final total projection');
+  assert.equal(map.steps.length, 4 * branches + 1, 'Complete current fixture lowering, not a public planning limit');
+  assert.equal(lastOperator, 'select', 'Retain the final aggregate projection');
+  const planBytes = Buffer.byteLength(JSON.stringify(plan), 'utf8');
+  if (branches === nativeDefaultUnionCases.at(-1).branches)
+    assert(planBytes > 65536, 'The largest complete inner Plan must actually cross the former 64 KiB boundary');
+  return {planBytes, logicalSteps: map.steps.length};
+}
+
+export async function observeNativeDefaultUnionMetadata({root, cli}) {
+  const project = join(root, 'ordinary-union-metadata');
+  await cli(['init', project], root);
+  const configuration = await readFile(join(project, 'actql.config.json'), 'utf8');
+  assert.equal(JSON.parse(configuration).profile, undefined, 'Ordinary default profile required');
+  const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const observations = [], retained = [];
+  for (const {branches, total} of nativeDefaultUnionCases) {
+    const file = `union-${branches}.sql`;
+    const sql = 'WITH t AS (' + Array.from({length: branches}, (_, index) =>
+      `SELECT ${index} AS v`).join(' UNION ALL ') + ') SELECT SUM(v) AS total FROM t';
+    await writeFile(join(project, file), sql, {flag: 'wx', mode: 0o600});
+    const run = await cli(['run', file, '--format', 'sql', '--json'], project);
+    const state = JSON.parse(run.stdout);
+    assert.equal(state.version, 'actql-run-state/0.1');
+    assert.equal(state.status, 'succeeded', `${branches}-branch admission must succeed`);
+    assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+    assert(!retained.some(value => value.runId === state.run_id), 'Distinct original Runs required');
+    await unlink(join(project, file));
+    // Every command is a new actual installed process. The invalid input must
+    // not poison the unchanged installation or cause Saved to reexecute SQL.
+    await cli(['sql', 'SELECT )', '--format', 'json'], project, 1);
+    assert.deepEqual(rows((await cli(['sql', 'SELECT 9821 AS n', '--format', 'jsonl'], project)).stdout), [{n: 9821}]);
+    const saved = await cli(['result', state.run_id, '--format', 'jsonl'], project);
+    assert.deepEqual(rows(saved.stdout), [{total}]);
+    const status = JSON.parse((await cli(['status', '--run-id', state.run_id, '--json'], project)).stdout);
+    assert.equal(status.kind, 'local_saved_run_state');
+    assert.equal(status.state?.version, 'actql-run-state/0.1');
+    assert.equal(status.state.run_id, state.run_id, 'Observe the same originally returned Run');
+    assert.equal(status.state.status, 'succeeded');
+    const originalRef = status.ref;
+    assert(originalRef && typeof originalRef === 'object' && !Array.isArray(originalRef));
+    assert.equal(typeof originalRef.namespaceId, 'string'); assert(originalRef.namespaceId.length > 0);
+    for (const field of ['authorityScopeCid', 'runDefinitionCid'])
+      assert.match(originalRef[field], /^sha256:[0-9a-f]{64}$/u);
+    const explain = await cli(['explain', '--run', state.run_id, '--json'], project);
+    const value = JSON.parse(explain.stdout);
+    const plan = assertNativeUnionPlan(value, originalRef, branches);
+    const again = await cli(['explain', '--run', state.run_id, '--json'], project);
+    assert.equal(again.stdout, explain.stdout, 'Repeated cold Saved explain must retain exact bytes');
+    assert.equal(await readFile(join(project, 'actql.config.json'), 'utf8'), configuration,
+      'Acceptance must not widen the ordinary project profile');
+    retained.push({runId: state.run_id, total});
+    observations.push({branches, total, runId: state.run_id, coldSavedWithoutProgram: true,
+      recoveryAfterInvalidQuery: true, repeatedExplainBytesIdentical: true,
+      planBytes: plan.planBytes, logicalSteps: plan.logicalSteps, storedRunMetadataBytes: null,
+      runElapsedMs: run.elapsedMs, savedElapsedMs: saved.elapsedMs,
+      explainElapsedMs: explain.elapsedMs, repeatedExplainElapsedMs: again.elapsedMs});
+  }
+  for (const {runId, total} of retained) {
+    assert.deepEqual(rows((await cli(['result', runId, '--format', 'jsonl'], project)).stdout), [{total}]);
+  }
+  return {profile: 'ordinary-unmodified-init', cases: observations, oldestSavedAfterLaterSubmissions: true};
+}
+
 export async function observeNativeFileSourceNumeric({root, cli}) {
   const project = join(root, 'numeric-file-source');
   await cli(['init', '--template', 'churn-risk-mock', project], root);
@@ -497,6 +626,24 @@ export function nativeResourceShapeFixtures() {
   ];
 }
 
+// JSON Lines delimit records with LF, not Unicode line/paragraph separators.
+// Keep stream backpressure and buffer only the current record plus one chunk;
+// do not turn the complete Result into an in-memory array of lines.
+async function* nativeJsonlLines(input) {
+  input.setEncoding('utf8');
+  let pending = '';
+  for await (const chunk of input) {
+    pending += chunk;
+    let start = 0, end;
+    while ((end = pending.indexOf('\n', start)) !== -1) {
+      yield pending.slice(start, end);
+      start = end + 1;
+    }
+    pending = pending.slice(start);
+  }
+  if (pending.length) yield pending;
+}
+
 // Compare every actual delivered scalar, including Unicode normalization and
 // escaped controls. Neither a preview nor a digest alone is this oracle.
 export async function verifyNativeResourceRows(path, expectedRows, keyField = 'id') {
@@ -506,7 +653,7 @@ export async function verifyNativeResourceRows(path, expectedRows, keyField = 'i
     assert(Number.isSafeInteger(key)); assert(!expected.has(key), 'Unique expected resource key required');
     expected.set(key, row);
   }
-  const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
+  const input = createReadStream(path), lines = nativeJsonlLines(input);
   const closed = new Promise(resolve => input.once('close', resolve));
   let rows = 0;
   try {
@@ -520,7 +667,7 @@ export async function verifyNativeResourceRows(path, expectedRows, keyField = 'i
       assert.deepEqual(row, expected.get(key), `Resource Result key ${key}`);
       seen.add(key); rows++;
     }
-  } finally {lines.close(); input.destroy(); await closed;}
+  } finally {input.destroy(); await closed;}
   assert.equal(rows, expectedRows.length, 'Complete resource Result required');
   // Every keyed row above has now been compared in full. Hash that verified
   // content in key order, not unspecified product traversal or delivery order.
@@ -837,6 +984,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
     const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli: sourceFreeCli});
+    const defaultUnionMetadata = await observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli});
     const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const help = (await cli(['--help'])).stdout;
@@ -913,7 +1061,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, fileSourceNumeric,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, fileSourceNumeric,
       journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,

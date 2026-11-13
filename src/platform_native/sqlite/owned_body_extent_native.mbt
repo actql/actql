@@ -199,3 +199,113 @@ pub fn Database::read_exact_body_extent(
     }
   })
 }
+
+///|
+#borrow(database, scope, after)
+extern "C" fn observe_scan_body_extent_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  after : Bytes,
+  after_length : Int,
+) -> Int = "actql_native_sqlite_database_observe_scan_body_extent"
+
+///|
+#borrow(database, scope, after, key)
+extern "C" fn scan_exact_body_extent_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  after : Bytes,
+  after_length : Int,
+  key : Bytes,
+  key_length : Int,
+  revision : Int64,
+  body_extent : Int64,
+) -> Int = "actql_native_sqlite_database_scan_exact_body_extent"
+
+///|
+/// Observe only the next key and row extent. The bounded key/control copy uses
+/// the original Read; this does not copy the body or grant backing for it.
+pub fn Database::observe_scan_body_extent(
+  self : Database,
+  scope : String,
+  after_key : String,
+) -> Result[(String, NativeJournalHeader), NativeSqliteIssue] {
+  self.with_original_store_sql(true, fn() {
+    let scope = @utf8.encode(scope)
+    let after = @utf8.encode(after_key)
+    if !valid_name(scope) || after.length() > 512 {
+      return Err(InvalidName)
+    }
+    let code = observe_scan_body_extent_ffi(
+      self,
+      scope,
+      scope.length(),
+      after,
+      after.length(),
+    )
+    if code != 0 {
+      return Err(operation_issue(self, code))
+    }
+    let key = @utf8.decode(database_result_key_ffi(self)) catch {
+      _ => return Err(Physical("invalid stored journal key"))
+    }
+    Ok(
+      (
+        key,
+        {
+          revision: database_result_revision_ffi(self),
+          body_bytes: database_result_header_body_bytes_ffi(self),
+        },
+      ),
+    )
+  })
+}
+
+///|
+/// Revalidate the ordered first row, not just the previously observed key.
+/// The original Read must fund both body copies before this constructor.
+pub fn Database::scan_exact_body_extent(
+  self : Database,
+  scope : String,
+  after_key : String,
+  expected_key : String,
+  original : NativeJournalHeader,
+) -> Result[NativeJournalEntry, NativeSqliteIssue] {
+  if original.revision < 0L ||
+    original.body_bytes < 0L ||
+    original.body_bytes > 2147483647L {
+    return Err(InvalidLimit)
+  }
+  self.with_original_store_sql(true, fn() {
+    let scope = @utf8.encode(scope)
+    let after = @utf8.encode(after_key)
+    let key = @utf8.encode(expected_key)
+    if !valid_name(scope) || !valid_name(key) || after.length() > 512 {
+      return Err(InvalidName)
+    }
+    let code = scan_exact_body_extent_ffi(
+      self,
+      scope,
+      scope.length(),
+      after,
+      after.length(),
+      key,
+      key.length(),
+      original.revision,
+      original.body_bytes,
+    )
+    if code != 0 {
+      return Err(operation_issue(self, code))
+    }
+    let key = @utf8.decode(database_result_key_ffi(self)) catch {
+      _ => return Err(Physical("invalid stored journal key"))
+    }
+    Ok({
+      key,
+      revision: database_result_revision_ffi(self),
+      body: database_result_body_ffi(self),
+    })
+  })
+}

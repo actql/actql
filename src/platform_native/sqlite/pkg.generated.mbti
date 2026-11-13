@@ -45,6 +45,7 @@ pub fn Database::install_client_run_definition_schema(Self, Int64) -> Result[Uni
 pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, NativeSqliteIssue]
 pub fn Database::matches_original_store_operation(Self, NativeStoreOperationOriginal) -> Bool
 pub fn Database::observe_body_extent(Self, String, String) -> Result[NativeJournalHeader, NativeSqliteIssue]
+pub fn Database::observe_scan_body_extent(Self, String, String) -> Result[(String, NativeJournalHeader), NativeSqliteIssue]
 pub fn Database::owns_lookup_read(Self, NativeLookupRead) -> Bool
 pub fn Database::prepare_lookup_read(Self) -> Result[NativeLookupReadAcquisition, NativeSqliteIssue]
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
@@ -61,6 +62,7 @@ pub fn Database::retained_data_current(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::rollback(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::scan_after(Self, String, String) -> Result[NativeJournalEntry, NativeSqliteIssue]
 pub fn Database::scan_after_with_body_limit(Self, String, String, Int64) -> Result[NativeJournalEntry, NativeSqliteIssue]
+pub fn Database::scan_exact_body_extent(Self, String, String, String, NativeJournalHeader) -> Result[NativeJournalEntry, NativeSqliteIssue]
 pub fn Database::transaction_fenced(Self) -> Bool
 pub fn Database::transaction_state(Self) -> Result[NativeSqliteTransactionState, NativeSqliteIssue]
 

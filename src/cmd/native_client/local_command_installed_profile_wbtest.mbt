@@ -140,6 +140,12 @@ test "business profile requires selected layout for enclosing original control" 
     let (combined, business) = local_command_source_free_business_profile(
       profile,
     )
+    assert_eq(
+      business.limits,
+      @local_values.client_local_preparation_initial_limits(
+        @local_values.client_local_resource_policy(),
+      ).unwrap(),
+    )
     assert_eq(business.limits.retained_bytes, 536870912L)
     assert_eq(business.limits.execution_bytes, 536870912L)
     assert_eq(
@@ -189,4 +195,34 @@ test "business profile requires selected layout for enclosing original control" 
   assert_true(local_command_backing_layout(9223372036854775807L) is None)
   assert_true(command_preparation_invocation.val is None)
   assert_true(initial_crypto_invocation.val is None)
+}
+
+///|
+test "business demand refusal is capacity not original unavailable" {
+  let limits = @local_values.client_local_preparation_initial_limits(
+    @local_values.client_local_resource_policy(),
+  ).unwrap()
+  for
+    exceeded in [
+      { ..limits, planning_work: limits.planning_work + 1, },
+      { ..limits, attempts: limits.attempts + 1, },
+      { ..limits, holdings: limits.holdings + 1, },
+      { ..limits, transfer_bytes: limits.transfer_bytes + 1L, },
+      { ..limits, retained_bytes: limits.retained_bytes + 1L, },
+      { ..limits, execution_bytes: limits.execution_bytes + 1L, },
+    ] {
+    assert_true(
+      local_command_business_capacity(exceeded, limits)
+      is Err(CommandBusinessCapacity),
+    )
+  }
+  assert_eq(
+    command_preparation_cleanup_kind(CommandBusinessCapacity),
+    "business-capacity",
+  )
+  assert_eq(
+    command_preparation_cleanup_cause(CommandBusinessCapacity),
+    "BusinessCapacityExceeded",
+  )
+  assert_true(local_command_business_capacity(limits, limits) is Ok(_))
 }

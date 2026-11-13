@@ -130,6 +130,45 @@ test "saved Run plan capture rejects an equal foreign preparation and changed re
     is Err(ForeignRun),
   )
   let ticket = capture_native_run_plan_original(prepared, compiled, definition).unwrap()
+  let observation = capture_native_run_observation_originals(
+    compiled, definition,
+  ).unwrap()
+  let held = captured_native_run_stored_observation(
+    ticket,
+    observation,
+    definition,
+    ticket.program_cid,
+  ).unwrap()
+  assert_true(held.matches(held.wire, definition, Some(ticket.program_cid)))
+  assert_false(
+    held.matches(held.wire + " ", definition, Some(ticket.program_cid)),
+  )
+  assert_true(
+    captured_native_run_stored_observation(
+      ticket,
+      observation,
+      definition,
+      "sha256:" + "0".repeat(64),
+    )
+    is Err(ForeignRun),
+  )
+  let (_, _, changed_compiled, changed_definition) = journal_test_prepared_run(
+    prepared,
+    reference.request_id,
+    "changed-admission",
+    scope="sha256:" + "b".repeat(64),
+  )
+  assert_true(
+    captured_native_run_stored_observation(
+      ticket,
+      capture_native_run_observation_originals(
+        changed_compiled, changed_definition,
+      ).unwrap(),
+      definition,
+      ticket.program_cid,
+    )
+    is Err(ForeignRun),
+  )
   // Both Runs use the same compiled Program. The first-admission ticket must
   // still retain its exact Run definition and original admission evidence.
   assert_eq(
