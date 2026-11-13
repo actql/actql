@@ -9390,6 +9390,32 @@ async function openOriginalLocalPublicationStore(
     close() {
       if (closeFlight !== undefined) return closeFlight;
       if (closed) return Promise.resolve(true);
+      // Snapshot only closed resource counts at the original refusal. These
+      // diagnostics neither acknowledge cleanup nor observe/retry an owner.
+      const cleanupPendingFailure = cause => Object.assign(
+        new PublicationStoreError('PublicationStoreCleanupPending', cause), {
+          cleanupDiagnostic: Object.freeze({kind: 'publication-store-close',
+            resources: Object.freeze({
+              physicalRemovalOriginals: physicalRemovalOriginals.size,
+              physicalRemovalAcquisitions: physicalRemovalAcquisitions.size,
+              clockObservations: clockObservationsPending,
+              reservedObjects: reservedObjects,
+              preparedObjects: preparedObjects.size,
+              preparedSchemas: preparedSchemas.size,
+              reclaimableCustodies: reclaimableCustodies.size,
+              resultDeletions: pendingResultDeletions.size,
+              metadataDeletions: pendingMetadataDeletions.size,
+              uncommittedMetadataCleanups: pendingUncommittedMetadataCleanups.size,
+              physicalHoldingDeletions: pendingPhysicalHoldingDeletions.size,
+              resultReaders: activeResultReaders.size,
+              physicalHoldingReaders: activePhysicalHoldingReaders.size,
+              modelStorageBindingReaders: originalModelStorageBindingReaders,
+              installationPublicationStorageBindingReaders: originalInstallationPublicationStorageBindingReaders,
+              semanticReaders: activeSemanticReaders.size,
+              physicalRecordWriters: activePhysicalRecordWriters.size,
+            }),
+          }),
+        });
       closeFlight = Promise.resolve().then(async () => {
         // A failed native writer retains its capacity until its SAME mutation
         // receives a real confirmation. Drain that original before treating its
@@ -9400,7 +9426,7 @@ async function openOriginalLocalPublicationStore(
           if (!writer.failed || writer.cleanup === undefined) continue;
           retriedWriters.add(writer);
           try { await writer.cleanup.retry(); }
-          catch (cause) { fail('PublicationStoreCleanupPending', cause); }
+          catch (cause) { throw cleanupPendingFailure(cause); }
         }
         if (physicalRemovalOriginals.size !== 0 || physicalRemovalAcquisitions.size !== 0 ||
             clockObservationsPending !== 0 || reservedObjects !== 0 || preparedObjects.size !== 0 ||
@@ -9414,21 +9440,17 @@ async function openOriginalLocalPublicationStore(
             activePhysicalHoldingReaders.size !== 0 ||
             originalModelStorageBindingReaders !== 0 ||
             originalInstallationPublicationStorageBindingReaders !== 0) {
-          throw new PublicationStoreError(
-            'PublicationStoreCleanupPending',
-          );
+          throw cleanupPendingFailure();
         }
         // An unsettled read still owns its FD; close must not interrupt it.
         for (const reader of activeSemanticReaders) {
           if (reader.cleanup === undefined) {
-            throw new PublicationStoreError(
-              'PublicationStoreCleanupPending',
-            );
+            throw cleanupPendingFailure();
           }
         }
         for (const writer of activePhysicalRecordWriters) {
           if (writer.cleanup === undefined) {
-            throw new PublicationStoreError('PublicationStoreCleanupPending');
+            throw cleanupPendingFailure();
           }
         }
         // Refuse new Store work once retirement starts, but do not report closed
@@ -9438,17 +9460,17 @@ async function openOriginalLocalPublicationStore(
         closeRequested = true;
         for (const reader of activeSemanticReaders) {
           try { await reader.cleanup.retry(); }
-          catch { fail('PublicationStoreCleanupPending'); }
+          catch { throw cleanupPendingFailure(); }
         }
-        if (activeSemanticReaders.size !== 0) fail('PublicationStoreCleanupPending');
+        if (activeSemanticReaders.size !== 0) throw cleanupPendingFailure();
         for (const writer of activePhysicalRecordWriters) {
           if (retriedWriters.has(writer)) continue;
           try { await writer.cleanup.retry(); }
-          catch { fail('PublicationStoreCleanupPending'); }
+          catch { throw cleanupPendingFailure(); }
         }
-        if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+        if (activePhysicalRecordWriters.size !== 0) throw cleanupPendingFailure();
         deliveryIndex.retainResultDeletionSeal();
-        if (deliveryIndex?.close() !== true) fail('PublicationStoreCleanupPending');
+        if (deliveryIndex?.close() !== true) throw cleanupPendingFailure();
         return ownership.release();
       }).then(released => {
         if (released !== true) fail('PublicationStoreOwnershipLost');
