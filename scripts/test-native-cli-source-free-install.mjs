@@ -93,7 +93,7 @@ export async function observeNativeSourceFreeCommand({args, cwd, cli, environmen
 }
 
 // Independent expectations for the ordinary, unmodified init profile. These
-// are aggregate semantics, unlike the separate large VALUES row-delivery case.
+// cover Aggregate and Window semantics, unlike the separate large VALUES row-delivery case.
 export const nativeDefaultNumericQueries = Object.freeze([
   {name: 'sum', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT SUM(n) AS total FROM x', rows: [{total: 3}]},
   {name: 'average', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT 2 AS n) SELECT AVG(n) AS total FROM x', rows: [{total: 1.5}]},
@@ -105,6 +105,9 @@ export const nativeDefaultNumericQueries = Object.freeze([
   {name: 'nulls', sql: 'WITH x AS (SELECT CAST(NULL AS NUMBER) AS n UNION ALL SELECT CAST(NULL AS NUMBER) AS n) SELECT SUM(n) AS total, AVG(n) AS average, COUNT(n) AS count FROM x', rows: [{total: null, average: null, count: 0}]},
   {name: 'mixed-null', sql: 'WITH x AS (SELECT 1 AS n UNION ALL SELECT CAST(NULL AS NUMBER) AS n UNION ALL SELECT 2 AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x', rows: [{total: 3, average: 1.5}]},
   {name: 'parameters', sql: 'WITH x AS (SELECT @first AS n UNION ALL SELECT @second AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x', rows: [{total: 3, average: 1.5}], parameters: true},
+  {name: 'window-sum', sql: 'WITH x AS (SELECT 2 AS id, 5 AS n UNION ALL SELECT 1 AS id, 3 AS n) SELECT id, SUM(n) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total FROM x ORDER BY id', rows: [{id: 1, total: 3}, {id: 2, total: 8}]},
+  {name: 'window-row-number', sql: 'WITH x AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS ordinal FROM x ORDER BY id', rows: [{id: 1, ordinal: 1}, {id: 2, ordinal: 2}]},
+  {name: 'window-typed-null', sql: 'WITH x AS (SELECT 3 AS id, 5 AS n UNION ALL SELECT 1 AS id, CAST(NULL AS NUMBER) AS n UNION ALL SELECT 2 AS id, 3 AS n) SELECT id, SUM(n) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS total FROM x ORDER BY id', rows: [{id: 1, total: null}, {id: 2, total: 3}, {id: 3, total: 8}]},
 ]);
 
 export async function observeNativeDefaultNumericQueries({project, cli, queries = nativeDefaultNumericQueries}) {

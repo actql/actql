@@ -54,7 +54,7 @@ async function numericFixture(t, fault) {
         await assert.rejects(access(join(cwd, name)), {code: 'ENOENT'});
     }
     const rows = fault === 'live' || (cold && fault === 'saved') ||
-      (fault === 'old-saved' && hosts.get(cwd) === 11) ? [{total: 4}] : entry.rows;
+      (fault === 'old-saved' && hosts.get(cwd) === 14) ? [{total: 4}] : entry.rows;
     return {stdout: rows.map(value => JSON.stringify(value)).join('\n')+'\n'};
   };
   return {project, cli, calls, runs, saved, hosts};
@@ -63,14 +63,34 @@ async function numericFixture(t, fault) {
 test('default numeric oracle requires runnable checking and same Saved after original input removal', async t => {
   const fixture = await numericFixture(t);
   const observed = await observeNativeDefaultNumericQueries(fixture);
-  assert.equal(observed.length, 10); assert.equal(fixture.runs.size, 10);
-  assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], 11);
-  const names = nativeDefaultNumericQueries.map(entry => entry.name);
+  assert.equal(observed.length, 13); assert.equal(fixture.runs.size, 13);
+  assert.equal(fixture.hosts.size, 1); assert.equal([...fixture.hosts.values()][0], 14);
+  const names = ['sum', 'average', 'decimal', 'controls', 'where', 'grouped',
+    'empty', 'nulls', 'mixed-null', 'parameters', 'window-sum',
+    'window-row-number', 'window-typed-null'];
+  assert.deepEqual(nativeDefaultNumericQueries.map(entry => entry.name), names);
   assert.deepEqual(fixture.saved, [...names, ...names]);
   assert(observed.every(entry => entry.savedAfterLaterSubmissions));
   assert.deepEqual(observed[0].rows, [{total: 3}]);
   assert.deepEqual(observed[1].rows, [{total: 1.5}]);
   assert.deepEqual(observed[2].rows, [{total: '4.00'}]);
+  assert.deepEqual(observed.slice(10).map(({name, rows}) => ({name, rows})), [
+    {name: 'window-sum', rows: [{id: 1, total: 3}, {id: 2, total: 8}]},
+    {name: 'window-row-number', rows: [{id: 1, ordinal: 1}, {id: 2, ordinal: 2}]},
+    {name: 'window-typed-null', rows: [{id: 1, total: null}, {id: 2, total: 3}, {id: 3, total: 8}]},
+  ]);
+  for (const entry of nativeDefaultNumericQueries.slice(10)) {
+    assert.match(entry.sql, / OVER \(ORDER BY id/u);
+    assert.match(entry.sql, /ORDER BY id$/u);
+  }
+  for (const name of ['window-sum', 'window-typed-null']) {
+    assert.match(nativeDefaultNumericQueries.find(entry => entry.name === name).sql,
+      /SUM\(n\) OVER \(ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\)/u);
+  }
+  assert.match(nativeDefaultNumericQueries.find(entry => entry.name === 'window-row-number').sql,
+    /ROW_NUMBER\(\) OVER \(ORDER BY id\)/u);
+  assert.match(nativeDefaultNumericQueries.find(entry => entry.name === 'window-typed-null').sql,
+    /CAST\(NULL AS NUMBER\)/u);
 });
 
 test('default numeric oracle refuses a successful check command with undetermined report before execution', async t => {
@@ -94,7 +114,7 @@ test('default numeric oracle refuses changed Saved rows without reprepare or ree
 test('same-project numeric oracle refuses an old Saved changed by later submissions', async t => {
   const fixture = await numericFixture(t, 'old-saved');
   await assert.rejects(observeNativeDefaultNumericQueries(fixture), {code: 'ERR_ASSERTION'});
-  assert.equal(fixture.hosts.size, 1); assert.equal(fixture.runs.size, 10);
+  assert.equal(fixture.hosts.size, 1); assert.equal(fixture.runs.size, 13);
   assert.equal(fixture.calls.filter(args => args[0] === 'init').length, 1);
 });
 
