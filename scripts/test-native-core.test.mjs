@@ -878,6 +878,8 @@ export function nativeProcessRegionFixture(repository, namespace) {
 }
 `);
   mkdirSync(join(checkout, 'scripts/fixtures'));
+  copyFileSync(new URL('fixtures/native-file-task-boundary.json', import.meta.url),
+    join(checkout, 'scripts/fixtures/native-file-task-boundary.json'));
   copyFileSync(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
   copyFileSync(new URL('fixtures/native-runtime-reader-custody.c', import.meta.url),
