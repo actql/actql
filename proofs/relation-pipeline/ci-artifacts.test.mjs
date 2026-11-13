@@ -611,8 +611,15 @@ test('workflow partitions complete campaigns into exactly eight owners with mand
   }
   assert(runLines('pipeline-capacity').includes('node proofs/relation-pipeline/run.mjs all'));
   assert(!runLines('pipeline-capacity-mutants').includes('node proofs/relation-pipeline/run.mjs all'));
-  for(const command of ['mutation-action-archive.mjs seal','audit-target-regression.mjs','capacity/audit.mjs','capacity/audit-target-regression.mjs'])
+  for(const command of ['mutation-action-archive.mjs seal','audit-target-regression.mjs','capacity/audit-target-regression.mjs'])
     assert(runLines('pipeline-evidence').includes(`node proofs/relation-pipeline/${command}`));
+  assert(!runLines('pipeline-evidence').includes('node proofs/relation-pipeline/capacity/audit.mjs'));
+  const capacity = readFileSync(new URL('./capacity/audit-target-regression.mjs', import.meta.url), 'utf8');
+  assert.match(capacity, /if \(original.kind === 'capacity-union' && slot !== 'healthy'\)/u);
+  assert.match(capacity, /retained\.withUncompressed\(path => spawnSync\(process\.execPath,\s*\['proofs\/relation-pipeline\/capacity\/audit\.mjs', path\]/u);
+  assert(capacity.includes('inspectResult(slot, result);'));
+  assert(capacity.includes("assert.equal(result.status === 0, slot === 'healthy'"));
+  assert(capacity.includes("assert(Number.isInteger(result.status), 'Audit did not finish normally')"));
   assert.equal(jobs['pipeline-validation'].if,normalSchedule);
   assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets','preflight']);
   assert(runLines('pipeline-validation').includes('node proofs/relation-pipeline/ci-parts.mjs validation'));
@@ -694,7 +701,7 @@ test('workflow compacts only a successful audited union and preserves complete f
   assert.equal(upload.with['if-no-files-found'], 'error');
   const commands = [
     'ci-parts.mjs join', 'mutation-action-archive.mjs seal', 'audit-target-regression.mjs',
-    'capacity/audit.mjs', 'capacity/audit-target-regression.mjs',
+    'capacity/audit-target-regression.mjs',
   ];
   for (const command of commands) {
     const step = final.steps.find(step => step.run === `node proofs/relation-pipeline/${command}`);

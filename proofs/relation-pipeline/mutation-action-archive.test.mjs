@@ -204,7 +204,12 @@ test('publication has no API dependency and retains the full audit before an exc
   const steps = workflow.jobs['pipeline-evidence'].steps;
   const seal = steps.find(step => step.run === 'node proofs/relation-pipeline/mutation-action-archive.mjs seal');
   assert(seal && !seal['continue-on-error']);
-  assert(steps.some(step => step.run === 'node proofs/relation-pipeline/capacity/audit.mjs'));
+  assert(steps.some(step => step.run === 'node proofs/relation-pipeline/capacity/audit-target-regression.mjs'));
+  assert(!steps.some(step => step.run === 'node proofs/relation-pipeline/capacity/audit.mjs'));
+  const capacity = readFileSync(new URL('./capacity/audit-target-regression.mjs', import.meta.url), 'utf8');
+  assert.match(capacity, /retained\.withUncompressed\(path => spawnSync\(process\.execPath,\s*\['proofs\/relation-pipeline\/capacity\/audit\.mjs', path\]/u);
+  assert(capacity.includes('inspectResult(slot, result);'));
+  assert(capacity.includes("assert.equal(result.status === 0, slot === 'healthy'"));
   assert(steps.find(step => step.uses?.startsWith('actions/upload-artifact@')).with.path.includes('.artifacts/pipeline-ci/action-original.json'));
 });
 
