@@ -86,6 +86,9 @@ function commands(name, target, raw = false) {
   }
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
+    // A local full Core invocation remains unpartitioned. Hosted-only Linux
+    // partitions cannot silently narrow this existing diagnostic entrance.
+    .replaceAll('${{ matrix.partition }}', '')
     .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false')
     .replaceAll('${{ github.workspace }}', root.replace(/\/$/u, ''))
     .replaceAll('${{ runner.temp }}', scratch)
@@ -106,7 +109,8 @@ function commands(name, target, raw = false) {
       return [key, ''];
     }
     if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PARTITION') {
-      if (value !== "${{ matrix.target == 'native' && matrix.partition || '' }}") {
+      if (!["${{ matrix.target == 'native' && matrix.partition || '' }}",
+        "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}"].includes(value)) {
         fail('Unsupported Native Core partition expression; local CI must retain complete coverage');
       }
       // One local runner keeps the complete original campaign, rather than

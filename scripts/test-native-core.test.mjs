@@ -754,13 +754,15 @@ test('Compiler stop diagnostic timeout stays unobserved without raw debugger pay
   assert(!JSON.stringify(result).includes('PRIVATE_'));
 });
 
-test('Native Core selects the admitted Darwin arm64 runner without dropping target coverage', t => {
+test('Native Core retains admitted Darwin profiles and selects Linux for common packages', t => {
   const core = workflow.jobs.core;
   const expression = core['runs-on'];
-  assert.equal(expression, "${{ matrix.target == 'native' && 'macos-15' || 'ubuntu-24.04' }}");
-  for (const [target, runner] of [['native', 'macos-15'], ['js', 'ubuntu-24.04'],
-    ['wasm', 'ubuntu-24.04']]) {
-    assert.equal(runInNewContext(expression.slice(3, -2), {matrix: {target}},
+  assert.equal(expression, "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'macos-15' || 'ubuntu-24.04' }}");
+  for (const [target, partition, runner] of [['native', '1/4', 'macos-15'],
+    ['native', 'linux-common-1/8', 'ubuntu-24.04'], ['js', '1/4', 'ubuntu-24.04'],
+    ['wasm', '1/4', 'ubuntu-24.04']]) {
+    assert.equal(runInNewContext(expression.slice(3, -2), {matrix: {target, partition},
+      startsWith: (value, prefix) => value.startsWith(prefix)},
       {timeout: 100}), runner);
   }
   assert.equal(core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
@@ -777,16 +779,19 @@ test('Native Core selects the admitted Darwin arm64 runner without dropping targ
     '  -m) printf "%s\\n" "$ACTQL_FIXTURE_ARCH" ;;\n' +
     '  *) exit 2 ;;\nesac\n');
   chmodSync(uname, 0o755);
-  for (const [system, arch, accepted] of [['Darwin', 'arm64', true],
+  for (const partition of ['1/4', 'linux-common-1/8'])
+  for (const [system, arch, darwinAccepted] of [['Darwin', 'arm64', true],
     ['Darwin', 'x86_64', false], ['Linux', 'aarch64', false], ['Linux', 'x86_64', false]]) {
-    const result = spawnSync('bash', ['-eo', 'pipefail', '-c', platform.run], {
+    const accepted = partition.startsWith('linux-common-') ? system === 'Linux' && arch === 'x86_64' : darwinAccepted;
+    const result = spawnSync('bash', ['-eo', 'pipefail', '-c',
+      platform.run.replaceAll('${{ matrix.partition }}', partition)], {
       encoding: 'utf8', timeout: 5000,
       env: {...process.env, PATH: root + ':' + process.env.PATH,
         ACTQL_FIXTURE_SYSTEM: system, ACTQL_FIXTURE_ARCH: arch},
     });
     assert.equal(result.error, undefined);
     assert.equal(result.signal, null);
-    assert.equal(result.status === 0, accepted, `${system}/${arch}: ${result.stderr}`);
+    assert.equal(result.status === 0, accepted, `${partition}/${system}/${arch}: ${result.stderr}`);
   }
   // The runner keeps both the focused prerequisite and the complete Native
   // campaign. The existing harness selects the original platform libraries.
@@ -813,6 +818,7 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
     assert.equal(hardLimit.status, 0, hardLimit.stderr);
     const script = 'ulimit -S -s 8192\n' +
       coreStep.run.replaceAll('${{ matrix.target }}', target)
+        .replaceAll('${{ matrix.partition }}', '1/4')
         .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false');
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
       cwd: root, encoding: 'utf8', timeout: 5000,
@@ -1715,6 +1721,7 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
   chmodSync(join(bin,'getconf'),0o755);
   for(const target of ['native','js','wasm']){
     const command=coreStep.run.replaceAll('${{ matrix.target }}',target)
+      .replaceAll('${{ matrix.partition }}','1/4')
       .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}','false');
     const result=spawnSync('bash',['-eo','pipefail','-c',command],{
       cwd:root,encoding:'utf8',timeout:5000,env:{...process.env,PATH:bin+':'+process.env.PATH,MOONBIT_NEW_NATIVE:'1'},
