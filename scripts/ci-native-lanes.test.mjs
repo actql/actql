@@ -17,7 +17,7 @@ test('normal Native object caching selects only the four mandatory ordinary jobs
   const steps = workflow.jobs.core.steps;
   const prepare = steps.find(step => step.id === 'native-c-object-cache');
   const restore = steps.find(step => step.id === 'native-c-object-cache-restore');
-  const save = steps.find(step => step.name === 'Save optional ordinary Native C objects');
+  const save = steps.find(step => step.name === 'Save ordinary Native C objects');
   assert(prepare && restore && save);
   const evaluate = (target, partition) => runInNewContext(
     prepare.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, ''), {
