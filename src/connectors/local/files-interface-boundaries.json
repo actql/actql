@@ -496,7 +496,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "625094da0f31eab810607274bb007319409cbf46444c7fb54399739503f6002c",
+      "sha256": "d7e91baa48df173421bd6bf6b164aa0b960c81e2322363c702d7c52b9f87a36c",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -604,6 +604,13 @@
             "managedRun",
             "originalRead",
             "requestIdentity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead/init:prepareSourceRead",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -1135,6 +1142,7 @@
             "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant",
             "installPreparedProjectLocalFiles/adapter/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead",
             "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead",
+            "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead/init:prepareSourceRead",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead#2",
@@ -1155,10 +1163,10 @@
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
-            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/issuer/issuer",
             "installPreparedProjectLocalFiles/issuer/issuer#2",
             "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",

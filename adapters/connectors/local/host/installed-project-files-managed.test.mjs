@@ -56,15 +56,22 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
     clientProgramInstalledManagedRunCheck: () => ok(),
     clientProgramInstalledSourceReadRetire() {calls.push('core-read-retire'); return ok();},
   };
-  const raw = {retainChild() {assert.fail('No Native constructor selected');},
-    close() {assert.strictEqual(this, raw); calls.push('same-raw-close');
-      return closeGate === undefined ? {pending: !closeAllowed} : closeGate.then(() => ({pending: !closeAllowed}));}};
+  const newRaw = () => {
+    const raw = {retainChild() {assert.fail('No Native constructor selected');},
+      close() {assert.strictEqual(this, raw); calls.push('same-raw-close');
+        return closeGate === undefined ? {pending: !closeAllowed} : closeGate.then(() => ({pending: !closeAllowed}));}};
+    return raw;
+  };
   const sourceManaged = {assertCurrent() {if (!valid) throw new Error('OriginalProjectSourceChanged');},
     prepareRun() {calls.push('legacy-root'); return oldOriginal;},
-    prepareRead(owner, selected, parent, occurrence) {
+    prepareRead(owner, selected, parent, occurrence, intent) {
       assert.strictEqual(owner, prepared); assert.strictEqual(selected, declaration);
-      assert.strictEqual(parent, managed); assert.equal(occurrence.stage, 0);
-      calls.push('same-native-parent'); valid = currentAfterRead; return raw;
+      assert.strictEqual(parent, managed); assert.strictEqual(intent, request);
+      assert.equal(occurrence.stage, 0);
+      assert.equal(occurrence.input, occurrence.task);
+      assert.equal(occurrence.computeTask ?? occurrence.task, 0);
+      assert(occurrence.task < 2);
+      calls.push('same-native-parent'); valid = currentAfterRead; return newRaw();
     }};
   let profile;
   const install = factory(createHash, canonicalJson, checked, runtimeOptionalField, readFile, moduleUrl,
@@ -78,9 +85,9 @@ async function fixture({pendingClose = false, currentAfterRead = true, closeGate
       assert.strictEqual(originalProfile, profile); assert.strictEqual(invocation, expectedInvocation); calls.push('same-host-parent'); return managed;
     }});
   return {profile, prepared, request, managed, declaration, calls, get options() {return options;},
-    allowClose() {closeAllowed = true;}, prepareRead(originalRead = {}) {
+    allowClose() {closeAllowed = true;}, prepareRead(originalRead = {}, occurrence = {stage: 0, input: 0, task: 0}) {
       return options.prepareSourceRead({checkedOwner: prepared, effectful: false, declaration,
-        occurrence: {stage: 0, input: 0, task: 0}, managedRun: managed, originalRead});
+        occurrence, managedRun: managed, originalRead, requestIdentity: request});
     }};
 }
 
@@ -106,6 +113,38 @@ test('Local planned read keeps the same Core tuple and closes only its original 
   assert.deepEqual(await f.options.closeSourceRead(original), {pending: false});
   await f.profile.close();
   assert.deepEqual(f.calls, ['same-host-parent', 'same-native-parent', 'same-raw-close']);
+});
+
+test('Local planned second input keeps its distinct Source slot in the same Unit and parent', async () => {
+  const f = await fixture(); f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
+  const first = {}, second = {};
+  const firstTuple = {stage: 0, input: 0, task: 0, computeTask: 0};
+  const secondTuple = {stage: 0, input: 1, task: 1, computeTask: 0};
+  assert.strictEqual(f.prepareRead(first, firstTuple), first);
+  assert.strictEqual(f.prepareRead(second, secondTuple), second);
+  assert.throws(() => f.prepareRead({}, secondTuple), {code: 'LocalFilesSourcePreparationMismatch'});
+  assert.deepEqual(await f.options.closeSourceRead(first), {pending: false});
+  assert.deepEqual(await f.options.closeSourceRead(second), {pending: false});
+  await f.profile.close();
+  assert.equal(f.calls.filter(value => value === 'same-native-parent').length, 2);
+  assert.equal(f.calls.filter(value => value === 'same-raw-close').length, 2);
+});
+
+test('Local planned Source refuses swapped coordinates and foreign request or declaration before a new child', async () => {
+  const f = await fixture(); f.profile.prepareManagedRun({preparedProgram: f.prepared, requestIdentity: f.request});
+  const facts = {checkedOwner: f.prepared, effectful: false, declaration: f.declaration,
+    occurrence: {stage: 0, input: 1, task: 1, computeTask: 0}, managedRun: f.managed,
+    originalRead: {}, requestIdentity: f.request};
+  assert.throws(() => f.options.prepareSourceRead({...facts, requestIdentity: {}}),
+    {code: 'LocalFilesSourcePreparationMismatch'});
+  assert.throws(() => f.options.prepareSourceRead({...facts, declaration: {}}),
+    {code: 'LocalFilesSourcePreparationMismatch'});
+  assert.throws(() => f.options.prepareSourceRead({...facts, occurrence: {...facts.occurrence, task: 0}}));
+  assert.throws(() => f.options.prepareSourceRead({...facts, occurrence: {...facts.occurrence, computeTask: 1}}));
+  assert.strictEqual(f.options.prepareSourceRead(facts), facts.originalRead);
+  assert.deepEqual(await f.options.closeSourceRead(facts.originalRead), {pending: false});
+  await f.profile.close();
+  assert.equal(f.calls.filter(value => value === 'same-native-parent').length, 1);
 });
 
 test('Local planned read keeps pending cleanup and never acknowledges or reopens its consumed occurrence', async () => {

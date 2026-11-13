@@ -8,7 +8,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {checkedRequestProgramPreparation, checkedRequestSnapshotPreparation,
   requestProgramCapacityRefusal} from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
-import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeIsError, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {withOriginalFile} from './source-profile-json.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -2128,7 +2128,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     ...(project ? {} : {prepareRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined);
     }}),
-    prepareRead(prepared, declaration, originalRun, occurrence) {
+    prepareRead(prepared, declaration, originalRun, occurrence, requestIdentity) {
       const run = runFor(prepared);
       const declared = bundle?.sources.findIndex(source => source.declaration === declaration);
       // A declaration is an installed factory, not an acquisition occurrence.
@@ -2140,9 +2140,29 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           expectedRun === undefined || expectedRun !== originalRun ||
           occurrence !== undefined && (occurrence === null || !['stage', 'input', 'task'].every(name =>
             Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0)) ||
-          project && (!Number.isSafeInteger(index) || index < 0 || index >= 32 ||
-            occurrence.stage !== index || occurrence.input !== 0) ||
+          project && (!Number.isSafeInteger(index) || index < 0 ||
+            !Number.isSafeInteger(occurrence.computeTask ?? index) ||
+            (occurrence.computeTask ?? index) < 0) ||
           run.children.some(child => child.index === index)) fail('InstalledSourcePreparationMismatch');
+      if (project) {
+        const state = run.producer.preparation;
+        const moon = state?.context.runtime;
+        const select = run.effectful ? moon?.clientProgramInstalledEffectManagedSourceOccurrence
+          : moon?.clientProgramInstalledManagedSourceOccurrence;
+        if (requestIdentity === undefined || typeof select !== 'function') fail('InstalledSourcePreparationMismatch');
+        // The retained Plan bounds this original Source slot and binds its
+        // authored stage/input and actual Compute task to the SAME Request.
+        // Source slots need not equal stages or Compute tasks.
+        const selected = checked(Reflect.apply(select, moon,
+          [expectedRun, prepared, requestIdentity, index]));
+        if (runtimeOptionalField(selected, 0) !== occurrence.stage ||
+            runtimeOptionalField(selected, 1) !== occurrence.input ||
+            runtimeOptionalField(selected, 2) !== (occurrence.computeTask ?? index) ||
+            runs.get(prepared) !== run || run.producer.preparation !== state ||
+            run.value !== expectedRun || run.children.some(child => child.index === index)) {
+          fail('InstalledSourcePreparationMismatch');
+        }
+      }
       const child = {index, attempted: false, closed: false, bytes: undefined, flight: undefined,
         closing: false, cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
         reader: undefined, readerClose: undefined, readerStatus: undefined,

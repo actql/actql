@@ -113460,6 +113460,7 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#5",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#6",
             "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
             "prepareOrdinarySourceManagedInstallation"
           ],
@@ -118720,7 +118721,8 @@
             "prepared",
             "declaration",
             "originalRun",
-            "occurrence"
+            "occurrence",
+            "requestIdentity"
           ],
           "async": false
         },
@@ -118747,7 +118749,9 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
-          "parameters": [],
+          "parameters": [
+            "child"
+          ],
           "async": false
         },
         {
@@ -118757,6 +118761,11 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#6",
           "parameters": [],
           "async": false
         },
@@ -119017,7 +119026,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e5b7e227029d63e12312bec45e912d925ef2051ad270c1ae0bd1f95f1fdd958b"
+      "sha256": "786f01995a42a25542e1971220985ca045e47a271770a2ac9d98d6e4a400378a"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
