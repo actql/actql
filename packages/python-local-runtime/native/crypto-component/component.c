@@ -23,14 +23,14 @@ extern int actql_read_context_release_after_owner_ack(actql_read_context *);
 typedef struct block block;
 struct block {
     size_t available, requested;
-    block *previous;
+    block *previous, *next_free;
 };
 typedef struct {
     actql_owned_capacity *lease;
     actql_read_context *context;
     pid_t process;
     size_t bytes, live_bytes, aligned_bytes, blocks, peak, failures;
-    block *first;
+    block *first, *first_free;
     unsigned char *live_starts;
     atomic_flag lock;
     unsigned initialized, closing, failed, operations, libraries, cleanup_active;
@@ -40,6 +40,18 @@ typedef struct {
 /* The pointer is only an index into the original provider extent. Control,
  * allocator headers and every block live in that same non-exported extent. */
 static component_state *state;
+/* Test-owned counts observe real traversal in this translation unit only.
+ * Normal component builds have no counters or additional exported ABI. */
+#ifdef ACTQL_CRYPTO_COMPONENT_TEST_SEARCH
+static size_t allocation_visits, allocation_attempts, free_visits;
+#define ALLOCATION_VISIT() (allocation_visits++)
+#define ALLOCATION_ATTEMPT() (allocation_attempts++)
+#define FREE_VISIT() (free_visits++)
+#else
+#define ALLOCATION_VISIT() ((void)0)
+#define ALLOCATION_ATTEMPT() ((void)0)
+#define FREE_VISIT() ((void)0)
+#endif
 static void *original_extent;
 static actql_owned_capacity *original_lease;
 static actql_read_context *original_context;
@@ -101,15 +113,25 @@ static block *find(void *p) {
 static void *allocate_locked(size_t n) {
     size_t size = rounded(n);
     if (!n || !size || !current() || (state->closing && !state->cleanup_active) || state->failed) return NULL;
-    for (block *b = state->first; b; b = next_block(b)) {
+    ALLOCATION_ATTEMPT();
+    /* Address-order first fit over free blocks only. A small earlier hole
+     * stays eligible without making every request rescan the live prefix. */
+    for (block **link = &state->first_free; *link; link = &(*link)->next_free) {
+        block *b = *link;
+        ALLOCATION_VISIT();
         if (b->requested || b->available < size) continue;
         if (b->available - size >= header_bytes() + alignment) {
             block *after = next_block(b);
             block *tail = (block *)((unsigned char *)payload(b) + size);
-            *tail = (block){.available = b->available - size - header_bytes(), .previous = b};
+            *tail = (block){.available = b->available - size - header_bytes(),
+                .previous = b, .next_free = b->next_free};
             if (after) after->previous = tail;
             b->available = size;
+            *link = tail;
+        } else {
+            *link = b->next_free;
         }
+        b->next_free = NULL;
         b->requested = n;
         mark_start(b, 1);
         state->live_bytes += n; state->aligned_bytes += b->available; state->blocks++;
@@ -124,15 +146,25 @@ static void free_locked(block *b) {
     mark_start(b, 0);
     OPENSSL_cleanse(payload(b), b->available);
     b->requested = 0;
+    block **link = &state->first_free;
+    while (*link) {
+        FREE_VISIT();
+        if ((uintptr_t)*link > (uintptr_t)b) break;
+        link = &(*link)->next_free;
+    }
+    b->next_free = *link;
+    *link = b;
     block *next = next_block(b);
     if (next && !next->requested) {
         b->available += header_bytes() + next->available;
+        b->next_free = next->next_free;
         block *after = next_block(b);
         if (after) after->previous = b;
     }
     block *previous = b->previous;
     if (previous && !previous->requested) {
         previous->available += header_bytes() + b->available;
+        previous->next_free = b->next_free;
         block *after = next_block(previous);
         if (after) after->previous = previous;
     }
@@ -202,6 +234,7 @@ static int bind_original(actql_read_context *original, size_t bytes, int *acquir
     state->live_starts = (unsigned char *)state + control;
     state->first = (block *)(state->live_starts + starts);
     *state->first = (block){.available = bytes - control - starts - header_bytes()};
+    state->first_free = state->first;
     if (CRYPTO_set_mem_functions(component_malloc, component_realloc, component_free) != 1) {
         state->failed = 1;
         return ACTQL_CRYPTO_COMPONENT_FAILED;
