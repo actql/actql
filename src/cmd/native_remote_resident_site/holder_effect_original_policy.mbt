@@ -13,6 +13,24 @@ priv struct HolderEffectOriginalPolicyContext {
 }
 
 ///|
+/// Missing operator installation denies evidence before original-context reads.
+/// The present path passes the same selected values to the existing authority
+/// boundary; this helper supplies no custody, currentness or cleanup evidence.
+/// Select again after context callbacks at the original installation fence.
+fn[Installation, Original] holder_effect_installed_evidence(
+  installation : () -> Installation?,
+  original : () -> Original?,
+  authorize : (Installation, Original) -> Bool,
+) -> Bool {
+  guard installation() is Some(_) &&
+    original() is Some(selected) &&
+    installation() is Some(installed) else {
+    return false
+  }
+  authorize(installed, selected)
+}
+
+///|
 /// Select only the producer already recorded on the admitted retained edge.
 /// Both existing physical Owners must still expose the same original request.
 /// Missing restored custody is unavailable, never permission to reprepare.
