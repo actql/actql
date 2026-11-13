@@ -40,6 +40,18 @@ typedef struct {
 /* The pointer is only an index into the original provider extent. Control,
  * allocator headers and every block live in that same non-exported extent. */
 static component_state *state;
+/* Test-owned counts observe real traversal in this translation unit only.
+ * Normal component builds have no counters or additional exported ABI. */
+#ifdef ACTQL_CRYPTO_COMPONENT_TEST_SEARCH
+static size_t allocation_visits, allocation_attempts, free_visits;
+#define ALLOCATION_VISIT() (allocation_visits++)
+#define ALLOCATION_ATTEMPT() (allocation_attempts++)
+#define FREE_VISIT() (free_visits++)
+#else
+#define ALLOCATION_VISIT() ((void)0)
+#define ALLOCATION_ATTEMPT() ((void)0)
+#define FREE_VISIT() ((void)0)
+#endif
 static void *original_extent;
 static actql_owned_capacity *original_lease;
 static actql_read_context *original_context;
@@ -101,7 +113,9 @@ static block *find(void *p) {
 static void *allocate_locked(size_t n) {
     size_t size = rounded(n);
     if (!n || !size || !current() || (state->closing && !state->cleanup_active) || state->failed) return NULL;
+    ALLOCATION_ATTEMPT();
     for (block *b = state->first; b; b = next_block(b)) {
+        ALLOCATION_VISIT();
         if (b->requested || b->available < size) continue;
         if (b->available - size >= header_bytes() + alignment) {
             block *after = next_block(b);
