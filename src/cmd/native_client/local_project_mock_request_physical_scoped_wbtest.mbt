@@ -1406,15 +1406,38 @@ fn native_pure_file_request_payload(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   prepare_plan~ : Bool,
   prepared_control~ : Bool,
+  boundary? : Bool = false,
+  budget_refusal? : Bool = false,
 ) -> String? raise {
   facility.arena
   .enter_domain_retained_execution(facility.physical)
   .native_file_route_value("enter original Request")
-  let document = "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d"
+  let document = if boundary {
+    let document = @files.read_bounded_text_file(
+      @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
+      "native-file-task-boundary.json",
+      65536L,
+      trim_newline=false,
+    ).unwrap()
+    assert_eq(
+      @sha.hex(@utf8.encode(document)),
+      "b51302160d745487db7a27ba8d17eb6a0e46eb70562838caaff13da583bdaa9b",
+    )
+    document
+  } else {
+    "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d"
+  }
   let intent = @run_host.prepare_client_submitted_intent(
     local_project_mock_relation_wire({
       "kind": "aql",
-      "input": { "text": Json::string(document), "format": "sql" },
+      "input": {
+        "text": Json::string(document),
+        "format": if boundary {
+          "json"
+        } else {
+          "sql"
+        },
+      },
       "parameters": null,
     }).unwrap(),
     65536,
@@ -1460,20 +1483,37 @@ fn native_pure_file_request_payload(
             prepared, request, 0, 0,
           ).native_file_route_value("select actual acquisition route")
           let graph = @run_host.prepared_client_graph(prepared)
+          if boundary {
+            assert_eq(@strategy.graph_task_count(graph), 33)
+            assert_eq(@strategy.graph_captured_prefix(graph), 1)
+            assert_eq(@strategy.graph_result_task(graph, 0), Some(32))
+          }
           let route = match selected {
             @sourceviews.QueryRoute(_) => "query"
             @sourceviews.WholeInputRoute(_) => "whole-input"
           }
+          let mut plan_issue = None
           if prepare_plan {
             guard selected is @sourceviews.WholeInputRoute(source) else {
               fail("actual authored aggregate must retain its Whole input")
             }
-            let (capacity, declaration, transport, artifact) = native_pure_file_capture_plan(
-              facility, original, prepared, request, source,
-            )
-            whole = Some(
-              (prepared, request, capacity, declaration, transport, artifact),
-            )
+            let outcome = Ok(
+              native_pure_file_capture_plan(
+                facility, original, prepared, request, source,
+              ),
+            ) catch {
+              ClientStop(message) => Err(message)
+              error => raise error
+            }
+            match outcome {
+              Ok((capacity, declaration, transport, artifact)) =>
+                whole = Some(
+                  (
+                    prepared, request, capacity, declaration, transport, artifact,
+                  ),
+                )
+              Err(message) => plan_issue = Some(message)
+            }
           }
           println(
             "Native numeric Source: tasks=" +
@@ -1483,7 +1523,7 @@ fn native_pure_file_request_payload(
             ",route=" +
             route,
           )
-          None
+          plan_issue
         }
         EffectComputation(_) => Some("numeric File Source must remain Pure")
       }
@@ -1510,6 +1550,36 @@ fn native_pure_file_request_payload(
           .borrow_domain_retained_execution_ledger(facility.physical)
           .native_file_route_value("observe original physical Ledger")
         let usage = @initial_resources.ledger_usage(physical)
+        if budget_refusal {
+          let admission = @local_values.installed_managed_preparation_admission_original(
+            owner, prepared, request,
+          ).unwrap()
+          let original_extent = @initial_resources.prepared_run_native_capacity(
+            admission, prepared, physical,
+          ).unwrap()
+          let limit = @initial_resources.ledger_limits(physical)
+          // Request one byte beyond THIS original finite allowance. Refusal
+          // cannot change its debit, identity, work history or cleanup duties.
+          assert_true(
+            @initial_resources.reserve_prepared_run_native_work_capacity(
+              admission,
+              prepared,
+              physical,
+              limit.retained_bytes + 1L,
+              original_extent.1,
+            )
+            is Err(
+              @initial_resources.Resource(@initial_resources.RetentionLimit)
+            ),
+          )
+          assert_eq(@initial_resources.ledger_usage(physical), usage)
+          assert_eq(
+            @initial_resources.prepared_run_native_capacity(
+              admission, prepared, physical,
+            ).unwrap(),
+            original_extent,
+          )
+        }
         println(
           "Native Whole Plan physical Ledger before Source: reservations=\{usage.live_reservations},R=\{usage.reserved_retention_bytes},E=\{usage.reserved_execution_bytes}",
         )
@@ -1638,6 +1708,8 @@ fn native_pure_file_request_in_metadata_read(
   facility : NativeMockReadmeRequestFacility,
   prepare_plan? : Bool = false,
   prepared_control? : Bool = false,
+  boundary? : Bool = false,
+  budget_refusal? : Bool = false,
 ) -> String? raise {
   let original = native_project_mock_model_fixture("churn-risk")
   original
@@ -1671,6 +1743,8 @@ fn native_pure_file_request_in_metadata_read(
     publication,
     prepare_plan~,
     prepared_control~,
+    boundary~,
+    budget_refusal~,
   )
   facility.arena
   .close_domain_retained_execution(facility.physical)
@@ -1784,4 +1858,18 @@ test "Native File Source adopts its actual Whole Plan on the same backed Request
 ///|
 test "Native Whole Plan retains constructor capacity on its SAME preparation reservation" {
   native_project_mock_model_backed_read(false, pure_file_control=true)
+}
+
+///|
+test "Native thirty three task File Plan keeps its same finite Request and physical Ledger" {
+  native_project_mock_model_backed_read(false, pure_file_boundary=true)
+}
+
+///|
+test "Native thirty three task File Plan refuses unfunded growth without changing its original cleanup" {
+  native_project_mock_model_backed_read(
+    false,
+    pure_file_boundary=true,
+    pure_file_budget_refusal=true,
+  )
 }
