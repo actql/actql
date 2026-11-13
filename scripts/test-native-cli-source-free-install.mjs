@@ -170,7 +170,8 @@ export const nativeDefaultUnionCases = Object.freeze([
   {branches: 11, total: 55}, {branches: 17, total: 136}, {branches: 24, total: 276},
 ]);
 
-// This fixture has N literal SELECTs, N-1 UNION ALL appends and one SUM.
+// The independent WITH-set golden emits values/derive/select for each
+// literal SELECT, N-1 UNION ALL appends, then SUM group/final projection.
 // Assert those original logical occurrences and their complete input/output
 // connections, rather than accepting any nonempty JSON as a retained Plan.
 function assertNativeUnionPlan(value, originalRef, branches) {
@@ -191,7 +192,7 @@ function assertNativeUnionPlan(value, originalRef, branches) {
   const counts = new Map(), outputs = new Map(), steps = new Set(), ports = new Set();
   let lastOperator;
   for (const step of map.steps) {
-    const arity = new Map([['values', 0], ['select', 1], ['append', 2], ['group', 1], [null, 1]]).get(step.operator);
+    const arity = new Map([['values', 0], ['derive', 1], ['select', 1], ['append', 2], ['group', 1]]).get(step.operator);
     assert.notEqual(arity, undefined, 'Unexpected operation in the original UNION/SUM fixture');
     assert.match(step.step_id, cid);
     assert(!steps.has(step.step_id), 'Distinct original logical occurrences required');
@@ -199,6 +200,8 @@ function assertNativeUnionPlan(value, originalRef, branches) {
     assert.equal(step.key?.version, 'actql-logical-step-key/0.1');
     assert.equal(step.key.compiled_plan_cid, plan.compiled_plan_cid);
     assert.equal(step.key.self_cid, step.step_id);
+    assert.equal(step.key.stage_ordinal, 0, 'This SQL retains the independent one-stage WITH-set shape');
+    assert.deepEqual(step.key.occurrence, {kind: 'operation', operation_ordinal: steps.size - 1});
     assert(Array.isArray(step.ports));
     const inputs = step.ports.filter(port => port.role === 'input');
     const output = step.ports.filter(port => port.role === 'output');
@@ -212,24 +215,26 @@ function assertNativeUnionPlan(value, originalRef, branches) {
       assert.equal(port.carrier, 'relation');
       if (port.role === 'input') {
         assert(port.source, 'Original input producer required');
-        if (port.source.kind === 'logical_output') {
-          assert(outputs.has(port.source.output_port_id), 'Original earlier output port required');
-          assert.equal(outputs.get(port.source.output_port_id), port.source.step_id,
-            'Retain the exact earlier logical producer, not a truncated graph');
-        } else assert.equal(port.source.kind, 'stage_input');
+        assert.equal(port.source.kind, 'logical_output', 'This source-free WITH uses same-stage producers');
+        assert(outputs.has(port.source.output_port_id), 'Original earlier output port required');
+        assert.equal(outputs.get(port.source.output_port_id), port.source.step_id,
+          'Retain the exact earlier logical producer, not a truncated graph');
       }
     }
     outputs.set(output[0].port_id, step.step_id);
     counts.set(step.operator, (counts.get(step.operator) ?? 0) + 1);
-    if (step.operator !== null) lastOperator = step.operator;
+    lastOperator = step.operator;
   }
-  assert.equal(counts.get('values'), branches, 'Retain every literal SELECT branch');
+  assert.equal(counts.get('values'), branches, 'Retain every literal SELECT seed');
+  assert.equal(counts.get('derive'), branches, 'Retain every literal evaluation before its projection');
   assert.equal(counts.get('append'), branches - 1, 'Retain every UNION ALL occurrence');
   assert.equal(counts.get('group'), 1, 'Retain the original SUM aggregate');
-  assert((counts.get('select') ?? 0) >= branches + 1, 'Retain branch projections and the final total projection');
+  assert.equal(counts.get('select'), branches + 1, 'Retain branch projections and the final total projection');
+  assert.equal(map.steps.length, 4 * branches + 1, 'Complete current fixture lowering, not a public planning limit');
   assert.equal(lastOperator, 'select', 'Retain the final aggregate projection');
   const planBytes = Buffer.byteLength(JSON.stringify(plan), 'utf8');
-  assert(planBytes > 65536, 'The complete inner Plan must actually cross the former 64 KiB boundary');
+  if (branches === nativeDefaultUnionCases.at(-1).branches)
+    assert(planBytes > 65536, 'The largest complete inner Plan must actually cross the former 64 KiB boundary');
   return {planBytes, logicalSteps: map.steps.length};
 }
 
