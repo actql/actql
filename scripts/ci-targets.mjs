@@ -32,7 +32,9 @@ export const maintenanceFiles = Object.freeze([
   // Offline cost display is consumed only by the existing artifact reporter;
   // proof producers and final acceptance do not import this projection.
   'scripts/ci-session-costs.mjs', 'scripts/ci-session-costs.test.mjs',
-  'scripts/verification-actions.mjs', 'scripts/verification-actions.test.mjs',
+  // The parser implementation also selects original Native compiler commands
+  // and scoped profiles, so only its reporting tests remain maintenance-only.
+  'scripts/verification-actions.test.mjs',
   'scripts/worktree-inventory.mjs', 'scripts/worktree-inventory.test.mjs',
   // Reviewed callback-only units. Their implementation helpers are also used
   // by packed/public consumers and deliberately remain full-coverage inputs.
