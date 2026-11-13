@@ -138,9 +138,10 @@ static int bounded_search(void) {
     assert(state->blocks >= original_blocks && state->live_bytes >= original_bytes);
     printf("{\"measurement\":\"actual-search\",\"prefix_visits\":%zu,\"prefix_limit\":%zu,"
            "\"mixed_visits\":%zu,\"mixed_limit\":%zu,\"mixed_free_visits\":%zu,"
-           "\"crypto_visits\":%zu,\"crypto_allocations\":%zu,\"crypto_free_visits\":%zu}\n",
+           "\"crypto_visits\":%zu,\"crypto_allocations\":%zu,\"crypto_free_visits\":%zu,"
+           "\"sha256_operations\":%u,\"hmac_operations\":%u}\n",
            prefix_visits, prefix_limit, mixed_visits, mixed_limit, mixed_free_visits,
-           crypto_visits, crypto_attempts, crypto_free_visits);
+           crypto_visits, crypto_attempts, crypto_free_visits, iterations, iterations);
     return prefix_visits <= prefix_limit && mixed_visits <= mixed_limit;
 }
 
@@ -150,7 +151,10 @@ int main(int argc, char **argv) {
     actql_owned_capacity *owner = NULL;
     actql_read_context *context = NULL;
     size_t page = (size_t)sysconf(_SC_PAGESIZE);
-    assert(actql_native_owned_acquire(384 * page, 1, recipe, &owner) == 0);
+    /* Preserve the original 6MiB owner on both 16KiB Darwin and 4KiB Linux
+     * pages. The selected Crypto extent below remains exactly 4MiB. */
+    assert((6 * 1024 * 1024) % page == 0);
+    assert(actql_native_owned_acquire(6 * 1024 * 1024, 1, recipe, &owner) == 0);
     assert(actql_native_owned_transfer(owner, 1, recipe) == 0);
     assert(actql_native_owned_enter(owner) == 0);
     assert(actql_read_context_create(owner, &context) == 0);

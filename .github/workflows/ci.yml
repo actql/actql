@@ -2104,6 +2104,14 @@ jobs:
             "$RUNNER_TEMP/native-cli-linux-local/release" \
             "$RUNNER_TEMP/native-cli-linux-local/cohort.json" \
             "$RUNNER_TEMP/native-cli-linux-local/production/artifact"
+      - name: Require actual bounded Crypto allocator conformance
+        if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          python3 scripts/test-native-crypto-allocator.py \
+            --source "$(git rev-parse HEAD)" --clang "$(realpath /usr/bin/clang-19)" \
+            --crypto-producer "$RUNNER_TEMP/native-cli-linux-local/production/crypto/producer.json" \
+            --output "$RUNNER_TEMP/native-cli-linux-local/crypto-allocator" --seconds 150
       - name: Require actual fresh installed source-free Local execution
         if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
         run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
@@ -2120,6 +2128,7 @@ jobs:
           path: |
             ${{ runner.temp }}/native-cli-linux-local/production/sqlite/process-producer.json
             ${{ runner.temp }}/native-cli-linux-local/production/crypto/producer.json
+            ${{ runner.temp }}/native-cli-linux-local/crypto-allocator/summary.json
             ${{ runner.temp }}/native-cli-linux-local/production/recipe/
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/artifact.json
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/native-producer/build.json

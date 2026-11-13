@@ -45,8 +45,8 @@
       "sha256": "6316b8b2083c269e1caaf4aebabf1f6edff0f2352589e70863e2891ee8886877"
     },
     "fixtures/allocator_conformance.c": {
-      "bytes": 11394,
-      "sha256": "e64169d6723694cb54e9a708d08e18e8b5e86c0c025d03a91227938b5addbef5"
+      "bytes": 11676,
+      "sha256": "81adee94a6f6dcb798f6e9de52d5220eb04acc611f30e5f5001b6a0f5e4c8f9f"
     }
   },
   "isolation": [
