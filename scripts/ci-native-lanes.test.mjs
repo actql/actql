@@ -306,10 +306,12 @@ test('required lint directly selects Native preparation controls and only macOS 
     'compiler controls retain their own clean profile before CI cache configuration');
   assert.equal(workflow.jobs['core-darwin']['runs-on'],'macos-15');
   const prepare=family=>workflow.jobs[family+'-workloads'].steps.find(step=>step.id==='native-preparation');
-  assert(prepare('native-macos').run.endsWith('--resident-seconds 1200 --lanes 2'));
+  assert(prepare('native-macos').run.endsWith('--resident-seconds 1200 --lanes 3'));
   assert(!prepare('native').run.includes('--lanes'));
   for(const family of ['native','native-macos'])assert.equal(prepare(family)['timeout-minutes'],family==='native'?65:70);
   const cli=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  assert(cli.includes('assert([1,2,3].includes(lanes))'));
+  assert(cli.includes('constructionLanes:lanes'));
   const awaited=cli.indexOf('?await prepareNativeParallel('),ready=cli.indexOf("writeFileSync(join(destination,'preparation.json')");
   const environment=cli.indexOf("if(process.env.GITHUB_ENV!==undefined)");
   assert(awaited>0&&ready>awaited&&environment>ready);

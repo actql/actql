@@ -1259,15 +1259,22 @@ provenance data; they are not executed as receiver tools. Original paths and
 inodes are never relabeled as local prepared originals. This path neither starts
 a provider nor replaces the subsequent fresh runtime, currentness or cleanup
 checks, and a refused explicit input never triggers a rebuild fallback.
-The macOS workload explicitly selects `--lanes 2` inside that same preparation
+The macOS workload explicitly selects `--lanes 3` inside that same preparation
 owner. Closed command compilation runs alongside the existing sequential
-libraries, HTTP and portable preparation. The command lane uses one verified
-private copy of the pinned tool installation and Core bundles; shared tool-home
-aliases refuse as output destinations. Build/cache roots stay separate. Both
-lanes must finish before the single complete index and consumer environment are
-published, including when either lane fails. Original command budgets also cover
-export and receive; component profiles, TLS jobs and consumer deadlines remain.
-The default CLI and Linux workload keep one lane.
+libraries, HTTP and portable preparation, and the existing Query build-only
+constructor runs in a third Worker. Command and Query input tools are verified
+private copies made before any lane starts. Query still constructs its own
+checked tool and target tree; no mutable Core cache is shared. Shared tool-home
+aliases refuse as output destinations. Every started lane must finish before
+the single complete index and consumer environment are published, including a
+failed constructor or synchronous launch. Original deadlines, build arguments,
+compiler flags and fresh receipt checks remain; there is no replacement build.
+The summary records selected construction concurrency. Hosted measurements must
+establish actual contention, peak resources and speed; no gain is assumed.
+The explicit two-lane mode retains its serial Query tail, while the default CLI
+and Linux workload keep one lane. The hosted three-lane entrance remains CI-only
+in the local job wrapper; local `run native` keeps its existing serial resource
+scope and quote.
 A complete index may retain `received.json` for an explicitly received command.
 Its exact immutable inputs are checked once per unchanged process scope, with
 physical file identity, metadata and current tool selection checked on every

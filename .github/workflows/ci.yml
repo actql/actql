@@ -2888,7 +2888,7 @@ jobs:
       - name: Prepare exact-source scoped Native commands and components once
         id: native-preparation
         timeout-minutes: 70
-        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2 --resident-seconds 1200 --lanes 2
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2 --resident-seconds 1200 --lanes 3
       - name: Start independent Native groups under the same preparation
         id: native-background-start
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}

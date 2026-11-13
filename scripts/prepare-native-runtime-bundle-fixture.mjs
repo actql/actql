@@ -25,10 +25,12 @@ const residentSeconds=Number(options['--resident-seconds']??seconds);
 assert(Number.isSafeInteger(residentSeconds) && residentSeconds>0 && residentSeconds<=1800);
 const httpJobs=Number(options['--http-jobs']??1);
 assert(Number.isSafeInteger(httpJobs) && [1,2].includes(httpJobs));
-const lanes=Number(options['--lanes']??1);assert([1,2].includes(lanes));
+const lanes=Number(options['--lanes']??1);assert([1,2,3].includes(lanes));
 const target=process.platform==='darwin' && process.arch==='arm64'?'darwin-arm64'
   :process.platform==='linux' && process.arch==='x64'?'linux-x64':undefined;
 assert(target,'No selected native preparation target');
+if(lanes===3)assert(target==='darwin-arm64'&&selection==='all',
+  'Three lanes require the complete Darwin preparation');
 const repository=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
 const destination=join(realpathSync(dirname(resolve(options['--destination']))),basename(options['--destination']));
 assert(!/[\r\n]/u.test(destination));
@@ -90,14 +92,16 @@ if (portableReceipt !== undefined) timedPreparation('portable_runtime', () =>
   prepareNativeResidentPortableRuntime(repository, portableReceipt));
   return {entries,components,httpReceipt,portableReceipt};
 }
-const {entries,components,httpReceipt,portableReceipt}=lanes===2
-  ?await prepareNativeParallel({repository,destination,source,target,selection,seconds,residentSeconds,httpJobs,moonHome,clang,sdk})
+const {entries,components,httpReceipt,portableReceipt,queryReceipt:parallelQueryReceipt}=lanes>1
+  ?await prepareNativeParallel({repository,destination,source,target,selection,seconds,residentSeconds,httpJobs,moonHome,clang,sdk,lanes})
   :serialPreparation();
 // The same completed preparation owns one default Native Query image. Only
 // software is shared; the later HTTP and Remote fixtures retain fresh roots,
 // keys, ports, environment, original Moon commands and exact execution counts.
-let queryReceipt;
-if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{
+let queryReceipt=parallelQueryReceipt;
+if(lanes===3)assert.equal(queryReceipt,join(destination,'query-software.json'),
+  'Missing original parallel Query preparation');
+if(target==='darwin-arm64'&&selection==='all'&&lanes!==3)timedPreparation('query_software',()=>{
   queryReceipt=prepareNativeQuerySoftware(repository,destination,{env:{...process.env,MOON_HOME:moonHome}});
 });
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
@@ -111,4 +115,4 @@ if(process.env.GITHUB_ENV!==undefined)appendFileSync(process.env.GITHUB_ENV,
   (queryReceipt===undefined?'':'ACTQL_TEST_NATIVE_QUERY_PREPARATION='+queryReceipt+'\n')+
   (portableReceipt===undefined?'':'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION='+portableReceipt+'\n')+
   (httpReceipt===undefined?'':'ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT='+httpReceipt+'\n'));
-console.log(JSON.stringify({source,target,preparation:destination,entries:Object.keys(entries)}));
+console.log(JSON.stringify({source,target,preparation:destination,entries:Object.keys(entries),constructionLanes:lanes}));
