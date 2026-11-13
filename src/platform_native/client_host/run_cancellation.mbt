@@ -268,7 +268,12 @@ fn cancellation_custody(
       Ok(value) => value
       _ => return Err(CustodyLost)
     }
-    let run = match read_run_record(run) {
+    let run = match
+      read_run_record(
+        run,
+        before_construction=run_decode_construction(database, reads),
+        before_metadata_construction=run_metadata_construction(database, reads),
+      ) {
       Ok(value) => value
       _ => return Err(CustodyLost)
     }

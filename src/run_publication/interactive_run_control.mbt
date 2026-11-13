@@ -23,6 +23,29 @@ pub fn parse_interactive_run_control_shape(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  admit_interactive_run_control_value(
+    name, wire, value, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Validate the same closed canonical value supplied by an already-backed
+/// source parser. Wire equality, complete shape and self identity remain
+/// mandatory; this entry issues no control authority or resource backing.
+pub fn admit_interactive_run_control_value(
+  name : String,
+  wire : String,
+  value : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@json.CanonicalValue, PublicationContractIssue] {
+  if !generated_interactive_protocol_schema(name) {
+    return Err(UnknownContract)
+  }
+  if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(InvalidLimits)
+  }
   let canonical = @json.stringify_value(
     value, max_wire_bytes, max_nodes, max_depth,
   ) catch {

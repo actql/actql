@@ -127,6 +127,10 @@ pub fn native_client_run_record_revision(
 ///|
 fn run_record_body(
   record : NativeClientRunRecord,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    @host.ClientJournalEncodingIssue,
+  ])? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   native_timing_count(45)
   let checkpoint = match record.checkpoint {
@@ -152,6 +156,7 @@ fn run_record_body(
     },
     local_run_policy_originals=record.local_run_policy_originals,
     run_observation_originals=record.run_observation_originals,
+    before_construction~,
   ).map_err(issue => {
     match issue {
       Encoding => Encoding
@@ -163,8 +168,21 @@ fn run_record_body(
 ///|
 fn read_run_record(
   row : @sqlite.NativeJournalValue,
+  before_construction? : ((@host.ClientRunJournalConstruction) -> Result[
+    Unit,
+    @host.ClientJournalDecodingIssue,
+  ])? = None,
+  before_metadata_construction? : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  read_run_record_in_mode(row, ValidatePublication)
+  read_run_record_in_mode(
+    row,
+    ValidatePublication,
+    before_construction~,
+    before_metadata_construction~,
+  )
 }
 
 ///|
@@ -191,16 +209,28 @@ fn read_run_record_in_mode(
   journal? : NativeClientRunJournal? = None,
   identity? : (@host.ClientRequestIdentity, @publication.PublicationContract)? = None,
   observation? : NativeClientStoredRunObservation? = None,
+  before_construction? : ((@host.ClientRunJournalConstruction) -> Result[
+    Unit,
+    @host.ClientJournalDecodingIssue,
+  ])? = None,
+  before_metadata_construction? : ((Int64, Int64, Int64) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   native_timing_count(25)
   let decoded = match identity {
     None =>
-      @host.decode_client_run_journal_row_with_observation_originals(row.body)
+      @host.decode_client_run_journal_row_with_observation_originals(
+        row.body,
+        before_construction~,
+      )
     Some((request, definition)) =>
       @host.decode_client_run_journal_row_with_retained_identity(
         row.body,
         request,
         definition,
+        before_construction~,
       )
   }
   let (decoded, local_run_policy_originals, run_observation_originals) = match
@@ -253,7 +283,13 @@ fn read_run_record_in_mode(
         Some(original) if original.matches(wire, definition, program) =>
           Some(original)
         _ =>
-          match read_native_stored_run_observation(wire, definition, program) {
+          match
+            read_native_stored_run_observation(
+              wire,
+              definition,
+              program,
+              before_construction=before_metadata_construction,
+            ) {
             Ok(original) => Some(original)
             Err(_) => return Err(CustodyLost)
           }
@@ -417,7 +453,13 @@ fn run_journal_custody(
     (table_name, key) => client_journal_read(database, table_name, key, reads~),
     row => {
       let record = match
-        read_run_record({ body: row.body, revision: row.revision, }) {
+        read_run_record(
+          { body: row.body, revision: row.revision, },
+          before_construction=run_decode_construction(database, reads),
+          before_metadata_construction=run_metadata_construction(
+            database, reads,
+          ),
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -693,6 +735,7 @@ fn NativeClientRunJournal::admit_retained_record(
   key : String,
   row : @sqlite.NativeJournalValue,
   mode? : RunRecordPolicyValidation = ValidatePublication,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   if (self.transaction_active || self.operation_active) &&
     self.admitted_record
@@ -731,6 +774,11 @@ fn NativeClientRunJournal::admit_retained_record(
       journal=Some(self),
       identity~,
       observation~,
+      before_construction=run_decode_construction(self.database, reads),
+      before_metadata_construction=run_metadata_construction(
+        self.database,
+        reads,
+      ),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -803,7 +851,7 @@ fn NativeClientRunJournal::retained_with_issuance(
         Err(issue) => return Err(Physical(issue))
       }
   }
-  let retained = match self.admit_retained_record(key, row) {
+  let retained = match self.admit_retained_record(key, row, reads~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -878,6 +926,7 @@ fn NativeClientRunJournal::retained_policy_wire(
       @host.client_request_scope_cid(requested),
       row,
       mode=DeferPublicationWire,
+      reads~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1071,7 +1120,14 @@ fn NativeClientRunJournal::bind_run_locked(
     revision: 0L,
     checkpoint: None,
   }
-  let body = match run_record_body(record) {
+  let body = match
+    run_record_body(
+      record,
+      before_construction=submitted_encode_construction(
+        self.database,
+        operations,
+      ),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -1142,7 +1198,7 @@ fn NativeClientRunJournal::classify_run_definition_collision(
     Err(@sqlite.NotFound) => return CustodyLost
     Err(issue) => return Physical(issue)
   }
-  let original = match self.admit_retained_record(key, row) {
+  let original = match self.admit_retained_record(key, row, reads~) {
     Ok(value) => value
     Err(issue) => return issue
   }
@@ -1189,6 +1245,7 @@ fn NativeClientRunJournal::save_with_operations(
         self.admit_retained_record(
           @host.client_request_scope_cid(record.request),
           current,
+          reads~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -1207,7 +1264,14 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let body = match run_record_body(record) {
+  let body = match
+    run_record_body(
+      record,
+      before_construction=submitted_encode_construction(
+        self.database,
+        operations,
+      ),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

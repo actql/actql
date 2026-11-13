@@ -53,16 +53,45 @@ fn local_saved_run_explain(
     Err(issue) => stop(local_saved_state_issue(issue))
   }
   let plan_wire = selected.wire()
-  let reference = local_original_run_reference(
-    selected.original().definition(),
-    scope,
-  )
-  let wire = local_saved_run_plan_reply(reference, plan_wire)
+  let wire = match capture {
+    Some(original) =>
+      local_host_result(
+        original.saved_run_plan_reply_in_original_read(selected, scope),
+      )
+    // Legacy callers have no original Read to grow. Keep their old bounded
+    // presentation rather than manufacturing an unbacked large constructor.
+    None =>
+      local_saved_run_plan_reply(
+        local_original_run_reference(selected.original().definition(), scope),
+        plan_wire,
+      )
+  }
   if !current() {
     stop("LocalRunStateReadAuthorizationDenied")
   }
   if child.flags.get("json").unwrap_or(false) {
     return wire
+  }
+  // The human formatter still owns only its original small-view parser.
+  // Refuse before builtin JSON allocation; large saved plans use the funded
+  // canonical --json path above, not a silently expanded display budget.
+  let mut display_bytes = 0L
+  for character in plan_wire {
+    let scalar = character.to_int()
+    display_bytes += if scalar < 128 {
+      1L
+    } else if scalar < 2048 {
+      2L
+    } else if scalar < 65536 {
+      3L
+    } else {
+      4L
+    }
+    if display_bytes > 65536L {
+      stop(
+        "LocalSavedPlanTextLimitUseJson: saved plan exceeds the text display limit; rerun with --json",
+      )
+    }
   }
   let output = { text: StringBuilder(), remaining: 65536, }
   output.append(

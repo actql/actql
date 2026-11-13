@@ -14,6 +14,7 @@ pub(all) struct ClientStaticPlanViewConstruction {
   max_source_fields : Int
   quoted_text_bytes : Int64
   max_quoted_text_bytes : Int
+  ports_wire_bytes : Int64
   steps_wire_bytes : Int64
   max_step : (Int, Int, Int)
   step_key : (Int, Int, Int)
@@ -230,6 +231,7 @@ pub fn measure_client_compiled_run_static_plan_view(
   max_nodes : Int,
   max_depth : Int,
   inspect_installed? : Bool = false,
+  before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
 ) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue] {
   if !client_compiled_run_matches(compiled, prepared) {
     return Err(ForeignCompilation)
@@ -239,7 +241,12 @@ pub fn measure_client_compiled_run_static_plan_view(
     _ => ()
   }
   measure_client_static_plan_view(
-    prepared, max_bytes, max_nodes, max_depth, inspect_installed,
+    prepared,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    inspect_installed,
+    before_carrier_measurement~,
   ).map_err(issue => Projection(issue))
 }
 
@@ -250,6 +257,7 @@ fn measure_client_static_plan_view(
   n : Int,
   d : Int,
   inspect_installed : Bool,
+  before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
 ) -> Result[ClientStaticPlanViewConstruction, ClientInteractivePlanIssue] {
   if b <= 0 || n <= 0 || d <= 0 {
     return Err(InvalidReadLimits)
@@ -263,6 +271,7 @@ fn measure_client_static_plan_view(
   let mut fields_max = 0
   let mut quoted_total = 0L
   let mut quoted_max = 0
+  let mut ports_bytes = 0L
   let mut steps_bytes = 0L
   let mut max_step = (0, 0, 0)
   let mut max_step_key = (0, 0, 0)
@@ -354,6 +363,11 @@ fn measure_client_static_plan_view(
             }
           }
           let (carrier, source) = carrier_and_source
+          // A caller may fund this original Carrier's measurement helpers in
+          // its existing scope. Failure cannot fall back to unguarded emission.
+          if before_carrier_measurement is Some(prepare) && !prepare(carrier) {
+            return Err(ConstructionRefused)
+          }
           guard measure_client_task_carrier_contract(carrier, b, n, d)
             is Some(contract) else {
             return Err(UnsupportedCarrierContract)
@@ -378,6 +392,10 @@ fn measure_client_static_plan_view(
             port_writer, role, index, kind, stage, source,
           )
           let port = @encode.finish_measurement_usage(port_writer)
+          if ports_bytes > 9223372036854775807L - port.0.to_int64() {
+            return Err(InvalidReadLimits)
+          }
+          ports_bytes += port.0.to_int64()
           max_port = interactive_geometry_max(max_port, port)
           @encode.emit_measurement(ports, port)
         }
@@ -472,6 +490,7 @@ fn measure_client_static_plan_view(
       max_source_fields: fields_max,
       quoted_text_bytes: quoted_total,
       max_quoted_text_bytes: quoted_max,
+      ports_wire_bytes: ports_bytes,
       steps_wire_bytes: steps_bytes,
       max_step,
       step_key: max_step_key,

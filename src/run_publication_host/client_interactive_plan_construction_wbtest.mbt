@@ -51,6 +51,7 @@ test "static plan geometry matches complete original map and view including iden
       let mut inputs = 0
       let mut outputs = 0
       let mut bytes = 0L
+      let mut port_bytes = 0L
       for i in 0..<@canonical.array_count(steps) {
         let step = @canonical.array_at(steps, i).unwrap()
         let step_wire = @canonical.stringify_value(step, 1000000, 100000, 100)
@@ -67,6 +68,8 @@ test "static plan geometry matches complete original map and view including iden
         }
         for j in 0..<@canonical.array_count(ports) {
           let port = @canonical.array_at(ports, j).unwrap()
+          let port_wire = @canonical.stringify_value(port, 1000000, 100000, 100)
+          port_bytes += @utf8.encode(port_wire).length().to_int64()
           match @canonical.object_field(port, "role") {
             Some(@canonical.String("input")) => inputs += 1
             Some(@canonical.String("output")) => outputs += 1
@@ -75,6 +78,7 @@ test "static plan geometry matches complete original map and view including iden
         }
       }
       assert_eq(geometry.steps_wire_bytes, bytes)
+      assert_eq(geometry.ports_wire_bytes, port_bytes)
       assert_eq(geometry.input_port_count, inputs)
       assert_eq(geometry.output_port_count, outputs)
       for
@@ -175,4 +179,61 @@ test "static plan geometry follows long checked chains past legacy 64KiB project
     measure_client_static_plan_view(prepared, 65536, 100000, 100, false)
     is Err(_),
   )
+}
+
+///|
+test "Carrier measurement reservation precedes each helper and refusal has no fallback" {
+  for tasks in [false, true] {
+    let (prepared, compiled, _) = local_values_invocation_fixture(tasks)
+    let original = measure_client_compiled_run_static_plan_view(
+      compiled, prepared, 1000000, 100000, 100,
+    ).unwrap()
+    let calls = Ref(0)
+    let admitted = measure_client_compiled_run_static_plan_view(
+      compiled,
+      prepared,
+      1000000,
+      100000,
+      100,
+      before_carrier_measurement=Some(_ => {
+        calls.val += 1
+        true
+      }),
+    ).unwrap()
+    assert_eq(admitted, original)
+    assert_eq(calls.val, original.input_port_count + original.output_port_count)
+    calls.val = 0
+    assert_eq(
+      measure_client_compiled_run_static_plan_view(
+        compiled,
+        prepared,
+        1000000,
+        100000,
+        100,
+        before_carrier_measurement=Some(_ => {
+          calls.val += 1
+          false
+        }),
+      ),
+      Err(Projection(ConstructionRefused)),
+    )
+    assert_eq(calls.val, 1)
+    let (foreign, _, _) = local_values_invocation_fixture(tasks)
+    calls.val = 0
+    assert_eq(
+      measure_client_compiled_run_static_plan_view(
+        compiled,
+        foreign,
+        1000000,
+        100000,
+        100,
+        before_carrier_measurement=Some(_ => {
+          calls.val += 1
+          true
+        }),
+      ),
+      Err(ForeignCompilation),
+    )
+    assert_eq(calls.val, 0)
+  }
 }

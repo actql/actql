@@ -34,7 +34,7 @@ test "observed Run row keeps canonical bytes while admitting large observation o
     }),
   ).unwrap()
   assert_eq(restored.2, Some(raw))
-  assert_eq(stages.length(), 2)
+  assert_eq(stages.length(), 3)
   assert_true(stages[0] is RunJournalParse(bytes) && bytes == body.length())
   assert_true(
     stages[1] is RunJournalCanonical(bytes, units, nodes, depth) &&
@@ -42,6 +42,13 @@ test "observed Run row keeps canonical bytes while admitting large observation o
     units == 2L * bytes.to_int64() &&
     nodes > 0 &&
     nodes <= 32 &&
+    depth <= 4,
+  )
+  assert_true(
+    stages[2] is RunJournalRetained(bytes, units, nodes, depth) &&
+    bytes == body.length() &&
+    units == 2L * bytes.to_int64() &&
+    nodes > 0 &&
     depth <= 4,
   )
   assert_eq(
@@ -171,19 +178,64 @@ test "Run canonical comparison cannot emit past its funded original body" {
     before_construction=Some((_, _, _) => Ok(())),
   ).unwrap()
   let mut largest = 0
-  let compare = limit => client_run_journal_row_body_from_wires(
-    record, request, definition,
-    run_observation_originals=Some(raw),
-    comparison_bytes=Some(limit),
-    before_construction=Some((bytes, _, _) => {
-      largest = Int::max(largest, bytes)
-      Ok(())
-    }),
-  )
+  let compare = limit => {
+    client_run_journal_row_body_from_wires(
+      record,
+      request,
+      definition,
+      run_observation_originals=Some(raw),
+      comparison_bytes=Some(limit),
+      before_construction=Some((bytes, _, _) => {
+        largest = Int::max(largest, bytes)
+        Ok(())
+      }),
+    )
+  }
   assert_eq(compare(body.length()), Ok(body))
   assert_eq(largest, body.length())
   largest = 0
   assert_eq(compare(body.length() - 1), Err(CapacityExceeded))
   assert_true(largest <= body.length() - 1)
   assert_eq(compare(0), Err(CapacityExceeded))
+}
+
+///|
+test "Run decoded output handoff occurs only after exact canonical acceptance" {
+  let body = client_run_journal_row_body(journal_encoding_original()).unwrap()
+  let text = @utf8.decode(body)
+  for
+    candidate in [
+      @utf8.encode(" " + text),
+      @utf8.encode(text.replace(old="false", new="null")),
+    ] {
+    let handed = Ref(0)
+    assert_true(
+      decode_client_run_journal_row_with_observation_originals(
+        candidate,
+        before_construction=Some(stage => {
+          if stage is RunJournalRetained(_, _, _, _) {
+            handed.val += 1
+          }
+          Ok(())
+        }),
+      )
+      is Err(CustodyLost),
+    )
+    assert_eq(handed.val, 0)
+  }
+  let handed = Ref(0)
+  assert_true(
+    decode_client_run_journal_row_with_observation_originals(
+      body,
+      before_construction=Some(stage => {
+        if stage is RunJournalRetained(_, _, _, _) {
+          handed.val += 1
+          return Err(CustodyLost)
+        }
+        Ok(())
+      }),
+    )
+    is Err(CustodyLost),
+  )
+  assert_eq(handed.val, 1)
 }

@@ -121,10 +121,19 @@ fn ProtocolValidationCursor::step(self : ProtocolValidationCursor) -> Unit {
                 (max_items >= 0 && count > max_items) ||
                 (
                   unique &&
-                  !protocol_unique_array(
-                    @json.array_values(values),
-                    self.budget,
-                  )
+                  !(if items >= 0 &&
+                    items < self.nodes.length() &&
+                    self.nodes[items] is StringRule(_, _, _, _) {
+                    protocol_unique_string_array(
+                      @json.array_values(values),
+                      self.budget,
+                    )
+                  } else {
+                    protocol_unique_array(
+                      @json.array_values(values),
+                      self.budget,
+                    )
+                  })
                 ) {
                 self.result = false
               } else {

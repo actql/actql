@@ -377,3 +377,34 @@ pub fn run_evidence_value_fits(
   nodes <= max_nodes &&
   depth <= max_depth
 }
+
+///|
+/// Reuse an already-backed canonical subtree for interactive evidence only.
+/// This runs the same complete shape and supplied self-CID checks as the wire
+/// reader, then emits its bounded canonical wire. It never seals a missing CID
+/// or grants the referenced execution, control, storage or resource authority.
+pub fn admit_interactive_run_evidence_value(
+  name : String,
+  complete : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[RunEvidenceValue, RunEvidenceValueIssue] {
+  if !generated_interactive_protocol_schema(name) {
+    return Err(UnknownRunEvidence)
+  }
+  guard run_evidence_identity_field(name) is Some(identity_field) else {
+    return Err(UnknownRunEvidence)
+  }
+  if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(RunEvidenceInvalidLimits)
+  }
+  if !validate_generated_protocol_shape(
+      name, complete, true, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    return Err(RunEvidenceInvalidShape)
+  }
+  run_evidence_value(
+    name, identity_field, complete, max_wire_bytes, max_nodes, max_depth,
+  )
+}

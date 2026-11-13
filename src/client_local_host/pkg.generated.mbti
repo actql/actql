@@ -368,6 +368,8 @@ pub fn client_static_plan_codec_layout((Int, Int, Int), @execution_relation.Prep
 
 pub fn client_static_plan_map_bucket_slots(Int) -> Int64?
 
+pub fn client_static_plan_projection_layout(@run_publication_host.ClientStaticPlanViewConstruction, ClientStaticPlanCodecLayout, ClientStaticPlanCodecLayout, ClientStaticPlanCodecLayout, ClientStaticPlanCodecLayout, ClientStaticPlanCodecLayout) -> ClientStaticPlanProjectionLayout?
+
 pub fn client_wasm_result_export_profile() -> @run_publication_host.PublicationOutputExportLimits
 
 pub fn client_whole_source_capture_schema_columns(@execution_query.CapturedInputSource, ClientInstalledWholeSourceCapacity) -> Int?
@@ -1807,6 +1809,17 @@ pub(all) struct ClientStaticPlanCodecLayout {
   scalar_array_items : Int64
   map_bucket_slots : Int64
 } derive(Eq)
+
+pub(all) struct ClientStaticPlanProjectionLayout {
+  retained_cost : Int64
+  execution_cost : Int64
+  string_utf16_units : Int64
+  builder_utf16_bound : Int64
+  wire_bytes : Int64
+  reference_array_slots : Int64
+  map_bucket_slots : Int64
+  scalar_array_items : Int64
+}
 
 type ClosedValuesLexicalFacts derive(Eq, @debug.Debug)
 

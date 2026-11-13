@@ -9,6 +9,8 @@ pub(all) enum ClientJournalDecodingIssue {
 pub(all) enum ClientRunJournalConstruction {
   RunJournalParse(Int)
   RunJournalCanonical(Int, Int64, Int, Int)
+  // Successful exact-row output handoff, not another construction grant.
+  RunJournalRetained(Int, Int64, Int, Int)
 }
 
 ///|
@@ -200,6 +202,9 @@ fn decode_client_run_journal_row_originals(
   (ClientRunJournalEncoding, String?, String?),
   ClientJournalDecodingIssue,
 ] {
+  let before_construction = before_construction.map(
+    client_run_decode_invocation,
+  )
   let keys = [
     "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
     "cancellation_requested", "checkpoint", "publication_binding", "publication_policy_originals",
@@ -401,8 +406,23 @@ fn decode_client_run_journal_row_originals(
         None
       },
     ) {
-    Ok(original) if original == body =>
+    Ok(original) if original == body => {
+      if before_construction is Some(handoff) {
+        match
+          handoff(
+            RunJournalRetained(
+              row_bytes,
+              2L * parsed.usage.input_bytes.to_int64(),
+              parsed.usage.nodes,
+              parsed.usage.depth,
+            ),
+          ) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+      }
       Ok((record, local_run_policy_originals, run_observation_originals))
+    }
     _ => Err(CustodyLost)
   }
 }

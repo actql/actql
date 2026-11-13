@@ -19,7 +19,9 @@ let program_check_quote_controls : @execution.PreparationRepresentationUnits = {
 // alternatives24H24R24W; five cached pair records5H10W; retained inventory1H9W;
 // original debit/Result2H1R3W and entry typed alternatives2H2R2W.
 // Borrowed Program/Source/Catalog/evidence backing is never copied into this
-// fixed packet. The original Source compiler association adds one target-tuple
+// fixed packet. The checked output retains its original artifact byte/node/depth
+// policy in three scalar fields (3W), without cloning the policy owner.
+// The original Source compiler association adds one target-tuple
 // reference slot; input-sized metadata/binder and later domains grow separately.
 // Two scalar actual-work observations (2W) remain in this same child until the
 // Request copies them before its existing typed continuation clears the child.
@@ -28,7 +30,7 @@ let program_check_quote_controls : @execution.PreparationRepresentationUnits = {
 let program_check_driver_controls : @execution.PreparationRepresentationUnits = {
   record_headers: 1L + 1L + 24L + 5L + 1L + 2L + 2L + 4L,
   reference_slots: 25L + 7L + 24L + 1L + 2L + 1L + 2L,
-  scalar_words: 9L + 24L + 10L + 9L + 3L + 2L + 2L + 4L,
+  scalar_words: 9L + 24L + 10L + 9L + 3L + 2L + 2L + 4L + 3L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
