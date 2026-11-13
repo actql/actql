@@ -360,6 +360,14 @@ pub fn client_source_capture_schema_columns(@execution_query.CapturedInputSource
 
 pub fn client_source_capture_source(ClientSourceCapture) -> @execution_query.CapturedInputSource?
 
+pub fn client_static_plan_array_sort_layout(Int) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn client_static_plan_canonical_emission_layout((Int, Int, Int)) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn client_static_plan_codec_layout((Int, Int, Int), @execution_relation.PreparationRepresentationUnits, Int64, Int64, Int64) -> ClientStaticPlanCodecLayout?
+
+pub fn client_static_plan_map_bucket_slots(Int) -> Int64?
+
 pub fn client_wasm_result_export_profile() -> @run_publication_host.PublicationOutputExportLimits
 
 pub fn client_whole_source_capture_schema_columns(@execution_query.CapturedInputSource, ClientInstalledWholeSourceCapacity) -> Int?
@@ -1788,6 +1796,17 @@ pub(all) enum ClientSourceCaptureIssue {
   Physical(@physical_resources.LedgerIssue)
   Original(@client_row_source_host.RowOriginalCaptureIssue)
 }
+
+pub(all) struct ClientStaticPlanCodecLayout {
+  retained : @execution_relation.PreparationRepresentationUnits
+  scratch : @execution_relation.PreparationRepresentationUnits
+  string_utf16_units : Int64
+  builder_utf16_bound : Int64
+  wire_bytes : Int64
+  reference_array_slots : Int64
+  scalar_array_items : Int64
+  map_bucket_slots : Int64
+} derive(Eq)
 
 type ClosedValuesLexicalFacts derive(Eq, @debug.Debug)
 

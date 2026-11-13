@@ -1337,7 +1337,7 @@ pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_tr
 
 pub fn client_run_journal_append_rows(ClientRunJournalAppend) -> (String, Bytes, Int64, Bytes)
 
-pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
+pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?, before_construction? : ((Int, Int, Int) -> Result[Unit, ClientJournalEncodingIssue])?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_saved_run_reference_locator(ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[(String, Bytes), ClientJournalEncodingIssue]
 
@@ -1617,13 +1617,13 @@ pub fn confirm_client_saved_run_state_update(ClientSavedRunStateUpdate, ClientSa
 
 pub fn consume_client_model_resource_invalidation(@physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[Unit, ClientModelReadPreparationIssue]
 
-pub fn decode_client_run_journal_row(Bytes) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
+pub fn decode_client_run_journal_row(Bytes, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
 
-pub fn decode_client_run_journal_row_with_local_policy(Bytes) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue]
+pub fn decode_client_run_journal_row_with_local_policy(Bytes, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue]
 
-pub fn decode_client_run_journal_row_with_observation_originals(Bytes) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
+pub fn decode_client_run_journal_row_with_observation_originals(Bytes, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
 
-pub fn decode_client_run_journal_row_with_retained_identity(Bytes, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
+pub fn decode_client_run_journal_row_with_retained_identity(Bytes, ClientRequestIdentity, @run_publication.PublicationContract, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
 
 pub fn decode_client_submitted_journal_row(Bytes, before_construction? : ((ClientSubmittedJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
 
@@ -1980,6 +1980,8 @@ pub fn issue_source_free_client_effect_local_table_artifact(PreparedClientEffect
 pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectLocalResultDefinition, ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, @query_syntax.Query, public_primary? : Bool, calls_out? : @ref.Ref[Int64]?, limits? : @query_program.Limits?) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), ClientSourcePreparationIssue]
+
+pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
 pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, Int)?
 
@@ -4666,6 +4668,11 @@ pub(all) enum ClientRunJournalAppendPlan {
   Append(ClientRunJournalAppend)
 }
 
+pub(all) enum ClientRunJournalConstruction {
+  RunJournalParse(Int)
+  RunJournalCanonical(Int, Int64, Int, Int)
+}
+
 pub(all) struct ClientRunJournalEncoding {
   request : ClientRequestIdentity
   definition : @run_publication.PublicationContract
@@ -4951,6 +4958,27 @@ pub(all) enum ClientStageOwnerIssue {
   Lowering(@lowering_relation.Issue)
   Binding(@lowering_relation.BindingIssue)
 }
+
+pub(all) struct ClientStaticPlanViewConstruction {
+  step_count : Int
+  input_port_count : Int
+  output_port_count : Int
+  max_stage_producers : Int
+  max_step_ports : Int
+  source_field_count : Int64
+  max_source_fields : Int
+  quoted_text_bytes : Int64
+  max_quoted_text_bytes : Int
+  steps_wire_bytes : Int64
+  max_step : (Int, Int, Int)
+  step_key : (Int, Int, Int)
+  port_key : (Int, Int, Int)
+  carrier_contract : (Int, Int, Int)
+  max_port : (Int, Int, Int)
+  map_body : (Int, Int, Int)
+  map_sealed : (Int, Int, Int)
+  view : (Int, Int, Int)
+} derive(Eq, @debug.Debug)
 
 pub struct ClientSubmissionEpochToken {
   body : @logical_request_scope.SubmissionEpoch

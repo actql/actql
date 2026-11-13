@@ -4,6 +4,14 @@ pub(all) enum ClientJournalDecodingIssue {
 } derive(Eq, Debug)
 
 ///|
+/// Construction geometry, never decoded authority or durable custody. Both
+/// observations belong to the same preserving parse and original Read.
+pub(all) enum ClientRunJournalConstruction {
+  RunJournalParse(Int)
+  RunJournalCanonical(Int, Int64, Int, Int)
+}
+
+///|
 /// Original physical issuance count syntax and selected finite policy. This
 /// does not prove a complete inventory: the journal must scan its same Store
 /// transaction and validate every original row and custody relationship.
@@ -45,10 +53,17 @@ pub fn client_journal_issuance_count(
 /// count, epoch, current authority and transaction custody are separate facts.
 pub fn decode_client_run_journal_row(
   body : Bytes,
+  before_construction? : ((ClientRunJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
 ) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue] {
-  decode_client_run_journal_row_originals(body, false, false).map(value => {
-    value.0
-  })
+  decode_client_run_journal_row_originals(
+    body,
+    false,
+    false,
+    before_construction~,
+  ).map(value => value.0)
 }
 
 ///|
@@ -57,10 +72,17 @@ pub fn decode_client_run_journal_row(
 /// physical custody must still be validated by their existing Owners.
 pub fn decode_client_run_journal_row_with_local_policy(
   body : Bytes,
+  before_construction? : ((ClientRunJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
 ) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue] {
-  decode_client_run_journal_row_originals(body, true, false).map(value => {
-    (value.0, value.1)
-  })
+  decode_client_run_journal_row_originals(
+    body,
+    true,
+    false,
+    before_construction~,
+  ).map(value => (value.0, value.1))
 }
 
 ///|
@@ -68,11 +90,20 @@ pub fn decode_client_run_journal_row_with_local_policy(
 /// original compiled-evidence validation and current authority remain separate.
 pub fn decode_client_run_journal_row_with_observation_originals(
   body : Bytes,
+  before_construction? : ((ClientRunJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
 ) -> Result[
   (ClientRunJournalEncoding, String?, String?),
   ClientJournalDecodingIssue,
 ] {
-  decode_client_run_journal_row_originals(body, true, true)
+  decode_client_run_journal_row_originals(
+    body,
+    true,
+    true,
+    before_construction~,
+  )
 }
 
 ///|
@@ -83,6 +114,10 @@ pub fn decode_client_run_journal_row_with_retained_identity(
   body : Bytes,
   request : ClientRequestIdentity,
   definition : @publication.PublicationContract,
+  before_construction? : ((ClientRunJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
 ) -> Result[
   (ClientRunJournalEncoding, String?, String?),
   ClientJournalDecodingIssue,
@@ -92,6 +127,7 @@ pub fn decode_client_run_journal_row_with_retained_identity(
     true,
     true,
     retained_identity=Some((request, definition)),
+    before_construction~,
   )
 }
 
@@ -100,6 +136,11 @@ fn decode_client_journal_request(
   wire : String,
   original : ClientRequestIdentity?,
 ) -> Result[(ClientRequestIdentity, String), ClientJournalDecodingIssue] {
+  // The nested decoder encodes its input before parsing. Enforce its SAME
+  // existing byte limit without allocating that copy on rejected outer rows.
+  if @scalar.admit_utf8_length(wire, 4096) is Err(_) {
+    return Err(CustodyLost)
+  }
   if original is Some(value) &&
     client_request_identity_record_wire(value) is Ok(expected) &&
     expected == wire {
@@ -151,6 +192,10 @@ fn decode_client_run_journal_row_originals(
   allow_local_policy : Bool,
   allow_observation_originals : Bool,
   retained_identity? : (ClientRequestIdentity, @publication.PublicationContract)? = None,
+  before_construction? : ((ClientRunJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
 ) -> Result[
   (ClientRunJournalEncoding, String?, String?),
   ClientJournalDecodingIssue,
@@ -166,21 +211,72 @@ fn decode_client_run_journal_row_originals(
   if allow_observation_originals {
     keys.push("run_observation_originals")
   }
-  let source = @source.parse_json_bytes_preserving(body, {
-    max_input_bytes: 131072,
-    max_nodes: 32,
-    max_depth: 4,
-  }).to_option()
-  guard source is Some(source) &&
-    @decode.admit(source, {
+  let observed = before_construction is Some(_)
+  let row_bytes = if observed { body.length() } else { 131072 }
+  if row_bytes <= 0 || row_bytes >= 2147483519 {
+    return Err(CustodyLost)
+  }
+  if before_construction is Some(reserve) {
+    match reserve(RunJournalParse(row_bytes)) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  let wire = @utf8.decode(body) catch { _ => return Err(CustodyLost) }
+  let parser = match
+    @source.start_json_parse(
+      wire,
+      { max_input_bytes: row_bytes, max_nodes: 32, max_depth: 4, },
+      data_keys=true,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let parsed = while true {
+    match @source.advance_json_parse(parser, 256) {
+      Ok(@source.JsonParseContinue(_)) => continue
+      Ok(@source.JsonParseComplete(value, ..)) => break value
+      _ => return Err(CustodyLost)
+    }
+  } nobreak {
+    return Err(CustodyLost)
+  }
+  if before_construction is Some(reserve) {
+    match
+      reserve(
+        RunJournalCanonical(
+          row_bytes,
+          // The existing raw row plus its decoded immutable text are retained
+          // through canonical comparison. UTF16 units cannot exceed input bytes.
+          2L * parsed.usage.input_bytes.to_int64(),
+          parsed.usage.nodes,
+          parsed.usage.depth,
+        ),
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  let source = parsed.node
+  guard @decode.admit(source, {
       max_nodes: 32,
       max_depth: 4,
-      max_string_bytes: 131072,
-      max_total_string_bytes: 131072,
+      max_string_bytes: row_bytes,
+      max_total_string_bytes: row_bytes,
     })
     is Ok(cursor) &&
     @decode.closed_object(cursor, keys) is Ok(object) else {
     return Err(CustodyLost)
+  }
+  if observed {
+    for key in keys {
+      if key != "run_observation_originals" &&
+        @decode.lookup(object, key) is Some(value) &&
+        @decode.text(value) is Ok(wire) &&
+        @scalar.admit_utf8_length(wire, 131072) is Err(_) {
+        return Err(CustodyLost)
+      }
+    }
   }
   let text = key => {
     @decode.lookup(object, key).bind(value => @decode.text(value).to_option())
@@ -257,7 +353,7 @@ fn decode_client_run_journal_row_originals(
     None => None
     Some(value) =>
       match @decode.text(value) {
-        Ok(wire) if @utf8.encode(wire).length() <= 8192 => Some(wire)
+        Ok(wire) if @scalar.admit_utf8_length(wire, 8192) is Ok(_) => Some(wire)
         _ => return Err(CustodyLost)
       }
   }
@@ -296,6 +392,14 @@ fn decode_client_run_journal_row_originals(
       definition_wire,
       local_run_policy_originals~,
       run_observation_originals~,
+      comparison_bytes=if observed { Some(row_bytes) } else { None },
+      // Canonical emission is covered by this same observed decode lifetime;
+      // its resource callback has already run before any reconstruction.
+      before_construction=if observed {
+        Some((_, _, _) => Ok(()))
+      } else {
+        None
+      },
     ) {
     Ok(original) if original == body =>
       Ok((record, local_run_policy_originals, run_observation_originals))

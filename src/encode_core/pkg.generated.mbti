@@ -109,6 +109,8 @@ pub fn observed_writer_usage(Writer) -> (Int, Int, Int)
 
 pub fn ordered_key(Writer, String) -> Unit raise EncodeFailure
 
+pub fn quoted_string_construction_extent(String) -> (Int64, Int64)?
+
 pub fn start_ordered_key(Writer, String) -> OrderedKeyEmitCursor raise EncodeFailure
 
 pub fn start_prefixed_string_value(Writer, String, String) -> StringEmitCursor raise EncodeFailure

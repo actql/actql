@@ -497,6 +497,24 @@ export function nativeResourceShapeFixtures() {
   ];
 }
 
+// JSON Lines delimit records with LF, not Unicode line/paragraph separators.
+// Keep stream backpressure and buffer only the current record plus one chunk;
+// do not turn the complete Result into an in-memory array of lines.
+async function* nativeJsonlLines(input) {
+  input.setEncoding('utf8');
+  let pending = '';
+  for await (const chunk of input) {
+    pending += chunk;
+    let start = 0, end;
+    while ((end = pending.indexOf('\n', start)) !== -1) {
+      yield pending.slice(start, end);
+      start = end + 1;
+    }
+    pending = pending.slice(start);
+  }
+  if (pending.length) yield pending;
+}
+
 // Compare every actual delivered scalar, including Unicode normalization and
 // escaped controls. Neither a preview nor a digest alone is this oracle.
 export async function verifyNativeResourceRows(path, expectedRows, keyField = 'id') {
@@ -506,7 +524,7 @@ export async function verifyNativeResourceRows(path, expectedRows, keyField = 'i
     assert(Number.isSafeInteger(key)); assert(!expected.has(key), 'Unique expected resource key required');
     expected.set(key, row);
   }
-  const input = createReadStream(path), lines = createInterface({input, crlfDelay: Infinity});
+  const input = createReadStream(path), lines = nativeJsonlLines(input);
   const closed = new Promise(resolve => input.once('close', resolve));
   let rows = 0;
   try {
@@ -520,7 +538,7 @@ export async function verifyNativeResourceRows(path, expectedRows, keyField = 'i
       assert.deepEqual(row, expected.get(key), `Resource Result key ${key}`);
       seen.add(key); rows++;
     }
-  } finally {lines.close(); input.destroy(); await closed;}
+  } finally {input.destroy(); await closed;}
   assert.equal(rows, expectedRows.length, 'Complete resource Result required');
   // Every keyed row above has now been compared in full. Hash that verified
   // content in key order, not unspecified product traversal or delivery order.
