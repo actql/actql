@@ -203,8 +203,15 @@ function checkedCommandFiles(body,inputs,commands,read,directory) {
   const planItem=inputs.find(x=>x.path===join(directory,'cc-plan.json'));assert(planItem);
   const plan=JSON.parse(read(planItem).toString('utf8'));
   assert(Array.isArray(plan.steps)&&plan.steps.length===body.completed_c_steps);
-  for(const item of plan.allocator_inputs)assert(inputs.some(x=>JSON.stringify(x)===JSON.stringify(item)));
   const outputs=[body.executable,body.generated_c];
+  for(const item of plan.allocator_inputs) {
+    const sourceInput=inputs.find(x=>x.path===item.path);
+    if(sourceInput)assert.deepEqual(sourceInput,item);
+    else {
+      assert(isAbsolute(item.path)&&resolve(item.path)===item.path&&within(item.path,directory));
+      read(item);outputs.push(item);
+    }
+  }
   for(const step of plan.steps) {
     assert(commands.some(x=>JSON.stringify(x)===JSON.stringify(step.selected)));
     assert(isAbsolute(step.receipt)&&resolve(step.receipt)===step.receipt&&within(step.receipt,directory));
