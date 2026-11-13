@@ -135,7 +135,7 @@ test('Linux common Native metadata counts original native runnable cases without
   assert.deepEqual(calls, ['test', 'generate-test-driver']);
 });
 
-test('Linux common scope covers every package while Darwin retains FFI and all source and test importers', () => {
+test('Native platform classes separate original FFI owners from every source and test importer', () => {
   const names = ['scalar', 'canonical', 'platform_native/sqlite', 'native_fixture', 'caller', 'transitive', 'cmd/native_client', 'linker'];
   const packages = names.map(name => ({name: 'actql/actql/' + name, path: 'src/' + name}));
   const edge = (from, to, kinds) => ({from: packages[from].name, to: packages[to].name, kinds});
@@ -148,7 +148,9 @@ test('Linux common scope covers every package while Darwin retains FFI and all s
     ? 'options("native-stub": ["actual.c"])' : path.endsWith('/linker')
       ? 'options(link: {"native": {"cc": "./original-driver"}})' : 'supported_targets = "+js+wasm+native"');
   assert.deepEqual(selected.common, ['src/scalar', 'src/canonical']);
-  assert.deepEqual(selected.darwin, names.slice(2).map(name => 'src/' + name));
+  assert.deepEqual(selected.importers, ['src/caller', 'src/transitive']);
+  assert.deepEqual(selected.darwin, ['src/platform_native/sqlite', 'src/native_fixture',
+    'src/cmd/native_client', 'src/linker']);
   assert.equal(selected.graphSha256, graph.digest);
   assert.equal(JSON.stringify(graph), original);
 });
