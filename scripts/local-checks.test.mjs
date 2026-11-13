@@ -451,3 +451,23 @@ test('local Core keeps the original serial scoped profile despite hosted paralle
     assert.equal(result.status, 2); assert.match(result.stderr, /serial scoped profile/u);
   }
 });
+
+
+test('local distribution matrix retains one preparation and all four serial original scripts', t => {
+  const f = fixture(t);
+  const scripts = ['check-read-row-mutations.mjs', 'check-submission-input-mutations.mjs',
+    'check-submission-check-observation-mutations.mjs', 'check-effect-uncertainty-mutations.mjs'];
+  const job = {'timeout-minutes': 30, strategy: {matrix: {include: scripts.map((script, index) =>
+    ({mutation: ['read-row', 'submission-input', 'submission-check-observation', 'effect-uncertainty'][index], script}))}},
+    steps: [{name: 'Build original runtime', run: 'node scripts/original-preparation.mjs'},
+      {name: 'Test check ${{ matrix.mutation }} mutations', run: 'node scripts/${{ matrix.script }}'}]};
+  writeFileSync(join(f.root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {'client-distribution-mutations': job}}));
+  const result = f.run(['run', 'client-distribution-mutations', '--dry-run']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.split('node scripts/original-preparation.mjs').length - 1, 1);
+  for (const script of scripts) assert.equal(result.stdout.split('node scripts/' + script).length - 1, 1);
+  assert(!result.stdout.includes('${{ matrix.'));
+  job.strategy.matrix.include[3].script = scripts[0];
+  writeFileSync(join(f.root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {'client-distribution-mutations': job}}));
+  assert.equal(f.run(['run', 'client-distribution-mutations', '--dry-run']).status, 2);
+});

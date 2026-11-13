@@ -40,7 +40,11 @@ const normal = "${{ github.event.repository.visibility == 'public' && toJSON(git
 const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-distribution-native', 'client-packed', 'client-packed-composition', 'client-salesforce'];
 const consumers = ['client-distribution', 'client-distribution-callers',
   'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition'];
-const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
+const runs = name => jobs[name].steps.filter(step => step.run).flatMap(step => {
+  const command = step.run.trim();
+  if (name !== 'client-distribution-mutations' || !command.includes('${{ matrix.script }}')) return [command];
+  return jobs[name].strategy.matrix.include.map(({script}) => command.replace('${{ matrix.script }}', script));
+});
 const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
 });
@@ -871,6 +875,8 @@ done`,
     if (name === 'client-packed') {
       assert.equal(jobs[name].strategy['fail-fast'], false, 'no fail-fast sibling cancellation');
       assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable', 'query-native']);
+    } else if (name === 'client-distribution-mutations') {
+      assert.equal(jobs[name].strategy['fail-fast'], false);
     } else assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
@@ -1764,3 +1770,26 @@ import './historical-typed-values-binding.test.mjs';
 import './packed-remote-observation-policy.test.mjs';
 
 import './packed-browser-source-closure.test.mjs';
+
+
+test('distribution mutation matrix executes each unchanged script once after its original preparation', () => {
+  const job = jobs['client-distribution-mutations'];
+  const expected = [
+    {mutation: 'read-row', script: 'check-read-row-mutations.mjs'},
+    {mutation: 'submission-input', script: 'check-submission-input-mutations.mjs'},
+    {mutation: 'submission-check-observation', script: 'check-submission-check-observation-mutations.mjs'},
+    {mutation: 'effect-uncertainty', script: 'check-effect-uncertainty-mutations.mjs'},
+  ];
+  assert.deepEqual(job.strategy, {'fail-fast': false, matrix: {include: expected}});
+  assert.equal(new Set(expected.map(row => row.script)).size, 4);
+  assert.equal(job['continue-on-error'], undefined);
+  const tests = job.steps.filter(step => step.name?.startsWith('Test '));
+  assert.equal(tests.length, 1);
+  assert.equal(tests[0].run, 'node scripts/${{ matrix.script }}');
+  assert.equal(tests[0].if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(tests[0]['continue-on-error'], undefined);
+  const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).scripts['check:distribution-client'].split(' && ');
+  assert.deepEqual(expected.map(({script}) => tests[0].run.replace('${{ matrix.script }}', script)), local.slice(6, 10));
+  assert.deepEqual(job.needs, ['select-targets', 'preflight', 'client-packages']);
+  assert(jobs.client.needs.includes('client-distribution-mutations'));
+});

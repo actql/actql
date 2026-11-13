@@ -59,6 +59,22 @@ function commands(name, target, raw = false) {
   }
   const scratch = join(root, '_build', 'local-checks', name);
   let steps = job.steps;
+  if (name === 'client-distribution-mutations' && !raw) {
+    const rows = job.strategy?.matrix?.include;
+    if (!Array.isArray(rows) || rows.length !== 4 ||
+        rows.some(row => !/^[a-z-]+$/u.test(row.mutation) ||
+          !/^check-[a-z-]+-mutations\.mjs$/u.test(row.script)) ||
+        new Set(rows.map(row => row.script)).size !== 4 ||
+        steps.filter(step => step.run === 'node scripts/${{ matrix.script }}').length !== 1) {
+      fail('Incomplete local distribution mutation composition');
+    }
+    // Hosted rows own separate checkouts; the existing local gate keeps one
+    // preparation followed by all four original serial mutation commands.
+    steps = steps.flatMap(step => step.run === 'node scripts/${{ matrix.script }}'
+      ? rows.map(row => ({...step,
+        name: step.name.replace('${{ matrix.mutation }}', row.mutation),
+        run: step.run.replace('${{ matrix.script }}', row.script)})) : [step]);
+  }
   if (name === 'native' && !raw && workflow.jobs['native-workloads']) {
     const plan = JSON.parse(readFileSync(join(root, 'scripts/ci-native-background-groups.json'), 'utf8')).native;
     const prepare = steps.findIndex(step => step.id === 'native-preparation');
