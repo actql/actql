@@ -844,7 +844,7 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   const checkout = join(root, 'checkout');
   const parent = join(root, 'sqlite');
   const bin = join(root, 'bin');
-  for (const path of [join(checkout, 'scripts'),
+  for (const path of [join(checkout, 'scripts'), join(checkout, 'proofs/relation-pipeline'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
     'native-client-file-fixture.mjs', 'native-core-c-compiler.mjs', 'native-core-test-selection.mjs', 'ci-core-partitions.mjs', 'native-http-lifetime-fixture.mjs', 'native-core-scoped-fixture.mjs', 'verification-actions.mjs',
@@ -855,6 +855,8 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
+  copyFileSync(new URL('../proofs/relation-pipeline/proof-parts.mjs', import.meta.url),
+    join(checkout, 'proofs/relation-pipeline/proof-parts.mjs'));
   // Keep the public authored template import real in the copied wrapper
   // checkout; no second handwritten Mock project fixture is maintained here.
   mkdirSync(join(checkout, 'packages/native-cli/lib'), {recursive: true});
