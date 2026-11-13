@@ -20,6 +20,7 @@ async function fixture() {
   const bundle = Object.freeze({sources: Object.freeze([{declaration}])});
   const ok = value => ({$tag: 1, _0: value});
   let valid = true, original, ports, retiring = false, returned = false;
+  let validations = 0, metadataReads = 0, selectionCounts;
   const current = () => {if (!valid) throw new Error('OriginalProjectSourceChanged');};
   const policy = {};
   // Core phase/body results are explicit ports, as the former legacy Run
@@ -60,6 +61,7 @@ async function fixture() {
       if (!coordinates[slot]) throw Object.assign(new Error('OriginalPlanSlotUnavailable'),
         {code: 'OriginalPlanSlotUnavailable'});
       const [stage, input, task] = coordinates[slot];
+      selectionCounts = {validations, metadataReads};
       return ok({_0: stage, _1: input, _2: task});
     },
     clientProgramPreparationBorrowRetirementStarted: () => retiring,
@@ -70,9 +72,9 @@ async function fixture() {
   const context = Object.freeze({runtime: moon, preparedEnvironment: {}, retainedRelationOutput: true});
   originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
   const view = await sources.prepareOrdinaryProjectSourceManagedInstallation(originals, {
-    validator(value) {assert.strictEqual(value, originals); current();},
+    validator(value) {validations++; assert.strictEqual(value, originals); current();},
     retainedValidator(value) {assert.strictEqual(value, originals); current();},
-    async prepare() {}, read: () => bundle,
+    async prepare() {}, read: () => {metadataReads++; return bundle;},
     request(value, owner) {assert.strictEqual(owner, prepared); return request;},
     preparationContext: () => context, retireInitialPreparation() {},
   });
@@ -92,6 +94,7 @@ async function fixture() {
   const adopted = view.adoptCapturePreparation(prepared, request, identity, () => plan);
   assert.strictEqual(adopted.original, original); assert.strictEqual(adopted.value, managed);
   return {view, prepared, declaration, original, ports, directory, managed, identity,
+    assertNoValidationAfterSelection() {assert.deepEqual({validations, metadataReads}, selectionCounts);},
     child(index = 0, changes = {}) {
       const [stage, input, computeTask] = coordinates[index] ?? [0, 0, 0];
       return view.prepareRead(prepared, declaration, managed,
@@ -161,6 +164,7 @@ test('Project Source uses the retained Plan coordinates and refuses swapped or f
   assert.throws(() => f.view.prepareRead(f.prepared, f.declaration, f.managed,
     {stage: 0, input: 1, task: 1, computeTask: 0}, {}));
   const child = f.child(1);
+  f.assertNoValidationAfterSelection();
   let closed = false;
   child.retainChild({status: () => ({pending: !closed}),
     close() {closed = true; return {pending: false};}});

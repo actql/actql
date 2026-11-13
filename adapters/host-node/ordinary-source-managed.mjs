@@ -2158,7 +2158,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         if (runtimeOptionalField(selected, 0) !== occurrence.stage ||
             runtimeOptionalField(selected, 1) !== occurrence.input ||
             runtimeOptionalField(selected, 2) !== (occurrence.computeTask ?? index) ||
-            runFor(prepared) !== run || run.producer.preparation !== state ||
+            runs.get(prepared) !== run || run.producer.preparation !== state ||
             run.value !== expectedRun || run.children.some(child => child.index === index)) {
           fail('InstalledSourcePreparationMismatch');
         }
