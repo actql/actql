@@ -21,6 +21,8 @@ import subprocess
 import sys
 import time
 import shutil
+import signal
+import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/cmd/native_remote_resident_site'
@@ -28,6 +30,124 @@ LOCAL_ENTRY = 'src/cmd/native_client'
 BUNDLE_ENTRY = 'src/cmd/native_runtime_bundle'
 RUNTIME_NAMES = frozenset(('runtime', 'env', 'utf', 'backtrace', 'sync_io'))
 RELEASE_UTF_OBJECTS = frozenset(('moonbit_simdutf.o', 'simdutf.o'))
+
+
+def _run_build_process(command, *, cwd, env, timeout, stdout, stderr,
+                       stop_grace_seconds=5.0):
+    """Own only this entered build group; termination grace grants no work."""
+    if timeout <= 0 or not 0 < stop_grace_seconds <= 5:
+        raise ValueError('Positive original build timeout and bounded stop grace required')
+    child = None
+    opening, stopping, interrupted = True, False, None
+    signal_cleanup = None
+    handlers = {}
+
+    class InterruptedBuild(BaseException):
+        pass
+
+    def interrupt(number, _frame):
+        nonlocal interrupted
+        if stopping:
+            return
+        interrupted = number
+        # Retain the original PID before an interrupt can leave Popen. Once
+        # opening returns, the same signal is handled before any wait/return.
+        if not opening:
+            raise InterruptedBuild()
+
+    def group_alive():
+        child.poll()  # Reap this direct child, never another owner's process.
+        try:
+            os.killpg(child.pid, 0)
+            return True
+        except ProcessLookupError:
+            return False
+
+    def wait_group(deadline):
+        while group_alive():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            time.sleep(min(0.025, remaining))
+        return True
+
+    def stop_group():
+        for requested in (signal.SIGTERM, signal.SIGKILL):
+            if not group_alive():
+                return True
+            try:
+                os.killpg(child.pid, requested)
+            except ProcessLookupError:
+                pass
+            if wait_group(time.monotonic() + stop_grace_seconds):
+                return True
+        return False
+
+    # The producer calls this on its main thread. Preserve ignored/custom
+    # handlers; defer only default termination/KeyboardInterrupt until cleanup.
+    if threading.current_thread() is threading.main_thread():
+        for number in (signal.SIGTERM, signal.SIGINT):
+            previous = signal.getsignal(number)
+            if previous in (signal.SIG_DFL, signal.default_int_handler):
+                handlers[number] = previous
+                signal.signal(number, interrupt)
+    try:
+        child = subprocess.Popen(command, cwd=cwd, env=env, stdout=stdout,
+                                 stderr=stderr, start_new_session=True)
+        opening = False
+        if interrupted is not None:
+            raise InterruptedBuild()
+        deadline = time.monotonic() + timeout
+        code = child.wait(timeout=timeout)
+        if code == 0:
+            # A leader exiting zero cannot abandon an original compiler that
+            # still holds the group. Its wait uses the SAME work deadline.
+            if not wait_group(deadline):
+                raise subprocess.TimeoutExpired(command, timeout)
+            return subprocess.CompletedProcess(command, code)
+        stopping = True
+        result = subprocess.CompletedProcess(command, code)
+        try:
+            result.build_cleanup_pending = not stop_group()
+        except BaseException as cleanup:
+            result.build_cleanup_pending = True
+            result.build_cleanup_error = type(cleanup).__name__
+        return result
+    except BaseException as primary:
+        stopping = True
+        cleanup_error = None
+        if child is not None:
+            try:
+                primary.build_cleanup_pending = not stop_group()
+            except BaseException as cleanup:
+                primary.build_cleanup_pending = True
+                cleanup_error = type(cleanup).__name__
+                primary.add_note('Build group cleanup failed: ' + cleanup_error)
+            if primary.build_cleanup_pending:
+                primary.add_note('Original build process group cleanup remains unconfirmed')
+                if interrupted is not None:
+                    signal_cleanup = {'pending': True, 'signal': interrupted}
+                    if cleanup_error is not None:
+                        signal_cleanup['error'] = cleanup_error[:64]
+        raise
+    finally:
+        if signal_cleanup is not None:
+            # Default termination would discard the exception notes. Emit one
+            # bounded inert diagnostic while repeated default signals remain
+            # deferred; no command/input/output/error message is disclosed.
+            try:
+                os.write(2, ('ACTQL_NATIVE_BUILD_CLEANUP ' +
+                    json.dumps(signal_cleanup, separators=(',', ':')) + '\n').encode())
+            except BaseException:
+                pass  # Diagnostic failure cannot replace the original signal.
+        for number, previous in handlers.items():
+            signal.signal(number, previous)
+        if interrupted is not None:
+            # Default SIGTERM remains SIGTERM; default SIGINT retains the
+            # caller's KeyboardInterrupt, after this original group has drained.
+            signal.raise_signal(interrupted)
+
+
 RESIDENT_RECIPE = Path(ENTRY) / 'initial_control_recipe.json'
 # Selected command components import these same-process physical ports.
 # No provider DLL, general symbol export or second allocator is introduced.
@@ -601,15 +721,21 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         build_command = moon_arguments + ['--verbose']
         (destination / 'moon-build-command.json').write_text(json.dumps(build_command, indent=2) + '\n')
         with (destination / 'moon-build.stdout').open('wb') as stdout, (destination / 'moon-build.stderr').open('wb') as stderr:
-            result = subprocess.run(build_command, cwd=ROOT, env=environment,
-                                    timeout=max(0.001, deadline - time.monotonic()),
-                                    stdout=stdout, stderr=stderr, check=False)
+            result = _run_build_process(build_command, cwd=ROOT, env=environment,
+                                        timeout=max(0.001, deadline - time.monotonic()),
+                                        stdout=stdout, stderr=stderr)
         receipt['moon_build_exit'] = result.returncode
         completed = [json.loads(Path(step['receipt']).read_text()) for step in c_steps if Path(step['receipt']).exists()]
         receipt['completed_c_steps'] = len(completed)
         (destination / 'progress.json').write_text(json.dumps(receipt, indent=2) + '\n')
         if result.returncode:
-            raise RuntimeError('Ordinary Moon build failed; original stdout/stderr and C receipts retained')
+            failure = RuntimeError('Ordinary Moon build failed; original stdout/stderr and C receipts retained')
+            if result.build_cleanup_pending:
+                failure.add_note('Original build process group cleanup remains unconfirmed')
+            cleanup_error = getattr(result, 'build_cleanup_error', None)
+            if cleanup_error is not None:
+                failure.add_note('Build group cleanup failed: ' + cleanup_error)
+            raise failure
         if len(completed) != len(c_steps) or any(step['exit'] != 0 for step in completed):
             raise ValueError('Not every selected C step has an actual successful receipt')
         receipt['commands_completed'] = len(commands)
