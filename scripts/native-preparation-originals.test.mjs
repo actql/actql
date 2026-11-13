@@ -7,6 +7,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {preparedNativeCommand,preparedNativeComponents,preparedNativeHttpReceipt} from './native-preparation-originals.mjs';
 import * as originals from './native-preparation-originals.mjs';
+import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
 import {prepareNativeRuntimeBundle,prepareNativeResidentSite} from './native-runtime-bundle-fixture.mjs';
 
 const fingerprint=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
@@ -132,7 +134,7 @@ test('changed receipt bytes or incomplete preparation cannot be adopted',t=>{
   assert.throws(()=>preparedNativeComponents(f.root,f.selected),/ENOENT/u);
 });
 
-function compiledCommandFixture(t,entry='native_runtime_bundle') {
+function compiledCommandFixture(t,entry='native_runtime_bundle',preparationEntry=false) {
   const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-command-adoption-')));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const origin=join(root,'origin'),receiver=join(root,'receiver');
@@ -169,7 +171,7 @@ function compiledCommandFixture(t,entry='native_runtime_bundle') {
   for(const name of ['repository','moon','tools','SDK'])cpSync(join(origin,name),join(receiver,name),{recursive:true});
   const current={...context,repository:join(receiver,'repository'),moon_home:join(receiver,'moon'),
     clang:join(receiver,'tools/clang'),sdk:join(receiver,'SDK')};
-  const artifact=join(root,'offered'),received=join(root,'received-input'),destination=join(receiver,'prepared');
+  const artifact=join(root,'offered'),received=join(root,'received-input'),destination=join(receiver,preparationEntry?entry:'prepared');
   const calls=[];
   const execute=(command,args)=>{
     calls.push([command,args]);
@@ -186,7 +188,7 @@ function compiledCommandFixture(t,entry='native_runtime_bundle') {
   const receive=(input,overrides={})=>(entry==='native_runtime_bundle'?prepareNativeRuntimeBundle:prepareNativeResidentSite)(
     current.repository,destination,{platform:'darwin',arch:'arm64',moonHome:current.moon_home,execute,
       preparation:null,compiledInput:input,...overrides});
-  return {root,origin,directory,body,context,current,artifact,received,destination,calls,publish,receive,put};
+  return {root,origin,directory,body,context,current,artifact,received,destination,calls,publish,receive,put,receiver};
 }
 
 test('compiled command adoption keeps origin bytes and creates a fresh receiver without producer or old paths',t=>{
@@ -288,4 +290,34 @@ test('compiled command retains original allocator objects declared by the actual
   const record=JSON.parse(readFileSync(input.path));assert(record.members.some(x=>x.original.path===object));
   rmSync(f.origin,{recursive:true});
   assert.equal(readFileSync(f.receive(input),'utf8'),'explicit inert compiled-command port, never executed');
+});
+
+function receivedPreparation(t) {
+  const f=compiledCommandFixture(t,'native_runtime_bundle',true),input=f.publish(),binary=f.receive(input);
+  const path=join(f.receiver,'preparation.json');
+  f.put(path,JSON.stringify({source:f.current.source,target:f.current.target,clang:f.current.clang,sdk:f.current.sdk,
+    moon_home:f.current.moon_home,entries:{native_runtime_bundle:descriptor(join(f.destination,'received.json'))},
+    components:null,http:null}));
+  const select=()=>preparedNativeCommand(f.receiver,'native_runtime_bundle',f.current);
+  return {...f,binary,input,select};
+}
+
+test('received preparation keeps one checked immutable scope but rechecks current executable and external mutation',t=>{
+  const f=receivedPreparation(t),originalRead=fs.readFileSync;let inventoryReads=0;
+  fs.readFileSync=function(path,...args){if(String(path)===join(f.received,'origin-inputs.json'))inventoryReads++;
+    return originalRead.call(this,path,...args);};syncBuiltinESMExports();
+  try {
+    const first=f.select();assert.equal(first.kind,'received');assert.equal(first.binary,f.binary);
+    assert.equal(inventoryReads,1);assert.deepEqual(f.select(),first);assert.equal(inventoryReads,1);
+    f.put(join(f.current.repository,'src/original.h'),'changed current source');
+    assert.throws(f.select);assert.equal(inventoryReads,2);
+  } finally {fs.readFileSync=originalRead;syncBuiltinESMExports();}
+});
+
+test('received preparation refuses replaced executable or foreign context without invoking a producer',t=>{
+  for(const change of [f=>{f.put(f.binary,'changed current executable');},
+    f=>{f.current.source='b'.repeat(40);},f=>{f.current.target='linux-x64';}]) {
+    const f=receivedPreparation(t);assert.equal(f.select().binary,f.binary);change(f);
+    assert.throws(f.select);assert(f.calls.every(([name])=>name==='git'||name==='xcrun'));
+  }
 });
