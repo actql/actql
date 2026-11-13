@@ -279,8 +279,19 @@ test('Native approval formal shell keeps the existing thirty-each protocol and a
 });
 
 test('Native approval upload always keeps partial assessment and actual receipts without runtime state', () => {
-  const job = workflow.jobs['native-approval'], upload = job.steps.at(-1);
-  assert.equal(upload.if, 'always()'); assert.equal(upload['continue-on-error'], undefined);
+  const job = workflow.jobs['native-approval'];
+  const uploads = job.steps.filter(step =>
+    step.with?.name === 'native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}');
+  assert.equal(uploads.length, 1, 'Select the unique normal Native assessment upload');
+  const [upload] = uploads;
+  assert.equal(upload.if, "${{ always() && !inputs['native-approval-cpu-diagnostic'] }}");
+  for (const outcome of ['success', 'failure', 'cancelled']) for (const diagnostic of [false, true]) {
+    assert.equal(runInNewContext(upload.if.slice(3, -2).trim(), {
+      always: () => true, success: () => outcome === 'success', failure: () => outcome === 'failure',
+      cancelled: () => outcome === 'cancelled', inputs: {'native-approval-cpu-diagnostic': diagnostic},
+    }, {timeout: 100}), !diagnostic, `Normal evidence retention after ${outcome}; diagnostic=${diagnostic}`);
+  }
+  assert.equal(upload['continue-on-error'], undefined);
   assert(upload.uses.startsWith('actions/upload-artifact@'));
   assert.equal(upload.with['if-no-files-found'], 'error');
   assert.equal(upload.with.name, 'native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}');

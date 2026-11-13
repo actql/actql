@@ -627,7 +627,7 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   assert.equal(ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance assessment').run,
     'node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
   const policy = ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance policy oracles');
-  assert.equal(policy.run, 'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs');
+  assert.equal(policy.run, 'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs scripts/node-wait-cpu-diagnostic.test.mjs');
   assert.equal(policy.if, undefined);
   assert.equal(policy['continue-on-error'], undefined);
   const job = workflow.jobs['ordinary-operations'];
