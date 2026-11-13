@@ -57,18 +57,15 @@ test "completed row wire reader prepares immutable metadata once for eight reads
   }
   assert_eq(metadata.calls.val, 8)
   metadata.calls.val = 0
-  let columns = prepare_completed_row_wire_columns(output, metadata, 3).unwrap()
-  let positions = columns.positions
-  let order = columns.ordered.unwrap()
+  // Invoke the actual returned production reader, not a hand-written loop
+  // around its column preparation and encoder. The public entry delegates
+  // to this same constructor with the original CompletedTable metadata.
+  let read = prepare_completed_row_wire_reader(output, metadata, 5, 2).unwrap()
+  assert_eq(metadata.calls.val, 1)
   for index in 0..<8 {
     let row = index % 2
-    check_completed_row_wire_input(output, row, 100, 5, 2).unwrap() |> ignore
-    assert_eq(
-      encode_completed_row_wire(table, columns, row, 100, 5, 2).unwrap(),
-      expected[row],
-    )
-    assert_true(physical_equal(columns.positions, positions))
-    assert_true(physical_equal(columns.ordered.unwrap(), order))
+    assert_eq(read(row, 100).unwrap(), expected[row])
+    assert_eq(metadata.calls.val, 1)
   }
   assert_eq(metadata.calls.val, 1)
 }

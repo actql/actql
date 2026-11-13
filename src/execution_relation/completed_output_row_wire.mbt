@@ -44,8 +44,24 @@ pub fn prepare_completed_output_row_wire_reader(
   if max_nodes < 1 || max_depth < 0 {
     return Err(Wire(InvalidLimits))
   }
+  prepare_completed_row_wire_reader(output, table, max_nodes, max_depth)
+}
+
+///|
+// Metadata is borrowed from the same immutable table. Keep construction and
+// the returned production reader together, including when metadata traversal
+// is observed by a consuming boundary test.
+fn[R : RelationRows] prepare_completed_row_wire_reader(
+  output : CompletedOutput,
+  metadata : R,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (Int, Int) -> Result[String, CompletedExportIssue],
+  CompletedExportIssue,
+] {
   let columns = match
-    prepare_completed_row_wire_columns(output, table, max_nodes) {
+    prepare_completed_row_wire_columns(output, metadata, max_nodes) {
     Ok(columns) => columns
     Err(issue) => return Err(issue)
   }
