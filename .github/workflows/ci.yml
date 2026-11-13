@@ -1567,8 +1567,8 @@ jobs:
       package-artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
   # Reuse the normal producer; this small trend lane is not the release matrix.
   main-performance:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-    needs: [preflight, client-packages]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs['select-targets'].outputs.profile == 'full')) }}
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -1610,7 +1610,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync, appendFileSync} from 'node:fs';
           const root = process.env.RUNNER_TEMP + '/main-performance';
-          const lines = ['## Main performance observations', '',
+          const lines = ['## Record-only performance observations', '',
             'Three verified repetitions per family; median/max only, not an acceptance p95 or a regression verdict.',
             'Warm Result rereads the original Saved Run. Cross-process Saved is not measured here.',
             'Cold means a new process, not an evicted OS cache. Hosted runner variation requires matched environments.', '',
