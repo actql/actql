@@ -1357,6 +1357,17 @@ execution interval includes Moon's incremental graph check; it is not an
 exclusive binary CPU measurement. Neither phase changes the default Native
 flags, runtime inputs or enclosing caller budget.
 
+The existing Darwin job preparation constructs those two Query packages once
+with the same default Native flags, in a dedicated copied tool home and target.
+Both original HTTP and Remote consumers recheck clean source, selected compiler
+settings, actual tool/dependency inputs and generated software before borrowing
+that tree. They retain their original file selections, fresh runtime environments,
+Stores, keys, ports, count assertions and cleanup. Moon still performs its normal
+incremental freshness check and owns its output lock; generated code, drivers and
+executables must remain byte-exact after execution. This is same-job software
+reuse, not a transported runtime or a test result. Absent preparation keeps the
+original local path; a present but mismatched preparation refuses without rebuild.
+
 The preparation helper reuses the verified OpenSSL source archive from the
 compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the
 original digest and builds its own patched source/libraries; Homebrew and Linux

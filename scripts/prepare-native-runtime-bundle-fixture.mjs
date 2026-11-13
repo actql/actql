@@ -10,6 +10,7 @@ import {prepareNativeResidentHttpComponent,prepareNativeResidentSite,prepareNati
 import {originalDescriptor} from './native-preparation-originals.mjs';
 import {prepareNativeResidentPortableRuntime} from './native-resident-portable-preparation.mjs';
 import {prepareNativeParallel} from './native-preparation-lanes.mjs';
+import {prepareNativeQuerySoftware} from './native-query-preparation.mjs';
 
 const args=process.argv.slice(2),options={};
 for(let i=0;i<args.length;i+=2) {
@@ -92,6 +93,13 @@ if (portableReceipt !== undefined) timedPreparation('portable_runtime', () =>
 const {entries,components,httpReceipt,portableReceipt}=lanes===2
   ?await prepareNativeParallel({repository,destination,source,target,selection,seconds,residentSeconds,httpJobs,moonHome,clang,sdk})
   :serialPreparation();
+// The same completed preparation owns one default Native Query image. Only
+// software is shared; the later HTTP and Remote fixtures retain fresh roots,
+// keys, ports, environment, original Moon commands and exact execution counts.
+let queryReceipt;
+if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{
+  queryReceipt=prepareNativeQuerySoftware(repository,destination,{env:{...process.env,MOON_HOME:moonHome}});
+});
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
 writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target,moon_home:moonHome,
@@ -100,6 +108,7 @@ writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target
   {flag:'wx',mode:0o600});
 if(process.env.GITHUB_ENV!==undefined)appendFileSync(process.env.GITHUB_ENV,
   'ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION='+destination+'\n'+
+  (queryReceipt===undefined?'':'ACTQL_TEST_NATIVE_QUERY_PREPARATION='+queryReceipt+'\n')+
   (portableReceipt===undefined?'':'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION='+portableReceipt+'\n')+
   (httpReceipt===undefined?'':'ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT='+httpReceipt+'\n'));
 console.log(JSON.stringify({source,target,preparation:destination,entries:Object.keys(entries)}));
