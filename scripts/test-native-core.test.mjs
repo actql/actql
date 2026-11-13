@@ -2592,9 +2592,11 @@ if (process.env.ACTQL_FIXTURE_PROFILE) {
 test('parallel scoped joins cannot accept zero, skipped or signalled original cases', t => {
   for (const mode of ['zero', 'skip', 'signal']) {
     const f = fixture(t, {scoped: true}), original = readFileSync(f.moon, 'utf8');
+    const entered = join(f.root, 'entered-' + mode);
     const boundary = original.indexOf('\n') + 1;
     const probe = `
 if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values') {
+  require('node:fs').writeFileSync(${JSON.stringify(entered)}, ${JSON.stringify(mode)});
   if(${JSON.stringify(mode)}==='signal')process.kill(process.pid,'SIGTERM');
   else {
     console.log(${JSON.stringify(mode)}==='zero'?'Total tests: 0, passed: 0, failed: 0.':'Total tests: 1, passed: 0, failed: 0, skipped: 1.');
@@ -2608,6 +2610,8 @@ if(process.env.ACTQL_FIXTURE_PROFILE==='runtime-values') {
       env: {...f.env, ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: '2'},
     });
     assert.ifError(result.error); assert.notEqual(result.status, 0, mode + result.stdout + result.stderr);
+    assert.equal(readFileSync(entered, 'utf8'), mode, 'The original refusal probe must actually execute');
+    assert.match(result.stdout + result.stderr, mode === 'signal' ? /SIGTERM/u : /no successfully executed test cases/u);
     f.verifyExternal();
   }
 });
