@@ -38,6 +38,23 @@ test('foreign lines cannot replace missing approval samples and malformed select
   assert.throws(() => approvalPerfSamples('', [{...selected[0], pid: -1}, selected[1]]));
 });
 
+test('unrelated non-PID text is skipped explicitly and only fixed line-shape facts survive a selected refusal', () => {
+  const counts = {};
+  const result = approvalPerfSamples('renderer notice /not-for-report\n303 foreign (/elsewhere)\n' +
+    '101 original_function (/original)\n202 other_function (/original)\n', selected, counts);
+  assert.deepEqual(result.map(value => value.samples), [1, 1]);
+  assert.deepEqual(counts, {nonEmptyLines: 4, nonPidLines: 1, foreignPidLines: 1,
+    selectedLines: 2, malformedSelectedLines: 0});
+  const refused = {};
+  assert.throws(() => approvalPerfSamples('101 malformed-selected-sample\n', selected, refused), error => {
+    assert.equal(error.code, 'NativeApprovalPerfSelectedLineInvalid');
+    assert.deepEqual(error.lineShape, {characters: 29, whitespaceFields: 2, hasDsoEnvelope: false});
+    assert.doesNotMatch(JSON.stringify(error.lineShape), /selected-sample|original|not-for-report/u);
+    return true;
+  });
+  assert.equal(refused.malformedSelectedLines, 1);
+});
+
 test('CPU report has bounded top-symbol output and counts unavailable oversized symbols', () => {
   const lines = Array.from({length: 60}, (_, index) => `101 function_${index} (/original)`);
   lines.push(`202 ${'x'.repeat(2049)} (/original)`);

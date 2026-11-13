@@ -8,7 +8,9 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
 
-export function approvalPerfSamples(text, selected) {
+export function approvalPerfSamples(text, selected, observation = {}) {
+  Object.assign(observation, {nonEmptyLines: 0, nonPidLines: 0,
+    foreignPidLines: 0, selectedLines: 0, malformedSelectedLines: 0});
   assert(typeof text === 'string' && Buffer.byteLength(text) <= 8 * 1024 ** 2);
   assert(Array.isArray(selected) && selected.length === 2);
   const reports = new Map(selected.map(({template, pid}) => {
@@ -20,11 +22,22 @@ export function approvalPerfSamples(text, selected) {
   assert.equal(new Set(selected.map(value => value.template)).size, 2);
   for (const line of text.split('\n')) {
     if (!line.trim() || line.startsWith('#')) continue;
+    observation.nonEmptyLines++;
     const prefix = /^\s*(\d+)\s+/u.exec(line);
-    const report = prefix && reports.get(Number(prefix[1]));
-    if (report === undefined) continue;
+    if (prefix === null) {observation.nonPidLines++; continue;}
+    const report = reports.get(Number(prefix[1]));
+    if (report === undefined) {observation.foreignPidLines++; continue;}
+    observation.selectedLines++;
     const sample = /^\s*\d+\s+(.+?)\s+\(([^\r\n]*)\)\s*$/u.exec(line);
-    assert(sample, 'Invalid selected flat perf sample');
+    if (sample === null) {
+      observation.malformedSelectedLines++;
+      throw Object.assign(new Error('Invalid selected flat perf sample'), {
+        code: 'NativeApprovalPerfSelectedLineInvalid', lineShape: {
+          characters: line.length, whitespaceFields: Math.min(32, line.trim().split(/\s+/u).length),
+          hasDsoEnvelope: /\([^\r\n]*\)\s*$/u.test(line),
+        },
+      });
+    }
     report.samples++;
     const symbol = sample[1].replace(/\+0x[0-9a-f]+$/iu, '');
     if (symbol.length > 2048 || !/^[A-Za-z_.$][A-Za-z0-9_.$@:-]*$/u.test(symbol)) {
@@ -107,7 +120,9 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
     report.decodeExitCode = samples.status; report.decodeErrorCode = samples.error?.code ?? null;
     assert(!samples.error && samples.status === 0, 'Flat sample decoding unavailable');
     if (/lost|throttl/iu.test(samples.stderr)) report.conditions.push('sample decoding reported loss or throttling');
-    report.approvals = approvalPerfSamples(samples.stdout, selected);
+    report.selectedApprovals = selected;
+    report.sampleParsing = {};
+    report.approvals = approvalPerfSamples(samples.stdout, selected, report.sampleParsing);
     assert(report.approvals.every(value => value.samples > 0), 'Actual approval CPU samples missing');
     if (report.approvals.some(value => value.resolvedSymbols === 0))
       report.conditions.push('approval function symbols unavailable');
@@ -115,6 +130,10 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
     report.complete = report.conditions.length === 0;
   } catch (error) {
     report.failure = {stage, name: error.name, code: error.code ?? null};
+    if (error.code === 'NativeApprovalPerfSelectedLineInvalid') {
+      report.failure.reason = 'selected sample does not match fixed pid/symbol/dso fields';
+      report.failure.lineShape = error.lineShape;
+    }
   } finally {
     // This directory contains only profiler-derived data, never business state.
     rmSync(scratch, {recursive: true});
