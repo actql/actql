@@ -4,6 +4,7 @@ import {readFileSync,mkdtempSync,writeFileSync,rmSync,existsSync} from 'node:fs'
 import {tmpdir} from 'node:os';
 import {join,delimiter} from 'node:path';
 import {runInNewContext} from 'node:vm';
+import {fileURLToPath} from 'node:url';
 import {parse as parseYaml} from 'yaml';
 import {nativeQueryCoverage,runNativeQueryTests,readNativeQuerySources,selectNativeQueryTests} from './native-query-coverage.mjs';
 import test from 'node:test';
@@ -98,7 +99,7 @@ test('private Query output forwards the complete original default-profile select
     'appendFileSync(process.env.FIXTURE_COMMANDS,JSON.stringify(process.argv.slice(2))+"\\n");\n'+
     'const n=process.env.FIXTURE_SHORT?11:12;console.log("Total tests: "+n+", passed: "+n+", failed: 0.");\n',{mode:0o700});
   const env={...process.env,...Object.fromEntries(nativeQueryCoverage.requiredEnvironment['remote-runtime'].map(name=>[name,'1'])),FIXTURE_COMMANDS:commands};
-  const selected=selectNativeQueryTests('remote-runtime',readNativeQuerySources(new URL('../',import.meta.url)),env);
+  const selected=selectNativeQueryTests('remote-runtime',readNativeQuerySources(fileURLToPath(repository)),env);
   await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env,targetDirectory:'relative'}));
   assert.equal(existsSync(commands),false);
   await runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env,targetDirectory});
