@@ -473,6 +473,19 @@ jobs:
             !${{ runner.temp }}/actql-core-ordinary-c-cache/compiler.log
           key: ${{ steps.native-c-object-cache.outputs.key-prefix }}${{ github.sha }}
           restore-keys: ${{ steps.native-c-object-cache.outputs.key-prefix }}
+      - name: Mark current-job Native C compiler diagnostics
+        if: ${{ steps.native-c-object-cache.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import {createHash} from 'node:crypto';
+          import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
+          const prefix = existsSync(log) ? readFileSync(log) : Buffer.alloc(0);
+          writeFileSync(join(process.env.RUNNER_TEMP, 'actql-core-c-log-baseline.json'),
+            JSON.stringify({bytes: prefix.length,
+              sha256: createHash('sha256').update(prefix).digest('hex')}), {flag: 'wx'});
+          NODE
       - name: Install existing scoped component producer dependencies
         if: ${{ matrix.target == 'native' && matrix.partition == 'scoped' }}
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
@@ -556,10 +569,18 @@ jobs:
         if: ${{ !cancelled() && steps.native-c-object-cache.outcome == 'success' }}
         run: |
           node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
           import {existsSync, readFileSync} from 'node:fs';
           import {join} from 'node:path';
           const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
-          const text = existsSync(log) ? readFileSync(log, 'utf8') : '';
+          const baseline = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'actql-core-c-log-baseline.json'), 'utf8'));
+          const bytes = existsSync(log) ? readFileSync(log) : Buffer.alloc(0);
+          assert(Number.isSafeInteger(baseline.bytes) && baseline.bytes >= 0 && baseline.bytes <= bytes.length,
+            'Restored compiler log prefix changed');
+          assert.equal(createHash('sha256').update(bytes.subarray(0, baseline.bytes)).digest('hex'), baseline.sha256,
+            'Restored compiler log prefix changed');
+          const text = bytes.subarray(baseline.bytes).toString('utf8');
           const results = {};
           for (const match of text.matchAll(/ Result: (\w+)/gu))
             results[match[1]] = (results[match[1]] ?? 0) + 1;

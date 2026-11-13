@@ -77,8 +77,9 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
   const steps = workflow.jobs['core-darwin'].steps;
   const prepare = steps.find(step => step.id === 'native-c-object-cache');
   const restore = steps.find(step => step.id === 'native-c-object-cache-restore');
+  const mark = steps.find(step => step.name === 'Mark current-job Native C compiler diagnostics');
   const save = steps.find(step => step.name === 'Save ordinary Native C objects');
-  assert(prepare && restore && save);
+  assert(prepare && restore && mark && save);
   const evaluate = (target, partition) => runInNewContext(
     prepare.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, ''), {
       matrix: {target, partition},
@@ -92,6 +93,7 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
   assert.equal(restore.uses, action + 'restore' + pin);
   assert.equal(save.uses, action + 'save' + pin);
   assert.equal(restore.if, "${{ steps.native-c-object-cache.outcome == 'success' }}");
+  assert.equal(mark.if, restore.if);
   assert(save.if.includes('success()') && save.if.includes("outputs.cache-hit != 'true'"));
   assert.equal(restore.with.key, '${{ steps.native-c-object-cache.outputs.key-prefix }}${{ github.sha }}');
   assert.equal(restore.with['restore-keys'], '${{ steps.native-c-object-cache.outputs.key-prefix }}');
@@ -111,6 +113,8 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
   assert(prepare.run.includes('process.env.ImageVersion') && prepare.run.includes('toolchain.json'));
   const compile = steps.findIndex(step => step.name === 'Test common core');
   assert(steps.indexOf(prepare) < steps.indexOf(restore) && steps.indexOf(restore) < compile);
+  assert(steps.indexOf(restore) < steps.indexOf(mark));
+  assert(steps.indexOf(mark) < steps.findIndex(step => step.name === 'Check common core'));
   assert(steps.indexOf(save) > compile);
   const source = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.equal(source.split('ACTQL_TEST_NATIVE_CORE_CCACHE=').length - 1, 1);
