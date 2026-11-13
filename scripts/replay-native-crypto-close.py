@@ -85,15 +85,18 @@ def main():
         executable.chmod(0o700)
         (OUT / 'original-inputs.json').write_bytes(z.read('inputs.json'))
         script = OUT / 'close.gdb'
-        script.write_text('set pagination off\nset confirm off\nset print elements 32\n'
+        script.write_text('set pagination off\nset confirm off\nset print elements 256\n'
             'handle SIGABRT stop nopass print\ninfo signals SIGABRT\n'
             'file ' + str(executable) + '\n'
             'break __assert_fail\nrun partial\n'
             'printf "ACTQL_ORIGINAL_ASSERT\\n"\nx/s $rdi\nbt 12\n'
-            'info address state\nset $s = *(char**)&state\n'
+            # File-local state must not resolve to libc's unrelated state.
+            # Offsets are from this exact, hash-pinned ELF's symbol table.
+            'set $base = (char*)&actql_crypto_component_inventory - 0x67f00\n'
+            'set $s = *(char**)($base + 0x48e550)\n'
             'printf "ACTQL_COMPONENT_STATE_HEADER\\n"\nx/18gx $s\n'
             'printf "ACTQL_COMPONENT_GLOBAL_ACKS\\n"\n'
-            'p (int)cleanup_ack\np (int)heap_ack\np (int)context_ack\n'
+            'x/1ub $base + 0x48e56c\nx/1ub $base + 0x48e570\nx/1ub $base + 0x48e564\n'
             'disassemble actql_crypto_component_inventory\n'
             'continue\nprintf "ACTQL_STOP_AFTER_ORIGINAL_ASSERT\\n"\nbt 12\nquit\n')
         result = subprocess.run(['/usr/bin/gdb', '--nx', '--nh', '--batch', '-x', str(script)],
