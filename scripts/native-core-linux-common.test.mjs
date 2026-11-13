@@ -175,6 +175,18 @@ test('Linux importer execution refuses an old missing classification and keeps t
   assert(wrapper.includes("selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases, 0"));
 });
 
+test('the actual Native profile entry refuses library reentry before changing argv or importing fixtures', async () => {
+  const argv = [...process.argv];
+  await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8',
+    platformPackages: () => ({common: ['src/common'], importers: ['src/importer']}),
+    countTests: () => 1,
+    selectTests: (_root, args) => ({executionScope: {mode: 'subset'}, profiles: {
+      ordinary: {partitions: Array.from({length: 8}, () => ({args: [...args, 'src/importer'], cases: 1}))},
+      http: {cases: 0}, source: {cases: 0}, scoped: {cases: 0}}}),
+  }), /Original one-shot Linux cohort CLI required/u);
+  assert.deepEqual(process.argv, argv);
+});
+
 test('hosted Darwin Core selects the complementary scope without changing local full diagnostics', () => {
   const run = workflow.jobs['core-common'].steps.find(step => step.name === 'Test common core');
   const expression = run.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE;

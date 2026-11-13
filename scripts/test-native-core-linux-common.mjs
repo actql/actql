@@ -15,6 +15,8 @@ export const nativeCoreLinuxCommonPartitions = Object.freeze(
 
 async function executeOriginalNativeProfile(root, args, {env}) {
   assert.equal(realpathSync(root), realpathSync(repository), 'The original Native entry must own this checkout');
+  assert(process.argv.length === 3 && nativeCoreLinuxCommonPartitions.includes(process.argv[2]),
+    'Original one-shot Linux cohort CLI required');
   // Enter the existing full ordinary profile in the SAME process. Its original
   // compiler, fixture namespace, counted child and cleanup remain the owners;
   // there is no new subprocess or second compiler wrapper to time out/leak.
