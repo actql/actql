@@ -82,7 +82,7 @@ module('workspaces.mjs', { workspaceIdentity: (directory, role, expected) => {
     passed() { assert.equal(source(mutable.root), 'healthy'); assert.equal(source(pristine.root), 'healthy'); } };
 } });
 process.on('exit', () => {
-  const reports = Object.fromEntries(readdirSync(directory).filter(name => /^(?:fixed-)?mutations(?:-L-M[2-5])?\.json$/.test(name))
+  const reports = Object.fromEntries(readdirSync(directory).filter(name => /^(?:fixed-)?mutations(?:-L-M[0-5])?\.json$/.test(name))
     .map(name => [name, JSON.parse(readFileSync(join(directory, name), 'utf8'))]));
   writeFileSync(join(root, 'state.json'), JSON.stringify({ source: source(), mutable: (() => { try { return source(join(root, 'mutable')); } catch { return null; } })(), calls, reports, lifecycle }));
 });

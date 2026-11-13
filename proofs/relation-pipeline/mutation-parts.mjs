@@ -62,6 +62,9 @@ function minimumExecutions(executions, observations, minimum, pair, role, source
 export function inspectMutationPart(report, options = {}) {
   return inspectMutationPartAgainst(report, mutationPart(options.partId ?? report.part?.id), options);
 }
+export function inspectLogicalMutationPart(report, options = {}) {
+  return inspectMutationPartAgainst(report, logicalMutationPart(options.partId ?? report.part?.id), options);
+}
 // This one immutable record predates the 114-case final-normal plan. Its exact
 // canonical report and original source pin are required before any projection.
 export function inspectArchivedMutationPart(report) {
