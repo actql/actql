@@ -166,11 +166,10 @@ function commandBody(body,entry,selected,directory) {
   assert.equal(body.executable.path,join(directory,'emission/native/release/build/cmd',entry,entry+'.exe'));
   assert.equal(body.generated_c.path,body.executable.path.slice(0,-4)+'.c');
 }
-function checkedCommandFiles(body,inputs,commands,read) {
+function checkedCommandFiles(body,inputs,commands,read,directory) {
   assert(Array.isArray(inputs)&&inputs.length>0);assert(Array.isArray(commands));
   assert.equal(commands.length,body.commands_completed);
   assert.equal(new Set(inputs.map(x=>x.path)).size,inputs.length,'Duplicate original compiler input');
-  const directory=dirname(dirname(dirname(dirname(dirname(body.executable.path)))));
   const planItem=inputs.find(x=>x.path===join(directory,'cc-plan.json'));assert(planItem);
   const plan=JSON.parse(read(planItem).toString('utf8'));
   assert(Array.isArray(plan.steps)&&plan.steps.length===body.completed_c_steps);
@@ -195,7 +194,7 @@ export function exportNativeCompiledCommand(directory,destination,entry,selected
   const commands=json(join(directory,'commands.json'));
   commandBody(body,entry,selected,roots.directory);
   for(const item of inputs)verifyOriginal(item);
-  const outputs=checkedCommandFiles(body,inputs,commands,item=>data(item.path,item.sha256===undefined?undefined:item));
+  const outputs=checkedCommandFiles(body,inputs,commands,item=>data(item.path,item.sha256===undefined?undefined:item),roots.directory);
   const members=new Map();
   for(const item of [...inputs.filter(x=>within(x.path,roots.directory)),...outputs]) {
     assert(within(item.path,roots.directory));verifyOriginal(item);
@@ -262,7 +261,7 @@ export function receiveNativeCompiledCommand(input,destination,entry,selected) {
     return data(path,item);
   };
   for(const item of inputs)read(item);
-  const outputs=checkedCommandFiles(body,inputs,commands,read);
+  const outputs=checkedCommandFiles(body,inputs,commands,read,record.roots.directory);
   const expected=new Map([...inputs.filter(x=>within(x.path,record.roots.directory)),...outputs].map(x=>[x.path,x]));
   assert.equal(expected.size,members.size);
   for(const [path,item] of expected)assert.deepEqual(members.get(path)?.original,item);
