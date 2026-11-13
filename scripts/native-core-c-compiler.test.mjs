@@ -16,23 +16,30 @@ test('the pinned Moon ordinary release command reaches the closed Darwin cache p
     writeFileSync(join(root, 'moon.mod'), 'name = "fixture/cache-command"\n');
     writeFileSync(join(root, 'moon.pkg'), '');
     writeFileSync(join(root, 'main_test.mbt'), 'test "original command" { assert_eq(1, 1) }\n');
-    const result = spawnSync(join(process.env.MOON_HOME, 'bin/moon'),
-      ['test', '--target', 'native', '--release', '--strip', '--dry-run'],
-      {cwd: root, encoding: 'utf8', timeout: 10000, env: {...process.env, MOONBIT_NEW_NATIVE: '0'}});
-    assert.ifError(result.error); assert.equal(result.status, 0, result.stderr);
-    const command = result.stdout.split('\n').find(line => line.includes('.internal_test.c') && !line.includes('moonc'));
-    assert(command);
-    // This private fixture has no whitespace in its paths. Preserve the exact
-    // actual driver arguments while running the planner in that same cwd.
-    const parts = command.trim().split(/\s+/u);
+    const tools = join(root, 'tools'); mkdirSync(tools);
+    const captured = join(root, 'original-command.json');
     const module = new URL('./native-core-c-compiler.mjs', import.meta.url).href;
-    const check = spawnSync(process.execPath, ['--input-type=module', '-e',
-      `import {nativeCoreCObjectCommands} from ${JSON.stringify(module)};` +
-      'console.log(JSON.stringify(nativeCoreCObjectCommands(process.cwd(),process.argv[1],JSON.parse(process.argv[2]))));',
-      '--', parts[0], JSON.stringify(parts.slice(1))], {cwd: root, encoding: 'utf8', timeout: 5000});
-    assert.ifError(check.error); assert.equal(check.status, 0, check.stderr);
-    assert.notEqual(check.stdout.trim(), 'undefined', command);
-    const plan = JSON.parse(check.stdout);
+    // Capture the actual original argv at Moon's normal PATH-selected cc,
+    // rather than parsing dry-run quoting or using the different MOON_CC plan.
+    // Refuse before C compilation; this never produces or executes a test exe.
+    writeFileSync(join(tools, 'cc'), '#!' + process.execPath + '\n' +
+      '(async()=>{const {writeFileSync}=await import("node:fs");' +
+      `const {nativeCoreCObjectCommands}=await import(${JSON.stringify(module)});` +
+      'const args=process.argv.slice(2);' +
+      `writeFileSync(${JSON.stringify(captured)},JSON.stringify({args,` +
+      'plan:nativeCoreCObjectCommands(process.cwd(),"/usr/bin/cc",args)}));process.exit(23);})();\n', {mode: 0o700});
+    symlinkSync(realpathSync('/usr/bin/ar'), join(tools, 'ar'));
+    const env = {...process.env, PATH: tools + delimiter + process.env.PATH, MOONBIT_NEW_NATIVE: '0'};
+    delete env.MOON_CC;
+    const result = spawnSync(join(process.env.MOON_HOME, 'bin/moon'),
+      ['test', '--target', 'native', '--release', '--strip', '-j', '1'],
+      {cwd: root, encoding: 'utf8', timeout: 10000, env});
+    assert.ifError(result.error); assert.notEqual(result.status, 0, 'the capture port intentionally refuses before C compilation');
+    assert(existsSync(captured), result.stderr);
+    const {args, plan} = JSON.parse(readFileSync(captured));
+    assert(plan, JSON.stringify(args));
+    assert(args.includes('-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC'));
+    assert(args.some(arg => arg.endsWith('/libmoonbitrun.o')));
     assert(plan.compile.includes('-O0')); assert(!plan.compile.includes('-O2'));
     assert(plan.link.includes('-O0')); assert.equal(plan.compile[0], '-c');
   });
