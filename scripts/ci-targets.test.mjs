@@ -730,13 +730,13 @@ const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: 
 test('Native Core matrix retains Darwin profiles and adds Linux common without multiplying portable targets', t => {
   const core = jobs['core-darwin'], common = jobs['core-common'];
   const partitions = [...core.strategy.matrix.partition, ...common.strategy.matrix.partition.filter(value => value.startsWith('linux-common-'))];
-  assert.deepEqual(partitions, [...nativeCoreCiPartitions, ...nativeCoreLinuxCommonPartitions]);
+  assert.deepEqual([...partitions].sort(), [...nativeCoreCiPartitions, ...nativeCoreLinuxCommonPartitions].sort());
   const selected = all.flatMap(target => common.strategy.matrix.partition.map(partition => ({target, partition})))
     .filter(row => !common.strategy.matrix.exclude.some(excluded => excluded.target === row.target && excluded.partition === row.partition))
     .concat(core.strategy.matrix.partition.map(partition => ({target: 'native', partition})));
-  assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
+  assert.deepEqual(selected.map(row => JSON.stringify(row)).sort(), [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
     ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
-    ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
+    ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))].map(row => JSON.stringify(row)).sort());
   assert.equal(core.name, "core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})");
   assert.equal(core.strategy['fail-fast'], false);
   assert(jobs.check.needs.includes('core'));

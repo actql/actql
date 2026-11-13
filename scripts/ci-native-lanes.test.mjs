@@ -22,7 +22,10 @@ test('Core runner split caps only Darwin and retains the complete original matri
   assert.equal(common.strategy['max-parallel'], undefined);
   assert.equal(darwin['runs-on'], 'macos-15');
   assert.equal(darwin.strategy['max-parallel'], 4);
-  assert.deepEqual(darwin.strategy.matrix, {target: ['native'], partition: [...nativeCoreCiPartitions]});
+  assert.deepEqual({...darwin.strategy.matrix, partition: [...darwin.strategy.matrix.partition].sort()},
+    {target: ['native'], partition: [...nativeCoreCiPartitions].sort()});
+  assert.deepEqual(darwin.strategy.matrix.partition,
+    ['scoped', '1/4', 'source', '3/4', '2/4', '4/4', 'http']);
   assert.equal(common.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(common.strategy.matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   const rows = job => ['js', 'wasm', 'native'].flatMap(target => job.strategy.matrix.partition.map(partition => ({target, partition})))

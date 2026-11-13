@@ -23,8 +23,8 @@ test('Linux common Native is mandatory without removing the original Darwin matr
   }
   assert.equal(core['runs-on'], 'ubuntu-24.04');
   assert.equal(workflow.jobs['core-darwin']['runs-on'], 'macos-15');
-  assert.deepEqual(workflow.jobs['core-darwin'].strategy.matrix.partition,
-    ['1/4', '2/4', '3/4', '4/4', 'http', 'source', 'scoped']);
+  assert.deepEqual([...workflow.jobs['core-darwin'].strategy.matrix.partition].sort(),
+    ['1/4', '2/4', '3/4', '4/4', 'http', 'scoped', 'source']);
 });
 
 test('Linux common Native uses its selected compiler profile rather than Darwin preparation', () => {
