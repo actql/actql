@@ -206,7 +206,7 @@ function checkedCommandFiles(body,inputs,commands,read,directory) {
   const outputs=[body.executable,body.generated_c];
   for(const step of plan.steps) {
     assert(commands.some(x=>JSON.stringify(x)===JSON.stringify(step.selected)));
-    assert(within(step.receipt,directory));
+    assert(isAbsolute(step.receipt)&&resolve(step.receipt)===step.receipt&&within(step.receipt,directory));
     const receiptBytes=read({path:step.receipt});
     const receipt=JSON.parse(receiptBytes.toString('utf8'));
     assert.equal(receipt.exit,0);assert.deepEqual(receipt.selected,step.selected);
@@ -231,7 +231,7 @@ export function exportNativeCompiledCommand(directory,destination,entry,selected
   const outputs=checkedCommandFiles(body,inputs,commands,item=>data(item.path,item.sha256===undefined?undefined:item),roots.directory);
   const members=new Map();
   for(const item of [...inputs.filter(x=>within(x.path,roots.directory)),...outputs]) {
-    assert(within(item.path,roots.directory));verifyOriginal(item);
+    assert(isAbsolute(item.path)&&resolve(item.path)===item.path&&within(item.path,roots.directory));verifyOriginal(item);
     if(members.has(item.path))assert.deepEqual(members.get(item.path),item);
     else members.set(item.path,item);
   }
@@ -277,7 +277,8 @@ export function receiveNativeCompiledCommand(input,destination,entry,selected,{s
   for(const [index,item] of record.members.entries()) {
     check();
     assert.equal(item.file,'members/'+String(index).padStart(6,'0'));
-    assert(within(item.original.path,record.roots.directory));assert(!members.has(item.original.path));
+    assert(isAbsolute(item.original.path)&&resolve(item.original.path)===item.original.path&&within(item.original.path,record.roots.directory));
+    assert(!members.has(item.original.path));
     data(join(artifact,item.file),item.original);members.set(item.original.path,item);
   }
   const staticInputs=[];
