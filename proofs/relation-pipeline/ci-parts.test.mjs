@@ -247,7 +247,7 @@ for(const [label,change] of Object.entries({
 test('aggregate accepts exactly eight successful distinct immutable inputs',()=>assert.doesNotThrow(()=>validatePartInputs(inputs())));
 for(const [label,change] of Object.entries({missing:x=>x.pop(),duplicate:x=>x[1]=x[0],extra:x=>x.push(x[0]),wrongOrder:x=>x.reverse(),
  failure:x=>x[2].result='failure',skipped:x=>x[3].result='skipped',cancelled:x=>x[0].result='cancelled',
- foreignPart:x=>x[0].partId='L-C2',duplicateArtifact:x=>x[1].artifactId=x[0].artifactId,
+ foreignPart:x=>x[0].partId='L-C9',duplicateArtifact:x=>x[1].artifactId=x[0].artifactId,
  noDigest:x=>delete x[0].archiveDigest,noManifest:x=>delete x[0].manifestDigest,noArtifact:x=>delete x[0].artifactId,
 })) test(`aggregate rejects ${label}`,()=>{const x=inputs();change(x);assert.throws(()=>validatePartInputs(x));});
 const validation=()=>({result:'success',outputs:{'tested-sha':expected.context.testedSha,'source-digest':expected.source.digest,'plan-digest':planDigest}});
