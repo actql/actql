@@ -198,6 +198,7 @@ fn journal_run_decode_working(
     @host.RunJournalRetained(bytes, text, nodes, depth) =>
       (bytes, text, nodes, depth, false)
   }
+  let handoff = stage is @host.RunJournalRetained(_, _, _, _)
   if bytes <= 0 ||
     bytes >= 2147483519 ||
     nodes < 1 ||
@@ -217,7 +218,7 @@ fn journal_run_decode_working(
   }
   // Accepted definition is a flat object of <=11 strings. Input/source rows
   // and request/definition returned text remain alive beside the row writer.
-  let retained_units = journal_run_units(
+  let peak_units = journal_run_units(
     32L + 3L * 32L + 2L * 32L + 2L * 12L,
     64L + 4L * 32L + 4L * 32L + 4L * 12L,
     32L + 8L * 32L + 6L * 32L,
@@ -225,6 +226,18 @@ fn journal_run_decode_working(
     (if parsing { 0L } else { 4096L + 65536L + 4L * 71L }),
     bytes.to_int64(),
   )
+  // The whole-row UTF16 wire is a decoder local. After canonical equality,
+  // only the selected field Strings and typed identities escape; keep their
+  // independent bounds plus the raw Bytes retained by the row-admission slot.
+  // The completed handoff must not permanently charge that temporary wire.
+  let retained_units = if handoff {
+    {
+      ..peak_units,
+      owned_utf16_units: peak_units.owned_utf16_units - bytes.to_int64(),
+    }
+  } else {
+    peak_units
+  }
   let outer_units = journal_run_units(
     outer.record_headers,
     outer.reference_slots,
@@ -250,7 +263,7 @@ fn journal_run_decode_working(
   }
   guard scratch is Some(scratch) &&
     @execution.preparation_representation_cost(retained_units) is Some(retained) &&
-    @execution.compose_preparation_representation([retained_units, scratch])
+    @execution.compose_preparation_representation([peak_units, scratch])
     is Some(total) &&
     @execution.preparation_representation_cost(total) is Some(execution) else {
     return None
