@@ -6284,8 +6284,15 @@ async function openInstalledHost(originalInstallation, preparation) {
         sweep: sweepModelRuns,
         drain: () => Promise.allSettled([...modelResumeFlights.values()]),
       },
-      effects: effectRun === undefined ? undefined :
-        {sweep: sweepEffectRuns}});
+      effects: effectRun === undefined ? undefined : {
+        sweep: sweepEffectRuns,
+        async drain() {
+          // Stop has joined the last sweep. These are only its SAME admitted
+          // continuations, not another sweep, start, read or cleanup ACK.
+          await Promise.allSettled([...effectResumeFlights.values()]);
+          await Promise.allSettled([...effectRetirementFlights.values()]);
+        },
+      }});
   }
   const ingress = createNodeInProcessClientHost({
     authenticate: () => principalId,
