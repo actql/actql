@@ -45,6 +45,20 @@ test "Local Relation physical batches keep original work owner and refuse unspen
         max_batch_bytes: 256,
       },
       None,
+      metadata=Some({
+        name_bytes: 1000,
+        bridge_entries: 100,
+        completion_entries: 100,
+        schema: {
+          max_fields: 1,
+          max_bytes: 1000,
+          max_nodes: 100,
+          max_depth: 4,
+        },
+        result_workspace_entries: 100,
+        result_rows_reserved: None,
+        retained_bytes: 8192L,
+      }),
     ).unwrap()
     let owner = @strategy.graph_task_owner(graph, 1).unwrap()
     let setup : @local_driver.LocalManagedDispatchConfiguration[Int] = @local_driver.prepare_local_managed_dispatch_with_outputs(
@@ -66,6 +80,8 @@ test "Local Relation physical batches keep original work owner and refuse unspen
     assert_true(complete)
     let original_work = (operations.cumulative_provider_work)().unwrap()
     assert_eq(original_work, captured_keyed_count_chain_work().to_int64())
+    assert_eq((operations.output_row)(0).unwrap(), "{\"id\":2}")
+    assert_eq((operations.output_row)(1).unwrap(), "{\"id\":3}")
     let released = Ref(false)
     let snapshot = (operations.prepare_relation_snapshot)(fn() { released.val })
       .unwrap()
@@ -135,6 +151,25 @@ test "Local Relation physical batches keep original work owner and refuse unspen
         content.cid,
         "sha256:c274ffec8cbb1b1361fa532c9f95243ee4fe16ef1907f39a1525e3f525128677",
       )
+      if mode == 0 {
+        (snapshot.release_source)(content.cid, fn() { !released.val }).unwrap()
+        assert_false((snapshot.source_available)())
+        assert_true((operations.output_row)(0) is Err(_))
+        (snapshot.begin_reload)().unwrap()
+        (snapshot.append_reload)("{\"id\":2}").unwrap()
+        (snapshot.append_reload)("{\"id\":3}").unwrap()
+        (snapshot.finish_reload)().unwrap()
+        released.val = true
+        for _ in 0..<1000 {
+          if (snapshot.cleanup_references)(7) {
+            break
+          }
+        }
+        (snapshot.finish)().unwrap()
+        assert_true((snapshot.source_available)())
+        assert_eq((operations.output_row)(0).unwrap(), "{\"id\":2}")
+        assert_eq((operations.output_row)(1).unwrap(), "{\"id\":3}")
+      }
     }
     (operations.close)()
     for _ in 0..<1000 {

@@ -899,6 +899,12 @@ pub fn[T] start_local_managed_dispatch(
   // the existing binding pass; never rescan all inputs on provider resume.
   let pending_reads = Ref(0)
   let ordinary : Ref[@execution.CompletedOutput?] = Ref(None)
+  let output_row_reader : Ref[
+    (
+      @execution.CompletedOutput,
+      (Int, Int) -> Result[String, @execution.CompletedExportIssue],
+    )?,
+  ] = Ref(None)
   let retained : Ref[@execution.ManagedRetainedOutput[T]?] = Ref(None)
   let carrier : Ref[@carrier_runtime.Material?] = Ref(None)
   let carrier_completed : Ref[@execution.CarrierManagedCompletedOutput?] = Ref(
@@ -1032,6 +1038,7 @@ pub fn[T] start_local_managed_dispatch(
     }
   }
   let release_output_aliases = fn() {
+    output_row_reader.val = None
     ordinary.val = None
     finalization_payload.val = None
     finalization_available.val = None
@@ -2726,13 +2733,56 @@ pub fn[T] start_local_managed_dispatch(
       // Before finalization, preserve the original funded small transport.
       // A larger read needs the measured extent funded before settlement.
       let extent = output_row_extent.val.unwrap_or(setup.imports.row.max_bytes)
-      @execution.completed_output_row_wire(
-        output,
-        row,
-        extent,
-        setup.imports.row.max_nodes,
-        setup.imports.row.max_depth,
-      ).map_err(_ => Configuration(InputUnavailable))
+      let read = match output_row_reader.val {
+        Some((original, read)) => {
+          if !physical_equal(original, output) {
+            return Err(Configuration(InputUnavailable))
+          }
+          read
+        }
+        None => {
+          // Reuse only the separately held export-metadata envelope, not the
+          // producer scratch that may already be retired. Its existing quote
+          // keeps 24 column roots and 64 controls per reader; the prepared
+          // order/positions borrow names and fit alongside snapshot metadata.
+          // Legacy/custom policies without that retained extent keep the
+          // original per-call transport and retain no additional column state.
+          let width = @execution.completed_column_count(output)
+          let reader_metadata = @execution.execution_capacity_inventory_bytes([
+            { unit: CursorRootSlots, count: 64L, copies: 1, },
+            { unit: CursorRootSlots, count: width.to_int64(), copies: 24, },
+          ])
+          if width < 0 ||
+            width > setup.metadata.schema.max_fields ||
+            reader_metadata is None ||
+            reader_metadata.unwrap() > setup.metadata.retained_bytes {
+            return @execution.completed_output_row_wire(
+              output,
+              row,
+              extent,
+              setup.imports.row.max_nodes,
+              setup.imports.row.max_depth,
+            ).map_err(_ => Configuration(InputUnavailable))
+          }
+          let read = match
+            @execution.prepare_completed_output_row_wire_reader(
+              output,
+              setup.imports.row.max_nodes,
+              setup.imports.row.max_depth,
+            ) {
+            Ok(read) => read
+            Err(_) => return Err(Configuration(InputUnavailable))
+          }
+          // Availability callbacks may have retired the original aliases.
+          // Never install a prepared reader after that retirement completed.
+          guard ordinary.val is Some(current) && physical_equal(current, output) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          output_row_reader.val = Some((output, read))
+          read
+        }
+      }
+      read(row, extent).map_err(_ => Configuration(InputUnavailable))
     },
     material: fn() { retained.val },
     carrier_material: fn() { carrier.val },
@@ -3230,6 +3280,7 @@ pub fn[T] start_local_managed_dispatch(
             // The exporter consumed its exact receipt. Retire the driver's
             // only cell output before the first reload byte can be admitted.
             receipt.val = None
+            output_row_reader.val = None
             ordinary.val = None
             stored.val = Some(retained)
             phase.val = Released

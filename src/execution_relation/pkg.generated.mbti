@@ -1149,6 +1149,8 @@ pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWir
 
 pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int, deferred_reclamation? : Bool) -> Result[CompletedOutputImport, CompletedImportIssue]
 
+pub fn prepare_completed_output_row_wire_reader(CompletedOutput, Int, Int) -> Result[(Int, Int) -> Result[String, CompletedExportIssue], CompletedExportIssue]
+
 pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
