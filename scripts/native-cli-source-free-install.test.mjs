@@ -656,6 +656,26 @@ test('Native resource oracle reads full scalars and rejects truncation, normaliz
   }
 });
 
+test('Native resource JSONL preserves Unicode separators across stream chunks and CRLF records', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-native-resource-unicode-lines-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'rows.jsonl');
+  // Cross the read stream chunk boundary, including multi-byte UTF-8 scalars.
+  const expected = [{id: 0, text: ('日本語😀\u2028\u2029').repeat(12000)},
+    {id: 1, text: 'before\u2028middle\u2029after\n\r'}];
+  for (const separator of ['\n', '\r\n']) {
+    for (const terminated of [true, false]) {
+      const wire = expected.map(row => JSON.stringify(row)).join(separator) + (terminated ? separator : '');
+      await writeFile(path, wire);
+      const complete = await verifyNativeResourceRows(path, expected);
+      assert.equal(complete.rows, 2);
+      assert.equal(complete.wireBytes, Buffer.byteLength(wire));
+    }
+  }
+  await writeFile(path, expected.map(row => JSON.stringify(row)).join('\u2028'));
+  await assert.rejects(verifyNativeResourceRows(path, expected));
+});
+
 test('Native resource keyed oracle accepts permutations and rejects duplicate or missing keys', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-native-resource-keyed-oracle-'));
   t.after(() => rm(root, {recursive: true, force: true}));

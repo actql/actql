@@ -119,8 +119,9 @@ pub fn prepared_client_composed_infer_occurrences(
         return None
       }
       if @lower.payload(node) is @lower.Infer(_) {
+        // The original checked graph already owns its task/work inventory.
+        // Keep Unit/selected-task custody restrictions, not another count cap.
         if selected_in_task ||
-          selected.length() >= 128 ||
           @strategy.graph_task_selected_step(graph, task) is Some(_) {
           return None
         }

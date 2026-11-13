@@ -233,6 +233,73 @@ async function runCollectionConsumer({prepared, root, repository, command, repor
   }
 }
 
+function assertProjectFileJoinOutcome(actual, phase) {
+  assert.equal(actual.case, 'project-local-files-same-unit-join');
+  assert.equal(actual.phase, phase); assert.equal(actual.complete, true);
+  assert.deepEqual(actual.rows, [{left_path: 'left.txt', left_bytes: 3,
+    right_path: 'right.txt', right_bytes: 7}]);
+  assert.equal(actual.submits, phase === 'capture' ? 1 : 0);
+  assert.equal(actual.firstClose, 'returned'); assert.equal(actual.firstCloseCalls, 1);
+  assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
+  assert.deepEqual(actual.cleanup, []); assert.equal(actual.originalFilesAbsent, true);
+  assert(actual.ref && typeof actual.resultName === 'string' && actual.resultName.length);
+}
+
+async function runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup}) {
+  const collection = join(root, 'collection'); await mkdir(collection, {recursive: true});
+  const application = join(collection, 'project-files'); await mkdir(application);
+  for (const path of ['scripts/fixtures/packed-project-file-join.mjs',
+    'scripts/fixtures/record-approval/scoped-fds.fixture.mjs']) {
+    await mkdir(dirname(join(application, path)), {recursive: true});
+    await copyFile(join(repository, path), join(application, path));
+  }
+  await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
+  const home = join(application, 'home'); await mkdir(home);
+  const env = {...process.env, HOME: home, PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
+  delete env.ACTQL_PACKED_CLIENT_PACKAGES;
+  const software = join(prepared.consumer, 'node_modules'), alias = join(application, 'node_modules');
+  const handoff = join(collection, 'project-files-original.json');
+  await symlink(software, alias, 'dir');
+  try {
+    await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
+    let captured;
+    for (const record of report.projectFiles) {
+      if (record.phase === 'saved' && captured === undefined) continue;
+      record.status = 'running'; delete record.unexecutedReason;
+      let observed;
+      try {
+        if (record.phase === 'saved') {
+          const original = JSON.parse(await readFile(handoff, 'utf8'));
+          assert.equal(original.complete, true); assert.deepEqual(original.ref, captured.ref);
+          assert.equal(original.resultName, captured.resultName);
+        }
+        observed = await command(process.execPath, [join(application,
+          'scripts/fixtures/packed-project-file-join.mjs'), record.phase, handoff],
+        {cwd: application, env, name: `project-files-${record.phase}`, timeout: 30_000});
+        assert.equal(observed.code, 0); assert.equal(observed.signal ?? null, null);
+        const actual = JSON.parse(observed.stdout.trim().split('\n').at(-1));
+        assertProjectFileJoinOutcome(actual, record.phase); assert.equal(actual.pid, observed.pid);
+        if (record.phase === 'capture') captured = actual;
+        else {
+          assert.notEqual(actual.pid, captured.pid);
+          assert.deepEqual(actual.ref, captured.ref); assert.equal(actual.resultName, captured.resultName);
+        }
+        record.observation = actual; record.completed = true; record.status = 'passed';
+      } catch (error) {
+        observed ??= error?.commandResult;
+        record.status = 'failed'; record.error = nodeBenchmarkFailure(error);
+        throw error;
+      } finally {
+        Object.assign(record, {pid: observed?.pid ?? null, exitCode: observed?.code ?? null,
+          signal: observed?.signal ?? null, endedAt: new Date().toISOString()});
+      }
+    }
+  } finally {
+    try {assert.equal(await readlink(alias), software); await unlink(alias);}
+    catch (error) {cleanup.push(error);}
+  }
+}
+
 async function runReadmeCases({prepared, root, repository, command, report, failures, cases = report.cases}) {
   for (const record of cases) {
     // A shared software failure invalidates the remaining inputs. A failed
@@ -276,6 +343,8 @@ export async function runPackedReadmeWorkflows(root) {
     architecture: process.arch, requiredCases: packedReadmeCases, requiredCompositions: packedCompositionCases,
     collection: ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close' : 'Requires verified normal packages'})),
+    projectFiles: ['capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
+      unexecutedReason: phase === 'saved' ? 'Requires original two-file JOIN and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
       unexecutedReason: 'Requires verified unchanged normal packages'})),
     controls: packedEffectControlCases.map(mode => ({mode, completed: false, status: 'unexecuted',
@@ -293,10 +362,14 @@ export async function runPackedReadmeWorkflows(root) {
     try {
       await runCollectionConsumer({prepared, root, repository, command, report, cleanup});
     } catch (error) {failures.push(error);}
+    try {
+      await runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup});
+    } catch (error) {failures.push(error);}
     await runReadmeCases({prepared, root, repository, command, report, failures});
     await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
     await runMockEffectControls({prepared, root, repository, command, records: report.controls, failures});
     report.complete = failures.length === 0 && report.collection.every(row => row.completed) &&
+      report.projectFiles.every(row => row.completed) &&
       report.cases.every(row => row.completed) && report.compositions.every(row => row.completed) && report.controls.every(row => row.completed);
   } catch (error) {failures.push(error);}
   finally {

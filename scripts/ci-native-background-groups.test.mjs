@@ -68,6 +68,21 @@ test('joined Native HTTP outcome comes from its original complete child rather t
   }
 });
 
+test('split HTTP success requires both original package and CLI control owners', async t => {
+  for (const [packages, controls] of [[0, 0], [0, 7], [9, 0]]) {
+    const f = fixture(t);
+    const directory = f.start([
+      {name: 'packages', steps: [f.step('package-child', `process.exitCode=${packages};`, {id: 'native-http'})]},
+      {name: 'controls', steps: [f.step('control-child', `process.exitCode=${controls};`, {id: 'native-http-controls'})]},
+    ]);
+    const result = await waitNativeGroups(directory, {report() {}});
+    const success = packages === 0 && controls === 0;
+    assert.equal(result.status, success ? 0 : 1);
+    assert.equal(result.outputs['native-http-result'], success ? 'success' : 'failure');
+    assert.deepEqual(result.result.groups.map(group => group.cases[0].code), [packages, controls]);
+  }
+});
+
 test('buffered Native consumer reports retain the original child execution bounds', async t => {
   const f = fixture(t), messages = [], before = Date.now();
   const directory = f.start([{name: 'runtime', steps: [f.step('timed', 'setTimeout(() => {}, 30);')]}]);

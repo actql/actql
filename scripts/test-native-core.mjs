@@ -45,9 +45,21 @@ const args = process.argv.slice(2);
 const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
 // Keep the unscoped classification and its original fixture/backing setup.
 // Only the compiler-owned case inventory below receives this checked closure.
-const executionPackages = full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
-  ? (await import('./ci-moon-tests.mjs')).nativeMoonPackages() : undefined;
+const platformScope = process.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE;
+if (platformScope && platformScope !== 'darwin-differences') throw new Error('Unknown Native Core platform scope');
+if (full && platformScope && process.platform !== 'darwin') throw new Error('Darwin differences require the original Darwin host');
+const platformPackages = full && platformScope
+  ? (await import('./native-core-platform-packages.mjs')).readNativeCorePlatformPackages(root) : undefined;
+const executionPackages = platformPackages?.darwin ?? (full && (process.env.CI_PLAN || process.env.CI_PLAN_PATH)
+  ? (await import('./ci-moon-tests.mjs')).nativeMoonPackages() : undefined);
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
+const scopedSoftwareRoot = full && partition === 'scoped'
+  ? process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT : undefined;
+if (scopedSoftwareRoot !== undefined && (process.env.GITHUB_ACTIONS !== 'true' ||
+    process.env.ACTQL_TEST_NATIVE_CORE_CCACHE === undefined ||
+    scopedSoftwareRoot !== join(root, '_build/native-core-scoped/compiler-software'))) {
+  throw new Error('Original hosted Scoped software/cache owner required');
+}
 const scopedJobs = process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS ?? '1';
 if (!['1', '2'].includes(scopedJobs)) throw new Error('One or two original scoped allocation profiles required');
 if (partition && !full) throw new Error('Native Core partitions require the complete original selection');
@@ -59,6 +71,7 @@ const testCompiler = full && args.lastIndexOf('--release') >
     Math.max(args.lastIndexOf('--debug'), args.lastIndexOf('-g'))
   ? nativeCoreCCompiler(root, namespace) : {};
 const compilerEnvironment = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: undefined, ...testCompiler,
+  ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: undefined,
   ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: undefined,
   ...Object.fromEntries(['APPROVE', 'REJECT', 'CONFLICT'].flatMap(mode =>
     ['RESOLUTION', 'VERIFIED'].map(kind => [`ACTQL_TEST_CLIENT_FILE_RECEIPT_${mode}_${kind}_WIRE`, undefined])))};
@@ -72,7 +85,17 @@ const selection = full ? nativeCoreTestSelection(root, args,
     // Physical jobs retain their complete profile even when an ordinary PR
     // closure has no member in it. An empty job cannot establish execution.
     timeoutMs: 5 * 60_000,
-    executionPackages: ['http', 'source', 'scoped'].includes(partition) ? undefined : executionPackages}) : undefined;
+    allowNestedFileInputs: platformPackages !== undefined,
+    executionPackages: platformPackages ? executionPackages :
+      ['http', 'source', 'scoped'].includes(partition) ? undefined : executionPackages}) : undefined;
+if (platformPackages && selection.executionScope?.mode !== 'subset') {
+  throw new Error('Darwin differences must retain their exact compiler-owned package/file scope');
+}
+if (platformPackages) console.log('Native Core platform scope: ' + JSON.stringify({
+  mode: platformScope, graphSha256: platformPackages.graphSha256,
+  commonPackages: platformPackages.common.length, darwinPackages: platformPackages.darwin.length,
+  originalCases: selection.executionScope.originalCases, selectedCases: selection.cases,
+}));
 if (selection?.executionScope) console.log('Native Core dependency scope: ' + JSON.stringify(selection.executionScope));
 if (selection && partition) {
   const originalCases = selection.profiles.ordinary.cases;
@@ -133,6 +156,7 @@ const httpLifetime = full || args.some(arg => arg.includes('cmd/native_remote_re
 const fixtureEnvironment = {
   ...process.env,
   ACTQL_TEST_NATIVE_CORE_PARTITION: undefined,
+  ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: undefined,
   ACTQL_TEST_NATIVE_IMPORT_QUOTE: undefined,
   ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: undefined,
   ...Object.fromEntries(['APPROVE', 'REJECT', 'CONFLICT'].flatMap(mode =>
@@ -259,13 +283,15 @@ if (full) {
       if (tests.length === 0) return {status: 0};
       const profileStarted = performance.now();
       let attemptedCases = 0, passedCases = 0;
+      let scoped;
       try {
         const profileNamespace = join(scopedScratch.path, profile);
         mkdirSync(profileNamespace, {mode: 0o700});
         // Start from the original PATH, not the ordinary test-only compiler shim.
-        const scoped = prepareNativeCoreScopedProfile(root, profileNamespace,
+        scoped = prepareNativeCoreScopedProfile(root, profileNamespace,
           ['--target', 'native', ...args, ...new Set(tests.map(test => test.source))],
-          {env: fixtureEnvironment, profile});
+          {env: fixtureEnvironment, profile,
+            ...(scopedSoftwareRoot ? {softwareDirectory: join(scopedSoftwareRoot, profile)} : {})});
         console.log(`Native Core ${profile}: ${tests.length} required cases`);
         // Each original case initializes its own physical region header. Closing
         // that region does not erase the header, and the cases require different
@@ -335,6 +361,9 @@ if (full) {
             attemptedCases, passedCases, failedCases: attemptedCases - passedCases,
             unexecutedCases: tests.length - attemptedCases, succeeded: passedCases === tests.length}));
         } catch { /* Case accounting diagnostics never replace an original failure. */ }
+        // Every original case child has closed before this finally. Retire only
+        // this profile's generated software; physical/runtime roots stay put.
+        scoped?.retireSoftware?.();
       }
     };
     const profiles = ['runtime-values', 'scoped-review-values'];

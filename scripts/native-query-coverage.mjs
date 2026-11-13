@@ -3,14 +3,15 @@
 import {spawn} from 'node:child_process';
 import {appendFileSync, existsSync, readFileSync, readdirSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {join, posix} from 'node:path';
+import {isAbsolute, join, posix} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {assertTestExecution} from './test-execution.mjs';
 import {tokens, readPackageTargetOptions} from './portable-core.mjs';
+import {nativeQueryPackages, preparedNativeQuerySoftware} from './native-query-preparation.mjs';
 
 export const nativeQueryCoverage = JSON.parse(readFileSync(
   new URL('./native-query-coverage.json', import.meta.url), 'utf8'));
-const packagePaths = ['src/query_integration', 'src/native_values_integration'];
+const packagePaths = nativeQueryPackages;
 const inHarnessPackage = path => packagePaths.some(root => path.startsWith(`${root}/`));
 const owners = ['http-client', 'remote-runtime'];
 const environmentReader = /\b(?:get_env_var|(?:secure_)?getenv|environ)\b|ACTQL_TEST_/u;
@@ -330,30 +331,58 @@ export function assertNativeQueryExecution(selection, result) {
   return checked.counts;
 }
 
-export async function runNativeQueryTests(moon, owner, {cwd, env}) {
+export async function runNativeQueryTests(moon, owner, {cwd, env, targetDirectory}) {
   const root = cwd instanceof URL ? fileURLToPath(cwd) : cwd;
   const selection = selectNativeQueryTests(owner, readNativeQuerySources(root), env);
+  const prepared = preparedNativeQuerySoftware(root, env);
+  if (prepared !== undefined) {
+    moon = prepared.moon; env = prepared.environment; targetDirectory = prepared.targetDirectory;
+  }
   console.log(`Native query ${owner}: ${selection.mode}, ${selection.expected} cases`);
   for (const reason of selection.reasons) console.log(`Full query fallback: ${reason}`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
     `### Native query ${owner}\n\nSelection: **${selection.mode}**, ${selection.expected} required cases.\n\n` +
     selection.reasons.map(reason => `- ${reason}\n`).join(''));
-  const child = spawn(moon, ['test', ...selection.paths, '--target', 'native'],
-    {cwd, env, stdio: ['ignore', 'pipe', 'pipe']});
-  // Keep bounded summary tails while forwarding normal compiler/test output.
-  let stdout = '';
-  let stderr = '';
-  child.stdout.setEncoding('utf8');
-  child.stderr.setEncoding('utf8');
-  child.stdout.on('data', chunk => {
-    process.stdout.write(chunk); stdout = (stdout + chunk).slice(-65536);
-  });
-  child.stderr.on('data', chunk => {
-    process.stderr.write(chunk); stderr = (stderr + chunk).slice(-65536);
-  });
-  const result = await new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('close', (status, signal) => resolve({status, signal, stdout, stderr}));
-  });
-  assertNativeQueryExecution(selection, result);
+  const args = ['test', ...selection.paths, '--target', 'native'];
+  if (targetDirectory !== undefined) {
+    if (typeof targetDirectory !== 'string' || !isAbsolute(targetDirectory) || /[\r\n\0]/u.test(targetDirectory))
+      throw new Error('Original absolute Native Query output directory required');
+    args.push('--target-dir', targetDirectory);
+  }
+  // Keep one enclosing caller budget and the exact original build tree and
+  // execution argv. Build-only executes no cases; Moon's unchanged execution
+  // command includes its normal incremental freshness check.
+  async function runPhase(phase, commandArgs) {
+    const started = performance.now(); let succeeded = false;
+    try {
+      const child = spawn(moon, commandArgs,
+        {cwd, env, stdio: ['ignore', 'pipe', 'pipe']});
+      // Keep bounded summary tails while forwarding normal compiler/test output.
+      let stdout = '';
+      let stderr = '';
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', chunk => {
+        process.stdout.write(chunk); stdout = (stdout + chunk).slice(-65536);
+      });
+      child.stderr.on('data', chunk => {
+        process.stderr.write(chunk); stderr = (stderr + chunk).slice(-65536);
+      });
+      const result = await new Promise((resolve, reject) => {
+        child.once('error', reject);
+        child.once('close', (status, signal) => resolve({status, signal, stdout, stderr}));
+      });
+      if (phase === 'execute' || result.status !== 0 || result.signal)
+        assertNativeQueryExecution(selection, result);
+      succeeded = true;
+    } finally {
+      try {
+        console.error('ACTQL_NATIVE_CI_PHASE ' + JSON.stringify({scope: 'native-query',
+          owner, phase, milliseconds: Math.round(performance.now() - started), succeeded}));
+      } catch { /* Timing output cannot replace the original return or failure. */ }
+    }
+  }
+  await runPhase('compile', [...args, '--build-only']);
+  await runPhase('execute', args);
+  prepared?.verify();
 }

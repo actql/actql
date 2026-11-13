@@ -20976,7 +20976,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8875c750a185823764074d02e9fa89fc1b2e1266a91f0b68b34ca11a0df50536",
+      "sha256": "0c69073a2f0280e9e292ee7e05509fc0e4f4c494f55ce02c95d3dee91cad7cb2",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -23129,6 +23129,10 @@
               {
                 "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
                 "anchor": "test('same-stage Source waits have distinct bounded identities and cold original answer matching', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "test('Host first close joins the original pre-dispatch Effect resume Store reader'"
               }
             ]
           }
@@ -27883,7 +27887,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "338c1f635ed9ea2585da64703d03b317ee855c07421b76d0dc71ee1f6b0de216",
+      "sha256": "cb2bc51f79b7ce069e9e6efe272ff223716f6fd758007981f1fc0710b3c628a2",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -69763,7 +69767,7 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "45f654fc9511ad3c574b3f75bb963ed4cf4f333229ca27abeb94e524f4cf87ad",
+      "sha256": "78f13429a2d3ddf1bbbe8f1bb2e6c8cce6312761958229fa215c854440beeca5",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -113456,6 +113460,7 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#5",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#6",
             "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
             "prepareOrdinarySourceManagedInstallation"
           ],
@@ -118716,7 +118721,8 @@
             "prepared",
             "declaration",
             "originalRun",
-            "occurrence"
+            "occurrence",
+            "requestIdentity"
           ],
           "async": false
         },
@@ -118743,7 +118749,9 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
-          "parameters": [],
+          "parameters": [
+            "child"
+          ],
           "async": false
         },
         {
@@ -118753,6 +118761,11 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#6",
           "parameters": [],
           "async": false
         },
@@ -119013,7 +119026,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "05a3ef20e5b3b09f27681c8c5b91b1a63e3147cb7907ab9a4511d23a75d53ca6"
+      "sha256": "786f01995a42a25542e1971220985ca045e47a271770a2ac9d98d6e4a400378a"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

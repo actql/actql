@@ -1,3 +1,4 @@
+import {prepareNativeResidentPortableCore} from './native-resident-portable-preparation.mjs';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFile, execFileSync} from 'node:child_process';
@@ -46,18 +47,16 @@ if (targetTriple === undefined) {
 
 let passed = false;
 try {
-  execFileSync(moon, [
-    'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
-  ], {cwd: repositoryRoot, stdio: 'inherit'});
+  const portableCorePath = prepareNativeResidentPortableCore(repositoryRoot, {
+    prepare: () => execFileSync(moon, [
+      'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+    ], {cwd: repositoryRoot, stdio: 'inherit'})
+  });
   const executable = prepareNativeRuntimeBundle(repositoryRoot,
     join(root, 'runtime-bundle-producer'));
   const bundleLibraries = prepareNativeRuntimeBundleLibraries(repositoryRoot,
     join(root, 'runtime-bundle-components'));
-  const moonModule = await import(pathToFileURL(join(
-    repositoryRoot,
-    '_build/js/release/build/connectors_builtin_node/' +
-      'connectors_builtin_node.js',
-  )).href);
+  const moonModule = await import(pathToFileURL(portableCorePath).href);
   const control = runtimeCore(moonModule).remoteBundleControl;
   const keysA = generateKeyPairSync('ed25519');
   const keysB = generateKeyPairSync('ed25519');

@@ -113,7 +113,9 @@ fn local_saved_snapshot_row_originals(
   decode_run? : (Bytes) -> Result[
     (@host.ClientRunJournalEncoding, String?, String?),
     @host.ClientJournalDecodingIssue,
-  ] = @host.decode_client_run_journal_row_with_observation_originals,
+  ] = bytes => {
+    @host.decode_client_run_journal_row_with_observation_originals(bytes)
+  },
 ) -> Result[
   (@host.ClientRunJournalEncoding, String?, String?),
   LocalSubmittedRunRowsIssue,
@@ -212,7 +214,9 @@ fn[Store, E] publication_binding_saved_rows(
   decode_run? : (Bytes) -> Result[
     (@host.ClientRunJournalEncoding, String?, String?),
     @host.ClientJournalDecodingIssue,
-  ] = @host.decode_client_run_journal_row_with_observation_originals,
+  ] = bytes => {
+    @host.decode_client_run_journal_row_with_observation_originals(bytes)
+  },
 ) -> Result[
   (@host.ClientRunJournalEncoding, String?, String?),
   LocalRunPublicationBindingIssue[E],

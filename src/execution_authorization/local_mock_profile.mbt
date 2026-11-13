@@ -125,10 +125,23 @@ pub fn local_mock_account_configuration(
 ) -> Result[String, LocalMockProfileIssue] {
   if !valid_name(subjects.account_id) ||
     !valid_name(subjects.principal) ||
-    !valid_name(subjects.control_connection) ||
-    subjects.sources.length() > 128 ||
-    subjects.model_tasks.length() > 64 {
+    !valid_name(subjects.control_connection) {
     return Err(InvalidSubjects)
+  }
+  // run and the two ordinary Results; UPDATE adds both its delegate and
+  // updates Result. Request/sign entries remain independently selected.
+  let fixed = 3 +
+    (if subjects.update_target is Some(_) { 2 } else { 0 }) +
+    (if subjects.request_target is Some(_) { 1 } else { 0 }) +
+    (if subjects.signing_key_resource is Some(_) { 1 } else { 0 })
+  match
+    local_profile_entry_inventory(
+      subjects.sources.length(),
+      subjects.model_tasks.length(),
+      fixed,
+    ) {
+    Err(issue) => return Err(Configuration(issue))
+    Ok(_) => ()
   }
   let entries = [
     local_mock_entry(

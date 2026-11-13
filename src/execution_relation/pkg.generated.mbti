@@ -6,6 +6,7 @@ import {
   "actql/actql/canonical_json",
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
@@ -106,7 +107,7 @@ pub fn advance_cancel_completed_output_import(CompletedOutputImport, Int) -> Boo
 
 pub fn[T] advance_close_managed_producer_bridge(ManagedProducerBridge[T], Int) -> Bool
 
-pub fn advance_completed_output_export(CompletedOutputExport, Int, Int, batch? : Bool) -> Result[CompletedOutputExportAdvance, CompletedExportIssue]
+pub fn advance_completed_output_export(CompletedOutputExport, Int, Int, batch? : Bool, before_batch_growth? : ((Int) -> Result[Bool, CompletedExportIssue])?) -> Result[CompletedOutputExportAdvance, CompletedExportIssue]
 
 pub fn advance_completed_output_export_preparation(CompletedOutputExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
@@ -1148,6 +1149,8 @@ pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWir
 
 pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int, deferred_reclamation? : Bool) -> Result[CompletedOutputImport, CompletedImportIssue]
 
+pub fn prepare_completed_output_row_wire_reader(CompletedOutput, Int, Int) -> Result[(Int, Int) -> Result[String, CompletedExportIssue], CompletedExportIssue]
+
 pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
@@ -1341,6 +1344,8 @@ pub fn relation_row_usage(AdmittedRelationRow) -> ValueUsage
 pub fn relation_schema_cid(RelationSchemaIdentity) -> String
 
 pub fn relation_schema_field_names(RelationSchemaIdentity) -> Array[String]
+
+pub fn relation_schema_measurement_control_extent() -> RelationSchemaMeasurementControls
 
 pub fn relation_schema_usage(RelationSchemaIdentity) -> (Int, Int, Int)
 
@@ -2728,6 +2733,13 @@ pub(all) struct RelationSchemaIdentityLimits {
 }
 
 type RelationSchemaIdentityPreparation
+
+pub(all) struct RelationSchemaMeasurementControls {
+  collections : @decode_shape.CollectionConstructionExtent
+  max_record_references : Int
+  max_record_words : Int
+  reference_array_slots : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) struct RetainedColumnMeasurement {
   rows : Int

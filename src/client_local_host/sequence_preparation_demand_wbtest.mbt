@@ -23,13 +23,13 @@ fn sequence_demand_fixture(
       new="\"max_artifact_rows\":" + selected_rows,
     )
     .replace(
-      old="sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
-      new="sha256:4bc4705ac02241481ea468ccfa0842cd5ef16fdc0103463ed3caedfac872031a",
+      old="sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
+      new="sha256:5bb1836f262e68497d8aa17c963ae51b0f69e669114f127bf93c634211eb8258",
     )
   assert_true(environment_wire != assets.environment)
   let environment = @publication_host.admit_client_check_environment(
     environment_wire,
-    "sha256:4bc4705ac02241481ea468ccfa0842cd5ef16fdc0103463ed3caedfac872031a",
+    "sha256:5bb1836f262e68497d8aa17c963ae51b0f69e669114f127bf93c634211eb8258",
     { text_time: true, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()

@@ -196,7 +196,9 @@ async function effectFixture({twoMembers = false} = {}) {
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
   const base = JSON.parse(await readFile(join(repository,
     'spec/local-check-environment.json'), 'utf8'));
-  environment.host_policy_profile.text_time_evaluation = base.host_policy_profile.text_time_evaluation;
+  // Author this new Effect publication against the same complete Host policy
+  // as its Source before hashing/installing it; older fixture bytes stay fixed.
+  environment.host_policy_profile = structuredClone(base.host_policy_profile);
   const target = 'connector://crm/account';
   const schema = {additional_properties: false, fields: {
     Id: {nullable: false, type: 'number'},
@@ -699,6 +701,21 @@ function firstHostCloseFailureDiagnostic(error) {
   const bounded = (value, project) => Array.isArray(value) && !utilTypes.isProxy(value)
     ? Array.from({length: Math.min(value.length, 16)}, (_, index) => project(own(value, String(index))))
     : null;
+  const storeResources = error => {
+    const detail = own(error, 'cleanupDiagnostic');
+    if (own(detail, 'kind') !== 'publication-store-close') return undefined;
+    const resources = own(detail, 'resources');
+    const names = ['physicalRemovalOriginals', 'physicalRemovalAcquisitions',
+      'clockObservations', 'reservedObjects', 'preparedObjects', 'preparedSchemas',
+      'reclaimableCustodies', 'resultDeletions', 'metadataDeletions',
+      'uncommittedMetadataCleanups', 'physicalHoldingDeletions', 'resultReaders',
+      'physicalHoldingReaders', 'modelStorageBindingReaders',
+      'installationPublicationStorageBindingReaders', 'semanticReaders', 'physicalRecordWriters'];
+    return names.flatMap(name => {
+      const count = own(resources, name);
+      return Number.isSafeInteger(count) && count > 0 ? [{resource: name, count}] : [];
+    });
+  };
   let pendingOwners = null;
   try {
     const original = own(error, 'cleanupHandle'), status = own(original, 'status');
@@ -709,10 +726,12 @@ function firstHostCloseFailureDiagnostic(error) {
     code: closed(own(error, 'code'), codes),
     cleanupPending: own(error, 'cleanupPending') === true,
     storeCleanupPending: own(error, 'storeCleanupPending') === true,
-    cleanupErrors: bounded(own(error, 'cleanupErrors'), entry => ({
-      owner: closed(own(entry, 'owner'), owners),
-      code: closed(own(own(entry, 'error'), 'code'), codes),
-    })), pendingOwners};
+    cleanupErrors: bounded(own(error, 'cleanupErrors'), entry => {
+      const owner = own(entry, 'owner'), failure = own(entry, 'error');
+      const resources = owner === 'store' ? storeResources(failure) : undefined;
+      return {owner: closed(owner, owners), code: closed(own(failure, 'code'), codes),
+        ...(resources === undefined ? {} : {storeResources: resources})};
+    }), pendingOwners};
 }
 
 async function closeRetainedStoreFixtureHost(host, t,
@@ -795,6 +814,13 @@ test('Remote Host fixture retains its same close owner after refusal and joins o
   assert.deepEqual(observations[0], {phase: 'original_host_first_close_failure',
     code: 'InstalledHostCleanupPending', cleanupPending: true, storeCleanupPending: true,
     cleanupErrors: [{owner: 'store', code: 'PublicationStoreCleanupPending'}], pendingOwners: ['store']});
+  child.cleanupDiagnostic = Object.freeze({kind: 'publication-store-close',
+    resources: Object.freeze({semanticReaders: 2, reservedObjects: 0,
+      physicalRecordWriters: -1, privatePayload: 'PRIVATE'})});
+  assert.deepEqual(firstHostCloseFailureDiagnostic(original).cleanupErrors,
+    [{owner: 'store', code: 'PublicationStoreCleanupPending',
+      storeResources: [{resource: 'semanticReaders', count: 2}]}]);
+  delete child.cleanupDiagnostic;
   assert.equal(privateReads, 0);
   assert(!JSON.stringify(observations).includes('PRIVATE'));
   assert.deepEqual(firstHostCloseFailureDiagnostic({code: 'private-run-id',
@@ -1956,6 +1982,14 @@ test(`acquired Effect second Source approval restores the first ${realization} c
     const directory = await mkdtemp(join(scratch, 'second-source-approval-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const inputs = await loadTwoSourceFixtures(join(repository, 'adapters/host-node/fixtures/two-source'));
+    const base = JSON.parse(await readFile(join(repository,
+      'spec/local-check-environment.json'), 'utf8'));
+    // Author these Source publications with the same current Host policy as
+    // effectFixture before installing either role. Preserve old fixture wires.
+    for (const environment of Object.values(inputs.environments)) {
+      environment.host_policy_profile = structuredClone(base.host_policy_profile);
+      environment.evidence_bundle_cid = withoutCid(environment, 'evidence_bundle_cid');
+    }
     inputs.rows = {left: [{id: 1, amount: 10}, {id: 2, amount: 20}],
       right: [{id: 2, amount: 200}, {id: 1, amount: 100}], equal_content: []};
     const installation = await installTwoSourceFixtures({root: join(directory, 'sources'),
@@ -2441,7 +2475,7 @@ test('one installed Host reads and applies independent Effects', async t => {
   assert.deepEqual(await effect.result('answer').all(),
     [{id: 1}, {id: 2}]);
   assert.deepEqual(sends, [[0, 0], [0, 1], [1, 0], [1, 1]]);
-  await first.close();
+  await closeRetainedStoreFixtureHost(first, t, {observeFirstClose: true, requireFirstClose: true});
   const restarted = await remoteHost(t, account(), options);
   const attached = await (await restarted.as('owner-token'))
     .attach(effect.ref);

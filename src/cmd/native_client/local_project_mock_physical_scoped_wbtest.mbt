@@ -131,6 +131,8 @@ fn native_project_mock_model_backed_read(
   pure_file_source? : Bool = false,
   pure_file_plan? : Bool = false,
   pure_file_control? : Bool = false,
+  pure_file_boundary? : Bool = false,
+  pure_file_budget_refusal? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -140,7 +142,8 @@ fn native_project_mock_model_backed_read(
   let request_facility = if readme_request ||
     pure_file_source ||
     pure_file_plan ||
-    pure_file_control {
+    pure_file_control ||
+    pure_file_boundary {
     Some(native_mock_readme_request_facility())
   } else {
     None
@@ -197,14 +200,21 @@ fn native_project_mock_model_backed_read(
   }
   host.enter_domain_original_read(read).unwrap()
   let mut request_issue : String? = None
-  if (pure_file_source || pure_file_plan || pure_file_control) &&
+  if (
+      pure_file_source ||
+      pure_file_plan ||
+      pure_file_control ||
+      pure_file_boundary
+    ) &&
     request_facility is Some(facility) {
     request_issue = native_pure_file_request_in_metadata_read(
       host,
       read,
       facility,
-      prepare_plan=pure_file_plan || pure_file_control,
+      prepare_plan=pure_file_plan || pure_file_control || pure_file_boundary,
       prepared_control=pure_file_control,
+      boundary=pure_file_boundary,
+      budget_refusal=pure_file_budget_refusal,
     )
   } else if request_facility is Some(facility) {
     request_issue = native_mock_readme_request_in_metadata_read(

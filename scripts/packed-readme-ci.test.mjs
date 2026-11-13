@@ -976,7 +976,8 @@ test('independent normal consumers continue after collection and variant failure
     runCollectionConsumer: async ({report, cleanup}) => {
       report.collection.find(value => value.phase === 'capture').status = 'failed';
       cleanup.push(cleanupFailure); throw collectionFailure;
-    }, runReadmeCases, verifyNodeBenchmarkPackages});
+    }, runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true; row.status = 'passed';}),
+    runReadmeCases, verifyNodeBenchmarkPackages});
   await assert.rejects(run(output), error => {
     assert(error instanceof AggregateError); assert.equal(error.cause, collectionFailure);
     assert.deepEqual(error.errors, [collectionFailure, variantFailure, cleanupFailure]); return true;
@@ -1026,6 +1027,7 @@ test('each required Model composition is distinct from README three and cannot p
       nodeBenchmarkFailure,
       execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => prepared,
       runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true; row.status = 'passed';}),
+      runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true; row.status = 'passed';}),
       runReadmeCases: async options => {
         await runCases({...options, cases: (options.cases ?? options.report.cases).filter(value =>
           mode !== 'unexecuted' || value.variant !== selected)});
@@ -1094,13 +1096,14 @@ test('failed shared package preparation records every dependent as unexecuted an
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async options => {assert.equal(options.normalLifecycle, true); throw failure;},
     runCollectionConsumer: async () => assert.fail('No collection with failed shared input'),
+    runProjectFileJoinConsumer: async () => assert.fail('No Project JOIN with failed shared input'),
     runReadmeCases: async () => assert.fail('No README with failed shared input'),
     verifyNodeBenchmarkPackages: async () => assert.fail('No successful prepared input')});
   await assert.rejects(run(output), error => error === failure);
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
   assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved']);
   assert.equal(report.complete, false);
-  assert([...report.collection, ...report.cases, ...report.compositions, ...report.controls].every(value =>
+  assert([...report.collection, ...report.projectFiles, ...report.cases, ...report.compositions, ...report.controls].every(value =>
     value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
   assert.equal(report.failures.length, 1);
 });
@@ -1522,6 +1525,7 @@ test('required normal controls preserve original errors and cannot pass an unexe
     mkdir, join, writeFile, packedReadmeCases, packedCompositionCases, packedEffectControlCases, nodeBenchmarkFailure,
     execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => ({consumer}),
     runCollectionConsumer: async ({report}) => report.collection.forEach(row => row.completed = true),
+    runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => row.completed = true),
     runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
     runMockEffectControls: async ({records}) => records.filter(row => row.mode !== 'publication-io-failure')
       .forEach(row => {row.completed = true; row.status = 'passed';}), verifyNodeBenchmarkPackages: async () => {}});
@@ -2343,5 +2347,110 @@ test('joined Whole typed input keeps Content references bound to literal bytes a
     independentJoinedNotesReference(notes, subject, {expires_at: '2000-01-01T00:00:00.000Z'}));
   for (const value of negatives) {
     await assert.rejects(make('two-models-joined-whole').configuration.sink.capture(delivery(value)), {code: 'ERR_ASSERTION'});
+  }
+});
+
+
+test('normal Project file JOIN outcome requires both independent file values first close and original Saved scope', async () => {
+  const load = await runnerFunctions(), check = load('assertProjectFileJoinOutcome', {assert});
+  const original = {case: 'project-local-files-same-unit-join', phase: 'capture', complete: true,
+    rows: [{left_path: 'left.txt', left_bytes: 3, right_path: 'right.txt', right_bytes: 7}],
+    submits: 1, firstClose: 'returned', firstCloseCalls: 1, aliveScopedFD: {before: 0, after: 0},
+    cleanup: [], originalFilesAbsent: true, ref: {runDefinitionCid: 'original'}, resultName: 'main'};
+  check(original, 'capture'); check({...original, phase: 'saved', submits: 0}, 'saved');
+  for (const changed of [
+    {...original, rows: [{...original.rows[0], right_bytes: 3}]},
+    {...original, rows: [{...original.rows[0], left_bytes: 7}]},
+    {...original, rows: []}, {...original, firstClose: 'pending'},
+    {...original, firstCloseCalls: 2}, {...original, aliveScopedFD: {before: 0, after: 1}},
+    {...original, originalFilesAbsent: false}, {...original, complete: false},
+    {...original, cleanup: [{code: 'OriginalPending'}]}, {...original, phase: 'saved'},
+  ]) assert.throws(() => check(changed, 'capture'));
+  assert.throws(() => check({...original, phase: 'saved'}, 'saved'), 'Saved must not submit');
+});
+
+test('normal Project file JOIN driver uses one verified install and refuses failed capture or foreign Saved before accepting', async t => {
+  const load = await runnerFunctions(), check = load('assertProjectFileJoinOutcome', {assert});
+  for (const mode of ['passed', 'capture-failed', 'foreign-saved']) {
+    const {root, consumer} = await scratch(t), commands = [], cleanup = [];
+    const report = {projectFiles: ['capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted'}))};
+    const originalRef = {runDefinitionCid: 'same-original'}, first = new Error('OriginalProjectCaptureFailed');
+    const run = load('runProjectFileJoinConsumer', {assert, mkdir, writeFile, readFile, copyFile, symlink, readlink,
+      unlink, join, dirname, process, nodeBenchmarkFailure, assertProjectFileJoinOutcome: check,
+      verifyNodeBenchmarkPackages: async (_manifest, _path, installation) => assert.equal(installation, consumer)});
+    const execute = run({prepared: {consumer}, root, repository, report, cleanup,
+      async command(executable, args, options) {
+        assert.equal(executable, process.execPath); assert.equal(options.timeout, 30000);
+        assert.equal(options.cwd, join(root, 'collection/project-files'));
+        assert.equal(options.env.HOME, join(options.cwd, 'home'));
+        assert.equal(options.env.ACTQL_PACKED_CLIENT_PACKAGES, undefined);
+        const phase = args[1]; commands.push(phase);
+        if (mode === 'capture-failed' && phase === 'capture') throw first;
+        await writeFile(args[2], JSON.stringify({complete: true, ref: originalRef, resultName: 'main'}));
+        const actual = {case: 'project-local-files-same-unit-join', phase, complete: true,
+          rows: [{left_path: 'left.txt', left_bytes: 3, right_path: 'right.txt', right_bytes: 7}],
+          submits: phase === 'capture' ? 1 : 0, firstClose: 'returned', firstCloseCalls: 1,
+          aliveScopedFD: {before: 0, after: 0}, cleanup: [], originalFilesAbsent: true,
+          ref: mode === 'foreign-saved' && phase === 'saved' ? {runDefinitionCid: 'foreign'} : originalRef,
+          resultName: 'main', pid: phase === 'capture' ? 123 : 456};
+        return {pid: actual.pid, code: 0, signal: null, stdout: JSON.stringify(actual)};
+      }});
+    if (mode === 'passed') {await execute; assert(report.projectFiles.every(row => row.completed));}
+    else await assert.rejects(execute, error => mode === 'capture-failed' ? error === first : error.code === 'ERR_ASSERTION');
+    assert.deepEqual(commands, mode === 'capture-failed' ? ['capture'] : ['capture', 'saved']);
+    assert.deepEqual(cleanup, []);
+    await assert.rejects(readlink(join(root, 'collection/project-files/node_modules')), {code: 'ENOENT'});
+    if (mode === 'capture-failed') assert.equal(report.projectFiles[1].status, 'unexecuted');
+    if (mode === 'foreign-saved') assert.equal(report.projectFiles[1].status, 'failed');
+  }
+});
+
+test('normal Project file JOIN fixture stays on public SDK and actual project declarations without a custom Source profile', async () => {
+  const source = await readFile(new URL('./fixtures/packed-project-file-join.mjs', import.meta.url), 'utf8');
+  const ast = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const imports = ast.body.filter(node => node.type === 'ImportDeclaration').map(node => node.source.value);
+  assert(imports.includes('@actql/node')); assert(!imports.some(name => name.includes('_build') || name.includes('host-node')));
+  assert.match(source, /LIST_FILES\(left_source\)/u); assert.match(source, /JOIN LIST_FILES\(right_source\)/u);
+  assert.match(source, /left_source: \{connector: 'local', root: '\.\/left-data'/u);
+  assert.match(source, /right_source: \{connector: 'local', root: '\.\/right-data'/u);
+  const pending = [ast], calls = [];
+  while (pending.length) {
+    const node = pending.pop();
+    if (node.type === 'Property' && ['sourceProfile', 'runtime', 'sourceProfilePaths'].includes(node.key?.name)) {
+      assert.fail('No custom runtime/Source route in ordinary Project fixture');
+    }
+    if (node.type === 'CallExpression' && node.callee?.type === 'MemberExpression' && node.callee.object.name === 'client') {
+      calls.push(node.callee.property.name);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) pending.push(...value.filter(child => child?.type));
+      else if (value?.type) pending.push(value);
+    }
+  }
+  assert.equal(calls.filter(name => name === 'startSource').length, 1);
+  assert.equal(calls.filter(name => name === 'attach').length, 1);
+  assert.equal(calls.filter(name => name === 'close').length, 1);
+});
+
+test('normal Project file JOIN cannot pass with an unexecuted capture or Saved', async t => {
+  const load = await runnerFunctions();
+  for (const missing of ['capture', 'saved']) {
+    const {root, consumer} = await scratch(t), output = join(root, 'out');
+    const before = {clean: true, revision: 'a'.repeat(40)};
+    const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+      process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/normal-original'}, version: 'explicit-test'},
+      fileURLToPath: () => repository, URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40),
+      mkdir, join, writeFile, packedReadmeCases, packedCompositionCases, packedEffectControlCases, nodeBenchmarkFailure,
+      execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => ({consumer}),
+      runCollectionConsumer: async ({report}) => report.collection.forEach(row => row.completed = true),
+      runProjectFileJoinConsumer: async ({report}) => report.projectFiles.filter(row => row.phase !== missing)
+        .forEach(row => {row.completed = true; row.status = 'passed';}),
+      runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
+      runMockEffectControls: async ({records}) => records.forEach(row => row.completed = true),
+      verifyNodeBenchmarkPackages: async () => {}});
+    await assert.rejects(run(output), {code: 'ERR_ASSERTION'});
+    const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
+    assert.equal(report.complete, false);
+    assert.equal(report.projectFiles.find(row => row.phase === missing).status, 'unexecuted');
   }
 });

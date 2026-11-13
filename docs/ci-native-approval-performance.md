@@ -3,8 +3,8 @@
 The `nativeApprovalTarget` profile in `scripts/operation-performance.mjs` applies
 only to the existing small `deal-review-mock` and `churn-risk-mock` workflows.
 Each template needs 30 completed, independently verified approvals on one fixed
-runner and one immutable Native cohort. The target is approval p95 <= 5000 ms
-and maximum <= 10000 ms, with zero functional failures or timeouts. This does
+runner and one immutable Native cohort. The target is approval p95 <= 4000 ms
+and maximum <= 5000 ms, with zero functional failures or timeouts. This does
 not change the portable SQL profiles or turn a command timeout into acceptance.
 
 The timer begins immediately before the public `approve --wait --json` process

@@ -1486,6 +1486,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     retry = undefined;
     await sweeping;
     await host?.models?.drain?.();
+    await host?.effects?.drain?.();
   }
 
   // One drain: every resumable preparation, page by page (a busy page never

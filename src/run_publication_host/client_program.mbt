@@ -2456,3 +2456,12 @@ fn client_program_acquisition_prefix(program : @checked.CheckedProgram) -> Int {
     prefix
   }
 }
+
+///|
+/// Borrow the selected artifact policy from this preparation's SAME checked
+/// owner, including copied Values views. Never substitute a standard profile.
+pub fn prepared_client_artifact_limits(
+  value : PreparedClientProgram,
+) -> (Int, Int, Int) {
+  @checked.checked_program_artifact_limits(@strategy.graph_program(value.graph))
+}

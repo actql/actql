@@ -84,6 +84,18 @@ function coreBudget(fixture, value) {
 
 const nativeMatrixBudget = "${{ matrix.target == 'native' && 75 || 30 }}";
 
+test('local Core uses original unpartitioned commands and budget after hosted matrix separation', t => {
+  const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
+  const workflow = JSON.parse(readFileSync(path, 'utf8'));
+  workflow.jobs['core-common'] = workflow.jobs.core;
+  workflow.jobs.core = {steps: [{run: 'exit 91'}], 'timeout-minutes': 5};
+  writeFileSync(path, JSON.stringify(workflow));
+  const result = f.run(['run', 'core', '--allow-heavy']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /budget: 1200s/u);
+  assert.equal(readFileSync(join(f.root, 'calls'), 'utf8'), 'from workflow\n');
+});
+
 test('local Core adapter runs complete unpartitioned coverage for the hosted Native partition expression', t => {
   const f = fixture(t), path = join(f.root, '.github/workflows/ci.yml');
   const workflow = JSON.parse(readFileSync(path, 'utf8'));

@@ -140,7 +140,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
           .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
         (None, Some(selected))
       } else {
-        let requirements = @local_values.prepare_source_free_local_requirements(
+        let requirements = @local_values.prepare_source_free_runtime_requirements(
           prepared,
           runtime.installed_contracts,
           assets.values,
@@ -272,7 +272,6 @@ fn LocalCommandPreparationOriginal::select_business_file_source(
   if @run_host.prepared_client_acquisition_count(prepared) != 1 ||
     @strategy.graph_captured_prefix(graph) != 1 ||
     @strategy.graph_result_count(graph) != 1 ||
-    @strategy.graph_task_count(graph) > 32 ||
     @strategy.graph_program_has_effects(graph) ||
     @run_host.prepared_client_uses_graph_carrier(prepared) {
     return None

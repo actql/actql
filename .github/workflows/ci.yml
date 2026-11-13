@@ -262,7 +262,7 @@ jobs:
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-moon-test-plan.test.mjs
       - name: Test ordinary operation performance policy oracles
-        run: node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs
+        run: node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs scripts/node-wait-cpu-diagnostic.test.mjs
       - name: Test ordinary operation performance assessment
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs
@@ -291,6 +291,8 @@ jobs:
       - name: Test bounded compiler crash metadata privacy controls
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_native_compiler_diagnostics.py
+      - name: Test Native preparation originals and bounded compiler orchestration
+        run: node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs
       - name: Test CI lane coverage and bounded Native phase measurement
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-balanced-lanes.test.mjs scripts/ci-session-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
@@ -345,9 +347,11 @@ jobs:
           path: _build/focused-evidence
           if-no-files-found: warn
           retention-days: 7
-  # Portable targets remain single jobs. Native keeps complete package drivers
-  # in four ordinary jobs and three independent physical profiles.
-  core:
+  # Linux keeps both portable targets and eight complete Native common drivers.
+  # Darwin retains its four ordinary and three physical profiles under a separate
+  # four-job cap, leaving another macOS slot for the original long workloads.
+  # Both matrices use the same step owner; Core requires their selected outcomes.
+  core-common:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
@@ -355,38 +359,47 @@ jobs:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
-        partition: ['1/4', '2/4', '3/4', '4/4', http, source, scoped]
+        partition: ['1/4', 'linux-common-1/8', 'linux-common-2/8', 'linux-common-3/8', 'linux-common-4/8', 'linux-common-5/8', 'linux-common-6/8', 'linux-common-7/8', 'linux-common-8/8']
         exclude:
           - target: js
-            partition: '2/4'
+            partition: linux-common-1/8
           - target: js
-            partition: '3/4'
+            partition: linux-common-2/8
           - target: js
-            partition: '4/4'
+            partition: linux-common-3/8
           - target: js
-            partition: http
+            partition: linux-common-4/8
           - target: js
-            partition: source
+            partition: linux-common-5/8
           - target: js
-            partition: scoped
+            partition: linux-common-6/8
+          - target: js
+            partition: linux-common-7/8
+          - target: js
+            partition: linux-common-8/8
           - target: wasm
-            partition: '2/4'
+            partition: linux-common-1/8
           - target: wasm
-            partition: '3/4'
+            partition: linux-common-2/8
           - target: wasm
-            partition: '4/4'
+            partition: linux-common-3/8
           - target: wasm
-            partition: http
+            partition: linux-common-4/8
           - target: wasm
-            partition: source
+            partition: linux-common-5/8
           - target: wasm
-            partition: scoped
-    # Physical Native fixtures use the existing Darwin arm64 profile.
-    runs-on: ${{ matrix.target == 'native' && 'macos-15' || 'ubuntu-24.04' }}
+            partition: linux-common-6/8
+          - target: wasm
+            partition: linux-common-7/8
+          - target: wasm
+            partition: linux-common-8/8
+          - target: native
+            partition: '1/4'
+    runs-on: ubuntu-24.04
     # Native keeps its full 60-minute child after the separate cold checkpoint
     # producers, with time for original failure diagnostics and cleanup.
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
-    steps:
+    steps: &core_steps
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
@@ -396,8 +409,70 @@ jobs:
       - name: Require the supported Core Native platform
         if: ${{ matrix.target == 'native' }}
         run: |
-          test "$(uname -s)" = Darwin
-          test "$(uname -m)" = arm64
+          if [[ "${{ matrix.partition }}" == linux-common-* ]]; then
+            test "$(uname -s)" = Linux
+            test "$(uname -m)" = x86_64
+          else
+            test "$(uname -s)" = Darwin
+            test "$(uname -m)" = arm64
+          fi
+      - name: Test pinned Native C compiler orchestration
+        if: ${{ matrix.target == 'native' && matrix.partition == '1/4' }}
+        run: node --test scripts/native-core-c-compiler.test.mjs
+      - name: Prepare pinned Native C object caching
+        id: native-c-object-cache
+        if: ${{ matrix.target == 'native' && contains(fromJSON('["1/4","2/4","3/4","4/4","scoped"]'), matrix.partition) }}
+        env:
+          CACHE_PARTITION: ${{ matrix.partition }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {execFileSync} from 'node:child_process';
+          import {appendFileSync, chmodSync, lstatSync, mkdirSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          import {nativeCoreCCachePin as pin} from './scripts/native-core-c-compiler.mjs';
+          const tool = join(process.env.RUNNER_TEMP, 'actql-core-ordinary-c-cache-tool');
+          const cache = join(process.env.RUNNER_TEMP, 'actql-core-ordinary-c-cache');
+          mkdirSync(tool, {mode: 0o700});
+          mkdirSync(cache, {mode: 0o700});
+          const archive = join(tool, 'original.tar.gz');
+          execFileSync('/usr/bin/curl', ['--fail', '--location', '--silent', '--show-error',
+            '--connect-timeout', '20', '--max-time', '60', pin.url, '--output', archive],
+            {stdio: 'inherit', timeout: 65000});
+          const hash = value => createHash('sha256').update(value).digest('hex');
+          assert.equal(hash(readFileSync(archive)), pin.archiveSha256);
+          execFileSync('/usr/bin/tar', ['-xzf', archive, '-C', tool, '--strip-components=1',
+            `ccache-${pin.version}-darwin/ccache`], {stdio: 'inherit', timeout: 10000});
+          const binary = join(tool, 'ccache'), stat = lstatSync(binary);
+          assert(stat.isFile() && !stat.isSymbolicLink());
+          assert.equal(hash(readFileSync(binary)), pin.binarySha256);
+          chmodSync(binary, 0o700);
+          execFileSync(binary, ['--version'], {stdio: 'inherit', timeout: 5000});
+          const image = process.env.ImageVersion ?? 'unreported-image';
+          assert(/^[A-Za-z0-9_.-]+$/u.test(image));
+          assert(/^(?:[1-4]\/4|scoped)$/u.test(process.env.CACHE_PARTITION));
+          const profile = hash(Buffer.concat([readFileSync('toolchain.json'),
+            readFileSync('scripts/native-core-c-compiler.mjs'),
+            readFileSync('scripts/native-core-scoped-profile.mjs')]));
+          const prefix = `ordinary-c-v1-${process.platform}-${process.arch}-${image}-${profile}-${process.env.CACHE_PARTITION}-`;
+          appendFileSync(process.env.GITHUB_OUTPUT, `key-prefix=${prefix}\n`);
+          appendFileSync(process.env.GITHUB_ENV,
+            `ACTQL_TEST_NATIVE_CORE_CCACHE=${binary}\nACTQL_TEST_NATIVE_CORE_CCACHE_DIR=${cache}\n`);
+          if (process.env.CACHE_PARTITION === 'scoped') appendFileSync(process.env.GITHUB_ENV,
+            `ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT=${join(process.cwd(), '_build/native-core-scoped/compiler-software')}\n`);
+          NODE
+      - name: Restore ordinary Native C objects
+        id: native-c-object-cache-restore
+        if: ${{ steps.native-c-object-cache.outcome == 'success' }}
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ${{ runner.temp }}/actql-core-ordinary-c-cache
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/tmp
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/compiler.log
+          key: ${{ steps.native-c-object-cache.outputs.key-prefix }}${{ github.sha }}
+          restore-keys: ${{ steps.native-c-object-cache.outputs.key-prefix }}
       - name: Install existing scoped component producer dependencies
         if: ${{ matrix.target == 'native' && matrix.partition == 'scoped' }}
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
@@ -415,7 +490,7 @@ jobs:
           python3 -B scripts/native-compiler-diagnostics.py --start
           --context .artifacts/native-compiler-diagnostics/context.json
       - name: Test actual Native Reader callbacks and original empty compiler driver
-        if: ${{ matrix.target == 'native' }}
+        if: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') }}
         run: >-
           node scripts/local-checks.mjs test node --timeout-seconds 300 --
           --test-name-pattern '^Reader custody callbacks preserve'
@@ -431,7 +506,8 @@ jobs:
               (matrix.target != 'native' && success()) }}
         env:
           ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
-          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && matrix.partition || '' }}
+          ACTQL_TEST_NATIVE_CORE_PARTITION: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}
+          ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: ${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'darwin-differences' || '' }}
           ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS: ${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}
           CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
         run: |
@@ -446,6 +522,10 @@ jobs:
             # compiler stack. This does not change product resource budgets.
             if [ "$(uname -s)" = Linux ]; then
               ulimit -S -s 65536
+            fi
+            if [[ "${{ matrix.partition }}" == linux-common-* ]]; then
+              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core-linux-common.mjs "${{ matrix.partition }}"
+              exit $?
             fi
             # Reopen remains within a run; the full run below starts fresh.
             ACTQL_TEST_NATIVE_CORE_PARTITION= node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
@@ -472,6 +552,32 @@ jobs:
               node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json non_sdk_source_restore_wbtest.mbt
             fi
           fi
+      - name: Report ordinary Native C cache results
+        if: ${{ !cancelled() && steps.native-c-object-cache.outcome == 'success' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import {existsSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
+          const text = existsSync(log) ? readFileSync(log, 'utf8') : '';
+          const results = {};
+          for (const match of text.matchAll(/ Result: (\w+)/gu))
+            results[match[1]] = (results[match[1]] ?? 0) + 1;
+          // Each key is separate: auxiliary storage results are not compilations.
+          console.log('Current-job compiler cache result keys:', JSON.stringify(results));
+          const links = [...text.matchAll(/^ACTQL_NATIVE_C_LINK (.+)$/gmu)].map(match => JSON.parse(match[1]));
+          console.log('Current-job fresh links:', JSON.stringify({attempts: links.length,
+            succeeded: links.filter(value => value.status === 0 && !value.signal && !value.error).length}));
+          NODE
+      - name: Save ordinary Native C objects
+        if: ${{ success() && steps.native-c-object-cache.outcome == 'success' && steps.native-c-object-cache-restore.outcome == 'success' && steps.native-c-object-cache-restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ${{ runner.temp }}/actql-core-ordinary-c-cache
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/tmp
+            !${{ runner.temp }}/actql-core-ordinary-c-cache/compiler.log
+          key: ${{ steps.native-c-object-cache-restore.outputs.cache-primary-key }}
       - name: Collect only current original Native compiler crash cause metadata
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         timeout-minutes: 1
@@ -483,12 +589,47 @@ jobs:
         if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: native-compiler-cause-${{ strategy.job-index }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: native-compiler-cause-${{ github.job }}-${{ strategy.job-index }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/native-compiler-diagnostics/
             _build/native-reader-helper-tests/callbacks-*/callback-*.json
           if-no-files-found: warn
           retention-days: 14
+  core-darwin:
+    needs: [select-targets, preflight]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'native') }}
+    name: core (${{ matrix.target }}${{ matrix.target == 'native' && format(' {0}', matrix.partition) || '' }})
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        target: [native]
+        partition: ['1/4', '2/4', '3/4', '4/4', http, source, scoped]
+    runs-on: macos-15
+    timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
+    steps: *core_steps
+  core:
+    needs: [select-targets, preflight, core-common, core-darwin]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every selected original Core matrix
+        env:
+          CORE_TARGETS: ${{ needs.select-targets.outputs.targets }}
+          COMMON_RESULT: ${{ needs.core-common.result }}
+          DARWIN_RESULT: ${{ needs.core-darwin.result }}
+        run: |
+          node -e '
+            const targets = JSON.parse(process.env.CORE_TARGETS || "null");
+            const valid = Array.isArray(targets) && targets.length > 0 &&
+              new Set(targets).size === targets.length && targets.every(target => ["js", "wasm", "native"].includes(target));
+            if (!valid || process.env.COMMON_RESULT !== "success" ||
+                process.env.DARWIN_RESULT !== (targets.includes("native") ? "success" : "skipped")) {
+              console.error(`Core common=${process.env.COMMON_RESULT || "missing"}, Darwin=${process.env.DARWIN_RESULT || "missing"}`);
+              process.exitCode = 1;
+            }
+          '
   # Conditional proof and correspondence evidence beside the existing gates.
   session-controls:
     needs: [select-targets, preflight]
@@ -1035,6 +1176,12 @@ jobs:
       - name: Test original Local result authorization
         if: ${{ !cancelled() && steps.run-host-preparation.outcome == 'success' }}
         run: node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs
+      - name: Test original Local Source inventory and lookup policy
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/host-node/ordinary-source-inventory.test.mjs adapters/host-node/local-files-lookup-policy.test.mjs
+      - name: Test original Model registration and material inventories
+        if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
+        run: node --test adapters/host-node/installed-model-registration-snapshot.test.mjs adapters/host-node/request-model-material-resources.test.mjs
       - name: Build runtime packages without prebuilt bundles
         id: cold-runtime-preparation
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
@@ -1293,7 +1440,7 @@ jobs:
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/client-keyed-lookup-journal.test.mjs adapters/store-local/lookup-raw-evidence.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs
+        run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/local-analytic-preparation.test.mjs adapters/host-node/local-analytic-public.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/client-keyed-lookup-journal.test.mjs adapters/store-local/lookup-raw-evidence.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/local-node/managed-output-custody.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs
   client-distribution-callers:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]
@@ -2027,6 +2174,14 @@ jobs:
             "$RUNNER_TEMP/native-cli-linux-local/release" \
             "$RUNNER_TEMP/native-cli-linux-local/cohort.json" \
             "$RUNNER_TEMP/native-cli-linux-local/production/artifact"
+      - name: Require actual bounded Crypto allocator conformance
+        if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          python3 scripts/test-native-crypto-allocator.py \
+            --source "$(git rev-parse HEAD)" --clang "$(realpath /usr/bin/clang-19)" \
+            --crypto-producer "$RUNNER_TEMP/native-cli-linux-local/production/crypto/producer.json" \
+            --output "$RUNNER_TEMP/native-cli-linux-local/crypto-allocator" --seconds 150
       - name: Require actual fresh installed source-free Local execution
         if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
         run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
@@ -2043,6 +2198,7 @@ jobs:
           path: |
             ${{ runner.temp }}/native-cli-linux-local/production/sqlite/process-producer.json
             ${{ runner.temp }}/native-cli-linux-local/production/crypto/producer.json
+            ${{ runner.temp }}/native-cli-linux-local/crypto-allocator/summary.json
             ${{ runner.temp }}/native-cli-linux-local/production/recipe/
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/artifact.json
             ${{ runner.temp }}/native-cli-linux-local/production/artifact/native-producer/build.json
@@ -2391,7 +2547,7 @@ jobs:
   # Ready PRs keep macOS for target/runtime-sensitive or unknown
   # inputs. The selector records why a portable PR omits this job.
   native-http-macos:
-    needs: [select-targets, preflight, native-macos-workloads]
+    needs: [select-targets, preflight, native-macos-workloads, native-http, core]
     if: >-
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
@@ -2402,10 +2558,15 @@ jobs:
         env:
           WORKLOAD_RESULT: ${{ needs.native-macos-workloads.result }}
           HTTP_RESULT: ${{ needs.native-macos-workloads.outputs.native-http-result }}
+          LINUX_HTTP_RESULT: ${{ needs.native-http.result }}
+          DARWIN_CORE_RESULT: ${{ needs.core.result }}
+          CORE_TARGETS: ${{ needs.select-targets.outputs.targets }}
         run: |
           node -e '
-            if (process.env.WORKLOAD_RESULT !== "success" || process.env.HTTP_RESULT !== "success") {
-              console.error(`macOS Native workload=${process.env.WORKLOAD_RESULT || "missing"}, HTTP=${process.env.HTTP_RESULT || "missing"}`);
+            const targets = JSON.parse(process.env.CORE_TARGETS || "null");
+            if (!Array.isArray(targets) || !targets.includes("native") ||
+                ["WORKLOAD_RESULT", "HTTP_RESULT", "LINUX_HTTP_RESULT", "DARWIN_CORE_RESULT"].some(key => process.env[key] !== "success")) {
+              console.error(`macOS Native workload=${process.env.WORKLOAD_RESULT || "missing"}, HTTP=${process.env.HTTP_RESULT || "missing"}, Linux HTTP=${process.env.LINUX_HTTP_RESULT || "missing"}, Darwin Core=${process.env.DARWIN_CORE_RESULT || "missing"}`);
               process.exitCode = 1;
             }
           '
@@ -2460,7 +2621,7 @@ jobs:
       - name: Prepare exact-source scoped Native commands and components once
         id: native-preparation
         timeout-minutes: 70
-        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2 --resident-seconds 1200
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --http-jobs 2 --resident-seconds 1200 --lanes 2
       - name: Start independent Native groups under the same preparation
         id: native-background-start
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}

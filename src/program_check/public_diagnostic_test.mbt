@@ -9,7 +9,7 @@ fn public_rejected(
 }
 
 ///|
-test "unresolved operation diagnostics use the retained requirement source" {
+test "missing analytic policy is a typed configuration refusal" {
   let (text, _, environment, _, limits) = public_input_fixture()
   let source = text.replace(
     old="{\"take\":1,\"as\":\"selected\"}",
@@ -25,27 +25,21 @@ test "unresolved operation diagnostics use the retained requirement source" {
       source_path="analytic.actql",
     ),
   )
-  assert_eq(@program_check.diagnostic_origin(diagnostic), Some(ProgramDocument))
-  let location = @program_check.diagnostic_location(diagnostic).unwrap()
   assert_eq(
-    @program_check.diagnostic_location_path(location),
-    Some([
-      @source.Key("stages"),
-      @source.Index(1),
-      @source.Key("steps"),
-      @source.Index(0),
-      @source.Key("analytic"),
-    ]),
+    @program_check.diagnostic_origin(diagnostic),
+    Some(CheckEnvironment),
   )
   assert_eq(
-    @program_check.diagnostic_location_source_path(location),
-    "analytic.actql",
+    @program_check.diagnostic_category(diagnostic),
+    InvalidConfiguration,
   )
-  // This remains a static rejection. A diagnostic reader does not turn a
-  // missing selected operation envelope into an external fulfillment flag.
   assert_true(
     @program_check.diagnostic_cause(diagnostic)
-    is Closure(UnresolvedOperation(_)),
+    is Closure(
+      Operations(
+        Index(MissingAnalyticCeiling(_, "max_analytic_input_wire_bytes"))
+      )
+    ),
   )
 }
 

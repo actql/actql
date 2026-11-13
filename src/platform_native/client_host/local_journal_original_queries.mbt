@@ -93,6 +93,10 @@ fn NativeLocalJournalReadQueries::access(
   {
     database: self.database,
     before_submitted_decode: Some(stage => self.prepare_submitted_decode(stage)),
+    before_run_decode: Some(stage => self.prepare_run_decode(stage)),
+    before_metadata_construction: Some((r, e, raw) => {
+      self.prepare_metadata_construction(r, e, raw)
+    }),
     read_evidence_schema: () => {
       self
       .query(() => self.database.client_read_evidence_schema())
@@ -116,7 +120,7 @@ fn NativeLocalJournalReadQueries::access(
       self.query(() => self.database.fence_transactions()) |> ignore
     },
     read: (table_name, key) => {
-      if table_name == "client_submitted_intents" {
+      if table_name == "client_submitted_intents" || table_name == "client_runs" {
         let header = match
           self.query(() => self.database.observe_body_extent(table_name, key)) {
           Ok(Ok(value)) => value
@@ -137,6 +141,25 @@ fn NativeLocalJournalReadQueries::access(
       }
     },
     scan: (table_name, cursor) => {
+      if table_name == "client_submitted_intents" || table_name == "client_runs" {
+        let (key, header) = match
+          self.query(() => {
+            self.database.observe_scan_body_extent(table_name, cursor)
+          }) {
+          Ok(Ok(value)) => value
+          Ok(Err(issue)) | Err(issue) => return Err(issue)
+        }
+        if self.prepare_submitted_copy(header.body_bytes) is Err(_) {
+          return Err(@sqlite.Busy)
+        }
+        return self
+          .query(() => {
+            self.database.scan_exact_body_extent(
+              table_name, cursor, key, header,
+            )
+          })
+          .unwrap_or(Err(@sqlite.Busy))
+      }
       match self.query(() => self.database.scan_after(table_name, cursor)) {
         Ok(value) => value
         Err(issue) => Err(issue)
@@ -339,7 +362,7 @@ fn NativeLocalJournalReadQueries::operation_access(
       (self.invalidate_snapshot)(Some(table))
       match
         self.query(() => {
-          if table == "client_submitted_intents" {
+          if table == "client_submitted_intents" || table == "client_runs" {
             self.database.insert_with_body_extent(
               table,
               key,
@@ -366,7 +389,7 @@ fn NativeLocalJournalReadQueries::operation_access(
       (self.invalidate_snapshot)(Some(table))
       match
         self.query(() => {
-          if table == "client_submitted_intents" {
+          if table == "client_submitted_intents" || table == "client_runs" {
             self.database.compare_exchange_with_body_extent(
               table,
               key,

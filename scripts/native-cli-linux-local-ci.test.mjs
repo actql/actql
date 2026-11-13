@@ -77,6 +77,30 @@ test('prepared Local consumers remain independently required after sibling failu
   assert.equal(mock.env.TMPDIR, '${{ runner.temp }}/native-cli-linux-local/mock-consumers');
 });
 
+test('required Native producer also executes all real allocator cases with original prepared inputs', () => {
+  const selected = job.steps.find(step => step.name === 'Require actual bounded Crypto allocator conformance');
+  assert(selected);
+  assert.equal(selected['timeout-minutes'], 3);
+  assert.equal(selected['continue-on-error'], undefined);
+  assert.match(selected.if, /!cancelled\(\) && steps\.local_cohort\.outcome == 'success'/u);
+  assert(selected.run.includes('python3 scripts/test-native-crypto-allocator.py'));
+  assert(selected.run.includes('--source "$(git rev-parse HEAD)"'));
+  assert(selected.run.includes('--clang "$(realpath /usr/bin/clang-19)"'));
+  assert(selected.run.includes('/production/crypto/producer.json"'));
+  assert(!selected.run.includes('--openssl-prefix'), 'Hosted execution uses the original producer, never a host fallback');
+  const cohort = job.steps.findIndex(step => step.id === 'local_cohort');
+  assert(job.steps.indexOf(selected) > cohort);
+  const retained = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+  assert(retained.with.path.includes('/crypto-allocator/summary.json'));
+  assert(!retained.with.path.includes('/crypto-allocator/**'), 'Retain safe numeric reports, not whole test backing');
+  const runner = readFileSync(new URL('./test-native-crypto-allocator.py', import.meta.url), 'utf8');
+  assert(runner.includes("MODES = ('bounded-search', 'split-merge-membership', 'partial')"));
+  for (const text of ['P.linux_member_inputs(prefix, selected)', "producer['source'] != source",
+    "producer['inputs'].get(name) != expected", 'P.verify_original_inputs(inputs)',
+    "selected[0].get('original_cleanup') is True", "len(report['cases']) == 3"])
+    assert(runner.includes(text), text);
+});
+
 test('CI downloads original hash-bounded archives and retains exact production and failure receipts', () => {
   const download = job.steps.find(step => step.name === 'Retain exact official component archives').run;
   for (const text of ['sqlite-component/source.json', 'crypto-component/source.json',

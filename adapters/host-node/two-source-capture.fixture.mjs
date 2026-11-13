@@ -9,7 +9,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {loadInstalledSource} from './installed-source.mjs';
 import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
@@ -51,6 +51,14 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
   assert.equal(typeof fundedPublication, 'boolean');
   const root = await mkdtemp(join(tmpdir(), 'actql-two-capture-boundary-'));
   const baseEnvironmentWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  const hostPolicy = JSON.parse(baseEnvironmentWire).host_policy_profile;
+  // Author all three new publications against this same complete Host policy
+  // before admission. The retained input fixture documents remain unchanged.
+  const environmentPublication = wire => {
+    const {evidence_bundle_cid: ignored, ...body} = JSON.parse(wire); void ignored;
+    body.host_policy_profile = structuredClone(hostPolicy);
+    return canonicalJson({...body, evidence_bundle_cid: contentCid(body)});
+  };
   const loaderParent = createInstalledLoaderParent({root, principalId: 'owner', moon});
   const adapters = [];
   const opened = new Set();
@@ -84,11 +92,11 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
   const databaseRows = JSON.parse(await read('database-rows.json'));
   const rows = [databaseRows.left, equalContent
     ? databaseRows.equal_content : databaseRows.right];
-  const environmentWire = canonicalJson(JSON.parse(await read('two-source.environment.json')));
+  const environmentWire = environmentPublication(await read('two-source.environment.json'));
   const environment = moon.clientProgramCheckEnvironment(environmentWire,
     JSON.parse(environmentWire).evidence_bundle_cid,
     false, false, true, false, false, false, false);
-  assert.ok(environment, 'independently pinned Check Environment is admitted');
+  assert.ok(environment, 'fresh policy-aligned Check Environment is admitted');
   const document = await read('two-source-join.program.json');
   const prepare = () => {
     const result = moon.clientProgramPrepareEffectFreeWithParameters(
@@ -142,7 +150,7 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
       acquisitionPlanning: {policy: 'priority', priority},
     version: 'actql-installed-duckdb-source/0.1', database,
       schema: 'main', table: 'records', sourceRef, accountConfigurationWire,
-      checkEnvironmentWire: canonicalJson(JSON.parse(await read(`${side}.environment.json`))),
+      checkEnvironmentWire: environmentPublication(await read(`${side}.environment.json`)),
     }));
     adapters.push(await loaderParent.load(loadInstalledSource, profilePath, {root,
       principalId: 'owner', moon, runtimeUrl, baseEnvironmentWire}));

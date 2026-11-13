@@ -22,7 +22,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
     assets.environment,
-    "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+    "sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
     { text_time: true, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
@@ -55,7 +55,7 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
       Some(
         @frontend.bind_query_context(
           [],
-          "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+          "sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
         ).unwrap(),
       ),
       public_primary=true,
@@ -286,7 +286,7 @@ test "scalar wire capacity byte proof bounds empty rows and checked arithmetic" 
 ///|
 test "capacity plan derives task inventory from charged graph work beyond thirty two" {
   let assets = @publication_host.client_local_product_assets()
-  let evidence = "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f"
+  let evidence = "sha256:42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0"
   let environment = @publication_host.admit_client_check_environment(
     assets.environment,
     evidence,

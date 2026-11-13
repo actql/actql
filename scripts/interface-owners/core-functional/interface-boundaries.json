@@ -22453,7 +22453,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "435466141a01264b25fc1b6252740677927af4237abcb0c4b310aecf8e812f30",
+      "sha256": "16f62dabe25ef617bc016bbd7f63a7a2f2cb387c8aeab541ff40f00f1bf09bb5",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -53816,7 +53816,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "d929256179a54bcd1da272a5f301e6ffecbb4e95b652c02ef1bfe631434c8879",
+      "sha256": "4db255509e3dddf0ef4bb5314cfcea3ad5225fb1496f855e9fd2440b97884e2c",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",

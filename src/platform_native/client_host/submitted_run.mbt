@@ -164,7 +164,15 @@ fn NativeClientRunJournal::accept_submitted_run_with_operations(
     Err(issue) => return Err(issue)
   }
   let plan = match
-    capture_native_run_plan_original(prepared, compiled, definition) {
+    capture_native_run_plan_original(
+      prepared,
+      compiled,
+      definition,
+      before_construction=run_metadata_construction(
+        self.database,
+        operations.map(value => value.reads),
+      ),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -318,24 +326,41 @@ fn NativeClientRunJournal::accept_original_submitted_run(
   }
   let stored_observation = match run_observation_originals {
     None => None
-    Some(value) =>
-      match
-        native_run_observation_originals_wire(
-          value,
-          plan=run_plan_original.map(ticket => ticket.original),
-        ) {
-        Ok(wire) =>
-          match
-            read_native_stored_run_observation(
-              wire,
-              definition,
-              Some(@host.client_request_program_cid(request)),
+    Some(value) => {
+      let original = match run_plan_original {
+        Some(captured) =>
+          captured_native_run_stored_observation(
+            captured,
+            value,
+            definition,
+            @host.client_request_program_cid(request),
+            before_construction=run_metadata_construction(self.database, reads),
+          )
+        None => {
+          let wire = match
+            native_run_observation_originals_wire(
+              value,
+              before_construction=run_metadata_construction(
+                self.database,
+                reads,
+              ),
             ) {
-            Ok(original) => Some(original)
-            Err(_) => return Err(ForeignRun)
+            Ok(wire) => wire
+            Err(issue) => return Err(issue)
           }
+          read_native_stored_run_observation(
+            wire,
+            definition,
+            Some(@host.client_request_program_cid(request)),
+            before_construction=run_metadata_construction(self.database, reads),
+          ).map_err(_ => ForeignRun)
+        }
+      }
+      match original {
+        Ok(original) => Some(original)
         Err(issue) => return Err(issue)
       }
+    }
   }
   let observation_wire = stored_observation.map(original => original.wire)
   let local_run_policy_originals = match local_run_policy_original {

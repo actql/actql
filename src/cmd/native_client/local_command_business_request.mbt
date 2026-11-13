@@ -472,6 +472,10 @@ fn[I] prepare_local_native_whole_file_request_module(
     assets.ordered,
     retained_output=false,
     provider_factory=native_request_provider_factory,
+    // The SAME Request already backs Plan construction. Its original finite
+    // Ledger admits actual provider/import/output work before allocation;
+    // the legacy whole-Run maximum remains an estimate, not startup admission.
+    runtime_admission=true,
   ).unwrap_or_else(() => stop("LocalSourcePlanUnavailable"))
   let limits = @local_values.request_program_compilation_limits(parent, input).unwrap_or_else(() => {
       stop("LocalCompilerLimitsUnavailable")

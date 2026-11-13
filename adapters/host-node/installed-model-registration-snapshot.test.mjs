@@ -153,6 +153,22 @@ test('installed table checks the same Host before and after its registration cal
   assert.deepEqual(events,['host','register','host','host']);
 });
 
+test('original Host registration retains every Provider beyond128 without invoking transport',()=>{
+  const {entry,moon,calls}=fixture();let checks=0,registrations=0;
+  const entries=Array.from({length:129},(_,index)=>({...entry,providerId:`models/fixture-${index}`}));
+  const installed=installModelProviders(moon,()=>{registrations++;return entries;},()=>checks++);
+  assert.equal(registrations,1);assert.equal(installed.size,129);
+  assert.deepEqual(calls,entries.map(value=>['sync',value.providerId]));
+  for(const original of entries){
+    const retained=installed.get(original.providerId);
+    assert.ok(retained);retained.assertTrustedRuntime();
+  }
+  assert.equal(checks,131,'Existing Host checks remain before/after registration and each original use');
+  const original=installed.get(entries.at(-1).providerId);
+  installed.set(entries.at(-1).providerId,{...original});
+  assert.throws(()=>original.assertTrustedRuntime(),{code:'InferTrustedRuntimeOriginalChanged'});
+});
+
 test('a registration callback cannot make a closing Host current',()=>{
   const {entry,moon,calls}=fixture();let closing=false;
   const stopped=Object.assign(new Error('ClientHostClosing'),{code:'ClientHostClosing'});

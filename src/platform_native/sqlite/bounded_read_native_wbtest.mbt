@@ -138,3 +138,103 @@ test "bounded reads preserve transaction rollback missing and invalid refusals" 
     is Err(DatabaseClosed),
   )
 }
+
+///|
+test "observed scan copies exact extent without raising legacy read limits" {
+  let (library, _, path) = existing_database_fixture()
+  let database = library
+    .open_database(path + "/observed-scan.sqlite3", 4L)
+    .unwrap()
+  database.insert_with_body_extent("original", "a", b"12345", 5L).unwrap()
+  |> ignore
+  let (key, header) = database.observe_scan_body_extent("original", "").unwrap()
+  assert_eq(key, "a")
+  assert_eq(header.body_bytes, 5L)
+  let row = database
+    .scan_exact_body_extent("original", "", key, header)
+    .unwrap()
+  assert_eq(row.body, b"12345")
+  assert_true(database.scan_after("original", "") is Err(Physical(_)))
+  assert_true(bounded_readback_empty(database))
+  assert_true(
+    database.scan_exact_body_extent("original", "", key, {
+      revision: 0L,
+      body_bytes: 4L,
+    })
+    is Err(Collision),
+  )
+  assert_true(bounded_readback_empty(database))
+  assert_true(
+    database.scan_exact_body_extent("original", "", "b", header)
+    is Err(Collision),
+  )
+  assert_true(bounded_readback_empty(database))
+  database.close_checked().unwrap()
+}
+
+///|
+test "observed scan refuses newly inserted predecessor instead of skipping it" {
+  let (library, _, path) = existing_database_fixture()
+  let database = library
+    .open_database(path + "/observed-predecessor.sqlite3", 64L)
+    .unwrap()
+  database.insert("original", "b", b"old").unwrap() |> ignore
+  let (key, header) = database.observe_scan_body_extent("original", "").unwrap()
+  database.insert("original", "a", b"new").unwrap() |> ignore
+  assert_true(
+    database.scan_exact_body_extent("original", "", key, header)
+    is Err(Collision),
+  )
+  assert_true(bounded_readback_empty(database))
+  assert_eq(database.scan_after("original", "").unwrap().key, "a")
+  database.close_checked().unwrap()
+}
+
+///|
+test "observed scan refuses stale revision and preserves transaction rollback" {
+  let (library, _, path) = existing_database_fixture()
+  let database = library
+    .open_database(path + "/observed-revision.sqlite3", 64L)
+    .unwrap()
+  database.insert("original", "a", b"old").unwrap() |> ignore
+  let (key, header) = database.observe_scan_body_extent("original", "").unwrap()
+  database.begin_immediate().unwrap()
+  database.compare_exchange("original", "a", 0L, b"new-longer").unwrap()
+  |> ignore
+  assert_true(
+    database.scan_exact_body_extent("original", "", key, header)
+    is Err(Collision),
+  )
+  assert_true(bounded_readback_empty(database))
+  database.rollback().unwrap()
+  assert_eq(
+    database.scan_exact_body_extent("original", "", key, header).unwrap().body,
+    b"old",
+  )
+  database.close_checked().unwrap()
+}
+
+///|
+#borrow(database)
+extern "C" fn observed_scan_body_text(database : Database) -> Bool = "actql_native_sqlite_test_body_text"
+
+///|
+test "observed scan rejects changed storage type before copying body" {
+  let (library, _, path) = existing_database_fixture()
+  let database = library
+    .open_database(path + "/observed-type.sqlite3", 64L)
+    .unwrap()
+  database.insert("original", "a", b"old").unwrap() |> ignore
+  let (key, header) = database.observe_scan_body_extent("original", "").unwrap()
+  assert_true(observed_scan_body_text(database))
+  assert_true(
+    database.scan_exact_body_extent("original", "", key, header)
+    is Err(Physical(_)),
+  )
+  assert_true(bounded_readback_empty(database))
+  assert_true(
+    database.observe_scan_body_extent("original", "") is Err(Physical(_)),
+  )
+  assert_true(bounded_readback_empty(database))
+  database.close_checked().unwrap()
+}

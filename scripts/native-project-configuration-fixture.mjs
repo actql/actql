@@ -16,6 +16,8 @@ export function nativeProjectConfigurationFixture(namespace) {
   };
   const write = (directory, name, body) => writeFileSync(join(directory, name), body,
     {mode: 0o600, flag: 'wx'});
+  write(namespace, 'native-file-task-boundary.json',
+    readFileSync(new URL('./fixtures/native-file-task-boundary.json', import.meta.url)));
   const configuration = state => JSON.stringify({version: 'actql-config/0.1',
     ...(state === undefined ? {} : {state_dir: state})});
   write(root, 'actql.config.json', configuration());

@@ -74,6 +74,8 @@ test('Native project Content ports retain original contracts and independent aut
   const root = mkdtempSync(join(tmpdir(), 'native-project-content-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const fixture = nativeProjectConfigurationFixture(root);
+  assert.deepEqual(readFileSync(join(root, 'native-file-task-boundary.json')),
+    readFileSync(new URL('./fixtures/native-file-task-boundary.json', import.meta.url)));
   for (const [key, name] of [['QUERY_CONTRACT', 'actql-query-acquisition.json'],
     ['EVIDENCE_CONTRACT', 'actql-query-process-evidence.json']]) {
     assert.equal(fixture['ACTQL_TEST_NATIVE_' + key],

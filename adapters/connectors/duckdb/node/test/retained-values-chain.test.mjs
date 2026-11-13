@@ -689,7 +689,11 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
                   if (['cancel-after-filter', 'cancel-after-progress'].includes(mode) && !scheduled &&
                       producerWork >= (route.cancelWork ?? 13n) && !result._0.complete) {
                     scheduled = true;
-                    setTimeout(() => cancellation.abort(), 0);
+                    // A selected Carrier task must still be pending when it
+                    // receives cancellation; a timer can reach the next task
+                    // and miss this original operation's stopped observation.
+                    if (route.cancelDispatch !== undefined) cancellation.abort();
+                    else setTimeout(() => cancellation.abort(), 0);
                   }
                 }
                 return result;

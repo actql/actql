@@ -36,6 +36,34 @@ test('authenticated Host subject consumes its original control header without pa
   }
 });
 
+test('same original signing Read reauthenticates retained control DATA without repeating canonical admission', () => {
+  const source = readFileSync(new URL('../src/platform_native/client_host/local_initial_signing_original.mbt', import.meta.url), 'utf8');
+  const extract = name => {
+    const start = source.indexOf('fn ' + name + '(');
+    assert(start >= 0, 'Missing existing control reader: ' + name);
+    const end = source.indexOf('\n///|', start);
+    return source.slice(start, end < 0 ? undefined : end);
+  };
+  const control = extract('read_local_initial_signing_control_with_host_key');
+  const scoped = control.slice(control.indexOf('  if signing_original is Some(original)'), control.indexOf('  if body == host.adoption_body'));
+  const fullAdmissions = value => [...value.matchAll(/(?:local_initial_signing_control_header|read_local_initial_signing_packet|read_initial_host_signing_subject_after_header)\(/gu)].length;
+  const selectedAdmissions = scoped.includes('return original.read_retained_control(')
+    ? fullAdmissions(signingMethod(source, 'NativeLocalInitialSigningOriginal', 'read_retained_control'))
+    : fullAdmissions(control);
+  assert.equal(selectedAdmissions, 0,
+    'An unchanged same-original control must retain its admitted DATA instead of rerunning four canonical readers');
+  assert.match(scoped, /body != original\.control_body/u);
+  assert.match(scoped, /return original\.read_retained_control\(host, body\)/u);
+  assert(fullAdmissions(control) >= 4, 'Unscoped callers retain every complete canonical reader');
+  const retained = signingMethod(source, 'NativeLocalInitialSigningOriginal', 'read_retained_control');
+  assert.match(retained, /check_initial_control_read_scope\(host\)/u);
+  assert.match(retained, /physical_equal\(data\.host, host\)/u);
+  assert.match(retained, /data\.body == body else/u);
+  assert.match(retained, /authenticate_local_installation_payload\(/u);
+  assert.match(retained, /decoded_initial_signing_public_key\(/u);
+  assert.doesNotMatch(retained, /\.authorize\(|\.now\(|\.transaction\(|\.sign_ed25519\(|\.observed_custody\s*=/u);
+});
+
 test('Native approval target requires thirty verified samples on the same source fixture and runner', () => {
   assert.equal(assessNativeApproval(series()).status, 'passed');
   const short = series(); short.samples.pop();
@@ -56,6 +84,29 @@ test('Native approval enforces both p95 and maximum without dropping slow failur
   assert(result.failures.some(value => value.includes('maximum')));
   const p95 = series(); p95.samples[0].wallNs = p95.samples[1].wallNs = 6000000000;
   assert(assessNativeApproval(p95).failures.some(value => value.includes('p95')));
+});
+
+test('Native approval accepts four seconds p95 and rejects one nanosecond above it', () => {
+  assert.equal(assessNativeApproval(series()).status, 'passed');
+  const selected = series();
+  selected.samples[0].wallNs = selected.samples[1].wallNs = 4000000001;
+  const result = assessNativeApproval(selected);
+  assert.equal(result.status, 'failed');
+  assert.deepEqual(result.failures, ['approval p95 exceeds 4000 ms']);
+  assert.equal(result.summary.count, 30);
+  assert.equal(result.summary.p95Ms, 4000.000001);
+});
+
+test('Native approval accepts five seconds maximum and rejects one nanosecond above it', () => {
+  const selected = series(); selected.samples[0].wallNs = 5000000000;
+  assert.equal(assessNativeApproval(selected).status, 'passed');
+  selected.samples[0].wallNs++;
+  const result = assessNativeApproval(selected);
+  assert.equal(result.status, 'failed');
+  assert.deepEqual(result.failures, ['approval maximum exceeds 5000 ms']);
+  assert.equal(result.summary.count, 30);
+  assert.equal(result.summary.p95Ms, 4000);
+  assert.equal(result.summary.maxMs, 5000.000001);
 });
 
 test('Native approval diagnostic samples do not supply a final acceptance p95', () => {

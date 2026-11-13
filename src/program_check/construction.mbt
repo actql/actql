@@ -312,7 +312,13 @@ fn prepare_owned_closure(
           @context.operation_resolution_requirements(resolutions),
           index,
         ) {
-        Some(site) => raise UnresolvedOperation(site)
+        Some(site) => {
+          if @context.unresolved_analytic_policy_issue(resolutions, index)
+            is Some(issue) {
+            raise Operations(issue)
+          }
+          raise UnresolvedOperation(site)
+        }
         None => raise IncompleteInventory(index)
       }
     Err(e) => raise Requirements(e)

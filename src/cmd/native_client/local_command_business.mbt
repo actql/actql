@@ -155,18 +155,12 @@ fn local_command_backed_business_profile(
   if kind == SavedResultRead {
     stop("LocalBusinessLayoutUnavailable")
   }
-  // The existing Local host admits at most 32 physical tasks. Declare their
-  // one-shot attempts, output holdings and bounded transfers before acquiring
-  // the facility; the exact Program quote below can still refuse this budget.
-  let task_capacity = 32
-  let limits : @initial_resources.LedgerLimits = {
-    planning_work: 100000,
-    attempts: task_capacity,
-    holdings: task_capacity,
-    transfer_bytes: task_capacity.to_int64() * 1000000L,
-    retained_bytes: 536870912L,
-    execution_bytes: 536870912L,
-  }
+  // Use the same finite graph-work and wire policy as ordinary Local
+  // preparation. Checked Program demand narrows this original before Run
+  // construction; this is neither a concurrency cap nor a refill on retry.
+  let limits = @local_values.client_local_preparation_initial_limits(
+    @local_values.client_local_resource_policy(),
+  ).unwrap_or_else(() => stop("LocalBusinessProfileUnavailable"))
   let payload = limits.retained_bytes + limits.execution_bytes
   let bytes = local_command_domain_bytes(payload).unwrap_or_else(() => {
     stop("LocalBusinessLayoutUnavailable")
@@ -452,13 +446,9 @@ fn LocalCommandPreparationOriginal::require_business_program(
   }
   let needed = requirements.maximum_limits()
   let supplied = business.profile.limits
-  if needed.planning_work > supplied.planning_work ||
-    needed.attempts > supplied.attempts ||
-    needed.holdings > supplied.holdings ||
-    needed.transfer_bytes > supplied.transfer_bytes ||
-    needed.retained_bytes > supplied.retained_bytes ||
-    needed.execution_bytes > supplied.execution_bytes {
-    return Err(CommandUnavailable)
+  match local_command_business_capacity(needed, supplied) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   host
   .require_domain_retained_execution_current(execution)
@@ -551,6 +541,22 @@ fn LocalCommandPreparationOriginal::close_business_operation(
         }
       }
     }
+  }
+  Ok(())
+}
+
+///|
+fn local_command_business_capacity(
+  needed : @initial_resources.LedgerLimits,
+  supplied : @initial_resources.LedgerLimits,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if needed.planning_work > supplied.planning_work ||
+    needed.attempts > supplied.attempts ||
+    needed.holdings > supplied.holdings ||
+    needed.transfer_bytes > supplied.transfer_bytes ||
+    needed.retained_bytes > supplied.retained_bytes ||
+    needed.execution_bytes > supplied.execution_bytes {
+    return Err(CommandBusinessCapacity)
   }
   Ok(())
 }

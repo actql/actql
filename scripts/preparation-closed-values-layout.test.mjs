@@ -31,7 +31,7 @@ test('Closed Values layout names the exact original literal and lowering owner f
 
 test('Closed Values checker and DAG layout refuses silent owner-field drift', async () => {
   assert.deepEqual(await fields('program_check/check.mbt', 'CheckedProgram'),
-    ['source','completion_free_audit','local_completion_free_audit','local_legacy_audit_prepared',
+    ['source','artifact_bytes','artifact_nodes','artifact_depth','completion_free_audit','local_completion_free_audit','local_legacy_audit_prepared',
       'has_effects','keyed_input_proofs','nest_limits','traversal_limits','sequence_limits',
       'interval_search_limits','asof_search_limits','window_limits','input_completeness',
       'expression_profiles','catalog_references','identity','requirements','gates','contracts',
@@ -122,4 +122,26 @@ test('Closed Values topology retains empty original parameters and strict ancest
   const source=await readFile(path.join(root,'src/stage_parameters/source.mbt'),'utf8');
   assert.match(source,/match @pipeline.parameters\(pipeline\) \{\s*Some\(d\)/);
   assert.match(source,/None => return Err\(ForeignDeclarations\)/);
+});
+
+// These retained original policy scalars were already funded by the Request
+// driver's initial packet. Do not add another copy or infer a grant from them.
+test('CheckedProgram artifact policy scalars remain in the same initial Check packet', async () => {
+  const source = await readFile(path.join(root, 'src/program_check/check.mbt'), 'utf8');
+  for (const name of ['artifact_bytes', 'artifact_nodes', 'artifact_depth'])
+    assert.match(source, new RegExp(`^  ${name} : Int$`, 'm'));
+  const layout = await readFile(path.join(root, 'src/client_local_host/preparation_program_check_layout.mbt'), 'utf8');
+  const driver = layout.match(/let program_check_driver_controls[^=]*= \{([\s\S]*?)^\}/m)?.[1];
+  assert(driver);
+  const scalars = driver.match(/scalar_words: ([^\n]+),/)?.[1];
+  assert(scalars && /^(?:[0-9]+L)(?: \+ [0-9]+L)*$/.test(scalars));
+  assert.equal(scalars.split(' + ').reduce((sum, term) => sum + Number(term.slice(0, -1)), 0), 66,
+    '63 existing driver scalar words plus the three retained original policy limits');
+  assert.match(layout, /compose_preparation_representation\(\[\s*program_check_quote_controls, program_check_driver_controls,/);
+  const domain = await readFile(path.join(root, 'src/client_local_host/preparation_program_check_domain.mbt'), 'utf8');
+  const entry = domain.slice(domain.indexOf('let (base_retained, base_execution) = match'));
+  assert.match(entry, /base_retained, program_check_initial_control_bytes, 1L/);
+  assert.match(entry, /base_execution, program_check_initial_control_bytes, 1L/);
+  assert(entry.indexOf('reserve_working_preparation_phase(capacity, input, r, e)') <
+    entry.indexOf('new_program_check_preparation('), 'Same-parent reserve must precede construction');
 });

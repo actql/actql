@@ -161,7 +161,10 @@
         "name": "Test Node-free native storage publication and control",
         "commandSha256": "4e1fa95ee90ec9dd86b3a4837a064943e1233d0dfe54826ae9387061315d54b0",
         "env": {
-          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http"
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http",
+          "ACTQL_TEST_NATIVE_HTTP_FOCUS": "http-packages",
+          "ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER": "linux-http+darwin-core-source",
+          "ACTQL_TEST_PRESERVE_SCRATCH": "1"
         }
       },
       {
@@ -232,6 +235,15 @@
         "commandSha256": "893ee91125e35644244b33562a407087aec1c9208157668bfce85a5131f446ee",
         "env": {
           "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-cancel"
+        }
+      },
+      {
+        "name": "Test original Native HTTP CLI controls",
+        "commandSha256": "4e1fa95ee90ec9dd86b3a4837a064943e1233d0dfe54826ae9387061315d54b0",
+        "env": {
+          "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-http-controls",
+          "ACTQL_TEST_NATIVE_HTTP_FOCUS": "http-controls",
+          "ACTQL_TEST_PRESERVE_SCRATCH": "1"
         }
       }
     ]

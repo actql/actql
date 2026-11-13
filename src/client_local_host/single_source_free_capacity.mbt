@@ -29,6 +29,28 @@ pub fn prepare_source_free_local_requirements(
 }
 
 ///|
+/// Select demand for the managed Local runtime. Each actual provider, import
+/// and output must still be admitted on the same finite original Ledger before
+/// construction. A legacy whole-graph simultaneous quote is not a prerequisite.
+pub fn prepare_source_free_runtime_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> ClientLocalRequirements? {
+  prepare_local_requirements(
+    prepared,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    0,
+    runtime_admission=true,
+  )
+}
+
+///|
 /// Retain the exact single captured-Source Compute tail. The Source acquisition
 /// and its physical backing remain borrowed from their existing Owner.
 /// The simultaneous quote includes only this Compute suffix; it must be
@@ -53,6 +75,7 @@ fn prepare_local_requirements(
   fragment_body : String?,
   ordered_body : String?,
   first : Int,
+  runtime_admission? : Bool = false,
 ) -> ClientLocalRequirements? {
   let graph = @publication_host.prepared_client_graph(prepared)
   let count = @strategy.graph_task_count(graph)
@@ -118,7 +141,8 @@ fn prepare_local_requirements(
     capacity_plan=Some(capacity_plan),
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
-    include_simultaneous=true,
+    include_simultaneous=!runtime_admission,
+    runtime_admission~,
     simultaneous_graph=Some(graph),
   ).map(capacity => {
     prepared,

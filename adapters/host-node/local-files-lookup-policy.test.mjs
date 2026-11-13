@@ -57,7 +57,7 @@ test('ordinary Local finite lookup policy covers declared keys and pages without
 });
 
 test('Local lookup arithmetic stays exact and refuses invalid or unrepresentable service bounds before selection',()=>{
-  for(const value of [[],Array(129).fill(limits),[undefined],[{...limits,maxFiles:0}],
+  for(const value of [[],[undefined],[{...limits,maxFiles:0}],
     [{...limits,maxPages:-1}],[{...limits,maxPageBytes:1.5}],
     [{...limits,maxFiles:2147483647,maxPages:2147483647,maxPageBytes:2147483647}]]){
     assert.throws(()=>localFilesLookupExecutionPolicy(value),TypeError);
@@ -68,6 +68,8 @@ test('Local lookup arithmetic stays exact and refuses invalid or unrepresentable
   const second={maxFiles:2,maxPages:2,maxPageBytes:100,maxDurationMs:40000};
   assert.deepEqual(localFilesLookupExecutionPolicy([limits,second]),
     {...localFilesLookupExecutionPolicy([limits]),max_total_duration_ms:40000});
+  assert.deepEqual(localFilesLookupExecutionPolicy(Array(129).fill(limits)),
+    localFilesLookupExecutionPolicy([limits]));
 });
 
 test('actual Host default selection retains the same Project Source receiver runtime and current original',()=>{

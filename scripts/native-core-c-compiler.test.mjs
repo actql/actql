@@ -1,11 +1,146 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
+import {chmodSync, copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {nativeCoreCArguments, nativeCoreCCompiler} from './native-core-c-compiler.mjs';
+import * as compilerModule from './native-core-c-compiler.mjs';
+import {nativeRuntimeReaderCustodyFixture, nativeRuntimeReaderCustodyCacheInput} from './native-runtime-reader-custody-fixture.mjs';
+
+test('the pinned Moon ordinary release command reaches the closed Darwin cache planner',
+  {skip: process.platform !== 'darwin'}, t => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-moon-cache-command-')));
+    t.after(() => rmSync(root, {recursive: true, force: true}));
+    writeFileSync(join(root, 'moon.mod'), 'name = "fixture/cache-command"\n');
+    writeFileSync(join(root, 'moon.pkg'), '');
+    writeFileSync(join(root, 'main_test.mbt'), 'test "original command" { assert_eq(1, 1) }\n');
+    const tools = join(root, 'tools'); mkdirSync(tools);
+    const captured = join(root, 'original-command.json');
+    const module = new URL('./native-core-c-compiler.mjs', import.meta.url).href;
+    // Capture the actual original argv at Moon's normal PATH-selected cc,
+    // rather than parsing dry-run quoting or using the different MOON_CC plan.
+    // Refuse before C compilation; this never produces or executes a test exe.
+    writeFileSync(join(tools, 'cc'), '#!' + process.execPath + '\n' +
+      '(async()=>{const {writeFileSync}=await import("node:fs");' +
+      `const {nativeCoreCObjectCommands}=await import(${JSON.stringify(module)});` +
+      'const args=process.argv.slice(2);' +
+      'if(!args.some(x=>/\\.(?:internal|whitebox|blackbox)_test\\.c$/u.test(x))){' +
+      'const {spawnSync}=await import("node:child_process");' +
+      'const r=spawnSync("/usr/bin/cc",args,{stdio:"inherit"});' +
+      'if(r.signal)process.kill(process.pid,r.signal);process.exit(r.status??1);}' +
+      `writeFileSync(${JSON.stringify(captured)},JSON.stringify({args,` +
+      'plan:nativeCoreCObjectCommands(process.cwd(),"/usr/bin/cc",args)}));process.exit(23);})();\n', {mode: 0o700});
+    symlinkSync(realpathSync('/usr/bin/ar'), join(tools, 'ar'));
+    const env = {...process.env, PATH: tools + delimiter + process.env.PATH, MOONBIT_NEW_NATIVE: '0'};
+    delete env.MOON_CC;
+    const result = spawnSync(join(process.env.MOON_HOME, 'bin/moon'),
+      ['test', '--target', 'native', '--release', '--strip', '-j', '1'],
+      {cwd: root, encoding: 'utf8', timeout: 10000, env});
+    assert.ifError(result.error); assert.notEqual(result.status, 0, 'the capture port intentionally refuses before C compilation');
+    assert(existsSync(captured), result.stderr);
+    const {args, plan} = JSON.parse(readFileSync(captured));
+    assert(plan, JSON.stringify(args));
+    assert(args.includes('-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC'));
+    assert(args.some(arg => arg.endsWith('/libmoonbitrun.o')));
+    assert(plan.compile.includes('-O0')); assert(!plan.compile.includes('-O2'));
+    assert(plan.link.includes('-O0')); assert.equal(plan.compile[0], '-c');
+  });
+
+test('Reader compiler cache inputs refuse changed physical or recipe data without keying fresh library identities',
+  {skip: process.platform !== 'darwin'}, t => {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-reader-cache-input-')));
+    t.after(() => rmSync(root, {recursive: true, force: true}));
+    const source = join(root, 'scripts/fixtures/native-runtime-reader-custody.c');
+    mkdirSync(join(root, 'scripts/fixtures'), {recursive: true});
+    copyFileSync(new URL('./fixtures/native-runtime-reader-custody.c', import.meta.url), source);
+    const selected = process.env.ACTQL_TEST_NATIVE_CORE_CCACHE;
+    process.env.ACTQL_TEST_NATIVE_CORE_CCACHE = '/not-consumed-by-this-input-test';
+    try {
+      const first = join(root, 'first'); mkdirSync(first);
+      const original = nativeRuntimeReaderCustodyFixture(root, first);
+      const value = nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', original);
+      assert(value); assert.equal(value.source, source);
+      const missing = {...original}; delete missing.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE;
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', missing), undefined);
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', {...original,
+        DYLD_INSERT_LIBRARIES: original.DYLD_INSERT_LIBRARIES + ':foreign.dylib'}), undefined);
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/clang', original), undefined);
+      const changed = JSON.parse(original.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE);
+      changed.recipe.flags[1] = '-O1';
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', {...original,
+        ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE: JSON.stringify(changed)}), undefined);
+      const old = original.DYLD_INSERT_LIBRARIES + '.original';
+      renameSync(original.DYLD_INSERT_LIBRARIES, old); copyFileSync(old, original.DYLD_INSERT_LIBRARIES);
+      assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', original), undefined,
+        'byte-identical replacement cannot claim the original physical construction');
+      writeFileSync(source, readFileSync(source, 'utf8') + '\n// Changed actual fixture source.\n');
+      const second = join(root, 'second'); mkdirSync(second);
+      const next = nativeRuntimeReaderCustodyFixture(root, second);
+      const nextValue = nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', next);
+      assert(nextValue); assert.notEqual(nextValue.recipeSha256, value.recipeSha256);
+    } finally {
+      if (selected === undefined) delete process.env.ACTQL_TEST_NATIVE_CORE_CCACHE;
+      else process.env.ACTQL_TEST_NATIVE_CORE_CCACHE = selected;
+    }
+  });
+
+test('ordinary generated C object planning preserves effective flags and ordered fresh link inputs', () => {
+  assert.equal(typeof compilerModule.nativeCoreCObjectCommands, 'function');
+  const source = '/original/_build/native/release/test/pkg/pkg.whitebox_test.c';
+  const output = source.slice(0, -2) + '.exe';
+  const args = ['-o', output, '-I/pinned/include', '-fwrapv', '-fno-strict-aliasing',
+    '-Wno-unused-value', '-Wall', '-Wextra', '-Werror', '-O2',
+    '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', 'before.o', source, 'after.a', '-lm'];
+  const plan = compilerModule.nativeCoreCObjectCommands('/original', '/usr/bin/clang', args, '/owned/object.o');
+  assert.deepEqual(plan, {source, output,
+    compile: ['-c', source, '-o', '/owned/object.o', '-I/pinned/include', '-fwrapv',
+      '-fno-strict-aliasing', '-Wno-unused-value', '-Wall', '-Wextra', '-Werror', '-O0',
+      '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', '-dumpdir', output + '-'],
+    link: ['-o', output, '-Werror', '-O0', 'before.o', '/owned/object.o', 'after.a', '-lm']});
+  assert.deepEqual(args.slice(-4), ['before.o', source, 'after.a', '-lm']);
+});
+
+test('ordinary object planning refuses unsupported profiles before any compiler or cache work', () => {
+  assert.equal(typeof compilerModule.nativeCoreCObjectCommands, 'function');
+  const source = '/original/_build/native/release/test/pkg/pkg.whitebox_test.c';
+  const args = ['-o', source.slice(0, -2) + '.exe', '-O2', source, 'original.a', '-lm'];
+  for (const [compiler, changed] of [
+    ['/usr/bin/c++', args], ['/usr/bin/clang++', args], ['/foreign/compiler', args],
+    ['/usr/bin/clang', [...args, '-flto']], ['/usr/bin/clang', [...args, '-shared']],
+    ['/usr/bin/clang', [...args, '@response']], ['/usr/bin/clang', [...args, '-x', 'c']],
+    ['/usr/bin/clang', [...args, '-DACTQL_SCOPED_READ_ALLOCATOR']],
+    ['/usr/bin/clang', [...args, '-DACTQL_RUNTIME_MANAGED_VALUES=1']],
+    ['/usr/bin/clang', [...args, '-unknown-option']], ['/usr/bin/clang', [...args, '/original/second.c']],
+    ['/usr/bin/clang', args.map(x => x === '-O2' ? '-O0' : x)],
+    ['/usr/bin/clang', args.map(x => x === source ? source.replace('/release/', '/debug/') : x)],
+    ['/usr/bin/clang', args.map(x => x.endsWith('.exe') ? '/foreign/output.exe' : x)],
+  ]) assert.equal(compilerModule.nativeCoreCObjectCommands('/original', compiler, changed, '/owned/object.o'),
+    undefined, JSON.stringify([compiler, changed]));
+});
+
+test('unsupported cache mode keeps the original combined compiler result and actual OS signal', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-cache-fallback-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const compiler = join(root, 'original-compiler');
+  const module = new URL('./native-core-c-compiler.mjs', import.meta.url).href;
+  const script = `import {runNativeCoreCCompiler} from ${JSON.stringify(module)};` +
+    `runNativeCoreCCompiler(${JSON.stringify(root)},${JSON.stringify(compiler)},process.argv.slice(1));`;
+  const args = ['-o', 'unsupported.exe', '-O2', 'original.c', '-flto'];
+  const env = {...process.env, ACTQL_TEST_NATIVE_CORE_CCACHE: '/absent/cache',
+    ACTQL_TEST_NATIVE_CORE_CCACHE_DIR: '/absent/unused', ACTQL_FIXTURE_CURRENT: 'original'};
+  writeFileSync(compiler, '#!' + process.execPath + '\nconsole.log(JSON.stringify({' +
+    'args:process.argv.slice(2),current:process.env.ACTQL_FIXTURE_CURRENT}));process.exit(23);\n', {mode: 0o700});
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script, '--', ...args],
+    {cwd: root, env, encoding: 'utf8', timeout: 5000});
+  assert.ifError(result.error); assert.equal(result.status, 23); assert.equal(result.signal, null);
+  assert.deepEqual(JSON.parse(result.stdout), {args, current: 'original'});
+  writeFileSync(compiler, '#!' + process.execPath + '\nprocess.kill(process.pid,"SIGTERM");\n');
+  const stopped = spawnSync(process.execPath, ['--input-type=module', '-e', script, '--', ...args],
+    {cwd: root, env, encoding: 'utf8', timeout: 5000});
+  assert.ifError(stopped.error); assert.equal(stopped.status, null); assert.equal(stopped.signal, 'SIGTERM');
+});
 
 test('Native Core C profile changes only the default optimization of one generated release test input', () => {
   const root = '/original';

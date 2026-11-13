@@ -323,7 +323,7 @@ test "product assembly refuses changed environment evidence and privileged asset
   for
     environment in [
       original.environment.replace(
-        old="2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+        old="42e2125d9fbac72912fd67d8f619769810d5d4c606a362a4e569a89f32be54e0",
         new="0000000000000000000000000000000000000000000000000000000000000000",
       ),
       original.environment.replace(

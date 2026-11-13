@@ -89,9 +89,12 @@ export function snapshotHostLookupExecutionPolicy(value) {
 // physical backing, Account/egress permission nor a cleanup acknowledgement.
 // Generic and unselected Hosts still keep an omitted policy unresolved.
 export function localFilesLookupExecutionPolicy(sourceLimits) {
-  if (!Array.isArray(sourceLimits) || sourceLimits.length < 1 || sourceLimits.length > 128) {
+  if (!Array.isArray(sourceLimits) || sourceLimits.length < 1) {
     throw new TypeError('InvalidLocalFilesLookupExecutionPolicy');
   }
+  // A constant-size projection over the original finite installation, not an
+  // independently admitted Source table. Keep every selected service bound;
+  // per-entry arithmetic and the nominal transfer Owner still decide limits.
   let perRequest = 0n, total = 0n, duration = 0;
   for (const limits of sourceLimits) {
     const selected = ['maxFiles', 'maxPages', 'maxPageBytes', 'maxDurationMs'].map(name => {

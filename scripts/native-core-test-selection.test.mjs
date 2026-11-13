@@ -10,6 +10,17 @@ import {nativeCoreTestSelection, portableMoonTestCount, nativeCoreHttpArguments,
   nativeCoreScopedTestEnvironment, nativeCoreCheckpointRequired} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
+test('Journal metadata original Read selects its scoped allocator without changing sibling profiles', () => {
+  const source = 'src/platform_native/client_host/journal_metadata_original_read_physical_scoped_wbtest.mbt';
+  assert.equal(nativeScopedTestFiles.filter(file => file === source).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(source), 'scoped-review-values');
+  for (const sibling of ['run_plan_fresh_construction_native_wbtest.mbt',
+    'run_plan_cold_construction_native_wbtest.mbt', 'run_effect_receipt_wbtest.mbt']) {
+    assert.equal(nativeCoreScopedAllocationProfile('src/platform_native/client_host/' + sibling), 'runtime-values');
+  }
+  assert.deepEqual(nativeCoreScopedTestEnvironment({source, index: 0}), {});
+});
+
 function fixture(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-test-selection-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
@@ -124,6 +135,30 @@ test('Native dependency scope keeps a full plan for an unselected nested compile
   assert.equal(selected.executionScope.mode, 'full-fallback');
   assert.match(selected.executionScope.reason, /nested/u);
   assert.equal(selected.cases, f.originalCases);
+});
+
+test('explicit Native file scope excludes nested packages while retaining every selected physical profile', t => {
+  const f = dependencyFixture(t, {nested: true});
+  const selected = nativeCoreTestSelection(f.root, ['--release'], {execute: f.execute,
+    partitionProfiles: true, ordinaryPartitions: true, executionPackages: ['active', 'empty'],
+    allowNestedFileInputs: true});
+  assert.equal(selected.executionScope.mode, 'subset');
+  assert.equal(selected.cases, 2);
+  assert.deepEqual(selected.args, ['--release', 'active/main.mbt', 'empty']);
+  assert.deepEqual(selected.profiles.ordinary.partitions.flatMap(part => part.args.slice(1)).sort(),
+    ['active/main.mbt', 'empty']);
+  assert.equal(selected.profiles.http.cases + selected.profiles.source.cases + selected.profiles.scoped.cases, 0);
+  const physical = nativeCoreTestSelection(f.root, ['--release'], {execute: f.execute,
+    partitionProfiles: true, ordinaryPartitions: true,
+    executionPackages: f.selectedPackages, allowNestedFileInputs: true});
+  assert.equal(physical.executionScope.mode, 'subset');
+  assert.equal(physical.cases, 5);
+  assert.equal(physical.profiles.ordinary.cases, 2);
+  assert.equal(physical.profiles.http.cases, 1);
+  assert.equal(physical.profiles.source.cases, 1);
+  assert.equal(physical.profiles.physicalCases, 1);
+  assert.deepEqual(physical.profiles.scoped.tests, [{source: f.physical, index: 0}]);
+  assert(!physical.args.includes('active/nested'));
 });
 
 test('Native dependency selection refuses changed original drivers and foreign or duplicate package paths', t => {

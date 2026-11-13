@@ -81,6 +81,23 @@ export function verifyNativeResidentPortablePreparation(repository, receiptPath,
   verify(selected.artifacts, receipt.artifacts);
 }
 
+// Reuse the original immutable same-job module before importing its URL. A
+// refusal keeps the original error; only an absent preparation builds locally.
+export function prepareNativeResidentPortableCore(repository, {
+  env = process.env, preparation = env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION,
+  prepare,
+} = {}) {
+  repository = realpathSync(repository);
+  if (preparation !== undefined && preparation !== null) {
+    assert(typeof preparation === 'string' && preparation.length > 0);
+    verifyNativeResidentPortablePreparation(repository, preparation, {env});
+  } else {
+    assert.equal(typeof prepare, 'function');
+    prepare();
+  }
+  return join(repository, '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+}
+
 export function prepareNativeResidentPortableRuntime(repository, receiptPath,
   {env = process.env, execute = execFileSync} = {}) {
   if (existsSync(receiptPath)) {

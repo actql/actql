@@ -481,9 +481,7 @@ fn encode_client_infer_original_inventory(
   graphs : Array[ClientInferPlanGraph],
   limits : ClientValuesRunMaterialsLimits,
 ) -> Result[String, ClientTaskRunMaterialsIssue] {
-  if occurrences.length() < 2 ||
-    occurrences.length() > 128 ||
-    graphs.length() != occurrences.length() {
+  if occurrences.length() < 2 || graphs.length() != occurrences.length() {
     return Err(Binding(UnsupportedProgram))
   }
   let inventory = try {

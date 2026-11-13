@@ -26,6 +26,8 @@ const ciOnly = new Map([
   ['performance-matrix', 'registered performance runs'],
   ['check', 'aggregates the other jobs'],
   ['client', 'aggregates all required Client producers and consumers'],
+  ['core-common', 'uses the hosted Core matrix; select the complete local core entrance'],
+  ['core-darwin', 'uses the hosted Darwin matrix; select the complete local core entrance'],
   ...Object.entries(ciOnlyPipelineJobs),
 ]);
 const jobs = Object.entries(workflow.jobs)
@@ -50,7 +52,8 @@ const preparation = step => /^(npm ci|moon version|node scripts\/setup-moonbit)/
 // checkout. Runner preparation (`uses:` and install steps) is left to the
 // developer's own installed toolchain. CI-only inspection keeps expressions raw.
 function commands(name, target, raw = false) {
-  const job = workflow.jobs[name === 'native' && !raw && workflow.jobs['native-workloads'] ? 'native-workloads' : name];
+  const job = workflow.jobs[name === 'core' && !raw && workflow.jobs['core-common'] ? 'core-common'
+    : name === 'native' && !raw && workflow.jobs['native-workloads'] ? 'native-workloads' : name];
   if (job === undefined || !Array.isArray(job.steps)) {
     fail(`Unknown job: ${name}`);
   }
@@ -86,6 +89,9 @@ function commands(name, target, raw = false) {
   }
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
+    // A local full Core invocation remains unpartitioned. Hosted-only Linux
+    // partitions cannot silently narrow this existing diagnostic entrance.
+    .replaceAll('${{ matrix.partition }}', name === 'core' ? '' : '${{ matrix.partition }}')
     .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false')
     .replaceAll('${{ github.workspace }}', root.replace(/\/$/u, ''))
     .replaceAll('${{ runner.temp }}', scratch)
@@ -106,7 +112,8 @@ function commands(name, target, raw = false) {
       return [key, ''];
     }
     if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PARTITION') {
-      if (value !== "${{ matrix.target == 'native' && matrix.partition || '' }}") {
+      if (!["${{ matrix.target == 'native' && matrix.partition || '' }}",
+        "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}"].includes(value)) {
         fail('Unsupported Native Core partition expression; local CI must retain complete coverage');
       }
       // One local runner keeps the complete original campaign, rather than
@@ -118,6 +125,12 @@ function commands(name, target, raw = false) {
         fail('Unsupported Native Core scheduling expression; local CI must retain the serial scoped profile');
       }
       return [key, '1'];
+    }
+    if (!raw && name === 'core' && key === 'ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE') {
+      if (value !== "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && 'darwin-differences' || '' }}") {
+        fail('Unsupported Native Core platform scope; local CI must retain complete coverage');
+      }
+      return [key, ''];
     }
     return [key, resolve(value)];
   };
@@ -159,7 +172,8 @@ function requireHeavy(classification, options) {
 // is not an Actions expression evaluator; unfamiliar expressions require an
 // explicit local budget, just like missing/non-numeric workflow values.
 function workflowMinutes(name, target) {
-  const value = workflow.jobs[name === 'native' && workflow.jobs['native-workloads'] ? 'native-workloads' : name]?.['timeout-minutes'];
+  const value = workflow.jobs[name === 'core' && workflow.jobs['core-common'] ? 'core-common'
+    : name === 'native' && workflow.jobs['native-workloads'] ? 'native-workloads' : name]?.['timeout-minutes'];
   if (typeof value === 'number') return value;
   if (name !== 'core' || typeof value !== 'string' || target === undefined) return undefined;
   const match = /^\$\{\{\s*matrix\.target\s*==\s*'native'\s*&&\s*([1-9][0-9]*)\s*\|\|\s*([1-9][0-9]*)\s*\}\}$/u.exec(value);

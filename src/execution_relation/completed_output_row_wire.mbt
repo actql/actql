@@ -9,6 +9,84 @@ pub fn completed_output_row_wire(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, CompletedExportIssue] {
+  let table = match
+    check_completed_row_wire_input(output, row, max_bytes, max_nodes, max_depth) {
+    Ok(table) => table
+    Err(issue) => return Err(issue)
+  }
+  let columns = match
+    prepare_completed_row_wire_columns(output, table, max_nodes) {
+    Ok(columns) => columns
+    Err(issue) => return Err(issue)
+  }
+  encode_completed_row_wire(
+    table, columns, row, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Prepare immutable column positions for this exact completed output. The
+/// caller retains its original physical read pin and drops this callback with
+/// that reader. Every call still checks current availability, row shape and
+/// the full independent per-row writer limits; preparation grants no read.
+pub fn prepare_completed_output_row_wire_reader(
+  output : CompletedOutput,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (Int, Int) -> Result[String, CompletedExportIssue],
+  CompletedExportIssue,
+] {
+  if !completed_output_available(output) {
+    return Err(Unavailable)
+  }
+  guard output.table is Some(table) else { return Err(NotCellRepresentation) }
+  if max_nodes < 1 || max_depth < 0 {
+    return Err(Wire(InvalidLimits))
+  }
+  prepare_completed_row_wire_reader(output, table, max_nodes, max_depth)
+}
+
+///|
+// Metadata is borrowed from the same immutable table. Keep construction and
+// the returned production reader together, including when metadata traversal
+// is observed by a consuming boundary test.
+fn[R : RelationRows] prepare_completed_row_wire_reader(
+  output : CompletedOutput,
+  metadata : R,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (Int, Int) -> Result[String, CompletedExportIssue],
+  CompletedExportIssue,
+] {
+  let columns = match
+    prepare_completed_row_wire_columns(output, metadata, max_nodes) {
+    Ok(columns) => columns
+    Err(issue) => return Err(issue)
+  }
+  Ok(fn(row, max_bytes) {
+    let table = match
+      check_completed_row_wire_input(
+        output, row, max_bytes, max_nodes, max_depth,
+      ) {
+      Ok(table) => table
+      Err(issue) => return Err(issue)
+    }
+    encode_completed_row_wire(
+      table, columns, row, max_bytes, max_nodes, max_depth,
+    )
+  })
+}
+
+///|
+fn check_completed_row_wire_input(
+  output : CompletedOutput,
+  row : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[CompletedTable, CompletedExportIssue] {
   if !completed_output_available(output) {
     return Err(Unavailable)
   }
@@ -21,6 +99,22 @@ pub fn completed_output_row_wire(
   if max_bytes < 0 || max_nodes < 1 || max_depth < 0 {
     return Err(Wire(InvalidLimits))
   }
+  Ok(table)
+}
+
+///|
+priv struct CompletedRowWireColumns {
+  names : Array[String]
+  ordered : Array[String]?
+  positions : Map[String, Int]
+}
+
+///|
+fn[R : RelationRows] prepare_completed_row_wire_columns(
+  output : CompletedOutput,
+  table : R,
+  max_nodes : Int,
+) -> Result[CompletedRowWireColumns, CompletedExportIssue] {
   let names = RelationRows::field_names(table)
   let width = IndexedRows::column_count(table)
   if width > max_nodes || names.length() != width {
@@ -106,16 +200,28 @@ pub fn completed_output_row_wire(
       positions[name] = column
     }
   }
+  Ok({ names, ordered: wire_order, positions, })
+}
+
+///|
+fn encode_completed_row_wire(
+  table : CompletedTable,
+  columns : CompletedRowWireColumns,
+  row : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, CompletedExportIssue] {
   try {
     let writer = @encode.writer(max_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
-    match wire_order {
+    match columns.ordered {
       Some(ordered) => {
-        if ordered.length() != width {
+        if ordered.length() != columns.names.length() {
           return Err(Wire(InvalidLayout))
         }
         for name in ordered {
-          guard positions.get(name) is Some(column) else {
+          guard columns.positions.get(name) is Some(column) else {
             return Err(Wire(InvalidLayout))
           }
           if !IndexedRows::cell_present(table, row, column) {
@@ -126,11 +232,11 @@ pub fn completed_output_row_wire(
         }
       }
       None =>
-        for column in 0..<width {
+        for column, name in columns.names {
           if !IndexedRows::cell_present(table, row, column) {
             continue
           }
-          @encode.key(writer, names[column])
+          @encode.key(writer, name)
           emit_runtime_value(IndexedRows::read_cell(table, row, column), writer)
         }
     }

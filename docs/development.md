@@ -1203,9 +1203,77 @@ stock-library fixture. Both workload and HTTP results are strict dependencies.
 The original retained-product command runs after the background join: its long
 global Moon build must not hold the build lock during bounded npm prepack.
 
+On macOS the complete remote-runtime command follows Resident controls in the
+second existing background slot, while the complete HTTP command keeps its
+original package and case order in the runtime slot. The remote invocation owns
+one verified private Moon/Core installation and separate generated roots for its
+stripped Native tests and default-profile Query tests. Its compiler environment
+changes only the tool home and PATH; signed fixtures, private Stores, dynamically
+allocated peers and original child cleanup remain per invocation. Shared project
+`_build` and installed Core caches are not writable compiler outputs for that
+remote lane. Linux group assignment and the two-slot bound remain unchanged.
+
+HTTP, remote-runtime and bundle-CLI consumers verify the existing same-job
+portable preparation before importing its returned original module path. A
+foreign or changed explicit preparation refuses without rebuilding it. Without
+an offered preparation, the original standalone builder is retained; focused
+HTTP review builders keep their original explicit compiler scheduling. This
+keeps concurrent CI consumers from rewriting the prepared shared JS artifact.
+
+The macOS HTTP harness assigns its original complete package/Query loop and
+its subsequent CLI control sequence to the existing two background workers.
+Each phase owns its peers, Stores, pinned compiler copy and Native output tree;
+only completed verified preparation inputs are shared. Nested test wrappers use
+the same phase-local compiler entrance. The joined HTTP result requires both
+phases, retaining the original parent deadline, flags, assertions and cleanup.
+The complete standalone/Linux entrance still executes both phases in order.
+
+The hosted Darwin package phase assigns the complete default Native Source
+package to the required Linux HTTP job, while the required Darwin Core Source
+partition retains every original case with its C/release/strip profile. Darwin
+keeps the other default Native filesystem, SQLite, HTTP and control checks.
+This intentionally reduces the OS/backend cross-product; the two profiles are
+not claimed equivalent. The HTTP gate requires both current Linux HTTP and
+complete Core outcomes, and missing, skipped or failed owners cannot pass.
+The unconfigured standalone/Linux and Core Source entrances remain complete.
+
+Core runs the two portable targets and eight common Native partitions on Linux,
+and the seven existing Darwin partitions in a separate matrix capped at four
+concurrent jobs. The cap leaves macOS capacity for the other original workload
+and wheel jobs; it does not reserve global runner capacity. Both matrices share
+one YAML-anchored step definition and retain their original commands, profiles
+and deadlines. The existing Core gate requires both selected outcomes, including
+an explicit skipped Darwin outcome only when Native was not selected. Local
+`run core` still resolves the complete unpartitioned execution and its original
+budget, rather than running the hosted aggregate.
+
 No Native preparation is transplanted across runners: existing descriptors bind
 physical compiler aliases and generated toolchain inputs. A mismatched original
 still refuses; there is no metadata rewrite or implicit rebuild fallback.
+Explicit compiled-command inputs use a separate inert-data path for the two
+closed bundle/Resident entries. Export preserves the original successful build,
+command and complete selected-input receipts. Receive rechecks the same Source,
+target, compiler profile and current source/tool/SDK bytes, then publishes a new
+receiver file and physical descriptor. Generated producer inputs remain immutable
+provenance data; they are not executed as receiver tools. Original paths and
+inodes are never relabeled as local prepared originals. This path neither starts
+a provider nor replaces the subsequent fresh runtime, currentness or cleanup
+checks, and a refused explicit input never triggers a rebuild fallback.
+The macOS workload explicitly selects `--lanes 2` inside that same preparation
+owner. Closed command compilation runs alongside the existing sequential
+libraries, HTTP and portable preparation. The command lane uses one verified
+private copy of the pinned tool installation and Core bundles; shared tool-home
+aliases refuse as output destinations. Build/cache roots stay separate. Both
+lanes must finish before the single complete index and consumer environment are
+published, including when either lane fails. Original command budgets also cover
+export and receive; component profiles, TLS jobs and consumer deadlines remain.
+The default CLI and Linux workload keep one lane.
+A complete index may retain `received.json` for an explicitly received command.
+Its exact immutable inputs are checked once per unchanged process scope, with
+physical file identity, metadata and current tool selection checked on every
+reuse. Changed inputs invalidate the scope and require full verification; a new
+process starts empty. The real factory keeps its current Source, entry, target
+and executable checks and never copies or rebuilds a reused received command.
 Local `run native` retains one preparation and every original case serially.
 Job and case deadlines stay unchanged. Parallelism is CI orchestration, not a
 product lifetime, permission, capacity or successful cleanup claim.
@@ -1214,9 +1282,11 @@ grace after its leader closes. An unconfirmed group stop remains a failure;
 a timed out leader exiting zero cannot turn the command into a success.
 
 Native preparation logs each command/component interval as
-`ACTQL_NATIVE_CI_PHASE` and writes a small `phase-*.timing.json` diagnostic into
+`ACTQL_NATIVE_CI_PHASE` and writes small `phase-*.timing.json` or
+`lane-*.timing.json` diagnostics into
 its existing receipt artifact before later tests run. Each record identifies
-only the source, target, phase, elapsed milliseconds and producer outcome;
+the source, target, phase, elapsed milliseconds and producer outcome;
+parallel lanes also record their actual start/end bounds;
 it is not an artifact reuse or runtime acceptance receipt. Missing timing I/O
 never replaces the producer's original result. The HTTP package loop separately logs build-only and
 execution intervals using the same compiler inputs and fixture environment.
@@ -1232,6 +1302,24 @@ case identities, unchanged driver inputs, nonempty partitions and no overlapping
 ordinary drivers before C generation. Portable targets are not multiplied.
 The original two-part local interface remains supported.
 
+The migration toward Linux for exhaustive common Native coverage starts with
+eight additional required Linux partitions in the same Core matrix. The pinned
+compiler's complete source, whitebox and blackbox import graph identifies Native
+command/platform packages, explicit C stubs and linker overrides, including all
+their importers. Every remaining compiler-owned common case is assigned once,
+keeping whole package drivers and the existing release/strip, strict warnings,
+test-only generated-C optimization and serial test execution. Nested packages
+use original compiler-selected file inputs rather than admitting an unrelated
+child package. The actual executed case count must equal compiler discovery.
+After actual execution of all eight Linux partitions, hosted Darwin Core uses
+the complementary compiler-owned package scope. It retains FFI/allocator,
+SQLite/crypto/linking and installed-consumer differences, complete HTTP/Source
+and scoped profiles, and the deliberate repeated geometry. Local full Core
+diagnostics remain unpartitioned and do not inherit the hosted platform scope.
+This transition is
+not a measured CI speedup or evidence that the complete workflow meets its
+20–30-minute target including queue and setup time.
+
 The hosted scoped job runs its two existing allocation profiles concurrently
 on the same runner (`ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS=2`). Checkpoint,
 component and relation preparation still occur once, before both loops, and
@@ -1244,11 +1332,41 @@ The existing scoped compiler wrapper records each original C compile/link/query
 interval separately. These intervals exclude Moon lowering and test execution;
 their sum is compiler activity, not elapsed job time when profiles overlap.
 
+Hosted Scoped generated-C objects use the same pinned cache machinery as the
+ordinary partitions, after the existing complete profile/recipe admission.
+Only derived headers and the generated target use an exclusive actual directory
+under `_build/native-core-scoped/compiler-software/<profile>`. Configurations,
+component preparation and physical case roots remain fresh and separate. After
+all original case children close, the same directory owner moves its generated
+software into its original fresh scratch for inspection; existing or replaced
+paths are never adopted or retired. Every runtime/provider compilation and link
+remains fresh. No symlink path, macro remapping or relaxed cache key is used.
+Default local/non-CI callers keep their original fresh software paths. A cache
+hit is neither a test result nor evidence of a complete CI time reduction.
+
 The ordinary Native child measures `--build-only` and subsequent execution
 separately in the same build tree, with identical arguments and environment.
 Both phases share the original absolute timeout. Execution still uses the
 nonzero/full-count guard and includes Moon's incremental freshness check.
 Neither successful compilation nor a timing record establishes test success.
+
+The Native Query harness likewise records a build-only interval followed by its
+unchanged execution command in the same target tree. Cases execute only in the
+second command, whose existing required-count check remains mandatory. The
+execution interval includes Moon's incremental graph check; it is not an
+exclusive binary CPU measurement. Neither phase changes the default Native
+flags, runtime inputs or enclosing caller budget.
+
+The existing Darwin job preparation constructs those two Query packages once
+with the same default Native flags, in a dedicated copied tool home and target.
+Both original HTTP and Remote consumers recheck clean source, selected compiler
+settings, actual tool/dependency inputs and generated software before borrowing
+that tree. They retain their original file selections, fresh runtime environments,
+Stores, keys, ports, count assertions and cleanup. Moon still performs its normal
+incremental freshness check and owns its output lock; generated code, drivers and
+executables must remain byte-exact after execution. This is same-job software
+reuse, not a transported runtime or a test result. Absent preparation keeps the
+original local path; a present but mismatched preparation refuses without rebuild.
 
 The preparation helper reuses the verified OpenSSL source archive from the
 compatible Darwin Crypto producer for HTTP TLS acquisition. TLS rechecks the

@@ -64,7 +64,15 @@ test('historical typed-value binding independently matches the same Local materi
     : Array.isArray(value) ? '[' + value.map(wire).join(',') + ']'
       : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + wire(value[key])).join(',') + '}';
   const cid = value => 'sha256:' + createHash('sha256').update(wire(value)).digest('hex');
-  assert.equal(cid(fixtureBody), 'sha256:cd9f929c74c3b55f40e94b9edf46e248f6c30e4fa970683e762e768fd5cc7470');
+  assert.equal(cid(fixtureBody), 'sha256:738a87cd0899ff9a3d27dee04de8ebb955d9d9c46b6eeba50c84697e8e1169bc');
+  const beforeAnalyticCeilings = structuredClone(fixtureBody);
+  for (const field of ['max_analytic_frame_memberships', 'max_analytic_input_wire_bytes',
+    'max_analytic_output_wire_bytes', 'max_analytic_partition_wire_bytes']) {
+    assert.equal(beforeAnalyticCeilings.host_policy_profile.capacity[field], 1000);
+    delete beforeAnalyticCeilings.host_policy_profile.capacity[field];
+  }
+  assert.equal(cid(beforeAnalyticCeilings), 'sha256:cd9f929c74c3b55f40e94b9edf46e248f6c30e4fa970683e762e768fd5cc7470',
+    'the previous policy retains its original identity rather than being relabeled');
   const previousEnvironment = structuredClone(fixtureBody);
   delete previousEnvironment.host_policy_profile.capacity.max_file_listing_items;
   assert.notEqual(cid(previousEnvironment), cid(fixtureBody),

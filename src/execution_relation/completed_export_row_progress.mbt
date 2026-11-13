@@ -22,6 +22,7 @@ priv struct CompletedExportRowProgress {
   workspace : RowWorkspace
   mut column : Int
   mut wire_bound : Int
+  mut full_wire_bound : Int
   mut wire_fits_batch : Bool
   mut phase : CompletedExportRowPhase
   mut closed : Bool
@@ -234,6 +235,16 @@ fn advance_completed_export_row_frame(
             // per UTF-16 key unit bounds escaping without walking it again;
             // quotes, colon and a separator add four. Saturate at the SAME
             // batch ceiling instead of overflowing or admitting a larger row.
+            // A sound measured row/frame construction bound is independent
+            // of the earlier-drain hint, which may stop growing at its ceiling.
+            // Int saturation is safe because no physical frame can exceed it.
+            cursor.full_wire_bound = Int64::min(
+              2147483647L,
+              cursor.full_wire_bound.to_int64() +
+              bytes.to_int64() +
+              4L +
+              6L * stream.order.columns[column].0.length().to_int64(),
+            ).to_int()
             if stream.batch_mode == 2 && cursor.wire_fits_batch {
               let room = stream.max_batch_bytes - cursor.wire_bound
               let units = stream.order.columns[column].0.length()
@@ -350,6 +361,7 @@ pub fn advance_completed_output_export(
   quantum : Int,
   max_workspace_slots : Int,
   batch? : Bool = false,
+  before_batch_growth? : ((Int) -> Result[Bool, CompletedExportIssue])? = None,
 ) -> Result[CompletedOutputExportAdvance, CompletedExportIssue] {
   if stream.reading {
     return Err(Closed)
@@ -402,6 +414,7 @@ pub fn advance_completed_output_export(
           workspace,
           column: 0,
           wire_bound: 3,
+          full_wire_bound: 3,
           wire_fits_batch: stream.max_batch_bytes >= 3,
           phase: Begin,
           closed: false,
@@ -424,6 +437,37 @@ pub fn advance_completed_output_export(
           }
           stream.drained_bytes = @encode.observed_writer_usage(stream.writer).0
           return Ok({ batch: Some(part), complete: false, steps: step, })
+        }
+      }
+      if cursor.phase is BeginPayload && before_batch_growth is Some(reserve) {
+        let pending = @encode.observed_writer_usage(stream.writer).0 -
+          stream.drained_bytes
+        // Cell bytes were measured by this same traversal. The existing key
+        // escape bound covers this row, never the configured future frame.
+        let next = Int64::min(
+          stream.max_batch_bytes.to_int64(),
+          pending.to_int64() + cursor.full_wire_bound.to_int64(),
+        ).to_int()
+        let funded = match reserve(next) {
+          Err(issue) => return Err(issue)
+          Ok(value) => value
+        }
+        if stream.source is None ||
+          !completed_output_available(source) ||
+          stream.source is None {
+          return Err(Unavailable)
+        }
+        if !funded {
+          // Only a definite pre-acquisition policy refusal can defer by
+          // flushing earlier complete rows. Unknown growth returns Err.
+          if pending > 0 && stream.row > 0 {
+            let part = @encode.drain_hash_output(stream.writer) catch {
+              issue => return Err(Wire(Encoding(issue)))
+            }
+            stream.drained_bytes = @encode.observed_writer_usage(stream.writer).0
+            return Ok({ batch: Some(part), complete: false, steps: step, })
+          }
+          return Err(Admission(CaptureLimit))
         }
       }
       // Record entry before a frame can fail and clear its private cursor.

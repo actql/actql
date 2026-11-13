@@ -36,6 +36,9 @@ export const nativeRelationCaptureTestFiles = Object.freeze([
 const nativeRequestEffectHandoffTestFile =
   'src/platform_native/client_host/native_test/request_effect_test.mbt';
 
+const nativeJournalMetadataOriginalReadTestFile =
+  'src/platform_native/client_host/journal_metadata_original_read_physical_scoped_wbtest.mbt';
+
 // These two independent fixtures use the same existing 8192-page backing.
 // All other selected Arena cases retain their original 256-page declarations.
 export function nativeCoreScopedBackingPages(source) {
@@ -44,10 +47,11 @@ export function nativeCoreScopedBackingPages(source) {
     ? 8192 : 256;
 }
 
-// Keep the established profile prefixes. Only this one new public-API case
-// joins them; its package siblings and client_host retain their prior profile.
+// Keep the established profile prefixes. Explicit original-Read cases join
+// them without replacing their package siblings' ordinary allocation profile.
 export function nativeCoreScopedAllocationProfile(source) {
   return source === nativeRequestEffectHandoffTestFile || source === nativeRelationWorkTestFile ||
+    source === nativeJournalMetadataOriginalReadTestFile ||
     source === nativeClientFileResponseTestFile ||
     source === 'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt' ||
@@ -71,6 +75,7 @@ export function nativeCoreScopedTestEnvironment({source, index}) {
 // must not be replaced globally. Both profiles remain required.
 export const nativeScopedTestFiles = Object.freeze([
   nativeRequestEffectHandoffTestFile,
+  nativeJournalMetadataOriginalReadTestFile,
   'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt',
   'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt',
   // Its first-member control uses that same real Request/Arena facility.
@@ -292,13 +297,20 @@ export function portableMoonTestCount(repository, args, target, options = {}) {
   return compilerTestSelection(repository, args, options, target, true).runnableCases;
 }
 
+export function nativeCoreFocusedTestCount(repository, args, options = {}) {
+  return compilerTestSelection(repository, args, options, 'native', true).runnableCases;
+}
+
 function compilerTestSelection(repository, args, {
   env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
   ordinaryPartitions = false, timeoutMs = 60_000, now = Date.now, executionPackages,
+  allowNestedFileInputs = false,
 } = {}, target, countOnly) {
   assert(!countOnly || (!splitProfiles && !ordinaryPartitions && executionPackages === undefined));
   assert(!ordinaryPartitions || splitProfiles, 'Native partitions require original profile discovery');
   assert(executionPackages === undefined || splitProfiles, 'Dependency selection requires original Native profiles');
+  assert(typeof allowNestedFileInputs === 'boolean' && (!allowNestedFileInputs ||
+    splitProfiles && executionPackages !== undefined), 'Nested Native file inputs require an explicit package scope');
   assert(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 2147483647,
     'Native metadata timeout must be a finite positive timer duration');
   assert.equal(typeof now, 'function');
@@ -407,7 +419,7 @@ function compilerTestSelection(repository, args, {
       remaining(); complete = true;
       return {runnableCases};
     }
-    let executionScope;
+    let executionScope, scopedInputs;
     if (executionPackages !== undefined) {
       assert(Array.isArray(executionPackages) && executionPackages.length > 0 &&
         new Set(executionPackages).size === executionPackages.length, 'Invalid Native dependency package inventory');
@@ -420,6 +432,13 @@ function compilerTestSelection(repository, args, {
       const requested = new Set(executionPackages);
       const subset = records.filter(record => requested.has(record.directory));
       const preview = partitionProfiles(args, subset, false, compilerDirectories);
+      if (allowNestedFileInputs) {
+        // Preserve all selected original profiles when a parent directory has
+        // an unselected nested package. The Linux common caller separately
+        // refuses physical profiles before execution; full Darwin keeps them.
+        scopedInputs = [...new Set(['ordinary', 'http', 'source', 'scoped'].flatMap(name =>
+          preview[name].args?.slice(args.length) ?? []))];
+      }
       const ordinaryPaths = preview.ordinary.args?.slice(args.length) ?? [];
       const ordinaryPackages = new Set(subset.filter(record => runnableCompilerCase(record) &&
         (ordinaryPaths.includes(record.directory) || ordinaryPaths.includes(record.source))).map(record => record.directory));
@@ -437,7 +456,8 @@ function compilerTestSelection(repository, args, {
           subset.some(record => runnableCompilerCase(record) &&
             (partition.args.slice(args.length).includes(record.directory) ||
               partition.args.slice(args.length).includes(record.source))));
-      const admitted = subset.some(runnableCompilerCase) && !nestedOutside && nonemptyPartitions;
+      const admitted = subset.some(runnableCompilerCase) &&
+        (!nestedOutside || allowNestedFileInputs) && nonemptyPartitions;
       executionScope = {packages:[...executionPackages].sort(), originalCases:cases.length,
         mode:admitted ? 'subset' : 'full-fallback',
         reason:admitted ? 'compiler-owned reverse dependency closure' : nestedOutside
@@ -451,7 +471,9 @@ function compilerTestSelection(repository, args, {
       executionScope.selectedCases = cases.length;
     }
     assert(cases.length > 0, 'No compiler-owned Native test cases');
-    const paths = [...packages], selected = discover(paths), selectedCases = [];
+    const paths = executionScope?.mode === 'subset' && allowNestedFileInputs ? scopedInputs : [...packages];
+    assert(Array.isArray(paths) && paths.length > 0, 'Nonempty original Native inputs required');
+    const selected = discover(paths), selectedCases = [];
     for (const [key, driver] of selected) {
       const original = full.get(key);
       assert(original, 'Foreign selected Native driver');

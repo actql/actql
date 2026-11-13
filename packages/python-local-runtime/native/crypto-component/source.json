@@ -25,8 +25,8 @@
   },
   "local": {
     "component.c": {
-      "bytes": 17228,
-      "sha256": "ae27e06edbe5ca408d67730a238b231a4e1cdeacf3e5217925bb151e45f6a3e0"
+      "bytes": 19595,
+      "sha256": "d882d7cc73ed5e3eff6870a9cbe818f527da870e7f8bc6e97fd39ecd815dfa81"
     },
     "component.h": {
       "bytes": 2938,
@@ -45,8 +45,8 @@
       "sha256": "6316b8b2083c269e1caaf4aebabf1f6edff0f2352589e70863e2891ee8886877"
     },
     "fixtures/allocator_conformance.c": {
-      "bytes": 5466,
-      "sha256": "ea139f1c5f972d35af6c3aadc96775fa049dcbd3c15338fdcdeb9489dfb74d58"
+      "bytes": 11937,
+      "sha256": "5823286a0adccfec6f7315abe2f0329c5a403f400f44704080dd802633f227ff"
     }
   },
   "isolation": [
