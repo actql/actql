@@ -172,11 +172,11 @@ test('required lint directly selects Native preparation controls and only macOS 
   const compiler=core.find(step=>step.name==='Test pinned Native C compiler orchestration');
   assert.equal(compiler.run,'node --test scripts/native-core-c-compiler.test.mjs');
   assert.equal(compiler.if,"${{ matrix.target == 'native' && matrix.partition == '1/4' }}");
-  assert(core.findIndex(step=>step.uses==='./.github/actions/setup-toolchain')<core.indexOf(compiler));
-  const mac=workflow.jobs['native-macos-workloads'].steps;
-  const actualMac=mac.find(step=>step.name==='Test pinned macOS Native C compiler orchestration');
-  assert.equal(actualMac.run,'node --test scripts/native-core-c-compiler.test.mjs');
-  assert(mac.findIndex(step=>step.name==='Install pinned MoonBit')<mac.indexOf(actualMac));
+  const setup=core.findIndex(step=>step.uses==='./.github/actions/setup-toolchain');
+  assert(setup>=0&&setup<core.indexOf(compiler));
+  assert(core.indexOf(compiler)<core.findIndex(step=>step.id==='native-c-object-cache'),
+    'compiler controls retain their own clean profile before CI cache configuration');
+  assert.equal(workflow.jobs.core['runs-on'],"${{ matrix.target == 'native' && 'macos-15' || 'ubuntu-24.04' }}");
   const prepare=family=>workflow.jobs[family+'-workloads'].steps.find(step=>step.id==='native-preparation');
   assert(prepare('native-macos').run.endsWith('--resident-seconds 1200 --lanes 2'));
   assert(!prepare('native').run.includes('--lanes'));
