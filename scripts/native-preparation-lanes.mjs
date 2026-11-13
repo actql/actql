@@ -5,7 +5,7 @@ import {Worker,isMainThread,parentPort,workerData} from 'node:worker_threads';
 import {createHash} from 'node:crypto';
 import {chmodSync,constants,copyFileSync,lstatSync,mkdirSync,readFileSync,readdirSync,readlinkSync,
   realpathSync,symlinkSync,writeFileSync} from 'node:fs';
-import {basename,join,relative,sep} from 'node:path';
+import {basename,dirname,join,relative,resolve,sep} from 'node:path';
 import {verifyInstallation} from './moonbit-installation.mjs';
 import {exportNativeCompiledCommand,originalDescriptor} from './native-preparation-originals.mjs';
 import {prepareNativeResidentHttpComponent,prepareNativeResidentSite,prepareNativeRuntimeBundle,
@@ -27,7 +27,9 @@ function included(path) {
 // Native and portable Moon processes get distinct Core/cache roots. Retain only
 // installed originals and the pinned bundle outputs, never stale build caches.
 export function copyNativePreparationTools(original,destination,marker) {
-  original=realpathSync(original);verifyInstallation(original,marker);
+  original=realpathSync(original);
+  destination=join(realpathSync(dirname(resolve(destination))),basename(destination));
+  verifyInstallation(original,marker);
   const files=[],directories=[],links=[];
   const visit=(from,to,name)=>{
     if(!included(name))return;
