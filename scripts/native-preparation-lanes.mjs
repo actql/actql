@@ -62,10 +62,10 @@ export function copyNativePreparationTools(original,destination,marker) {
 }
 
 function timed(destination,source,target,phase,prepare) {
-  const started=performance.now();let succeeded=false;
+  const started=performance.now(),startedEpochMs=Date.now();let succeeded=false;
   try {const result=prepare();succeeded=true;return result;}
   finally {
-    const result={source,target,phase,milliseconds:Math.round(performance.now()-started),succeeded};
+    const result={source,target,phase,startedEpochMs,endedEpochMs:Date.now(),milliseconds:Math.round(performance.now()-started),succeeded};
     console.error('ACTQL_NATIVE_CI_PHASE '+JSON.stringify(result));
     try {writeFileSync(join(destination,'lane-'+phase+'.timing.json'),JSON.stringify(result)+'\n',{flag:'wx',mode:0o600});}
     catch {console.error('Native lane timing diagnostic unavailable');}
