@@ -3093,24 +3093,23 @@ fn serve_holder_output(
     task : HolderTaskCustody,
     purpose : HolderEffectEvidencePurpose,
   ) => {
-    guard holder_effect_original_policy_context(
-        task,
-        tasks,
-        environment.journal,
-      )
-      is Some(context) else {
-      return false
-    }
-    guard effect_host_operator.val is Some(installed) else { return false }
-    with_holder_effect_host_read_scope(installed.scope, () => {
-      holder_effect_evidence_allowed(context, resources, purpose, original => {
-        holder_effect_operator_admission(
-          original,
-          resources,
-          effect_host_operator.val,
-        )
-      })
-    })
+    holder_effect_installed_evidence(
+      () => effect_host_operator.val,
+      () => {
+        holder_effect_original_policy_context(task, tasks, environment.journal)
+      },
+      (installed, context) => {
+        with_holder_effect_host_read_scope(installed.scope, () => {
+          holder_effect_evidence_allowed(context, resources, purpose, original => {
+            holder_effect_operator_admission(
+              original,
+              resources,
+              effect_host_operator.val,
+            )
+          })
+        })
+      },
+    )
   }
   if holder_effect_computation(original, environment.journal) is Some(_) {
     report("effect-computation-custody-retained", [("request_cid", identity)])
