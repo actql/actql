@@ -28,12 +28,15 @@ export function approvalPerfSamples(text, selected, observation = {}) {
     const report = reports.get(Number(prefix[1]));
     if (report === undefined) {observation.foreignPidLines++; continue;}
     observation.selectedLines++;
-    const sample = /^\s*\d+\s+(.+?)\s+\(([^\r\n]*)\)\s*$/u.exec(line);
+    // perf 7 renders symbol/DSO only when IP is selected. Consume that hex
+    // field without capturing, retaining or publishing its address value.
+    const sample = /^\s*\d+\s+[0-9a-f]{1,16}\s+(.+?)\s+\(([^\r\n]*)\)\s*$/iu.exec(line);
     if (sample === null) {
       observation.malformedSelectedLines++;
       throw Object.assign(new Error('Invalid selected flat perf sample'), {
         code: 'NativeApprovalPerfSelectedLineInvalid', lineShape: {
           characters: line.length, whitespaceFields: Math.min(32, line.trim().split(/\s+/u).length),
+          hasHexIpToken: /^\s*\d+\s+[0-9a-f]{1,16}\s+/iu.test(line),
           hasDsoEnvelope: /\([^\r\n]*\)\s*$/u.test(line),
         },
       });
@@ -116,7 +119,7 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
       return {template: scenario.template, pid: approvalCallCounts(approvals[0]).pid};
     });
     stage = 'flat sample attribution';
-    const samples = run(['script', '-i', data, '-F', 'pid,sym,dso']);
+    const samples = run(['script', '-i', data, '-F', 'pid,ip,sym,dso']);
     report.decodeExitCode = samples.status; report.decodeErrorCode = samples.error?.code ?? null;
     assert(!samples.error && samples.status === 0, 'Flat sample decoding unavailable');
     if (/lost|throttl/iu.test(samples.stderr)) report.conditions.push('sample decoding reported loss or throttling');
@@ -131,7 +134,7 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
   } catch (error) {
     report.failure = {stage, name: error.name, code: error.code ?? null};
     if (error.code === 'NativeApprovalPerfSelectedLineInvalid') {
-      report.failure.reason = 'selected sample does not match fixed pid/symbol/dso fields';
+      report.failure.reason = 'selected sample does not match fixed pid/hex-ip/symbol/dso fields';
       report.failure.lineShape = error.lineShape;
     }
   } finally {

@@ -13,19 +13,20 @@ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest(
 
 test('flat CPU attribution selects actual approval processes and removes paths and offsets', () => {
   const result = approvalPerfSamples([
-    '101 _M0_original_journal+0x12 (/private/original/install/actql-native-client)',
-    '101 _M0_original_journal+0x80 (/private/original/install/actql-native-client)',
-    '202 sqlite3_step (/private/original/install/actql-native-client)',
-    '303 private-unselected-payload (/private/foreign/state/key)',
+    '    101     7f001234abcd _M0_original_journal+0x12 (/private/original/install/actql-native-client)',
+    '    101     7f001234abce _M0_original_journal+0x80 (/private/original/install/actql-native-client)',
+    '    202     7f001234abcf sqlite3_step (/private/original/install/actql-native-client)',
+    '    303     7f001234abd0 private-unselected-payload (/private/foreign/state/key)',
   ].join('\n'), selected);
   assert.equal(result[0].samples, 2);
   assert.deepEqual(result[0].topSymbols, [{symbol: '_M0_original_journal', samples: 2}]);
   assert.deepEqual(result[1].topSymbols, [{symbol: 'sqlite3_step', samples: 1}]);
-  assert.doesNotMatch(JSON.stringify(result), /private|payload|0x|foreign/u);
+  assert.doesNotMatch(JSON.stringify(result), /private|payload|0x|foreign|7f001234/u);
 });
 
 test('unresolved CPU locations stay explicit without publishing addresses or arbitrary text', () => {
-  const result = approvalPerfSamples('101 0xabcdef ([unknown])\n202 [unknown] ([unknown])\n', selected);
+  const result = approvalPerfSamples('101 7f001234abcd 0xabcdef ([unknown])\n' +
+    '202 0 [unknown] ([unknown])\n', selected);
   assert.deepEqual(result.map(value => [value.samples, value.unresolved]), [[1, 1], [1, 1]]);
   assert(result.every(value => value.topSymbols.length === 0));
   assert.doesNotMatch(JSON.stringify(result), /abcdef|unknown/u);
@@ -34,6 +35,10 @@ test('unresolved CPU locations stay explicit without publishing addresses or arb
 test('foreign lines cannot replace missing approval samples and malformed selected lines refuse', () => {
   assert(approvalPerfSamples('303 symbol (/not-selected)\n', selected).every(value => value.samples === 0));
   assert.throws(() => approvalPerfSamples('101 malformed-selected-sample\n', selected), /Invalid selected/u);
+  for (const line of ['101 original_function (/original)', '101 not-hex original_function (/original)',
+    '101 fffffffffffffffff original_function (/original)']) {
+    assert.throws(() => approvalPerfSamples(line, selected), {code: 'NativeApprovalPerfSelectedLineInvalid'});
+  }
   assert.throws(() => approvalPerfSamples('', [selected[0], {...selected[1], pid: 101}]), /Distinct actual/u);
   assert.throws(() => approvalPerfSamples('', [{...selected[0], pid: -1}, selected[1]]));
 });
@@ -41,14 +46,15 @@ test('foreign lines cannot replace missing approval samples and malformed select
 test('unrelated non-PID text is skipped explicitly and only fixed line-shape facts survive a selected refusal', () => {
   const counts = {};
   const result = approvalPerfSamples('renderer notice /not-for-report\n303 foreign (/elsewhere)\n' +
-    '101 original_function (/original)\n202 other_function (/original)\n', selected, counts);
+    '101 7f001234abcd original_function (/original)\n202 7f001234abce other_function (/original)\n', selected, counts);
   assert.deepEqual(result.map(value => value.samples), [1, 1]);
   assert.deepEqual(counts, {nonEmptyLines: 4, nonPidLines: 1, foreignPidLines: 1,
     selectedLines: 2, malformedSelectedLines: 0});
   const refused = {};
   assert.throws(() => approvalPerfSamples('101 malformed-selected-sample\n', selected, refused), error => {
     assert.equal(error.code, 'NativeApprovalPerfSelectedLineInvalid');
-    assert.deepEqual(error.lineShape, {characters: 29, whitespaceFields: 2, hasDsoEnvelope: false});
+    assert.deepEqual(error.lineShape, {characters: 29, whitespaceFields: 2,
+      hasHexIpToken: false, hasDsoEnvelope: false});
     assert.doesNotMatch(JSON.stringify(error.lineShape), /selected-sample|original|not-for-report/u);
     return true;
   });
@@ -56,8 +62,8 @@ test('unrelated non-PID text is skipped explicitly and only fixed line-shape fac
 });
 
 test('CPU report has bounded top-symbol output and counts unavailable oversized symbols', () => {
-  const lines = Array.from({length: 60}, (_, index) => `101 function_${index} (/original)`);
-  lines.push(`202 ${'x'.repeat(2049)} (/original)`);
+  const lines = Array.from({length: 60}, (_, index) => `101 7f001234abcd function_${index} (/original)`);
+  lines.push(`202 7f001234abce ${'x'.repeat(2049)} (/original)`);
   const result = approvalPerfSamples(lines.join('\n'), selected);
   assert.equal(result[0].samples, 60); assert.equal(result[0].topSymbols.length, 40);
   assert.equal(result[1].unresolved, 1);
@@ -104,6 +110,7 @@ test('diagnostic uploads only sanitized attribution and original artifact metada
   assert(driver.includes("process.getuid() !== 0"));
   assert(driver.includes("['stat', '-e', 'cpu-clock:u', '--', '/usr/bin/true']"));
   assert(driver.includes("'-F', '49'"));
+  assert(driver.includes("'-F', 'pid,ip,sym,dso'"));
   assert.doesNotMatch(driver, /--call-graph|--user-regs|--user-stack|sysctl|setcap|sudo/u);
   assert.equal([...driver.matchAll(/join\(root, 'scripts\/test-native-cli-mock-install\.mjs'\)/gu)].length, 1);
   assert(driver.includes('approvalCallCounts(approvals[0]).pid'));
