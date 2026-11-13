@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,symlinkSync,lstatSync,existsSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,symlinkSync,lstatSync,existsSync,chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {copyNativePreparationTools,prepareNativeConstructionLane,prepareNativeParallel} from './native-preparation-lanes.mjs';
@@ -19,7 +19,9 @@ function fixture(t) {
 
 test('Native parallel preparation isolates actual tool copies and excludes mutable Core caches',t=>{
   const f=fixture(t),marker=JSON.stringify({pin:{},platform:f.target});
-  for(const path of installationFiles)f.put(join(f.moonHome,path));
+  for(const path of installationFiles) {
+    f.put(join(f.moonHome,path));if(path.startsWith('bin/'))chmodSync(join(f.moonHome,path),0o755);
+  }
   f.put(join(f.moonHome,'installed.json'),marker);
   f.put(join(f.moonHome,'lib/core/source.mbt'));
   f.put(join(f.moonHome,'lib/core/_build/native/release/build/shared-cache'),'unused cache');
