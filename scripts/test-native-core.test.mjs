@@ -421,6 +421,7 @@ test('Native partition caller passes the complete compiler inventory before sele
     const args = ['--release', '--strip'], env = {original: true};
     const selected = runInNewContext(source.slice(start, end) + '\nselection;', {
       full: true, root: '/original', args, compilerEnvironment: env, partition, executionPackages: undefined,
+      platformPackages: undefined,
       nativeCorePartitionProfiles,
       nativeCoreTestSelection(root, originalArgs, options) {
         discoveries++;
