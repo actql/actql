@@ -1,15 +1,24 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
+import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {approvalPerfSamples} from './test-native-approval-cpu-diagnostic.mjs';
+import {approvalPerfDsoMembers, approvalPerfSamples, decodeApprovalPerf,
+  saveApprovalPerfReport} from './test-native-approval-cpu-diagnostic.mjs';
 
 const selected = [{template: 'deal-review-mock', pid: 101}, {template: 'churn-risk-mock', pid: 202}];
 const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
 const driver = readFileSync(new URL('./test-native-approval-cpu-diagnostic.mjs', import.meta.url), 'utf8');
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const manifest = {platforms: {'linux-x64-gnu': {package: '@actql/cli-linux-x64-gnu'}},
+  packages: [{name: '@actql/cli-linux-x64-gnu', files: [
+    {path: 'bin/actql-native-client', bytes: 32, sha256: '1'.repeat(64)},
+    {path: 'lib/libactql_crypto_component.so', bytes: 32, sha256: '2'.repeat(64)},
+    {path: 'lib/libactql_sqlite_component.so', bytes: 32, sha256: '3'.repeat(64)},
+  ]}]};
 
 test('flat CPU attribution selects actual approval processes and removes paths and offsets', () => {
   const result = approvalPerfSamples([
@@ -19,8 +28,8 @@ test('flat CPU attribution selects actual approval processes and removes paths a
     '    303     7f001234abd0 private-unselected-payload (/private/foreign/state/key)',
   ].join('\n'), selected);
   assert.equal(result[0].samples, 2);
-  assert.deepEqual(result[0].topSymbols, [{symbol: '_M0_original_journal', samples: 2}]);
-  assert.deepEqual(result[1].topSymbols, [{symbol: 'sqlite3_step', samples: 1}]);
+  assert.deepEqual(result[0].topSymbols, [{dsoRole: 'other', symbol: '_M0_original_journal', samples: 2}]);
+  assert.deepEqual(result[1].topSymbols, [{dsoRole: 'other', symbol: 'sqlite3_step', samples: 1}]);
   assert.doesNotMatch(JSON.stringify(result), /private|payload|0x|foreign|7f001234/u);
 });
 
@@ -67,6 +76,78 @@ test('CPU report has bounded top-symbol output and counts unavailable oversized 
   const result = approvalPerfSamples(lines.join('\n'), selected);
   assert.equal(result[0].samples, 60); assert.equal(result[0].topSymbols.length, 40);
   assert.equal(result[1].unresolved, 1);
+});
+
+test('verified release member names separate equal symbols into only safe DSO roles', () => {
+  const members = approvalPerfDsoMembers(manifest);
+  const result = approvalPerfSamples([
+    '101 7f001234abcd allocate_locked (/not-for-report/bin/actql-native-client)',
+    '101 7f001234abcd allocate_locked (libactql_crypto_component.so)',
+    '101 7f001234abcd allocate_locked (/not-for-report/libactql_sqlite_component.so)',
+    '101 7f001234abcd allocate_locked (/not-for-report/unlisted.so)',
+    '101 7f001234abcd allocate_locked ([unknown])',
+    '202 7f001234abcd other_symbol (actql-native-client)',
+  ].join('\n'), selected, {}, members);
+  assert.equal(result[0].samples, 5); assert.equal(result[0].resolvedSymbols, 1);
+  assert.equal(result[0].resolvedDsoSymbolGroups, 5);
+  assert.deepEqual(result[0].topSymbols.map(value => value.dsoRole).sort(),
+    ['crypto-component', 'native-client', 'other', 'sqlite-component', 'unknown']);
+  assert(result[0].topSymbols.every(value => value.samples === 1 && value.symbol === 'allocate_locked'));
+  assert.doesNotMatch(JSON.stringify(result), /not-for-report|\.so|7f001234|\/bin\//u);
+  const missing = structuredClone(manifest); missing.packages[0].files.pop();
+  assert.throws(() => approvalPerfDsoMembers(missing), /member missing/u);
+});
+
+test('same-job fallback finishes on the same raw data after a primary parser failure without a consumer replay', t => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-perf-decode-test-'));
+  t.after(() => rmSync(directory, {recursive: true}));
+  const data = join(directory, 'perf.data'); writeFileSync(data, 'decoder fixture only');
+  const calls = [], report = {conditions: [], approvals: []};
+  const run = args => {
+    calls.push(args); assert(existsSync(data)); assert.equal(args[0], 'script'); assert.equal(args[2], data);
+    return {status: 0, error: undefined, stderr: '', stdout: args[4] === 'pid,ip,sym,dso'
+      ? '101 malformed-primary\n' : '101 7f001234abcd\n202 7f001234abce\n'};
+  };
+  assert.throws(() => decodeApprovalPerf(run, data, selected, approvalPerfDsoMembers(manifest), report),
+    {code: 'NativeApprovalPerfSelectedLineInvalid'});
+  assert.equal(calls.length, 2); assert.equal(report.fallback.complete, true);
+  assert.deepEqual(report.fallback.approvals.map(value => value.samples), [1, 1]);
+  assert.equal(report.sampleParsing.malformedSelectedLines, 1);
+  assert(existsSync(data), 'The caller retains data through both decodes');
+  assert.doesNotMatch(JSON.stringify(report), /malformed-primary|7f001234|decoder fixture/u);
+});
+
+test('same-data fallback agrees with primary counts and retains its own failure separately', () => {
+  for (const mode of ['same', 'different', 'failed']) {
+    const report = {conditions: [], approvals: []}, calls = [];
+    const run = args => {
+      calls.push(args); assert.equal(args[0], 'script');
+      if (args[4] === 'pid,ip,sym,dso') return {status: 0, stderr: '', stdout:
+        '101 7f001234abcd allocate_locked (actql-native-client)\n202 7f001234abce allocate_locked (libactql_crypto_component.so)\n'};
+      return {status: mode === 'failed' ? 1 : 0, stderr: '', stdout:
+        '101 7f001234abcd\n202 7f001234abce\n' + (mode === 'different' ? '101 7f001234abcf\n' : '')};
+    };
+    decodeApprovalPerf(run, 'same-data', selected, approvalPerfDsoMembers(manifest), report);
+    assert.equal(calls.length, 2); assert.equal(report.approvals.length, 2);
+    if (mode === 'same') assert.deepEqual(report.conditions, []);
+    else assert.equal(report.conditions.length, 1, 'Fallback problems remain incomplete, not zero work');
+    assert.equal(report.fallback.complete, mode !== 'failed');
+  }
+});
+
+test('private profiler data is removed only after its complete sanitized report was written', t => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-perf-report-test-'));
+  t.after(() => {if (existsSync(directory)) rmSync(directory, {recursive: true});});
+  const data = join(directory, 'perf.data'); writeFileSync(data, 'decoder fixture only');
+  const output = join(directory, 'report.json'); writeFileSync(output, 'original report');
+  assert.throws(() => saveApprovalPerfReport(output, directory, {}), {code: 'EEXIST'});
+  assert(existsSync(data), 'Report failure retains private data without re-executing the product');
+  const separate = mkdtempSync(join(tmpdir(), 'actql-perf-sanitized-test-'));
+  t.after(() => rmSync(separate, {recursive: true}));
+  const destination = join(separate, 'report.json'), report = {primary: 'failed', fallback: {complete: true}};
+  saveApprovalPerfReport(destination, directory, report);
+  assert.deepEqual(JSON.parse(readFileSync(destination, 'utf8')), report);
+  assert.equal(existsSync(directory), false);
 });
 
 test('CPU mode is explicit and false by default while all unrelated jobs exclude it', () => {

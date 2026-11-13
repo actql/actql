@@ -4,11 +4,29 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
-import {dirname, join, resolve} from 'node:path';
+import {basename, dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {parseArgs} from 'node:util';
 
-export function approvalPerfSamples(text, selected, observation = {}) {
+// The caller has already verified every release member's bytes and hash.
+// These labels classify observed member names, never physical custody or a path.
+export function approvalPerfDsoMembers(manifest) {
+  const packages = manifest.packages.filter(value => value.name === manifest.platforms['linux-x64-gnu'].package);
+  assert.equal(packages.length, 1);
+  const members = new Map();
+  for (const [path, role] of [['bin/actql-native-client', 'native-client'],
+    ['lib/libactql_crypto_component.so', 'crypto-component'],
+    ['lib/libactql_sqlite_component.so', 'sqlite-component']]) {
+    const files = packages[0].files.filter(value => value.path === path);
+    assert.equal(files.length, 1, 'Required verified diagnostic DSO member missing');
+    assert.match(files[0].sha256, /^[a-f0-9]{64}$/u);
+    assert(Number.isSafeInteger(files[0].bytes) && files[0].bytes > 0);
+    members.set(basename(path), Object.freeze({role, sha256: files[0].sha256}));
+  }
+  return members;
+}
+
+export function approvalPerfSamples(text, selected, observation = {}, dsoMembers = new Map()) {
   Object.assign(observation, {nonEmptyLines: 0, nonPidLines: 0,
     foreignPidLines: 0, selectedLines: 0, malformedSelectedLines: 0});
   assert(typeof text === 'string' && Buffer.byteLength(text) <= 8 * 1024 ** 2);
@@ -46,13 +64,71 @@ export function approvalPerfSamples(text, selected, observation = {}) {
     if (symbol.length > 2048 || !/^[A-Za-z_.$][A-Za-z0-9_.$@:-]*$/u.test(symbol)) {
       report.unresolved++; continue;
     }
-    report.symbols.set(symbol, (report.symbols.get(symbol) ?? 0) + 1);
+    const dso = sample[2].trim();
+    const role = !dso || dso === '[unknown]' ? 'unknown'
+      : dsoMembers.get(basename(dso))?.role ?? 'other';
+    assert(['native-client', 'crypto-component', 'sqlite-component', 'other', 'unknown'].includes(role));
+    const key = JSON.stringify([role, symbol]);
+    const previous = report.symbols.get(key);
+    report.symbols.set(key, {dsoRole: role, symbol, samples: (previous?.samples ?? 0) + 1});
     assert(report.symbols.size <= 16384, 'Unexpected diagnostic symbol volume');
   }
   return [...reports.values()].map(({symbols, ...report}) => ({...report,
-    topSymbols: [...symbols].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .slice(0, 40).map(([symbol, samples]) => ({symbol, samples})),
-    resolvedSymbols: symbols.size}));
+    topSymbols: [...symbols.values()].sort((a, b) => b.samples - a.samples ||
+      a.dsoRole.localeCompare(b.dsoRole) || a.symbol.localeCompare(b.symbol)).slice(0, 40),
+    resolvedSymbols: new Set([...symbols.values()].map(value => value.symbol)).size,
+    resolvedDsoSymbolGroups: symbols.size}));
+}
+
+// Both projections consume the SAME recorded data before its outer owner
+// removes it. The fallback retains only PID/IP shape counts, never addresses,
+// and cannot turn a primary attribution failure into a successful diagnostic.
+export function decodeApprovalPerf(run, data, selected, dsoMembers, report) {
+  let primaryFailure;
+  try {
+    const samples = run(['script', '-i', data, '-F', 'pid,ip,sym,dso']);
+    report.decodeExitCode = samples.status; report.decodeErrorCode = samples.error?.code ?? null;
+    assert(!samples.error && samples.status === 0, 'Flat sample decoding unavailable');
+    if (/lost|throttl/iu.test(samples.stderr)) report.conditions.push('sample decoding reported loss or throttling');
+    report.sampleParsing = {};
+    report.approvals = approvalPerfSamples(samples.stdout, selected, report.sampleParsing, dsoMembers);
+  } catch (error) {primaryFailure = error;}
+  const fallback = report.fallback = {fields: ['pid', 'ip'], complete: false,
+    approvals: selected.map(({template, pid}) => ({template, pid, samples: 0, malformed: 0}))};
+  try {
+    const samples = run(['script', '-i', data, '-F', 'pid,ip']);
+    fallback.exitCode = samples.status; fallback.errorCode = samples.error?.code ?? null;
+    assert(!samples.error && samples.status === 0, 'Fallback sample decoding unavailable');
+    assert(Buffer.byteLength(samples.stdout) <= 8 * 1024 ** 2);
+    for (const line of samples.stdout.split('\n')) {
+      const prefix = /^\s*(\d+)\s+/u.exec(line);
+      const original = prefix === null ? undefined : fallback.approvals.find(value => value.pid === Number(prefix[1]));
+      if (original === undefined) continue;
+      if (/^\s*\d+\s+[0-9a-f]{1,16}\s*$/iu.test(line)) original.samples++;
+      else {
+        original.malformed++;
+        fallback.firstMalformedShape ??= {characters: line.length,
+          whitespaceFields: Math.min(32, line.trim().split(/\s+/u).length)};
+      }
+    }
+    fallback.complete = fallback.approvals.every(value => value.samples > 0 && value.malformed === 0);
+    if (!fallback.complete) report.conditions.push('same-data fallback sample shape unavailable');
+    if (!primaryFailure && fallback.complete && report.approvals.some(value =>
+      value.samples !== fallback.approvals.find(other => other.pid === value.pid).samples)) {
+      report.conditions.push('primary and fallback selected sample counts differ');
+    }
+  } catch (error) {
+    fallback.failure = {name: error.name, code: error.code ?? null};
+    report.conditions.push('same-data fallback decoding unavailable');
+  }
+  if (primaryFailure) throw primaryFailure;
+  return report.approvals;
+}
+
+export function saveApprovalPerfReport(output, scratch, report) {
+  // A failed report write retains the same private data for diagnosis.
+  writeFileSync(output, JSON.stringify(report, null, 2) + '\n', {flag: 'wx'});
+  rmSync(scratch, {recursive: true});
 }
 
 export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, output}) {
@@ -66,6 +142,7 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
   const {checkoutState} = await load('packed-client-packages.mjs');
   const {approvalCallCounts} = await load('native-approval-performance.mjs');
   const manifest = await verifyNativeCliRelease(normal), source = checkoutState(root);
+  const dsoMembers = approvalPerfDsoMembers(manifest);
   assert(source.clean && source.revision === manifest.sourceSha,
     'Unchanged installed fixture and artifact require the same original source');
   const original = JSON.parse(readFileSync(binding, 'utf8'));
@@ -76,7 +153,8 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
     sourceSha: source.revision, diagnosticSha256: hash(readFileSync(fileURLToPath(import.meta.url))),
     perfSha256: hash(readFileSync(perf)),
     manifestSha256: original.manifestSha256, uid: process.getuid(), event: 'cpu-clock:u', frequency: 49,
-    callGraph: false, sampleFields: ['pid', 'sym', 'dso'], complete: false,
+    callGraph: false, sampleFields: ['pid', 'sym', 'dsoRole'],
+    dsoRoleMembers: [...dsoMembers.values()], complete: false,
     consumerInvocations: 0, scratchPreservedForSymbols: true, approvals: [], conditions: []};
   const run = (args, options = {}) => spawnSync(perf, args, {cwd: root, encoding: 'utf8',
     maxBuffer: 8 * 1024 ** 2, ...options});
@@ -119,13 +197,8 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
       return {template: scenario.template, pid: approvalCallCounts(approvals[0]).pid};
     });
     stage = 'flat sample attribution';
-    const samples = run(['script', '-i', data, '-F', 'pid,ip,sym,dso']);
-    report.decodeExitCode = samples.status; report.decodeErrorCode = samples.error?.code ?? null;
-    assert(!samples.error && samples.status === 0, 'Flat sample decoding unavailable');
-    if (/lost|throttl/iu.test(samples.stderr)) report.conditions.push('sample decoding reported loss or throttling');
     report.selectedApprovals = selected;
-    report.sampleParsing = {};
-    report.approvals = approvalPerfSamples(samples.stdout, selected, report.sampleParsing);
+    decodeApprovalPerf(run, data, selected, dsoMembers, report);
     assert(report.approvals.every(value => value.samples > 0), 'Actual approval CPU samples missing');
     if (report.approvals.some(value => value.resolvedSymbols === 0))
       report.conditions.push('approval function symbols unavailable');
@@ -139,8 +212,7 @@ export async function nativeApprovalCpuDiagnostic({root, normal, binding, perf, 
     }
   } finally {
     // This directory contains only profiler-derived data, never business state.
-    rmSync(scratch, {recursive: true});
-    writeFileSync(output, JSON.stringify(report, null, 2) + '\n', {flag: 'wx'});
+    saveApprovalPerfReport(output, scratch, report);
   }
   return report;
 }
