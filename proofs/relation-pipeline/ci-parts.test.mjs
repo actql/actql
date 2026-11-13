@@ -221,6 +221,15 @@ test('fixed plan names exactly four capacity and four mutation producers',()=>{
 for(const partId of partIds) test(`${partId} has distinct truthful PART envelope`,()=>{
  assert.doesNotThrow(()=>validatePartEnvelope(envelope(partId),expected,partId));
 });
+test('support envelope retains genuine reports without manufacturing any generic execution evidence',()=>{
+ const support=partIds.find(id=>partRole(id)==='capacity-support');
+ const original=envelope(support);
+ assert.doesNotThrow(()=>validatePartEnvelope(original,expected,support));
+ for(const field of ['owners','receipts','observations']) {
+  const changed=structuredClone(original);changed.evidence[field].push(envelope().evidence[field][0]);
+  assert.throws(()=>validatePartEnvelope(changed,expected,support),/Support cannot manufacture generic evidence/);
+ }
+});
 for(const [label,change] of Object.entries({
  missingStage:m=>m.completedStages.pop(),sealBeforeClose:m=>m.restoration.fixtureClosed=false,
  unrestored:m=>m.restoration.sourceRestored=false,liveWorkspace:m=>m.restoration.workspacesClosed=false,
