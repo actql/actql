@@ -134,14 +134,6 @@
           }
         },
         {
-          "name": "Test Native Salesforce Effect preview",
-          "run": "node scripts/test-native-salesforce-effect-preview.mjs\n",
-          "id": "native-preview",
-          "env": {
-            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-preview"
-          }
-        },
-        {
           "name": "Test Native runtime bundle CLI",
           "run": "node scripts/test-native-runtime-bundle-cli.mjs\n",
           "id": "native-bundle-cli",
@@ -171,35 +163,11 @@
           }
         },
         {
-          "name": "Test Native observation replay",
-          "run": "node scripts/test-native-resident-site.mjs --observation-replay-only\n",
-          "id": "native-observation",
-          "env": {
-            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-observation"
-          }
-        },
-        {
-          "name": "Test Native release recovery",
-          "run": "node scripts/test-native-resident-site.mjs --release-recovery-only\n",
-          "id": "native-release",
-          "env": {
-            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-release"
-          }
-        },
-        {
           "name": "Test Native cancellation",
           "run": "node scripts/test-native-resident-site.mjs --cancel-only\n",
           "id": "native-cancel",
           "env": {
             "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-cancel"
-          }
-        },
-        {
-          "name": "Test Native remote runtime",
-          "run": "node scripts/test-native-remote-runtime.mjs\n",
-          "id": "native-remote",
-          "env": {
-            "ACTQL_TEST_SCRATCH_ROOT": "${{ runner.temp }}/native-tests/native-remote"
           }
         },
         {

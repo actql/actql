@@ -225,7 +225,7 @@ test('separated Native routing refuses unknown profiles and preserves child fail
   }
 });
 
-test('Native consumers keep all original commands and collect independent failures after preparation', t => {
+test('Native consumers retain selected original commands and collect independent failures after preparation', t => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const expected = manifest.scripts['check:native-http-client'].split(' && ');
   const condition = "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}";
@@ -235,8 +235,18 @@ test('Native consumers keep all original commands and collect independent failur
   writeFileSync(join(root, 'node'), '#!/bin/sh\nprintf "%s\\n" "$*" >> "$ACTQL_CALL_LOG"\n' +
     'exit "$ACTQL_FIXTURE_EXIT"\n');
   chmodSync(join(root, 'node'), 0o755);
+  const linuxOwned = new Set([
+    'node scripts/test-native-salesforce-effect-preview.mjs',
+    'node scripts/test-native-remote-runtime.mjs',
+    'node scripts/test-native-resident-site.mjs --effect-computation-only',
+    'node scripts/test-native-resident-site.mjs --observation-replay-only',
+    'node scripts/test-native-resident-site.mjs --release-recovery-only',
+  ]);
+  let selectedCount = 0;
   for (const name of ['native', 'native-macos']) {
-    const selectedCommands = name === 'native-macos' ? [expected[0], ...expected] : expected;
+    const selectedCommands = name === 'native-macos'
+      ? [expected[0], ...expected.filter(command => !linuxOwned.has(command))] : expected;
+    selectedCount += selectedCommands.length;
     const http = name === 'native' ? jobs['native-http'].steps.find(step => step.id === 'native-http')
       : nativeCases(name).find(step => step.id === 'native-http');
     const steps = [http,
@@ -260,7 +270,7 @@ test('Native consumers keep all original commands and collect independent failur
     assert(nativeWorkload(name).steps.find(step => step.id === 'native-preparation').run
       .includes('prepare-native-runtime-bundle-fixture.mjs'));
   }
-  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, expected.length * 2 + 1);
+  assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, selectedCount);
   for (const id of ['packed-materials', 'packed-redelivery', 'packed-output-report'])
     assert.equal(nativeCaseCondition('native', nativeCases('native').find(step => step.id === id)), condition);
 });
