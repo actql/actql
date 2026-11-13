@@ -1310,8 +1310,6 @@ jobs:
         run: node proofs/relation-pipeline/mutation-action-archive.mjs seal
       - name: Reject internally consistent whole-report target substitutions
         run: node proofs/relation-pipeline/audit-target-regression.mjs
-      - name: Audit the complete structural capacity union
-        run: node proofs/relation-pipeline/capacity/audit.mjs
       - name: Retain every capacity target, byte, edge, shrink and compiler negative
         run: node proofs/relation-pipeline/capacity/audit-target-regression.mjs
       - name: Retain derived evidence after the complete successful audit

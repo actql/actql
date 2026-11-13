@@ -78,6 +78,16 @@ the distinct name also permits full fallback if the compact upload itself
 fails after creating an artifact. Successful and incomplete producer uploads
 are unchanged. Status checks occur in step conditions, never upload inputs.
 
+The capacity regression's mandatory `healthy` slot runs the real
+`capacity/audit.mjs` CLI on the unchanged current union, with fresh source,
+original parts, artifact reads and byte checks. Its actual integer status must
+be zero; the other ten slots must retain their exact refusal reasons. Keep all
+eleven slots, both fresh negative workers and the full target-substitution tree,
+including `healthy.log`, `timings.json` and `healthy.json.gz`. That fresh healthy
+CLI is the final capacity audit; a preceding standalone invocation of the same
+audit is redundant. No cached/prior verdict replaces it and no scientific
+validator or capacity obligation is removed.
+
 These artifacts form one diagnostic bundle, not a cache. All producer parts
 and the final artifact use the same repository retention policy. Keep them
 together; do not selectively delete or shorten retention of a referenced part.
