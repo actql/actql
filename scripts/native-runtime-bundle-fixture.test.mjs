@@ -11,6 +11,7 @@ import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
 import {prepareNativeResidentPortableRuntime, verifyNativeResidentPortablePreparation} from './native-resident-portable-preparation.mjs';
+import * as portablePreparation from './native-resident-portable-preparation.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 
@@ -715,4 +716,18 @@ test('bundle libraries use the original component producers and verify their ori
     else assert.deepEqual(prepare(),{sqliteLibrary:join(destination,'sqlite/original.dylib'),
       cryptoLibrary:join(destination,'crypto/original.dylib')});
   }
+});
+
+
+test('shared Native portable module verifies the original prepared software and never rebuilds a refusal',t=>{
+  const f=portablePreparationFixture(t);f.prepare();const calls=[];
+  assert.equal(typeof portablePreparation.prepareNativeResidentPortableCore,'function');
+  const module=()=>portablePreparation.prepareNativeResidentPortableCore(f.root,{env:f.env,preparation:f.receipt,
+    prepare:()=>calls.push('duplicate producer')});
+  assert.equal(module(),join(f.root,'_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'));
+  assert.deepEqual(calls,[]);
+  f.put(f.artifacts[0],'changed original software');assert.throws(module);assert.deepEqual(calls,[]);
+  const original=new Error('original standalone producer failure');
+  assert.throws(()=>portablePreparation.prepareNativeResidentPortableCore(f.root,{env:f.env,preparation:null,
+    prepare:()=>{throw original;}}),error=>error===original);
 });
