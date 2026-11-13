@@ -2526,7 +2526,6 @@ jobs:
   native-workloads:
     needs:
       - select-targets
-      - preflight
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 110
@@ -2708,7 +2707,6 @@ jobs:
   native:
     needs:
       - select-targets
-      - preflight
       - native-workloads
       - native-http
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
@@ -2854,7 +2852,6 @@ jobs:
   native-macos-workloads:
     needs:
       - select-targets
-      - preflight
     if: |-
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
@@ -2947,7 +2944,6 @@ jobs:
   native-macos:
     needs:
       - select-targets
-      - preflight
       - native-macos-workloads
       - native-http-macos
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
