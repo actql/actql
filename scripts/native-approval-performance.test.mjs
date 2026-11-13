@@ -36,6 +36,34 @@ test('authenticated Host subject consumes its original control header without pa
   }
 });
 
+test('same original signing Read reauthenticates retained control DATA without repeating canonical admission', () => {
+  const source = readFileSync(new URL('../src/platform_native/client_host/local_initial_signing_original.mbt', import.meta.url), 'utf8');
+  const extract = name => {
+    const start = source.indexOf('fn ' + name + '(');
+    assert(start >= 0, 'Missing existing control reader: ' + name);
+    const end = source.indexOf('\n///|', start);
+    return source.slice(start, end < 0 ? undefined : end);
+  };
+  const control = extract('read_local_initial_signing_control_with_host_key');
+  const scoped = control.slice(control.indexOf('  if signing_original is Some(original)'), control.indexOf('  if body == host.adoption_body'));
+  const fullAdmissions = value => [...value.matchAll(/(?:local_initial_signing_control_header|read_local_initial_signing_packet|read_initial_host_signing_subject_after_header)\(/gu)].length;
+  const selectedAdmissions = scoped.includes('return original.read_retained_control(')
+    ? fullAdmissions(signingMethod(source, 'NativeLocalInitialSigningOriginal', 'read_retained_control'))
+    : fullAdmissions(control);
+  assert.equal(selectedAdmissions, 0,
+    'An unchanged same-original control must retain its admitted DATA instead of rerunning four canonical readers');
+  assert.match(scoped, /body != original\.control_body/u);
+  assert.match(scoped, /return original\.read_retained_control\(host, body\)/u);
+  assert(fullAdmissions(control) >= 4, 'Unscoped callers retain every complete canonical reader');
+  const retained = signingMethod(source, 'NativeLocalInitialSigningOriginal', 'read_retained_control');
+  assert.match(retained, /check_initial_control_read_scope\(host\)/u);
+  assert.match(retained, /physical_equal\(data\.host, host\)/u);
+  assert.match(retained, /data\.body == body else/u);
+  assert.match(retained, /authenticate_local_installation_payload\(/u);
+  assert.match(retained, /decoded_initial_signing_public_key\(/u);
+  assert.doesNotMatch(retained, /\.authorize\(|\.now\(|\.transaction\(|\.sign_ed25519\(|\.observed_custody\s*=/u);
+});
+
 test('Native approval target requires thirty verified samples on the same source fixture and runner', () => {
   assert.equal(assessNativeApproval(series()).status, 'passed');
   const short = series(); short.samples.pop();

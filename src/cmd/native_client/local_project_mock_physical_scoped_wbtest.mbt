@@ -1223,7 +1223,12 @@ fn native_mock_original_journal_body(
   let material = adoption
     .original_session()
     .native_mock_journal_required("retain original adoption Session")
-    .create_initial_signing_material(crypto)
+    .create_initial_signing_material(
+      crypto,
+      host_signing_subject=Some(
+        ("local-cli", "mock", "key/initial-host-attestation"),
+      ),
+    )
     .native_mock_journal_required("create original first signing material")
   let capture = adoption
     .capture_initial_command_journal_with_original_resources(
@@ -1242,8 +1247,40 @@ fn native_mock_original_journal_body(
   .native_mock_journal_required("leave initial Read")
   let read_counts = Ref(None)
   let scope_digest_counts = Ref(None)
+  let signing_read : Ref[@local_host.NativeLocalInitialSigningOriginal?] = Ref(
+    None,
+  )
+  let signing_failure : Ref[@local_host.NativeLocalAdoptionIssue?] = Ref(None)
   let observed = native_mock_journal_adoption_result(
-    capture.with_original_read(_ => {
+    capture.with_original_read(journal => {
+      // This is the actual original pair/Read, not copied callback flags. All
+      // three initialized packets remain authenticated on repeated getters.
+      let signing = match
+        journal.restore_initial_signing_original(capture=Some(capture)) {
+        Ok(value) => value
+        Err(issue) => {
+          signing_failure.val = Some(issue)
+          return None
+        }
+      }
+      let first_key = match signing.public_key() {
+        Ok(value) => value
+        Err(issue) => {
+          signing_failure.val = Some(issue)
+          return None
+        }
+      }
+      for _ in 0..<3 {
+        match signing.public_key() {
+          Ok(value) if value.cid() == first_key.cid() => ()
+          Err(issue) => {
+            signing_failure.val = Some(issue)
+            return None
+          }
+          _ => return None
+        }
+      }
+      signing_read.val = Some(signing)
       let account = match capture.configuration_in_original_read() {
         Ok(value) => value
         Err(_) => return None
@@ -1313,10 +1350,21 @@ fn native_mock_original_journal_body(
     }),
     "actual original captured Journal Read",
   )
+  if signing_failure.val is Some(issue) {
+    let failed : Result[Unit, @local_host.NativeLocalAdoptionIssue] = Err(issue)
+    native_mock_journal_adoption_result(
+      failed, "actual entered signing control",
+    )
+    |> ignore
+  }
   guard observed is Some((configuration, allow, delegated)) else {
     fail("same adopted Account unavailable inside captured Read")
   }
   assert_true(allow && delegated)
+  assert_true(
+    signing_read.val.unwrap().require_current()
+    is Err(@local_host.OriginalResourceScopePending),
+  )
   let (digest_before, digest_after) = scope_digest_counts.val.unwrap()
   assert_eq(digest_after - digest_before, 0L)
   assert_true(
@@ -1349,7 +1397,20 @@ fn native_mock_original_journal_body(
   let source_before = native_approval_counter(37)
   let admission_before = native_approval_counter(33)
   native_mock_journal_adoption_result(
-    capture.with_original_read(_ => {
+    capture.with_original_read(journal => {
+      guard signing_read.val.unwrap().require_current()
+        is Err(@local_host.OriginalResourceScopePending) else {
+        return Err(@local_host.CustodyLost)
+      }
+      let fresh = match
+        journal.restore_initial_signing_original(capture=Some(capture)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match fresh.require_current() {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       capture.authority_scope_cid_in_original_read("local-cli", "mock")
     }),
     "new public Read revalidates original material",
@@ -1358,6 +1419,9 @@ fn native_mock_original_journal_body(
   |> ignore
   assert_true(native_approval_counter(37) > source_before)
   assert_eq(native_approval_counter(33) - admission_before, 1L)
+  // Pure aliases are dropped before the original pair's real cleanup. This
+  // does not acknowledge or replace any physical close/return below.
+  signing_read.val = None
   // A real independently held Writer changes the original Source between
   // public operations. The next entry must refuse before its callback, and
   // cleanup must still retire that SAME original pair without a new grant.

@@ -1,4 +1,110 @@
 ///|
+test "retained initial packet DATA reauthenticates the current epoch key and preserves its primary fence" {
+  let host = initial_signing_original_fixture("control-data-current-mac")
+  let original = host.restore_initial_signing_original().unwrap()
+  let header = local_initial_signing_control_header(original.control_body).unwrap()
+  let packet = @base64.decode(header[1])
+  let (payload, tag) = local_installation_packet_data(packet).unwrap()
+  authenticate_local_installation_payload(host, payload, tag).unwrap()
+  let changed = Bytes::makei(tag.length(), index => {
+    if index == 0 {
+      tag[index] ^ 1
+    } else {
+      tag[index]
+    }
+  })
+  assert_true(
+    authenticate_local_installation_payload(host, payload, changed)
+    is Err(CustodyLost),
+  )
+  let (key, clock, revision) = read_epoch_custody(host.database).unwrap()
+  let changed_key = Bytes::makei(key.length(), index => {
+    if index == 0 {
+      key[index] ^ 1
+    } else {
+      key[index]
+    }
+  })
+  host.database.begin_immediate().unwrap()
+  host.database
+  .compare_exchange(
+    "client_submission_epoch",
+    "authority",
+    revision,
+    epoch_custody_body(changed_key, clock).unwrap(),
+  )
+  .unwrap()
+  |> ignore
+  host.database.commit().unwrap()
+  assert_true(
+    authenticate_local_installation_payload(host, payload, tag)
+    is Err(CustodyLost),
+  )
+  host.close().unwrap()
+  assert_true(
+    authenticate_local_installation_payload(host, payload, tag)
+    is Err(Epoch(Physical(@sqlite.DatabaseClosed))),
+  )
+  assert_true(
+    read_local_installation_authenticated_payload(host, packet)
+    is Err(Epoch(Physical(@sqlite.DatabaseClosed))),
+  )
+}
+
+///|
+test "retained control DATA keeps private public-key copies and full foreign and role admission" {
+  let host = initial_signing_original_fixture("control-data-role-owner")
+  let foreign = initial_signing_original_fixture("control-data-role-foreign")
+  let original = host.restore_initial_signing_original().unwrap()
+  let (reviewer, host_fields) = read_local_initial_signing_control_with_host_key(
+      host,
+      original.control_body,
+    )
+    .unwrap()
+    .unwrap()
+  let data = retain_initial_signing_control_data(
+    host,
+    original.control_body,
+    reviewer,
+    host_fields,
+  ).unwrap()
+  assert_true(physical_equal(data.body, original.control_body))
+  let expected = data.reviewer.public_key.raw32().unwrap()
+  let returned = original.public_key().unwrap().raw32().unwrap()
+  let altered = Bytes::makei(returned.length(), index => {
+    if index == 0 {
+      returned[index] ^ 1
+    } else {
+      returned[index]
+    }
+  })
+  assert_false(physical_equal(returned, expected))
+  assert_false(data.reviewer.public_key.raw32().unwrap() == altered)
+  assert_eq(data.reviewer.public_key.raw32().unwrap(), expected)
+  let header = local_initial_signing_control_header(original.control_body).unwrap()
+  let swapped = local_adoption_record([
+    ("adoption_body", header[0]),
+    ("initial_signing_original", header[2]),
+    ("initial_host_attestation_original", header[1]),
+  ]).unwrap()
+  assert_true(
+    read_local_initial_signing_control_with_host_key(host, swapped)
+    is Err(CustodyLost),
+  )
+  assert_true(
+    read_local_initial_signing_control_with_host_key(
+      foreign,
+      original.control_body,
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(original.control_data is None)
+  original.require_current().unwrap()
+  foreign.close().unwrap()
+  host.close().unwrap()
+}
+
+///|
 test "initial signing public projection keeps exact role PEM and original public32 correspondence" {
   let host = initial_signing_original_fixture("signing-projection-original")
   let original = host.restore_initial_signing_original().unwrap()
