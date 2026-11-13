@@ -291,6 +291,84 @@ fn plural_infer_run_materials_fixture() -> (
 }
 
 ///|
+test "plural saved inventory uses original checked Model occurrences beyond128 and caller codec limits" {
+  let steps = [
+    (
+      #|{"values":{"schema":{"id":{"type":"string","nullable":false}},"rows":[{"id":"a"}]},"as":"items"}
+    ),
+  ]
+  for index in 0..<129 {
+    steps.push(
+      (
+        #|{"select":["id"]}
+      ),
+    )
+    steps.push(
+      (
+        #|{"derive":{"text":{"literal":"original"}}}
+      ),
+    )
+    steps.push(
+      (
+        #|{"assert_rows":{"unique_by":["id"]}}
+      ),
+    )
+    steps.push(
+      "{\"infer\":{\"contract\":\"model-task:risk-score.v1\",\"key\":\"id\",\"input\":{\"text\":{\"field\":\"text\"}}},\"as\":\"assessment_" +
+      index.to_string() +
+      "\"}",
+    )
+  }
+  let authored = "{\"version\":\"actql/0.1\",\"id\":\"complete-model-inventory\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[" +
+    steps.join(",") +
+    "],\"results\":{\"rows\":{\"from\":\"assessment_128\",\"fields\":[\"id\",\"outcome\",\"value\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+  let prepared = client_composed_infer_test_program(authored=Some(authored))
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 129)
+  // Explicit finite codec bounds for this larger authored fixture. No normal
+  // preparation/Run policy is increased, and no physical backing is asserted.
+  let bounds = {
+    ..run_materials_limits(),
+    max_evidence_bytes: 1000000,
+    max_evidence_nodes: 100000,
+  }
+  let graphs = occurrences.map(occurrence => {
+    issue_installed_client_composed_infer_plan_graph(
+      occurrence,
+      client_infer_graph_test_execution(prepared, occurrence=Some(occurrence)),
+      bounds.sequence,
+      bounds.max_evidence_bytes,
+      bounds.max_evidence_nodes,
+      bounds.max_evidence_depth,
+    ).unwrap()
+  })
+  let wire = encode_client_infer_original_inventory(occurrences, graphs, bounds).unwrap()
+  let inverse = read_plural_client_infer_run_graphs(prepared, wire, bounds).unwrap()
+  assert_eq(inverse.length(), 129)
+  for index in 0..<occurrences.length() {
+    assert_true(
+      client_infer_occurrence_matches_plan(occurrences[index], inverse[index]),
+    )
+    assert_eq(inverse[index].graph.wire, graphs[index].graph.wire)
+  }
+  assert_true(
+    encode_client_infer_original_inventory(occurrences, graphs, {
+      ..bounds,
+      max_evidence_bytes: 64,
+    })
+    is Err(_),
+  )
+  assert_true(
+    encode_client_infer_original_inventory(
+      occurrences,
+      graphs[:128].to_array(),
+      bounds,
+    )
+    is Err(Binding(UnsupportedProgram)),
+  )
+}
+
+///|
 fn plural_infer_run_materials_entries(
   wire : String,
 ) -> Array[@canonical.CanonicalValue] raise {
