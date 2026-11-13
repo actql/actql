@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {accessSync, constants, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs';
+import {accessSync, appendFileSync, constants, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync} from 'node:fs';
 import {version as kernelVersion} from 'node:os';
 import {basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {nativeRuntimeReaderCustodyCacheInput} from './native-runtime-reader-custody-fixture.mjs';
@@ -107,7 +107,7 @@ function ordinaryObjectCache(repository, compiler) {
     CCACHE_EXTRAFILES: [actualClang, join(sdk, 'SDKSettings.json'), ...(reader ? [reader.source] : [])].join(delimiter),
     CCACHE_MAXSIZE: '1GiB', CCACHE_SLOPPINESS: '', CCACHE_REMOTE_STORAGE: '',
     CCACHE_NAMESPACE: 'actql-core-ordinary-' + namespace};
-  return {tool, environment};
+  return {tool, environment, log: join(cache, 'compiler.log')};
 }
 
 function compilerLauncher(repository, original) {
@@ -207,8 +207,14 @@ export function runNativeCoreCCompiler(repository, compiler, args) {
     {stdio: 'inherit', env: cache.environment});
   if (compiled.error || compiled.signal || compiled.status !== 0) return finish(compiled);
   const linked = spawnSync(compiler, plan.link, {stdio: 'inherit'});
+  let reportError;
+  try {
+    appendFileSync(cache.log, 'ACTQL_NATIVE_C_LINK ' + JSON.stringify({source: plan.source,
+      status: linked.status, signal: linked.signal, error: linked.error?.code ?? null}) + '\n');
+  } catch (error) { reportError = error; }
   if (!linked.error && !linked.signal && linked.status === 0) rmSync(temporary, {recursive: true});
   // Keep one enclosing caller deadline. No retry, fresh allowance or fallback
   // follows an actual compiler/link failure; failed object evidence is retained.
   finish(linked);
+  if (linked.status === 0 && reportError) throw reportError;
 }

@@ -530,11 +530,15 @@ jobs:
           import {existsSync, readFileSync} from 'node:fs';
           import {join} from 'node:path';
           const log = join(process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR, 'compiler.log');
+          const text = existsSync(log) ? readFileSync(log, 'utf8') : '';
           const results = {};
-          for (const match of (existsSync(log) ? readFileSync(log, 'utf8') : '').matchAll(/ Result: (\w+)/gu))
+          for (const match of text.matchAll(/ Result: (\w+)/gu))
             results[match[1]] = (results[match[1]] ?? 0) + 1;
           // Each key is separate: auxiliary storage results are not compilations.
           console.log('Current-job compiler cache result keys:', JSON.stringify(results));
+          const links = [...text.matchAll(/^ACTQL_NATIVE_C_LINK (.+)$/gmu)].map(match => JSON.parse(match[1]));
+          console.log('Current-job fresh links:', JSON.stringify({attempts: links.length,
+            succeeded: links.filter(value => value.status === 0 && !value.signal && !value.error).length}));
           NODE
       - name: Save ordinary Native C objects
         if: ${{ success() && steps.native-c-object-cache.outcome == 'success' && steps.native-c-object-cache-restore.outcome == 'success' && steps.native-c-object-cache-restore.outputs.cache-hit != 'true' }}
