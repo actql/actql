@@ -193,14 +193,39 @@ test('every original Native command and environment has one same-VM execution ow
     const http = workflow.jobs[family === 'native' ? 'native-http' : 'native-http-macos'];
     const cases = [...workload.steps, ...http.steps, ...background[family].flatMap(group => group.steps)]
       .filter(step => step.run && /^(?:Test |Verify registered)/u.test(step.name ?? ''));
-    assert.deepEqual(cases.map(step => step.name).sort(), obligations.map(step => step.name).sort());
-    for (const expected of obligations) {
+    const transferred = family === 'native-macos' ? new Set(original.macosLinuxCounterparts.map(row => row.name)) : new Set();
+    const selected = obligations.filter(row => !transferred.has(row.name));
+    assert.deepEqual(cases.map(step => step.name).sort(), selected.map(step => step.name).sort());
+    for (const expected of selected) {
       const matches = cases.filter(step => step.name === expected.name);
       assert.equal(matches.length, 1, expected.name);
       assert.equal(createHash('sha256').update(matches[0].run).digest('hex'), expected.commandSha256, expected.name);
       assert.deepEqual(matches[0].env ?? {}, expected.env, expected.name);
     }
   }
+});
+
+test('macOS removes only the five decided duplicates with unchanged Linux execution owners', () => {
+  assert.deepEqual(original.macosLinuxCounterparts.map(row => row.name), [
+    'Test Native Salesforce Effect preview', 'Test Native observation replay',
+    'Test Native release recovery', 'Test Native remote runtime', 'Test Native Resident Effect computation',
+  ]);
+  const linux = [...workflow.jobs['native-workloads'].steps, ...background.native.flatMap(group => group.steps)];
+  const mac = [...workflow.jobs['native-macos-workloads'].steps, ...background['native-macos'].flatMap(group => group.steps)];
+  for (const row of original.macosLinuxCounterparts) {
+    assert.equal(row.job, 'native-workloads');
+    assert.equal(mac.filter(step => step.name === row.name).length, 0);
+    const matches = linux.filter(step => step.id === row.id && step.name === row.name);
+    assert.equal(matches.length, 1, row.name);
+    const expected = original.jobs.native.find(step => step.name === row.name);
+    assert.equal(createHash('sha256').update(matches[0].run).digest('hex'), expected.commandSha256);
+    assert.deepEqual(matches[0].env ?? {}, expected.env);
+  }
+  assert.deepEqual(background['native-macos'].map(group => group.steps.map(step => step.id ?? step.name)), [
+    ['Verify native macOS arm64 profile', 'Test finite original SQLite statement and selected API custody',
+      'Test native macOS retained task file ownership', 'native-http', 'native-bundle-cli', 'native-publication-lock'],
+    ['native-source', 'native-cancel', 'native-http-controls'],
+  ]);
 });
 
 test('Linux HTTP remains independent while macOS HTTP shares the original same-VM preparation', () => {
@@ -221,8 +246,9 @@ test('Linux HTTP remains independent while macOS HTTP shares the original same-V
     const effect = workload.steps.findIndex(step => step.id === 'native-effect');
     const site = workload.steps.findIndex(step => step.id === 'native-runtime-test');
     const join = workload.steps.findIndex(step => step.id === 'native-background');
-    assert(preparation < start && start < effect && effect < site && site < join);
+    assert(preparation < start && start < site && site < join);
     if (family === 'native') {
+      assert(start < effect && effect < site);
       const retained = workload.steps.findIndex(step => step.name === 'Verify registered Native retained product path');
       assert(retained > join, 'The long retained compiler cannot hold the global Moon lock during npm prepack');
       assert.equal(workload.steps[retained].if,
@@ -236,6 +262,7 @@ test('Linux HTTP remains independent while macOS HTTP shares the original same-V
       assert(!background[family].flatMap(group => group.steps).some(step =>
         step.name === 'Verify registered Native retained product path'));
     } else {
+      assert.equal(effect, -1, 'Linux owns the complete unchanged Effect case');
       assert(workload.steps.slice(join + 1).every(step => step.run === undefined));
       const runtime = background[family].find(group => group.name === 'runtime');
       const consumer = runtime.steps.findIndex(step => step.id === 'native-http');

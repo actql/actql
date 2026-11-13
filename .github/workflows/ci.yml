@@ -2915,21 +2915,6 @@ jobs:
             ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
           if-no-files-found: warn
           retention-days: 14
-      - name: Test Native Resident Effect computation
-        id: native-effect
-        if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}
-        env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-effect
-        run: |
-          node scripts/test-native-resident-site.mjs --effect-computation-only
-      - name: Retain original Native Effect failure observer summary
-        if: ${{ !cancelled() && steps.native-effect.outcome == 'failure' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: native-effect-original-macos-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/native-tests/native-effect/*/resident-consumer-summary.json
-          if-no-files-found: warn
-          retention-days: 14
       - name: Test Native Resident Site
         id: native-runtime-test
         if: ${{ !cancelled() && steps.native-preparation.outcome == 'success' }}

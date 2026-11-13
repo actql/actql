@@ -247,5 +247,32 @@
         }
       }
     ]
-  }
+  },
+  "macosLinuxCounterparts": [
+    {
+      "name": "Test Native Salesforce Effect preview",
+      "job": "native-workloads",
+      "id": "native-preview"
+    },
+    {
+      "name": "Test Native observation replay",
+      "job": "native-workloads",
+      "id": "native-observation"
+    },
+    {
+      "name": "Test Native release recovery",
+      "job": "native-workloads",
+      "id": "native-release"
+    },
+    {
+      "name": "Test Native remote runtime",
+      "job": "native-workloads",
+      "id": "native-remote"
+    },
+    {
+      "name": "Test Native Resident Effect computation",
+      "job": "native-workloads",
+      "id": "native-effect"
+    }
+  ]
 }

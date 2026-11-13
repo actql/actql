@@ -281,7 +281,8 @@ test('missing debugger reports availability without a target attempt or fallback
 
 test('Original Native Effect summaries are retained before diagnostic and independent groups', () => {
   const jobs = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs;
-  for (const [name, platform] of [['native', 'linux'], ['native-macos', 'macos']]) {
+  assert(!jobs['native-macos-workloads'].steps.some(step => step.id === 'native-effect'));
+  for (const [name, platform] of [['native', 'linux']]) {
     const steps = jobs[name + '-workloads'].steps;
     const effect = steps.findIndex(step => step.id === 'native-effect');
     const artifact = steps[effect + 1];
