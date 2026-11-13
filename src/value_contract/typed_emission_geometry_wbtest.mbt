@@ -29,3 +29,20 @@ test "typed scalar geometry agrees with actual checked emission" {
   assert_eq(checked_emission_geometry(wide).unwrap().max_fields, 129)
   assert_eq(checked_emission_geometry(text).unwrap().enum_items, 3)
 }
+
+///|
+test "typed geometry rejects depth before descending below the selected bound" {
+  let number = primitive(NumberType, nullable=false)
+  let array = array_contract(number, nullable=false, max_items=None).unwrap()
+  let object = object_contract(
+    [("value", array)],
+    nullable=false,
+    max_fields=1,
+    max_name_bytes=100,
+  ).unwrap()
+  let full = checked_emission_geometry(object).unwrap()
+  assert_eq(checked_emission_geometry(object, max_depth=full.depth), Some(full))
+  assert_eq(checked_emission_geometry(object, max_depth=full.depth - 1), None)
+  assert_eq(checked_emission_geometry(number, max_depth=0), None)
+  assert_eq(checked_emission_geometry(array, max_depth=1), None)
+}

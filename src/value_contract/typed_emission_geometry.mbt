@@ -16,7 +16,13 @@ pub(all) struct CheckedEmissionGeometry {
 /// and their byte lengths are deliberately not measured here. None means an
 /// Int-sized geometry cannot represent this checked tree, never permission to
 /// truncate, substitute a policy limit or weaken its original contract.
-pub fn checked_emission_geometry(value : Contract) -> CheckedEmissionGeometry? {
+pub fn checked_emission_geometry(
+  value : Contract,
+  max_depth? : Int = 2147483647,
+) -> CheckedEmissionGeometry? {
+  if max_depth < 1 {
+    return None
+  }
   // Every checked object has nullable and type, plus its own object node.
   let mut contracts = 1L
   let mut nodes = 3L
@@ -44,7 +50,10 @@ pub fn checked_emission_geometry(value : Contract) -> CheckedEmissionGeometry? {
     ResourceRef(..) => nodes += 1L
     ContentRef(media_type~) => if media_type is Some(_) { nodes += 1L }
     Array(child, max_items~) => {
-      guard checked_emission_geometry(child) is Some(child) else { return None }
+      guard checked_emission_geometry(child, max_depth=max_depth - 1)
+        is Some(child) else {
+        return None
+      }
       contracts += child.contract_nodes.to_int64()
       nodes += child.value_nodes.to_int64()
       if max_items is Some(_) {
@@ -65,7 +74,8 @@ pub fn checked_emission_geometry(value : Contract) -> CheckedEmissionGeometry? {
       max_fields = field_count(fields)
       for index in 0..<field_count(fields) {
         guard field_at(fields, index) is Some(field) &&
-          checked_emission_geometry(field.contract) is Some(child) else {
+          checked_emission_geometry(field.contract, max_depth=max_depth - 2)
+          is Some(child) else {
           return None
         }
         contracts += child.contract_nodes.to_int64()
@@ -83,7 +93,10 @@ pub fn checked_emission_geometry(value : Contract) -> CheckedEmissionGeometry? {
     }
     _ => ()
   }
-  if contracts > 2147483647L || nodes > 2147483647L || enums > 2147483647L {
+  if depth > max_depth ||
+    contracts > 2147483647L ||
+    nodes > 2147483647L ||
+    enums > 2147483647L {
     return None
   }
   Some({

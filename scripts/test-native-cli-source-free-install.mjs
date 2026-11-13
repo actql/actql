@@ -164,6 +164,58 @@ export async function observeNativeDefaultNumericQueries({project, cli, queries 
   return observations;
 }
 
+// Cross both former metadata boundaries (64 KiB plan view and 128 KiB Run
+// observation) with the ordinary init profile, not enlarged test arenas.
+export const nativeDefaultUnionCases = Object.freeze([
+  {branches: 11, total: 55}, {branches: 17, total: 136}, {branches: 24, total: 276},
+]);
+
+export async function observeNativeDefaultUnionMetadata({root, cli}) {
+  const project = join(root, 'ordinary-union-metadata');
+  await cli(['init', project], root);
+  const configuration = await readFile(join(project, 'actql.config.json'), 'utf8');
+  assert.equal(JSON.parse(configuration).profile, undefined, 'Ordinary default profile required');
+  const rows = text => text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  const observations = [], retained = [];
+  for (const {branches, total} of nativeDefaultUnionCases) {
+    const file = `union-${branches}.sql`;
+    const sql = 'WITH t AS (' + Array.from({length: branches}, (_, index) =>
+      `SELECT ${index} AS v`).join(' UNION ALL ') + ') SELECT SUM(v) AS total FROM t';
+    await writeFile(join(project, file), sql, {flag: 'wx', mode: 0o600});
+    const run = await cli(['run', file, '--format', 'sql', '--json'], project);
+    const state = JSON.parse(run.stdout);
+    assert.equal(state.version, 'actql-run-state/0.1');
+    assert.equal(state.status, 'succeeded', `${branches}-branch admission must succeed`);
+    assert.equal(typeof state.run_id, 'string'); assert(state.run_id.length > 0);
+    assert(!retained.some(value => value.runId === state.run_id), 'Distinct original Runs required');
+    await unlink(join(project, file));
+    // Every command is a new actual installed process. The invalid input must
+    // not poison the unchanged installation or cause Saved to reexecute SQL.
+    await cli(['sql', 'SELECT )', '--format', 'json'], project, 1);
+    assert.deepEqual(rows((await cli(['sql', 'SELECT 9821 AS n', '--format', 'jsonl'], project)).stdout), [{n: 9821}]);
+    const saved = await cli(['result', state.run_id, '--format', 'jsonl'], project);
+    assert.deepEqual(rows(saved.stdout), [{total}]);
+    const explain = await cli(['explain', '--run', state.run_id, '--json'], project);
+    const value = JSON.parse(explain.stdout);
+    assert.equal(value.version, 'actql-run-plan-view/0.1');
+    assert(value.plan_view && typeof value.plan_view === 'object' && !Array.isArray(value.plan_view));
+    assert(value.run_ref && typeof value.run_ref === 'object' && !Array.isArray(value.run_ref));
+    const again = await cli(['explain', '--run', state.run_id, '--json'], project);
+    assert.equal(again.stdout, explain.stdout, 'Repeated cold Saved explain must retain exact bytes');
+    assert.equal(await readFile(join(project, 'actql.config.json'), 'utf8'), configuration,
+      'Acceptance must not widen the ordinary project profile');
+    retained.push({runId: state.run_id, total});
+    observations.push({branches, total, runId: state.run_id, coldSavedWithoutProgram: true,
+      recoveryAfterInvalidQuery: true, repeatedExplainBytesIdentical: true,
+      runElapsedMs: run.elapsedMs, savedElapsedMs: saved.elapsedMs,
+      explainElapsedMs: explain.elapsedMs, repeatedExplainElapsedMs: again.elapsedMs});
+  }
+  for (const {runId, total} of retained) {
+    assert.deepEqual(rows((await cli(['result', runId, '--format', 'jsonl'], project)).stdout), [{total}]);
+  }
+  return {profile: 'ordinary-unmodified-init', cases: observations, oldestSavedAfterLaterSubmissions: true};
+}
+
 export async function observeNativeFileSourceNumeric({root, cli}) {
   const project = join(root, 'numeric-file-source');
   await cli(['init', '--template', 'churn-risk-mock', project], root);
@@ -855,6 +907,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
     const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli: sourceFreeCli});
+    const defaultUnionMetadata = await observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli});
     const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const help = (await cli(['--help'])).stdout;
@@ -931,7 +984,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, fileSourceNumeric,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, fileSourceNumeric,
       journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,

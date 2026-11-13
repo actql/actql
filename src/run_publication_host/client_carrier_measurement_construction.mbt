@@ -21,6 +21,7 @@ pub(all) struct ClientCarrierMeasurementConstruction {
 
 ///|
 priv struct CarrierMeasurementScan {
+  max_depth : Int
   mut nodes : Int64
   mut depth : Int
   mut contracts : Int
@@ -37,7 +38,11 @@ fn carrier_measurement_contract(
   contract : @contract.Contract,
   enclosing : Int,
 ) -> Bool {
-  guard @contract.checked_emission_geometry(contract) is Some(g) &&
+  guard @contract.checked_emission_geometry(
+      contract,
+      max_depth=scan.max_depth - enclosing,
+    )
+    is Some(g) &&
     g.depth <= 2147483647 - enclosing else {
     return false
   }
@@ -109,11 +114,16 @@ fn carrier_measurement_graph_definition(
 ///|
 pub fn client_carrier_measurement_construction(
   carrier : @carrier.Carrier,
+  max_depth? : Int = 2147483647,
 ) -> ClientCarrierMeasurementConstruction? {
   guard client_task_contract_source(carrier) is Some(source) else {
     return None
   }
+  if max_depth < 1 {
+    return None
+  }
   let scan : CarrierMeasurementScan = {
+    max_depth,
     nodes: 0L,
     depth: 0,
     contracts: 0,
@@ -198,7 +208,7 @@ pub fn client_carrier_measurement_construction(
       }
     }
   }
-  if scan.nodes > 2147483647L {
+  if scan.depth > max_depth || scan.nodes > 2147483647L {
     return None
   }
   Some({

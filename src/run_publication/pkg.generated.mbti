@@ -111,6 +111,8 @@ pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvid
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
 
+pub fn admit_saved_compiled_plan_value(String, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
+
 pub fn admit_saved_effect_file_operation_receipt(String, Bytes, Int, Int, Int, Int) -> Result[EffectFileOperationReceipt, EffectRowOutcomeIssue]
 
 pub fn admit_source_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
@@ -1134,6 +1136,10 @@ pub fn run_publication_template_cid(RunPublicationAdmission) -> String
 pub fn run_wait_ready(String, Int64?, Int, Int, Int) -> Result[Bool, RunWaitIssue]
 
 pub fn run_wait_ready_until(String, Int64?, RunWaitUntil, Int, Int, Int) -> Result[Bool, RunWaitIssue]
+
+pub fn saved_compiled_plan_matches_definition(PublicationContract, PublicationContract, String?) -> Bool
+
+pub fn saved_compiled_plan_validation_construction(Int) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn seal_completed_file_listing_observation(CompletedSourceObservationBody, Int, Array[CompletedFileListingReportRow]) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
