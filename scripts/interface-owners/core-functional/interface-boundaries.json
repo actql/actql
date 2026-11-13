@@ -22453,7 +22453,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "435466141a01264b25fc1b6252740677927af4237abcb0c4b310aecf8e812f30",
+      "sha256": "16f62dabe25ef617bc016bbd7f63a7a2f2cb387c8aeab541ff40f00f1bf09bb5",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
