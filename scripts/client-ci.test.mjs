@@ -1040,7 +1040,8 @@ test('local commands remain available for each independently retryable group', (
     for (const command of runs(name)) {
       if (command === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts') {
         assert(!child.stdout.includes(command), 'Local checks retain installed dependencies');
-      } else assert(child.stdout.includes(command));
+      } else assert(child.stdout.includes(name === 'client-packed'
+        ? command.replace('${{ matrix.query-part }}', 'portable') : command));
     }
   }
 });

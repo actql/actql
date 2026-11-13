@@ -89,6 +89,8 @@ function commands(name, target, raw = false) {
   }
   const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
+    // Hosted portable shards do not narrow the existing full local command.
+    .replaceAll('${{ matrix.query-part }}', name === 'client-packed' ? 'portable' : '${{ matrix.query-part }}')
     // A local full Core invocation remains unpartitioned. Hosted-only Linux
     // partitions cannot silently narrow this existing diagnostic entrance.
     .replaceAll('${{ matrix.partition }}', name === 'core' ? '' : '${{ matrix.partition }}')
