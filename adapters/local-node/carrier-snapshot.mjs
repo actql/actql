@@ -6,12 +6,12 @@ const yieldToHost = () => new Promise(resolve =>
   typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));
 const quantum = 32;
 
-const validateAdvance = observation => {
+const validateAdvance = (observation, bufferedOutput = false) => {
   if (!observation || typeof observation.complete !== 'boolean' ||
       typeof observation.work !== 'bigint' || observation.work < 0n ||
       observation.work > BigInt(quantum) ||
       typeof observation.progress !== 'bigint' || observation.progress < 0n ||
-      (!observation.complete && observation.work === 0n)) {
+      (!observation.complete && observation.work === 0n && !bufferedOutput)) {
     throw new Error('InvalidLocalSnapshotAdvance');
   }
   return observation;
@@ -94,9 +94,15 @@ function prepareLocalSnapshot(operations, createLease, checked, signal, moon) {
       let emittedBytes = 0;
       for (;;) {
         signal?.throwIfAborted();
-        const observation = relation ? undefined : validateAdvance(checked(operation.advance_save(quantum)));
-        const part = checked(relation ? operation.next() : operation.take_output());
-        if (relation && part == null) break;
+        const advanced = checked(operation.advance_save(quantum));
+        if (!relation) validateAdvance(advanced);
+        signal?.throwIfAborted();
+        const part = checked(operation.take_output());
+        // A bounded Relation poll may drain already-admitted buffered bytes
+        // before entering another row transition. Empty zero-work polls still
+        // fail; physical output is never invented to make progress.
+        const observation = relation ? validateAdvance(advanced,
+          typeof part === 'string' && part.length > 0) : advanced;
         if (typeof part !== 'string') throw new Error('InvalidLocalSnapshotFrame');
         if (part.length > maximumFrameBytes) throw new Error('LocalSnapshotByteLimit');
         const bytes = new TextEncoder().encode(part).byteLength;
@@ -104,7 +110,10 @@ function prepareLocalSnapshot(operations, createLease, checked, signal, moon) {
           throw new Error('LocalSnapshotByteLimit');
         }
         emittedBytes += bytes;
-        if (bytes !== 0) await writer.append(part);
+        if (bytes !== 0) {
+          await writer.append(part);
+          signal?.throwIfAborted();
+        }
         if (observation?.complete) break;
         await yieldToHost();
       }

@@ -350,6 +350,7 @@ pub fn advance_completed_output_export(
   quantum : Int,
   max_workspace_slots : Int,
   batch? : Bool = false,
+  before_step? : (() -> Bool)? = None,
 ) -> Result[CompletedOutputExportAdvance, CompletedExportIssue] {
   if stream.reading {
     return Err(Closed)
@@ -424,6 +425,21 @@ pub fn advance_completed_output_export(
           }
           stream.drained_bytes = @encode.observed_writer_usage(stream.writer).0
           return Ok({ batch: Some(part), complete: false, steps: step, })
+        }
+      }
+      // The existing caller can debit its same finite work owner before the
+      // transition. Refusal executes no transition; an admitted failing step
+      // stays spent. This callback supplies no row/read authority.
+      if before_step is Some(debit) {
+        if !debit() {
+          return Err(Admission(CaptureLimit))
+        }
+        // A callback can revoke or close the borrowed original. Recheck the
+        // same source after it, rather than treating a debit as availability.
+        if stream.source is None ||
+          !completed_output_available(source) ||
+          stream.source is None {
+          return Err(Unavailable)
         }
       }
       // Record entry before a frame can fail and clear its private cursor.

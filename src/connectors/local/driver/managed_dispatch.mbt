@@ -192,6 +192,8 @@ pub struct LocalManagedSnapshot {
 pub struct LocalManagedRelationSnapshot {
   key : String
   frames : LocalInputFrames
+  advance_save : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
+  take_output : () -> Result[String, LocalDispatchIssue]
   next : () -> Result[String?, LocalDispatchIssue]
   content : () -> Result[@carrier_runtime.SnapshotContent, LocalDispatchIssue]
   release_source : (String, () -> Bool) -> Result[Unit, LocalDispatchIssue]
@@ -2909,6 +2911,169 @@ pub fn[T] start_local_managed_dispatch(
           Configuration(InvalidLimits)
         })
       }
+      // The same final receipt/tail path serves legacy row reads and the
+      // bounded physical batch reader. Neither supplies a Store write ACK.
+      let finish_save = fn(
+        value : @execution.CompletedOutputExport,
+      ) -> Result[String, LocalDispatchIssue] {
+        let (finished, tail) = match
+          @execution.finish_completed_output_export(value) {
+          Ok(result) => result
+          Err(_) => return Err(Configuration(InputUnavailable))
+        }
+        receipt.val = Some(finished)
+        stream.val = None
+        match fund_part(tail) {
+          Ok(_) => ()
+          Err(issue) => {
+            phase.val = Failed
+            if execution_failure.val is None {
+              execution_failure.val = Some(issue)
+            }
+            return Err(issue)
+          }
+        }
+        let content = @execution.completed_export_content(finished)
+        reload_capacity.val = local_relation_snapshot_reload_capacity(
+          setup.imports,
+          content,
+        )
+        if !live.val ||
+          phase.val != Saving ||
+          !(receipt.val is Some(actual) && physical_equal(actual, finished)) {
+          return Err(Execution(Stopped))
+        }
+        phase.val = Saved
+        Ok(tail)
+      }
+      let save_output : Ref[String?] = Ref(None)
+      let save_work = Ref(0L)
+      let save_issue : Ref[LocalDispatchIssue?] = Ref(None)
+      let workspace_slots = match
+        @execution.completed_output_export_workspace_slots(
+          setup.imports.values,
+          wire,
+        ) {
+        Some(value) => value
+        None => return Err(Configuration(InvalidLimits))
+      }
+      let debit_save_step = fn() -> Bool {
+        if !live.val || phase.val != Saving || execution_failure.val is Some(_) {
+          save_issue.val = Some(Execution(Stopped))
+          return false
+        }
+        if remaining.val < 1L {
+          let issue = ControlWorkLimit(setup.execution.max_work)
+          save_issue.val = Some(issue)
+          execution_failure.val = Some(issue)
+          phase.val = Failed
+          return false
+        }
+        match @local.managed_provider_record_handoff_work(active, 1L) {
+          Err(_) => {
+            save_issue.val = Some(Configuration(InvalidLimits))
+            return false
+          }
+          Ok(_) => ()
+        }
+        remaining.val -= 1L
+        save_work.val += 1L
+        true
+      }
+      let advance_save = fn(
+        quantum : Int,
+      ) -> Result[LocalManagedAdvance, LocalDispatchIssue] {
+        with_local_managed_import_mutation(import_mutating, fn() {
+          if !live.val ||
+            execution_failure.val is Some(_) ||
+            quantum <= 0 ||
+            quantum > 32 ||
+            save_output.val is Some(_) {
+            return Err(Configuration(InvalidLimits))
+          }
+          if phase.val == Saved {
+            return Ok({
+              complete: true,
+              waiting: false,
+              settlement: None,
+              progress: emitted_bytes.val,
+              work: 0L,
+            })
+          }
+          guard phase.val == Saving && stream.val is Some(value) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          if setup.metered_retention {
+            // Before construction: saved body plus the bounded builder, the
+            // drained String, and the Store's copied Buffer can overlap.
+            // The existing unit conversion owns their logical byte allowance.
+            let frame = Int::min(
+              frames.maxFrameBytes,
+              maximum_bytes - emitted_bytes.val.to_int(),
+            ).to_int64()
+            guard @execution.execution_capacity_inventory_add(
+                0L,
+                CanonicalWireBytes,
+                emitted_bytes.val + 3L * frame,
+                1,
+              )
+              is Some(quoted) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            match reserve_transport(quoted) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+            if !live.val ||
+              phase.val != Saving ||
+              !(stream.val is Some(actual) && physical_equal(actual, value)) {
+              return Err(Execution(Stopped))
+            }
+          }
+          save_issue.val = None
+          let before_work = save_work.val
+          let observation = match
+            @execution.advance_completed_output_export(
+              value,
+              quantum,
+              workspace_slots,
+              batch=true,
+              before_step=Some(debit_save_step),
+            ) {
+            Ok(value) => value
+            Err(issue) => {
+              let failure = save_issue.val.unwrap_or(IdentityExport(issue))
+              execution_failure.val = Some(failure)
+              phase.val = Failed
+              return Err(failure)
+            }
+          }
+          if observation.batch is Some(part) {
+            match fund_part(part) {
+              Err(issue) => {
+                execution_failure.val = Some(issue)
+                phase.val = Failed
+                return Err(issue)
+              }
+              Ok(_) => save_output.val = Some(part)
+            }
+          }
+          if observation.complete {
+            let tail = match finish_save(value) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+            save_output.val = Some(tail)
+          }
+          Ok({
+            complete: observation.complete,
+            waiting: false,
+            settlement: None,
+            progress: emitted_bytes.val,
+            work: save_work.val - before_work,
+          })
+        })
+      }
       snapshot_attempted.val = true
       snapshot_ready.val = false
       snapshot_storage_released.val = Some(storage_released)
@@ -2947,6 +3112,7 @@ pub fn[T] start_local_managed_dispatch(
         true
       }
       relation_snapshot_cancel.val = Some(fn() {
+        save_output.val = None
         if stream.val is Some(value) {
           @execution.cancel_completed_output_export(value)
         }
@@ -2964,6 +3130,15 @@ pub fn[T] start_local_managed_dispatch(
         Some({
           key: "relation-task-" + setup.task.to_string(),
           frames,
+          advance_save,
+          take_output: () => {
+            if !live.val || (phase.val != Saving && phase.val != Saved) {
+              return Err(Execution(Stopped))
+            }
+            let part = save_output.val.unwrap_or("")
+            save_output.val = None
+            Ok(part)
+          },
           next: () => {
             with_local_managed_import_mutation(import_mutating, fn() {
               if phase.val == Saved {
@@ -2987,38 +3162,7 @@ pub fn[T] start_local_managed_dispatch(
                       Err(issue)
                     }
                   }
-                Ok(None) => {
-                  let (finished, tail) = match
-                    @execution.finish_completed_output_export(value) {
-                    Ok(result) => result
-                    Err(_) => return Err(Configuration(InputUnavailable))
-                  }
-                  receipt.val = Some(finished)
-                  stream.val = None
-                  match fund_part(tail) {
-                    Ok(_) => ()
-                    Err(issue) => {
-                      phase.val = Failed
-                      if execution_failure.val is None {
-                        execution_failure.val = Some(issue)
-                      }
-                      return Err(issue)
-                    }
-                  }
-                  let content = @execution.completed_export_content(finished)
-                  reload_capacity.val = local_relation_snapshot_reload_capacity(
-                    setup.imports,
-                    content,
-                  )
-                  if !live.val ||
-                    phase.val != Saving ||
-                    !(receipt.val is Some(actual) &&
-                    physical_equal(actual, finished)) {
-                    return Err(Execution(Stopped))
-                  }
-                  phase.val = Saved
-                  Ok(Some(tail))
-                }
+                Ok(None) => finish_save(value).map(value => Some(value))
                 Err(_) => Err(Configuration(InputUnavailable))
               }
             })
