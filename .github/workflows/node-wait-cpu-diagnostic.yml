@@ -1,0 +1,77 @@
+name: Installed Node wait CPU diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      package-run-id:
+        description: Original normal CI run with a successful client-packages job
+        type: string
+        required: true
+      package-artifact-id:
+        description: Exact original normal five-package artifact ID
+        type: string
+        required: true
+      package-event-head:
+        description: Original producer event head SHA
+        type: string
+        required: true
+      package-build-source:
+        description: Exact original packed manifest source SHA
+        type: string
+        required: true
+      package-archive-sha256:
+        description: Exact original artifact ZIP SHA256
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  node-wait-cpu:
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Stage the reviewed diagnostic separately from the original package source
+        run: |
+          mkdir "$RUNNER_TEMP/node-wait-cpu"
+          cp scripts/test-node-wait-cpu-diagnostic.mjs "$RUNNER_TEMP/node-wait-cpu/diagnostic.mjs"
+          cp scripts/fixtures/node-wait-cpu.actor.mjs "$RUNNER_TEMP/node-wait-cpu/actor.mjs"
+      - name: Verify the original producer source and exact artifact archive
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_RUN_ID: ${{ inputs.package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.package-artifact-id }}
+          PACKAGE_EVENT_HEAD_SHA: ${{ inputs.package-event-head }}
+          PACKAGE_BUILD_SOURCE_SHA: ${{ inputs.package-build-source }}
+          PACKAGE_ARCHIVE_SHA256: ${{ inputs.package-archive-sha256 }}
+        run: |
+          node "$RUNNER_TEMP/node-wait-cpu/diagnostic.mjs" artifact "$GITHUB_WORKSPACE" "$RUNNER_TEMP/node-wait-cpu"
+          source_sha=$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.env.RUNNER_TEMP + "/node-wait-cpu/source.json", "utf8")).sourceSha)')
+          git diff --exit-code
+          git diff --cached --exit-code
+          git fetch --no-tags --depth=1 origin "$source_sha"
+          git checkout --detach "$source_sha"
+      - name: Sample one installed wait with unchanged normal packages
+        run: node "$RUNNER_TEMP/node-wait-cpu/diagnostic.mjs" collect "$GITHUB_WORKSPACE" "$RUNNER_TEMP/node-wait-cpu"
+      - name: Retain sanitized diagnostic results and original artifact metadata
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: node-wait-cpu-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/node-wait-cpu/cpu.json
+            ${{ runner.temp }}/node-wait-cpu/cpu-pending.json
+            ${{ runner.temp }}/node-wait-cpu/producer.json
+            ${{ runner.temp }}/node-wait-cpu/source.json
+            ${{ runner.temp }}/node-wait-cpu/packages/packed-client-packages.json
+          if-no-files-found: warn
+          retention-days: 30
