@@ -393,7 +393,7 @@ pub fn client_captured_content_wire(ClientCapturedContent) -> String
 
 pub fn client_captured_content_workspace_capacity(Int, inventory_count? : Int) -> (Int64, Int64)?
 
-pub fn client_carrier_measurement_construction(@carrier_contract.Carrier) -> ClientCarrierMeasurementConstruction?
+pub fn client_carrier_measurement_construction(@carrier_contract.Carrier, max_depth? : Int) -> ClientCarrierMeasurementConstruction?
 
 pub fn client_carrier_measurement_variable_layout(ClientCarrierMeasurementConstruction) -> ClientCarrierMeasurementVariableLayout?
 

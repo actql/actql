@@ -126,22 +126,45 @@ test "cold binding preserves valid empty logical map without inventing key codec
 
 ///|
 test "cold plan rejects a valid resealed foreign logical map through binding" {
-  let (_, prepared, compiled, definition) = journal_test_run("cold-foreign-request", "cold-foreign-run")
-  let captured = capture_native_run_plan_original(prepared, compiled, definition).unwrap()
+  let (_, prepared, compiled, definition) = journal_test_run(
+    "cold-foreign-request", "cold-foreign-run",
+  )
+  let captured = capture_native_run_plan_original(
+    prepared, compiled, definition,
+  ).unwrap()
   let foreign_program = "sha256:" + "f".repeat(64)
   assert_true(foreign_program != captured.program_cid)
   let map = @publication.seal_run_evidence_value(
     "logical_map",
     "{\"version\":\"actql-logical-map/0.1\",\"compiled_plan_cid\":\"" +
     @publication.publication_contract_identity(captured.original.plan) +
-    "\",\"program_definition_cid\":\"" + foreign_program + "\",\"steps\":[]}",
-    65536, 8192, 64,
+    "\",\"program_definition_cid\":\"" +
+    foreign_program +
+    "\",\"steps\":[]}",
+    65536,
+    8192,
+    64,
   ).unwrap()
   let json = @json.parse(captured.original.view)
-  guard json is Json::object(fields) else { fail("expected plan_view object") }
+  guard json is Object(fields) else { fail("expected plan_view object") }
   fields["logical_map"] = @json.parse(@publication.run_evidence_value_json(map))
-  let view = @canonical.stringify_value(@canonical.from_json(json, 8192, 64, 65536, data_keys=true), 65536, 8192, 64)
-  assert_true(@publication.parse_interactive_run_control_shape("plan_view", view, 65536, 8192, 64) is Ok(_))
-  let changed : NativeClientRunPlanOriginal = { plan: captured.original.plan, view }
-  assert_true(native_cold_plan_view(changed, (_, _, _) => Ok(())) is Err(ForeignRun))
+  let view = @canonical.stringify_value(
+    @canonical.from_json(json, 8192, 64, 65536, data_keys=true),
+    65536,
+    8192,
+    64,
+  )
+  assert_true(
+    @publication.parse_interactive_run_control_shape(
+      "plan_view", view, 65536, 8192, 64,
+    )
+    is Ok(_),
+  )
+  let changed : NativeClientRunPlanOriginal = {
+    plan: captured.original.plan,
+    view,
+  }
+  assert_true(
+    native_cold_plan_view(changed, (_, _, _) => Ok(())) is Err(ForeignRun),
+  )
 }

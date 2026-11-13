@@ -33,7 +33,7 @@ pub fn cancel_type_equality(TypeEquality) -> Unit
 
 pub fn checked_emission_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
 
-pub fn checked_emission_geometry(Contract) -> CheckedEmissionGeometry?
+pub fn checked_emission_geometry(Contract, max_depth? : Int) -> CheckedEmissionGeometry?
 
 pub fn checked_emission_next_construction_extent(CheckedEmission) -> @decode_shape.CollectionConstructionExtent?
 
