@@ -88,7 +88,7 @@ async function rawHttpFixture(run, {maxRequestBytes = 65536, denyAuth = false,
 }
 const rawBody = JSON.stringify({connection: {mode: 'local', owner: 'local'}});
 const postRaw = (url, body = rawBody) => fetch(url, {method: 'POST',
-  headers: {'content-type': 'application/json'}, body});
+  headers: {'content-type': 'application/json'}, body, signal: AbortSignal.timeout(10000)});
 
 test('HTTP raw input reserves one original before own read and decodes before authorization and snapshot', async () => {
   await rawHttpFixture(async ({url, events, inspect}) => {

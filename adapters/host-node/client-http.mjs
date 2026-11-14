@@ -60,7 +60,9 @@ async function preparedJson(request, maxBytes, prepared) {
   const quantum = 65536;
   const disconnected = () => request.errored ?? new Error('ClientDisconnected');
   for (;;) {
-    const count = Math.min(quantum, maxBytes - size + 1);
+    const available = request.readableLength;
+    if (!Number.isSafeInteger(available) || available < 0) invalid('InvalidClientRequest');
+    const count = Math.min(quantum, maxBytes - size + 1, available || quantum);
     // The one-byte probe can detect a body beyond the installed attack limit
     // without retaining it. Fresh currentness precedes each read after a wait.
     reserve(size + count, chunks.length + 1, count);
