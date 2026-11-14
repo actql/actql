@@ -52,10 +52,8 @@ test "original same Model publication capacity issues all129 completed slots whi
     required - 1L,
     0L,
   ).unwrap()
-  assert_true(
-    start_original_observation_issuance(active, small, limits)
-    is Err(Model(@model.Ledger(@resources.RetentionLimit))),
-  )
+  let refused = start_original_observation_issuance(active, small, limits)
+  assert_true(refused is Err(Model(@model.Ledger(@resources.RetentionLimit))))
   assert_true(release_original_infer_publication_capacity(small).unwrap())
   let capacity = reserve_original_infer_publication_capacity(
     active, required, 0L,

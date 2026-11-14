@@ -1,7 +1,7 @@
 ///|
 // Construction state on the existing Model Task, not another owner, Ledger,
 // send authority or publication purpose. Its one token precedes physical send.
-struct ModelAttemptProofCapacity {
+priv struct ModelAttemptProofCapacity {
   capacity : @resources.CapacityReservation
   mut retained : Int64
   mut execution : Int64

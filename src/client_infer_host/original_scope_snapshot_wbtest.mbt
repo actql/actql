@@ -145,7 +145,6 @@ fn original_129_snapshot_fixture(
   )
   let base = standard_limits()
   let ledger_limits : @resources.LedgerLimits = {
-    ..base.model.ledger,
     planning_work: 20000000,
     attempts: 258,
     holdings: 258,
@@ -172,7 +171,22 @@ fn original_129_snapshot_fixture(
     output_rows: 129,
     identity: { ..base.identity, rows: 129, },
   }
-  let (compiled, definition) = original_input_capacity_run(prepared, plan)
+  let (compiled, _) = original_input_capacity_run(prepared, plan)
+  // This fixture also publishes original observations. Select the genuine
+  // source-free Result policy before issuing any Read/Scope/Run identity,
+  // exactly as the existing original observation fixture does.
+  let policy_wire = "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+  let compiled = @publication_host.with_client_infer_result_policy(
+    compiled,
+    invocation_fixture_policy_cid(),
+    policy_wire,
+    16384,
+    1024,
+    20,
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "original-129", "run", "2026-10-12T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
   let ledger = @resources.create_ledger(ledger_limits).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
@@ -248,7 +262,8 @@ fn original_129_snapshot_fixture(
       selected = Some(prepared)
       break
     }
-    if !durable_calls && active.model is Some(model) &&
+    if !durable_calls &&
+      active.model is Some(model) &&
       @model.model_execution_prepared_request_bytes(model, 128) is Some(_) {
       requests_ready = true
       break

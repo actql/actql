@@ -293,7 +293,7 @@ pub fn prepared_client_composed_infer_count(
   let mut selected = 0
   for task in 0..<@strategy.graph_task_count(graph) {
     guard @strategy.graph_task_owner(graph, task) is Some(preparation) &&
-      @strategy.graph_task_unit_index(graph, task) is Some(stage) else {
+      @strategy.graph_task_unit_index(graph, task) is Some(_) else {
       return None
     }
     let count = @pipeline.step_count(
@@ -332,8 +332,9 @@ pub fn prepared_client_composed_infer_count(
   Some(selected)
 }
 
-
 ///|
-pub fn prepared_client_effect_infer_count(owner : PreparedClientEffectComputation) -> Int? {
+pub fn prepared_client_effect_infer_count(
+  owner : PreparedClientEffectComputation,
+) -> Int? {
   prepared_client_composed_infer_count(client_effect_program_view(owner))
 }
