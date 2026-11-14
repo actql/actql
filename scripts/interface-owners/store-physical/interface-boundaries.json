@@ -7014,7 +7014,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c306568a3206a275ca0783700c89275c3e523b3bc145bcc1a46faa4a46da023",
+      "sha256": "8c0f2fbaaff9d57979408205c6a14541ec16a5930bfea26c4ffdff9794a26c0b",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -10391,7 +10391,8 @@
             "index",
             "objectCount",
             "originalHolding",
-            "retainOriginalRead"
+            "retainOriginalRead",
+            "beforeEnvelope"
           ],
           "async": true
         },

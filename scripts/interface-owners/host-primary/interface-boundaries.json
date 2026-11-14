@@ -5329,7 +5329,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "25f1d934cf65cf4756a6cf025440192c1ba6be3cdaf7b36a8ebc6077564ae9df",
+      "sha256": "4c3eb0aca20175591b296a50131254fabaabfb75dd30991f64a0ebad7e5882e3",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -5496,6 +5496,11 @@
           "parameters": [
             "pair"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareDependentEffectSourceSet/staticSelection/staticSelection",
+          "parameters": [],
           "async": false
         },
         {
@@ -6798,12 +6803,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareDependentEffectSourceSet/staticSelection/staticSelection"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "const original=installedEffectDependencyOriginal(construction,owner.runtime);"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/captured-effect-dependency-schemas.test.mjs",
+                "anchor": "captured Effect schema projection refuses missing foreign or malformed inventory"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
+        "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",
         "node:crypto",

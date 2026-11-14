@@ -4841,7 +4841,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "4e09940780d7d2066383111e9b04dbe2df1aeafa7398b64e1b9dc2e1d14754be",
+      "sha256": "b06c4c71f41ededc4e09ef9721ced3e0113bd86a399833975a615a0040227c28",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -5592,25 +5592,18 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#10",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#12",
+          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#13",
+          "name": "createRowEffectStage/captureStage/captureStage#12",
           "parameters": [],
           "async": true
         },
@@ -5631,38 +5624,35 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#4",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#5",
-          "parameters": [
-            "entry",
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
           "parameters": [
             "rows"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#7",
+          "name": "createRowEffectStage/captureStage/captureStage#6",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#8",
+          "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#8",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -5708,8 +5698,55 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/context/context",
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows",
           "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows/constructRows",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows/constructRows#2",
+          "parameters": [
+            "entry",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows/context/context",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/constructRows/constructRows/rows/rows",
+          "parameters": [
+            "proposal"
+          ],
           "async": false
         },
         {
@@ -5784,21 +5821,6 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins",
           "parameters": [],
           "async": true
@@ -5824,15 +5846,18 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
+          "name": "createRowEffectStage/captureStage/retained/retained/retained#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/rows/rows",
-          "parameters": [
-            "proposal"
-          ],
+          "name": "createRowEffectStage/captureStage/retained/retained/retained#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/retireRequestAliases/retireRequestAliases",
+          "parameters": [],
           "async": false
         },
         {
@@ -7823,7 +7848,6 @@
             "createRowEffectStage/captureStage/claims/claims",
             "createRowEffectStage/captureStage/computation/computation",
             "createRowEffectStage/captureStage/computation/computation#2",
-            "createRowEffectStage/captureStage/context/context",
             "createRowEffectStage/captureStage/footprints/footprints",
             "createRowEffectStage/captureStage/holdings/holdings",
             "createRowEffectStage/captureStage/init:onCommandKey/init:onCommandKey",
@@ -7834,7 +7858,6 @@
             "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins",
             "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins/releaseInputPins",
             "createRowEffectStage/captureStage/releaseInputs/releaseInputs",
-            "createRowEffectStage/captureStage/rows/rows",
             "createRowEffectStage/captureStage/verified/verified",
             "createRowEffectStage/checkRows/checkRows",
             "createRowEffectStage/checkSubject/checkSubject",
@@ -12232,7 +12255,6 @@
         },
         {
           "operations": [
-            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#2",
             "createRowEffectStage/controlRecipes/controlRecipes",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
@@ -12394,9 +12416,6 @@
             "captureResponseConfirmation/selected/selected",
             "captureResponseConfirmation/used/used",
             "captureResponseConfirmation/used/used#2",
-            "createRowEffectStage/captureStage/captureStage#13",
-            "createRowEffectStage/captureStage/preparedRequest/preparedRequest#2",
-            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#3",
             "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
             "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
             "createRowEffectStage/prepareRecovered/prepareRecovered#3",
@@ -12714,6 +12733,120 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/constructRows/constructRows",
+            "createRowEffectStage/captureStage/constructRows/constructRows/constructRows",
+            "createRowEffectStage/captureStage/constructRows/constructRows/constructRows#2",
+            "createRowEffectStage/captureStage/constructRows/constructRows/context/context",
+            "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest",
+            "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest",
+            "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#2",
+            "createRowEffectStage/captureStage/constructRows/constructRows/preparedRequest/preparedRequest/preparedRequest#3",
+            "createRowEffectStage/captureStage/constructRows/constructRows/rows/rows",
+            "createRowEffectStage/captureStage/retained/retained/retained#2",
+            "createRowEffectStage/captureStage/retained/retained/retained#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const dependencyOriginal = managedEffect === undefined ? undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "recovered"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -12723,6 +12856,7 @@
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
         "../host-common/http-exchange.mjs",
+        "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/owned-invocation-context.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
@@ -21545,6 +21679,7 @@
         "effectRecoveryPreviewBounds",
         "installedEffectRecipeForControlEntryLimit",
         "installedEffectSavedControlEntryLimit",
+        "prepareInstalledEffectCaptureChild",
         "prepareInstalledEffectControlConstruction",
         "prepareInstalledEffectCredentialChild",
         "prepareInstalledEffectManagedPlan",
@@ -21679,6 +21814,13 @@
           "name": "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit",
           "parameters": [
             "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCaptureChild",
+          "parameters": [
+            "options"
           ],
           "async": false
         },
@@ -22437,6 +22579,7 @@
         "../host-common/credential-scope-fields.generated.mjs",
         "../host-common/effect-preparation-result.mjs",
         "../host-common/http-exchange.mjs",
+        "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
         "./effect-ledger-implementation-bounds.mjs",
@@ -22444,7 +22587,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "95a2ef0bd2a69f0c2e69e10318596214c27def7650bcd9dd460623f4bfedd095",
+      "sha256": "9a94be101d721b0953eba0c742ea957fa2dcf910c378b9137a10723ecaf31eed",
       "contracts": [
         {
           "operations": [
@@ -23371,6 +23514,76 @@
               {
                 "path": "adapters/connectors/hubspot/host/installed-update.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectCaptureChild"
+          ],
+          "exports": [
+            "prepareInstalledEffectCaptureChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledEffectCaptureChild(options)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "installing capture task keeps its original backing until join and alias retirement"
               }
             ]
           }

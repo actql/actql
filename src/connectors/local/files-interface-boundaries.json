@@ -3125,7 +3125,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fe88d965693e0d7619287e6d7dab9a3b494d0f56345d1bb829aa174733d9896c"
+      "sha256": "70fe10d95eeff15921c5a2a3def900493f74bcb99b9f19acb6dcf26392f74508"
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
@@ -4671,7 +4671,7 @@
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-plan.mjs",
-      "sha256": "c59825b707b16bc0032be186c7372b280e860d837607464c33cfb16e2b611ab4",
+      "sha256": "6f1c44f81f2aaa9de086e2d1b98c8f7c811c75e6bb223942e4f51a3cede39c3d",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Local file constructor DATA; common Effect Plan retains all admission and physical ownership",
@@ -4685,7 +4685,45 @@
             "moon",
             "inputLimits",
             "limits",
-            "writerProfile"
+            "writerProfile",
+            "requestHeaderUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/observe/observe",
+          "parameters": [
+            "proposals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/observe/observe/observe",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe",
+          "parameters": [
+            "proposals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe#2",
+          "parameters": [
+            "proposal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe#3",
+          "parameters": [
+            "_previewWire",
+            "recovery",
+            "memberIndex"
           ],
           "async": false
         },
@@ -4804,6 +4842,78 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
                 "anchor": "test('closed saved codec preserves the generic composed owner control allowance'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareLocalFileStorePlanRecipe/observe/observe",
+            "prepareLocalFileStorePlanRecipe/observe/observe/observe",
+            "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe",
+            "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe#2",
+            "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
+                "anchor": "test("
               }
             ]
           }

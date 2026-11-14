@@ -7231,6 +7231,119 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:admitLiveEffectCapturedRun/init:admitLiveEffectCapturedRun",
+            "publicationControl/init:admitRecoveredEffectCapturedRun/init:admitRecoveredEffectCapturedRun",
+            "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#3",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#3",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#4",
+            "publicationControl/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
+            "publicationControl/init:reserveEffectCaptureEncrypted/init:reserveEffectCaptureEncrypted",
+            "publicationControl/init:reserveEffectCaptureEnvelope/init:reserveEffectCaptureEnvelope",
+            "publicationControl/init:retireRecoveredEffectCapturedRun/init:retireRecoveredEffectCapturedRun",
+            "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "original cold admission refusal has no legacy parse fallback or prepared projection"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -8636,7 +8749,8 @@
           "parameters": [
             "preparation",
             "signal",
-            "retainComputation"
+            "retainComputation",
+            "dependencyOriginal"
           ],
           "async": true
         },
@@ -8950,6 +9064,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitLiveEffectCapturedRun/init:admitLiveEffectCapturedRun",
+          "parameters": [
+            "owner",
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
           "parameters": [
             "owner",
@@ -8984,6 +9106,18 @@
           "parameters": [
             "completeWire",
             "observation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:admitRecoveredEffectCapturedRun/init:admitRecoveredEffectCapturedRun",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "wire",
             "limits"
           ],
           "async": false
@@ -9464,12 +9598,19 @@
         {
           "name": "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
           "parameters": [
-            "entry"
+            "pair"
           ],
           "async": false
         },
         {
           "name": "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#3",
           "parameters": [
             "entry"
           ],
@@ -10933,6 +11074,20 @@
         },
         {
           "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#4",
           "parameters": [
             "value"
           ],
@@ -12414,7 +12569,8 @@
           "parameters": [
             "artifacts",
             "bodies",
-            "limits"
+            "limits",
+            "construction"
           ],
           "async": false
         },
@@ -13003,6 +13159,42 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:reserveEffectCaptureEncrypted/init:reserveEffectCaptureEncrypted",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "encryptedBytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:reserveEffectCaptureEnvelope/init:reserveEffectCaptureEnvelope",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
           "parameters": [
             "parent",
@@ -13196,6 +13388,13 @@
           "name": "publicationControl/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
           "parameters": [
             "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:retireRecoveredEffectCapturedRun/init:retireRecoveredEffectCapturedRun",
+          "parameters": [
+            "captured"
           ],
           "async": false
         },
@@ -13721,6 +13920,13 @@
           "name": "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
           "parameters": [
             "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -16002,6 +16208,7 @@
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
         "./installation-preparation-metadata.mjs",
+        "./installed-effect-dependency-original.mjs",
         "./ledger-contract.generated.mjs",
         "./local-signing-metadata.mjs",
         "./publication-action.mjs",
@@ -16010,7 +16217,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "98153987ea08880cb5daa7d67d76e8ddf294bef2b90184da967fafed8a6e8c5e"
+      "sha256": "ef436a4158c2b880474543e260337bac35f61b211f9ba089223a232c7d671083"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -46525,7 +46732,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e870e97658ca1cd658f025b8c0e027ae91c357ab6bf48ebd4306bf5c66593249",
+      "sha256": "291052dab903f9c1d045478aaefac7229f7165150b77b467b7cb12c8a825e64b",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -48364,7 +48571,7 @@
           }
         }
       ],
-      "sha256": "685568c5d0e5d521821dfb29e60670abbed6f9262b180cb7d6ba6dbbad8e4cd2",
+      "sha256": "74ae4d8b70d9a6529337c0495d109ccca5e321fd65499c686ea55dae698a1c1e",
       "exports": [],
       "operations": [
         {
@@ -93106,7 +93313,7 @@
     },
     {
       "module": "src/physical_resources/preparation_phase_work.mbt",
-      "sha256": "506a632422865e8def2355f0638fcd501d1ea2ccae638fdde08a2365b35fef15",
+      "sha256": "113cd8ffa6724cb04b1c8255a1e15a99b855b263878abfa5032023c5d1f03111",
       "exports": [],
       "operations": [
         {
@@ -93126,8 +93333,16 @@
           "declaration": "[ I , P ] begin_preparation_work_state ( owner : PreparationCapacity [ I , P ] , input : I , phase : PreparationWorkPhase , maximum : Int64 , ) - > Result [ PreparationPhaseWorkState [ I , P ] , PreparationWorkIssue ]"
         },
         {
+          "name": "[I,P]begin_run_publication_work_continuation64",
+          "declaration": "[ I , P ] begin_run_publication_work_continuation64 ( owner : PreparationCapacity [ I , P ] , body : P , ledger : Ledger , maximum : Int64 , ) - > Result [ PreparationPhaseWorkContinuation64 , PreparationWorkIssue ]"
+        },
+        {
           "name": "[I,P]finish_preparation_work_state",
           "declaration": "[ I , P ] finish_preparation_work_state ( state : PreparationPhaseWorkState [ I , P ] , ) - > Result [ Int64 , PreparationWorkIssue ]"
+        },
+        {
+          "name": "[I,P]preparation_run_publication_work_returned",
+          "declaration": "[ I , P ] preparation_run_publication_work_returned ( owner : PreparationCapacity [ I , P ] , ) - > Bool"
         },
         {
           "name": "[I,P]resume_preparation_work_state",
@@ -93278,6 +93493,75 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I,P]begin_run_publication_work_continuation64",
+            "[I,P]preparation_run_publication_work_returned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_resources/preparation_phase_work.mbt",
+                "anchor": "// Run adoption is an explicit alternative, never a change to Working phase"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/run_publication_work_wbtest.mbt",
+                "anchor": "only exact Run PublicationProof can span numeric resize without revival or work refill"
               }
             ]
           }

@@ -1970,7 +1970,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "82878aa0d0f1329c701fc1f94c361aac7be0fcfdbb28ae5738626e52461d5cc5",
+      "sha256": "9be3b46b329e32b3fff07ebb265747791f6f9bf9c60c3b6cc88968e66b691f36",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2781,7 +2781,8 @@
             "control",
             "runDefinition",
             "dependencies",
-            "dependencyInventoryWire"
+            "dependencyInventoryWire",
+            "dependencyConstruction"
           ],
           "async": false
         },
@@ -2928,7 +2929,7 @@
           "async": true
         },
         {
-          "name": "withCaptureRecoveryResources/value/value",
+          "name": "withCaptureRecoveryResources/beforeRead/beforeRead",
           "parameters": [
             "bytes"
           ],
@@ -2938,6 +2939,13 @@
           "name": "withCaptureRecoveryResources/withCaptureRecoveryResources",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "withCaptureRecoveryResources/withCaptureRecoveryResources#2",
+          "parameters": [
+            "wire"
           ],
           "async": false
         }
@@ -3067,7 +3075,6 @@
             "validateExecution",
             "validateOptions",
             "withCaptureRecoveryResources",
-            "withCaptureRecoveryResources/value/value",
             "withCaptureRecoveryResources/withCaptureRecoveryResources"
           ],
           "exports": [
@@ -3779,6 +3786,111 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "withCaptureRecoveryResources/beforeRead/beforeRead",
+            "withCaptureRecoveryResources/withCaptureRecoveryResources#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "async function withCaptureRecoveryResources("
+              },
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveDecoded(wire)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "recovered schema and4097 payload projections use exact prepared DATA without reparsing wire"
               }
             ]
           }
@@ -137125,7 +137237,7 @@
     {
       "module": "adapters/host-node/effect-capture-resources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17d0ea7642e3103428048a769dfbdc686c48be7a8ec87186b7e8e64c17939e2e",
+      "sha256": "5e266299e07bdfcc680c9d6bd4d3b401cdec94e489b693af95491c05f173830b",
       "role": "physical-io",
       "owner": "Existing Request preparation and same adopted Effect Run resource/cleanup ownership through the installed Node Host; no independent grant, Ledger or semantic issuer",
       "exports": [
@@ -137202,6 +137314,13 @@
           "async": false
         },
         {
+          "name": "recoveryView/init:admitCapturedRun/init:admitCapturedRun",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "recoveryView/init:begin/init:begin",
           "parameters": [],
           "async": false
@@ -137216,6 +137335,13 @@
         },
         {
           "name": "recoveryView/init:reserveDecoded/init:reserveDecoded",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "recoveryView/init:reserveEnvelope/init:reserveEnvelope",
           "parameters": [
             "wire"
           ],
@@ -137346,7 +137472,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "checked(state.context.runtime.clientProgramReserveInstalledEffectCaptureRecovery("
+                "anchor": "const reserve = state.context.runtime.clientProgramReserveInstalledEffectCaptureEncrypted"
               },
               {
                 "path": "docs/design/effect-constructor-frames.md",
@@ -137375,6 +137501,75 @@
               {
                 "path": "src/client_local_host/installed_effect_definition_capacity_js_wbtest.mbt",
                 "anchor": "test \"Definition success retains actual Unicode tree and full text then SAME begin regrows before admission\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "recoveryView/init:admitCapturedRun/init:admitCapturedRun",
+            "recoveryView/init:reserveEnvelope/init:reserveEnvelope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "anchor": "reserveEnvelope(wire)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.test.mjs",
+                "anchor": "cold prepared DATA stays with the original Read through failed schema cleanup and is cut before parent settlement"
               }
             ]
           }
@@ -140370,6 +140565,134 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-common/installed-effect-dependency-original.mjs",
+      "sha256": "926578e08818c802a45253142ead4b7d1566a2b72174fb5ffd551cf54dcbdb01",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect Run/control private DATA association only; actual Core numeric owners retain funding/current authority and acquired-effect-computation retains physical output pins",
+      "exports": [
+        "installedEffectDependencyOriginal",
+        "registerInstalledEffectDependencyOriginal",
+        "retireInstalledEffectDependencyOriginal"
+      ],
+      "operations": [
+        {
+          "name": "installedEffectDependencyOriginal",
+          "parameters": [
+            "view",
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "registerInstalledEffectDependencyOriginal",
+          "parameters": [
+            "view",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "retireInstalledEffectDependencyOriginal",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installedEffectDependencyOriginal",
+            "registerInstalledEffectDependencyOriginal",
+            "retireInstalledEffectDependencyOriginal"
+          ],
+          "exports": [
+            "installedEffectDependencyOriginal",
+            "registerInstalledEffectDependencyOriginal",
+            "retireInstalledEffectDependencyOriginal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "// Private association of the existing installed Run control, not a resource"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "originals.set(view,Object.freeze({...original}));"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.runtime!==runtime"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "dependencyOriginal.parent!==managedEffect.value"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "registerInstalledEffectDependencyOriginal(work,"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "hasOutputPins"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "original.current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "throw new TypeError('ForeignInstalledEffectDependencyOriginal')"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Association lookup supplies no cancel permission or physical cleanup ACK. Existing Run/control cancellation and child-first retirement remain with their original owners."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mjs",
+                "anchor": "const originals=new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/effect-input-export.mjs",
+                "anchor": "clientProgramInstalledEffectDependencyGroupReserve"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Private same-runtime Run/Plan/Read/Request association, not a new Owner, capacity grant, output-pins authority, public Runtime API or alternative execution route."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "installing capture task keeps its original backing until join and alias retirement"
+              },
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "original cold admission refusal has no legacy parse fallback or prepared projection"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Exact authored private association syntax and existing-owner references only; no runtime, physical custody, funding or installed acceptance claim."
     }
   ],
   "generated": [],
