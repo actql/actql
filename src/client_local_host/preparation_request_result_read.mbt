@@ -9,6 +9,8 @@ priv struct ClientRequestResultReadBudget {
   max_nodes : Int
   mut window : Int
   mut row_units : Int
+  mut wire_work : @resources.PreparationPhaseWorkContinuation64?
+  mut wire_preflight : @source.JsonSourcePreflight?
 }
 
 ///|
@@ -27,9 +29,17 @@ pub fn result_read_row_cost(units : Int, max_nodes : Int) -> Int64? {
   if units < 0 || max_nodes < 1 {
     return None
   }
+  result_read_row_nodes_cost(units, Int::min(units, max_nodes))
+}
+
+///|
+fn result_read_row_nodes_cost(units : Int, nodes : Int) -> Int64? {
+  if units < 0 || nodes < 0 {
+    return None
+  }
   let data = match
     result_read_data_cost(
-      Int::min(units, max_nodes).to_int64(),
+      nodes.to_int64(),
       6L * units.to_int64(),
       2L * units.to_int64(),
     ) {
@@ -136,8 +146,10 @@ pub fn[I] reserve_request_result_read(
   }
   // Original metadata, partial raw row, decoded frame and physical FD backing
   // coexist. The later row high-water grow precedes canonical parse/encoding.
-  let base_r = old.0 + schema + frames
-  let base_e = old.1 + schema + frames
+  // Two nullable reference slots on this SAME existing budget record. None
+  // and a reference use the same word tariff; no new owner is constructed.
+  let base_r = old.0 + schema + frames + 16L
+  let base_e = old.1 + schema + frames + 16L
   let limits = @resources.ledger_limits(owner.ledger)
   let usage = @resources.ledger_usage(owner.ledger)
   let available_r = limits.retained_bytes -
@@ -181,6 +193,8 @@ pub fn[I] reserve_request_result_read(
         max_nodes,
         window,
         row_units,
+        wire_work: None,
+        wire_preflight: None,
       })
       owner.phase = ResultRead
       Ok(window)
@@ -198,6 +212,7 @@ pub fn[I] grow_request_result_read_row(
 ) -> Result[(Int, Int), ClientRequestPreparationIssue] {
   guard owner.phase == ResultRead &&
     owner.result_read is Some(read) &&
+    read.wire_work is None &&
     !result_read_metadata_active(owner) else {
     return Err(WrongPhase)
   }
@@ -225,6 +240,18 @@ pub fn[I] grow_request_result_read_row(
     Some(value) => value
     None => return Err(Policy)
   }
+  reserve_request_result_read_row_cost(owner, input, read, high, row)
+}
+
+///|
+fn[I] reserve_request_result_read_row_cost(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  read : ClientRequestResultReadBudget,
+  high : Int,
+  row : Int64,
+  shrink_window? : Bool = true,
+) -> Result[(Int, Int), ClientRequestPreparationIssue] {
   let old = match
     @resources.preparation_capacity_working_extents(owner.capacity, input) {
     Ok(value) => value
@@ -245,7 +272,9 @@ pub fn[I] grow_request_result_read_row(
   )
   // The caller has flushed/disposed its old staged text before this boundary.
   // Prefer a smaller real window over a policy-sized whole-result allocation.
-  let window = if spare < result_read_window_cost(1).unwrap() {
+  let window = if !shrink_window {
+    read.window
+  } else if spare < result_read_window_cost(1).unwrap() {
     1
   } else {
     Int64::min(

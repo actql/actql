@@ -284,6 +284,8 @@ pub fn client_program_adopt_request_program_preparation(@client_local_host.Clien
 
 pub fn client_program_advance_program_json_preparation(@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], Int) -> Result[@source_value.JsonSourcePreflightPoll, @client_local_host.ClientProgramJsonPreparationIssue]
 
+pub fn client_program_advance_request_result_read_wire_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Bool, Int, Int), @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_allowed_effect_run_admission(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_program_allowed_effect_run_authorization(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
@@ -303,6 +305,10 @@ pub fn client_program_begin_host_initialization_preparation(@physical_resources.
 pub fn client_program_begin_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_begin_request_result_read_wire(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_begin_request_result_read_wire_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_bigquery_accept_response(@actql/actql/connectors/bigquery/read.JobRead, @actql/actql/connectors/bigquery/read.JobResponse, Bytes) -> Result[Unit, @actql/actql/connectors/bigquery/read.JobIssue]
 
@@ -979,6 +985,8 @@ pub fn client_program_gcs_collection_mapping_construction_capacity(String, Int, 
 pub fn client_program_gcs_source_facts_construction_capacity(Int, String, String, String, String, Array[Int64]) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_gcs_upload_catalog_construction_capacity(String, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_grow_request_result_read_frame(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Int, Int), @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_grow_request_result_read_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Int, Int), @client_local_host.ClientRequestPreparationIssue]
 

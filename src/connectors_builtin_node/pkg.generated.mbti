@@ -408,6 +408,8 @@ pub fn client_program_advance_openai_chat_projection(@model_execution.OpenAIChat
 
 pub fn client_program_advance_program_json_preparation(@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], Int) -> Result[@source_value.JsonSourcePreflightPoll, @client_local_host.ClientProgramJsonPreparationIssue]
 
+pub fn client_program_advance_request_result_read_wire_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Bool, Int, Int), @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_advance_snapshot(@client_local_host.ClientProgramSnapshot, Int) -> Result[(Bool, Int), @client_local_host.ClientClosedValuesPreparationIssue]
 
 pub fn client_program_advance_validation(@client_local_host.ClientProgramValidation, Int) -> Result[(Bool, Int), @client_local_host.ClientProgramValidationIssue]
@@ -439,6 +441,10 @@ pub fn client_program_begin_installed_effect_model_unit_managed_export(@client_l
 pub fn client_program_begin_installed_source_io(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal, Int64) -> Result[@physical_resources.PreparationIo, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_begin_request_result_read_wire(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_begin_request_result_read_wire_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_begin_snapshot(@client_local_host.ClientProgramPublication, StrategyHostOutputExport) -> Result[@client_local_host.ClientProgramSnapshot, @client_local_host.ClientClosedValuesPreparationIssue]
 
@@ -1417,6 +1423,8 @@ pub fn client_program_generated_infer_local_provider(@run_publication_host.Clien
 pub fn client_program_grow_captured_content_workspace(@physical_resources.Ledger, @physical_resources.Reservation, Int, Int) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn client_program_grow_original_infer_publication_capacity(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
+
+pub fn client_program_grow_request_result_read_frame(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Int, Int), @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_grow_request_result_read_row(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[(Int, Int), @client_local_host.ClientRequestPreparationIssue]
 

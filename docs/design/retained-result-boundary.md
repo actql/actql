@@ -1108,3 +1108,32 @@ Actual growth still requires checked demand and physical backing from the same
 owner. Buffered material/table collection has its own whole-result retention
 and rendering admission; streamed row funding does not change that separate
 receiver or imply that its complete-result limit has been removed.
+
+### Result READ framing and wire geometry
+
+The installed Result READ keeps one original Request capacity. Physical frame
+growth reserves the existing old/new buffer, immutable text and wire overlap
+before constructing the buffer. It does not price one JSON node per raw byte.
+Once the complete immutable row is available, the existing Source preflight
+observes its quoted-aware raw node upper bound, without constructing a grammar
+tree or using the expected schema as a capacity oracle. Only then does the SAME
+capacity back the original forest representation before the original delivery
+serializer parses and validates that row. Logical node/depth limits, schema,
+currentness, payload hash, delivery grants and sink confirmation stay separate.
+Equal-size rows still receive their own raw observation; no validation result
+or permission is cached. The legacy independent row quote remains unchanged.
+
+The original READ budget adds two optional reference slots (16 logical bytes).
+Before constructing its one Source scan and one phase-work continuation, the
+same parent backs both existing constructor inventories plus the two retained
+Some carriers (2H/2R/2W) and operation/result roots (2H/6R/6W). The combined
+35H/64R/85W demand is 1752 logical bytes under the shared representation tariff.
+The existing JS prepared-state slot also denotes an active scan; it does not
+add a separately allocated reader or cleanup owner. Source work is bounded by
+the selected payload bytes plus row count. Each poll spends at most 4096 units
+and returns that SAME work receipt; the Host yields and rechecks currentness
+before continuing. Returning never refills work or acknowledges cleanup. The
+physical-frame phase may shrink its already flushed output window; the complete
+row phase retains any staged output window while backing its actual nodes.
+The cursor is cancelled before parse, including refusal retirement, and the
+original physical child duties still precede Request retirement.

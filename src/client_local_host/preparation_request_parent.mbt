@@ -785,6 +785,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
   clear_request_source_input(owner)
   owner.submitted_intent = None
   owner.snapshot_base = None
+  match finish_request_result_read_wire(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   owner.result_read = None
   owner.result_read_metadata = None
   owner.snapshot_key_units.val = -1

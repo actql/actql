@@ -11,12 +11,12 @@ test "READ grows one original capacity for bounded frame output and geometric ro
   let window = reserve_request_result_read(owner, input, 64, 128, 64, 32, 64).unwrap()
   assert_eq(window, 64)
   let after = @resources.ledger_usage(owner.ledger)
-  // Independent literal tariff: metadata5696 + initial frame3616 + row/buffers6624 + output1856.
+  // Independent literal tariff: metadata5696 + initial frame3616 + row/buffers6624 + output1856 + two optional slots16.
   assert_eq(
     after.reserved_retention_bytes - before.reserved_retention_bytes,
-    17792L,
+    17808L,
   )
-  assert_eq(after.reserved_execution_bytes, 17792L)
+  assert_eq(after.reserved_execution_bytes, 17808L)
   assert_eq(after.live_reservations, before.live_reservations)
   assert_true(physical_equal(owner.capacity, original))
   assert_true(
@@ -27,7 +27,7 @@ test "READ grows one original capacity for bounded frame output and geometric ro
   let grown = @resources.ledger_usage(owner.ledger)
   assert_eq(
     grown.reserved_retention_bytes - before.reserved_retention_bytes,
-    19264L,
+    19280L,
   )
   assert_eq(grow_request_result_read_row(owner, input, 49).unwrap(), (64, 64))
   assert_eq(@resources.ledger_usage(owner.ledger), grown)
@@ -48,8 +48,8 @@ test "READ admits a real minimum shrinks its disposed window and refuses one-byt
       input,
       initial_limits=Some({
         ..limits,
-        retained_bytes: baseline + 17437L,
-        execution_bytes: 17437L,
+        retained_bytes: baseline + 17453L,
+        execution_bytes: 17453L,
       }),
     ),
     input,
@@ -68,8 +68,8 @@ test "READ admits a real minimum shrinks its disposed window and refuses one-byt
       refused_input,
       initial_limits=Some({
         ..limits,
-        retained_bytes: baseline + 15964L,
-        execution_bytes: 15965L,
+        retained_bytes: baseline + 15980L,
+        execution_bytes: 15981L,
       }),
     ),
     refused_input,

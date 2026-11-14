@@ -84,6 +84,8 @@ pub fn advance_program_snapshot(ClientProgramSnapshot, Int) -> Result[(Bool, Int
 
 pub fn advance_program_validation(ClientProgramValidation, Int) -> Result[(Bool, Int), ClientProgramValidationIssue]
 
+pub fn[I] advance_request_result_read_wire_row(ClientRequestPreparation[I], I, Int) -> Result[(Bool, Int, Int), ClientRequestPreparationIssue]
+
 pub fn attach_installed_source_read_acquisition(ClientInstalledSourceRead, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, Int, Int) -> Result[Unit, ClientInstalledSourceReadIssue]
 
 pub fn[I] begin_backed_host_initialization_preparation(@physical_resources.BackedInitializationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientHostInitializationPreparation[I], ClientHostInitializationIssue]
@@ -185,6 +187,10 @@ pub fn[I] begin_request_model_managed_run(ClientRequestPreparation[I], @run_publ
 pub fn[I] begin_request_preparation(@physical_resources.NodePreparationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue]
 
 pub fn[I] begin_request_program_managed_run(ClientRequestPreparation[I], @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
+pub fn[I] begin_request_result_read_wire(ClientRequestPreparation[I], I, Int, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
+pub fn[I] begin_request_result_read_wire_row(ClientRequestPreparation[I], I, String) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn bind_installed_effect_managed_keyed_host(ClientInstalledManagedRun, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.ClientKeyedLookupInput) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -499,6 +505,8 @@ pub fn[I] finish_request_result_metadata(ClientRequestPreparation[I], I) -> Resu
 pub fn[I] finish_request_submitted_intent(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn grow_installed_effect_operation_input(ClientInstalledEffectOperationBorrow, ClientInstalledEffectOperationExtent) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn[I] grow_request_result_read_frame(ClientRequestPreparation[I], I, Int) -> Result[(Int, Int), ClientRequestPreparationIssue]
 
 pub fn[I] grow_request_result_read_row(ClientRequestPreparation[I], I, Int) -> Result[(Int, Int), ClientRequestPreparationIssue]
 
