@@ -1728,7 +1728,9 @@ test('normal resource parent rejects missing recovery wrong policies misclassifi
   const {root} = await scratch(t), load = await runnerFunctions();
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   for (const phase of ['memory-recovery', 'work-recovery']) for (const mode of [
-    'exact', 'wrong-owner-limit', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup']) {
+    'exact', 'wrong-owner-limit', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup',
+    ...(phase === 'work-recovery' ? ['missing-public', 'wrong-public-phase', 'wrong-public-dimension',
+      'wrong-public-policy', 'wrong-public-setting', 'wrong-public-message', 'wrong-public-quantities', 'missing-public-reread'] : [])]) {
     const bytes = phase === 'memory-recovery' ? 268435456 : 1073741824;
     const actual = {phase, pid: 12345, complete: true, firstClose: 'returned', cleanup: [],
       aliveScopedFD: {before: 0, after: 0}, submits: 3,
@@ -1741,6 +1743,18 @@ test('normal resource parent rejects missing recovery wrong policies misclassifi
         dimension: 'retention', requiredRetentionBytes: '536870912', requiredExecutionBytes: '536870912',
         availableRetentionBytes: '268435456', availableExecutionBytes: '268435456'},
       workRefusal: {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000, verified: true}};
+    if (phase === 'work-recovery') {
+      actual.workRefusal.publicBudget = publicBudgetFixture(actual.workRefusal).publicBudget;
+      actual.publicBudgetReread = {...publicBudgetRereadFixture};
+    }
+    if (mode === 'missing-public') delete actual.workRefusal.publicBudget;
+    if (mode === 'wrong-public-phase') actual.workRefusal.publicBudget.phase = 'source_free_plan';
+    if (mode === 'wrong-public-dimension') actual.workRefusal.publicBudget.dimension = 'execution_bytes';
+    if (mode === 'wrong-public-policy') actual.workRefusal.publicBudget.policy = '30000000';
+    if (mode === 'wrong-public-setting') actual.workRefusal.publicBudget.setting = 'installation.requestMemory.executionBytes';
+    if (mode === 'wrong-public-message') actual.workRefusal.publicBudget.message = 'generic failure';
+    if (mode === 'wrong-public-quantities') actual.workRefusal.publicBudget.quantities = {requested: '100001', remaining: '100000'};
+    if (mode === 'missing-public-reread') delete actual.publicBudgetReread;
     if (mode === 'wrong-owner-limit') {actual.workRefusal.controlWorkLimit--; actual.memoryRefusal.dimension = 'control_work';}
     if (mode === 'missing-recovery') delete actual.resourceRecovery;
     if (mode === 'wrong-rows') actual.resourceRecovery.rows = [{n: 8}];
