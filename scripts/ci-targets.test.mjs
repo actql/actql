@@ -472,7 +472,11 @@ test('Host collection retains original command bodies and their actual build pre
   assert.equal(step('Test portable Run Host compilation package').run, runHost[2]);
   assert.equal(step('Test packed Run Host compilation package').run, runHost[3]);
   assert.equal(step('Test original Local result authorization').run,
-    'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs adapters/host-node/ordinary-mock-account-profile-history.test.mjs');
+    'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-read-wire-workspace.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs adapters/host-node/ordinary-mock-account-profile-history.test.mjs');
+  const wireWorkspace = 'adapters/host-node/local-result-read-wire-workspace.test.mjs';
+  assert.equal(step('Test original Local result authorization').run.split(/\s+/u).filter(value => value === wireWorkspace).length, 1);
+  assert.equal(steps.filter(row => row.run?.split(/\s+/u).includes(wireWorkspace)).length, 1);
+  assert.equal(step('Test original Local result authorization')['continue-on-error'], undefined);
   assert.equal(steps.filter(row => row.run?.includes('ordinary-local-account.test.mjs')).length, 1,
     'Actual standard Account bootstrap/current cases run once behind the existing runtime preparation');
   assert.equal(steps.filter(row => row.run?.includes('ordinary-mock-account-profile-history.test.mjs')).length, 1,
@@ -1561,6 +1565,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   const selected = command.split(/\s+/u);
   for (const file of [
   "adapters/host-node/metadata-capacity-public.test.mjs",
+  "adapters/host-node/local-result-read-wire-workspace.test.mjs",
   "adapters/host-node/installed-duckdb-source-owner.test.mjs",
   "adapters/host-node/table-owned-site-retirement.test.mjs",
   "adapters/host-node/table-original-metadata.test.mjs",
