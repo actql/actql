@@ -29600,7 +29600,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a7d33ea9ca4b6d1656947f1be26bb8dfa86149503acc46a02c91203ce967a063",
+      "sha256": "1a23bf93c664493be1efda75d139ecf5c7fa414ed2c9c34765842c54c9d9cb54",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -81956,10 +81956,11 @@
     {
       "module": "adapters/host-node/local-values-capacity.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "938687233a985fe3b2ee5906551ed1058f1eb3946dacd71ed817120e7ffd7b31",
+      "sha256": "f971c1e7304927fdcf5964d9028c4f2546629cdc330d3b3e23941152fe10993f",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
+        "validValuesHostPolicyRows",
         "valuesExecutionContextCid",
         "valuesHostPolicyOriginal"
       ],
@@ -81968,6 +81969,13 @@
           "name": "digest/digest",
           "parameters": [
             "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "validValuesHostPolicyRows",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -81992,11 +82000,13 @@
           "operations": [
             "digest/digest",
             "valuesExecutionContextCid",
-            "valuesHostPolicyOriginal"
+            "valuesHostPolicyOriginal",
+            "validValuesHostPolicyRows"
           ],
           "exports": [
             "valuesExecutionContextCid",
-            "valuesHostPolicyOriginal"
+            "valuesHostPolicyOriginal",
+            "validValuesHostPolicyRows"
           ],
           "attributes": {
             "responsibility": [
@@ -82133,6 +82143,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-values-capacity-custody.test.mjs",
+                "anchor": "retained Values profile above the old Journal ceiling"
               }
             ]
           }

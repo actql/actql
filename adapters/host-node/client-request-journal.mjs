@@ -29,7 +29,7 @@ import {canonicalJson} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
-import {valuesExecutionContextCid} from './local-values-capacity.mjs';
+import {valuesExecutionContextCid, validValuesHostPolicyRows} from './local-values-capacity.mjs';
 import {sourceOperationTable, inspectClientSourceOperationStorage,
   clientSourceOperationStorage, snapshotClientSourceOperationLimits} from './client-source-operation.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
@@ -975,7 +975,7 @@ function admissionEvidenceShape(value, updateOriginalControl, captured) {
         Object.keys(body).sort().join(',') !== 'max_rows,name,version' ||
         body.version !== 'actql-installed-local-policy/0.1' ||
         body.name !== 'source-free-values' ||
-        !Number.isSafeInteger(body.max_rows) || body.max_rows < 1 || body.max_rows > 10000 ||
+        !validValuesHostPolicyRows(body.max_rows) ||
         canonicalJson(body) !== original.wire ||
         `sha256:${createHash('sha256').update(original.wire).digest('hex')}` !== original.cid ||
         prepared?.host_policy_cid !== original.cid ||
