@@ -27,7 +27,7 @@ pub fn public_model_task_document_construction_extent(
     @source.yaml_literal_construction_extent(b, n, d, lines)
   } else { @source.json_literal_construction_extent(b, n, d) }
   guard source is Some(source) &&
-    model_task_decode_construction(b, n, d) is Some(decode) &&
+    model_task_decode_construction(n, d) is Some(decode) &&
     model_task_contract_construction(limits) is Some(contract) else { return None }
   // PublicModelTaskDeclaration1H8R3W; two contract holders2H8R6W;
   // optional model tuple/Some2H3R; two limit Some2H2W; budget1H1R3W;
@@ -51,7 +51,7 @@ pub fn public_model_task_document_construction_extent(
 
 ///|
 fn model_task_decode_construction(
-  bytes : Int, nodes : Int, depth : Int,
+  nodes : Int, depth : Int,
 ) -> RegistryConstructionExtent? {
   guard @decode.admission_construction_inventory(nodes, nodes, nodes, nodes, depth)
     is Some(value) else { return None }
@@ -76,12 +76,8 @@ fn model_task_contract_construction(
   let b = limits.bodies.max_bytes
   guard @decode.preserving_json_admission_construction_inventory(b, n, d)
     is Some(parsed) &&
-    @value_contract.read_construction_inventory({
-      nodes: c, objects: c, arrays: c, fields: c, max_fields: c,
-      max_array_items: c - 1,
-      max_selected_text_units: limits.contracts.max_text_bytes,
-      outer_depth: limits.contracts.max_depth, work: 0L,
-    }) is Some(checked) &&
+    model_task_contract_read_bounds(c, limits.contracts.max_depth,
+      limits.contracts.max_text_bytes) is Some(checked) &&
     @encode.text_writer_construction_inventory(b, n, d) is Some(writer) &&
     @encode.hash_writer_construction_inventory(n, d) is Some(hash) &&
     @value_contract.checked_emission_construction_extent(c) is Some(emission) else {
@@ -129,13 +125,15 @@ pub fn public_model_task_normalization_construction_extent(
   original : PublicModelTaskDeclaration,
   limits : ModelTaskLimits,
 ) -> RegistryConstructionExtent? {
+  let nodes = original.input.nodes.to_int64() + original.output.nodes.to_int64()
+  guard nodes > 0L && nodes <= 2147483647L else { return None }
   guard limits.bodies.max_bytes > 0 && limits.bodies.max_nodes > 0 &&
     limits.bodies.max_depth > 0 && limits.contracts.max_nodes > 0 &&
     @encode.text_writer_construction_inventory(limits.bodies.max_bytes,
       limits.bodies.max_nodes, limits.bodies.max_depth) is Some(writer) &&
     @encode.hash_writer_construction_inventory(limits.bodies.max_nodes,
       limits.bodies.max_depth) is Some(hash) &&
-    @value_contract.checked_emission_construction_extent(limits.contracts.max_nodes)
+    @value_contract.checked_emission_construction_extent(nodes.to_int())
       is Some(emission) else { return None }
   // Four actual writer calls: prompt preimage/final and Task preimage/final.
   // Each emitter is bounded independently from its output String policy. The
@@ -177,15 +175,10 @@ pub fn public_model_task_declaration_retained_extent(
     owned_wire_bytes: 0L,
   }
   for original in [value.input, value.output] {
-    guard @value_contract.checked_emission_geometry(original.contract) is Some(g) &&
-      @value_contract.read_construction_inventory({
-        nodes: g.value_nodes, objects: g.value_nodes, arrays: g.value_nodes,
-        fields: g.value_nodes, max_fields: g.max_fields,
-        max_array_items: g.value_nodes - 1,
-        max_selected_text_units: 0, outer_depth: 0, work: 0L,
-      }) is Some(typed) &&
+    let g = @value_contract.observe_read_construction_geometry(original.original)
+    guard @value_contract.read_construction_inventory(g) is Some(typed) &&
       @source.json_index_borrowed_construction_extent(
-        g.value_nodes, 0, original.wire.length().to_int64(),
+        g.nodes, g.fields, original.wire.length().to_int64(),
         keep_spans=false,
       ) is Some(text) else { return None }
     retained = wire_admission_add(retained, {
@@ -200,4 +193,32 @@ pub fn public_model_task_declaration_retained_extent(
     })
   }
   Some(retained)
+}
+
+
+///|
+fn model_task_contract_read_bounds(
+  nodes : Int, depth : Int, text : Int,
+) -> @value_contract.ReadConstructionInventory? {
+  if nodes < 1 || depth < 0 || text < 0 { return None }
+  // Independent valid all-object and all-array envelopes. Co-count both full
+  // nonnegative recipes; do not submit an impossible observed tree with N
+  // objects AND N arrays in N nodes. This is a current constructor bound,
+  // never an observation/semantic-admission witness.
+  guard @value_contract.read_construction_inventory({
+    nodes, objects: nodes, arrays: 0, fields: nodes - 1,
+    max_fields: nodes - 1, max_array_items: 0,
+    max_selected_text_units: text, outer_depth: depth, work: 0L,
+  }) is Some(objects) &&
+    @value_contract.read_construction_inventory({
+      nodes, objects: 0, arrays: nodes, fields: 0,
+      max_fields: 0, max_array_items: nodes - 1,
+      max_selected_text_units: text, outer_depth: depth, work: 0L,
+    }) is Some(arrays) &&
+    @shape.add_collection_construction_extents(objects.retained, arrays.retained)
+      is Some(retained) &&
+    @shape.add_collection_construction_extents(objects.scratch, arrays.scratch)
+      is Some(scratch) else { return None }
+  Some({retained, scratch,
+    scratch_utf16_units: objects.scratch_utf16_units + arrays.scratch_utf16_units})
 }
