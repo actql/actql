@@ -89869,7 +89869,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing client_local_host Request preparation and Resource owners; original READ phase and projection only",
-      "sha256": "5aa5613aae363abeef516e16ad88eb1f530edd3b0ee8cc230d07bc1698f8928e",
+      "sha256": "ec50fa3a539ded8119627e57e09a96c66d6931a015713fb53a56f904c43a45a3",
       "exports": [],
       "operations": [
         {
@@ -89889,6 +89889,18 @@
           "declaration": "result_read_data_cost ( nodes : Int64 , text : Int64 , wire : Int64 ) - > Int64 ?"
         },
         {
+          "name": "result_read_frame_cost",
+          "declaration": "result_read_frame_cost ( max_row : Int , frame : Int ) - > Int64 ?"
+        },
+        {
+          "name": "result_read_row_cost",
+          "declaration": "result_read_row_cost ( units : Int , max_nodes : Int ) - > Int64 ?"
+        },
+        {
+          "name": "result_read_schema_cost",
+          "declaration": "result_read_schema_cost ( units : Int , max_nodes : Int ) - > Int64 ?"
+        },
+        {
           "name": "result_read_window_cost",
           "declaration": "result_read_window_cost ( bytes : Int ) - > Int64 ?"
         }
@@ -89901,7 +89913,10 @@
             "[I]reconcile_request_result_read_serializer",
             "[I]reserve_request_result_read",
             "result_read_data_cost",
-            "result_read_window_cost"
+            "result_read_window_cost",
+            "result_read_frame_cost",
+            "result_read_row_cost",
+            "result_read_schema_cost"
           ],
           "exports": [],
           "attributes": {

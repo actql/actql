@@ -1057,3 +1057,43 @@ attributes and refuses holes, accessors, extra own fields and out-of-range
 scalars. This presentation neither admits a report nor changes the original
 Run, Ledger, cancellation or retirement lifetime. Snapshot allocation and
 observation storage remain subject to their existing owners and limits.
+
+
+## Native streamed Result read construction
+
+Native streamed JSON, JSONL and CSV delivery uses the original Store operation
+and its original Host Read. After immutable payload metadata has been verified,
+the Store bounds eager row backing by the smaller of the selected row limit and
+the verified payload size. Before creating either the serializer or the row
+framer, it passes that bound, the selected input window, the actual schema and
+field spelling units, and the selected node limit through the same coordinator.
+A logical row may span multiple physical chunks. Input and output chunks retain
+their independent sixteen MiB bound; depth, output authorization, integer
+overflow, row count and current checks remain independent obligations.
+
+The original Request and Native Read share the frame, schema and row
+parse/serialization representation costs. Native adds its existing output
+window cost and obtains contiguous-block geometry from the selected runtime's
+managed-value layout. The block bound covers the pinned UTF-16 StringBuilder's
+geometric growth, CSV quote expansion, schema output, reference backing and the
+output Buffer. Representation costs are demand, never a capacity grant. The
+same original Read construction entry acquires the complete simultaneous peak
+before allocation. The output window is then reused by delivery rather than
+requoting and calling the same resource observer at the next internal step.
+
+The coordinator retains the cumulative constructor obligation before fallible
+acquisition. A failed constructor or current check does not refund consumed
+work, create a replacement Read or permit an unmanaged fallback. Existing
+partial Store custody, failed-flight cleanup, exact original Library/receiver,
+thread/process identity and physical acknowledgement duties remain. A local
+closed-state check after a resource callback catches synchronous Store
+retirement without repeating that external callback.
+
+The command's small initial Read working extents remain unchanged. Its maximum
+Read declaration derives from the existing ordinary finite Local preparation
+policy, independently of that startup basis; it does not introduce a second
+backend-specific all-input ceiling or eagerly acquire the policy maximum.
+Actual growth still requires checked demand and physical backing from the same
+owner. Buffered material/table collection has its own whole-result retention
+and rendering admission; streamed row funding does not change that separate
+receiver or imply that its complete-result limit has been removed.

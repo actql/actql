@@ -24,6 +24,17 @@ pub fn NativeStoreOperationOriginal::prepare_delivery_window(
 }
 
 ///|
+pub fn NativeStoreOperationOriginal::prepare_delivery_workspace(
+  _self : NativeStoreOperationOriginal,
+  _row : Int,
+  _frame : Int,
+  _schema_units : Int,
+  _nodes : Int,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn NativeStoreOperationOriginal::enter_cleanup(
   _self : NativeStoreOperationOriginal,
 ) -> Result[Unit, NativeSqliteIssue] {
