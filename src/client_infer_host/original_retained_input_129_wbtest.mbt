@@ -39,20 +39,51 @@ fn original_129_restore_read(
 }
 
 ///|
-fn original_129_restoring_prefix(fresh : Execution) -> @relation.GeneratedSequence {
-  let limits = {...@publication_host.client_standard_values_sequence_limits(), max_rows: 129}
-  let semantic = @lower.prepare_sequence_prefix(
-    @publication_host.client_infer_occurrence_preparation(fresh.occurrence), 1, limits).unwrap()
+fn original_129_restoring_prefix(
+  fresh : Execution,
+) -> @relation.GeneratedSequence raise {
+  let limits = {
+    ..@publication_host.client_standard_values_sequence_limits(),
+    max_rows: 129,
+  }
+  let owner = @publication_host.client_infer_occurrence_preparation(
+    fresh.occurrence,
+  )
+  let semantic = @lower.prepare_sequence_prefix(owner, 1, limits).unwrap()
   let contracts = @relation.admit_relation_registry(
-    @canonical.from_json(@json.parse(infer_fixture_registry), 10000, 100, 100000),
+    @canonical.from_json(
+      @json.parse(infer_fixture_registry),
+      10000,
+      100,
+      100000,
+    ),
     @canonical.from_json(@json.parse(infer_fixture_values), 10000, 100, 100000),
-    {max_body_bytes:100000,max_body_nodes:10000,max_body_depth:100}).unwrap()
-  @relation.prepare_generated_sequence(contracts, semantic, [], [], 100000, 10000).unwrap()
+    { max_body_bytes: 100000, max_body_nodes: 10000, max_body_depth: 100, },
+  ).unwrap()
+  let retained = @lower.node_id(
+    @lower.node_at(@lower.bound_preparation(owner), 1).unwrap(),
+  )
+  @relation.prepare_generated_sequence(
+    contracts,
+    semantic,
+    [],
+    [retained],
+    100000,
+    10000,
+  ).unwrap()
 }
 
 ///|
 test "original129 retained input roundtrip keeps legacy100 and foreign current small budget guards" {
   let (fresh, fresh_ledger, fresh_consumer, fresh_calls) = original_129_snapshot_fixture()
+  // A flat two-column relation has depth2 regardless of its row count. The
+  // content identity tuple's fourth field is rows, never an encoding depth.
+  let receipt = @relation.completed_relation_identity_scan_body_receipt(
+    fresh.identity.unwrap(),
+  ).unwrap()
+  let geometry = @relation.completed_relation_export_scalar_geometry(receipt)
+  assert_eq(geometry.0, 129)
+  assert_eq(geometry.3, 2)
   let prepared = prepared_call_set(fresh).unwrap()
   let input = @model.prepared_model_input(prepared).unwrap()
   assert_true(
@@ -122,7 +153,7 @@ test "original129 retained input roundtrip keeps legacy100 and foreign current s
   assert_true(restore(small_read, small_consumer) is Err(_))
   assert_eq(calls.val, 0)
   original_composed_test_release(small_ledger, small_consumer)
-  let (ledger, read, consumer) = original_129_restore_read(fresh, 67108864L)
+  let (ledger, _, consumer) = original_129_restore_read(fresh, 67108864L)
   let (foreign_ledger, foreign_read, foreign_consumer) = original_129_restore_read(
     fresh, 67108864L,
   )
