@@ -52,6 +52,7 @@ priv struct ValueBudget {
   // Only a schema-proved reference-free managed receipt discards each payload
   // row. Semantic counters remain cumulative; this marks its physical scratch.
   mut row_scratch_start : (Int, Int)?
+  mut row_scratch_peak : Int64
 }
 
 ///|
@@ -71,6 +72,7 @@ fn value_budget(limits : ValueLimits) -> Result[ValueBudget, CaptureIssue] {
       retention: None,
       retention_funded: 0L,
       row_scratch_start: None,
+      row_scratch_peak: 0L,
     })
   }
 }

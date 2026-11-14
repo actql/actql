@@ -274,13 +274,30 @@ fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool 
   let (nodes, text, copies) = match budget.row_scratch_start {
     None => (nodes, text, 1L)
     Some((start_nodes, start_text)) =>
-      (nodes - start_nodes, text - start_text, 2L)
+      (
+        nodes - start_nodes,
+        text - start_text,
+        if start_nodes == 0 && start_text == 0 {
+          1L
+        } else {
+          2L
+        },
+      )
   }
-  // Array.clear may retain the previous row in Native backing. Keep TWO
-  // complete largest rows funded through original Task cleanup, not just the
-  // current logical length. Never return or reset an original output charge.
-  guard output_retention_required_bytes(nodes, text) is Some(row_bytes) &&
-    checked_preparation_add_product(0L, row_bytes, copies) is Some(required) else {
+  // The first row has no previous admission-owned backing. After that,
+  // Array.clear may retain the previous Native row: keep TWO largest rows,
+  // including a large first row followed by a smaller one. Original producer
+  // and import charges stay separate; no funded peak is returned or reset.
+  guard output_retention_required_bytes(nodes, text) is Some(row_bytes) else {
+    growth.failed = true
+    return false
+  }
+  let peak = if budget.row_scratch_start is Some(_) {
+    Int64::max(row_bytes, budget.row_scratch_peak)
+  } else {
+    row_bytes
+  }
+  guard checked_preparation_add_product(0L, peak, copies) is Some(required) else {
     growth.failed = true
     return false
   }
@@ -307,11 +324,13 @@ fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool 
     growth.used += delta
     growth.retained_outputs = Some(next)
     budget.retention_funded = required
+    budget.row_scratch_peak = peak
     return true
   }
   if !grow_workspace(growth, growth.slots, growth.logical, retained=Some(next)) {
     return false
   }
   budget.retention_funded = required
+  budget.row_scratch_peak = peak
   true
 }
