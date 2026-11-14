@@ -1375,19 +1375,36 @@ test('two-Model deal-review submits one unchanged structured Program through the
   const start = workflowSource.indexOf("    const source = await step('read original README program'");
   const end = workflowSource.indexOf("    const state = await step('wait for original Checkpoint'", start);
   assert.ok(start >= 0 && end > start);
-  const steps = [], original = Object.freeze({fixture: 'one-original-submission'});
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-two-model-started-',
+    label: 'Original public submission reference before wait, no Host execution'});
+  const handoff = join(scratch.path, 'handoff');
+  const save = workflowSyntax.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(declaration => declaration.id.name === 'save'));
+  assert.ok(save, 'Use the original workflow save closure');
+  const steps = [], ref = Object.freeze({fixture: 'one-original-reference'});
+  const original = Object.freeze({ref});
   let reads = 0, submissions = 0;
-  const execution = await compileFunction(workflowPrefix +
+  const execution = await compileFunction(workflowPrefix + workflowSource.slice(save.start, save.end) +
     'return (async () => {' + workflowSource.slice(start, end) + 'return execution;})();',
-    ['process', 'assert', 'step', 'readFile', 'client'])(
-    {argv: ['node', 'fixture', 'capture', 'handoff', 'deal-review-mock', 'two-models']}, assert,
+    ['process', 'assert', 'step', 'readFile', 'writeFile', 'client'])(
+    {argv: ['node', 'fixture', 'capture', handoff, 'deal-review-mock', 'two-models']}, assert,
     async (name, operation) => {steps.push(name); return operation();},
     async (path, encoding) => {reads++; assert.equal(path, 'deal-review.program.json');
       assert.equal(encoding, 'utf8'); return selected;},
+    async (path, bytes, options) => {
+      assert.equal(path, handoff + '.started');
+      assert.deepEqual(options, {encoding: 'utf8', mode: 0o600, flag: 'wx'});
+      assert.equal(bytes, JSON.stringify({ref, template: 'deal-review-mock', variant: 'two-models'}) + '\n');
+      await writeFile(path, bytes, options);
+    },
     {async startSource(document, options) {submissions++; assert.equal(document, selected);
       assert.deepEqual(options, {format: 'json', stopBefore: 'commit'}); return original;}});
   assert.equal(execution, original); assert.equal(reads, 1); assert.equal(submissions, 1);
-  assert.deepEqual(steps, ['read original README program', 'README startSource']);
+  assert.deepEqual(steps, ['read original README program', 'README startSource',
+    'retain original accepted reference before wait']);
+  assert.deepEqual(JSON.parse(await readFile(handoff + '.started', 'utf8')),
+    {ref, template: 'deal-review-mock', variant: 'two-models'});
+  scratch.passed();
 });
 
 
