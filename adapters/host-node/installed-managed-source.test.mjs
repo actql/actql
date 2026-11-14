@@ -573,16 +573,18 @@ test('dispatch retains an unreturned original Source preparation after physical 
   const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
   const functions = [];
   visit(syntax, node => {
-    if (node.type === 'FunctionDeclaration' && node.id.name === 'retire') functions.push(node);
+    if (node.type === 'FunctionDeclaration' && ['retirementReady', 'retire'].includes(node.id.name)) functions.push(node);
   });
-  assert.equal(functions.length, 1);
+  assert.deepEqual(functions.map(node => node.id.name).sort(), ['retire', 'retirementReady']);
+  // Keep the actual readiness predicate in the same scope as its caller.
+  const declarations = functions.map(node => text.slice(node.start, node.end)).join('\n');
   let returns = 0;
   const entry = {settled: true, physicalStarted: false,
     sourcePreparations: [{original: 'same unreturned preparation'}],
     retirePreparation() {returns++;}};
   const entries = new Map([['original', entry]]);
   const retire = new Function('entries', 'keyOf',
-    text.slice(functions[0].start, functions[0].end) + ';return retire;')(entries, () => 'original');
+    declarations + ';return retire;')(entries, () => 'original');
   retire(entry);
   assert.equal(returns, 0);
   assert.equal(entries.get('original'), entry);
