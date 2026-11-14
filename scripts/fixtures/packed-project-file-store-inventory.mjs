@@ -20,10 +20,22 @@ const directory = process.cwd(), stateDir = join(directory, 'state');
 const sourceRoot = join(directory, 'source-data'), destinationRoot = join(directory, 'destination-data');
 const programPath = join(directory, 'program.actql');
 const report = {case: caseId, phase, pid: process.pid, submits: 0, approvals: 0,
-  firstClose: 'unobserved', firstCloseCalls: 0, complete: false};
+  firstClose: 'unobserved', firstCloseCalls: 0, complete: false, diagnostics: []};
 const save = (path, body) => writeFile(path, JSON.stringify(body, null, 2) + '\n', {mode: 0o600});
 const digest = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
 const snapshot = value => JSON.parse(JSON.stringify(value));
+const diagnosticData = (value, depth = 4) => {
+  if (typeof value === 'string') return value.slice(0, 2048);
+  if (value == null || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (depth === 0 || typeof value !== 'object') return undefined;
+  const result = {};
+  for (const key of ['code', 'primaryCode', 'issueTag', 'nestedIssueTag', 'phase',
+    'kind', 'message', 'primaryDiagnostic', 'cause', '$tag', '_0', '_1']) {
+    const property = Object.getOwnPropertyDescriptor(value, key);
+    if (property && Object.hasOwn(property, 'value')) result[key] = diagnosticData(property.value, depth - 1);
+  }
+  return result;
+};
 const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
 const absent = async path => assert.rejects(access(path), {code: 'ENOENT'});
 const generation = async path => {
@@ -97,7 +109,11 @@ try {
   }
   const budget = projectFileStoreInventoryAcceptance.budgetBytes;
   report.requestMemory = {retainedBytes: budget, executionBytes: budget};
-  client = await open({stateDir, installation: {authorization: original.authorization,
+  client = await open({stateDir, installation: {authorization: {...original.authorization,
+    observe(name, detail) {
+      if (['dispatch_failed', 'effect_preflight_failed', 'effect_start_failed', 'local_compute_failed'].includes(name)
+          && report.diagnostics.length < 8) report.diagnostics.push({name, detail: diagnosticData(detail)});
+    }},
     requestMemory: report.requestMemory,
     resultDataPolicy: {kind: 'data_policy', wire: policyWire, cid: digest(policyWire)}}});
   let run;
@@ -106,6 +122,7 @@ try {
     run = await client.startSource(await readFile(programPath, 'utf8'), {format: original.format});
     original.ref = run.ref; await save(handoffPath, original);
     const waiting = await run.wait({signal: AbortSignal.timeout(15_000)});
+    report.captureState = snapshot(waiting);
     assert.equal(waiting.status, 'waiting_checkpoint');
     assert.deepEqual(await readdir(destinationRoot), []);
     await observeProjectFileStoreLedger(stateDir, original.expectedFiles, {beforeApproval: true});
