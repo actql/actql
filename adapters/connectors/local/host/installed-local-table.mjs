@@ -54,7 +54,7 @@ function commonProfile(profile, version, extraKeys) {
       !text(value.python) || !isAbsolute(value.python) ||
       !text(value.accountConfigurationWire) || value.limits === null ||
       typeof value.limits !== 'object' || Array.isArray(value.limits) ||
-      !Array.isArray(value.targets) || value.targets.length < 1 || value.targets.length > 64) {
+      !Array.isArray(value.targets) || value.targets.length < 1) {
     fail('InvalidInstalledTableProfile');
   }
   // This validates the physical configuration without starting Python, opening

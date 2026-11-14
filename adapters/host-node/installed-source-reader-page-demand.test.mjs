@@ -381,6 +381,7 @@ function tableBoundConstructionFixture({refuseInitial=false}={}) {
     runtimeUnboxedReferenceOption:value=>value,
     captureConfigurationReaders:value=>value,installedSourceConfigurationReader:()=>({}),
     reserveInstalledTableConstruction(a,b,c){assert.equal(a,original);assert.equal(b,material);assert.equal(c,profile);events.push('profile-reserve');return profileCapacity;},
+    installedTableReaderConstruction(a,b,c,_construction,selectedBridge){assert.equal(a,original);assert.equal(b,material);assert.equal(c,profile);assert.equal(selectedBridge,bridge);events.push('reader-profile-quote');return profileCapacity;},
     requireSynchronousSourceConstruction:(_m,value)=>value,
     async installRowSourceAuthorization(){events.push('account');return account;},
     installedTableReadSite({authorization,ownAuthorization}){assert.equal(authorization,account);assert.equal(ownAuthorization,true);return {connection:'table-original',issueReadGrant(){assert.fail('no grant during construction');}};},
@@ -396,7 +397,7 @@ function tableBoundConstructionFixture({refuseInitial=false}={}) {
 test('normal Table bound construction reserves and registers its SAME managed reader before original row Source',async()=>{
   const f=tableBoundConstructionFixture();const source=await f.create();
   assert.equal(source,f.source());assert.equal(f.scope.reader,source.reader);assert.equal(f.owned().reader,source.reader);
-  assert.deepEqual(f.events,['profile-reserve','bridge','declare','account','reader-quote','reserve-reader','row-source']);
+  assert.deepEqual(f.events,['profile-reserve','bridge','reader-profile-quote','declare','account','reader-quote','reserve-reader','row-source']);
   assert.equal(f.owned().adapter,source);assert.equal(source.reader.retire(),true);
 });
 

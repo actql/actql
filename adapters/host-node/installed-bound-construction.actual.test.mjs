@@ -162,6 +162,21 @@ test('generated Local table Source registers one actual adapter without starting
   assert.equal(f.retire(), true);
 });
 
+test('Local table129 target inventory uses the same real initial constructor before any Python read', async t => {
+  const capacityEvents = [], f = await boundConstructionActualFixture(t, {capacityEvents});
+  const selected = await f.tableSourceProfile({targetCount: 129});
+  const source = await f.load(selected);
+  assert.equal(source.tableReadTargets.length, 129);
+  assert.equal(source.sourceReadAccesses.length, 129);
+  assert.equal(source.tableReadTargets.at(-1).resource, 'rows_128');
+  assert.ok(capacityEvents.some(event => event.operation ===
+    'clientProgramReserveInstalledSourceConstruction' && event.accepted));
+  assert.equal(f.secretReads(), 0);
+  assert.equal(f.retire(), false);
+  await f.close();
+  assert.equal(f.retire(), true);
+});
+
 test('Local table Source authorization rejection after bridge preparation preserves its sibling', async t => {
   const f = await boundConstructionActualFixture(t);
   const first = await f.profile();

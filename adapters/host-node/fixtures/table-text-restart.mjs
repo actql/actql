@@ -13,8 +13,9 @@ import {tableTestModule} from './table-test-modules.mjs';
 const local = await tableTestModule(
   new URL('../embedded-local.mjs', import.meta.url), '@actql/local-node');
 const open = local.connectEmbeddedLocal ?? local.connect;
-const {options, ref, approval, retainedResult, transport} = JSON.parse(await readFile(process.argv[2], 'utf8'));
+const {options, ref, approval, retainedResult, transport, savedResult} = JSON.parse(await readFile(process.argv[2], 'utf8'));
 let host, server, client;
+let savedReport;
 async function openClient() {
   if (transport !== 'HTTPS') return open(options);
   const {openInstalledRemoteHttpHost} = await tableTestModule(
@@ -34,42 +35,50 @@ try {
   client = await openClient();
   const run = await client.attach(ref);
   let state = await run.status();
-  assert.equal(state.status, 'waiting_checkpoint');
-  if (retainedResult === undefined) assert.deepEqual(state.result_availability, {});
-  const checkpoints = (await client.checkpoints()).items;
-  assert.equal(checkpoints.length, 1);
-  if (approval !== undefined) {
-    assert.equal(checkpoints[0].checkpointCid, approval.checkpointCid);
-    const answer = await client.resolveCheckpoints([
-      {checkpoint: checkpoints[0], decision: 'approved'},
-    ], {signer: {
-      keyId: approval.keyId, reviewerId: approval.reviewerId,
-      authorityScopeCid: ref.authorityScopeCid,
-      sign: bytes => sign(null, bytes, approval.privateKey),
-    }});
-    assert.deepEqual(answer.results.map(result => result.status), ['committed']);
-    const signal = AbortSignal.timeout(30000);
-    for (;;) {
-      signal.throwIfAborted();
-      state = await run.wait({signal});
-      if (!['running', 'resuming'].includes(state.status)) break;
-      await delay(20, undefined, {signal});
-    }
-    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  if (savedResult !== undefined) {
+    assert.deepEqual(run.ref, ref);
+    assert.equal(state.status, 'succeeded');
+    const rows = await run.result(savedResult.name).all();
+    assert.deepEqual(rows, savedResult.rows);
+    savedReport = {status: state.status, savedResult: {name: savedResult.name, rows}};
+  } else {
+    assert.equal(state.status, 'waiting_checkpoint');
     if (retainedResult === undefined) assert.deepEqual(state.result_availability, {});
+    const checkpoints = (await client.checkpoints()).items;
+    assert.equal(checkpoints.length, 1);
+    if (approval !== undefined) {
+      assert.equal(checkpoints[0].checkpointCid, approval.checkpointCid);
+      const answer = await client.resolveCheckpoints([
+        {checkpoint: checkpoints[0], decision: 'approved'},
+      ], {signer: {
+        keyId: approval.keyId, reviewerId: approval.reviewerId,
+        authorityScopeCid: ref.authorityScopeCid,
+        sign: bytes => sign(null, bytes, approval.privateKey),
+      }});
+      assert.deepEqual(answer.results.map(result => result.status), ['committed']);
+      const signal = AbortSignal.timeout(30000);
+      for (;;) {
+        signal.throwIfAborted();
+        state = await run.wait({signal});
+        if (!['running', 'resuming'].includes(state.status)) break;
+        await delay(20, undefined, {signal});
+      }
+      assert.equal(state.status, 'succeeded', JSON.stringify(state));
+      if (retainedResult === undefined) assert.deepEqual(state.result_availability, {});
+    }
+    let observedResult;
+    if (retainedResult !== undefined && approval !== undefined) {
+      assert.deepEqual(Object.keys(state.result_availability), [retainedResult.name]);
+      assert.equal(state.result_availability[retainedResult.name].state, 'available');
+      const result = run.result(retainedResult.name);
+      observedResult = {name: retainedResult.name, rows: await result.all(),
+        columns: (await result.describe()).columns};
+      assert.deepEqual(observedResult, retainedResult);
+    }
+    process.stdout.write(JSON.stringify({status: state.status,
+      result_availability: state.result_availability,
+      ...(observedResult === undefined ? {} : {observedResult})}) + '\n');
   }
-  let observedResult;
-  if (retainedResult !== undefined && approval !== undefined) {
-    assert.deepEqual(Object.keys(state.result_availability), [retainedResult.name]);
-    assert.equal(state.result_availability[retainedResult.name].state, 'available');
-    const result = run.result(retainedResult.name);
-    observedResult = {name: retainedResult.name, rows: await result.all(),
-      columns: (await result.describe()).columns};
-    assert.deepEqual(observedResult, retainedResult);
-  }
-  process.stdout.write(JSON.stringify({status: state.status,
-    result_availability: state.result_availability,
-    ...(observedResult === undefined ? {} : {observedResult})}) + '\n');
 } finally {
   try { if (client) await client.close(); }
   finally {
@@ -87,4 +96,9 @@ try {
       }
     }
   }
+}
+if (savedReport !== undefined) {
+  // Emitted only AFTER the actual awaited public close and original cleanup.
+  // This is a test observation, not an independent FD or whole-stop receipt.
+  process.stdout.write(JSON.stringify({...savedReport, firstCloseReturned: true}) + '\n');
 }

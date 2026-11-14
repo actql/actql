@@ -54,6 +54,16 @@ Published Source contexts retain the central result instead of rebuilding it
 or manufacturing a Row declaration. Existing aggregate cleanup continues to
 own partially loaded adapters and physical children.
 
+The Table initializer retains its complete original installation profile.
+A selected Table reader prices its first outbound selector through the same
+Bridge preflight frame constructor, including the actual Catalog and protocol
+envelope. The Source owner inspects all original targets and uses conservative
+per-dimension maxima with the existing shared Table construction recipe. It
+does not replicate unrelated target inventories in each reader's three outbound
+stages. Later receipt-derived payloads still grow through that same RowRun from
+the actual announced body before allocation. None of these quantities grants
+read permission or acknowledges an earlier physical reader's stop.
+
 A successful synchronous input constructor cuts its callback aliases and
 replaces its peak quote with its original retained-output quote. Failed or
 asynchronous constructors keep their admitted peak and original custody.
