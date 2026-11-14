@@ -1,4 +1,66 @@
 ///|
+// Early source-free receipt: record1H3R plus its extra existing Plan field1R
+// are48 retained bytes. The new outer Ok receipt carrier1H1R1W is32 bytes
+// of workspace, coheld before return; the real issuer's existing tuple/Result
+// remains in its original quote. Admit this SAME Request delta before issue.
+fn installed_effect_early_publication_receipt_capacity() -> @execution.ExecutionCapacity {
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 1L,
+      reference_slots: 4L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 1L,
+      reference_slots: 1L,
+      scalar_words: 1L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  }).unwrap()
+}
+
+///|
+// Exact newly owned issuer carriers. Payload variants, including Some, own
+// one header, one scalar tag and their payload reference under the shared law.
+// Definition marker + successful invocation are 2H2R2W (64 logical bytes).
+// Model receipt record is 1H15R1W and its self Some is 1H1R1W: 2H16R2W
+// (176 bytes), retained before either constructor. No inferred unboxing/slack.
+// Transient return tuple + Ok is 2H3R1W (64 bytes); this also covers Begin's
+// smaller Ok(control)/Ok(receipt) carrier without overlapping live payloads.
+fn installed_effect_publication_binding_capacity(
+  model_transition : Bool,
+) -> @execution.ExecutionCapacity {
+  let model = if model_transition { 1L } else { 0L }
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 2L + 2L * model,
+      reference_slots: 2L + 16L * model,
+      scalar_words: 2L + 2L * model,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      record_headers: 2L,
+      reference_slots: 3L,
+      scalar_words: 1L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  }).unwrap()
+}
+
+///|
 // Closed issuer transition on the existing managed Run. No public callback,
 // copied/CID-only publication binding, new owner or replacement Ledger.
 fn begin_installed_effect_publication_invocation(
@@ -34,7 +96,6 @@ fn begin_installed_effect_publication_invocation(
   }
   if owner.effect_operation_opening ||
     owner.effect_operation_closing ||
-    owner.publication_invocation_started ||
     owner.publication_definition is Some(_) ||
     owner.publication_invocation is Some(_) ||
     control.construction_active ||
@@ -50,35 +111,10 @@ fn begin_installed_effect_publication_invocation(
     is Some(fixed) else {
     return Err(Installed(InsufficientCapacity))
   }
-  let fixed = if model_transition {
-    // One sealed transition DATA record: self plus fourteen exact borrowed
-    // originals and one consumed word. Its transient Result carriers coexist.
-    let transition = @execution.preparation_execution_capacity({
-      retained: {
-        record_headers: 1L,
-        reference_slots: 15L,
-        scalar_words: 1L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      },
-      workspace: {
-        record_headers: 1L,
-        reference_slots: 2L,
-        scalar_words: 0L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      },
-      retained_nodes: 0L,
-      workspace_nodes: 0L,
-      retained_bytes: 0L,
-      workspace_bytes: 0L,
-    }).unwrap()
-    match standard_create_sequence_pair_capacity(fixed, transition) {
-      Some(value) => value
-      None => return Err(Installed(InsufficientCapacity))
-    }
-  } else {
-    fixed
+  let binding = installed_effect_publication_binding_capacity(model_transition)
+  let fixed = match standard_create_sequence_pair_capacity(fixed, binding) {
+    Some(value) => value
+    None => return Err(Installed(InsufficientCapacity))
   }
   owner.effect_operation_opening = true
   // This existing numeric grow performs the original current fence once.
@@ -94,7 +130,9 @@ fn begin_installed_effect_publication_invocation(
     }
     Ok(_) => ()
   }
-  owner.publication_invocation_started = true
+  // Existing exact Definition storage is a consumed-start marker, never an
+  // issued invocation. Keep it on every post-start failure until real retire.
+  owner.publication_definition = Some(definition)
   Ok(control)
 }
 
@@ -114,8 +152,8 @@ fn finish_installed_effect_publication_invocation(
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
     owner.effect_operation_opening &&
-    owner.publication_invocation_started &&
-    owner.publication_definition is None &&
+    owner.publication_definition is Some(original_definition) &&
+    physical_equal(original_definition, definition) &&
     owner.publication_invocation is None &&
     owner.effect_operation_controls is Some(control) &&
     physical_equal(control, original_control) &&
@@ -131,7 +169,6 @@ fn finish_installed_effect_publication_invocation(
   }
   // Only immutable checks occur here; the actual external/current fences
   // belong to Begin and the closed Source/Content/Model caller boundaries.
-  owner.publication_definition = Some(definition)
   owner.publication_invocation = Some(value.1)
   Ok(value)
 }
@@ -624,8 +661,8 @@ pub fn finish_installed_effect_model_publication_transition(
     physical_equal(original, value) &&
     !value.used &&
     value.owner.effect_operation_opening &&
-    value.owner.publication_invocation_started &&
-    value.owner.publication_definition is None &&
+    value.owner.publication_definition is Some(original_definition) &&
+    physical_equal(original_definition, value.definition) &&
     value.owner.publication_invocation is None else {
     return Err(WrongPhase)
   }

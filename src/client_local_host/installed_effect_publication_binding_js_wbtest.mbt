@@ -228,9 +228,12 @@ fn effect_publication_values_original(
     compilation,
     // Exact existing Local Values Host policy identity from local-values-plan.
     // Source-free Values has no checked Source provenance policy to unwrap.
-    "sha256:" + @sha.hex(@utf8.encode(
-      "{\"version\":\"actql-installed-local-policy/0.1\",\"name\":\"local-result-data\"}",
-    )),
+    "sha256:" +
+    @sha.hex(
+      @utf8.encode(
+        "{\"version\":\"actql-installed-local-policy/0.1\",\"name\":\"local-result-data\"}",
+      ),
+    ),
     1000000,
     100000,
     64,
@@ -456,6 +459,16 @@ test "closed publication current fence blocks reentry and never publishes after 
 
 ///|
 test "trusted Model transition rejects foreign receipt changed tuple reuse and abort without granting authority" {
+  let early = installed_effect_early_publication_receipt_capacity()
+  assert_eq(@execution.execution_capacity_retained_bytes(early), 48L)
+  assert_eq(@execution.execution_capacity_execution_bytes(early), 80L)
+  let ordinary = installed_effect_publication_binding_capacity(false)
+  let model = installed_effect_publication_binding_capacity(true)
+  assert_eq(@execution.execution_capacity_retained_bytes(ordinary), 64L)
+  assert_eq(@execution.execution_capacity_execution_bytes(ordinary), 128L)
+  // Includes the sealed record AND its explicitly boxed self Some carrier.
+  assert_eq(@execution.execution_capacity_retained_bytes(model), 240L)
+  assert_eq(@execution.execution_capacity_execution_bytes(model), 304L)
   let original = effect_publication_values_original()
   let observation = @publication_host.client_effect_source_free_invocation_original_observation(
     original.issued,
@@ -497,10 +510,31 @@ test "trusted Model transition rejects foreign receipt changed tuple reuse and a
     is Err(ForeignOriginal),
   )
   assert_true(
-    original.run.publication_definition is None &&
+    original.run.publication_definition is Some(definition) &&
+    physical_equal(definition, original.definition) &&
     original.run.publication_invocation is None,
   )
   assert_false(original.run.effect_operation_opening)
+  // A consumed-start Definition is not an issued publication. The ordinary
+  // complete dependency entrance still refuses this failed original.
+  let failed_usage = @resources.ledger_usage(original.parent.ledger)
+  assert_true(
+    prepare_installed_effect_dependency_inventory(
+      original.run,
+      original.prepared,
+      original.request,
+      original.plan,
+      [],
+      [],
+      [],
+      [],
+      1000000,
+      100000,
+      64,
+    )
+    is Err(Retired),
+  )
+  assert_eq(@resources.ledger_usage(original.parent.ledger), failed_usage)
   assert_true(
     finish_installed_effect_model_publication_transition(
       transition, observation, invocation,

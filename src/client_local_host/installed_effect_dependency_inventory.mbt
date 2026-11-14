@@ -91,7 +91,8 @@ pub fn prepare_installed_effect_dependency_inventory(
     owner.effect_operation_controls is Some(control) &&
     control.dependency_inputs is Some(inputs) &&
     owner.source_free_captured is Some(captured) &&
-    owner.publication_definition is Some(definition) else {
+    owner.publication_definition is Some(definition) &&
+    owner.publication_invocation is Some(_) else {
     return Err(Retired)
   }
   match check_installed_effect_managed_run_binding(owner, prepared, request) {
