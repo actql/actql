@@ -1,5 +1,5 @@
 import {composeInstalledSourceEnvironment, readInstalledSourceEnvironment,
-  admitInstalledSourceFinalEnvironment} from './installed-funded-environment.mjs';
+  admitInstalledSourceFinalEnvironment, readInstalledHostEnvironment} from './installed-funded-environment.mjs';
 import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
 import {localProjectFilesystem} from './local-files-native.mjs';
 import {createInstalledHostServices, installedSourceConfigurationReader,
@@ -2133,10 +2133,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       // reservations or a numerical execution profile. The ordinary complete
       // Environment checker below still enforces its existing aggregate bounds.
       projectTasks = await loadInstalledProjectModelTasks(moon, project, modelProviders, {
-        limits: {maxTasks: 128, maxBytes: 65536, maxNodes: 4096, maxDepth: 64,
+        limits: {maxBytes: 65536, maxNodes: 4096, maxDepth: 64,
           maxMembers: 256, contractNodes: 4096, contractDepth: 64,
           contractTextBytes: 65536, maxWork: 2097152},
-        assertCurrent: assertProjectRuntime,
+        assertCurrent: assertProjectRuntime, installationServices,
       });
     }
     let body;
@@ -2181,8 +2181,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       // Extend AFTER Host-local policy encoding. Do not NFC-normalize the
       // original public Task identifier or rebuild its preimage in JS.
       if (mockModels === undefined) {
-        environmentWire = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
-          environmentEvidenceCid).environmentWire;
+        const projection = projectTasks.projectEnvironmentForRuntime(moon, environmentWire,
+          environmentEvidenceCid, body);
+        environmentWire = projection.environmentWire;
+        environmentEvidenceCid = projection.evidenceCid;
+        // Host policy is unchanged by the original Task-only projection. Borrow
+        // that already funded body for flag selection; the new final wire is
+        // parsed/admitted only inside its same-owner constructor below.
+        environmentBody = body;
       } else {
         // All Task/prompt/execution/retry/backoff bodies came from this same
         // Common profile/normalization. Do not rewrite the original model or
@@ -2190,10 +2196,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         modelInstallation = mockModels.modelInstallationForRuntime(moon, environmentWire,
           environmentEvidenceCid);
         environmentWire = modelInstallation.environmentWire;
+        environmentBody = environmentEvidenceCid = undefined;
       }
-      // Read a newly issued Task document at the existing final-check phase,
-      // after connector binding validation, without retaining the old body.
-      environmentBody = environmentEvidenceCid = undefined;
     }
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
@@ -2231,7 +2235,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     // The exact task offer and execution obligations still select capability.
     const textTimeEnabled = environmentBody.host_policy_profile?.text_time_evaluation !== undefined;
     environmentBody = undefined;
-    if (calendarArtifact === undefined && environmentWire === composedEnvironment.wire) {
+    if (projectTasks !== undefined && mockModels === undefined) {
+      finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
+        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined,
+          numericProfileCid, graphLawCid: contentCid(graphLaw)});
+      environment = finalEnvironmentOriginal.admitted;
+    } else if (calendarArtifact === undefined && environmentWire === composedEnvironment.wire) {
       finalEnvironmentOriginal = admitInstalledSourceFinalEnvironment(installationServices, moon,
         composedEnvironment, {textTime:textTimeEnabled,numericProfileCid,graphLawCid:contentCid(graphLaw)});
       environment = finalEnvironmentOriginal.admitted;

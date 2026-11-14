@@ -14,10 +14,13 @@ const preparationUrl = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME === und
     pathToFileURL(realpathSync(process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME)));
 const {openHostInitializationPreparation, closeHostInitializationPreparation} = await import(preparationUrl.href);
 
-export function createInstalledLoaderParent({root, principalId = 'operator', moon}) {
+export function createInstalledLoaderParent({root, principalId = 'operator', moon, assertCurrent}) {
   const state = {}, sources = new Set(), failures = new Set();
   let services, active = true, childrenPending = false, opened = false, closed = false;
-  const current = () => assert.equal(active, true, 'original installation parent remains current');
+  const current = () => {
+    assert.equal(active, true, 'original installation parent remains current');
+    assertCurrent?.();
+  };
   return Object.freeze({
     get services() {return services;},
     open() {
