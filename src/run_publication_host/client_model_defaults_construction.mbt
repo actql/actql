@@ -96,7 +96,11 @@ pub fn client_model_provider_defaults_retained_extent(
   original : ClientModelProviderDefaults,
 ) -> @environment.RegistryConstructionExtent? {
   let n = original.nodes
-  guard @source.json_index_borrowed_construction_extent(n, n,
+  // Any nonempty original JSON tree has at most nodes-1 field edges. Its
+  // complete actual UTF8 input bounds total decoded UTF16 units (escapes and
+  // multibyte scalars cannot expand that count); this is a bound, not a text
+  // observation or a claim of nodes/fields from its byte size.
+  guard @source.json_index_borrowed_construction_extent(n, n - 1,
       original.bytes.to_int64(), keep_spans=true) is Some(source) &&
     @decode.admission_construction_inventory(n, n, n, n, 64) is Some(index) else { return None }
   let count = n.to_int64()
