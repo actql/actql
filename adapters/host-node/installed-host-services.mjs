@@ -129,6 +129,16 @@ function sourceCall(original, material, name, args) {
             Object.defineProperty(cause, 'installedSourceResourceIssue', {value: resource, enumerable: true});
           }
         }
+        if (name === 'ReserveInstalledSourceConstruction' &&
+            typeof original.moon.clientProgramSerializationCapacityBytes === 'function') {
+          const amounts = original.moon.clientProgramSerializationCapacityBytes(args[2]);
+          for (const [key, index] of [['installedSourceRetainedBytes', 0], ['installedSourceExecutionBytes', 1]]) {
+            const amount = runtimeField(amounts, index);
+            if (typeof amount === 'bigint' && amount >= 0n) {
+              Object.defineProperty(cause, key, {value: String(amount), enumerable: true});
+            }
+          }
+        }
       }
     } catch { /* Diagnostics never replace the original failure. */ }
     throw cause;

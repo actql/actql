@@ -78,7 +78,9 @@ test('completed Source inventory quote refuses original-current loss before cons
   const construct = captureSourceAliasConstruction(installedSourceConfigurationReader(f.services), f.moon);
   const fault = f.failCurrentOnNextReserve();
   assert.throws(() => prepareInstalledSourceCheckpointInventory(f.adapter, construct),
-    error => error.installedSourcePhase === 'ReserveInstalledSourceConstruction');
+    error => error.installedSourcePhase === 'ReserveInstalledSourceConstruction' &&
+      /^[0-9]+$/u.test(error.installedSourceRetainedBytes) &&
+      /^[0-9]+$/u.test(error.installedSourceExecutionBytes));
   assert.equal(fault.calls, 1);
   assert.deepEqual(f.counts(), {reads: 0, grants: 0});
   await f.close();
