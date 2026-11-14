@@ -176,6 +176,30 @@ fn decode_account_configuration_original(
     Ok(value) => value
     Err(_) => return Err(MalformedWire({ kind: InvalidJson, path: "$", }))
   }
+  decode_account_configuration_source(source, bytes, size)
+}
+
+///|
+/// Decode and admit a wire configuration.
+pub fn admit_account_configuration_json(
+  body : String,
+) -> Result[AdmittedAccountConfiguration, ConfigurationIssue] {
+  match decode_account_configuration_original(body) {
+    Ok((raw, bytes)) =>
+      admit_account_configuration(raw).map(account => {
+        ..account,
+        original_wire: Some(bytes),
+      })
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn decode_account_configuration_source(
+  source : @source.Node,
+  bytes : Bytes,
+  size : Int,
+) -> Result[(RawAccountConfiguration, Bytes), ConfigurationIssue] {
   try {
     let cursor = wire_decoded(
       @decode.admit(source, {
@@ -214,16 +238,87 @@ fn decode_account_configuration_original(
 }
 
 ///|
-/// Decode and admit a wire configuration.
-pub fn admit_account_configuration_json(
+// Private prepared wire half. The existing public entrance above retains its
+// original route; no Native caller selects this half before canonical/overlap
+// construction and original physical custody are connected as well.
+fn decode_account_configuration_prepared(
   body : String,
-) -> Result[AdmittedAccountConfiguration, ConfigurationIssue] {
-  match decode_account_configuration_original(body) {
-    Ok((raw, bytes)) =>
-      admit_account_configuration(raw).map(account => {
-        ..account,
-        original_wire: Some(bytes),
-      })
-    Err(issue) => Err(issue)
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[
+  (RawAccountConfiguration, Bytes, AccountConstructionContext),
+  ConfigurationIssue,
+]? {
+  if !prepare(account_construction_initial_request) {
+    return None
+  }
+  let context : AccountConstructionContext = {
+    prepare,
+    wire_live: account_construction_initial,
+  }
+  if body.is_empty() {
+    return Some(Err(MalformedWire({ kind: InvalidJson, path: "$", })))
+  }
+  let byte_bound = Int64::min(2147483647L, 3L * body.length().to_int64()).to_int()
+  let preflight = match
+    @source.start_json_source_preflight(body, {
+      max_input_bytes: Int::max(1, byte_bound),
+      max_nodes: Int::max(1, body.length()),
+      max_depth: 7,
+    }) {
+    Ok(value) => value
+    Err(_) => return Some(Err(MalformedWire({ kind: InvalidJson, path: "$", })))
+  }
+  let mut observed : @source.JsonSourceGeometry? = None
+  while observed is None {
+    match @source.advance_json_source_preflight(preflight, 4096).unwrap() {
+      @source.JsonSourceContinue(..) => ()
+      @source.JsonSourceReady(geometry, ..) => observed = Some(geometry)
+      @source.JsonSourceFailed(_) => {
+        @source.cancel_json_source_preflight(preflight)
+        return Some(Err(MalformedWire({ kind: InvalidJson, path: "$", })))
+      }
+    }
+  }
+  let geometry = observed.unwrap()
+  try {
+    // Encode only after the SAME Unicode preflight supplies exact byte size.
+    // This remains the original wire, not a normalized/canonical replacement.
+    let original_wire = account_construction_units(
+      1L,
+      0L,
+      0L,
+      0L,
+      wire=geometry.input_bytes.to_int64(),
+    )
+    account_prepare_construction(Some(context), original_wire, original_wire)
+    let bytes = @utf8.encode(body)
+    account_prepare_json_tree(context, geometry)
+    let parser = @source.take_json_source_parser(preflight).unwrap()
+    let mut source : @source.Node? = None
+    while source is None {
+      match @source.advance_json_parse(parser, 4096).unwrap() {
+        @source.JsonParseContinue(..) => ()
+        @source.JsonParseComplete(parsed, ..) => source = Some(parsed.node)
+        @source.JsonParseFailed(_) =>
+          return Some(Err(MalformedWire({ kind: InvalidJson, path: "$", })))
+      }
+    }
+    account_prepare_json_index(context, geometry)
+    account_prepare_wire_decode(context, geometry)
+    Some(
+      decode_account_configuration_source(
+        source.unwrap(),
+        bytes,
+        bytes.length(),
+      ).map(value => {
+        context.wire_live = account_construction_initial
+        (value.0, value.1, context)
+      }),
+    )
+  } catch {
+    AccountConstructionStop => {
+      @source.cancel_json_source_preflight(preflight)
+      None
+    }
   }
 }
