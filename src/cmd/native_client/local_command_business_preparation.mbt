@@ -140,13 +140,17 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
           .unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
         (None, Some(selected))
       } else {
-        let requirements = @local_values.prepare_source_free_runtime_requirements(
-          prepared,
-          runtime.installed_contracts,
-          assets.values,
-          Some(assets.fragment),
-          assets.ordered,
-        ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
+        let requirements = match
+          @local_values.prepare_source_free_runtime_requirements_result(
+            prepared,
+            runtime.installed_contracts,
+            assets.values,
+            Some(assets.fragment),
+            assets.ordered,
+          ) {
+          Ok(original) => original
+          Err(issue) => local_stop_runtime_requirements(issue)
+        }
         command_preparation_result(
           self.require_business_program(
             prepared,

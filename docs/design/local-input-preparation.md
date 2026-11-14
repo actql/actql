@@ -587,6 +587,16 @@ issued DAG before binding, so failed binding or reentrant current loss cannot
 issue another graph. A changed output mode refuses before graph construction;
 it cannot trigger a late factory or choose a fallback configuration.
 
+The runtime requirements entry retains the original sequence-selection failure
+in a typed Result; the existing Option entry remains its compatibility view.
+Both use the same checked Program, installed contracts and one preparation
+path. The CLI projects only closed phase and proven dimension labels from that
+failure. A sequence step bound stays distinct from invalid selected limits,
+graph/import inventory failure and an unavailable capacity quote. An absent
+quote establishes no memory/work shortage or execution permission. Debug text,
+SQL, paths and error payloads are not public diagnostic material; reporting
+does not retry checking or replace the original cleanup owner.
+
 The raw sequence preparation still serves explicitly unmigrated Effect/Model
 projections. The Request module path supplies its actual selected module; an absent module choice is
 an inline scalar word priced in that driver's existing semantic constructor
