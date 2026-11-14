@@ -54,3 +54,31 @@ test "HTTP input preserves original wire policy foreign current and failed growt
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
 }
+
+
+///|
+test "HTTP native tree refuses a smaller original parent before construction and retains cleanup" {
+  let input = [1]
+  let policy = client_local_resource_policy()
+  let limits = client_local_preparation_initial_limits(
+    policy, retained_bytes=Some(100000L), execution_bytes=Some(100000L),
+  ).unwrap()
+  let owner = begin_request_preparation(
+    request_parent_fixture(input, initial_limits=Some(limits)), input, policy,
+  ).unwrap()
+  let original = owner.capacity
+  let wire = "{\"text\":\"" + "x".repeat(10000) + "\"}"
+  reserve_request_http_input(owner, input, wire.length(), 1, 1024, 65536).unwrap()
+  let before = @resources.ledger_usage(owner.ledger)
+  assert_true(prepare_request_http_json(owner, input, wire) is Err(Capacity(_)))
+  let after = @resources.ledger_usage(owner.ledger)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_true(physical_equal(original, owner.capacity))
+  assert_true(owner.http_input.unwrap().work is None)
+  assert_true(owner.program_json is None && owner.submitted_intent is None)
+  assert_eq(request_preparation_work_calls(owner), (0L, 0L, 0L, 0L))
+  assert_true(prepare_request_http_json(owner, input, wire) is Err(WrongPhase))
+  abort_request_preparation_after_cleanup(owner).unwrap()
+  assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
+}
