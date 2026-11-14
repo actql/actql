@@ -101,22 +101,19 @@ fn client_check_environment_add_extent(
 }
 
 ///|
-/// Initial Source/Effect composition has no ModelTask declarations. A later
-/// Model owner must supply its own populated constructor inventory. Absence of
-/// this quote is refusal, never an implicit zero-cost ModelTask admission.
+/// Exact original final inventory, including populated ModelTask contracts.
+/// The same parent must reserve this quote before ordinary full admission.
 #export_name("clientProgramCheckEnvironmentFromWireConstructionCapacity")
 pub fn client_program_check_environment_from_wire_construction_capacity(
   original : @check_environment.WireEnvironment,
 ) -> @execution.ExecutionCapacity? {
-  guard @check_environment.empty_model_tasks_construction_extent(original)
-    is Some(peak) &&
-    @check_environment.empty_model_tasks_retained_extent(original)
-    is Some(retained) else {
+  guard @check_environment.model_tasks_admission_construction_extent(original)
+    is Some(peak) else {
     return None
   }
   client_check_environment_capacity(
     client_check_environment_add_extent(
-      retained,
+      peak,
       @publication_host.client_check_environment_wrapper_construction_extent(
         false,
       ),
