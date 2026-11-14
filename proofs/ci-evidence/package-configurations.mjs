@@ -105,7 +105,9 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-13-session-file-task-boundary-selector-review.md.
   // One literal JS-only direct UNION Request selector; imports unchanged.
   // See docs/reviews/2026-11-14-session-direct-union-selector-review.md.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '73ce0addad1ed0fee070cd0ae738e91dc2e857c877e14e57951f4de4392cdcfb', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'bad3df76f10ae158ab579b33a4b9d1232eee58cf'}),
+  // One further literal JS-only HTTP Request input selector; imports unchanged.
+  // See docs/reviews/2026-11-14-session-http-input-selector-review.md.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '24a013cbcf540ebf0c47fba54b93516ad0ef498549a669237e6710f2232ce778', rule: 'literal-target-selectors-with-bound-source-membership', revision: '45906df586b5439ac03235e3b1a9b8f1576b98ec'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
