@@ -162,3 +162,15 @@ test "installed defaults preserve declared work limits and unknown model refusal
     is Err(@environment.UnknownModel),
   )
 }
+
+///|
+test "one installed defaults constructor retains actual configuration rather than its unused limits" {
+  let wire = installed_defaults_wire()
+  let peak = client_model_provider_defaults_construction_extent("models/independent",
+    "{}", "{}", wire, installed_defaults_limits()).unwrap()
+  let actual = client_model_provider_defaults_retained_extent(installed_defaults_read(wire)).unwrap()
+  assert_true(peak.record_headers > actual.record_headers)
+  assert_true(peak.owned_utf16_units > actual.owned_utf16_units)
+  assert_true(client_model_provider_defaults_construction_extent("models/independent",
+    "{}", "{}", wire, {..installed_defaults_limits(), max_bytes: 1}) is None)
+}
