@@ -10,10 +10,10 @@ export function projectFileStoreRows101() {
   const inputs=Array.from({length:101},(_,index)=>({
     path:`input-${String(index).padStart(3,'0')}.jsonl`,body:JSON.stringify({id:index})+'\n'}));
   return Object.freeze({name:'project-file-store-101rows-one-definition',format:'sql',
-    source:'FROM LIST_FILES(source) AS f '+
-      '|> JOIN source.contents AS c ON f.resource = c.resource AND f.version = c.version '+
-      '|> SELECT f.path AS path, f.size_bytes AS size_bytes, c.content AS content '+
-      '|> ORDER BY path |> RESULT answer '+
+    source:'SELECT f.path AS path, f.size_bytes AS size_bytes, c.content AS content '+
+      'FROM LIST_FILES(source) AS f '+
+      'JOIN source.contents AS c ON f.resource = c.resource AND f.version = c.version '+
+      'ORDER BY path |> RESULT answer '+
       '|> EFFECT STORE destination.files SET (path = path, content = content)',
     inputs:Object.freeze(inputs.map(Object.freeze)),
     expectedWrites:101,expectedDefinitions:1,resultName:'answer',
