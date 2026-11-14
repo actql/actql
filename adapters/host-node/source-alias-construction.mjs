@@ -5,6 +5,8 @@
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {aliasRequestGeometry} from './source-alias-request.mjs';
+import {installedCheckpointBindingCanonicalConstructionGeometry}
+  from './installed-check-environment-construction.mjs';
 
 const invalid = () => {throw new TypeError('InvalidSourceAliasConstruction');};
 const stage = (retained, workspace, bounds) => ({
@@ -224,15 +226,17 @@ export function sourceAliasIdentityConstructionGeometry(aliases) {
 // gate slots and authorization-binding rows that Checkpoints consume later.
 // The two CIDs per binding have their existing SHA256 textual extent (71),
 // never a grant or an invented CID value. Account admission still issues them.
-export function sourceCheckpointInventoryConstructionGeometry(count, sourceRefUnits) {
+export function sourceCheckpointInventoryConstructionGeometry(count, sourceRefUnits, sourceRefShape) {
   if (typeof count !== 'bigint' || count < 0n ||
       typeof sourceRefUnits !== 'bigint' || sourceRefUnits < 0n) invalid();
   const keyUnits = BigInt('source_ref'.length + 'configuration_cid'.length + 'context_cid'.length);
   const outerKey = BigInt('source_authorization_bindings'.length);
   const leafUnits = sourceRefUnits + 2n * 71n * count;
-  const canonical = canonicalSourceConstructionWorkspace({nodes: 4n * count + 2n,
+  const canonical = sourceRefShape === undefined ? canonicalSourceConstructionWorkspace({nodes: 4n * count + 2n,
     entries: 4n * count + 1n, units: leafUnits + keyUnits * count + outerKey,
-    weighted: 4n * leafUnits + 3n * keyUnits * count + outerKey, depth: 3n});
+    weighted: 4n * leafUnits + 3n * keyUnits * count + outerKey, depth: 3n})
+    : installedCheckpointBindingCanonicalConstructionGeometry(count,
+      sourceRefShape.output, sourceRefShape.normalized);
   // Five arrays, three fixed-width records per Source, result and borrow
   // record. The current connection Set/sort and later validation/sort occupy
   // separate phases under this same complete retained envelope.
