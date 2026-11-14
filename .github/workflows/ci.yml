@@ -470,7 +470,7 @@ jobs:
           execFileSync(binary, ['--version'], {stdio: 'inherit', timeout: 5000});
           const image = process.env.ImageVersion ?? 'unreported-image';
           assert(/^[A-Za-z0-9_.-]+$/u.test(image));
-          assert(/^(?:[1-4]\/4|scoped)$/u.test(process.env.CACHE_PARTITION));
+          assert(['1/2', '2/2', 'scoped'].includes(process.env.CACHE_PARTITION));
           const profile = hash(Buffer.concat([readFileSync('toolchain.json'),
             readFileSync('scripts/native-core-c-compiler.mjs'),
             readFileSync('scripts/native-core-scoped-profile.mjs')]));
