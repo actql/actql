@@ -143,7 +143,7 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
     });
   for (const target of ['js', 'wasm', 'native'])
     for (const partition of ['1/2', '2/2', 'source', 'scoped'])
-      assert.equal(evaluate(target, partition), target === 'native' && (partition.endsWith('/4') || partition === 'scoped'));
+      assert.equal(evaluate(target, partition), target === 'native' && ['1/2', '2/2', 'scoped'].includes(partition));
   const action = 'actions/cache/';
   const pin = '@caa296126883cff596d87d8935842f9db880ef25';
   assert.equal(restore.uses, action + 'restore' + pin);
