@@ -1091,8 +1091,8 @@ test('maintenance N/A is explicit and cannot hide execution or selected check fa
 // Exercise the real GitHub job expressions, including always() behavior.
 const scheduled = (name, needs, inputs = {}, isCancelled = false) => {
   const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
-  return Function('needs', 'inputs', 'always', 'cancelled', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true, () => isCancelled,
-    {}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify);
+  return Function('needs', 'inputs', 'always', 'cancelled', 'vars', 'github', 'toJSON', 'fromJSON', 'contains', `return (${expression});`)(needs, inputs, () => true, () => isCancelled,
+    {}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify, JSON.parse, (values, value) => values.includes(value));
 };
 test('pipeline evidence aggregates dependency failures but stops on workflow cancellation', () => {
   const names = jobs['pipeline-evidence'].needs;
@@ -1137,9 +1137,12 @@ test('every heavy primitive is selected as one complete job and lint/spec always
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
-    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', macos: 'false'}}}), false);
-    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}}}), true);
-    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', macos: 'true'}}}), false);
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', targets: '["js"]', macos: 'false'}},
+      lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}},
+      lint: {result: 'success'}, 'core-js': {result: 'success'}}), true);
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', targets: '[]', macos: 'true'}},
+      lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
   }
   assert.deepEqual(jobs.check.needs, gateJobs);
   for (const name of ['lint', 'spec']) assert.deepEqual(jobs[name].needs, ['select-targets']);
@@ -1407,7 +1410,8 @@ test('Unrelated Draft cannot start product, packed, proof or backend jobs; final
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
   for (const profile of ['draft', 'draft-focused']) {
-    const needs = {'select-targets': {outputs: {profile, macos: 'false'}}};
+    const needs = {'select-targets': {outputs: {profile, targets: '["js"]', macos: 'false'}},
+      lint: {result: 'success'}, 'core-js': {result: 'skipped'}};
     for (const name of heavy) assert.equal(scheduled(name, needs), false, `${profile}/${name}`);
     assert.equal(scheduled('focused-tests', needs), profile === 'draft-focused');
     for (const name of ['preflight', 'lint', 'spec', 'check']) assert.equal(scheduled(name, needs), true, name);
@@ -1557,8 +1561,9 @@ test('main CLI selects full checks from a fresh checkout without API token or pr
 test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
   const job = jobs['python-wheels'];
   assert.equal(job['runs-on'], 'macos-15');
-  assert.deepEqual(job.needs, ['select-targets']);
-  assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', macos: 'false'}}}), true);
+  assert.deepEqual(job.needs, ['select-targets', 'lint', 'core-js']);
+  assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', macos: 'false'}},
+    lint: {result: 'success'}, 'core-js': {result: 'success'}}), true);
   assert(job.steps.some(step => step.run?.includes('test "$(uname -m)" = arm64')));
   assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));
   assert(jobs.lint.steps.some(step => step.run === 'python3 -B scripts/test_ci_python_wheels.py'));
@@ -1586,7 +1591,8 @@ test('Draft normal Python and CI changes automatically select real wheel accepta
     const selection = selectTargets([path], {draft: true});
     assert.equal(pythonWheelAcceptanceRequired(selection), true, path);
     assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {
-      profile: 'draft', python_wheels: String(pythonWheelAcceptanceRequired(selection)), macos: 'false'}}}), true);
+      profile: 'draft', targets: JSON.stringify(selection.targets), python_wheels: String(pythonWheelAcceptanceRequired(selection)), macos: 'false'}},
+      lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), true);
     assert.throws(() => verifyGate(plan(selection), results(selection), {...context, draft: true}), /awaiting ready_for_review/);
     for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
       const needs = results(selection); needs['python-wheels'].result = result;
