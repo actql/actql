@@ -55,6 +55,9 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // The Client wire index and its three closed generated schemas perform only
 // structural validation with pure JavaScript and TextEncoder. They import no
 // provider, transport, Node builtin or external package.
+// Installed Effect dependency originals retain only a private WeakMap of DATA
+// associations and invoke the supplied original current callback. This exact
+// import-free leaf creates no physical operation, permission, capacity or ACK.
 // No namespace-wide permission.
 // The Carrier snapshot transport is dependency-free: it uses typed arrays,
 // text codecs and timers, and calls the supplied Store lease. It imports no
@@ -114,6 +117,7 @@ export const conformanceModules = [
   'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/installed-effect-dependency-original.mjs',
   'adapters/host-common/ledger-contract.generated.mjs',
   'adapters/host-common/local-signing-metadata.mjs',
   'adapters/host-common/installation-preparation-metadata.mjs',
@@ -164,6 +168,7 @@ export const hostModules = [
   'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/installed-effect-dependency-original.mjs',
   'adapters/host-common/ledger-contract.generated.mjs',
   'adapters/host-common/local-signing-metadata.mjs',
   'adapters/host-common/installation-preparation-metadata.mjs',

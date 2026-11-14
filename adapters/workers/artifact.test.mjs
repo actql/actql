@@ -73,6 +73,25 @@ test('actual bundler resolution catches a forbidden unused Connector removed fro
     /Workers(Module|Dependency)Rejected/);
 });
 
+test('installed Effect original association has an exact import-free portable closure', async () => {
+  const original = 'adapters/host-common/installed-effect-dependency-original.mjs';
+  const result = await build({
+    absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
+    entryPoints: [original], bundle: true, platform: 'browser', format: 'esm',
+    metafile: true, write: false,
+  });
+  assert.deepEqual(Object.keys(result.metafile.inputs), [original]);
+  assert.deepEqual(result.metafile.inputs[original].imports, []);
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+    const sibling = 'adapters/host-common/installed-effect-dependency-unreviewed.mjs';
+    assert.throws(() => checkWorkersArtifact(graph(sibling), 'export {};',
+      ['worker.mjs', ...modules]), /WorkersDependencyRejected/);
+    assert.throws(() => checkWorkersArtifact(graph('node:fs'), 'export {};',
+      ['worker.mjs', ...modules]), /WorkersDependencyRejected/);
+  }
+});
+
 test('task observation has an explicitly reviewed dependency-free Workers graph', async () => {
   const result = await build({
     absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
