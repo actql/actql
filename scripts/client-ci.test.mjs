@@ -811,7 +811,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
     ], name);
   }
   const hooks = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
-  assert.equal(hooks['postcheck:distribution-client'], 'npm run check:otel-node');
+  assert.equal(hooks['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert.equal(hooks['check:otel-node'], 'npm ci --prefix packages/otel-node --ignore-scripts && node scripts/test-otel-node.mjs');
   assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
     Array.from({length: 49}, (_, index) => index + 4).filter(index => ![15, 16].includes(index)),

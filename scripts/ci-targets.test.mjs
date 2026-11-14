@@ -1520,10 +1520,13 @@ test('distribution isolates pinned provider tests with their required GC recipe'
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
   const provider = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- --expose-gc packages/provider-ai-sdk/*.test.mjs';
   assert.equal(scripts['check:provider-ai-sdk'], provider);
-  assert.equal(scripts['check:distribution-client'].split('npm run check:provider-ai-sdk').length - 1, 1);
+  assert.equal(scripts['check:distribution-client'].split(' && ').length, 53);
+  assert(!scripts['check:distribution-client'].includes('npm run check:provider-ai-sdk'));
+  assert.equal(scripts['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert(!scripts['check:distribution-client'].includes('packages/provider-ai-sdk/*.test.mjs'));
   const steps = jobs['client-distribution'].steps;
-  const selected = steps.filter(step => step.run === 'npm run check:provider-ai-sdk');
+  const selected = steps.filter(step => step.run === 'npm run postcheck:distribution-client');
+  assert(!steps.some(step => step.run === 'npm run check:provider-ai-sdk'));
   assert.equal(selected.length, 1);
   assert.equal(selected[0].if, steps.find(step => step.name === 'Test source-backed distribution contracts').if);
   assert(steps.some(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts'));
