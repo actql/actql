@@ -160,3 +160,26 @@ pub fn client_program_recovered_effect_captured_run_chain_valid(
   )
   is Ok(_)
 }
+
+///|
+#export_name("clientProgramRecoveredEffectCapturedRunSources")
+pub fn client_program_recovered_effect_captured_run_sources(
+  captured : @publication.PublicationContract,
+  prepared : @publication.PreparedCapturedEffectRun,
+  preview : @publication.EffectPreviewIdentity,
+  invocation : @publication.PublicationContract,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  store_authority_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[@publication.CapturedEffectSourceArtifact],
+  @publication.CapturedRunIssuanceIssue,
+] {
+  @publication.prepared_captured_effect_run_sources(
+    captured, prepared, preview, invocation, member_indices, artifacts, store_authority_cid,
+    max_bytes, max_nodes, max_depth,
+  )
+}

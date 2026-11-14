@@ -7,6 +7,7 @@ struct PreparedCapturedEffectRun {
   max_bytes : Int
   max_nodes : Int
   max_depth : Int
+  mut source_context : PreparedCapturedEffectSourceContext?
 }
 
 ///|
@@ -28,7 +29,14 @@ pub fn bind_prepared_captured_effect_run(
     ) else {
     return Err(InvalidBody)
   }
-  Ok({ captured, inventory, max_bytes, max_nodes, max_depth, })
+  Ok({
+    captured,
+    inventory,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    source_context: None,
+  })
 }
 
 ///|
@@ -87,7 +95,14 @@ pub fn prepare_recovered_captured_effect_run(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  Ok({ captured, inventory, max_bytes, max_nodes, max_depth, })
+  Ok({
+    captured,
+    inventory,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    source_context: None,
+  })
 }
 
 ///|
@@ -129,7 +144,7 @@ pub fn validate_prepared_effectful_computation_evidence_chain(
   if !physical_equal(captured, prepared.captured) {
     return Err(EvidenceInventoryMismatch("effect_dependency_inventory"))
   }
-  validate_computation_run_evidence_chain(
+  let checked = validate_computation_run_evidence_chain(
     run_definition,
     invocation,
     definitions,
@@ -143,6 +158,27 @@ pub fn validate_prepared_effectful_computation_evidence_chain(
     Int::max(max_depth, prepared.max_depth),
     dependency_inventory=Some(prepared.inventory),
   )
+  match checked {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      guard @json.object_field(captured.value, "effect_context")
+        is Some(context) else {
+        return Err(EvidenceInventoryMismatch("effect_context"))
+      }
+      // This is immutable semantic DATA only. The SAME Read already backs
+      // typed bodies/index vectors before admission. Store/current, approval,
+      // claims and physical custody are deliberately absent from this view.
+      prepared.source_context = Some({
+        preview,
+        invocation,
+        context,
+        max_bytes,
+        max_nodes,
+        max_depth,
+      })
+      Ok(())
+    }
+  }
 }
 
 ///|

@@ -949,15 +949,20 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
     return Object.freeze({memberIndex: item.member_index, artifact,
       ...(schema === undefined ? {} : {schema: Object.freeze({...schema})})});
   });
-  if (!control.capturedEffectSourceInventoryFromCaptureValid(preview,
+  const preparedSources = control.prepareCapturedEffectSourceInventory?.(preview,
+    sources, chain.invocation, chain.capturedRun, store.storeAuthorityCid, contractLimits);
+  if (preparedSources !== undefined && (!Array.isArray(preparedSources) || preparedSources.length !== sources.length)) {
+    fail('InvalidCompletedEffectfulCaptureSource');
+  }
+  if (preparedSources === undefined && !control.capturedEffectSourceInventoryFromCaptureValid(preview,
     sources, chain.invocation, chain.capturedRun, store.storeAuthorityCid,
     contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureSource');
   }
-  const sourceCids = sources.map(({memberIndex, artifact}) => {
-    const source = control.admitCapturedEffectSourceFromCapture(preview,
+  const sourceCids = sources.map(({memberIndex, artifact}, index) => {
+    const source = preparedSources === undefined ? control.admitCapturedEffectSourceFromCapture(preview,
       memberIndex, chain.invocation, artifact, chain.capturedRun,
-      store.storeAuthorityCid, contractLimits);
+      store.storeAuthorityCid, contractLimits) : preparedSources[index];
     return control.capturedEffectSourceHoldingCid(source);
   });
   // Validate every remaining record before starting deletion. Missing
@@ -1209,17 +1214,22 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
       kind: item.kind, observationCid: item.observation_cid,
       wire: item.wire});
   });
-  if (!control.capturedEffectSourceInventoryFromCaptureValid(
+  const preparedSources = control.prepareCapturedEffectSourceInventory?.(preview,
+    sourceInventory, invocation, capturedRun, store.storeAuthorityCid, contractLimits);
+  if (preparedSources !== undefined && (!Array.isArray(preparedSources) || preparedSources.length !== sourceInventory.length)) {
+    fail('InvalidCompletedEffectfulCaptureSource');
+  }
+  if (preparedSources === undefined && !control.capturedEffectSourceInventoryFromCaptureValid(
     preview, sourceInventory, invocation, capturedRun,
     store.storeAuthorityCid, contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureSource');
   }
   const sourceHoldings = [];
-  for (const {memberIndex, artifact} of sourceInventory) {
-    const source = control.admitCapturedEffectSourceFromCapture(
+  for (const [index, {memberIndex, artifact}] of sourceInventory.entries()) {
+    const source = preparedSources === undefined ? control.admitCapturedEffectSourceFromCapture(
       preview, memberIndex, invocation, artifact, capturedRun,
       store.storeAuthorityCid, contractLimits,
-    );
+    ) : preparedSources[index];
     const holdingCid = control.capturedEffectSourceHoldingCid(source);
     const holding = await store.inspectPhysicalHolding(holdingCid);
     if (holding?.namespace !== 'effect-source' ||

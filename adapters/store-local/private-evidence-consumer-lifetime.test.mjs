@@ -132,7 +132,9 @@ test('actual recovery reservation refusal precedes ciphertext allocation and pre
   }
 });
 
-test('actual decoded capture retains SAME schema cleanup and reservation through failed release', async t => {
+for (const preparedProjection of [false,true]) {
+test('actual decoded capture retains SAME schema cleanup and reservation through failed release'+
+  (preparedProjection?' using prepared Source projection':''), async t => {
   const capturedCid = cid('original capture'), captureCid = cid('zero payload capture');
   const run = {name:'run_definition', identity:cid('original run'), wire:'original run'};
   const body = {version:'actql-completed-effectful-capture/0.1',
@@ -140,12 +142,16 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
     invocation:'invocation', definitions:[], artifacts:[], derivations:[], orderings:[], retentions:[],
     durable_bindings:[], result_schemas:[], manifest:'manifest', computation_receipt:'receipt',
     captured_run:'captured', preview:'preview', authoring_context:'authoring',
-    effect_source_artifacts:[], connector_recovery:[], effect_dependency_payloads:[]};
+    effect_source_artifacts:preparedProjection?[{member_index:0,artifact:'source artifact'}]:[],
+    connector_recovery:[], effect_dependency_payloads:[]};
   const f = await fixture(t, JSON.stringify(body));
   await f.store.commitPhysicalHolding({version:'actql-local-physical-holding/0.1',
     namespace:'effect-capture', holding_cid:captureCid, manifest_cid:capturedCid, objects:[]}, []);
+  const sourceCid=cid('original source holding'),sourceArtifactCid=cid('source artifact'),source={};
+  if(preparedProjection)await f.store.commitPhysicalHolding({version:'actql-local-physical-holding/0.1',
+    namespace:'effect-source',holding_cid:sourceCid,manifest_cid:sourceArtifactCid,objects:[]},[]);
   let pending = true, releases = 0, retries = 0, retired = 0, resource, reserves = 0, completed = 0;
-  let begins = 0, admissions = 0;
+  let begins = 0, admissions = 0, projections=0,chainChecked=false;
   const recoveryEvents = [];
   const original = new Error('original schema release');
   const schema = {prepared:{status:() => ({pending}),
@@ -161,15 +167,22 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
       assert.equal(begins, 1, 'same original begin must precede every admission');
       admissions++; recoveryEvents.push('admit:' + name);
       return name === 'run_definition' ? run
-        : {name, wire, identity:name === 'captured_run' ? capturedCid : cid(name)};
+        : {name, wire, identity:name === 'captured_run' ? capturedCid : name==='effect_source_artifact'?sourceArtifactCid:cid(name)};
     },
     admitRunEvidence:() => ({}), admitEffectComputationPreview:() => ({}),
     effectComputationCaptureHoldingCid:() => captureCid,
     effectComputationRecordHoldingCid:() => f.holding,
-    effectfulComputationEvidenceChainValid:() => true,
-    capturedEffectSourceInventoryFromCaptureValid:() => true,
-    admitCapturedEffectSourceFromCapture:assert.fail, capturedEffectSourceHoldingCid:assert.fail,
-    capturedEffectSourceArtifactCid:assert.fail,
+    effectfulComputationEvidenceChainValid:() => {chainChecked=true;return true;},
+    ...(preparedProjection?{prepareCapturedEffectSourceInventory(_preview,sources,invocation,captured,authority){
+      assert(chainChecked);assert.equal(begins,1);assert.equal(reserves,1);assert.equal(completed,0);
+      assert.equal(captured.identity,capturedCid);assert.equal(invocation.wire,'invocation');
+      assert.equal(authority,store.storeAuthorityCid);assert.deepEqual(sources.map(value=>value.memberIndex),[0]);
+      projections++;return [source];
+    }}:{}),
+    capturedEffectSourceInventoryFromCaptureValid:() => {assert.equal(preparedProjection,false);return true;},
+    admitCapturedEffectSourceFromCapture:assert.fail,
+    capturedEffectSourceHoldingCid:actual=>{assert.strictEqual(actual,source);return sourceCid;},
+    capturedEffectSourceArtifactCid:actual=>{assert.strictEqual(actual,source);return sourceArtifactCid;},
     capturedEffectDependencyPayloadBindings:() => [],
     capturedEffectDependencySchemas:() => [{wire:'original schema', cid:cid('schema')}],
     publicationPreparedReleaseAction(index, _count, inspected, isPending, attempted) {
@@ -218,9 +231,11 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
   assert.equal(await resources.close(), true); assert.equal(releases, 1); assert.equal(retries, 1);
   assert.equal(completed,1);
   assert.equal(begins,1, 'cleanup must not re-enter admission or reserve another peak');
+  assert.equal(projections,preparedProjection?1:0);
   assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
   assert.notEqual(await f.store.inspectPhysicalHolding(captureCid), undefined);
 });
+}
 
 test('later same private confirmation retires its original temporary plaintext after directory ACK', async t => {
   const f = await fixture(t); let plaintext;

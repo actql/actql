@@ -5980,6 +5980,26 @@ function publicationControl(moon) {
         sources.map(value => token(value.artifact)),
       );
     },
+    prepareCapturedEffectSourceInventory(preview, sources, invocation, capturedRun, storeAuthorityCid, limits) {
+      token(capturedRun);
+      const prepared = recoveredEffectCaptures.get(capturedRun);
+      if (prepared === undefined) return undefined;
+      issuanceLimits(limits, 'prepared recovered Effect source inventory');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources) ||
+          sources.some(value => !Number.isSafeInteger(value?.memberIndex)) ||
+          typeof storeAuthorityCid !== 'string') {
+        throw new TypeError('Invalid prepared Effect source inventory');
+      }
+      // Existing decoded Read backing precedes these transient index vectors
+      // and returned original Source handles. No second persistent cache or
+      // replacement owner is created; the complete checked context is reused.
+      const originals = checked(moon.clientProgramRecoveredEffectCapturedRunSources(
+        token(capturedRun), prepared, ownedPreview, token(invocation),
+        sources.map(value => value.memberIndex), sources.map(value => token(value.artifact)),
+        storeAuthorityCid, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze(originals.map(inspectEffectSource));
+    },
     capturedEffectSourceInventoryFromCaptureValid(preview, sources,
       invocation, capturedRun, storeAuthorityCid, limits) {
       issuanceLimits(limits, 'recovered Effect source inventory');

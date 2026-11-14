@@ -17,6 +17,11 @@ function fixture({admissionFailure}={}){
     strategyPublicationContractIdentityField:()=> 'cid',
     strategyPublicationContractIdentity:v=>v.identity,
     strategyPublicationContractJson:v=>v.wire,
+    strategyRunEvidenceAdmit:(name,wire)=>ok({name,wire,identity:cid(3)}),
+    strategyRunEvidenceName:v=>v.name,
+    strategyRunEvidenceIdentity:v=>v.identity,
+    strategyRunEvidenceJson:v=>v.wire,
+    strategyAdmitEffectComputationPreview:()=>ok({originalPreview:true}),
     clientProgramAdmitRequestEffectCapturedRun(p,i,r,d,wire){
       assert.equal(p,parent);assert.equal(i,input);assert.equal(r,request);assert.equal(d.name,'run_definition');
       assert.equal(wire,original.wire);calls.push('admit');if(admissionFailure!==undefined)throw admissionFailure;return ok(prepared);
@@ -28,7 +33,7 @@ function fixture({admissionFailure}={}){
   };
   const control=runtimeCore(moon).publicationControl;
   const definition=control.admit('run_definition','{}',limits);
-  return {control,parent,input,request,definition,original,payloads,calls,limits,
+  return {control,moon,parent,input,request,definition,original,prepared,payloads,calls,limits,
     admit(){return control.admitRecoveredEffectCapturedRun(parent,input,request,definition,original.wire,limits);}};
 }
 
@@ -43,6 +48,39 @@ test('recovered schema and4097 payload projections use exact prepared DATA witho
   assert.throws(()=>f.control.capturedEffectDependencyPayloadBindings(captured,[bindings[0],...bindings]),/InvalidEffectDependencyPayloadBindings/);
   f.control.retireRecoveredEffectCapturedRun(captured);
   assert.throws(()=>f.control.retireRecoveredEffectCapturedRun(captured),/Foreign recovered Effect captured Run/);
+});
+
+test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions',()=>{
+  for(const n of [1,17]){
+    const f=fixture(),captured=f.admit();
+    const authoring=f.control.admitRunEvidence('authoring_context','{}',f.limits);
+    const preview=f.control.admitEffectComputationPreview('{}',f.definition,authoring,f.limits);
+    const invocation=f.control.admit('run_invocation','original invocation',f.limits);
+    const sources=Array.from({length:n},(_,memberIndex)=>({memberIndex,
+      artifact:f.control.admit('effect_source_artifact','original '+memberIndex,f.limits)}));
+    const originals=Array.from({length:n},(_,index)=>({index}));let calls=0;
+    f.moon.clientProgramRecoveredEffectCapturedRunSources=(actual,prepared,ownedPreview,issued,indices,artifacts,store,...bounds)=>{
+      assert.strictEqual(actual,f.original);assert.strictEqual(prepared,f.prepared);
+      assert.equal(ownedPreview.originalPreview,true);assert.equal(issued.wire,'original invocation');
+      assert.deepEqual(indices,Array.from({length:n},(_,i)=>i));assert.equal(artifacts.length,n);
+      assert.equal(store,cid(4));assert.deepEqual(bounds,[f.limits.maxWireBytes,f.limits.maxNodes,f.limits.maxDepth]);
+      calls++;return ok(originals);
+    };
+    f.moon.strategyCapturedEffectSourceHoldingCid=original=>cid(original.index+100);
+    f.moon.strategyAdmitCapturedEffectSourceFromCapture=assert.fail;
+    f.moon.strategyCapturedEffectSourceInventoryFromCaptureValid=assert.fail;
+    const projected=f.control.prepareCapturedEffectSourceInventory(preview,sources,invocation,captured,cid(4),f.limits);
+    assert.equal(projected.length,n);assert.equal(calls,1);
+    projected.forEach((source,index)=>assert.equal(f.control.capturedEffectSourceHoldingCid(source),cid(index+100)));
+    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory(preview,sources,invocation,{...captured},cid(4),f.limits),/Foreign publication contract/);
+    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory({...preview},sources,invocation,captured,cid(4),f.limits),/Invalid prepared Effect source/);
+    const primary=new Error('same original prepared Source refused');
+    f.moon.clientProgramRecoveredEffectCapturedRunSources=()=>{throw primary;};
+    assert.throws(()=>f.control.prepareCapturedEffectSourceInventory(preview,sources,invocation,captured,cid(4),f.limits),e=>e===primary);
+    assert.equal(calls,1);
+    const legacy=f.control.admit('captured_run','legacy captured',f.limits);
+    assert.equal(f.control.prepareCapturedEffectSourceInventory(preview,sources,invocation,legacy,cid(4),f.limits),undefined);
+  }
 });
 
 test('unprepared legacy captured schema inventory retains4096 guard',()=>{

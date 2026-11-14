@@ -365,7 +365,7 @@ pub fn admit_captured_effect_source_from_capture(
 ) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
   guard captured.name == "captured_run" &&
     invocation.name == "run_invocation" &&
-    effect_preview_member_effect_id(preview, member_index) is Some(effect_id) &&
+    effect_preview_member_effect_id(preview, member_index) is Some(_) &&
     @json.object_field(captured.value, "effect_context") is Some(context) &&
     evidence_identity_valid(
       context, "effect_context_cid", max_wire_bytes, max_nodes, max_depth,
@@ -377,7 +377,31 @@ pub fn admit_captured_effect_source_from_capture(
       max_wire_bytes,
       max_nodes,
       max_depth,
-    ) &&
+    ) else {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_capture"))
+  }
+  captured_effect_source_from_checked_context(
+    preview, member_index, invocation, artifact, context, store_authority_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+// Only the original whole-context validator or its exact prepared proof may
+// enter here. Keep every selected member/Artifact/binding check unchanged.
+fn captured_effect_source_from_checked_context(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  artifact : PublicationContract,
+  context : @json.CanonicalValue,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
+  guard effect_preview_member_effect_id(preview, member_index)
+    is Some(effect_id) &&
     @json.object_field(context, "effect_source_artifacts") is Some(artifacts) &&
     @json.object_field(artifacts, effect_id) is Some(stored) &&
     evidence_contract_equal(
