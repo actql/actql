@@ -3,7 +3,8 @@
 pub const ACCOUNT_CONFIG_VERSION : String = "actql-execution-account-config/0.1"
 
 ///|
-/// Largest encoded configuration accepted by the JSON decoder (UTF-8 bytes).
+/// Historical wire-byte boundary, retained as compatibility DATA. Selected
+/// wire admission derives its finite bounds from the SAME original bytes.
 pub const MAX_CONFIG_INPUT_BYTES : Int = 1048576
 
 ///|
@@ -20,7 +21,8 @@ pub const MAX_EXCLUSIONS_PER_ENTRY : Int = 64
 pub const MAX_SELECTOR_VALUES : Int = 256
 
 ///|
-/// Largest UTF-16 length of an identifier or selector value.
+/// Historical identifier-length boundary, retained as compatibility DATA.
+/// Identifier admission requires nonempty NFC/LF text and exact equality.
 pub const MAX_NAME_LENGTH : Int = 512
 
 ///|

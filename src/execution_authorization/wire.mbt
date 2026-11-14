@@ -163,13 +163,14 @@ fn decode_account_configuration_original(
   body : String,
 ) -> Result[(RawAccountConfiguration, Bytes), ConfigurationIssue] {
   let bytes = @utf8.encode(body)
-  if bytes.length() > MAX_CONFIG_INPUT_BYTES {
-    return Err(MalformedWire({ kind: InputTooLarge, path: "$", }))
+  let size = bytes.length()
+  if size == 0 {
+    return Err(MalformedWire({ kind: InvalidJson, path: "$", }))
   }
   let source = match
     @source.parse_json_bytes(bytes, {
-      max_input_bytes: MAX_CONFIG_INPUT_BYTES,
-      max_nodes: 262144,
+      max_input_bytes: size,
+      max_nodes: size,
       max_depth: 7,
     }) {
     Ok(value) => value
@@ -178,10 +179,10 @@ fn decode_account_configuration_original(
   try {
     let cursor = wire_decoded(
       @decode.admit(source, {
-        max_nodes: 262144,
+        max_nodes: size,
         max_depth: 7,
-        max_string_bytes: MAX_NAME_LENGTH * 4,
-        max_total_string_bytes: MAX_CONFIG_INPUT_BYTES,
+        max_string_bytes: size,
+        max_total_string_bytes: size,
       }),
     )
     let object = wire_decoded(
@@ -203,7 +204,7 @@ fn decode_account_configuration_original(
       Some(value) => Some(wire_bootstrap(value))
     }
     let raw : RawAccountConfiguration = { account_id, entries, bootstrap, }
-    match first_out_of_order(raw) {
+    match first_out_of_order(raw, account_canonical_wire_bounds(size)) {
       Some(path) => Err(NonCanonicalOrder(path))
       None => Ok((raw, bytes))
     }

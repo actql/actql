@@ -123,13 +123,15 @@ test "wire shape violations are rejected with a path" {
 }
 
 ///|
-test "wire bounds are enforced before admission" {
+test "wire shape and structural depth are checked before admission" {
   let large = "{\"pad\":\"" + "x".repeat(MAX_CONFIG_INPUT_BYTES) + "\"}"
-  assert_eq(wire_issue(large).kind, InputTooLarge)
+  assert_eq(wire_issue(large).kind, InvalidShape)
   let long_name = "n".repeat(MAX_NAME_LENGTH * 4 + 1)
-  assert_eq(
-    wire_issue(wire_valid.replace(old="cloud-service", new=long_name)).kind,
-    InvalidShape,
+  assert_true(
+    admit_account_configuration_json(
+      wire_valid.replace(old="cloud-service", new=long_name),
+    )
+    is Ok(_),
   )
   let entry = "{\"entry_id\":\"e\",\"outcome\":\"allow\",\"principal\":{\"all\":true},\"connection\":{\"all\":true},\"resource\":{\"all\":true},\"operation\":{\"all\":true},\"exclusions\":[]}"
   let entries = Array::make(MAX_ENTRIES + 1, entry).join(",")

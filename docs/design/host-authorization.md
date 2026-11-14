@@ -367,3 +367,13 @@ constants remain compatibility data, not authorization or allocation limits.
 Wire, canonical representation and exact-work bounds remain distinct from
 Host preparation funding; admitting a larger inventory establishes no additional
 principal, target, grant, physical capacity or saved-configuration authority.
+
+Account wire admission derives byte, node and decoded-text bounds from its
+same once-encoded original, retaining the existing parser and structural depth.
+Canonical material uses container/key geometry and String lengths observed in
+the existing identifier-validation pass. It does not reparse or walk a second
+tree just to count it. The same canonical encoder/hash checks actual usage;
+JSON escaping contributes its six-byte UTF-16-unit envelope, clipped only at
+that encoder's Int representation boundary. Local profile emission reuses the
+same admission observation rather than another geometry pass. These finite
+representation bounds remain distinct from the Host's construction backing.
