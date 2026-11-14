@@ -121,3 +121,37 @@ pub fn client_model_provider_defaults_retained_extent(
     owned_wire_bytes: original.bytes.to_int64(),
   })
 }
+
+///|
+pub fn client_model_provider_defaults_resolution_extents(
+  original : ClientModelProviderDefaults,
+  tokens : Int64?,
+) -> (@environment.RegistryConstructionExtent, @environment.RegistryConstructionExtent) {
+  let controls : @environment.RegistryConstructionExtent = {
+    // JS same-call binding/readUsage/result views and original Core Result.
+    record_headers: 6L, reference_slots: 10L, scalar_words: 10L,
+    owned_utf16_units: 0L, owned_wire_bytes: 0L,
+  }
+  guard original.profile is Some(profile) else { return (controls, controls) }
+  let inventory = @environment.model_provider_defaults_resolution_construction_inventory(profile, tokens)
+  let arrays = @shape.collection_construction_extent({
+    records: inventory.resolved_records + inventory.generation_copies + inventory.work_cells +
+      inventory.issue_tags + inventory.error_results + inventory.success_results,
+    record_references: 4L * inventory.resolved_records + inventory.generation_copies +
+      inventory.error_results + inventory.success_results,
+    record_words: inventory.resolved_records + 3L * inventory.generation_copies + inventory.work_cells +
+      inventory.issue_tags + inventory.error_results + inventory.success_results,
+    reference_arrays: 0L, reference_items: 0L,
+    scalar_arrays: inventory.comparison_array_constructions,
+    scalar_items: inventory.comparison_items * inventory.comparison_array_constructions,
+    maps: 0L, map_entries: 0L,
+  }).unwrap()
+  let retained = @environment.model_provider_defaults_resolution_retained_extent(profile, tokens)
+  (client_model_metadata_add(controls, {
+    record_headers: arrays.record_headers, reference_slots: arrays.reference_slots,
+    scalar_words: arrays.scalar_words, owned_utf16_units: 0L, owned_wire_bytes: 0L,
+  }), client_model_metadata_add(controls, {
+    record_headers: retained.record_headers, reference_slots: retained.reference_slots,
+    scalar_words: retained.scalar_words, owned_utf16_units: 0L, owned_wire_bytes: 0L,
+  }))
+}

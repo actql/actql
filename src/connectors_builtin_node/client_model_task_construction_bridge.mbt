@@ -91,3 +91,13 @@ pub fn client_program_model_provider_defaults_retained_capacity(
     is Some(retained) else { return None }
   client_check_environment_capacity(retained, retained)
 }
+
+///|
+#export_name("clientProgramModelProviderDefaultsResolutionCapacities")
+pub fn client_program_model_provider_defaults_resolution_capacities(
+  original : @publication_host.ClientModelProviderDefaults,
+  tokens : Int64?,
+) -> Array[@execution.ExecutionCapacity?] {
+  let (peak, retained) = @publication_host.client_model_provider_defaults_resolution_extents(original, tokens)
+  [client_check_environment_capacity(peak, peak), client_check_environment_capacity(retained, retained)]
+}
