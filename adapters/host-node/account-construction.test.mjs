@@ -131,16 +131,16 @@ const nodeConstructorSource = originalFunctions('./authorization.mjs', ['createN
 const cid = 'sha256:' + '1'.repeat(64);
 function scopeFixture(limit = 100000n, {onGate} = {}) {
   const f = fixture(limit), originalGates = [], closes = [], receivers = [];
-  let reads = 1, peak = 1, prepared = f.moon.clientProgramPrepareAccountReadConstruction;
+  let peak = 1;
   const originalPrepare = f.moon.clientProgramPrepareAccountReadConstruction;
   f.moon.clientProgramPrepareAccountReadConstruction = (...args) => {
     peak = Math.max(peak, f.live.size);
     return originalPrepare(...args);
   };
-  const baseAdmit = f.moon.executionAuthorizationAdmitPrepared;
   Object.assign(f.moon, {
     executionAuthorizationAdmit() {assert.fail('No unprepared Account admission');},
-    executionAuthorizationAccountJson: () => JSON.stringify({state: 'admitted', account_id: 'fixture', configuration_cid: cid}),
+    executionAuthorizationAccountJson: account => JSON.stringify({state: 'admitted', account_id: 'fixture',
+      configuration_cid: contentCid(JSON.parse(account.wire))}),
     executionAuthorizationEvaluate: () => ({outcome: 'delegate', entry_id: 'fixture-rule'}),
     executionAuthorizationEvaluationJson: JSON.stringify,
     executionAuthorizationEvaluationAction() {assert.fail('No unprepared dispatch');},
