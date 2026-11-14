@@ -282,19 +282,49 @@ pub fn release_invocation_binding(binding : InvocationBinding) -> Bool {
 
 ///|
 /// Original opaque execution binding, while its output/issuance remains live.
-/// This reads immutable Run lineage; it does not repeat Model execution.
+/// Definition is immutable admitted canonical DATA: a Journal read can admit
+/// the SAME Run bytes into a different allocation. That DATA cannot replace
+/// this execution's actual output use, original compiled owner or live issuance.
+/// No parser/hash/issuer runs here; the closed Effect transition separately
+/// requires its exact Request/Plan/captured DAG/admission/current originals.
 pub fn invocation_binding_matches_run(
   binding : InvocationBinding,
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
 ) -> Bool {
+  guard !binding.output_use.released &&
+    !binding.output_use.owner.reclaimed &&
+    binding.output_use.owner.run_binding is Some(original) &&
+    physical_equal(original.compiled, compiled) else {
+    return false
+  }
+  if !physical_equal(original.definition, definition) &&
+    (
+      @publication.publication_contract_name(original.definition) !=
+      "run_definition" ||
+      @publication.publication_contract_name(definition) != "run_definition" ||
+      @publication.publication_contract_identity(original.definition) !=
+      @publication.publication_contract_identity(definition) ||
+      @publication.publication_contract_json(original.definition) !=
+      @publication.publication_contract_json(definition)
+    ) {
+    return false
+  }
   invocation_binding_available(binding) &&
-  (match binding.output_use.owner.run_binding {
-    Some(original) =>
-      physical_equal(original.compiled, compiled) &&
-      physical_equal(original.definition, definition)
-    None => false
-  })
+  invocation_binding_has_original_run(binding, original)
+}
+
+///|
+// Cheap post-callback fence over the SAME immutable execution binding. This
+// never caches availability or repeats admitted Definition wire comparison.
+fn invocation_binding_has_original_run(
+  binding : InvocationBinding,
+  original : ExecutionRunBinding,
+) -> Bool {
+  !binding.output_use.released &&
+  !binding.output_use.owner.reclaimed &&
+  binding.output_use.owner.run_binding is Some(current) &&
+  physical_equal(current, original)
 }
 
 ///|
@@ -318,10 +348,14 @@ pub fn bind_installed_effect_publication_invocation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   @input.ClientClosedValuesPreparationIssue,
 ] {
+  guard binding.output_use.owner.run_binding is Some(original_run) else {
+    return Err(@input.ForeignOriginal)
+  }
   if !@publication_host.client_compiled_run_matches_effect(
       compiled, prepared, compilation,
     ) ||
-    !invocation_binding_matches_run(binding, compiled, definition) {
+    !invocation_binding_matches_run(binding, compiled, definition) ||
+    !invocation_binding_has_original_run(binding, original_run) {
     return Err(@input.ForeignOriginal)
   }
   let transition = match
@@ -344,7 +378,11 @@ pub fn bind_installed_effect_publication_invocation(
   defer @input.abort_installed_effect_model_publication_transition(transition)
   // Begin's real current callback can retire the output. Read this SAME
   // existing binding after it, before any model cleanup/publication retirement.
-  if !invocation_binding_matches_run(binding, compiled, definition) {
+  // Definition DATA was compared once before Begin. Its original immutable
+  // binding remains exact; after actual callbacks, reobserve live issuance
+  // and that same original record without another wire walk/admission.
+  if !invocation_binding_available(binding) ||
+    !invocation_binding_has_original_run(binding, original_run) {
     return Err(@input.ForeignOriginal)
   }
   @input.finish_installed_effect_model_publication_transition(
