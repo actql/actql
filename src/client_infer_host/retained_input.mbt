@@ -163,14 +163,18 @@ pub fn export_prepared_input(
     return Err(@input.BindingMismatch)
   }
   if active.identity_body is Some(body) && body.snapshot is Some(_) &&
-    active.original_preparation is Some(original) && original.read is Claimed(consumer) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) {
+    body.input_materialization is Some(witness) {
     active.advancing = true
-    let exported = @input.export_original_client_infer_retained_input(input, binding,
-      (body.read, consumer, bound.compiled, bound.definition, plan, Ref((body.retained, body.execution))))
+    let exported = @input.export_original_client_infer_retained_input(input, binding, witness)
+    body.input_materialization = None
     active.advancing = false
     if active.cancelled || active.reclaimed {return Err(@input.CustodyUnavailable)}
-    return exported
+    match exported {
+      // The separately bounded standalone100 interface remains generic. A
+      // genuine Read/current refusal never falls back to that legacy path.
+      Err(@input.BindingMismatch) if @relation.completed_row_count(input) <= 100 => ()
+      _ => return exported
+    }
   }
   @input.export_client_infer_retained_input(input, binding)
 }

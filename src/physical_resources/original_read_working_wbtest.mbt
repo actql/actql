@@ -360,3 +360,33 @@ test "preparing Read refusal preserves its original phase snapshots and cleanup"
   settle_funded_read_consumer(consumer, true).unwrap()
   assert_true(finish_funded_read_inventory(claim, origin, true).unwrap())
 }
+
+///|
+test "working Read additive span preserves actual prefix and refuses foreign or small capacity" {
+  let (ledger, origin, claim, consumer) = working_read_fixture(40L, 30L)
+  assert_eq(
+    grow_funded_read_consumer_span(consumer, origin, 3L, 4L),
+    Ok((10L, 9L)),
+  )
+  assert_eq(
+    grow_funded_read_consumer_span(consumer, origin, 0L, 0L),
+    Ok((10L, 9L)),
+  )
+  let before = ledger_usage(ledger)
+  assert_true(
+    grow_funded_read_consumer_span(
+      consumer,
+      original_read_test_origin(),
+      1L,
+      1L,
+    )
+    is Err(ForeignOrigin),
+  )
+  assert_true(
+    grow_funded_read_consumer_span(consumer, origin, 40L, 0L)
+    is Err(Resource(RetentionLimit)),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  settle_funded_read_consumer(consumer, true).unwrap()
+  assert_true(finish_funded_read_inventory(claim, origin, true).unwrap())
+}

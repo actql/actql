@@ -8,6 +8,7 @@ struct OriginalInferIdentityBody {
   mut execution : Int64
   mut snapshot : String?
   mut send_mask_funded : Int
+  mut input_materialization : @input.ClientInferInputMaterialization?
 }
 
 ///|
@@ -26,9 +27,9 @@ fn prepare_original_infer_identity_body(
   guard @relation.preparation_representation_cost({
       // SAME original context tuple/Ref and scalar-only emitter report.
       // No new owner: the actual claimed Read retains every later prefix.
-      record_headers: 10L,
-      reference_slots: 16L,
-      scalar_words: 16L,
+      record_headers: 12L,
+      reference_slots: 24L,
+      scalar_words: 20L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -53,6 +54,7 @@ fn prepare_original_infer_identity_body(
       execution: e,
       snapshot: None,
       send_mask_funded: -1,
+      input_materialization: None,
     }),
   )
 }
@@ -111,15 +113,29 @@ fn prepare_original_infer_scope_snapshot(
   // Future journal export uses these SAME completed emitter observations.
   // Pay before the existing Read hands off to Model; export never grows a
   // handed-off/Ready owner or quotes by policy maxima.
-  guard active.identity is Some(identity) &&
-    @relation.completed_relation_identity_scan_body_receipt(identity) is Some(receipt) &&
-    @relation.completed_relation_identity_scan_body(identity, receipt) is Some(input_body) else {return Err(InvalidAdvance)}
-  let (count, bytes, nodes, depth, columns) = @relation.completed_relation_export_scalar_geometry(receipt)
-  guard count == @relation.prepared_infer_rows_count(rows) &&
-    @input.client_infer_retained_input_construction_capacity(count, bytes, nodes, depth, columns, input_body.length()) is Some(exporting) else {return Err(InvalidAdvance)}
-  match grow_original_infer_facts_span(active, exporting) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
+  guard active.identity is Some(identity) else { return Err(InvalidAdvance) }
+  guard active.original_preparation is Some(original) &&
+    original.read is Claimed(consumer) &&
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) &&
+    @input.client_infer_completed_input(active.input) is Some(input) else {
+    return Err(InvalidAdvance)
+  }
+  let held = Ref((body.retained, body.execution))
+  let witness = @input.prepare_original_client_infer_input_materialization(
+    (body.read, consumer, bound.compiled, bound.definition, plan, held),
+    active.occurrence,
+    scope,
+    input,
+    rows,
+    identity,
+  )
+  // Actual token/child amounts, including every previously retained prefix.
+  body.retained = held.val.0
+  body.execution = held.val.1
+  match witness {
+    Err(issue) => return Err(Input(@input.RetainedInput(issue)))
+    Ok(value) => body.input_materialization = Some(value)
   }
   let snapshot = match
     @publication_host.client_infer_call_scope_snapshot(scope) {

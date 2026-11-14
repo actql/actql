@@ -1917,6 +1917,10 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
     @relation.cancel_completed_relation_identity_scan(identity) |> ignore
     active.identity = None
   }
+  if active.identity_body is Some(body) &&
+    body.input_materialization is Some(witness) {
+    @input.retire_client_infer_input_materialization(witness)
+  }
   active.identity_body = None
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {
