@@ -279,8 +279,18 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   assert.equal(job.strategy['fail-fast'], false);
   assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
   const input = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
+  assert.equal(input.id, 'client-inputs');
   assert.equal(input.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   assert(job.steps.some(step => step.run === 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"'));
+  const union = job.steps.find(step => step.id === 'packed-union-budget');
+  assert.equal(union.run, 'node scripts/test-packed-public-query.mjs --union-budget-only');
+  assert.equal(union.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+  assert.equal(union['continue-on-error'], undefined);
+  const unionUpload = job.steps.find(step => step.with?.directory === '${{ steps.packed-union-budget.outputs.evidence-directory }}');
+  assert.equal(unionUpload.uses, './.github/actions/upload-packed-query-evidence');
+  assert.equal(unionUpload.if, "always() && steps.packed-union-budget.outputs.evidence-directory != ''");
+  assert.equal(unionUpload['continue-on-error'], undefined);
+  assert(!Object.hasOwn(unionUpload.with, 'path'), 'Only the bounded command diagnostics may be uploaded');
   assert(!job.steps.some(step => /npm pack|build:runtime|moon (?:build|test)/u.test(step.run ?? '')));
   assert(job.steps.every(step => !Object.hasOwn(step.env ?? {}, 'CI_PLAN')));
   const output = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
