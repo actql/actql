@@ -207,7 +207,9 @@ fn close_installed_effect_catalog_references(
             }
             match
               @checked.advance_checked_local_catalog_selection(
-                selection, visits,
+                selection,
+                visits,
+                work=Some(work),
               ) {
               Err(_) => return Err(Unsupported)
               Ok(_) => ()

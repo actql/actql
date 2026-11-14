@@ -2,6 +2,7 @@
 fn catalog_model_original(
   registry_count : Int,
   current? : () -> Bool = () => true,
+  planning_work? : Int = 500000,
 ) -> (
   ClientInstalledManagedRun,
   ClientInstalledEffectManagedPlan,
@@ -13,6 +14,7 @@ fn catalog_model_original(
   let (parent, input, plan, request, construction) = request_effect_model_plan_fixture(
     current~,
     catalog_registry_count=registry_count,
+    selected_planning_work=Some(planning_work),
   )
   let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
   complete_request_effect_preparation(parent, input, plan).unwrap()
@@ -96,7 +98,9 @@ test "managed Model Catalog selects from admitted 4097 metadata and preserves le
   let after = @resources.ledger_usage(ledger)
   assert_true(after.reserved_retention_bytes > before.reserved_retention_bytes)
   assert_true(after.reserved_execution_bytes >= before.reserved_execution_bytes)
-  assert_eq(after.planning_work - before.planning_work, 4097)
+  // Member chunks plus actual borrowed field/key/CID visits consume the
+  // same original finite policy; metadata lookup is not free work.
+  assert_true(after.planning_work - before.planning_work > 4097)
   assert_eq(after.live_reservations, before.live_reservations)
   let mut index = None
   for candidate in 0..<4097 {
@@ -207,14 +211,42 @@ test "managed Model Catalog small original bytes and planning work refuse before
   )
   let remaining = @resources.ledger_limits(ledger).planning_work -
     @resources.ledger_usage(ledger).planning_work
-  assert_true(remaining > 0)
-  @resources.charge_planning(ledger, remaining - 1).unwrap()
+  let first_chunk = Int::min(
+    256,
+    @environment.member_count(
+      @checked.checked_environment(program),
+      @environment.ContractRegistry,
+    ),
+  )
+  assert_true(remaining > first_chunk + 1)
+  @resources.charge_planning(ledger, remaining - first_chunk - 1).unwrap()
+  let before_work = @resources.ledger_usage(ledger).planning_work
   assert_true(
     prepare_effect_model_catalog_body(
       short, plan, request, program, 0, "data_policy", cid, 1000000, 100000, 100,
     )
-    is Err(Run(Ledger(_))),
+    is Err(Run(Ledger(PlanningLimit))),
+  )
+  // The member chunk and first field visit were paid; key comparison refused
+  // before emitting a body, while preserving its original typed refusal.
+  assert_eq(
+    @resources.ledger_usage(ledger).planning_work - before_work,
+    first_chunk + 1,
   )
   close_catalog_model_original(short, plan, scope)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  // The ordinary100k policy remains a real refusal for this4097-member
+  // scalar workload. The positive component explicitly selected500k first.
+  let (ordinary, plan, request, program, ledger, scope) = catalog_model_original(
+    4097,
+    planning_work=100000,
+  )
+  assert_true(
+    prepare_effect_model_catalog_body(
+      ordinary, plan, request, program, 0, "data_policy", cid, 1000000, 100000, 100,
+    )
+    is Err(Run(Ledger(PlanningLimit))),
+  )
+  close_catalog_model_original(ordinary, plan, scope)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
 }

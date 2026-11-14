@@ -86,6 +86,7 @@ fn prepare_effect_model_catalog_body(
     Err(issue) => return Err(Evidence(Dependency(issue)))
     Ok(value) => value
   }
+  let refused : Ref[@resources.LedgerIssue?] = Ref(None)
   while @checked.checked_local_catalog_selection_remaining(selected) > 0 {
     let visits = Int::min(
       256,
@@ -101,8 +102,25 @@ fn prepare_effect_model_catalog_body(
       physical_equal(actual, holder) else {
       return Err(Run(Retired))
     }
-    match @checked.advance_checked_local_catalog_selection(selected, visits) {
-      Err(issue) => return Err(Evidence(Dependency(issue)))
+    match
+      @checked.advance_checked_local_catalog_selection(
+        selected,
+        visits,
+        work=Some(units => {
+          match @resources.charge_planning(ledger, units) {
+            Ok(_) => true
+            Err(issue) => {
+              refused.val = Some(issue)
+              false
+            }
+          }
+        }),
+      ) {
+      Err(issue) =>
+        return match refused.val {
+          Some(primary) => Err(Run(Ledger(primary)))
+          None => Err(Evidence(Dependency(issue)))
+        }
       Ok(_) => ()
     }
   }

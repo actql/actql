@@ -67,6 +67,7 @@ pub fn checked_local_catalog_selection_remaining(
 pub fn advance_checked_local_catalog_selection(
   value : CheckedLocalCatalogSelection,
   visits : Int,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[Unit, LocalDependencyBodyIssue] {
   if value.closed || visits < 0 || visits > value.count - value.next {
     return Err(BudgetExceeded)
@@ -83,14 +84,54 @@ pub fn advance_checked_local_catalog_selection(
     let actual = match value.self_field {
       None => @environment.member_cid(item)
       Some(field) => {
-        guard @decode.open_object(@environment.member_body(item)) is Ok(object) &&
-          @decode.lookup(object, field) is Some(cursor) &&
-          @decode.text(cursor) is Ok(text) else {
+        let body = @environment.member_body(item)
+        guard @decode.object_length(body) is Some(count) else {
+          value.closed = true
+          return Err(MissingDependency)
+        }
+        let mut selected : String? = None
+        // Original admission rejects duplicate keys. Borrow scalar fields
+        // directly; opening ObjectView would build a width-sized Map here.
+        for position in 0..<count {
+          if work is Some(spend) && !spend(1) {
+            value.closed = true
+            return Err(BudgetExceeded)
+          }
+          guard @decode.field_at(body, position) is Some((key, child)) else {
+            value.closed = true
+            return Err(MissingDependency)
+          }
+          // Unequal lengths are O(1); an equal-length key comparison visits
+          // at most this actual borrowed key before selecting its scalar.
+          if key.length() != field.length() {
+            continue
+          }
+          if work is Some(spend) && !spend(key.length()) {
+            value.closed = true
+            return Err(BudgetExceeded)
+          }
+          if key != field {
+            continue
+          }
+          guard @decode.text(child) is Ok(text) else {
+            value.closed = true
+            return Err(MissingDependency)
+          }
+          selected = Some(text)
+          break
+        }
+        guard selected is Some(text) else {
           value.closed = true
           return Err(MissingDependency)
         }
         text
       }
+    }
+    if actual.length() == value.identity.length() &&
+      work is Some(spend) &&
+      !spend(actual.length()) {
+      value.closed = true
+      return Err(BudgetExceeded)
     }
     if actual == value.identity {
       if value.selected is Some(_) {
