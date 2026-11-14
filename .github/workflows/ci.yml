@@ -2155,6 +2155,37 @@ jobs:
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
+      - name: Prepare locked Table physical dependencies
+        id: table-python
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        run: |
+          python -m venv "$RUNNER_TEMP/table-python"
+          "$RUNNER_TEMP/table-python/bin/python" -m pip install --require-hashes -r adapters/connectors/local/iceberg/requirements.lock
+      - name: Test packed Table Source inventory and cold Saved
+        id: packed-table-source
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' && steps.table-python.outcome == 'success' }}
+        env:
+          ACTQL_TABLE_PYTHON: ${{ runner.temp }}/table-python/bin/python
+          ACTQL_TABLE_CASE_GROUP: source-inventory
+        run: |
+          test -n "${ACTQL_PACKED_CLIENT_PACKAGES:-}"
+          test -z "${ACTQL_TABLE_NORMAL_RELEASE:-}"
+          node --test scripts/packed-table-private-input.test.mjs
+      - name: Summarize packed Table Source failure
+        id: packed-table-source-summary
+        if: ${{ always() && matrix.group == 'connectors' && (steps.table-python.outcome == 'failure' || steps.packed-table-source.outcome == 'failure') }}
+        env:
+          CLIENT_ARTIFACT_ID: ${{ needs.client-packages.outputs.artifact-id }}
+          TABLE_PYTHON_OUTCOME: ${{ steps.table-python.outcome }}
+          TABLE_TEST_OUTCOME: ${{ steps.packed-table-source.outcome }}
+        run: |
+          {
+            printf '### Packed Table Source inventory\n\n'
+            printf 'Source: `%s`; Client artifact: `%s`.\n\n' "$GITHUB_SHA" "$CLIENT_ARTIFACT_ID"
+            printf 'Selection: `source-inventory` (one required case).\n\n'
+            printf 'Python preparation: `%s`; acceptance: `%s`.\n\n' "$TABLE_PYTHON_OUTCOME" "$TABLE_TEST_OUTCOME"
+            printf 'See [this run logs](%s/%s/actions/runs/%s) for the original setup or test failure.\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Test packed Local runtime assets
         if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: node scripts/test-packed-local-node-assets.mjs
