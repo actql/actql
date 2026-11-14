@@ -147,6 +147,8 @@ pub fn strategy_describe_committed_result(@run_publication.PublicationContract, 
 
 pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
+pub fn strategy_durable_result_row_frame_growth(@run_publication.DurableResultRowFrames, Int) -> Int raise NodeHostFailure
+
 pub fn strategy_effect_admit_ledger_entry(String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure
 
 pub fn strategy_effect_apply_key(@logical_request_scope.LogicalRequestScope, String, String, String, Int) -> @effect_application.EffectApplyKey raise NodeHostFailure
@@ -292,6 +294,8 @@ pub fn strategy_feed_durable_result_row_frames(@run_publication.DurableResultRow
 pub fn strategy_finish_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Array[Int] raise NodeHostFailure
 
 pub fn strategy_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise NodeHostFailure
+
+pub fn strategy_grow_durable_result_row_frame_buffer(@run_publication.DurableResultRowFrames, Int) -> Unit raise NodeHostFailure
 
 pub fn strategy_host_authorize_activation(@connectors_workers.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, AuthorizationDecision) -> Bool
 
@@ -608,6 +612,8 @@ pub fn strategy_manifest_result_names(@run_publication.PublicationContract, Int,
 pub fn strategy_next_result_delivery_row(@run_publication.ResultDeliverySerializer, String) -> String raise NodeHostFailure
 
 pub fn strategy_prepare_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise NodeHostFailure
+
+pub fn strategy_prepare_growing_durable_result_row_frames(Int, Int, Int, Int, Int) -> @run_publication.DurableResultRowFrames raise NodeHostFailure
 
 pub fn strategy_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise NodeHostFailure
 

@@ -23,6 +23,31 @@ fn result_read_data_cost(nodes : Int64, text : Int64, wire : Int64) -> Int64? {
 }
 
 ///|
+fn result_read_row_cost(units : Int, max_nodes : Int) -> Int64? {
+  let data = match
+    result_read_data_cost(
+      Int::min(units, max_nodes).to_int64(),
+      6L * units.to_int64(),
+      2L * units.to_int64(),
+    ) {
+    Some(value) => value
+    None => return None
+  }
+  let buffers = match
+    @execution.preparation_representation_cost({
+      record_headers: 2L,
+      reference_slots: 2L * units.to_int64(),
+      scalar_words: 2L * units.to_int64(),
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }) {
+    Some(value) => value
+    None => return None
+  }
+  Some(data + buffers)
+}
+
+///|
 fn result_read_window_cost(bytes : Int) -> Int64? {
   @execution.preparation_representation_cost({
     // Conservative common representation demand, including fragmented
@@ -77,13 +102,15 @@ pub fn[I] reserve_request_result_read(
     Some(value) => value
     None => return Err(Policy)
   }
+  let initial_row = Int::min(32, max_row)
   let frames = match
     @execution.preparation_representation_cost({
       record_headers: frame.to_int64(),
       reference_slots: frame.to_int64(),
       scalar_words: 0L,
-      owned_utf16_units: 2L * max_row.to_int64() + frame.to_int64(),
-      owned_wire_bytes: max_row.to_int64() + Int::min(frame, 65536).to_int64(),
+      owned_utf16_units: 2L * initial_row.to_int64() + frame.to_int64(),
+      owned_wire_bytes: initial_row.to_int64() +
+      Int::min(frame, 65536).to_int64(),
     }) {
     Some(value) => value
     None => return Err(Policy)
@@ -101,12 +128,7 @@ pub fn[I] reserve_request_result_read(
     (usage.reserved_execution_bytes - old.1)
   let per_byte = result_read_window_cost(1).unwrap()
   let row_units = Int::min(32, max_row)
-  let first_row = match
-    result_read_data_cost(
-      Int::min(row_units, max_nodes).to_int64(),
-      6L * row_units.to_int64(),
-      2L * row_units.to_int64(),
-    ) {
+  let first_row = match result_read_row_cost(row_units, max_nodes) {
     Some(value) => value
     None => return Err(Policy)
   }
@@ -180,12 +202,7 @@ pub fn[I] grow_request_result_read_row(
       },
     ),
   )
-  let row = match
-    result_read_data_cost(
-      Int::min(high, read.max_nodes).to_int64(),
-      6L * high.to_int64(),
-      2L * high.to_int64(),
-    ) {
+  let row = match result_read_row_cost(high, read.max_nodes) {
     Some(value) => value
     None => return Err(Policy)
   }

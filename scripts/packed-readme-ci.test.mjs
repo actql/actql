@@ -516,14 +516,14 @@ async function collectionBudgetPorts() {
   const body = tree.body.find(value => value.type === 'TryStatement').block;
   // Execute the actual fixture with explicit public/diagnostic ports, not a
   // substitute Core, Ledger, installed acceptance, or successful budget run.
-  return {project: load('originalBudgetRefusal'), program: load('collectionProgram'), budgetProgram: load('oversizedRowProgram'),
+  return {project: load('originalBudgetRefusal'), program: load('collectionProgram'), budgetProgram: load('oversizedRowProgram'), largeProgram: load('largeRowProgram'),
     memoryProgram: load('memoryRecoveryProgram'), workProject: load('originalControlWorkRefusal'),
     memoryProject: load('originalAcceptedMemoryRefusal'), publicProject: load('originalPublicBudget'), exact: load('exactRows'),
     recovery: load('sameHostSmallResult'), createPrevious: load('createPreviousSavedResult'), readPrevious: load('readPreviousSavedResult'),
     run: Function('originalBudgetReread', `return ports => (async () => {
       const {assert,report,span,open,phase,stateDir,capacityObservations,
         originalBudgetRefusal,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
-        collectionProgram,oversizedRowProgram,memoryRecoveryProgram,originalControlWorkRefusal,originalAcceptedMemoryRefusal,exactRows,
+        collectionProgram,oversizedRowProgram,largeRowProgram,memoryRecoveryProgram,originalControlWorkRefusal,originalAcceptedMemoryRefusal,exactRows,
         sameHostSmallResult,createPreviousSavedResult,readPreviousSavedResult,workObservations,save}=ports;
       let client; ${source.slice(body.start, body.end)}; return client;
     })();`)(load('originalBudgetReread'))};
@@ -853,15 +853,17 @@ test('collection aggregate requires completed full stream independently of succe
   const {root} = await scratch(t), load = await runnerFunctions();
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   const actual = {phase: 'capture', pid: 123, complete: true, firstClose: 'returned',
-    aliveScopedFD: {before: 0, after: 0}, submits: 5, sourceFreeMaxWork: 30000000,
+    aliveScopedFD: {before: 0, after: 0}, submits: 6, sourceFreeMaxWork: 30000000,
     requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
     cases: [9999, 10000, 10001, 100000].map(count => ({count})),
     fullStream: {rows: 100000, complete: true},
     controls: {tighterRows: true, collectionBytes: true, wireBytes: true, rowWireBytes: true,
       rowBytes: true, originalChargeBeforeValidation: true, boundedBatches: true,
       batchBytes: true, earlyBreak: true, readerCancellation: true},
-    oversizedRow: {rows: 1, arrayElements: 20000, expectedRefusal: 'ResultRowRetainedLimit', complete: true},
-    originalProgramsRemovedAfterFirstClose: 5};
+    oversizedRow: {rows: 1, arrayElements: 20000, maxRowRetainedValueBytes: 1048576, expectedRefusal: 'ResultRowRetainedLimit', complete: true},
+    largeRow: {rows: 1, fields: 17, textUnitsPerField: 64000, aboveLegacyRowWireBytes: 1048576,
+      explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true},
+    originalProgramsRemovedAfterFirstClose: 6};
   for (const fullStream of [actual.fullStream, undefined, {rows: 99999, complete: true}]) {
     const record = {phase: 'capture'};
     const promise = run({collection: root, record, async command() {
@@ -2486,4 +2488,15 @@ test('normal Project file JOIN cannot pass with an unexecuted capture or Saved',
     assert.equal(report.complete, false);
     assert.equal(report.projectFiles.find(row => row.phase === missing).status, 'unexecuted');
   }
+});
+
+
+test('normal large-row acceptance keeps a small authored input and independently complete projected fields', async () => {
+  const {largeProgram} = await collectionBudgetPorts();
+  const source = largeProgram();
+  assert(Buffer.byteLength(source) < 65536);
+  assert(source.includes("'" + 'x'.repeat(64000) + "' AS t"));
+  for (let field = 0; field < 17; field++) assert(source.includes(`t AS f${field}`));
+  assert(Buffer.byteLength(JSON.stringify(Object.fromEntries(
+    Array.from({length: 17}, (_, n) => [`f${n}`, 'x'.repeat(64000)])))) > 1048576);
 });

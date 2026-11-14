@@ -7162,6 +7162,27 @@ function publicationControl(moon) {
         limits.maxFrameBytes,
       ));
     },
+    prepareGrowingDurableResultRowFrames(limits) {
+      for (const name of ['maxBytes', 'maxRows', 'maxRowBytes', 'maxDepth', 'maxFrameBytes']) {
+        if (!Number.isSafeInteger(limits?.[name]) || limits[name] < 0 || limits[name] > 2147483647) {
+          throw new TypeError('Invalid growing durable Result row-frame limits');
+        }
+      }
+      return checked(moon.strategyPrepareGrowingDurableResultRowFrames(
+        limits.maxBytes, limits.maxRows, limits.maxRowBytes, limits.maxDepth, limits.maxFrameBytes));
+    },
+    durableResultRowFrameGrowth(frames, bytes) {
+      if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > 2147483647) {
+        throw new TypeError('Invalid durable Result row-frame chunk');
+      }
+      return checked(moon.strategyDurableResultRowFrameGrowth(frames, bytes));
+    },
+    growDurableResultRowFrameBuffer(frames, bytes) {
+      if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > 2147483647) {
+        throw new TypeError('Invalid durable Result row-frame capacity');
+      }
+      return checked(moon.strategyGrowDurableResultRowFrameBuffer(frames, bytes));
+    },
     feedDurableResultRowFrames(frames, chunk) {
       if (!(chunk instanceof Uint8Array)) {
         throw new TypeError('Invalid durable Result row-frame chunk');

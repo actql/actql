@@ -139,6 +139,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       // Pure local counters consume an already acquired window. Core/current
       // is crossed only at a new geometric high-water constructor boundary.
       if (units <= entry.rowUnits) return {units: entry.rowUnits, window: entry.window};
+      assertCurrent();
       const admitted = checked(Reflect.apply(grow, runtime,
         [entry.state.parent, request, units]));
       const high = runtimeField(admitted, 0), window = runtimeField(admitted, 1);

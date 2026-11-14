@@ -7153,6 +7153,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:durableResultRowFrameGrowth/init:durableResultRowFrameGrowth",
+            "publicationControl/init:growDurableResultRowFrameBuffer/init:growDurableResultRowFrameBuffer",
+            "publicationControl/init:prepareGrowingDurableResultRowFrames/init:prepareGrowingDurableResultRowFrames"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "Result reads derive their total transfer, retained-value and row allowances"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGrowingDurableResultRowFrames(limits)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "physical_equal(original, input)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "const entry = original(request);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "}, async needed => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "return Err(DurableRowFrameByteLimit)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "pub fn cancel_durable_result_row_frames("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "fn result_read_row_cost("
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const admitted = await beforeBufferGrowth(needed);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "caller limits can narrow reads or collection."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read_js_wbtest.mbt",
+                "anchor": "same READ parent pays actual growing row frames beyond legacy one MiB before allocation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "actual physical Result reader grows its original READ parent before raw row allocation beyond legacy caps"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -10127,6 +10205,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:durableResultRowFrameGrowth/init:durableResultRowFrameGrowth",
+          "parameters": [
+            "frames",
+            "bytes"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
           "parameters": [
             "runDefinition",
@@ -10408,6 +10494,14 @@
           "name": "publicationControl/init:finishResultDelivery/init:finishResultDelivery",
           "parameters": [
             "serializer"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:growDurableResultRowFrameBuffer/init:growDurableResultRowFrameBuffer",
+          "parameters": [
+            "frames",
+            "bytes"
           ],
           "async": false
         },
@@ -12184,6 +12278,13 @@
           "name": "publicationControl/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact/init:prepareEffectCommandContentArtifact",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareGrowingDurableResultRowFrames/init:prepareGrowingDurableResultRowFrames",
+          "parameters": [
+            "limits"
           ],
           "async": false
         },
@@ -15909,7 +16010,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "71a2e855440452c30d6931c345ebaf4f115fc2b7cd1394d094dc7c79a18adf82"
+      "sha256": "98153987ea08880cb5daa7d67d76e8ddf294bef2b90184da967fafed8a6e8c5e"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -90197,7 +90298,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing client_local_host Request preparation and Resource owners; original READ phase and projection only",
-      "sha256": "5aa5613aae363abeef516e16ad88eb1f530edd3b0ee8cc230d07bc1698f8928e",
+      "sha256": "5ba66f2b152751e3fbe659a6c48e6106e60c14117d6be50a98434f0b400094a0",
       "exports": [],
       "operations": [
         {
@@ -90215,6 +90316,10 @@
         {
           "name": "result_read_data_cost",
           "declaration": "result_read_data_cost ( nodes : Int64 , text : Int64 , wire : Int64 ) - > Int64 ?"
+        },
+        {
+          "name": "result_read_row_cost",
+          "declaration": "result_read_row_cost ( units : Int , max_nodes : Int ) - > Int64 ?"
         },
         {
           "name": "result_read_window_cost",
@@ -90334,9 +90439,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "result_read_row_cost"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "Result reads derive their total transfer, retained-value and row allowances"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "fn result_read_row_cost"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "physical_equal(original, input)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "const entry = original(request);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "}, async needed => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "return Err(DurableRowFrameByteLimit)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "pub fn cancel_durable_result_row_frames("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "fn result_read_row_cost("
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const admitted = await beforeBufferGrowth(needed);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "caller limits can narrow reads or collection."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read_js_wbtest.mbt",
+                "anchor": "same READ parent pays actual growing row frames beyond legacy one MiB before allocation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "actual physical Result reader grows its original READ parent before raw row allocation beyond legacy caps"
+              }
+            ]
+          }
         }
       ],
-      "referenceQualification": "Source ownership and selected component correspondence only; not a normal artifact, global RAM reservation or ordinary execution acceptance."
+      "referenceQualification": "Source ownership and selected component correspondence only; not a normal artifact, global RAM reservation or ordinary execution acceptance.",
+      "package": "client_local_host"
     },
     {
       "module": "src/connectors_builtin_node/client_result_read_workspace_bridge.mbt",
