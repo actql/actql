@@ -89,13 +89,14 @@ function commits(catalog, busyTimeout = 0) {
   finally { database.close(); }
 }
 function readerProgram(id = 'read-committed-table', selectedResource = resource, textField = 'tag') {
+  const fields = textField === null ? ['id'] : ['id', textField];
   return {version: 'actql/0.1', id, stages: [
     {id: 'read', inputs: {input: {connector: 'table', resource: selectedResource}},
-      steps: [{filter: 'id >= 0', as: 'kept'}, {select: ['id', textField], as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id', textField]}}},
+      steps: [{filter: 'id >= 0', as: 'kept'}, {select: fields, as: 'output'}],
+      results: {rows: {from: 'output', fields}}},
     {id: 'compute', inputs: {input: {result: {stage: 'read', result: 'rows'}}},
       steps: [{derive: {doubled: 'id * 2'}, as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id', textField, 'doubled']}}}],
+      results: {rows: {from: 'output', fields: [...fields, 'doubled']}}}],
     results: {answer: {from: {stage: 'compute', result: 'rows'}}}};
 }
 
@@ -157,9 +158,11 @@ test('Table public129 Source views read real rows and retain SAME Saved after co
     throw cause;
   }
   let ref, savedRows;
-  const expected = rows.map(row => ({...row, doubled: row.id * 2}));
+  // The fixture schema declares p Conditional. Publish guaranteed id and its
+  // computed value while retaining the original 129-view Source inventory.
+  const expected = rows.map(({id}) => ({id, doubled: id * 2}));
   try {
-    const run = await client.startSource(JSON.stringify(readerProgram('source-range-129', resources.at(-1), 'p')),
+    const run = await client.startSource(JSON.stringify(readerProgram('source-range-129', resources.at(-1), null)),
       {format: 'json'});
     ref = run.ref;
     assert.equal((await terminal(run, observations, t)).status, 'succeeded');
