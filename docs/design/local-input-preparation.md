@@ -6338,9 +6338,12 @@ The installed `check` and unsaved `explain` commands retain their immutable
 argument/file producer before the ordinary observed reader opens any payload.
 They initialize the existing Request facility once. Raw Parameters are admitted
 first, then the original JSON/YAML Program or SQL/Pipe Query is parsed and
-checked through that same Request. Raw file storage follows the observed input;
-node/depth and Parameter/declaration scalar policies remain their original
-contracts. No submitted intent, module, provider, Engine or Run is created.
+checked through that same Request. The static caller selects its structural
+bounds from the common default selector's already-funded raw intake envelope,
+projects lexical work once from the same document and consumes the common
+post-lowering selection before checking. Raw depth and Parameter/declaration
+scalar policies remain their original contracts. No submitted intent, module,
+provider, Engine or Run is created.
 
 `check` stops at the original static semantic outcome. Its existing report
 constructor consumes that exact outcome, original Program cursor/spans,
