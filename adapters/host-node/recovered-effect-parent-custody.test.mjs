@@ -6,15 +6,16 @@ import test from 'node:test';
 import {parse} from 'acorn';
 
 const source=readFileSync(new URL('./installed-row-effect.mjs',import.meta.url),'utf8');
-const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[];
+const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[],runLimitSelectors=[];
 function visit(value){
   if(value===null||typeof value!=='object')return;
   if(value.type==='FunctionDeclaration'&&value.id.name==='prepareRecovered')found.push(value);
+  if(value.type==='VariableDeclarator'&&value.id.name==='runLimits')runLimitSelectors.push(value.init);
   for(const child of Object.values(value)){
     if(Array.isArray(child))child.forEach(visit);else visit(child);
   }
 }
-visit(ast);assert.equal(found.length,1);
+visit(ast);assert.equal(found.length,1);assert.equal(runLimitSelectors.length,1);
 
 function fixture(selected=true){
   const moon={},events=[],preview={},scope={},identity={},stop=new Error('ReachedOriginalCapabilityBoundary');
@@ -29,7 +30,7 @@ function fixture(selected=true){
     authoring_context:{authoring_context_cid:'author'},effects:[{capability_evidence_cid:'capability',changes:[]}]};
   const effect={recoveredPreviewKeys:()=>({}),admitPreviewIdentity:()=>({})};
   const ledger={close(){events.push('close ledger');},recoverClaimFacts:()=>({})};
-  const bindings={moon,owners:[owner],singular:undefined,limits:{maxRows:10,maxWork:100,
+  const bindings={moon,owners:[owner],singular:undefined,limits:{maxMembers:1,maxRows:10,maxWork:100,
     key:{maxBytes:100,maxNodes:10,maxDepth:5},
     preview:{maxWireBytes:1000,maxNodes:100,maxDepth:10}},localContractLimits:{},ROUTING_VERSION:'original',
     fail:code=>{throw Object.assign(new Error(code),{code});},text:value=>typeof value==='string'&&value.length>0,
@@ -39,7 +40,10 @@ function fixture(selected=true){
     resourceFields:()=>({}),orderedSourceIndexes:()=>[],
     physicalRoute(){assert.fail('No route is created before the exact terminal marker');},
     admitCapability(){events.push('capability');return{identity:'capability'};}};
-  const fn=Function(...Object.keys(bindings),`return (${source.slice(found[0].start,found[0].end)});`)(
+  const fn=Function(...Object.keys(bindings),`
+    const readManagedShape=moon.clientProgramInstalledEffectManagedPlanShape;
+    const runLimits=(${source.slice(runLimitSelectors[0].start,runLimitSelectors[0].end)});
+    return (${source.slice(found[0].start,found[0].end)});`)(
     ...Object.values(bindings));
   const facts={moon,control:{effectComputationPreviewWire:value=>{
     assert.strictEqual(value,preview);return JSON.stringify(body);},effectComputationPreviewLedgerIdentity:()=>({}),
