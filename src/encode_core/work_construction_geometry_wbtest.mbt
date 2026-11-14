@@ -42,10 +42,10 @@ test "controlled geometry verifies existing canonical order without a field-size
   null_value(writer)
   try {
     key(writer, "a")
-    fail("out-of-order dependency emitter must not be trusted")
+    assert_true(false, msg="out-of-order dependency emitter must not be trusted")
   } catch {
     InvalidStructure => ()
-    _ => fail("canonical ordering refusal must retain its typed cause")
+    _ => assert_true(false, msg="canonical ordering refusal must retain its typed cause")
   }
   let legacy = construction_measuring_writer(1000, 20, 5)
   begin_object(legacy)
@@ -65,18 +65,18 @@ test "declined or expired controlled work closes the writer before further trave
   live.val = false
   try {
     string_value(writer, "unvisited")
-    fail("expired work view must not permit another String walk")
+    assert_true(false, msg="expired work view must not permit another String walk")
   } catch {
     OutputLimit => ()
-    _ => fail("work refusal must close before another emission")
+    _ => assert_true(false, msg="work refusal must close before another emission")
   }
   assert_true(writer.closed)
   try {
     finish_construction_measurement(writer) |> ignore
-    fail("partial geometry must remain unavailable")
+    assert_true(false, msg="partial geometry must remain unavailable")
   } catch {
     ClosedWriter => ()
-    _ => fail("failed controlled writer must remain closed")
+    _ => assert_true(false, msg="failed controlled writer must remain closed")
   }
 }
 
@@ -92,10 +92,10 @@ test "prepaid String and ordered-key cursors cannot scan after work view expiry"
       live.val = false
       try {
         advance_ordered_key(cursor) |> ignore
-        fail("expired ordered-key cursor must not scan")
+        assert_true(false, msg="expired ordered-key cursor must not scan")
       } catch {
         OutputLimit => ()
-        _ => fail("expired key view must refuse before scanning")
+        _ => assert_true(false, msg="expired key view must refuse before scanning")
       }
       assert_eq(cursor.position, position)
     } else {
@@ -105,10 +105,10 @@ test "prepaid String and ordered-key cursors cannot scan after work view expiry"
       live.val = false
       try {
         advance_string_value(cursor) |> ignore
-        fail("expired String cursor must not scan")
+        assert_true(false, msg="expired String cursor must not scan")
       } catch {
         OutputLimit => ()
-        _ => fail("expired String view must refuse before scanning")
+        _ => assert_true(false, msg="expired String view must refuse before scanning")
       }
       assert_eq(cursor.position, position)
     }
