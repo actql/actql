@@ -77238,7 +77238,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3c5448618b08a4cb9f996ea11457a7be1735bb3c474c8f6918c821732b116370",
+      "sha256": "a34528ed2c701868ba3b3b9b5117c523b6f479e3593d48a786a60d858770192e",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -129636,7 +129636,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "c1acdbea2f3e351174b436ef0e91fcce41fb8ded7b341aebdb63639232695290",
+      "sha256": "a2d67f4f2e262b2dae0bf29caa7f993e76fc6e3a3c543bd46040a11821faca22",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -130382,6 +130382,24 @@
           "parameters": [
             "wire"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata",
+          "parameters": [
+            "declared",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/init:prepareReadMetadata",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/projection/init:capacity/init:capacity",
+          "parameters": [],
           "async": false
         },
         {
@@ -131732,6 +131750,9 @@
             "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
             "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
             "createInstalledSourceContext/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
+            "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata",
+            "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/init:prepareReadMetadata",
+            "createInstalledSourceContext/context/init:prepareReadMetadata/init:prepareReadMetadata/projection/init:capacity/init:capacity",
             "createInstalledSourceContext/context/init:prepareReadTarget/init:prepareReadTarget",
             "createInstalledSourceContext/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
             "createInstalledSourceContext/prepareOriginalDeclaration",
@@ -131745,6 +131766,7 @@
             "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
             "installedSourceConfigurationReader/read",
             "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
+            "installedSourceConfigurationReader/read/beforeParse/beforeParse",
             "installedSourceConfigurationReader/read/read",
             "installedSourceConfigurationReader/readOriginal",
             "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
@@ -131784,8 +131806,7 @@
             "sourceProjectionMethods",
             "sourceProjectionMethods/sourceProjectionMethods",
             "sourceQuote",
-            "withInstalledSourceLoading",
-            "installedSourceConfigurationReader/read/beforeParse/beforeParse"
+            "withInstalledSourceLoading"
           ],
           "exports": [
             "assertInstalledSourceConstruction",
@@ -131964,6 +131985,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "The configuration JSON entrance reserves buffer and decoded String overlap"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Declared Source access inventory"
               }
             ],
             "extension": [
@@ -132056,6 +132081,10 @@
               {
                 "path": "adapters/host-node/installed-configuration-json.actual.test.mjs",
                 "anchor": "JSON configuration construction still refuses genuinely excessive structure before native parse"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Declared Source access inventory"
               }
             ]
           }
@@ -137639,7 +137668,7 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5179,
+    "operations": 5182,
     "exports": 1172,
     "explicitContractGroups": 542
   },

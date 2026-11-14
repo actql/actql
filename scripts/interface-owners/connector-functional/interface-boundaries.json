@@ -14208,7 +14208,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "03f8270ee8efa02fc633c71ec046361c3d1df68ca1dd03ede14cd341bd52ea2f",
+      "sha256": "e40d0528b2fca05ac63cce8b587ca51aaadb24b051abd01dd5bc5858a319d646",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14442,6 +14442,18 @@
           "name": "createInstalledRowSource/captureCapacity/captureCapacity",
           "parameters": [
             "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -15051,20 +15063,6 @@
           "name": "createInstalledRowSource/sourceBody/sourceBody",
           "parameters": [
             "sourceRef"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/sourceRefs/sourceRefs",
-          "parameters": [
-            "view"
           ],
           "async": false
         },
@@ -16087,6 +16085,8 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/captureCapacity/captureCapacity",
+            "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
+            "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#10",
             "createInstalledRowSource/createInstalledRowSource#4",
@@ -16105,6 +16105,7 @@
             "createInstalledRowSource/openKeyed",
             "createInstalledRowSource/openKeyed/observedMs/observedMs",
             "createInstalledRowSource/openKeyed/openKeyed",
+            "createInstalledRowSource/openKeyed/openKeyed#13",
             "createInstalledRowSource/openKeyed/openKeyed#2",
             "createInstalledRowSource/openKeyed/openKeyed#3",
             "createInstalledRowSource/openKeyed/openKeyed#4",
@@ -16147,8 +16148,6 @@
             "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
             "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
-            "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
-            "createInstalledRowSource/sourceRefs/sourceRefs",
             "createInstalledRowSource/verifyKeyedRead",
             "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
             "fail/fail",
@@ -16206,8 +16205,7 @@
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
             "text/text",
-            "valueCid/valueCid",
-            "createInstalledRowSource/openKeyed/openKeyed#13"
+            "valueCid/valueCid"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -16699,6 +16697,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Declared Source access inventory"
               }
             ],
             "extension": [
@@ -16915,6 +16917,10 @@
               {
                 "path": "adapters/host-node/installed-source-child-use.test.mjs",
                 "anchor": "undeclared child authorization consumes its ordinal before reentrant or failed current checks"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Declared Source access inventory"
               }
             ]
           }

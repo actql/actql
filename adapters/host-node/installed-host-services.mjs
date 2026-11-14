@@ -1023,6 +1023,38 @@ function createInstalledSourceContext(original, material, installation, connecto
       return prepareSourceNativeInput(original, material, projection, inputProjections,
         () => validateNativeInputContext(prepared), retainNativeInput);
     },
+    prepareReadMetadata(declared, project) {
+      const prepared = scope.prepared;
+      if (this !== context || scope.role !== 'source' || scope.readMetadataAttempted ||
+          prepared?.declared !== declared || !Array.isArray(declared?.views) ||
+          typeof project !== 'function') fail('ForeignInstalledSourceInitialization');
+      scope.readMetadataAttempted = true;
+      // Quote the complete original range once, before either variable-sized
+      // metadata constructor. Strings and authority are borrowed originals.
+      // Two retained containers hold N keys and N four-field records (7N+2
+      // node slots), and the returned two-field metadata record takes three.
+      // Their later synchronous binding check overlaps one Set
+      // and one returned reference array (2N+2); keep that allowance with the
+      // SAME Source material instead of issuing per-access reservations.
+      const nodes = 9n * BigInt(declared.views.length) + 7n;
+      const quote = material.methods.InstalledSourceConstructionCapacity;
+      if (typeof quote !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+      const projection = Object.freeze({
+        capacity() {
+          // The existing native-input owner holds its synchronous busy fence.
+          // This pure recipe observes no owner or permission; reservation and
+          // current checks remain with prepareSourceNativeInput itself.
+          return checked(Reflect.apply(quote, original.moon, [nodes, 0n, 0n, 0n, 0n, 0n]));
+        },
+        project,
+      });
+      return prepareSourceNativeInput(original, material, projection, inputProjections,
+        () => {
+          if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+              material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+          original.current();
+        }, retainNativeInput);
+    },
     prepareProviderEffect(site, provider, mappingOriginals) {
       if (this !== context || scope.role !== 'effect' || !scope.active || scope.prepared !== undefined ||
           scope.declarationAttempted || material.phase !== 'working' || material.busy ||

@@ -90954,7 +90954,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "03f8270ee8efa02fc633c71ec046361c3d1df68ca1dd03ede14cd341bd52ea2f",
+      "sha256": "e40d0528b2fca05ac63cce8b587ca51aaadb24b051abd01dd5bc5858a319d646",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -91201,6 +91201,18 @@
           "name": "createInstalledRowSource/captureCapacity/captureCapacity",
           "parameters": [
             "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -91810,20 +91822,6 @@
           "name": "createInstalledRowSource/sourceBody/sourceBody",
           "parameters": [
             "sourceRef"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledRowSource/sourceRefs/sourceRefs",
-          "parameters": [
-            "view"
           ],
           "async": false
         },
@@ -93182,6 +93180,8 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/captureCapacity/captureCapacity",
+            "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
+            "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#10",
             "createInstalledRowSource/createInstalledRowSource#11",
@@ -93201,6 +93201,7 @@
             "createInstalledRowSource/openKeyed",
             "createInstalledRowSource/openKeyed/observedMs/observedMs",
             "createInstalledRowSource/openKeyed/openKeyed",
+            "createInstalledRowSource/openKeyed/openKeyed#13",
             "createInstalledRowSource/openKeyed/openKeyed#2",
             "createInstalledRowSource/openKeyed/openKeyed#3",
             "createInstalledRowSource/openKeyed/openKeyed#4",
@@ -93242,8 +93243,6 @@
             "createInstalledRowSource/prepareRetained/prepareRetained",
             "createInstalledRowSource/resources/resources",
             "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
-            "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
-            "createInstalledRowSource/sourceRefs/sourceRefs",
             "createInstalledRowSource/verifyKeyedRead",
             "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
             "prepareImmutablePhysicalTargets",
@@ -93251,8 +93250,7 @@
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/mismatch/mismatch",
-            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
-            "createInstalledRowSource/openKeyed/openKeyed#13"
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
           ],
           "exports": [
             "createInstalledRowSource"

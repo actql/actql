@@ -426,8 +426,7 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
 // occurrence selects a member later; installing a binding never reads it.
 export function installedSourceReadAccesses(source) {
   const accesses = source.sourceReadAccesses ?? [source.sourceAccess];
-  if (!Array.isArray(accesses) || accesses.length === 0 ||
-      accesses.length > 64) {
+  if (!Array.isArray(accesses) || accesses.length === 0) {
     throw new TypeError('InvalidInstalledSourceReadAccesses');
   }
   if (source.sourceReadAccesses !== undefined) {
