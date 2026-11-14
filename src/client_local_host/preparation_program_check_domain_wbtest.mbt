@@ -38,7 +38,9 @@ fn catalog_domain_fixture() -> (
 test "later Catalog domain preserves Source-only packet and funds every original reader on the same parent" {
   // Source quote540H155R1153W, driver23H31R39W, stage5H7R4W,
   // preflight17H35R58W, then observed geometry/canonical scratch and return
-  // controls8H4R20W. Catalog remains a separate later packet below.
+  // controls8H4R20W. The original SyntaxError alias and conservative Some
+  // carrier add1H2R2W to the Source driver, without copying the error payload.
+  // Catalog remains a separate later packet below.
   let source_initial = program_json_preparation_initial_inventory()
   assert_eq(
     (
@@ -47,13 +49,14 @@ test "later Catalog domain preserves Source-only packet and funds every original
       source_initial.scalar_words,
     ),
     (
-      540L + 23L + 5L + 17L + 8L,
-      155L + 31L + 7L + 35L + 4L,
-      1153L + 39L + 4L + 58L + 20L,
+      540L + 23L + 5L + 17L + 8L + 1L,
+      155L + 31L + 7L + 35L + 4L + 2L,
+      1153L + 39L + 4L + 58L + 20L + 2L,
     ),
   )
   assert_eq(16L * 8L + 8L * 4L + 8L * 20L, 320L)
-  assert_eq(program_json_initial_control_bytes, 21216L + 320L)
+  assert_eq(16L * 1L + 8L * 2L + 8L * 2L, 48L)
+  assert_eq(program_json_initial_control_bytes, 21216L + 320L + 48L)
   let initial = program_check_preparation_initial_inventory()
   assert_eq(
     (initial.record_headers, initial.reference_slots, initial.scalar_words),
