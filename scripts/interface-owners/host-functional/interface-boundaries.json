@@ -110254,7 +110254,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0478ba34581d12f94d9796ff3760756fe59802a859d56c930cb70fd8ad7f07ad",
+      "sha256": "f71d1005b1d95e711e6d565b9887e836ad10f14d45fee8f3e2913e4fb733d00c",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -110311,6 +110311,13 @@
           "name": "deliverPublishedResult/deliverPublishedResult/deliverPublishedResult#2",
           "parameters": [
             "row"
+          ],
+          "async": true
+        },
+        {
+          "name": "deliverPublishedResult/deliverPublishedResult/deliverPublishedResult#3",
+          "parameters": [
+            "needed"
           ],
           "async": true
         },
@@ -111088,6 +111095,82 @@
               {
                 "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
                 "anchor": "record durability"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "deliverPublishedResult/deliverPublishedResult/deliverPublishedResult#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "Result reads derive their total transfer, retained-value and row allowances"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "appendExactRecord"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "physical_equal(original, input)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "const entry = original(request);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "}, async needed => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "return Err(DurableRowFrameByteLimit)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "pub fn cancel_durable_result_row_frames("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "fn result_read_row_cost("
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const admitted = await beforeBufferGrowth(needed);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/local-node/README.md",
+                "anchor": "caller limits can narrow reads or collection."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read_js_wbtest.mbt",
+                "anchor": "same READ parent pays actual growing row frames beyond legacy one MiB before allocation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "actual physical Result reader grows its original READ parent before raw row allocation beyond legacy caps"
               }
             ]
           }
