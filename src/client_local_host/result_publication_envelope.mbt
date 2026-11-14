@@ -90,7 +90,8 @@ fn client_local_result_envelope(
 
 ///|
 /// Publication IO proof from original Result schemas only; intermediate
-/// evaluator types do not authorize this independent wire bound.
+/// evaluator types do not authorize this independent wire bound. Bounded Text
+/// keeps its retained contract limit, including every projected occurrence.
 fn client_local_result_scalar_wire_bytes(
   graph : @strategy.CheckedDAG,
   max_rows : Int,
@@ -102,6 +103,7 @@ fn client_local_result_scalar_wire_bytes(
   let mut remaining = client_local_schema_proof_work() - count
   let mut fields = 0
   let mut names = 0
+  let mut payload_text = 0L
   for index in 0..<count {
     guard @strategy.graph_result_occurrence(graph, index) is Some(occurrence) else {
       return None
@@ -114,13 +116,45 @@ fn client_local_result_scalar_wire_bytes(
       return None
     }
     remaining -= width
-    guard client_local_scalar_schema_width(schema) is Some(width) else {
-      return None
+    let mut text = 0L
+    for field_index in 0..<width {
+      guard @schema.field_at(schema, field_index) is Some(field) else {
+        return None
+      }
+      match @schema.field_contract(field).shape {
+        @contract.Number | @contract.Boolean => ()
+        @contract.Text(bounds) => {
+          guard bounds.max_utf8_bytes is Some(bytes) &&
+            bytes >= 0L &&
+            @execution.checked_preparation_add_product(text, bytes, 1L)
+            is Some(next) else {
+            return None
+          }
+          text = next
+        }
+        _ => return None
+      }
     }
     fields = Int::max(fields, width)
     names = Int::max(names, @schema.field_reference_name_bytes(schema))
+    payload_text = Int64::max(payload_text, text)
   }
-  client_local_scalar_wire_byte_bound(fields, names, max_rows)
+  guard max_rows >= 0 &&
+    @execution.checked_preparation_add_product(
+      payload_text,
+      names.to_int64(),
+      1L,
+    )
+    is Some(row_text) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      row_text,
+      max_rows.to_int64(),
+    )
+    is Some(total_text) else {
+    return None
+  }
+  client_local_json_leaf_wire_byte_bound(fields, max_rows, total_text)
 }
 
 ///|
