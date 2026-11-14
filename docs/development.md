@@ -1079,6 +1079,23 @@ is introduced. Run the guard regressions with
 `node --test scripts/test-execution.test.mjs` (the pinned MoonBit toolchain must
 be on PATH).
 
+### Finite UNION budget acceptance
+
+`node scripts/test-packed-public-query.mjs --union-budget-only --keep-artifacts`
+uses the existing five-package tarball verifier, fresh installation and packed
+command recorder. It selects direct SQL and CTE `UNION ALL` at 10, 11, 24, 25
+and 40 branches, preserving all rows, duplicate multiplicities and full Number
+column contracts. The same Local Host continues after a public invalid check;
+explicit tiny checking-work refusal is a separate Core component obligation,
+not an invented public budget option. Original references are recorded before
+wait. A second process attaches those same Saved references, reads their full
+Results and checks the original submission lookup without resubmitting.
+Each process awaits its first public close and observes scoped descriptors
+while still alive. Source fixture tests do not establish this normal-package
+acceptance, compiler-call counts, performance or other backends. Run the packed
+selection only against one useful matching immutable cohort under the ordinary
+resource guard; it is not a request for another notification build.
+
 ### Retained command attempts
 
 The focused wrapper retains each invocation under

@@ -15,6 +15,7 @@ import {validatePackedPublicQueryArguments} from './packed-public-query-options.
 import {selectAcceptanceTimeout} from './fixtures/packed-query-transport-owner.mjs';
 
 validatePackedPublicQueryArguments(process.argv.slice(2));
+const unionBudgetOnly = process.argv.includes('--union-budget-only');
 const ciPart = process.argv.find(argument => argument.startsWith('--ci-part='))?.slice('--ci-part='.length);
 const portablePart = /^portable-[123]$/u.test(ciPart ?? '') ? Number(ciPart.at(-1)) : undefined;
 const portableExtras = portablePart === undefined || portablePart === 1;
@@ -38,7 +39,7 @@ function run(command, args, cwd = root, env = environment,
   return capture(command, args, {cwd, env, timeout});
 }
 console.log(`Packed public-query evidence: ${directory}`);
-if (ciPart !== 'native' && portableExtras) console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
+if (!unionBudgetOnly && ciPart !== 'native' && portableExtras) console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
   'scripts/distinct-join-order-source-input.test.mjs',
   'scripts/graph-difference-source-input.test.mjs',
   'scripts/graph-relation-join-source-input.test.mjs',
@@ -55,6 +56,22 @@ for (const name of packages) {
 const quickstart = readmeQuickstart(await readFile(join(repository, 'docs', 'development.md'), 'utf8'));
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
+if (unionBudgetOnly) {
+  // Reuse this exact canonical five-tar install and evidence owner. This branch
+  // has no provider, new compiler producer, alternate install or Source rewrite.
+  for (const [source, destination] of [
+    ['scripts/fixtures/union-budget-source-input.mjs', 'union-budget-source-input.mjs'],
+    ['scripts/fixtures/union-budget-public.mjs', 'union-budget-public.mjs'],
+    ['scripts/fixtures/record-approval/scoped-fds.fixture.mjs', 'scoped-fds.fixture.mjs'],
+  ]) await writeFile(join(root, destination), await readFile(join(repository, source)));
+  auditPackedPackages(root, packages);
+  const normalEnvironment = {...environment, PATH: `${dirname(process.execPath)}:/usr/bin:/bin`};
+  const handoff = join(root, 'union-budget-originals.json');
+  for (const phase of ['run', 'saved']) console.log(run(process.execPath,
+    ['union-budget-public.mjs', phase, handoff], root, normalEnvironment,
+    acceptanceTimeout).trimEnd());
+  return;
+}
 for (const [source, destination] of [
   ['scripts/fixtures/vector-scalar-source-input.mjs', 'vector-scalar-source-input.mjs'],
   ['scripts/fixtures/vector-scalar-installed-source.mjs', 'vector-scalar-installed-source.mjs'],

@@ -383,3 +383,58 @@ test "default Query callback reentry cannot replace its selected original or rep
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "direct forty-branch Request compiles once then prepares every original task sequence" {
+  let parts : Array[String] = []
+  for i in 0..<40 {
+    parts.push("SELECT " + (i % 3).to_string() + " AS n")
+  }
+  let query = parts.join(" UNION ALL ")
+  let (parent, input) = native_driver_parent(query)
+  let (environment, publication) = request_query_publication_fixture()
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(query, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  let checked = parent.program_check.unwrap()
+  assert_eq(checked._observed_semantic_check_calls, 1L)
+  assert_eq(
+    finish_request_checked_computation(parent, input, environment, publication).unwrap(),
+    Pure,
+  )
+  let prepared = parent.compiled_program.unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let sequences = prepare_client_local_sequences_owned(
+    Pure(prepared),
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    compilation_limits=Some(
+      request_program_compilation_limits(parent, input).unwrap(),
+    ),
+  ).unwrap()
+  assert_true(sequences.length() > 32)
+  assert_eq(sequences.length(), @strategy.graph_task_count(graph))
+  assert_eq(parent._observed_query_parse_calls, 1L)
+  assert_eq(parent._observed_query_lower_calls, 1L)
+  assert_eq(checked._observed_semantic_check_calls, 1L)
+  assert_true(parent.program_check is None)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
