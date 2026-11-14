@@ -1,4 +1,52 @@
 ///|
+test "Native static direct11 uses shared ordinary input selection without compiling" {
+  let (environment, publication) = request_query_publication_fixture()
+  let document = "SELECT 0 AS n" +
+    Array::makei(10, i => " UNION ALL SELECT " + (i + 1).to_string() + " AS n").join("")
+  let input = [1]
+  let owner = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  reserve_request_native_intake_wire(owner, input, document.length()).unwrap()
+  assert_eq(owner.snapshot_units, 0L)
+  assert_eq(owner.snapshot_values, 0L)
+  let result = prepare_request_native_document_check(
+    owner,
+    input,
+    document,
+    @frontend.Sql,
+    None,
+    None,
+    environment,
+    publication,
+  )
+  let calls = request_preparation_work_calls(owner)
+  let verified = owner.program_check is Some(check) &&
+    check.check_outcome is Some(@checked.Checked(_))
+  let issued = owner.submitted_intent is Some(_) ||
+    owner.compiled_program is Some(_) || owner.intent_attempted
+  abort_request_preparation_after_cleanup(owner).unwrap()
+  assert_true(
+    result is Ok(_),
+    msg=match result {
+      Ok(_) => "checked"
+      Err(QuerySyntax(Frontend(QuerySyntax(diagnostic)))) =>
+        @debug.to_string(diagnostic)
+      Err(QuerySyntax(Work(issue))) => @debug.to_string(issue)
+      Err(QuerySyntax(Request(_))) => "QuerySyntax.Request"
+      Err(QuerySyntax(Overflow)) => "QuerySyntax.Overflow"
+      Err(issue) => direct_union_terminal_detail(issue)
+    },
+  )
+  assert_eq(calls, (1L, 1L, 1L, 0L))
+  assert_true(verified)
+  assert_false(issued)
+  assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
+}
+
+///|
 test "Request actual work calls distinguish checking compilation getters and retired scalar history" {
   let (environment, publication) = request_query_publication_fixture()
   let (owner, input) = native_driver_parent("SELECT 1 AS n")
