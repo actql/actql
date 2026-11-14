@@ -748,3 +748,16 @@ pub fn client_program_installed_local_file_store_observed_constructor_capacities
 }
 
 ///|
+#export_name("clientProgramInstalledLocalFileStoreObservedRecoveryCapacities")
+pub fn client_program_installed_local_file_store_observed_recovery_capacities(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_local_file_store_observed_recovery_capacities(
+    bytes, nodes, depth,
+  )
+}

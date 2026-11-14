@@ -103,7 +103,7 @@ test('warm File recipe selects owned wire geometry while keeping cold and physic
     limits: {...LOCAL_STORE_LIMITS, maxFileBytes: 123456}, requestHeaderUnits: 173,
     writerProfile: {nativeOriginalBytes: 4321, maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130}});
   assert.strictEqual(recipe.memberOperations[0].extent.first.capacities[0], initial[0]);
-  assert.strictEqual(recipe.memberOperations[1].extent.capacities, full);
+  assert.strictEqual(recipe.memberOperations[1].extent.maximum.capacities, full);
   assert.strictEqual(recipe.rowOperations[0].extent.first.capacity, initial[2]);
   assert.strictEqual(recipe.rowOperations[1].extent.capacity, full[3]);
   assert.equal(recipe.rowOperations[1].extent.transfer, 123456n);
@@ -118,6 +118,41 @@ test('warm File recipe selects owned wire geometry while keeping cold and physic
   const foreign = Object.defineProperty({}, 'changesWire', {get() {reads++; return '{}';}});
   assert.throws(() => recipe.captureConstruction.inputExtent([foreign]), TypeError);
   assert.equal(reads, 0); assert.equal(observations.length, 2);
+});
+
+test('cold File recovery selects its same original member wire before parsing and refuses ambiguous input', () => {
+  const full = Array.from({length: 6}, () => ({})), initial = [{}, {}, {}], quotes = [];
+  const actual = [{saved: true}, {clone: true}];
+  const moon = {
+    clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
+    clientProgramInstalledLocalFileStoreRecipeCapacities: () => ({$tag: 1, _0: full}),
+    clientProgramInstalledLocalFileStoreInitialConstructorCapacities: () => initial,
+    clientProgramInstalledLocalFileStoreObservedRecoveryCapacities(...args) {
+      quotes.push(args); return {$tag: 1, _0: actual};
+    },
+    clientProgramInstalledEffectCaptureRecipeExtentPrepare: (operation, capacities) => ({$tag: 1, _0: {operation, capacities}}),
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare: () => ({$tag: 1, _0: {}}),
+    clientProgramInstalledEffectOperationStagedExtentPrepare: (first, maximum) => ({$tag: 1, _0: {first, maximum}}),
+  };
+  const inputLimits = installedRowEffectConstructionLimits();
+  const recipe = prepareLocalFileStorePlanRecipe({moon, inputLimits, limits: {...LOCAL_STORE_LIMITS, maxFileBytes: 123456},
+    requestHeaderUnits: 173,
+    writerProfile: {nativeOriginalBytes: 4321, maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130}});
+  assert.strictEqual(recipe.memberOperations[1].extent.first.capacities[0], initial[0]);
+  const recovery = [{memberIndex: 0, wire: '{"binding":"original","requests":[]}'},
+    {memberIndex: 1, wire: 'unrelated member'}];
+  const select = recipe.recoveryConstruction.inputExtent;
+  const extent = select('already-admitted Preview is borrowed', recovery, 0);
+  assert.strictEqual(extent.capacities[0], actual[0]);
+  assert.strictEqual(extent.capacities[1], actual[1]);
+  const n = recovery[0].wire.length;
+  assert.deepEqual(quotes, [[3 * n, n, inputLimits.preview.maxDepth]]);
+  assert.throws(() => select('', [...recovery, recovery[0]], 0), TypeError);
+  assert.throws(() => select('', recovery, 2), TypeError);
+  let reads = 0;
+  const foreign = Object.defineProperty({memberIndex: 0}, 'wire', {get() {reads++; return '{}';}});
+  assert.throws(() => select('', [foreign], 0), TypeError);
+  assert.equal(reads, 0); assert.equal(quotes.length, 1);
 });
 
 test('empty warm File capture quotes only its original recovery envelope', () => {

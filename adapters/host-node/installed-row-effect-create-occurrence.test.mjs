@@ -927,10 +927,11 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
   assert.equal(calls.length, 2, 'consumed original never grants another operation');
 });
 
-function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false, pendingRetire = false, input = false} = {}) {
+function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false, pendingRetire = false, input = false, inputRefusal = false} = {}) {
   const parent = {}, prepared = {}, request = {}, plan = {}, events = [], children = [];
   const members = [{memberIndex: 0}, {memberIndex: 1}], active = new Set(), tokens = [];
-  let aliasesRetired = false, constructions = 0, retirePending = pendingRetire;
+  let aliasesRetired = false, constructions = 0, retirePending = pendingRetire, controlDepth = 0;
+  const inputError = new Error('same original member input refused');
   const owners = [{}, {}], inputExtents = [{}, {}];
   const original = Object.freeze({entries: Object.freeze([[], []]), currents: Object.freeze([{}, {}])});
   const runtime = {
@@ -950,6 +951,7 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
     clientProgramInstalledEffectOperationInputBegin(token, selected) {
       assert.equal(tokens.length, 2, 'all original members precede selecting any input');
       assert.strictEqual(selected, inputExtents[token.member]);
+      if (inputRefusal && token.member === 1) throw inputError;
       active.add(token.member);events.push(`input-${token.member}`);
       return {$tag: 1, _0: undefined};
     },
@@ -963,10 +965,14 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
     },
   };
   const run = {runtime, value: parent, prepared, request, operationPlan: plan,
-    controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
+    controlConstruction: (receiver, method, args) => {
+      controlDepth++;
+      try {return Reflect.apply(method, receiver, args);} finally {controlDepth--;}
+    },
     readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan};
   const recipe = {captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1,
     ...(input ? {inputExtent(wire, recovery, memberIndex) {
+      assert(controlDepth > 0, 'same original control backs the member scan before input selection');
       assert.equal(wire, facts.previewWire); assert.strictEqual(recovery, facts.durable.connectorRecovery);
       assert.strictEqual(members[memberIndex].memberIndex, memberIndex);
       events.push(`select-${memberIndex}`); return inputExtents[memberIndex];
@@ -984,10 +990,21 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
     }});
   const invoke = () => actual({...facts, managedEffect: run, requestChildren: children,
     retireRequestAliases: () => aliasesRetired, assertCurrent() {}});
-  return {invoke, original, events, children, run, facts, constructions: () => constructions,
+  return {invoke, original, events, children, run, facts, inputError, constructions: () => constructions,
     retire() {aliasesRetired = true;}, finalRetire() {return run.recoveredRequestInput.retire();},
     allowRetire() {retirePending = false;}};
 }
+
+test('cold observed member refusal keeps the original failed prefix and all alias retirement duties', () => {
+  const f = recoveredConstructorFixture({input: true, inputRefusal: true});
+  assert.throws(f.invoke, cause => cause === f.inputError);
+  assert.equal(f.constructions(), 0);
+  assert.equal(f.run.recoveredRequestInput.children.length, 2);
+  assert(!f.events.some(event => event.startsWith('retire-')));
+  assert.throws(f.invoke, cause => cause === f.inputError);
+  f.retire();assert.equal(f.finalRetire(), true);
+  assert.equal(f.run.recoveredRequestInput.children.length, 0);
+});
 
 test('cold request rebuilding enters every same-Plan member workspace before the single original provider constructor', async () => {
   const f = recoveredConstructorFixture();

@@ -3235,10 +3235,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
             operationIndex: selected.operationIndex, operation,
             ...(selected.inputExtent === undefined ? {} : {inputExtent: () =>
-              selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery, member.memberIndex)}),
+              controlConstruction(undefined, selected.inputExtent,
+                [facts.previewWire, facts.durable.connectorRecovery, member.memberIndex])}),
             construct: grow => {
               if (selected.inputExtent !== undefined) growers.set(member.memberIndex, metadata =>
-                grow(selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery, member.memberIndex, metadata)));
+                grow(controlConstruction(undefined, selected.inputExtent,
+                  [facts.previewWire, facts.durable.connectorRecovery, member.memberIndex, metadata])));
               try {
                 return index + 1 === members.length
                   ? recoveredEntries({...facts, reserveRecoveryInput}) : calls[index + 1]();

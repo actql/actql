@@ -259,3 +259,42 @@ test "empty warm File capture retains its real recovery envelope without row con
     is Err(Unsupported),
   )
 }
+
+///|
+test "cold File capacities retain saved tree beside every immutable request clone" {
+  let actual = installed_local_file_store_observed_recovery_capacities(
+    4096, 1365, 16,
+  ).unwrap()
+  let tree = local_file_store_json_capacity(4096, 1365, 16).unwrap()
+  assert_eq(actual.length(), 2)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(actual[0]),
+    @execution.execution_capacity_retained_bytes(tree) +
+    @execution.execution_capacity_retained_bytes(
+      installed_local_file_store_initial_constructor_capacities()[0],
+    ),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(actual[1]) >
+    @execution.execution_capacity_retained_bytes(tree),
+  )
+  // Selected component vector only: all seventeen saved trees AND all
+  // seventeen immutable clones coexist. No sum-to-max substitution.
+  let retained = @execution.execution_capacity_retained_bytes(actual[0]) +
+    @execution.execution_capacity_retained_bytes(actual[1])
+  assert_true(17L * retained < 536870912L)
+}
+
+///|
+test "cold File geometry refuses missing original wire or tree bounds" {
+  for fields in [(0, 1, 16), (1, 0, 16), (1, 1, 0)] {
+    assert_true(
+      installed_local_file_store_observed_recovery_capacities(
+        fields.0,
+        fields.1,
+        fields.2,
+      )
+      is Err(Unsupported),
+    )
+  }
+}

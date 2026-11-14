@@ -97,6 +97,7 @@ pub fn installed_local_file_store_initial_constructor_capacities() -> Array[
 // shared control Owner; a member borrows it and does not parse another copy.
 // All actual member/row copies remain distinct retained quantities. These
 // capacities do not select input policy, a Resource budget or send authority.
+// The original structural/callback backing remains alongside the output.
 pub fn installed_local_file_store_observed_constructor_capacities(
   body_bytes : Int,
   body_nodes : Int,
@@ -167,10 +168,50 @@ pub fn installed_local_file_store_observed_constructor_capacities(
       ],
       RetainedAlongsideExecution,
     )
+    is Some(recovery) &&
+    @execution.add_execution_capacity(
+      installed_local_file_store_initial_constructor_capacities()[0],
+      recovery,
+    )
     is Some(recovery) else {
     return Err(Unsupported)
   }
   Ok([recovery, row, request])
+}
+
+///|
+// Cold Local recovery parses exactly its own saved member envelope. The
+// already-admitted whole Preview remains borrowed from the original control
+// owner. Keep this tree and each immutable request clone as separate live
+// quantities; request cloning never releases the saved tree's backing.
+// The initial original member callbacks remain live alongside both.
+pub fn installed_local_file_store_observed_recovery_capacities(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
+  guard local_file_store_json_capacity(bytes, nodes, depth) is Some(saved) &&
+    @execution.add_execution_capacity(
+      installed_local_file_store_initial_constructor_capacities()[0],
+      saved,
+    )
+    is Some(saved) &&
+    local_file_store_json_capacity(bytes, nodes, depth) is Some(clone) &&
+    @execution.preparation_representation_cost({
+      // Empty request handle, original WeakMap record, transient requestFacts
+      // and returned row entry. Include three spare reference slots.
+      record_headers: 4L,
+      reference_slots: 16L,
+      scalar_words: 1L,
+      owned_utf16_units: 71L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(control) &&
+    @execution.execution_capacity(control, control) is Some(control) &&
+    @execution.add_execution_capacity(clone, control) is Some(row) else {
+    return Err(Unsupported)
+  }
+  Ok([saved, row])
 }
 
 ///|
