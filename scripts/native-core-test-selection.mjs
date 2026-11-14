@@ -39,6 +39,9 @@ const nativeRequestEffectHandoffTestFile =
 const nativeJournalMetadataOriginalReadTestFile =
   'src/platform_native/client_host/journal_metadata_original_read_physical_scoped_wbtest.mbt';
 
+const nativeAccountConstructionOriginalReadTestFile =
+  'src/platform_native/client_host/local_account_construction_original_read_wbtest.mbt';
+
 // These two independent fixtures use the same existing 8192-page backing.
 // All other selected Arena cases retain their original 256-page declarations.
 export function nativeCoreScopedBackingPages(source) {
@@ -52,6 +55,7 @@ export function nativeCoreScopedBackingPages(source) {
 export function nativeCoreScopedAllocationProfile(source) {
   return source === nativeRequestEffectHandoffTestFile || source === nativeRelationWorkTestFile ||
     source === nativeJournalMetadataOriginalReadTestFile ||
+    source === nativeAccountConstructionOriginalReadTestFile ||
     source === nativeClientFileResponseTestFile ||
     source === 'src/cmd/native_client/local_command_business_window_scoped_wbtest.mbt' ||
     source === 'src/platform_native/host_bootstrap/request_preparation_physical_scoped_wbtest.mbt' ||
@@ -76,6 +80,7 @@ export function nativeCoreScopedTestEnvironment({source, index}) {
 export const nativeScopedTestFiles = Object.freeze([
   nativeRequestEffectHandoffTestFile,
   nativeJournalMetadataOriginalReadTestFile,
+  nativeAccountConstructionOriginalReadTestFile,
   'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt',
   'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt',
   // Its first-member control uses that same real Request/Arena facility.

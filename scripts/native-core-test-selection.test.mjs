@@ -7,7 +7,7 @@ import {basename, dirname, join, resolve} from 'node:path';
 import test from 'node:test';
 import {nativeCoreTestSelection, portableMoonTestCount, nativeCoreHttpArguments, nativeCoreHttpTestFiles,
   nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile,
-  nativeCoreScopedTestEnvironment, nativeCoreCheckpointRequired} from './native-core-test-selection.mjs';
+  nativeCoreScopedTestEnvironment, nativeCoreScopedBackingPages, nativeCoreCheckpointRequired} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
 
 test('Journal metadata original Read selects its scoped allocator without changing sibling profiles', () => {
@@ -19,6 +19,21 @@ test('Journal metadata original Read selects its scoped allocator without changi
     assert.equal(nativeCoreScopedAllocationProfile('src/platform_native/client_host/' + sibling), 'runtime-values');
   }
   assert.deepEqual(nativeCoreScopedTestEnvironment({source, index: 0}), {});
+});
+
+test('Account original Read cases select the existing scoped fixture and preserve ordinary sibling profiles', () => {
+  const source = 'src/platform_native/client_host/local_account_construction_original_read_wbtest.mbt';
+  assert.equal(nativeScopedTestFiles.filter(file => file === source).length, 1);
+  assert.equal(nativeCoreScopedAllocationProfile(source), 'scoped-review-values');
+  assert.equal(nativeCoreScopedBackingPages(source), 256);
+  assert.equal((readFileSync(new URL('../' + source, import.meta.url), 'utf8')
+    .match(/^test "/gmu) ?? []).length, 3);
+  for (const index of [0, 1, 2]) assert.deepEqual(nativeCoreScopedTestEnvironment({source, index}), {});
+  for (const sibling of ['local_adoption_capture_wbtest.mbt', 'local_adoption_open_custody_wbtest.mbt']) {
+    const path = 'src/platform_native/client_host/' + sibling;
+    assert.equal(nativeScopedTestFiles.includes(path), false);
+    assert.equal(nativeCoreScopedAllocationProfile(path), 'runtime-values');
+  }
 });
 
 function fixture(t) {
