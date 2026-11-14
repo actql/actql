@@ -4,6 +4,7 @@
 /// this view nor a quoted amount issues a Ledger, transfer or authorization.
 struct PreparationAccountRead {
   prepare_original : (Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
+  complete_original : () -> Result[Unit, PreparationCapacityIssue]
   close_original : (Bool) -> Result[Bool, PreparationCapacityIssue]
 }
 
@@ -12,7 +13,9 @@ struct PreparationAccountRead {
 /// returned alternatives and current/failure controls; the fixed Node frame,
 /// registry entry and bound methods are included before variable input.
 pub fn preparation_account_read_control_slots() -> (Int64, Int64, Int64) {
-  (64L, 192L, 96L)
+  // The completion closure and its single-consume Ref add two records,
+  // ten captured/owner references and one scalar to the same funded cohort.
+  (66L, 202L, 97L)
 }
 
 ///|
@@ -45,11 +48,13 @@ pub fn[I, P] prepare_account_read(
   let closed = Ref(false)
   let busy = Ref(false)
   let failed = Ref(false)
+  let completed = Ref(false)
   Ok({
     prepare_original: (retained, execution) => {
       if closed.val ||
         busy.val ||
         failed.val ||
+        completed.val ||
         preparation_body_retirement_started(holder) ||
         !(owner.input is Some(original) && physical_equal(original, input)) ||
         !preparation_borrow_phase_matches(owner.phase, true) {
@@ -72,6 +77,52 @@ pub fn[I, P] prepare_account_read(
         } else {
           result
         }
+      }
+    },
+    complete_original: () => {
+      if completed.val {
+        Err(AlreadyCompleted)
+      } else if closed.val ||
+        busy.val ||
+        failed.val ||
+        preparation_body_retirement_started(holder) ||
+        !(owner.input is Some(original) && physical_equal(original, input)) ||
+        !preparation_borrow_phase_matches(owner.phase, true) {
+        Err(Retired)
+      } else {
+        busy.val = true
+        let result : Result[Unit, PreparationCapacityIssue] = match
+          reservation_check(owner.ledger, token.reservation) {
+          Err(issue) => Err(Resource(issue))
+          Ok(_) =>
+            // Recheck the SAME parent after its fallible current callback.
+            // Retirement during that callback cannot release the old peak.
+            if preparation_body_retirement_started(holder) ||
+              !(owner.input is Some(original) && physical_equal(original, input)) ||
+              !preparation_borrow_phase_matches(owner.phase, true) {
+              Err(Retired)
+            } else if token.reservation.retention <= 0L ||
+              token.reservation.retention > token.reservation.execution {
+              Err(InvalidExtent)
+            } else {
+              // Preserve ALL admitted retained bytes and the live Read/borrow.
+              // Only the returned synchronous constructor's workspace ends.
+              // No caller amount, new token or physical-close ACK enters here.
+              resize_capacity_reservation_current(
+                owner.ledger,
+                token,
+                token.reservation.retention,
+                token.reservation.retention,
+              ).map_err(issue => PreparationCapacityIssue::Resource(issue))
+            }
+        }
+        busy.val = false
+        if result is Err(_) {
+          failed.val = true
+        } else {
+          completed.val = true
+        }
+        result
       }
     },
     close_original: acknowledged => {
@@ -109,4 +160,15 @@ pub fn close_preparation_account_read(
   physical_and_data_cleanup_complete : Bool,
 ) -> Result[Bool, PreparationCapacityIssue] {
   (read.close_original)(physical_and_data_cleanup_complete)
+}
+
+///|
+/// The fixed Account constructor calls this only after retaining its actual
+/// completed DATA/gate and disposing synchronous parse/canonical/admission
+/// scratch. It keeps the exact retained debit and original cleanup obligation;
+/// it supplies neither an authorization decision nor physical retirement.
+pub fn complete_account_read_construction(
+  read : PreparationAccountRead,
+) -> Result[Unit, PreparationCapacityIssue] {
+  (read.complete_original)()
 }

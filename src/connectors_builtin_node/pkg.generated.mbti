@@ -832,6 +832,8 @@ pub fn client_program_compiled_run_static_plan_view(@run_publication_host.Client
 
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_program_complete_account_read_construction(@physical_resources.PreparationAccountRead) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_complete_content_step(@client_local_host.ClientLocalContentStep, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationInputEvidence, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientSerializationGenerationIssue]
 
 pub fn client_program_complete_infer_original_journal_invalidation(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, OriginalModelJournalReference, OriginalModelJournalReference, OriginalModelJournalReference, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> Result[Unit, @client_infer_host.Issue]

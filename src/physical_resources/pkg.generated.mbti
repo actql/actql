@@ -82,6 +82,8 @@ pub fn[I, P] begin_preparation_phase_work_continuation64(PreparationCapacity[I, 
 
 pub fn[P, E] begin_prepared_run_operation_construction(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
+pub fn[P] begin_prepared_run_publication_work(PreparedRunAdmission[P], P, Ledger, Int64) -> Result[PreparationPhaseWorkContinuation64, ImportedChildLedgerIssue]
+
 pub fn begin_shared_capacity_growth(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[SharedCapacityGrowth, LedgerIssue]
 
 pub fn bind_platform_vm_capacity(Int64, Ledger, SharedCapacity) -> Result[PlatformVMCapacity, ImportedChildLedgerIssue]
@@ -209,6 +211,8 @@ pub fn close_platform_vm_working_capacity_after_cleanup(PlatformVMWorkingCapacit
 pub fn close_preparation_account_read(PreparationAccountRead, Bool) -> Result[Bool, PreparationCapacityIssue]
 
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
+
+pub fn complete_account_read_construction(PreparationAccountRead) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[P, C] complete_backed_execution_window_after_acquisition(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], SharedCapacityGrowth, Int64) -> Result[Unit, BackedExecutionIssue]
 
@@ -733,6 +737,10 @@ pub fn[I, P] transfer_preparation_capacity_to_run(PreparationCapacity[I, P], I, 
 pub fn[I, P] transfer_preparation_retirement_to_run(PreparationCapacity[I, P], I, P, Ledger) -> Result[PreparationRetirement, PreparationCapacityIssue]
 
 pub fn unresolved_backed_execution_data(UnresolvedBackedExecutionOriginal) -> BackedExecutionOriginalData
+
+pub fn[P, R, E] with_prepared_run_operation_control_publication_work(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation, () -> Bool, PreparationPhaseWorkContinuation64, ((Int) -> Result[Unit, LedgerIssue]) -> Result[R, NodeManagedRunOperationIssue[E]]) -> Result[R, NodeManagedRunOperationIssue[E]]
+
+pub fn[P, R, E] with_prepared_run_operation_control_work(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation, () -> Bool, ((Int) -> Result[Unit, LedgerIssue]) -> Result[R, NodeManagedRunOperationIssue[E]]) -> Result[R, NodeManagedRunOperationIssue[E]]
 
 pub fn write_ledger_continuation_state(LedgerContinuationState, @encode_core.Writer) -> Result[Unit, LedgerContinuationIssue]
 

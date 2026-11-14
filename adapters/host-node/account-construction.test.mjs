@@ -16,7 +16,7 @@ import {readAccountConfiguration, observeInstalledAccount, sourceReadAccountConf
 const ok = _0 => ({$tag: 1, _0});
 const err = _0 => ({$tag: 0, _0});
 function fixture(limit = 100000000000n) {
-  const live = new Map(), events = [];
+  const live = new Map(), executionLive = new Map(), events = [];
   let admits = 0, current = true, issued = 0;
   const moon = {
     clientProgramAccountReadControlBytes: () => 64n,
@@ -25,12 +25,19 @@ function fixture(limit = 100000000000n) {
       if (!live.has(read) || !current) return err('Retired');
       let total = retained;
       for (const [other, amount] of live) if (other !== read) total += amount;
-      if (total > limit || execution > limit) return err('RetentionLimit');
-      live.set(read, retained); return ok(undefined);
+      let totalExecution = execution;
+      for (const [other, amount] of executionLive) if (other !== read) totalExecution += amount;
+      if (total > limit || totalExecution > limit) return err('RetentionLimit');
+      live.set(read, retained); executionLive.set(read, execution); return ok(undefined);
+    },
+    clientProgramCompleteAccountReadConstruction(read) {
+      events.push(['complete', read]);
+      if (!live.has(read) || !current) return err('Retired');
+      executionLive.set(read, live.get(read)); return ok(undefined);
     },
     clientProgramCloseAccountRead(read, ack) {
       events.push(['close', read, ack]);
-      if (ack) live.delete(read);
+      if (ack) {live.delete(read); executionLive.delete(read);}
       return ok(ack);
     },
     executionAuthorizationAdmitPrepared(wire, prepare) {
@@ -43,9 +50,9 @@ function fixture(limit = 100000000000n) {
     if (!current) throw new Error('Retired');
   }, prepareRead() {
     if (!current) return err('Retired');
-    const read = {issued: ++issued}; live.set(read, 64n); return ok(read);
+    const read = {issued: ++issued}; live.set(read, 64n); executionLive.set(read, 64n); return ok(read);
   }});
-  return {facet, moon, live, events, admits: () => admits, retire() {current = false;}};
+  return {facet, moon, live, executionLive, events, admits: () => admits, retire() {current = false;}};
 }
 async function files(fn) {
   const root = await mkdtemp(join(tmpdir(), 'actql-account-read-'));
@@ -201,6 +208,21 @@ test('account gate repeated create and actual Scope close returns each SAME Read
   assert.equal(f.events.filter(event => event[0] === 'close').length, 129);
   assert.equal(await f.facet.close(), true);
   assert.deepEqual(f.closes, Array(129).fill(1), 'Host close retains no callback/capture for these retired gates');
+});
+
+test('129 simultaneous completed Account gates retain DATA and cleanup while releasing constructor scratch', async () => {
+  const f = scopeFixture(1000000n), gates = [];
+  for (let index = 0; index < 129; index++) gates.push(await f.create());
+  assert.equal(f.retainedReads(), 129);
+  assert.equal(f.events.filter(event => event[0] === 'complete').length, 129);
+  for (const [read, retained] of f.live) assert.equal(f.executionLive.get(read), retained);
+  assert.equal(f.events.filter(event => event[0] === 'close').length, 0,
+    'Completed scratch is not gate or Read cleanup');
+  f.retire();
+  assert.throws(() => f.facet.begin(), /Retired/);
+  for (const gate of gates) assert.equal(gate.close(), true);
+  assert.equal(await f.facet.close(), true);
+  assert.equal(f.live.size, 0);
 });
 
 test('account gate constructor-await close retains the already-created original before rejecting publication', async () => {

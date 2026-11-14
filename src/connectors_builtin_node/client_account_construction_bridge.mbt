@@ -40,6 +40,14 @@ pub fn client_program_prepare_account_read_construction(
 }
 
 ///|
+#export_name("clientProgramCompleteAccountReadConstruction")
+pub fn client_program_complete_account_read_construction(
+  read : @resources.PreparationAccountRead,
+) -> Result[Unit, @resources.PreparationCapacityIssue] {
+  @resources.complete_account_read_construction(read)
+}
+
+///|
 #export_name("clientProgramCloseAccountRead")
 pub fn client_program_close_account_read(
   read : @resources.PreparationAccountRead,

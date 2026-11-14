@@ -97,6 +97,14 @@ export function createAccountConstruction({moon, prepareRead, current}) {
     }
     function finish(retain = false) {
       state.active = false;
+      if (state.retainedOutput && !state.failed && !state.unknownClose && state.cleanup === undefined) {
+        // The awaited constructor returned and its actual gate/DATA is already
+        // retained. Its parse/canonical/admission stack has ended; keep every
+        // admitted retained byte and the SAME Read until real gate cleanup.
+        try {checked(moon.clientProgramCompleteAccountReadConstruction(state.read));}
+        catch (cause) {failure(cause); throw cause;}
+        state.execution = state.retained;
+      }
       if (!retain && !state.retainedOutput && !state.failed && !state.unknownClose && state.cleanup === undefined) {
         if (!settleFrame(state)) fail('AccountReadCleanupPending');
       }
