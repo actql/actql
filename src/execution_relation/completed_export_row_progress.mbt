@@ -501,8 +501,7 @@ pub fn advance_completed_output_export(
           return Err(Admission(CaptureLimit))
         }
       }
-      if batch &&
-        cursor.full_wire_bound > stream.max_batch_bytes {
+      if batch && cursor.full_wire_bound > stream.max_batch_bytes {
         let pending = @encode.observed_writer_usage(stream.writer).0 -
           stream.drained_bytes
         // Physical fragments keep the SAME bounded writer whether its caller
