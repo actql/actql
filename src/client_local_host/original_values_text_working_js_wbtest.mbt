@@ -190,6 +190,8 @@ test "original few long Values retain their complete text working demand" {
               ControlWorkLimit(_) => "OriginalValuesExecution:ControlWorkLimit"
               Preparation(_) => "OriginalValuesExecution:Preparation"
               Dispatch(_) => "OriginalValuesExecution:Dispatch"
+              ExecutionCapacityRefusal(_, _, _, _) =>
+                "OriginalValuesExecution:ExecutionCapacityRefusal"
               Execution(cause) =>
                 match cause {
                   Compute(_) => "OriginalValuesExecution:Compute"
