@@ -6348,9 +6348,12 @@ The installed `check` and unsaved `explain` commands retain their immutable
 argument/file producer before the ordinary observed reader opens any payload.
 They initialize the existing Request facility once. Raw Parameters are admitted
 first, then the original JSON/YAML Program or SQL/Pipe Query is parsed and
-checked through that same Request. Raw file storage follows the observed input;
-node/depth and Parameter/declaration scalar policies remain their original
-contracts. No submitted intent, module, provider, Engine or Run is created.
+checked through that same Request. The static caller selects its structural
+bounds from the common default selector's already-funded raw intake envelope,
+projects lexical work once from the same document and consumes the common
+post-lowering selection before checking. Raw depth and Parameter/declaration
+scalar policies remain their original contracts. No submitted intent, module,
+provider, Engine or Run is created.
 
 `check` stops at the original static semantic outcome. Its existing report
 constructor consumes that exact outcome, original Program cursor/spans,
@@ -6566,3 +6569,22 @@ original order, without repeatedly scanning the already retained prefix. These
 logical constructor inventories neither certify a Native allocator layout nor
 replace the existing selected Native provider, same-domain backing or ordinary
 success, refusal and Saved consumer checks.
+
+### Raw Native document default selection
+
+The ordinary raw Native checker keeps its existing Request and producer. Its
+Reader has already observed and reserved `native_intake_wire_bytes` before
+constructing document/parameter Strings. The common default selector consumes
+that same retained byte envelope when no captured snapshot or submitted intent
+exists. Encoded bytes bound structural entries; they are never written into
+snapshot value/Text observations. The original raw entrance depth remains.
+The same already-backed fixed limit records are used, without a second reader,
+input scan, Request, parser or permission issuer.
+
+Captured and raw callers share the existing post-lowering default selection,
+including the unchanged, separately tracked Stage-group work policy. The retained
+Program supplies its constant-time Stage count. The fixed Request control quote
+also backs the coheld selected-limit return wrapper (one header/reference).
+Both callers use one lexical-work projection of the original document. Explicit
+profiles, current/reentry, overflow, semantic/algorithm work and cleanup remain
+independent; these projections do not grant Resource capacity or compile a body.

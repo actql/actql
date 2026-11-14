@@ -398,16 +398,12 @@ fn[I, T] prepare_request_native_source_computation_input(
     )
   }
   let lexical_work = if default_source {
-    // Scanner advancement charges at most one per input scalar. Initial
-    // quoted-identifier/parameter normalization charges at most the decoded
-    // source units again. Reuse the original String length, not a new scan or
-    // the unrelated dispatch planning-work unit. Keep genuine Int headroom.
-    let units = document.length().to_int64()
-    guard units <= 1073741823L else {
+    let original = request_source_lexical_work(document)
+    guard original is Some(_) else {
       owner.phase = QuerySyntaxFailed
       return Err(Preparation(ProgramCheck(Overflow)))
     }
-    Some((2L * units).to_int())
+    original
   } else {
     None
   }
