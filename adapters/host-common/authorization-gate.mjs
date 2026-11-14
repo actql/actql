@@ -272,6 +272,8 @@ export function createAuthorizationGate({
   configuration,
   configurationCid,
   readConfiguration,
+  admitConfiguration,
+  withAccountObservation,
   context,
   decide,
   answeringAuthorities = [],
@@ -323,7 +325,8 @@ export function createAuthorizationGate({
     : requireRuntime(runtime);
   const account = moon === undefined ? undefined
     : missing ? moon.executionAuthorizationMissing()
-      : moon.executionAuthorizationAdmit(configuration);
+      : admitConfiguration === undefined ? moon.executionAuthorizationAdmit(configuration)
+        : admitConfiguration(moon, configuration);
   const state = account === undefined ? {state: 'missing'}
     : JSON.parse(moon.executionAuthorizationAccountJson(account));
   if (state.state === 'rejected') {
@@ -353,6 +356,8 @@ export function createAuthorizationGate({
     configuration,
     accountState: Object.freeze(state),
     readConfiguration,
+    admitConfiguration,
+    withAccountObservation,
     accountId: state.state === 'admitted' ? state.account_id : undefined,
     configurationCid: state.state === 'admitted' ? state.configuration_cid
       : undefined,
@@ -423,7 +428,8 @@ function gateFor(core, context) {
         // bytes again. Changed observations still take the full Core path.
         if (typeof wire !== 'string' || wire !== core.configuration) {
           account = typeof wire === 'string'
-            ? core.moon.executionAuthorizationAdmit(wire)
+            ? core.admitConfiguration === undefined ? core.moon.executionAuthorizationAdmit(wire)
+              : core.admitConfiguration(core.moon, wire)
             : core.moon.executionAuthorizationMissing();
           state = JSON.parse(core.moon.executionAuthorizationAccountJson(account));
         }
@@ -439,7 +445,9 @@ function gateFor(core, context) {
     }
     return account;
   };
-  const assertCurrentAccount = decision => {
+  const accountObservation = operation => core.withAccountObservation === undefined
+    ? operation() : core.withAccountObservation(operation);
+  const assertCurrentAccount = decision => accountObservation(() => {
     const account = assertScopeAccountCurrent();
     // Only an internal dispatch or an exact issued decision reaches here.
     // With the same admitted immutable Account its pure tuple outcome cannot
@@ -459,7 +467,7 @@ function gateFor(core, context) {
         outcome.entry_id !== decision.entryId) {
       unavailable('AuthorizationCurrentAccountChanged');
     }
-  };
+  });
   const record = decision => {
     // This is also the post-await fence for cached and resumed dispatches.
     // Refusing a changed original account never requests a replacement answer.
@@ -953,7 +961,7 @@ function gateFor(core, context) {
     // approval path. This admits no tuple or answer and accepts no substitute
     // dispatch. The Checkpoint owner must separately check its approval/claim.
     assertConfigurationCurrent() {
-      assertScopeAccountCurrent();
+      accountObservation(() => {assertScopeAccountCurrent();});
     },
 
     // Evaluate one protected boundary for the exact scope. The tuple principal
