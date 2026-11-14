@@ -124,6 +124,15 @@ fn start_local_managed_test_task_operations(
       fail("Unexpected Carrier snapshot during Relation setup")
     Err(@local_driver.ControlWorkLimit(_)) =>
       fail("Local managed setup exhausted control work")
+    Err(@local_driver.ExecutionCapacityRefusal(_, needed, available, policy)) =>
+      fail(
+        "Local managed setup capacity refused: needed=" +
+        needed.to_string() +
+        ", available=" +
+        available.to_string() +
+        ", policy=" +
+        policy.to_string(),
+      )
   }
   if grant is Some(value) {
     @strategy.authorize_captured_task_activation(run, task, value).unwrap()
@@ -194,6 +203,15 @@ fn start_local_managed_test_task_operations(
       fail("Unexpected Carrier snapshot during Relation start")
     Err(@local_driver.ControlWorkLimit(_)) =>
       fail("Local managed start exhausted control work")
+    Err(@local_driver.ExecutionCapacityRefusal(_, needed, available, policy)) =>
+      fail(
+        "Local managed start capacity refused: needed=" +
+        needed.to_string() +
+        ", available=" +
+        available.to_string() +
+        ", policy=" +
+        policy.to_string(),
+      )
   }
   assert_eq(operations.inputs.length(), rows.length())
   if !finish_inputs {
@@ -226,6 +244,17 @@ fn start_local_managed_test_task_operations(
           fail("Unexpected Carrier snapshot during Relation transfer")
         Err(@local_driver.ControlWorkLimit(_)) =>
           fail("Local managed transfer exhausted control work")
+        Err(
+          @local_driver.ExecutionCapacityRefusal(_, needed, available, policy)
+        ) =>
+          fail(
+            "Local managed transfer capacity refused: needed=" +
+            needed.to_string() +
+            ", available=" +
+            available.to_string() +
+            ", policy=" +
+            policy.to_string(),
+          )
       }
     }
     (transfer.finish)().unwrap()
@@ -428,6 +457,15 @@ fn run_local_managed_test_task(
       fail("Unexpected Carrier snapshot during Relation execution")
     Err(@local_driver.ControlWorkLimit(_)) =>
       fail("Local managed execution exhausted control work")
+    Err(@local_driver.ExecutionCapacityRefusal(_, needed, available, policy)) =>
+      fail(
+        "Local managed execution capacity refused: needed=" +
+        needed.to_string() +
+        ", available=" +
+        available.to_string() +
+        ", policy=" +
+        policy.to_string(),
+      )
     Err(
       @local_driver.Configuration(
         @connector.Execution(@execution.Rows(_, @execution.InvalidRows))
@@ -479,6 +517,15 @@ fn run_local_managed_test_task(
         fail("Unexpected Carrier snapshot during Relation finalization")
       Err(@local_driver.ControlWorkLimit(_)) =>
         fail("Local managed finalization exhausted control work")
+      Err(@local_driver.ExecutionCapacityRefusal(_, needed, available, policy)) =>
+        fail(
+          "Local managed finalization capacity refused: needed=" +
+          needed.to_string() +
+          ", available=" +
+          available.to_string() +
+          ", policy=" +
+          policy.to_string(),
+        )
     }
     assert_true(observation.progress >= finalization_progress)
     assert_true(observation.work >= 0L)
