@@ -1569,6 +1569,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   "adapters/host-node/effect-capture-resources.test.mjs",
   "adapters/host-common/recovered-effect-capture-control.test.mjs",
   "adapters/host-node/effect-publication-binding.test.mjs",
+  "adapters/host-common/deferred-catalog-control.test.mjs",
   "adapters/host-node/request-content-graph-resources.test.mjs",
   "adapters/host-node/request-keyed-prefix-execution.test.mjs",
   "adapters/host-node/request-model-material-resources.test.mjs",
@@ -1585,6 +1586,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   assert.equal(captureSteps.length, 1);
   assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === recoveredCapture).length, 1);
   assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === 'adapters/host-node/effect-publication-binding.test.mjs').length, 1);
+  assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === 'adapters/host-common/deferred-catalog-control.test.mjs').length, 1);
   assert.equal(captureSteps[0]['continue-on-error'], undefined);
 });
 
