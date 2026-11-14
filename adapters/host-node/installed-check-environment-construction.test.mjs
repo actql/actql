@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {canonicalJson as dataJson} from '../../packages/sdk/host-port.mjs';
 import {installedEnvironmentParseConstructionGeometry as parseGeometry,
   installedEnvironmentDocumentConstructionGeometry as documentGeometry,
+  installedEnvironmentDocumentConstructionStages as documentStages,
+  installedEnvironmentDataWriterConstructionGeometry as dataWriterGeometry,
+  installedEnvironmentMemberSortConstructionGeometry as memberSortGeometry,
   installedEnvironmentCompositionConstructionGeometry as compositionGeometry}
   from './installed-check-environment-construction.mjs';
 const freeze = value => {
@@ -22,6 +26,47 @@ const additive = q => {
     assert.ok(q[field] >= 0n);
   }
 };
+
+test('data-key Environment writer quotes actual recursive overlap without normalizing original text', () => {
+  for (const value of [null, 12.5, Number.MAX_VALUE, 'e\u0301日本語😀\\"\n',
+    {['e\u0301']: ['日本語😀', 1, {escaped: '\\"\n'}]},
+    Array.from({length: 2000}, (_, index) => ({index, name: 'borrowed'}))]) {
+    freeze(value);
+    const wire = dataJson(value, {dataKeys: true}), quote = dataWriterGeometry(value, true);
+    additive(quote);
+    assert.ok(quote.workspace.wire >= BigInt(Buffer.byteLength(wire)) + 128n);
+    assert.ok(quote.workspace.text >= 2n * BigInt(wire.length));
+  }
+  const rows = freeze(Array.from({length: 2000}, (_, index) => ({index})));
+  const one = memberSortGeometry(rows.slice(0, 1)), many = memberSortGeometry(rows);
+  assert.equal(many.workspace.nodes - one.workspace.nodes, 1999n,
+    'only actual sort slots grow; each synchronous comparator has returned');
+  assert.equal(many.workspace.text, one.workspace.text);
+});
+
+test('native Environment parse keeps opaque string punctuation in text demand rather than value nodes', () => {
+  const small = parseGeometry('{"payload":"text"}');
+  const large = parseGeometry(JSON.stringify({payload: '[{:,,]}\\"'.repeat(10000)}));
+  assert.equal(large.bounds.inputNodes, small.bounds.inputNodes);
+  assert.ok(large.retained.text > small.retained.text);
+  assert.ok(large.workspace.text > small.workspace.text);
+  assert.deepEqual(JSON.parse('{"payload":"text"}'), {payload: 'text'});
+});
+
+test('closed Environment verification stages retain shared children once and preserve original constructors', () => {
+  const make = count => {
+    const body = {...base(), notes: {value: 'e\u0301日本語😀'}, values: Array.from({length: count}, (_, index) => index)};
+    return freeze({...body, evidence_bundle_cid: contentCid(body)});
+  };
+  const small = documentStages(make(1)), largeDocument = make(2000), large = documentStages(largeDocument);
+  assert.equal(large.body.retained.nodes, small.body.retained.nodes,
+    'the same parsed children remain with their existing parse owner');
+  assert.ok(large.body.workspace.nodes > small.body.workspace.nodes);
+  for (const stage of [large.comparison, large.body]) additive(stage);
+  assert.equal(canonicalJson(largeDocument), canonicalJson(JSON.parse(canonicalJson(largeDocument))));
+  const {evidence_bundle_cid: expected, ...body} = largeDocument;
+  assert.equal(contentCid(body), expected);
+});
 
 test('Environment parse quotes malformed and large prefixes before parse/freeze', () => {
   for (const original of ['', '{', '{"x":[', '[0,'.repeat(10000), '"' + 'x'.repeat(100000)]) {

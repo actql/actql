@@ -1,4 +1,7 @@
-import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition, bindInstalledEnvironmentConstruction} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition, bindInstalledEnvironmentConstruction,
+  assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
+import {installedEnvironmentDataWriterConstructionGeometry,
+  installedEnvironmentMemberSortConstructionGeometry} from './installed-check-environment-construction.mjs';
 // Standard installed Host service owner. This public cut retains the exact
 // original Source implementation/Site association; numerical DATA is neither
 // a Run admission nor permission. Other service facets extend this SAME owner.
@@ -6,7 +9,7 @@ import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceChec
   rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {authoredCommandProjection} from './installed-authored-command.mjs';
-import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry}
+import {sourceEnvironmentConstructionGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry}
   from './installed-source-construction-geometry.mjs';
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
@@ -575,7 +578,7 @@ export function installedSourceConfigurationReader(services) {
   material.configurationReader = reader;
   // The Common composer alone receives this capability. Provider readers have
   // no release method and cannot turn arbitrary returned values into refunds.
-  bindInstalledEnvironmentConstruction(services, reader, () => {
+  material.retainEnvironmentNativeOriginal = bindInstalledEnvironmentConstruction(services, reader, () => {
     original.current();
     if (material.phase !== 'working' || material.busy || material.ioPending !== 0) {
       fail('ForeignInstalledSourceInitialization');
@@ -784,47 +787,36 @@ function createInstalledSourceContext(original, material, installation, connecto
   };
   const retainNativeInput = value => nativeInputOriginals.add(value);
   function prepareSourceEnvironment(declared, mappings = []) {
+    const reader = installedSourceConfigurationReader(services);
     const geometry = sourceEnvironmentConstructionGeometry(scope.baseEnvironmentWire, declared, mappings);
     const before = scope.prepared;
-    // Same material owner and same original reservation: record this pure
-    // phase before its constructor. A sibling reconciliation cannot forget it.
-    const workspace = {nodes: 0n, text: 0n, wire: 0n,
-      retained: {nodes: 0n, text: 0n, wire: 0n}};
-    material.workspaces.add(workspace);
-    let admitted = false;
-    try {
-      reserveSource(original, material, geometry.workspace.nodes, geometry.workspace.text,
-        geometry.workspace.wire, workspace, geometry.retained);
-      admitted = true;
+    const construct = (quantity, project) => {
       if (!scope.active || material.phase !== 'working' || scope.prepared !== before) {
         fail('ForeignInstalledSourceInitialization');
       }
-      let environment;
-      material.busy = true;
-      try {
-        environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared, mappings);
-        material.inputs.push(environment);
-        const retained = sourceEnvironmentRetainedGeometry(environment);
-        if (retained.nodes > geometry.retained.nodes || retained.text > geometry.retained.text ||
-            retained.wire > geometry.retained.wire) fail('InstalledSourceEnvironmentCapacityExceeded');
-        material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
-      } finally {material.busy = false;}
-      // No callback or physical child escapes this synchronous pure producer.
-      // Retain its actual result before removing only this closed workspace.
-      material.workspaces.delete(workspace);
-      return environment;
-    } catch (cause) {
-      if (admitted) {
-        // A thrown producer keeps its full already-admitted inventory as
-        // failure debt. Transfer before removing the ended pure phase: there
-        // is no invented pending FD, and sibling reconciliation sees the debt.
-        material.nodes += geometry.retained.nodes + geometry.workspace.nodes;
-        material.text += geometry.retained.text + geometry.workspace.text;
-        material.wire += geometry.retained.wire + geometry.workspace.wire;
-      }
-      material.workspaces.delete(workspace);
-      throw cause;
-    }
+      return reader.prepareNativeInput(Object.freeze({capacity: () => {
+        const {retained: r, workspace: w} = quantity;
+        return checked(original.moon.clientProgramInstalledSourceConstructionCapacity(
+          r.nodes, r.text, r.wire, w.nodes, w.text, w.wire));
+      }, project}));
+    };
+    // Every phase has actually returned before the next quote. The SAME
+    // native-input Owner keeps each returned original and full failure debt;
+    // no busy constructor is discounted or replaced by a synthetic ACK.
+    return rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared, mappings,
+      (value, document, body) => {
+        material.retainEnvironmentNativeOriginal(original.moon, value, document, body);
+      }, {
+        freeze: freezeSourceProjection,
+        parse: project => construct(geometry.parsed, project),
+        sort: (values, project) => construct(installedEnvironmentMemberSortConstructionGeometry(values), project),
+        seal: body => construct({retained: {nodes: 2n, text: 0n, wire: 0n},
+          workspace: {nodes: geometry.parsed.retained.nodes, text: 0n, wire: 0n}},
+        () => freezeSourceProjection(body)),
+        hash: (body, project) => construct(installedEnvironmentDataWriterConstructionGeometry(body, true),
+          () => Object.freeze({cid: project()})).cid,
+        encode: (document, project) => construct(installedEnvironmentDataWriterConstructionGeometry(document), project),
+      });
   }
   function prepareOriginalDeclaration(restore, originalInput, basis, makeWire, expectedCatalogCid, finish) {
     if (typeof restore !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
@@ -850,11 +842,14 @@ function createInstalledSourceContext(original, material, installation, connecto
     let prepared;
     if (finish !== undefined) prepared = finish(declaration, declaredWire);
     else {
+      // Use the SAME funded Environment constructor for authored and native
+      // declarations. Its exact frozen original, census and failed prefix
+      // stay with this Source material before any later semantic admission.
+      const environment = scope.role === 'effect' ? undefined
+        : prepareSourceEnvironment(declared);
       material.busy = true;
       try {
         // A Mapping or projected Command finishes its ONE Environment later.
-        const environment = scope.role === 'effect' ? undefined
-          : rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
         prepared = Object.freeze({declaration, declared, environment});
         scope.prepared = prepared; material.inputs.push(environment);
       } finally {material.busy = false;}
@@ -2079,7 +2074,7 @@ export function reserveInstalledSourceRuntimeIdentity(services) {
   };
 }
 
-export function completeInstalledSourceInitialization(services, sourceOriginal, environment, environmentWire) {
+export function completeInstalledSourceInitialization(services, sourceOriginal, environment, environmentWire, environmentOriginal) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = original.material;
@@ -2091,7 +2086,15 @@ export function completeInstalledSourceInitialization(services, sourceOriginal, 
   // The original final checker already constructed this body. Fund its actual
   // retained tree/text before adopting the SAME body; completion adds no parse,
   // canonicalization or second construction workspace.
-  const retained = sourceEnvironmentCompositionGeometry([environmentWire]).retained;
+  let retained;
+  if (environmentOriginal === undefined) retained = sourceEnvironmentCompositionGeometry([environmentWire]).retained;
+  else {
+    assertInstalledEnvironmentPublicationOriginal(services, original.moon, environmentOriginal, environment, environmentWire);
+    // Every native/Core constructor output is still retained by this SAME
+    // Source material. Completion adds only the original body association;
+    // it does not parse/copy/refund any of those already-charged originals.
+    retained = {nodes: 5n, text: 0n, wire: 0n};
+  }
   reserveSource(original, material, 0n, 0n, 0n, undefined, retained);
   material.inputs.push(environmentWire);
   material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
@@ -2161,6 +2164,7 @@ export function retireInstalledSourceInitialization(services) {
     material.inputs.length = material.providers.length = material.contexts.length = material.cleanup.length = 0;
     material.workspaces.clear();
     material.io = material.configurationReader = material.sourceOriginal = material.environment = material.environmentWire = undefined;
+    material.retainEnvironmentNativeOriginal = undefined;
     material.input = material.unit = material.capacity = material.methods = undefined;
     original.initialPreparation = undefined;
     material.phase = 'retired';

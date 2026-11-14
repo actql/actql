@@ -6,12 +6,13 @@ import test from 'node:test';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
 import {beginInstalledSourceInitialization, finishInstalledSourceInitialization,
   installedSourceConfigurationReader, retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
-import {createInstalledRowSource} from './installed-row-source.mjs';
+import {createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
 import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
 import {installedSourceReadAccesses, installedSourceReadBindings} from './installed-source.mjs';
 import {createInstalledConnectorTable, installedConnectorForTable} from './installed-connectors.mjs';
 import {installedConnectors} from '../connectors-builtin/installations.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeTag, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 
 const runtimeUrl = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME === undefined
   ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url)
@@ -21,8 +22,10 @@ const runtimeCid = `sha256:${createHash('sha256').update(await readFile(runtimeU
 // Actual initial Resource, Source construction, checked acquisition and RowRun.
 // The page/authorization ports are component fixtures, not an installed remote
 // provider or ordinary SDK/Host acceptance. All nominal values use f.moon.
-async function fixture(t, {denied = false} = {}) {
-  const events = [], f = await boundConstructionActualFixture(t, {capacityEvents: events});
+export async function sourceReadRangeActualFixture(t, {denied = false, viewCount = 65,
+  originalAuthorization = false} = {}) {
+  const events = [], nodeCapacityQuotes = [], f = await boundConstructionActualFixture(t,
+    {capacityEvents: events, nodeCapacityQuotes: originalAuthorization ? nodeCapacityQuotes : undefined});
   // The ordinary loader establishes this SAME metadata/file reader before
   // starting a Source context; its protocol reads keep their original owner.
   installedSourceConfigurationReader(f.services);
@@ -34,11 +37,13 @@ async function fixture(t, {denied = false} = {}) {
   retainInstalledHostServiceInstallation(f.services, entry, runtimeCid);
   const baseWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
   const context = beginInstalledSourceInitialization(f.services, entry, 'fixture', baseWire);
-  const views = Array.from({length: 65}, (_, index) => ({resource: `records_${index}`,
+  const views = Array.from({length: viewCount}, (_, index) => ({resource: `records_${index}`,
     resource_kind: 'record', fields: [{name: 'id', type: 'number', nullable: false}]}));
   let reads = 0, grants = 0, adapter, original;
   const decisions = [];
-  const authorization = {authorize: async (kind, value) => {
+  const authorization = originalAuthorization ? await installRowSourceAuthorization({
+    accountConfiguration: selected.value.accountConfigurationWire, principalId: 'operator',
+    root: f.root, connectorRegistration: entry.registration}) : {authorize: async (kind, value) => {
     assert.equal(kind, 'acquisition');
     decisions.push(value.resource);
     return {action: denied ? 'deny' : 'dispatch'};
@@ -51,9 +56,9 @@ async function fixture(t, {denied = false} = {}) {
       site: {connection: 'fixture:read-range', issueReadGrant() {grants++; return {};}, close() {}},
       authorization, readOperation: 'read', physicalTarget: (resource, fields) => ({resource, fields}),
       async readPages({resource, verifyRead, chargePage, consumePage}) {
-        assert.equal(resource, 'records_64');
+        assert.equal(resource, views.at(-1).resource);
         await verifyRead(); reads++;
-        const rows = [{id: 65}], bytes = Buffer.from(JSON.stringify(rows));
+        const rows = [{id: viewCount}], bytes = Buffer.from(JSON.stringify(rows));
         assert.equal(consumePage(rows, {charge: chargePage(bytes)}), 1);
       }, bindingCid: `sha256:${'b'.repeat(64)}`,
       limits: {maxPages: 1, maxPageBytes: 1024, maxPageRows: 2, maxCaptureRows: 2}});
@@ -64,21 +69,31 @@ async function fixture(t, {denied = false} = {}) {
     throw cause;
   }
   const accesses = installedSourceReadAccesses(adapter);
-  const access = accesses.find(value => value.resource === views[64].resource);
-  assert.equal(accesses.length, 65);
+  const access = accesses.find(value => value.resource === views.at(-1).resource);
+  assert.equal(accesses.length, viewCount);
   assert.ok(access);
   assert.ok(installedSourceReadBindings(adapter).includes(access.sourceRef));
-  assert.equal(access.resource, 'records_64');
+  assert.equal(access.resource, views.at(-1).resource);
   assert.ok(events.some(event => event.accepted && event.operation ===
     'clientProgramReserveInstalledSourceConstruction'));
   // Use the ordinary funded complete-wire entrance, including every unused
   // declaration. Compatibility admission alone is not construction backing.
-  const environmentOriginal = composeInstalledSourceEnvironment(f.services, f.moon,
-    baseWire, original.environment.wire);
+  let environmentOriginal;
+  try {environmentOriginal = composeInstalledSourceEnvironment(f.services, f.moon,
+    baseWire, original.environment);}
+  catch (error) {
+    t.diagnostic(JSON.stringify({stage: 'funded-source-environment', code: error.code,
+      tag: runtimeTag(error.cause), inner: runtimeTag(runtimeOptionalField(error.cause, 0)),
+      scalar: typeof runtimeOptionalField(error.cause, 0) === 'number' ? runtimeOptionalField(error.cause, 0) : undefined,
+      wireBytes: Buffer.byteLength(original.environment.wire), quotes: nodeCapacityQuotes.slice(-3),
+      reservations: events.slice(-3).map(event => ({operation: event.operation, accepted: event.accepted,
+        retained: String(event.retained), peak: String(event.peak)}))}));
+    throw error;
+  }
   const checkedEnvironment = environmentOriginal.admitted;
   assert.ok(checkedEnvironment);
   const program = {version: 'actql/0.1', id: 'source-read-range', stages: [{id: 'scan',
-    inputs: {remote: {connector: 'fixture', resource: 'records_64'}},
+    inputs: {remote: {connector: 'fixture', resource: views.at(-1).resource}},
     steps: [{filter: 'true', as: 'all_rows'}, {select: ['id'], as: 'out'}],
     results: {r: {from: 'out', fields: ['id']}}},
   {id: 'compute', inputs: {x: {result: {stage: 'scan', result: 'r'}}},
@@ -100,12 +115,13 @@ async function fixture(t, {denied = false} = {}) {
   // the raw registry String used by older compatibility fixtures.
   inputs.registry = checked(f.moon.clientPrepareInstalledSequenceContracts(
     registry, inputs.values, inputs.fragment, inputs.ordered));
-  return {...f, adapter, inputs, access, authorization, decisions, events,
+  return {...f, adapter, inputs, access, authorization, decisions, events, environmentOriginal,
+    async close() {authorization.close?.();await f.close();},
     counts: () => ({reads, grants})};
 }
 
 test('same initial Source owner admits and captures the sixty-fifth declared read binding', async t => {
-  const f = await fixture(t);
+  const f = await sourceReadRangeActualFixture(t);
   const preparedSource = await f.adapter.prepare(f.inputs);
   const planned = f.adapter.ledgerCapacity(preparedSource);
   const ledger = f.moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(f.inputs.preparedProgram,
@@ -123,7 +139,7 @@ test('same initial Source owner admits and captures the sixty-fifth declared rea
 });
 
 test('larger Source range retains exact identity and current-read refusal controls', async t => {
-  const f = await fixture(t, {denied: true});
+  const f = await sourceReadRangeActualFixture(t, {denied: true});
   const original = installedSourceReadAccesses(f.adapter);
   const selected = original.indexOf(f.access);
   for (const replacement of [original[selected === 0 ? 1 : 0], {...f.access, authorization: {...f.authorization}},

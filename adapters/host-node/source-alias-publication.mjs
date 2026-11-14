@@ -1,10 +1,10 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
-import {sourceAliasBorrowedGeometry} from './source-alias-construction.mjs';
+import {sourceAliasBorrowedGeometry, sourceRegistrationRangeConstructionGeometry,
+  sourceNamespaceConstructionGeometry} from './source-alias-construction.mjs';
 import {aliasRequestGeometry, snapshotAliasRequest, sourceAliasIdentityRow} from './source-alias-request.mjs';
 import {isAbsolute} from 'node:path';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
-import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {installedSourcePublicationFacts} from './installed-source.mjs';
 
 // Process-local custody of metadata admitted by the installed Source loader.
@@ -34,18 +34,26 @@ const validBinding = binding => Object.isFrozen(binding) &&
 // Host-owned configuration declares the whole participating registration range,
 // including an explicitly empty range. A missing or copied registration cannot
 // close it. The proof covers the unfiltered installation, never visible aliases.
-function admitRegistrationRange(declaration, sources) {
+const standaloneConstruction = (_geometry, project) => project();
+
+function admitRegistrationRange(declaration, sources, construct) {
+  const paths = Array.isArray(declaration?.profilePaths) ? BigInt(declaration.profilePaths.length) : 0n;
+  const count = Array.isArray(sources) ? BigInt(sources.length) : 0n;
+  return construct(sourceRegistrationRangeConstructionGeometry(paths, count), () =>
+    ({range: registrationRange(declaration, sources)})).range;
+}
+
+function registrationRange(declaration, sources) {
   if (declaration === null || typeof declaration !== 'object' ||
       Object.keys(declaration).sort().join('\0') !== 'name\0profilePaths' ||
       typeof declaration.name !== 'string' || !declaration.name ||
       !declaration.name.isWellFormed() ||
       Buffer.byteLength(declaration.name) > 256 ||
       !Array.isArray(declaration.profilePaths) ||
-      declaration.profilePaths.length > MAX_INSTALLED_SOURCE_AUTHORITIES ||
       declaration.profilePaths.some(path => typeof path !== 'string' ||
         Buffer.byteLength(path) > 4096 || !isAbsolute(path)) ||
       new Set(declaration.profilePaths).size !== declaration.profilePaths.length ||
-      !Array.isArray(sources) || sources.length > MAX_INSTALLED_SOURCE_AUTHORITIES) {
+      !Array.isArray(sources)) {
     throw new TypeError('InvalidSourceNamespaceDeclaration');
   }
   const expected = [...declaration.profilePaths].sort();
@@ -58,9 +66,14 @@ function admitRegistrationRange(declaration, sources) {
   return retained.toSorted((left, right) => left.facts.path < right.facts.path ? -1 : left.facts.path > right.facts.path ? 1 : 0);
 }
 
-function admitNamespace(declaration, sources, aliases, environmentCid) {
-  const range = admitRegistrationRange(declaration, sources);
+function admitNamespace(declaration, sources, aliases, environmentCid, construct) {
+  const range = admitRegistrationRange(declaration, sources, construct);
   if (range === undefined) return undefined;
+  return construct(sourceNamespaceConstructionGeometry(range, aliases, declaration.name, environmentCid),
+    () => ({value: namespaceFromRange(declaration, range, aliases, environmentCid)})).value;
+}
+
+function namespaceFromRange(declaration, range, aliases, environmentCid) {
   const retained = range.map(value => value.facts);
   const ordered = retained.toSorted((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
   let count = 0, bytes = 0;
@@ -83,30 +96,50 @@ function admitNamespace(declaration, sources, aliases, environmentCid) {
 // Complete installed selector registrations are a separate domain from query
 // aliases. The common Catalog Owner checks every participating environment and
 // its exact correspondence to the Host's unfiltered SourceRequestContracts.
-function admitSelectorNamespace(declaration, sources, moon, environment, environmentCid, preparedEnvironment) {
-  const range = admitRegistrationRange(declaration, sources);
+function admitSelectorNamespace(declaration, sources, moon, environment, environmentCid, preparedEnvironment,
+  construct, readEnvironment) {
+  const range = admitRegistrationRange(declaration, sources, construct);
   if (range === undefined) return undefined;
   if (typeof moon.clientProgramCheckPreparedSourceSelectorRange !== 'function') {
     throw new TypeError('InvalidSourceSelectorNamespaceInstallation');
   }
   let bytes = 0;
-  const registrations = [], identities = [];
+  const count = BigInt(range.length);
+  const {registrations, identities} = construct({
+    retained: {nodes: 6n * count + 5n, text: 0n, wire: 0n},
+    workspace: {nodes: 0n, text: 0n, wire: 0n}}, () => ({registrations: [], identities: []}));
   for (const {source, facts} of range) {
     const wire = source.environmentWire;
     if (typeof wire !== 'string') return undefined;
     bytes += Buffer.byteLength(wire);
     if (bytes > 16 * 1024 * 1024) return undefined;
     let admitted;
-    try {
+    if (readEnvironment !== undefined) {
+      if (source.environmentOriginal !== undefined && source.environmentOriginal.wire !== wire) {
+        throw new TypeError('ForeignInstalledEnvironmentOriginal');
+      }
+      admitted = readEnvironment(source.environmentOriginal ?? wire).admitted;
+    }
+    else try {
       const evidenceCid = JSON.parse(wire).evidence_bundle_cid;
       admitted = moon.clientProgramCheckEnvironment(wire, evidenceCid,
         false, false, true, false, false, false, false);
     } catch { return undefined; }
     if (admitted === undefined) return undefined;
     registrations.push(admitted);
-    identities.push({path: facts.path, revision: facts.revision,
-      environmentCid: moon.clientProgramCheckingEnvironmentCid(admitted)});
+    identities.push(Object.freeze({path: facts.path, revision: facts.revision,
+      environmentCid: moon.clientProgramCheckingEnvironmentCid(admitted)}));
   }
+  Object.freeze(identities);
+  // Arrays and actual member admissions already have their own retained
+  // quantities. This phase adds only the namespace and writer/hash overlap.
+  const geometry = sourceNamespaceConstructionGeometry(range, [], declaration.name, environmentCid, true);
+  return construct({...geometry, retained: {nodes: 4n, text: 71n, wire: 0n}}, () => ({value: selectorNamespaceFromRange(
+    declaration, moon, environment, environmentCid, preparedEnvironment, registrations, identities)})).value;
+}
+
+function selectorNamespaceFromRange(declaration, moon, environment, environmentCid, preparedEnvironment,
+  registrations, identities) {
   const catalogRange = moon.clientProgramCheckPreparedSourceSelectorRange(environment, preparedEnvironment, registrations);
   if (catalogRange === undefined) return undefined;
   return Object.freeze({name: declaration.name, range: catalogRange,
@@ -154,7 +187,8 @@ export function splitSourceAliasProfile(profile) {
 }
 
 export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],
-  {namespace, selectorNamespace, installedSources = [], updateTargets = [], storeTargets = []} = {}) {
+  {namespace, selectorNamespace, installedSources = [], updateTargets = [], storeTargets = [],
+    construct = standaloneConstruction, readEnvironment} = {}) {
   // Installed metadata already has one immutable owned snapshot. Validate
   // plain DATA without invoking hooks, then borrow it through publication.
   // Freeze is stability only; Common still checks the original Source owner.
@@ -214,9 +248,10 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
     throw new TypeError('InvalidPublicSourcePublication');
   }
   const queryAlias = namespace === undefined ? undefined :
-    admitNamespace(namespace, installedSources, aliases, publication.environmentCid);
+    admitNamespace(namespace, installedSources, aliases, publication.environmentCid, construct);
   const sourceSelector = selectorNamespace === undefined ? undefined :
-    admitSelectorNamespace(selectorNamespace, installedSources, moon, environment, publication.environmentCid, preparedEnvironment);
+    admitSelectorNamespace(selectorNamespace, installedSources, moon, environment, publication.environmentCid,
+      preparedEnvironment, construct, readEnvironment);
   if (queryAlias !== undefined || sourceSelector !== undefined) {
     namespaces.set(publication, Object.freeze({queryAlias, sourceSelector}));
   }

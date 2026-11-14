@@ -73,7 +73,7 @@ function tableEffectValue(root, approval = 'required') {
       permissions: ['scope:store'], footprint: {version: 'fixture-only'}}], limits: {}};
 }
 
-export async function boundConstructionActualFixture(t, {capacityEvents, nativeCompletions, profileInspections} = {}) {
+export async function boundConstructionActualFixture(t, {capacityEvents, nativeCompletions, profileInspections, nodeCapacityQuotes} = {}) {
   // Observe only actual typed quotes on the unchanged original parent. The
   // wrapper forwards every call/result/error; it grants no capacity or current.
   const observe = name => function (...args) {
@@ -90,8 +90,13 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       return value;
     } finally {capacityEvents.push({operation: name, retained: runtimeField(pair, 0), peak: runtimeField(pair, 1), returned, accepted});}
   };
-  const moon = capacityEvents === undefined && nativeCompletions === undefined && profileInspections === undefined ? originalMoon
+  const moon = capacityEvents === undefined && nativeCompletions === undefined && profileInspections === undefined && nodeCapacityQuotes === undefined ? originalMoon
     : Object.freeze({...originalMoon,
+      ...(nodeCapacityQuotes === undefined ? {} : {
+        clientProgramInstalledSourceConstructionCapacity(...args) {
+          nodeCapacityQuotes.push(args.map(String));
+          return Reflect.apply(originalMoon.clientProgramInstalledSourceConstructionCapacity, originalMoon, args);
+        }}),
       ...(profileInspections === undefined ? {} : {
         clientProgramInstalledSourceInspectionConstructionCapacity(original) {
           const result = originalMoon.clientProgramInstalledSourceInspectionConstructionCapacity(original);
@@ -458,6 +463,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
     }
   }
   return {profile, salesforceProfile, gcsProfile, githubProfile, metadataSourceProfile, tableSourceProfile, tableEffectProfile, load, close, sources, services, moon, root, openJournalDescriptors,
+    sourceInputOriginal: parentInput,
     failCurrentOnNextReserve() {
       assert.equal(currentFault, undefined); assert.notEqual(capacityEvents, undefined);
       currentFault = {reserve: true, ready: false, calls: 0,

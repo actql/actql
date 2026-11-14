@@ -21059,7 +21059,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0c69073a2f0280e9e292ee7e05509fc0e4f4c494f55ce02c95d3dee91cad7cb2",
+      "sha256": "1d4a053a5851a363ef833002c97fd6ca196f9fb0656d87a30240cfbf011cec24",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -21210,6 +21210,7 @@
             "sources",
             "effectTarget",
             "effectTargets",
+            "sourceInventory",
             "modelResumeVerifier",
             "now"
           ],
@@ -21268,22 +21269,6 @@
         },
         {
           "name": "installRemoteCheckpoints/binding/binding#2",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/binding/binding#3",
-          "parameters": [
-            "configuration",
-            "read"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/binding/binding#4",
           "parameters": [
             "left",
             "right"
@@ -22259,6 +22244,20 @@
           "async": false
         },
         {
+          "name": "installRemoteCheckpoints/installRemoteCheckpoints#10",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/installRemoteCheckpoints#11",
+          "parameters": [
+            "principal"
+          ],
+          "async": false
+        },
+        {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#2",
           "parameters": [
             "item"
@@ -22275,37 +22274,44 @@
         {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#4",
           "parameters": [
-            "claim"
+            "item",
+            "index"
           ],
           "async": false
         },
         {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#5",
           "parameters": [
-            "args"
+            "claim"
           ],
           "async": false
         },
         {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#6",
-          "parameters": [
-            "args"
-          ],
-          "async": true
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#7",
           "parameters": [
-            "args"
+            "left",
+            "right"
           ],
           "async": false
         },
         {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#8",
           "parameters": [
-            "principal"
+            "args"
           ],
           "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/installRemoteCheckpoints#9",
+          "parameters": [
+            "args"
+          ],
+          "async": true
         },
         {
           "name": "installRemoteCheckpoints/modelStoredContinuation",
@@ -22661,8 +22667,6 @@
             "installRemoteCheckpoints/authorities/authorities",
             "installRemoteCheckpoints/binding/binding",
             "installRemoteCheckpoints/binding/binding#2",
-            "installRemoteCheckpoints/binding/binding#3",
-            "installRemoteCheckpoints/binding/binding#4",
             "installRemoteCheckpoints/binding/binding/binding",
             "installRemoteCheckpoints/captureInventory",
             "installRemoteCheckpoints/confirmOriginalModelStateSavedBytes",
@@ -22789,6 +22793,8 @@
             "installRemoteCheckpoints/init:runUnitReadContinuation/init:runUnitReadContinuation",
             "installRemoteCheckpoints/init:start/init:start",
             "installRemoteCheckpoints/installRemoteCheckpoints",
+            "installRemoteCheckpoints/installRemoteCheckpoints#10",
+            "installRemoteCheckpoints/installRemoteCheckpoints#11",
             "installRemoteCheckpoints/installRemoteCheckpoints#2",
             "installRemoteCheckpoints/installRemoteCheckpoints#3",
             "installRemoteCheckpoints/installRemoteCheckpoints#4",
@@ -22796,6 +22802,7 @@
             "installRemoteCheckpoints/installRemoteCheckpoints#6",
             "installRemoteCheckpoints/installRemoteCheckpoints#7",
             "installRemoteCheckpoints/installRemoteCheckpoints#8",
+            "installRemoteCheckpoints/installRemoteCheckpoints#9",
             "installRemoteCheckpoints/installedSource",
             "installRemoteCheckpoints/installedSource/installed/installed",
             "installRemoteCheckpoints/modelStoredContinuation",
@@ -23908,7 +23915,6 @@
         "./infer-operation.mjs",
         "./installed-effect-limits.mjs",
         "./installed-host-cleanup.mjs",
-        "./installed-source-limits.mjs",
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
         "./model-checkpoint-metadata.mjs",
@@ -77058,314 +77064,9 @@
       "unresolvedSyntax": []
     },
     {
-      "module": "adapters/host-node/installed-source-limits.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "5a6718363910a365c4fe46c7537273c3403b16e428c890ddde05bbf388a72b72",
-      "role": "physical-io",
-      "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
-      "exports": [
-        "MAX_INSTALLED_SOURCE_AUTHORITIES"
-      ],
-      "operations": [],
-      "contracts": [
-        {
-          "operations": [],
-          "exports": [
-            "MAX_INSTALLED_SOURCE_AUTHORITIES"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "// and the Checkpoint owner. A member may publish multiple authorities."
-              },
-              {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "// One installed read authority per sourceRef, shared by inventory admission"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-source-bounds.test.mjs",
-                "anchor": "test('installed Source profile preserves identity and loading below and at 8 MiB', async t => {"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "<module>"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "// and the Checkpoint owner. A member may publish multiple authorities."
-              },
-              {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "export const MAX_INSTALLED_SOURCE_AUTHORITIES = 128;"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-source-limits.mjs",
-                "anchor": "// One installed read authority per sourceRef, shared by inventory admission"
-              },
-              {
-                "path": "docs/design/resident-source-acquisition.md",
-                "anchor": "# Resident Source acquisition"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Query-shaped acquisition"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-source-bounds.test.mjs",
-                "anchor": "test('installed Source profile preserves identity and loading below and at 8 MiB', async t => {"
-              },
-              {
-                "path": "src/run_publication_host/pkg.generated.mbti",
-                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
-              }
-            ]
-          }
-        }
-      ],
-      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
-      "imports": [],
-      "compilerFields": [],
-      "unresolvedSyntax": []
-    },
-    {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c07ef0c10b2f278c428683e3dfe6f664a14d69a1f08a639f2b43e7caa1e96863",
+      "sha256": "34c820eaf54d0868ea8b37f2464928d3916f3a54af21b7ba08d5fe6e0afc3aca",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -77380,6 +77081,7 @@
         "loadInstalledSource",
         "loadInstalledSources",
         "observeInstalledSourcePublicationCurrent",
+        "prepareInstalledSourceCheckpointInventory",
         "publishInstalledSourceProfile"
       ],
       "operations": [
@@ -77578,6 +77280,11 @@
           "async": true
         },
         {
+          "name": "loadInstalledSources/bindings/bindings",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledSources/close/close",
           "parameters": [],
           "async": true
@@ -77615,13 +77322,23 @@
         },
         {
           "name": "loadInstalledSources/loadInstalledSources#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSources/loadInstalledSources#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSources/loadInstalledSources#4",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledSources/loadInstalledSources#3",
+          "name": "loadInstalledSources/loadInstalledSources#5",
           "parameters": [
             "ref"
           ],
@@ -77639,6 +77356,38 @@
           "name": "originalPublicationRequest",
           "parameters": [
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSourceCheckpointInventory",
+          "parameters": [
+            "profile",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSourceCheckpointInventory/observe/observe",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/custody/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/retain/retain",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -77754,12 +77503,20 @@
             "loadInstalledSource",
             "loadInstalledSourceMember/checked/checked",
             "loadInstalledSources",
+            "loadInstalledSources/bindings/bindings",
             "loadInstalledSources/close/close",
             "loadInstalledSources/combinedOriginal/combinedOriginal",
             "loadInstalledSources/loadInstalledSources",
             "loadInstalledSources/loadInstalledSources#2",
             "loadInstalledSources/loadInstalledSources#3",
+            "loadInstalledSources/loadInstalledSources#4",
+            "loadInstalledSources/loadInstalledSources#5",
             "loadInstalledSources/loadInstalledSources/loadInstalledSources",
+            "prepareInstalledSourceCheckpointInventory",
+            "prepareInstalledSourceCheckpointInventory/observe/observe",
+            "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory",
+            "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/custody/init:retire/init:retire",
+            "prepareInstalledSourceCheckpointInventory/prepareInstalledSourceCheckpointInventory/retain/retain",
             "providerRuntime",
             "publishInstalledSourceProfile",
             "readAliasProfile/construction/construction",
@@ -77778,7 +77535,8 @@
             "installedSourceReadBindings",
             "loadInstalledSource",
             "loadInstalledSources",
-            "publishInstalledSourceProfile"
+            "publishInstalledSourceProfile",
+            "prepareInstalledSourceCheckpointInventory"
           ],
           "attributes": {
             "responsibility": [
@@ -78563,7 +78321,6 @@
         "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
-        "./installed-source-limits.mjs",
         "./local-account-config.mjs",
         "./source-alias-construction.mjs",
         "./source-alias-publication.mjs",
@@ -94216,7 +93973,7 @@
     {
       "module": "adapters/host-node/source-alias-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bfd760503467f652a2151364dfde82efc67c9e333a01087bf7ed760ebbfb124d",
+      "sha256": "c7f465dc9fb9ed0dadb1f4d50d05884509ecaf5ada33291742b160cffd8645d9",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -94236,104 +93993,28 @@
             "declaration",
             "sources",
             "aliases",
-            "environmentCid"
+            "environmentCid",
+            "construct"
           ],
           "async": false
         },
         {
           "name": "admitNamespace/admitNamespace",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitNamespace/allAliases/allAliases",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitNamespace/ordered/ordered",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitNamespace/retained/retained",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitNamespace/rows/rows",
-          "parameters": [
-            "entries"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitNamespace/rows/rows/rows",
-          "parameters": [
-            "left",
-            "right"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "admitRegistrationRange",
           "parameters": [
             "declaration",
-            "sources"
+            "sources",
+            "construct"
           ],
           "async": false
         },
         {
           "name": "admitRegistrationRange/admitRegistrationRange",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitRegistrationRange/admitRegistrationRange#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitRegistrationRange/admitRegistrationRange#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitRegistrationRange/admitRegistrationRange#4",
-          "parameters": [
-            "path",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitRegistrationRange/admitRegistrationRange#5",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitRegistrationRange/retained/retained",
-          "parameters": [
-            "source"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -94344,8 +94025,20 @@
             "moon",
             "environment",
             "environmentCid",
-            "preparedEnvironment"
+            "preparedEnvironment",
+            "construct",
+            "readEnvironment"
           ],
+          "async": false
+        },
+        {
+          "name": "admitSelectorNamespace/admitSelectorNamespace",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "admitSelectorNamespace/admitSelectorNamespace#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -94359,6 +94052,60 @@
           "name": "digest/digest",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "namespaceFromRange",
+          "parameters": [
+            "declaration",
+            "range",
+            "aliases",
+            "environmentCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "namespaceFromRange/allAliases/allAliases",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "namespaceFromRange/namespaceFromRange",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "namespaceFromRange/ordered/ordered",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "namespaceFromRange/retained/retained",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "namespaceFromRange/rows/rows",
+          "parameters": [
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "namespaceFromRange/rows/rows/rows",
+          "parameters": [
+            "left",
+            "right"
           ],
           "async": false
         },
@@ -94401,11 +94148,76 @@
           "async": true
         },
         {
+          "name": "registrationRange",
+          "parameters": [
+            "declaration",
+            "sources"
+          ],
+          "async": false
+        },
+        {
+          "name": "registrationRange/registrationRange",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "registrationRange/registrationRange#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "registrationRange/registrationRange#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "registrationRange/registrationRange#4",
+          "parameters": [
+            "path",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "registrationRange/registrationRange#5",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "registrationRange/retained/retained",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
           "name": "retireSourceAliasPublicationOriginal",
           "parameters": [
             "moon",
             "environment",
             "publication"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectorNamespaceFromRange",
+          "parameters": [
+            "declaration",
+            "moon",
+            "environment",
+            "environmentCid",
+            "preparedEnvironment",
+            "registrations",
+            "identities"
           ],
           "async": false
         },
@@ -94429,7 +94241,9 @@
             "selectorNamespace",
             "installedSources",
             "updateTargets",
-            "storeTargets"
+            "storeTargets",
+            "construct",
+            "readEnvironment"
           ],
           "async": false
         },
@@ -94508,6 +94322,14 @@
           "async": false
         },
         {
+          "name": "standaloneConstruction/standaloneConstruction",
+          "parameters": [
+            "_geometry",
+            "project"
+          ],
+          "async": false
+        },
+        {
           "name": "unresolved/unresolved",
           "parameters": [],
           "async": false
@@ -94560,26 +94382,33 @@
           "operations": [
             "admitNamespace",
             "admitNamespace/admitNamespace",
-            "admitNamespace/allAliases/allAliases",
-            "admitNamespace/ordered/ordered",
-            "admitNamespace/retained/retained",
-            "admitNamespace/rows/rows",
-            "admitNamespace/rows/rows/rows",
             "admitRegistrationRange",
             "admitRegistrationRange/admitRegistrationRange",
-            "admitRegistrationRange/admitRegistrationRange#2",
-            "admitRegistrationRange/admitRegistrationRange#3",
-            "admitRegistrationRange/admitRegistrationRange#4",
-            "admitRegistrationRange/admitRegistrationRange#5",
-            "admitRegistrationRange/retained/retained",
             "admitSelectorNamespace",
+            "admitSelectorNamespace/admitSelectorNamespace",
+            "admitSelectorNamespace/admitSelectorNamespace#2",
             "cid/cid",
             "digest/digest",
+            "namespaceFromRange",
+            "namespaceFromRange/allAliases/allAliases",
+            "namespaceFromRange/namespaceFromRange",
+            "namespaceFromRange/ordered/ordered",
+            "namespaceFromRange/retained/retained",
+            "namespaceFromRange/rows/rows",
+            "namespaceFromRange/rows/rows/rows",
             "observeNamespace",
             "observeNamespace/observeNamespace",
             "observeSourceAliasNamespace",
             "observeSourceSelectorNamespace",
+            "registrationRange",
+            "registrationRange/registrationRange",
+            "registrationRange/registrationRange#2",
+            "registrationRange/registrationRange#3",
+            "registrationRange/registrationRange#4",
+            "registrationRange/registrationRange#5",
+            "registrationRange/retained/retained",
             "retireSourceAliasPublicationOriginal",
+            "selectorNamespaceFromRange",
             "sourceAliasNamespaceObservationFacts",
             "sourceAliasPublication",
             "sourceAliasPublication/publication/publication",
@@ -94590,6 +94419,7 @@
             "splitSourceAliasProfile/aliases/aliases",
             "splitSourceAliasProfile/aliases/aliases/aliases",
             "splitSourceAliasProfile/aliases/aliases/aliases#2",
+            "standaloneConstruction/standaloneConstruction",
             "unresolved/unresolved",
             "validBinding/validBinding",
             "validBinding/validBinding/validBinding",
@@ -94818,7 +94648,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';"
+                "anchor": "function admitRegistrationRange("
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -94840,7 +94670,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';"
+                "anchor": "function admitRegistrationRange("
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -95234,7 +95064,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';"
+                "anchor": "function admitRegistrationRange("
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -95252,7 +95082,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
-                "anchor": "import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';"
+                "anchor": "function admitRegistrationRange("
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -95367,7 +95197,6 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/authorization-gate.mjs",
-        "./installed-source-limits.mjs",
         "./installed-source.mjs",
         "./source-alias-construction.mjs",
         "./source-alias-request.mjs",
@@ -129871,7 +129700,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "a2d67f4f2e262b2dae0bf29caa7f993e76fc6e3a3c543bd46040a11821faca22",
+      "sha256": "866b3755a1d4ce3506041d118c8824e29ef0422ddc8dfa4dada4dc00d19e1c70",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -130183,7 +130012,8 @@
             "services",
             "sourceOriginal",
             "environment",
-            "environmentWire"
+            "environmentWire",
+            "environmentOriginal"
           ],
           "async": false
         },
@@ -130685,6 +130515,76 @@
           "parameters": [
             "declared",
             "mappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/construct/construct",
+          "parameters": [
+            "quantity",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/construct/construct/construct",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment",
+          "parameters": [
+            "value",
+            "document",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#2",
+          "parameters": [
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#3",
+          "parameters": [
+            "values",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#4",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#5",
+          "parameters": [
+            "body",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#6",
+          "parameters": [
+            "document",
+            "project"
           ],
           "async": false
         },
@@ -131292,6 +131192,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./installed-authored-command.mjs",
+        "./installed-check-environment-construction.mjs",
         "./installed-check-environment.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-duckdb-source.mjs",
@@ -131993,6 +131894,16 @@
             "createInstalledSourceContext/prepareOriginalDeclaration",
             "createInstalledSourceContext/prepareProviderConstruction",
             "createInstalledSourceContext/prepareSourceEnvironment",
+            "createInstalledSourceContext/prepareSourceEnvironment/construct/construct",
+            "createInstalledSourceContext/prepareSourceEnvironment/construct/construct/construct",
+            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment",
+            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#2",
+            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#3",
+            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#4",
+            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#5",
+            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment#6",
+            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment",
+            "createInstalledSourceContext/prepareSourceEnvironment/prepareSourceEnvironment/prepareSourceEnvironment#2",
             "finishInstalledSourceInitialization",
             "freezeSourceProjection",
             "installedSourceConfigurationReader",
@@ -136177,7 +136088,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-construction-geometry.mjs",
-      "sha256": "31864bfc355d454ddadcfea409c8474699291937dc99887ae49fa6c9bb2056ce",
+      "sha256": "ad8eab3b714300f5e73e116d302f80299c2e4683b357358339c2f5185692019b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Host constructor input geometry; quantities confer no admission or lifecycle authority",
@@ -136351,20 +136262,43 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "88d2fb6301f9767ad1a76804c6870e90304837bf996ac76342bd8a043a67e364",
+      "sha256": "0a5766ebdc47b5a0f5a0dd225c3f683b6467cd26c7ed9189815a533548f6bf59",
       "exports": [
+        "assertInstalledEnvironmentPublicationOriginal",
         "bindInstalledEnvironmentConstruction",
         "composeInstalledInventoryEnvironment",
         "composeInstalledSourceEnvironment",
+        "readInstalledSourceEnvironment",
         "releaseRetiredInstalledEnvironmentComposition"
       ],
       "operations": [
+        {
+          "name": "assertInstalledEnvironmentPublicationOriginal",
+          "parameters": [
+            "services",
+            "moon",
+            "value",
+            "prepared",
+            "wire"
+          ],
+          "async": false
+        },
         {
           "name": "bindInstalledEnvironmentConstruction",
           "parameters": [
             "services",
             "reader",
             "begin"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledEnvironmentConstruction/bindInstalledEnvironmentConstruction",
+          "parameters": [
+            "moon",
+            "value",
+            "document",
+            "body"
           ],
           "async": false
         },
@@ -136376,7 +136310,8 @@
             "baseInput",
             "sourceInput",
             "effectInput",
-            "accept"
+            "accept",
+            "readOnly"
           ],
           "async": false
         },
@@ -136454,6 +136389,16 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "composeEnvironment/input/input/compared/compared",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeEnvironment/input/input/compared/compared#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -136547,9 +136492,29 @@
           "async": false
         },
         {
+          "name": "readInstalledSourceEnvironment",
+          "parameters": [
+            "services",
+            "moon",
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "releaseRetiredInstalledEnvironmentComposition",
           "parameters": [
             "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainInstalledEnvironmentNativeOriginal",
+          "parameters": [
+            "services",
+            "moon",
+            "value",
+            "document",
+            "body"
           ],
           "async": false
         },
@@ -136577,7 +136542,9 @@
         {
           "operations": [
             "<module>",
+            "assertInstalledEnvironmentPublicationOriginal",
             "bindInstalledEnvironmentConstruction",
+            "bindInstalledEnvironmentConstruction/bindInstalledEnvironmentConstruction",
             "composeEnvironment",
             "composeEnvironment/admit/admit",
             "composeEnvironment/admit/admit/admit",
@@ -136591,6 +136558,8 @@
             "composeEnvironment/construct/construct",
             "composeEnvironment/current/current",
             "composeEnvironment/input/input",
+            "composeEnvironment/input/input/compared/compared",
+            "composeEnvironment/input/input/compared/compared#2",
             "composeEnvironment/input/input/parsed/parsed",
             "composeEnvironment/input/input/parsed/parsed#2",
             "composeEnvironment/input/input/verified/verified",
@@ -136603,14 +136572,18 @@
             "freezeDocument",
             "freezeDocument/visit",
             "mergedCounts",
+            "readInstalledSourceEnvironment",
             "releaseRetiredInstalledEnvironmentComposition",
+            "retainInstalledEnvironmentNativeOriginal",
             "sealComposedBody"
           ],
           "exports": [
             "bindInstalledEnvironmentConstruction",
             "composeInstalledInventoryEnvironment",
             "composeInstalledSourceEnvironment",
-            "releaseRetiredInstalledEnvironmentComposition"
+            "releaseRetiredInstalledEnvironmentComposition",
+            "assertInstalledEnvironmentPublicationOriginal",
+            "readInstalledSourceEnvironment"
           ],
           "attributes": {
             "responsibility": [
@@ -136695,10 +136668,13 @@
     },
     {
       "module": "adapters/host-node/installed-check-environment-construction.mjs",
-      "sha256": "d21a32918890db8f1a95c10cb849dc9bb69447b7611e8089da21d37e7a747e3f",
+      "sha256": "90cb90fccb826006f56a505b219000034247308496330258ca1358e2f8390a42",
       "exports": [
         "installedEnvironmentCompositionConstructionGeometry",
+        "installedEnvironmentDataWriterConstructionGeometry",
         "installedEnvironmentDocumentConstructionGeometry",
+        "installedEnvironmentDocumentConstructionStages",
+        "installedEnvironmentMemberSortConstructionGeometry",
         "installedEnvironmentParseConstructionGeometry"
       ],
       "operations": [
@@ -136724,6 +136700,21 @@
           "async": false
         },
         {
+          "name": "dataWriterShape",
+          "parameters": [
+            "value",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "dataWriterShape/text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installedEnvironmentCompositionConstructionGeometry",
           "parameters": [
             "frozenBaseBody",
@@ -136733,9 +136724,31 @@
           "async": false
         },
         {
+          "name": "installedEnvironmentDataWriterConstructionGeometry",
+          "parameters": [
+            "original",
+            "hash"
+          ],
+          "async": false
+        },
+        {
           "name": "installedEnvironmentDocumentConstructionGeometry",
           "parameters": [
             "frozenDocument"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEnvironmentDocumentConstructionStages",
+          "parameters": [
+            "frozenDocument"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEnvironmentMemberSortConstructionGeometry",
+          "parameters": [
+            "originals"
           ],
           "async": false
         },
@@ -136805,8 +136818,13 @@
             "<module>",
             "addCanonical",
             "addSequentialCanonical",
+            "dataWriterShape",
+            "dataWriterShape/text/text",
             "installedEnvironmentCompositionConstructionGeometry",
+            "installedEnvironmentDataWriterConstructionGeometry",
             "installedEnvironmentDocumentConstructionGeometry",
+            "installedEnvironmentDocumentConstructionStages",
+            "installedEnvironmentMemberSortConstructionGeometry",
             "installedEnvironmentParseConstructionGeometry",
             "invalid/invalid",
             "own/own",
@@ -136818,7 +136836,10 @@
           "exports": [
             "installedEnvironmentCompositionConstructionGeometry",
             "installedEnvironmentDocumentConstructionGeometry",
-            "installedEnvironmentParseConstructionGeometry"
+            "installedEnvironmentParseConstructionGeometry",
+            "installedEnvironmentDataWriterConstructionGeometry",
+            "installedEnvironmentDocumentConstructionStages",
+            "installedEnvironmentMemberSortConstructionGeometry"
           ],
           "attributes": {
             "responsibility": [
@@ -136895,15 +136916,28 @@
     },
     {
       "module": "adapters/host-node/source-alias-construction.mjs",
-      "sha256": "67d79fc18c0dc2fbe4b576e83a5bfe37f7502c451313dfeb173e612d0a726bff",
+      "sha256": "f6d02eddc0f161cb6074927b0bb62577d1099c823640913ead7069a5dab54a10",
       "exports": [
         "captureSourceAliasConstruction",
         "sourceAliasBorrowedGeometry",
         "sourceAliasCollectionConstructionGeometry",
         "sourceAliasDataGeometry",
-        "sourceAliasIdentityConstructionGeometry"
+        "sourceAliasIdentityConstructionGeometry",
+        "sourceBindingCollectionConstructionGeometry",
+        "sourceCheckpointInventoryConstructionGeometry",
+        "sourceMemberCollectionConstructionGeometry",
+        "sourceNamespaceConstructionGeometry",
+        "sourceReferenceCollectionConstructionGeometry",
+        "sourceRegistrationRangeConstructionGeometry"
       ],
       "operations": [
+        {
+          "name": "canonicalSourceConstructionWorkspace",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
         {
           "name": "captureSourceAliasConstruction",
           "parameters": [
@@ -136997,6 +137031,54 @@
           "async": false
         },
         {
+          "name": "sourceBindingCollectionConstructionGeometry",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceCheckpointInventoryConstructionGeometry",
+          "parameters": [
+            "count",
+            "sourceRefUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceMemberCollectionConstructionGeometry",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceNamespaceConstructionGeometry",
+          "parameters": [
+            "range",
+            "aliases",
+            "name",
+            "environmentCid",
+            "selector"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceReferenceCollectionConstructionGeometry",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceRegistrationRangeConstructionGeometry",
+          "parameters": [
+            "paths",
+            "sources"
+          ],
+          "async": false
+        },
+        {
           "name": "stage/stage",
           "parameters": [
             "retained",
@@ -137020,6 +137102,7 @@
         {
           "operations": [
             "<module>",
+            "canonicalSourceConstructionWorkspace",
             "captureSourceAliasConstruction",
             "captureSourceAliasConstruction/captureSourceAliasConstruction",
             "captureSourceAliasConstruction/captureSourceAliasConstruction#2",
@@ -137033,6 +137116,12 @@
             "sourceAliasDataGeometry",
             "sourceAliasDataGeometry/visit",
             "sourceAliasIdentityConstructionGeometry",
+            "sourceBindingCollectionConstructionGeometry",
+            "sourceCheckpointInventoryConstructionGeometry",
+            "sourceMemberCollectionConstructionGeometry",
+            "sourceNamespaceConstructionGeometry",
+            "sourceReferenceCollectionConstructionGeometry",
+            "sourceRegistrationRangeConstructionGeometry",
             "stage/stage"
           ],
           "exports": [
@@ -137040,7 +137129,13 @@
             "sourceAliasBorrowedGeometry",
             "sourceAliasCollectionConstructionGeometry",
             "sourceAliasDataGeometry",
-            "sourceAliasIdentityConstructionGeometry"
+            "sourceAliasIdentityConstructionGeometry",
+            "sourceBindingCollectionConstructionGeometry",
+            "sourceCheckpointInventoryConstructionGeometry",
+            "sourceMemberCollectionConstructionGeometry",
+            "sourceNamespaceConstructionGeometry",
+            "sourceReferenceCollectionConstructionGeometry",
+            "sourceRegistrationRangeConstructionGeometry"
           ],
           "attributes": {
             "responsibility": [
@@ -137903,9 +137998,9 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5182,
-    "exports": 1172,
-    "explicitContractGroups": 542
+    "operations": 5492,
+    "exports": 1188,
+    "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

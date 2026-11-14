@@ -5,6 +5,7 @@ import './installed-configuration-json.actual.test.mjs';
 import './installed-hubspot-returned-capacity.actual.test.mjs';
 import './installed-source-read-range.actual.test.mjs';
 import './installed-source-path-range.actual.test.mjs';
+import './installed-source-checkpoint-range.actual.test.mjs';
 
 // These are installation components, not public Run/Result/Saved acceptance.
 // Every initialization, Resource, shared constructor and cleanup boundary is

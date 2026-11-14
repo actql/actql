@@ -14208,7 +14208,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "e40d0528b2fca05ac63cce8b587ca51aaadb24b051abd01dd5bc5858a319d646",
+      "sha256": "623e4849a48d868073b39cc9daae7ae7b489ec0e36efd923352a43a7683f832b",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -15988,7 +15988,51 @@
           "parameters": [
             "baseWire",
             "declared",
-            "mappings"
+            "mappings",
+            "retainOriginal",
+            "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/build/build",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/encode/encode",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/members/members",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/parse/parse",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+          "parameters": [
+            "a",
+            "b"
           ],
           "async": false
         },
@@ -16204,6 +16248,13 @@
             "prepareImmutablePhysicalTargets/mismatch/mismatch",
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
+            "rowSourceCheckEnvironment/build/build",
+            "rowSourceCheckEnvironment/encode/encode",
+            "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
+            "rowSourceCheckEnvironment/members/members",
+            "rowSourceCheckEnvironment/parse/parse",
+            "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+            "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
             "text/text",
             "valueCid/valueCid"
           ],

@@ -53465,18 +53465,18 @@
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/observeAccount/observeAccount#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/init:currentProvider/init:currentProvider",
+            "prepareRequestMockModelPlan/kinds/kinds",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#17",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#18",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#19",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#20",
             "readLocalMockModelRunRequirements",
             "readLocalMockModelRunRequirements/asset/asset",
             "readLocalMockModelRunRequirements/declarations/declarations",
             "readLocalMockModelRunRequirements/documentBytes/documentBytes",
             "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements",
-            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2",
-            "prepareRequestMockModelPlan/kinds/kinds",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#20"
+            "readLocalMockModelRunRequirements/readLocalMockModelRunRequirements#2"
           ],
           "exports": [
             "readLocalMockModelRunRequirements"
@@ -55411,8 +55411,8 @@
         },
         {
           "operations": [
-            "validateValuesMaxRows",
-            "validateSourceFreeMaxWork"
+            "validateSourceFreeMaxWork",
+            "validateValuesMaxRows"
           ],
           "exports": [],
           "attributes": {
@@ -58879,6 +58879,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
@@ -59021,10 +59022,12 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/wait",
             "openInstalledHost/negotiate/negotiate",
             "openInstalledHost/negotiate/negotiate/negotiate",
             "openInstalledHost/openInstalledHost",
+            "openInstalledHost/openInstalledHost#12",
             "openInstalledHost/openInstalledHost#2",
             "openInstalledHost/openInstalledHost#3",
             "openInstalledHost/openInstalledHost#4",
@@ -59039,9 +59042,7 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain"
+            "openInstalledHost/selectedInstalledEffect"
           ],
           "exports": [],
           "attributes": {
@@ -63518,6 +63519,14 @@
         {
           "name": "openInstalledHost/openInstalledHost#10",
           "parameters": [
+            "event",
+            "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#11",
+          "parameters": [
             "key",
             "bytes",
             "frame",
@@ -63526,7 +63535,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/openInstalledHost#11",
+          "name": "openInstalledHost/openInstalledHost#12",
           "parameters": [
             "ref"
           ],
@@ -63580,8 +63589,7 @@
         {
           "name": "openInstalledHost/openInstalledHost#9",
           "parameters": [
-            "event",
-            "detail"
+            "wire"
           ],
           "async": false
         },
@@ -65568,7 +65576,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "7a5394dee6dc1acb0d340b746f7f928d900a89012394e996ecc3a8e9ac542b1e"
+      "sha256": "6632cca0f9e9f9602538ee26ac1188e331def7d5b74ed939b89a7bbb423cadff"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -91070,7 +91078,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e40d0528b2fca05ac63cce8b587ca51aaadb24b051abd01dd5bc5858a319d646",
+      "sha256": "623e4849a48d868073b39cc9daae7ae7b489ec0e36efd923352a43a7683f832b",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -92863,7 +92871,51 @@
           "parameters": [
             "baseWire",
             "declared",
-            "mappings"
+            "mappings",
+            "retainOriginal",
+            "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/build/build",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/encode/encode",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/members/members",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/parse/parse",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+          "parameters": [
+            "a",
+            "b"
           ],
           "async": false
         },
@@ -95870,7 +95922,14 @@
         },
         {
           "operations": [
-            "rowSourceCheckEnvironment"
+            "rowSourceCheckEnvironment",
+            "rowSourceCheckEnvironment/build/build",
+            "rowSourceCheckEnvironment/encode/encode",
+            "rowSourceCheckEnvironment/evidenceCid/evidenceCid",
+            "rowSourceCheckEnvironment/members/members",
+            "rowSourceCheckEnvironment/parse/parse",
+            "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
+            "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment"
           ],
           "exports": [
             "rowSourceCheckEnvironment"
@@ -159433,8 +159492,8 @@
   ],
   "counts": {
     "modules": 59,
-    "operations": 4543,
-    "exports": 621,
-    "explicitContractGroups": 914
+    "operations": 4670,
+    "exports": 624,
+    "explicitContractGroups": 916
   }
 }

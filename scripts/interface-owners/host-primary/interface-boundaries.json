@@ -17384,6 +17384,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
@@ -17526,10 +17527,12 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted/interrupted",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/wait",
             "openInstalledHost/negotiate/negotiate",
             "openInstalledHost/negotiate/negotiate/negotiate",
             "openInstalledHost/openInstalledHost",
+            "openInstalledHost/openInstalledHost#12",
             "openInstalledHost/openInstalledHost#2",
             "openInstalledHost/openInstalledHost#3",
             "openInstalledHost/openInstalledHost#4",
@@ -17561,11 +17564,9 @@
             "publishInstalledSource",
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
-            "validateSourceNamespace",
-            "validateValuesMaxRows",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/retainFrame/retainFrame",
             "validateSourceFreeMaxWork",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain"
+            "validateSourceNamespace",
+            "validateValuesMaxRows"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -22183,6 +22184,14 @@
         {
           "name": "openInstalledHost/openInstalledHost#10",
           "parameters": [
+            "event",
+            "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#11",
+          "parameters": [
             "key",
             "bytes",
             "frame",
@@ -22191,7 +22200,7 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/openInstalledHost#11",
+          "name": "openInstalledHost/openInstalledHost#12",
           "parameters": [
             "ref"
           ],
@@ -22245,8 +22254,7 @@
         {
           "name": "openInstalledHost/openInstalledHost#9",
           "parameters": [
-            "event",
-            "detail"
+            "wire"
           ],
           "async": false
         },
@@ -24233,7 +24241,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "7a5394dee6dc1acb0d340b746f7f928d900a89012394e996ecc3a8e9ac542b1e"
+      "sha256": "6632cca0f9e9f9602538ee26ac1188e331def7d5b74ed939b89a7bbb423cadff"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -28437,8 +28445,8 @@
   ],
   "counts": {
     "modules": 17,
-    "operations": 1099,
-    "exports": 106,
-    "explicitContractGroups": 104
+    "operations": 1169,
+    "exports": 109,
+    "explicitContractGroups": 106
   }
 }

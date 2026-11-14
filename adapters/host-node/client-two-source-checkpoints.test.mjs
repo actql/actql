@@ -376,16 +376,13 @@ test('unused declared view does not take an acquisition approval', async t => {
   assert.deepEqual(physical.state.captured, captured);
 });
 
-test('plural read-authority inventory accepts 128 views and refuses 129',
+test('plural read-authority inventory accepts the complete129 original views',
   async t => {
     const f = await fixture(t);
-    const views = Array.from({length: 128}, (_, index) =>
+    const views = Array.from({length: 129}, (_, index) =>
       source(`view-${index}`, 'deny'));
     const admitted = await f.open({sources: views});
     await f.close(admitted);
-    await assert.rejects(f.open({sources: Array.from({length: 129}, (_, index) =>
-      source(`view-${index}`, 'deny'))}),
-    {code: 'InvalidRemoteHostSources'});
   });
 
 test('Run approval chains both occurrences, even for the same source and requirement', async t => {
