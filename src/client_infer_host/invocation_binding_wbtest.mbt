@@ -199,6 +199,19 @@ test "Infer invocation binding retains the exact Run output independently" {
     invocation,
     invocation_fixture_policy_cid(),
   ).unwrap()
+  // Existing actual Model execution and opaque binding supply provenance;
+  // equal canonical Definition bytes are not the original admitted object.
+  assert_true(invocation_binding_matches_run(binding, compiled, definition))
+  let copied_definition = @publication.admit_publication_contract(
+    "run_definition",
+    @publication.publication_contract_json(definition),
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  assert_false(
+    invocation_binding_matches_run(binding, compiled, copied_definition),
+  )
   let consumer = acquire_output(active).unwrap()
   let completed = invocation_binding_output(binding).unwrap()
   assert_eq(@relation.completed_row_count(completed), 2)
@@ -229,6 +242,7 @@ test "Infer invocation binding retains the exact Run output independently" {
   assert_true(@model.release_verified_model_capture(capture))
   assert_true(!cleanup(active).unwrap())
   assert_true(release_invocation_binding(binding))
+  assert_false(invocation_binding_matches_run(binding, compiled, definition))
   assert_true(!release_invocation_binding(binding))
   assert_true(invocation_binding_output(binding) is None)
   assert_true(invocation_binding_observation(binding) is None)

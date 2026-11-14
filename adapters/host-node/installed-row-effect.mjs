@@ -2490,6 +2490,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     if(dependencyOriginal!==undefined&&(dependencyOriginal.parent!==managedEffect.value||
         dependencyOriginal.prepared!==prepared||dependencyOriginal.request!==identity||
         dependencyOriginal.plan!==managedEffect.operationPlan))fail('ForeignInstalledEffectManagedRun');
+    if (dependencyOriginal !== undefined && plan.sourceFreeInvocationOriginal !== undefined) {
+      control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,
+        prepared, identity, dependencyOriginal.plan, checkedHost, plan.admission,
+        plan.runDefinition, plan.sourceFreeInvocationOriginal);
+      dependencyOriginal.current();
+    }
     const inputs = dependencyOriginal === undefined
       ? checked(moon.clientProgramPinEffectSources(checkedHost, limits.maxPinnedResults))
       : checked(moon.clientProgramInstalledEffectDependencySourcesPin(dependencyOriginal.parent,

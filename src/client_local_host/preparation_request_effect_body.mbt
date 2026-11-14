@@ -129,6 +129,22 @@ fn[I] request_effect_plan_quote(
         ).is_empty() => installed_effect_source_result_bound_scratch_bytes()
       _ => 0L
     }
+    // One source-free issued tuple receipt retains its exact compilation and
+    // two already-issued values until the actual managed DAG exists. All
+    // Strings are borrowed. One extra Plan holder references the receipt. Fund these fixed roles before Host prepareExecution.
+    let invocation_original = @execution.preparation_representation_cost({
+      record_headers: 1L,
+      reference_slots: 4L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+    guard @execution.checked_preparation_add_product(r, invocation_original, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, invocation_original, 1L)
+      is Some(e) else {
+      return Err(Policy)
+    }
     let control_phase = installed_effect_control_phase_quote_capacity()
     guard @execution.checked_preparation_add_product(
         r,

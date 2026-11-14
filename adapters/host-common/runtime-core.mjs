@@ -4583,6 +4583,89 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
+    // Inspect originals already admitted by this exact Allow/Definition owner.
+    // No second evidence admission or byte/CID replacement supplies custody.
+    originalCheckedClientEffectPublication(allowed, definition, limits) {
+      issuanceLimits(limits, 'Original Effect publication');
+      return Object.freeze({
+        admission: inspectAdmission(moon.clientProgramAllowedEffectRunAdmission(allowed)),
+        runDefinition: inspect(definition, limits),
+      });
+    },
+    issueCheckedClientEffectSourceFreeInvocationOriginal(compilation, policy, limits) {
+      issuanceLimits(limits, 'Original source-free Effect Invocation');
+      const original = checked(moon.clientProgramIssueEffectSourceFreeInvocationOriginal(
+        compilation, policy, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const owner = moon.clientProgramEffectSourceFreeInvocationOriginalInvocation(original);
+      return Object.freeze({original, owner,
+        observation: inspectEvidence(moon.clientProgramEffectSourceFreeInvocationOriginalObservation(original)),
+        invocation: inspect(owner, limits)});
+    },
+    bindCheckedInstalledEffectSourceFreeInvocation(parent, prepared, request, plan, host,
+      admission, definition, original) {
+      checked(moon.clientProgramBindInstalledEffectSourceFreeInvocation(
+        parent, prepared, request, plan, host, admissionToken(admission), token(definition), original));
+    },
+    issueCheckedInstalledEffectCapturedInvocation(parent, prepared, request, plan, host,
+      compilation, admission, definition, capturedSource, source, limits) {
+      issuanceLimits(limits, 'Original installed Effect Invocation');
+      const issued = checked(moon.clientProgramIssueInstalledEffectCapturedInvocation(
+        parent, prepared, request, plan, host, compilation, admissionToken(admission), definition,
+        capturedSource, source.sourceEvidenceWire, source.inputLogicalWire,
+        source.sourceRef, source.sourceContractCid, source.authorityScopeCid, source.dataPolicyCid,
+        source.captureStartedAt, source.captureCompletedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+    },
+    issueCheckedInstalledEffectMultiCapturedInvocation(parent, prepared, request, plan, host,
+      compilation, admission, definition, sources, context, limits) {
+      issuanceLimits(limits, 'Original installed plural Effect Invocation');
+      const issued = checked(moon.clientProgramIssueInstalledEffectMultiCapturedInvocation(
+        parent, prepared, request, plan, host, compilation, admissionToken(admission), definition,
+        sources.map(value => value.captured.capture.source()),
+        sources.map(value => value.captured.identity), sources.map(value => value.captured.requirement),
+        sources.map(value => value.sourceEvidenceWire),
+        sources.map(value => moon.strategyRunEvidenceJson(value.captured.logicalInput)),
+        context.authorityScopeCid, context.dataPolicyCid, context.captureStartedAt, context.captureCompletedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+    },
+    issueCheckedOriginalEffectDirectSourcesInvocation(parent, prepared, request, plan, host,
+      compilation, admission, definition, sources, sourceEvidence, context, limits) {
+      issuanceLimits(limits, 'Original installed Direct Effect Invocation');
+      const issued = checked(moon.clientProgramIssueOriginalEffectDirectSourcesInvocation(
+        parent, prepared, request, plan, host, compilation, admissionToken(admission), definition,
+        sources.map(({captured}) => captured.capture.source()), sources.map(({captured}) => captured.identity),
+        sourceEvidence.map(evidenceToken), sources.map(({captured}) => captured.logicalInput),
+        context.authorityScopeCid, context.dataPolicyCid, context.captureStartedAt, context.captureCompletedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const invocation = moon.clientProgramEffectDirectSourcesPublicationInvocation(issued);
+      return Object.freeze({observation: inspectEvidence(moon.clientProgramEffectDirectSourcesPublicationObservation(issued)),
+        invocation: inspect(invocation, limits), owner: invocation, sourcePublication: issued});
+    },
+    bindCheckedInstalledEffectModelInvocation(parent, prepared, request, plan, host,
+      compilation, admission, definition, issued) {
+      const retained = inferInvocationTokens.get(issued);
+      if (retained === undefined) throw new TypeError('Foreign Effect Infer Invocation');
+      const value = checked(moon.clientProgramBindInstalledEffectModelInvocation(
+        parent, prepared, request, plan, host, compilation, admissionToken(admission), definition,
+        retained.compiled, issued.binding));
+      return Object.freeze({observation: inspectEvidence(runtimeField(value, 0)),
+        invocation: inspect(runtimeField(value, 1)), owner: runtimeField(value, 1)});
+    },
+    issueCheckedInstalledEffectContentInvocation(parent, prepared, request, plan, host,
+      compilation, admission, definition, compiled, generation, limits) {
+      const value = compiledRunTokens.get(compiled), completion = serializationGenerationTokens.get(generation);
+      if (value === undefined || completion === undefined) throw new TypeError('Foreign Client Content generation');
+      limits = captureContractLimits(limits, 'Original installed Content Invocation');
+      const issued = checked(moon.clientProgramIssueInstalledEffectContentInvocation(
+        parent, prepared, request, plan, host, compilation, admissionToken(admission), definition,
+        value, completion, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
+    },
     issueCheckedClientEffectCapturedInvocation(checkedEffect, compilation,
       admission, definition, capturedSource, source, limits) {
       issuanceLimits(limits, 'Client Effect Invocation');

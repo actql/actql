@@ -279,3 +279,77 @@ pub fn release_invocation_binding(binding : InvocationBinding) -> Bool {
   }
   true
 }
+
+///|
+/// Original opaque execution binding, while its output/issuance remains live.
+/// This reads immutable Run lineage; it does not repeat Model execution.
+pub fn invocation_binding_matches_run(
+  binding : InvocationBinding,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  invocation_binding_available(binding) &&
+  (match binding.output_use.owner.run_binding {
+    Some(original) =>
+      physical_equal(original.compiled, compiled) &&
+      physical_equal(original.definition, definition)
+    None => false
+  })
+}
+
+///|
+/// CLOSED Model handoff to the actual managed Effect publication transition.
+/// This module owns InvocationBinding and reads its exact borrowed fields
+/// without allocating projection Options before the original numeric grow.
+/// The receipt stays synchronous and is always consumed/aborted in this call.
+pub fn bind_installed_effect_publication_invocation(
+  owner : @input.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @input.ClientInstalledEffectManagedPlan,
+  bound : @publication_host.PreparedClientEffectRun,
+  captured : @strategy.CapturedEffectRunDAG,
+  compilation : @publication_host.ClientEffectCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  compiled : @publication_host.ClientCompiledRun,
+  binding : InvocationBinding,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @input.ClientClosedValuesPreparationIssue,
+] {
+  if !@publication_host.client_compiled_run_matches_effect(
+      compiled, prepared, compilation,
+    ) ||
+    !invocation_binding_matches_run(binding, compiled, definition) {
+    return Err(@input.ForeignOriginal)
+  }
+  let transition = match
+    @input.begin_installed_effect_model_publication_transition(
+      owner,
+      prepared,
+      request,
+      plan,
+      bound,
+      captured,
+      compilation,
+      admission,
+      definition,
+      binding.observation,
+      binding.invocation,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  defer @input.abort_installed_effect_model_publication_transition(transition)
+  // Begin's real current callback can retire the output. Read this SAME
+  // existing binding after it, before any model cleanup/publication retirement.
+  if !invocation_binding_matches_run(binding, compiled, definition) {
+    return Err(@input.ForeignOriginal)
+  }
+  @input.finish_installed_effect_model_publication_transition(
+    transition,
+    binding.observation,
+    binding.invocation,
+  )
+}

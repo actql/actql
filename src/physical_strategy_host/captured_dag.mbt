@@ -2646,3 +2646,28 @@ pub fn captured_next_task_has_prepared_input(
   run.inputs.get(task).bind(ports => ports.get(input)).bind(value => value)
   is Some(_)
 }
+
+///|
+/// Exact whole-input occurrence already supplied to this DAG. Availability is
+/// a real Source callback; callers retain their current fence around it.
+pub fn captured_source_input_original_matches(
+  run : CapturedDAG,
+  task : Int,
+  input : Int,
+  source : @query.CapturedInputSource,
+) -> Bool {
+  guard !run.stopped &&
+    task >= 0 &&
+    task < run.supplied_reads.length() &&
+    input >= 0 &&
+    input < run.supplied_reads[task].length() &&
+    run.supplied_reads[task][input] is Some(original) &&
+    @query.captured_source_original_input_read(source) is Some(read) &&
+    physical_equal(original, read) &&
+    @query.captured_source_available(source) else {
+    return false
+  }
+  !run.stopped &&
+  run.supplied_reads[task][input] is Some(current) &&
+  physical_equal(current, read)
+}

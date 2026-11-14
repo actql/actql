@@ -480,9 +480,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
             faultInjection,
             publicationFor: ({issuance, modelEvidence}) =>
               sourceFree ? sourceFreeInferEffectPublicationPlan({acquired,
-                compiled, operation, issuance, modelEvidence}) :
+                compiled, operation, issuance, modelEvidence, managedRun,
+                sourcePlan: operationPlan, sourceHost: checkedHost}) :
               acquiredInferEffectPublicationPlan({acquired, sources: evidence,
                 compiled, operation, issuance, modelEvidence, sourcePlan: operationPlan, managedRun,
+                sourceHost: checkedHost,
                 keyedSource: keyedFamily?.evidence ?? restoredKeyedSource,
                 captureStartedAt, captureCompletedAt, signal})});
         },
@@ -597,11 +599,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     // Its original Content evidence must be issued by the selected component
     // before publication is prepared; never fill that inventory with [] or
     // claim a Source-only Invocation for the same checked Template.
-    let publicationPlan = infer === undefined && serializations.length === 0 ? multiple
-      ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
-        captureStartedAt, captureCompletedAt, sourcePlan: operationPlan})
-      : acquiredEffectPublicationPlan({acquired, ...evidence[0],
-        captureStartedAt, captureCompletedAt, sourcePlan: operationPlan}) : undefined;
+    let publicationPlan;
     if (multiple && (pluralModels ? modelGroup !== undefined && !modelGroup.restored() :
         originalModelComponent !== undefined && modelToken === undefined && infer !== undefined)) {
       const member = pluralModels ? modelGroup.keyedMember() : undefined;
@@ -727,6 +725,18 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     // Without a returned Compute owner an exception cannot prove a stop.
     // Keep the responsibility rather than relabeling it as released.
     unresolved = true;
+    // The existing custody was retained before Host construction. Issue once
+    // on its actual DAG; an issuer failure keeps that same cleanup owner.
+    if (infer === undefined && serializations.length === 0) {
+      publicationPlan = multiple
+        ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
+          captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
+          managedRun, sourceHost: checkedHost})
+        : acquiredEffectPublicationPlan({acquired, ...evidence[0],
+          captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
+          managedRun, sourceHost: checkedHost});
+    }
+
     if (multiple || wholeInputs || contentFamily !== undefined) {
       const dag = moon.strategyHostRun(moon.clientProgramLocalEffectHostRuntime(checkedHost));
       for (const [task, captured] of captures.entries()) {
@@ -874,9 +884,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       const generation = contentFamily.generation();
       if (generation === undefined) throw new Error('InstalledContentGenerationEvidenceUnavailable');
       publicationPlan = sourceFree
-        ? sourceFreeContentEffectPublicationPlan({acquired,compiled:contentPlan.compiled,generation})
+        ? sourceFreeContentEffectPublicationPlan({acquired,compiled:contentPlan.compiled,generation,
+          managedRun, sourcePlan: operationPlan, sourceHost: checkedHost})
         : acquiredEffectPublicationPlan({acquired, ...evidence[0],
-          captureStartedAt, captureCompletedAt, content: {...contentPlan, generation}});
+          captureStartedAt, captureCompletedAt, content: {...contentPlan, generation},
+          managedRun, sourcePlan: operationPlan, sourceHost: checkedHost});
     }
     if (publicationPlan === undefined) {
       throw new Error('InstalledContentGenerationEvidenceUnavailable');
@@ -1087,7 +1099,8 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         acquired, sources: evidence, compiled: plan.compiled,
         operation: children[0].operation, operations: children.map(child => child.operation), issuance,
         modelEvidence: children.flatMap(child => child.capture.modelEvidence()), keyedSource: keyedFamily?.evidence ?? restoredKeyed,
-        captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceUnitsOriginal, signal, fundingOperation: publicationOwner, current: publicationCurrent,
+        captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceHost: originalHost?.(),
+        sourceUnitsOriginal, signal, fundingOperation: publicationOwner, current: publicationCurrent,
         retainBinding(binding) {publicationBindings.push(binding);}});
       publicationCurrent();
       for (const original of [publication.observation, publication.invocation]) {

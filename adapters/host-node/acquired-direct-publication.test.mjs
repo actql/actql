@@ -16,8 +16,8 @@ const body = name => {
 };
 const limits = {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20};
 
-function fixture({mixed = false, refusal, typed = true} = {}) {
-  const calls = [], sourcePlan = {}, sourceObjects = [{}, {}];
+function fixture({mixed = false, refusal, typed = true, managed = false} = {}) {
+  const calls = [], sourcePlan = {}, sourceObjects = [{}, {}], managedRun = {}, sourceHost = {};
   const originals = sourceObjects.map(() => ({}));
   const sources = sourceObjects.slice(0, mixed ? 2 : 1).map((source, index) => ({
     ...(typed ? {sourceEvidence: originals[index]} : {}), sourceEvidenceWire: `original-source-${index}`,
@@ -77,6 +77,15 @@ function fixture({mixed = false, refusal, typed = true} = {}) {
       return {catalogBodies: []};
     },
   };
+  if (managed) {
+    const direct = acquired.control.issueCheckedInstalledEffectDirectSourcesInvocation;
+    acquired.control.issueCheckedInstalledEffectDirectSourcesInvocation = () => assert.fail('managed caller must bind its actual Run');
+    acquired.control.issueCheckedOriginalEffectDirectSourcesInvocation = (parent, prepared, request, plan,
+      host, ...rest) => {
+      assert.strictEqual(parent, managedRun); assert.strictEqual(host, sourceHost);
+      return direct(plan, prepared, request, ...rest);
+    };
+  }
   const buildLocalPublicationPlan = () => {
     calls.push('plan'); return {plan: {}, retention, retentionDependencies: []};
   };
@@ -86,9 +95,9 @@ function fixture({mixed = false, refusal, typed = true} = {}) {
     '\nreturn {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan};');
   const methods = create(runtimeField, runtimeOptionalField, checked, limits, buildLocalPublicationPlan);
   const invoke = () => mixed ? methods.acquiredMultiEffectPublicationPlan({acquired, sources,
-    sourcePlan, captureStartedAt: 'start', captureCompletedAt: 'end'})
+    sourcePlan, ...(managed ? {managedRun, sourceHost} : {}), captureStartedAt: 'start', captureCompletedAt: 'end'})
     : methods.acquiredEffectPublicationPlan({acquired, ...sources[0], sourcePlan,
-      captureStartedAt: 'start', captureCompletedAt: 'end'});
+      ...(managed ? {managedRun, sourceHost} : {}), captureStartedAt: 'start', captureCompletedAt: 'end'});
   return {invoke, calls, owner, sources, acquired, sourcePlan};
 }
 
@@ -97,6 +106,18 @@ test('single Whole Effect uses its original invocation and Whole Unit ports', ()
   assert.strictEqual(plan.invocationOwner, f.owner);
   assert.deepEqual(f.calls, ['original-invocation', 'plan', 'whole-unit']);
   assert.equal(Object.hasOwn(f.sources[0].captured, 'requirement'), false);
+});
+
+test('managed Direct publication binds its same Run and actual retained Host before producer evidence', () => {
+  const f = fixture({mixed: true, managed: true}), plan = f.invoke();
+  assert.strictEqual(plan.invocationOwner, f.owner);
+  assert.deepEqual(f.calls, ['original-invocation', 'plan', 'whole-unit', 'query-retention', 'query-unit']);
+});
+
+test('managed issuer refusal never falls back to the unbound legacy port', () => {
+  const primary = new Error('OriginalBindingRefused'), f = fixture({managed: true, refusal: primary});
+  assert.throws(f.invoke, value => value === primary);
+  assert.deepEqual(f.calls, ['original-invocation']);
 });
 
 test('wire-only single Whole Effect admits its Source evidence exactly once', () => {

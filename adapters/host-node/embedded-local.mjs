@@ -206,7 +206,7 @@ import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
 import {prepareOrdinaryLocalAccount} from './ordinary-local-account.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan, prepareTimedClientInvocation,
-  sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
+  sourceFreeEffectPublicationPlanOriginal, acquiredEffectPublicationAdmission,
   openSourceFreeEffectComputation,
   acquiredTaskRunAdmission, inferTaskRunAdmission, restoreInferTaskRunAdmission, selectRestoredInferOccurrence, serializationTaskRunAdmission,
   selectInstalledSerializationGraph} from
@@ -4791,7 +4791,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           moon.clientProgramEffectSerializationOccurrences(prepared).length > 0 ||
           moon.clientProgramEffectAcquisitionCount(prepared) > 0
           ? acquiredEffectPublicationAdmission(options)
-          : sourceFreeEffectPublicationPlan(options);
+          : sourceFreeEffectPublicationPlanOriginal(options);
       },
       execute: executeEffectComputation,
     });

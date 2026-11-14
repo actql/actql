@@ -1617,6 +1617,13 @@ pub fn quiesce_installed_managed_run(
       control.dependency_capture = None
       control.dependency_capture_slots = None
       control.dependency_group = None
+      // Closed Effect issuer references are borrowed immutable DATA on this
+      // SAME control prefix. Cut them after child ACKs and before returning
+      // that backing. The spent invocation fence deliberately stays closed.
+      if value.preparation is Some(PlannedEffectManaged(_, _)) {
+        value.publication_definition = None
+        value.publication_invocation = None
+      }
       match @resources.settle_capacity(ledger, control.reservation) {
         Ok(_) => {
           control.coordinates.clear()

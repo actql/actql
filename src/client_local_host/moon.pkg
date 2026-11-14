@@ -109,6 +109,8 @@ options(
     "installed_effect_staged_input_js_wbtest.mbt": [ "js" ],
     "installed_effect_header_lifetime_js_wbtest.mbt": [ "js" ],
     "installed_effect_dependency_original_js_wbtest.mbt": [ "js" ],
+    "installed_effect_publication_binding_js_wbtest.mbt": [ "js" ],
+    "client_local_normalization_union_request_js_wbtest.mbt": [ "js" ],
     "installed_effect_native_control_js_wbtest.mbt": [ "js" ],
     "installed_effect_discarded_projection_js_wbtest.mbt": [ "js" ],
     "installed_effect_operation_index_js_wbtest.mbt": [ "js" ],
