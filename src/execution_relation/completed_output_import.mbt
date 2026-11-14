@@ -9,6 +9,7 @@ struct CompletedOutputImport {
   mut open : Bool
   mut reading : Bool
   mut completed : Bool
+  mut finished_output : CompletedOutput?
 }
 
 ///|
@@ -123,7 +124,15 @@ pub fn prepare_completed_output_import(
   }
   admitted.buffer.deferred_reclamation = deferred_reclamation
   stream.buffer.deferred_reclamation = deferred_reclamation
-  Ok({ source, admitted, stream, open: true, reading: false, completed: false, })
+  Ok({
+    source,
+    admitted,
+    stream,
+    open: true,
+    reading: false,
+    completed: false,
+    finished_output: None,
+  })
 }
 
 ///|
@@ -282,12 +291,66 @@ pub fn finish_completed_output_import(
     ),
   }
   value.completed = true
-  Ok({
+  let output : CompletedOutput = {
     completion,
     target: original.target,
     table: Some(table),
     representation: None,
-  })
+  }
+  value.finished_output = Some(output)
+  Ok(output)
+}
+
+///|
+// These dense scalar admissions retain no parser Cursor or callback. Text
+// admission stores the SAME decoded String; receiving DATA already covers it.
+fn completed_import_plain_scalar_schema(schema : @schema.Schema) -> Bool {
+  if !@schema.all_fields_required(schema) {
+    return false
+  }
+  for index in 0..<@schema.field_count(schema) {
+    match @schema.field_at(schema, index).unwrap().contract.shape {
+      @contract.Text(_) | @contract.Number | @contract.Boolean => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
+/// Pure constructor-overlap DATA from THIS successful conversion. This does
+/// not release capacity or acknowledge physical framing/Store cleanup. Only
+/// the enclosing original snapshot may reuse its prepaid parser text term
+/// after its separate framing, body and reference cleanup has really finished.
+pub fn completed_output_import_shared_scalar_text_bytes(
+  value : CompletedOutputImport,
+  output : CompletedOutput,
+) -> Int64? {
+  if !value.completed ||
+    value.open ||
+    value.reading ||
+    !value.finished_output
+    .map(original => physical_equal(original, output))
+    .unwrap_or(false) ||
+    !completed_import_plain_scalar_schema(value.admitted.buffer.schema) {
+    return None
+  }
+  value.reading = true
+  let available = completed_output_available(output)
+  value.reading = false
+  if !available ||
+    value.open ||
+    !value.completed ||
+    !value.finished_output
+    .map(original => physical_equal(original, output))
+    .unwrap_or(false) {
+    return None
+  }
+  checked_preparation_add_product(
+    0L,
+    value.admitted.buffer.budget.text.to_int64(),
+    8L,
+  )
 }
 
 ///|

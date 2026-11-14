@@ -386,6 +386,28 @@ fn local_managed_snapshot_reload_extent(
 }
 
 ///|
+// Reclassify only the closed original reload's duplicate scalar parser text.
+// Import DATA and every external wire/frame/batch prefix remain coheld. The
+// combined reservation never shrinks, and a later grow cannot spend it twice.
+fn local_managed_import_working_overlap(
+  imported : Int64,
+  reusable : Int64,
+  previous_working : Int64,
+  next_working : Int64,
+) -> (Int64, Int64, Int64)? {
+  if imported < 0L ||
+    reusable < 0L ||
+    reusable > imported ||
+    previous_working < 0L ||
+    next_working < previous_working {
+    return None
+  }
+  let delta = next_working - previous_working
+  let reused = Int64::min(reusable, delta)
+  Some((imported - reused, reusable - reused, delta - reused))
+}
+
+///|
 // Only the exact finished export supplies these copy extents. They fund the
 // existing importer; all original admission and identity limits still apply.
 fn local_relation_snapshot_reload_capacity(
@@ -1304,6 +1326,7 @@ pub fn[T] start_local_managed_dispatch(
   let metadata_extra = Ref(0L)
   let transport_extra = Ref(0L)
   let import_extra = Ref(0L)
+  let import_scalar_reusable = Ref(0L)
   let import_mutating = Ref(false)
   let output_row_extent : Ref[Int?] = Ref(None)
   let working_failure : Ref[LocalDispatchIssue?] = Ref(None)
@@ -1333,11 +1356,21 @@ pub fn[T] start_local_managed_dispatch(
       working_failure.val = Some(Execution(Stopped))
       return Err(WorkspaceUnavailable)
     }
+    guard local_managed_import_working_overlap(
+        import_extra.val,
+        import_scalar_reusable.val,
+        working_extra.val,
+        extra,
+      )
+      is Some((imported, reusable, requested_execution)) else {
+      working_failure.val = Some(Execution(Stopped))
+      return Err(WorkspaceUnavailable)
+    }
     let scratch = setup.capacity.scratch_bytes +
       extra +
       metadata_extra.val +
       transport_extra.val +
-      import_extra.val
+      imported
     // This pure balance refusal precedes every grow/current/imported-window
     // call and changes no reservation. It permits the common attachment to
     // ask for its exact minimum instead of spare page backing. The subsequent
@@ -1349,7 +1382,6 @@ pub fn[T] start_local_managed_dispatch(
     let available_retention = limits.retained_bytes -
       usage.held_bytes -
       usage.reserved_retention_bytes
-    let requested_execution = extra - working_extra.val
     let available_execution = limits.execution_bytes -
       usage.reserved_execution_bytes
     let r_refused = requested_retention > available_retention
@@ -1396,6 +1428,8 @@ pub fn[T] start_local_managed_dispatch(
     }
     working_extra.val = extra
     retained_extra.val = retained_data
+    import_extra.val = imported
+    import_scalar_reusable.val = reusable
     working_failure.val = None
     Ok(())
   }
@@ -3008,6 +3042,8 @@ pub fn[T] start_local_managed_dispatch(
       let snapshot_transport_prefix = transport_extra.val
       let emitted_bytes = Ref(0L)
       let reload_capacity : Ref[Int64?] = Ref(None)
+      let reload_scalar_text : Ref[Int64?] = Ref(None)
+      let reload_scalar_text_capacity : Ref[Int64?] = Ref(None)
       let fund_part = fn(part : String) -> Result[Unit, LocalDispatchIssue] {
         let bytes = match
           managed_row_transfer_bytes(part, frames.maxFrameBytes) {
@@ -3132,6 +3168,12 @@ pub fn[T] start_local_managed_dispatch(
         reload_capacity.val = local_relation_snapshot_reload_capacity(
           setup.imports,
           content,
+        )
+        let imported_values = @execution.output_stream_value_usage(content)
+        reload_scalar_text_capacity.val = @execution.checked_preparation_add_product(
+          0L,
+          Int::min(setup.imports.row.max_text_bytes, imported_values.text_bytes).to_int64(),
+          8L,
         )
         if !live.val ||
           phase.val != Saving ||
@@ -3459,10 +3501,32 @@ pub fn[T] start_local_managed_dispatch(
             if debit_reload() is Err(issue) {
               return Err(issue)
             }
-            let value = match @execution.finish_completed_output_import(value) {
+            let original_import = value
+            let value = match
+              @execution.finish_completed_output_import(original_import) {
               Ok(result) => result
               Err(_) => return Err(Configuration(InputUnavailable))
             }
+            let scalar_text = if setup.metered_retention {
+              @execution.completed_output_import_shared_scalar_text_bytes(
+                original_import, value,
+              ).bind(bytes => {
+                reload_scalar_text_capacity.val.map(capacity => {
+                  Int64::min(bytes, capacity)
+                })
+              })
+            } else {
+              None
+            }
+            guard live.val &&
+              !disposed.val &&
+              phase.val == Reloading &&
+              importing.val
+              .map(original => physical_equal(original, original_import))
+              .unwrap_or(false) else {
+              return Err(Execution(Stopped))
+            }
+            reload_scalar_text.val = scalar_text
             restored.val = Some(value)
             importing.val = None
             phase.val = Restored
@@ -3481,6 +3545,30 @@ pub fn[T] start_local_managed_dispatch(
               receipt.val is None &&
               restored.val is Some(value) else {
               return Err(Configuration(InvalidLimits))
+            }
+            // The actual Host has returned every append frame, cancelled the
+            // framer and confirmed body/reference cleanup before this call.
+            // Recheck after the imported storage-release callback; a reentrant
+            // stop cannot publish this scalar overlap on a failed snapshot.
+            guard live.val &&
+              !disposed.val &&
+              !import_mutating.val &&
+              phase.val == Restored &&
+              importing.val is None &&
+              restored.val
+              .map(original => physical_equal(original, value))
+              .unwrap_or(false) &&
+              import_scalar_reusable.val == 0L else {
+              return Err(Execution(Stopped))
+            }
+            if setup.metered_retention && reload_scalar_text.val is Some(bytes) {
+              guard reload_capacity.val is Some(quoted) &&
+                bytes >= 0L &&
+                bytes <= quoted &&
+                bytes <= import_extra.val else {
+                return Err(Configuration(InvalidLimits))
+              }
+              import_scalar_reusable.val = bytes
             }
             ordinary.val = Some(value)
             restored.val = None
