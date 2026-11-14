@@ -283,3 +283,58 @@ test('HTTP raw adapter refuses missing capabilities and preserves a failed snaps
   assert.doesNotThrow(() => raw.finish('failed'));
   assert.deepEqual(calls, ['finish']);
 });
+
+
+// Selected only with the matching compiled Common. Kept distinct from the
+// explicit-port wire cases above; there is no fallback to an older ABI.
+test('installed HTTP chosen wire policy retains its original Request above 64 KiB and closes after refusal recovery',
+  {timeout: 30000}, async () => {
+    const {openInstalledRemoteHttpHost} = await import('./embedded-local.mjs');
+    const {createOwnedScratch} = await import('../../scripts/owned-scratch.mjs');
+    const {tmpdir, userInfo} = await import('node:os');
+    const {join} = await import('node:path');
+    const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-http-raw-policy-',
+      label: 'installed HTTP chosen raw input policy'});
+    const connection = {mode: 'remote', owner: 'remote', runners: [], consentRefs: []};
+    const small = JSON.stringify({connection});
+    const large = JSON.stringify({connection: {...connection,
+      consentRefs: Array.from({length: 400}, (_, index) => `${index}:` + 'x'.repeat(200))}});
+    assert(Buffer.byteLength(large) > 65536 && Buffer.byteLength(large) < 131072);
+    for (const maxRequestBytes of [131072, 65536]) {
+      let host, server, firstClose;
+      try {
+        host = await openInstalledRemoteHttpHost({directory: join(scratch.path, String(maxRequestBytes)),
+          authenticate: () => userInfo().username, loopbackHttp: true, maxRequestBytes});
+        server = createServer(host.handler);
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        const url = `http://127.0.0.1:${server.address().port}/actql/client/0.1/connect`;
+        const response = await postRaw(url, large);
+        assert.equal(response.status, maxRequestBytes === 131072 ? 200 : 413);
+        const result = await response.json();
+        if (maxRequestBytes === 131072) {
+          assert.equal(result.version, 'actql-client-host/0.1');
+          assert.equal(result.mode, 'remote'); assert.equal(result.owner, 'remote');
+        } else {
+          assert.deepEqual(result, {code: 'ClientRequestTooLarge'});
+          const recovered = await postRaw(url, small);
+          assert.equal(recovered.status, 200);
+          assert.equal((await recovered.json()).mode, 'remote');
+        }
+        server.closeAllConnections();
+        await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+        server = undefined;
+        firstClose = await host.close();
+        assert.equal(firstClose.pending, false);
+        assert.equal(firstClose.diagnosticDeliveryPending, false);
+      } finally {
+        if (server) {
+          server.closeAllConnections();
+          await new Promise(resolve => server.close(resolve));
+        }
+        // A failed first close remains a failure. The finally can finish the
+        // same retained cleanup but cannot turn that observation into success.
+        if (host && firstClose?.pending !== false) await host.close();
+      }
+    }
+    scratch.passed();
+  });
