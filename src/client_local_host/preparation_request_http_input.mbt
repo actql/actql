@@ -12,8 +12,12 @@ priv struct ClientRequestHttpInput {
 
 ///|
 fn request_http_copy_bytes(wire : Int, chunks : Int, quantum : Int) -> Int64? {
-  if wire < 0 || chunks < 1 || quantum < 1 ||
-    wire > 2147483519 || chunks > 2147483519 || quantum > 2147483519 {
+  if wire < 0 ||
+    chunks < 1 ||
+    quantum < 1 ||
+    wire > 2147483519 ||
+    chunks > 2147483519 ||
+    quantum > 2147483519 {
     return None
   }
   let n = chunks.to_int64()
@@ -24,7 +28,10 @@ fn request_http_copy_bytes(wire : Int, chunks : Int, quantum : Int) -> Int64? {
   // IncomingMessage producer allocations are NOT supplied by this inventory.
   @execution.preparation_representation_cost({
     record_headers: 2L * n + 12L + cursor.record_headers + work.record_headers,
-    reference_slots: 4L * n + 24L + cursor.reference_slots + work.reference_slots,
+    reference_slots: 4L * n +
+    24L +
+    cursor.reference_slots +
+    work.reference_slots,
     scalar_words: 2L * n + 16L + cursor.scalar_words + work.scalar_words,
     owned_utf16_units: wire.to_int64(),
     owned_wire_bytes: 2L * wire.to_int64() + 2L * quantum.to_int64(),
@@ -42,23 +49,31 @@ pub fn[I] reserve_request_http_input(
   quantum : Int,
   wire_limit : Int,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
-  guard owner.phase == Open && !owner.intent_attempted &&
-    owner.snapshot_base is None && owner.native_intake_base is None else {
+  guard owner.phase == Open &&
+    !owner.intent_attempted &&
+    owner.snapshot_base is None &&
+    owner.native_intake_base is None else {
     return Err(WrongPhase)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  guard wire_limit > 0 && wire_limit < 2147483519 &&
-    wire <= wire_limit + 1 && quantum <= wire_limit + 1 &&
+  guard wire_limit > 0 &&
+    wire_limit < 2147483519 &&
+    wire <= wire_limit + 1 &&
+    quantum <= wire_limit + 1 &&
     request_http_copy_bytes(wire, chunks, quantum) is Some(bytes) else {
     return Err(Policy)
   }
   if owner.http_input is None {
     owner.phase = Selecting
     let base = preparation_module_call(
-      () => @resources.preparation_capacity_working_extents(owner.capacity, input)
-        .map_err(issue => ClientRequestPreparationIssue::Capacity(issue)),
+      () => {
+        @resources.preparation_capacity_working_extents(owner.capacity, input).map_err(issue => {
+            ClientRequestPreparationIssue::Capacity(issue)
+          },
+        )
+      },
       () => owner.phase = Open,
     )
     let base = match base {
@@ -66,20 +81,37 @@ pub fn[I] reserve_request_http_input(
       Ok(value) => value
     }
     owner.http_input = Some({
-      base, wire_limit, wire: 0, chunks: 0, quantum: 0, json_attempted: false, work: None,
+      base,
+      wire_limit,
+      wire: 0,
+      chunks: 0,
+      quantum: 0,
+      json_attempted: false,
+      work: None,
     })
   }
   let original = owner.http_input.unwrap()
-  guard original.wire_limit == wire_limit && !original.json_attempted && wire >= original.wire &&
-    chunks >= original.chunks && quantum >= original.quantum else { return Err(WrongPhase) }
+  guard original.wire_limit == wire_limit &&
+    !original.json_attempted &&
+    wire >= original.wire &&
+    chunks >= original.chunks &&
+    quantum >= original.quantum else {
+    return Err(WrongPhase)
+  }
   guard @execution.checked_preparation_add_product(original.base.0, bytes, 1L)
     is Some(r) &&
     @execution.checked_preparation_add_product(original.base.1, bytes, 1L)
-    is Some(e) else { return Err(Policy) }
+    is Some(e) else {
+    return Err(Policy)
+  }
   owner.phase = Selecting
   let reserved = preparation_module_call(
-    () => @resources.reserve_working_preparation_phase(owner.capacity, input, r, e)
-      .map_err(issue => ClientRequestPreparationIssue::Capacity(issue)),
+    () => {
+      @resources.reserve_working_preparation_phase(owner.capacity, input, r, e).map_err(issue => {
+          ClientRequestPreparationIssue::Capacity(issue)
+        },
+      )
+    },
     () => owner.phase = Open,
   )
   match reserved {
@@ -102,32 +134,46 @@ pub fn[I] prepare_request_http_json(
   input : I,
   wire : String,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
-  guard owner.phase == Open && owner.http_input is Some(original) &&
-    !original.json_attempted && owner.snapshot_base is None &&
-    !owner.intent_attempted else { return Err(WrongPhase) }
+  guard owner.phase == Open &&
+    owner.http_input is Some(original) &&
+    !original.json_attempted &&
+    owner.snapshot_base is None &&
+    !owner.intent_attempted else {
+    return Err(WrongPhase)
+  }
   guard owner.input is Some(value) && physical_equal(value, input) else {
     return Err(ForeignOriginal)
   }
   guard wire.length() <= original.wire &&
-    wire.length().to_int64() * 3L < 2147483519L else { return Err(Policy) }
+    wire.length().to_int64() * 3L < 2147483519L else {
+    return Err(Policy)
+  }
   original.json_attempted = true
   owner.phase = Selecting
   let mut cursor : @source.JsonSourcePreflight? = None
   let result : Result[Unit, ClientRequestPreparationIssue] = preparation_module_call(
     () => {
-      let work = match @resources.begin_preparation_phase_work64(
-        owner.capacity, input, @resources.HttpInputPreflight,
-        wire.length().to_int64() + 1L,
-      ) {
+      let work = match
+        @resources.begin_preparation_phase_work64(
+          owner.capacity,
+          input,
+          @resources.HttpInputPreflight,
+          wire.length().to_int64() + 1L,
+        ) {
         Err(issue) => return Err(Work(issue))
         Ok(value) => value
       }
       original.work = Some(work)
-      let source = match @source.start_json_source_preflight(wire, {
-        max_input_bytes: Int::max(1, 3 * wire.length()),
-        max_nodes: Int::max(1, wire.length()),
-        max_depth: @publication_host.client_standard_program_preparation_limits().checking.input.source.max_depth,
-      }, data_keys=true) {
+      let source = match
+        @source.start_json_source_preflight(
+          wire,
+          {
+            max_input_bytes: Int::max(1, 3 * wire.length()),
+            max_nodes: Int::max(1, wire.length()),
+            max_depth: @publication_host.client_standard_program_preparation_limits().checking.input.source.max_depth,
+          },
+          data_keys=true,
+        ) {
         Err(_) => return Err(Policy)
         Ok(value) => value
       }
@@ -140,14 +186,15 @@ pub fn[I] prepare_request_http_json(
         let (geometry, spent) = match poll {
           @source.JsonSourceContinue(work~) => (None, work)
           @source.JsonSourceReady(value, work~) => (Some(value), work)
-          @source.JsonSourceFailed(_, work=spent) => {
-            match @resources.spend_preparation_phase_work64(work, spent.to_int64()) {
+          @source.JsonSourceFailed(_, work=spent) =>
+            match
+              @resources.spend_preparation_phase_work64(work, spent.to_int64()) {
               Err(issue) => return Err(Work(issue))
               Ok(_) => return Err(Policy)
             }
-          }
         }
-        match @resources.spend_preparation_phase_work64(work, spent.to_int64()) {
+        match
+          @resources.spend_preparation_phase_work64(work, spent.to_int64()) {
           Err(issue) => return Err(Work(issue))
           Ok(_) => ()
         }
@@ -165,27 +212,42 @@ pub fn[I] prepare_request_http_json(
           guard request_snapshot_data_bytes(units, nodes) is Some(tree) else {
             return Err(Policy)
           }
-          let (r, e) = match @resources.preparation_capacity_working_extents(owner.capacity, input) {
+          let (r, e) = match
+            @resources.preparation_capacity_working_extents(
+              owner.capacity,
+              input,
+            ) {
             Err(issue) => return Err(Capacity(issue))
             Ok(value) => value
           }
-          guard @execution.checked_preparation_add_product(r, tree, 1L) is Some(r) &&
+          guard @execution.checked_preparation_add_product(r, tree, 1L)
+            is Some(r) &&
             @execution.checked_preparation_add_product(e, tree, 1L) is Some(e) else {
             return Err(Policy)
           }
-          return @resources.reserve_working_preparation_phase(owner.capacity, input, r, e)
-            .map_err(issue => ClientRequestPreparationIssue::Capacity(issue))
+          return @resources.reserve_working_preparation_phase(
+            owner.capacity,
+            input,
+            r,
+            e,
+          ).map_err(issue => ClientRequestPreparationIssue::Capacity(issue))
         }
-      } nobreak { Err(Policy) }
+      } nobreak {
+        Err(Policy)
+      }
     },
     () => {
-      if cursor is Some(source) { @source.cancel_json_source_preflight(source) }
+      if cursor is Some(source) {
+        @source.cancel_json_source_preflight(source)
+      }
       owner.phase = Open
     },
   )
   if original.work is Some(work) {
     let closed = @resources.finish_preparation_phase_work64(work)
-    if closed is Ok(_) { original.work = None }
+    if closed is Ok(_) {
+      original.work = None
+    }
     if result is Ok(_) {
       match closed {
         Err(issue) => return Err(Work(issue))

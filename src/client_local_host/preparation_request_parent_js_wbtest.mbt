@@ -229,7 +229,9 @@ test "fixed Request control envelope preserves original upper bound through the 
     16L +
     8L +
     // Existing HTTP Request raw record/Some, baseline and policy: 3H/4R/7W.
-    16L * 3L + 8L * 4L + 8L * 7L,
+    16L * 3L +
+    8L * 4L +
+    8L * 7L,
     11600L,
   )
   assert_eq(
