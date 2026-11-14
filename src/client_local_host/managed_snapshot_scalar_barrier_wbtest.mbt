@@ -2,7 +2,12 @@
 // Actual checked Source, Task, importer and Ledger. The finite String array
 // stands in for Store body custody; this is not a physical Store ACK test.
 fn managed_scalar_snapshot_barrier(cancel_on_release : Bool) -> Unit raise {
-  let value = captured_tasks_fixture()
+  let prepared = single_installed_prepared(
+    document=(
+      #|{"version":"actql/0.1","id":"snapshot-scalar-barrier","stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id >= 2"},{"derive":{"label":{"literal":"scalar text"}}},{"select":["id","label"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","label"]}}},{"id":"finish","inputs":{"r":{"result":{"stage":"compute","result":"rows"}}},"steps":[{"filter":"id < 3"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"finish","result":"rows"}}}}
+    ),
+  )
+  let value = captured_tasks_fixture(original=Some(prepared))
   let before = @resources.ledger_usage(value.ledger)
   let (run, dispatch) = metered_tail_dispatch(value)
   let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
