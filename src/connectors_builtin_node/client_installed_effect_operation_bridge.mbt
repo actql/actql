@@ -720,3 +720,31 @@ pub fn client_program_finish_installed_effect_dependency_capture(
 ) -> Result[@publication.PreparedCapturedEffectRun, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.finish_installed_effect_dependency_capture(owner, prepared, request, plan, issuer)
 }
+
+///|
+#export_name("clientProgramInstalledLocalFileStoreInitialConstructorCapacities")
+pub fn client_program_installed_local_file_store_initial_constructor_capacities() -> Array[
+  @execution.ExecutionCapacity,
+] {
+  @client_local_host.installed_local_file_store_initial_constructor_capacities()
+}
+
+///|
+#export_name("clientProgramInstalledLocalFileStoreObservedConstructorCapacities")
+pub fn client_program_installed_local_file_store_observed_constructor_capacities(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  request_bytes : Int,
+  request_nodes : Int,
+  recovery_bytes : Int,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_local_file_store_observed_constructor_capacities(
+    bytes, nodes, depth, request_bytes, request_nodes, recovery_bytes,
+  )
+}
+
+///|

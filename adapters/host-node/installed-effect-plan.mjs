@@ -333,12 +333,16 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       memberOperations.length + rowOperations.length > maxOperations) fail('InvalidInstalledEffectPlanRecipe');
   let requestConstruction;
   if (fields.requestConstruction !== undefined) {
-    const selected = own(fields.requestConstruction.value, ['operationIndex']);
+    const selected = own(fields.requestConstruction.value, ['operationIndex',
+      ...(Object.hasOwn(fields.requestConstruction.value, 'inputExtent') ? ['inputExtent'] : [])]);
     const operationIndex = selected.operationIndex.value;
     if (!Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= rowOperations.length) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
-    requestConstruction = Object.freeze({operationIndex});
+    const inputExtent = selected.inputExtent?.value;
+    if (inputExtent !== undefined && (typeof inputExtent !== 'function' || nodeTypes.isProxy(inputExtent) ||
+        nodeTypes.isAsyncFunction(inputExtent))) fail('InvalidInstalledEffectPlanRecipe');
+    requestConstruction = Object.freeze({operationIndex, ...(inputExtent === undefined ? {} : {inputExtent})});
   }
   let requestFinalization;
   if (fields.requestFinalization !== undefined) {
@@ -671,8 +675,15 @@ export function prepareInstalledEffectRequestChild(options) {
   return prepareInstalledEffectConstructorChild(options);
 }
 
-// Only the retained owned-child wrapper above can join asynchronous physical
-// preparation. An arbitrary constructor Promise keeps the strict refusal below.
+// This installing-code capture constructor joins its actual original task.
+// The enclosing capture retainer already owns every nested request child and
+// retires their aliases before this same operation backing can be returned.
+export function prepareInstalledEffectCaptureChild(options) {
+  return prepareInstalledEffectConstructorChild(options, true);
+}
+
+// Only the two closed retained wrappers can join an original native Promise.
+// An arbitrary constructor Promise keeps the strict refusal below.
 function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
   operationIndex, operation, perRow = true, construct: originalConstruct, inputExtent: originalInputExtent, requestsRetired}, ownedChild = false, ownedOutputWire) {
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||

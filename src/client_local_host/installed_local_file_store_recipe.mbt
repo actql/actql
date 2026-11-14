@@ -44,6 +44,136 @@ fn local_file_store_json_capacity(
 }
 
 ///|
+// The warm File capture initially retains only its proposal-reference Array;
+// generated proposal Strings remain borrowed from the original completed Read.
+// Reserve its wrapper/backing, four spare references and geometric-growth
+// overlap. No JSON tree, request, physical writer or recovery body exists yet.
+pub fn installed_local_file_store_initial_constructor_capacities() -> Array[
+  @execution.ExecutionCapacity,
+] {
+  let fixed = @execution.preparation_representation_cost({
+    // Proposal Array plus its two installing-code member task callbacks.
+    // These retain at most 36 existing context references and four
+    // phase/index words while its original asynchronous task is joined.
+    record_headers: 5L,
+    reference_slots: 41L,
+    scalar_words: 6L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let row = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 2L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let row_growth = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 3L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  // The row constructor's native payload is selected before prepare; until
+  // then its original closure retains a context reference, not a parsed body.
+  let request = @execution.preparation_representation_cost({
+    record_headers: 1L,
+    reference_slots: 1L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  [
+    @execution.execution_capacity(fixed, fixed).unwrap(),
+    @execution.execution_capacity(row, row_growth).unwrap(),
+    @execution.execution_capacity(request, request).unwrap(),
+  ]
+}
+
+///|
+// Select the SAME warm constructor from already-owned generated proposal
+// wire geometry. The full Preview is constructed/admitted by its existing
+// shared control Owner; a member borrows it and does not parse another copy.
+// All actual member/row copies remain distinct retained quantities. These
+// capacities do not select input policy, a Resource budget or send authority.
+pub fn installed_local_file_store_observed_constructor_capacities(
+  body_bytes : Int,
+  body_nodes : Int,
+  body_depth : Int,
+  request_bytes : Int,
+  request_nodes : Int,
+  recovery_bytes : Int,
+) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
+  if recovery_bytes < 1 {
+    return Err(Unsupported)
+  }
+  let empty = body_bytes == 0 &&
+    body_nodes == 0 &&
+    request_bytes == 0 &&
+    request_nodes == 0
+  let row = if empty {
+    Some(installed_local_file_store_initial_constructor_capacities()[1])
+  } else {
+    installed_standard_host_capture_row_capacity(
+      body_bytes, body_nodes, body_depth,
+    )
+  }
+  let request = if empty {
+    // No row/request is constructed. Keep its unchanged initial structural
+    // extent; only the actual empty recovery envelope needs a member quote.
+    Some(installed_local_file_store_initial_constructor_capacities()[2])
+  } else {
+    match
+      (
+        local_file_store_json_capacity(body_bytes, body_nodes, body_depth),
+        local_file_store_json_capacity(request_bytes, request_nodes, body_depth),
+      ) {
+      (Some(input), Some(request)) =>
+        standard_create_sum_capacities(
+          [input, request],
+          sequential_workspace=true,
+        )
+      _ => None
+    }
+  }
+  guard row is Some(row) &&
+    request is Some(request) &&
+    // Warm recoveryEntry serializes already-owned immutable request records;
+    // it does not parse another Preview/recovery tree. Its actual output is
+    // one record, the retained wire and its digest. Row-string/join/hash work
+    // remains beside that output until this same constructor completes.
+    @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 3L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(recovery_control) &&
+    @execution.execution_capacity_inventory(
+      [
+        { unit: QuotedBytes, count: recovery_control, copies: 1, },
+        { unit: DecodedTextBytes, count: recovery_bytes.to_int64(), copies: 1, },
+        { unit: DecodedTextBytes, count: 71L, copies: 1, },
+      ],
+      [
+        { unit: DecodedTextBytes, count: recovery_bytes.to_int64(), copies: 1, },
+        {
+          unit: CanonicalWireBytes,
+          count: recovery_bytes.to_int64(),
+          copies: 1,
+        },
+      ],
+      RetainedAlongsideExecution,
+    )
+    is Some(recovery) else {
+    return Err(Unsupported)
+  }
+  Ok([recovery, row, request])
+}
+
+///|
 // Local STORE's existing Content child, request/recovery JSON and descriptor
 // writer, not the HTTP/Credential recipe. Every quantity is inert DATA for the
 // SAME managed Effect Plan. No grant, physical attempt or cleanup ACK is made.

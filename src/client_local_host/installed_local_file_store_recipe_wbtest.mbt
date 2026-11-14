@@ -153,3 +153,109 @@ test "Local JS clones retain complete DATA without a nonexistent Source parser" 
   )
   assert_true(local_file_store_json_capacity(0, nodes, 16) is None)
 }
+
+///|
+test "warm File constructors keep real rows and references without Preview policy copies" {
+  let initial = installed_local_file_store_initial_constructor_capacities()
+  let actual = installed_local_file_store_observed_constructor_capacities(
+    2048, 256, 16, 16384, 512, 32768,
+  ).unwrap()
+  assert_eq(initial.length(), 3)
+  assert_eq(actual.length(), 3)
+  for index in 0..<3 {
+    assert_true(
+      @execution.execution_capacity_retained_bytes(initial[index]) > 0L,
+    )
+    assert_true(
+      @execution.execution_capacity_retained_bytes(actual[index]) >=
+      @execution.execution_capacity_retained_bytes(initial[index]),
+    )
+  }
+  let row = installed_standard_host_capture_row_capacity(2048, 256, 16).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(actual[1]),
+    @execution.execution_capacity_retained_bytes(row),
+  )
+  // Distinct live member and row copies still sum. This is a selected quote
+  // vector, not execution or a universal Host/default budget assertion.
+  let retained = @execution.execution_capacity_retained_bytes(actual[0]) +
+    @execution.execution_capacity_retained_bytes(actual[1]) +
+    @execution.execution_capacity_retained_bytes(actual[2])
+  assert_true(17L * retained < 536870912L)
+}
+
+///|
+test "warm File wire escaping increases text but not the original node inventory" {
+  let a = installed_local_file_store_observed_constructor_capacities(
+    2048, 256, 16, 16384, 512, 32768,
+  ).unwrap()
+  let text = installed_local_file_store_observed_constructor_capacities(
+    2048, 256, 16, 16385, 512, 32768,
+  ).unwrap()
+  let nodes = installed_local_file_store_observed_constructor_capacities(
+    2048, 256, 16, 16384, 513, 32768,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(text[2]) >
+    @execution.execution_capacity_retained_bytes(a[2]),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(nodes[2]) >
+    @execution.execution_capacity_retained_bytes(a[2]),
+  )
+  for index in [0, 1] {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(text[index]),
+      @execution.execution_capacity_retained_bytes(a[index]),
+    )
+  }
+}
+
+///|
+test "warm File constructor refuses missing geometry before a capacity is selected" {
+  assert_true(
+    installed_local_file_store_observed_constructor_capacities(
+      0, 256, 16, 16384, 512, 32768,
+    )
+    is Err(Unsupported),
+  )
+  assert_true(
+    installed_local_file_store_observed_constructor_capacities(
+      2048, 256, 16, 16384, 0, 32768,
+    )
+    is Err(Unsupported),
+  )
+  assert_true(
+    installed_local_file_store_observed_constructor_capacities(
+      2048, 256, 16, 16384, 512, 0,
+    )
+    is Err(Unsupported),
+  )
+}
+
+///|
+test "empty warm File capture retains its real recovery envelope without row construction" {
+  let initial = installed_local_file_store_initial_constructor_capacities()
+  let empty = installed_local_file_store_observed_constructor_capacities(
+    0, 0, 16, 0, 0, 525,
+  ).unwrap()
+  for index in [1, 2] {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(empty[index]),
+      @execution.execution_capacity_retained_bytes(initial[index]),
+    )
+  }
+  let larger = installed_local_file_store_observed_constructor_capacities(
+    0, 0, 16, 0, 0, 526,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(larger[0]) >
+    @execution.execution_capacity_retained_bytes(empty[0]),
+  )
+  assert_true(
+    installed_local_file_store_observed_constructor_capacities(
+      0, 1, 16, 0, 0, 525,
+    )
+    is Err(Unsupported),
+  )
+}

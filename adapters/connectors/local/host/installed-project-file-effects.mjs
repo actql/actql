@@ -84,7 +84,11 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       const inputLimits=installedRowEffectConstructionLimits();
       let effect;
       try{
-        const managedPlanRecipe=prepareLocalFileStorePlanRecipe({moon,inputLimits,limits,writerProfile});
+        // Original immutable installation Strings, not a traversal of an
+        // application value or a replacement input/permission profile.
+        const requestHeaderUnits=bindingCid.length+command.contract_cid.length+
+          target.resourceWire.length+'{"binding":"","command":"","target":,"value":}'.length;
+        const managedPlanRecipe=prepareLocalFileStorePlanRecipe({moon,inputLimits,limits,writerProfile,requestHeaderUnits});
         effect=await createInstalledRowEffect({moon,
           mappings:[{resource:'files',mappingRef:mapping.mapping_ref,
             mappingCid:mapping.mapping_contract_cid,body:target.mappingWire}],

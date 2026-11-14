@@ -1977,3 +1977,31 @@ test('standard Ledger single head keeps original refusal cleanup and legacy gene
   assert.strictEqual(bind(original,legacy,effectLedgerImplementationBounds).currentAdmitted('original CID'),undefined);
   assert.deepEqual(f.events,['begin','complete']);assert.deepEqual(calls,['original CID']);
 });
+test('installing capture task keeps its original backing until join and alias retirement', async () => {
+  const {prepareInstalledEffectCaptureChild} = await import('./installed-effect-plan.mjs');
+  let settle;
+  const task = new Promise(resolve => {settle = resolve;});
+  const original = Object.freeze({entry: 'same'}), extent = {}, events = [];
+  const f = constructorControlFixture(() => {events.push('construct'); return task;});
+  f.run.runtime.clientProgramInstalledEffectOperationInputBegin = (token, selected) => {
+    assert.strictEqual(token, f.originalToken); assert.strictEqual(selected, extent);
+    events.push('funded'); return {$tag: 1, _0: undefined};
+  };
+  const child = prepareInstalledEffectCaptureChild({...f, inputExtent: () => extent});
+  const pending = child.prepare();
+  assert.deepEqual(events, ['funded', 'construct']);
+  assert.equal(child.release(), false); assert.equal(f.settlements(), 0);
+  settle(original); assert.strictEqual(await pending, original);
+  assert.equal(child.release(), false, 'a fulfilled constructor does not retire its returned aliases');
+  f.retireAliases(); assert.equal(child.release(), true); assert.equal(f.settlements(), 1);
+});
+
+test('installing capture task preserves a failed original task until real alias retirement', async () => {
+  const {prepareInstalledEffectCaptureChild} = await import('./installed-effect-plan.mjs');
+  const original = new Error('actual failed member constructor');
+  const f = constructorControlFixture(() => Promise.reject(original));
+  const child = prepareInstalledEffectCaptureChild(f);
+  await assert.rejects(child.prepare(), error => error === original);
+  assert.equal(child.release(), false); assert.equal(f.settlements(), 0);
+  f.retireAliases(); assert.equal(child.release(), true); assert.equal(f.settlements(), 1);
+});

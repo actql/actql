@@ -7,7 +7,7 @@ import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger
 import {physicalContentReadWindowBytes} from '../../../store-local/publication-store.mjs';
 import {localFileWriteMaxComponents} from '../site/root-file-writer.mjs';
 
-export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile}) {
+export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writerProfile, requestHeaderUnits}) {
   const controlEntryBytes = moon.clientProgramInstalledLocalFileStoreControlWireBound();
   const quote = controlWireBytes => checked(moon.clientProgramInstalledLocalFileStoreRecipeCapacities(
     inputLimits.body.maxBytes, inputLimits.body.maxNodes, inputLimits.body.maxDepth,
@@ -23,15 +23,66 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
     'files.write.request', quantities[2], 0n, false));
   const physical = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
     'files.write', quantities[3], BigInt(limits.maxFileBytes), true));
+  let warmCapture = capture, warmRequest = request, captureInput, requestInput;
+  if (requestHeaderUnits !== undefined) {
+    if (!Number.isSafeInteger(requestHeaderUnits) || requestHeaderUnits < 1) {
+      throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+    }
+    const initial = moon.clientProgramInstalledLocalFileStoreInitialConstructorCapacities();
+    if (!Array.isArray(initial) || initial.length !== 3) throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+    const captureInitial = checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(
+      'files.write.capture', [initial[0], initial[1], quantities[2], quantities[3], quantities[4], quantities[5]]));
+    warmCapture = checked(moon.clientProgramInstalledEffectOperationStagedExtentPrepare(captureInitial, capture));
+    const requestInitial = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
+      'files.write.request', initial[2], 0n, false));
+    warmRequest = checked(moon.clientProgramInstalledEffectOperationStagedExtentPrepare(requestInitial, request));
+    const observe = proposals => {
+      if (!Array.isArray(proposals)) throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+      let units = 0, requestBytes = 0, recoveryBytes = 3 * (requestHeaderUnits + 2);
+      for (const proposal of proposals) {
+        const field = Object.getOwnPropertyDescriptor(proposal, 'changesWire');
+        if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'string') {
+          throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+        }
+        const selector = Object.getOwnPropertyDescriptor(proposal, 'selectorWire');
+        if (selector && (!Object.hasOwn(selector, 'value') || typeof selector.value !== 'string')) {
+          throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+        }
+        const count = field.value.length + (selector?.value.length ?? 0);
+        if (count < 1 || count > inputLimits.body.maxBytes) throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+        units = Math.max(units, count);
+        // Every output JSON code unit has at most six escaped units, each
+        // requiring at most three UTF8 bytes. Include the original fixed
+        // binding/Command/target envelope before requestFrom serializes it.
+        const bytes = 18 * (count + requestHeaderUnits);
+        requestBytes = Math.max(requestBytes, bytes); recoveryBytes += bytes + 1;
+        if (![requestBytes, recoveryBytes].every(value => Number.isSafeInteger(value) && value <= 2147483647)) {
+          throw new TypeError('InvalidLocalFileStoreConstructionGeometry');
+        }
+      }
+      return checked(moon.clientProgramInstalledLocalFileStoreObservedConstructorCapacities(
+        Math.min(3 * units, inputLimits.body.maxBytes), Math.min(units, inputLimits.body.maxNodes),
+        inputLimits.body.maxDepth, requestBytes, proposals.length === 0 ? 0 : units + requestHeaderUnits, recoveryBytes));
+    };
+    captureInput = proposals => {
+      const actual = observe(proposals);
+      return checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare('files.write.capture',
+        [actual[0], actual[1], quantities[2], quantities[3], quantities[4], quantities[5]]));
+    };
+    requestInput = proposal => checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
+      'files.write.request', observe([proposal])[2], 0n, false));
+  }
   return captureInstalledEffectPlanRecipe(Object.freeze({
-    memberOperations: Object.freeze([Object.freeze({operation: 'files.write.capture', extent: capture}),
+    memberOperations: Object.freeze([Object.freeze({operation: 'files.write.capture', extent: warmCapture}),
       Object.freeze({operation: 'files.write.capture', extent: capture})]),
-    rowOperations: Object.freeze([Object.freeze({operation: 'files.write.request', extent: request}),
+    rowOperations: Object.freeze([Object.freeze({operation: 'files.write.request', extent: warmRequest}),
       Object.freeze({operation: 'files.write', extent: physical})]),
     savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
-    controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0}),
+    controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0,
+      ...(captureInput === undefined ? {} : {inputExtent: captureInput})}),
     recoveryConstruction: Object.freeze({operationIndex: 1}),
-    requestConstruction: Object.freeze({operationIndex: 0}),
+    requestConstruction: Object.freeze({operationIndex: 0,
+      ...(requestInput === undefined ? {} : {inputExtent: requestInput})}),
     physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxFileBytes)}),
   }), 4);
 }

@@ -76,3 +76,68 @@ test('closed saved codec preserves the generic composed owner control allowance'
       {code:'InvalidInstalledEffectPlanRecipe'});
   }
 });
+test('warm File recipe selects owned wire geometry while keeping cold and physical originals', () => {
+  const full = Array.from({length: 6}, (_, index) => ({full: index}));
+  const initial = [{initial: 'member'}, {initial: 'row'}, {initial: 'request'}];
+  const actual = [{actual: 'member'}, {actual: 'row'}, {actual: 'request'}];
+  const observations = [];
+  const moon = {
+    clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
+    clientProgramInstalledLocalFileStoreRecipeCapacities: () => ({$tag: 1, _0: full}),
+    clientProgramInstalledLocalFileStoreInitialConstructorCapacities: () => initial,
+    clientProgramInstalledLocalFileStoreObservedConstructorCapacities(...args) {
+      observations.push(args); return {$tag: 1, _0: actual};
+    },
+    clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation, capacities) {
+      return {$tag: 1, _0: {operation, capacities}};
+    },
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transfer, physical) {
+      return {$tag: 1, _0: {operation, capacity, transfer, physical}};
+    },
+    clientProgramInstalledEffectOperationStagedExtentPrepare(first, maximum) {
+      return {$tag: 1, _0: {first, maximum}};
+    },
+  };
+  const inputLimits = installedRowEffectConstructionLimits();
+  const recipe = prepareLocalFileStorePlanRecipe({moon, inputLimits,
+    limits: {...LOCAL_STORE_LIMITS, maxFileBytes: 123456}, requestHeaderUnits: 173,
+    writerProfile: {nativeOriginalBytes: 4321, maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130}});
+  assert.strictEqual(recipe.memberOperations[0].extent.first.capacities[0], initial[0]);
+  assert.strictEqual(recipe.memberOperations[1].extent.capacities, full);
+  assert.strictEqual(recipe.rowOperations[0].extent.first.capacity, initial[2]);
+  assert.strictEqual(recipe.rowOperations[1].extent.capacity, full[3]);
+  assert.equal(recipe.rowOperations[1].extent.transfer, 123456n);
+  const proposal = {changesWire: '{"value":{"path":"one.jsonl"}}', selectorWire: '{"kind":"file"}'};
+  const units = proposal.changesWire.length + proposal.selectorWire.length;
+  const selected = recipe.captureConstruction.inputExtent([proposal]);
+  assert.strictEqual(selected.capacities[0], actual[0]);
+  assert.deepEqual(observations[0], [3 * units, units, inputLimits.body.maxDepth,
+    18 * (units + 173), units + 173, 3 * 175 + 18 * (units + 173) + 1]);
+  assert.strictEqual(recipe.requestConstruction.inputExtent(proposal).capacity, actual[2]);
+  let reads = 0;
+  const foreign = Object.defineProperty({}, 'changesWire', {get() {reads++; return '{}';}});
+  assert.throws(() => recipe.captureConstruction.inputExtent([foreign]), TypeError);
+  assert.equal(reads, 0); assert.equal(observations.length, 2);
+});
+
+test('empty warm File capture quotes only its original recovery envelope', () => {
+  const full = Array.from({length: 6}, () => ({}));
+  const observations = [];
+  const moon = {
+    clientProgramInstalledLocalFileStoreControlWireBound: () => 1510,
+    clientProgramInstalledLocalFileStoreRecipeCapacities: () => ({$tag: 1, _0: full}),
+    clientProgramInstalledLocalFileStoreInitialConstructorCapacities: () => [{}, {}, {}],
+    clientProgramInstalledLocalFileStoreObservedConstructorCapacities(...args) {
+      observations.push(args); return {$tag: 1, _0: [{}, {}, {}]};
+    },
+    clientProgramInstalledEffectCaptureRecipeExtentPrepare: (operation, capacities) => ({$tag: 1, _0: {operation, capacities}}),
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare: () => ({$tag: 1, _0: {}}),
+    clientProgramInstalledEffectOperationStagedExtentPrepare: () => ({$tag: 1, _0: {}}),
+  };
+  const inputLimits = installedRowEffectConstructionLimits();
+  const recipe = prepareLocalFileStorePlanRecipe({moon, inputLimits, limits: {...LOCAL_STORE_LIMITS, maxFileBytes: 123456},
+    requestHeaderUnits: 173,
+    writerProfile: {nativeOriginalBytes: 4321, maxRootBytes: 4096, maxNameBytes: 1024, maxDepth: 130}});
+  recipe.captureConstruction.inputExtent([]);
+  assert.deepEqual(observations, [[0, 0, inputLimits.body.maxDepth, 0, 0, 525]]);
+});
