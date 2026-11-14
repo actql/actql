@@ -354,7 +354,7 @@ export async function storeCompletedRunResultSet(options) {
 // coordinates cannot relabel a foreign Run or a different exported payload.
 export function retainCompletedEffectDependencyPayloads({
   execution, store, storedResults, control, runDefinition, dependencies,
-  dependencyInventoryWire,
+  dependencyInventoryWire, dependencyConstruction,
 }) {
   const owner = completedResultOwners.get(storedResults);
   if (owner === undefined || owner.execution !== execution || owner.store !== store ||
@@ -394,6 +394,7 @@ export function retainCompletedEffectDependencyPayloads({
   // with its caller; successful adoption uses the existing cleanup retry path.
   owner.effectDependencyPayloads = Object.freeze(adopted);
   owner.effectDependencyInventoryWire = dependencyInventoryWire;
+  owner.effectDependencyConstruction = dependencyConstruction;
   return Object.freeze(adopted.map(value => value.binding));
 }
 
@@ -681,6 +682,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     effectSources: ownedHoldings.map(value => value.source),
     localEffectSources: ownedHoldings.map(value => value.localEvidence),
     dependencyInventoryWire: owner.effectDependencyInventoryWire,
+    dependencyConstruction: owner.effectDependencyConstruction,
   }, preview, plans, contractLimits, signal);
   const dependencyBindings = control.capturedEffectDependencyPayloadBindings(
     capturedRun, (owner.effectDependencyPayloads ?? []).map(value => ({

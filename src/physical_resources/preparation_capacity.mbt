@@ -465,6 +465,7 @@ fn completed_preparation_retirement() -> Result[Bool, PreparationCapacityIssue] 
 // existing API; Run census growth cannot be confused with a publication call.
 priv enum PreparationBodyGrowth {
   Publication
+  PublicationProofWork(Int64, Ref[PreparationPhaseWorkContinuation64?])
   NativeWork
   EnterRunningInventory
   LeaveRunningInventory
@@ -542,6 +543,24 @@ fn[I, P] make_preparation_body_borrow(
     },
     reserve_phase_original: (body, retained, execution, inventory) => {
       match inventory {
+        PublicationProofWork(maximum, result) => {
+          if value.returned || result.val is Some(_) {
+            return Err(ForeignOriginal)
+          }
+          match
+            begin_run_publication_work_continuation64(
+              value.owner,
+              body,
+              value.owner.ledger,
+              maximum,
+            ) {
+            Err(_) => Err(ForeignOriginal)
+            Ok(receipt) => {
+              result.val = Some(receipt)
+              Ok(())
+            }
+          }
+        }
         Publication | NativeWork =>
           reserve_original_preparation_running_phase(
             value, body, retained, execution,

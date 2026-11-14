@@ -590,3 +590,108 @@ pub fn client_program_installed_effect_static_dependency_bodies(
     owner, prepared, request, plan, inputs, unit, max_bytes, max_nodes, max_depth,
   )
 }
+
+///|
+#export_name("clientProgramInstalledEffectDependencyGroupReserve")
+pub fn client_program_installed_effect_dependency_group_reserve(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  entries : Int,
+  roots : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.reserve_installed_effect_dependency_group(
+    owner, prepared, request, plan, entries, roots,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectDependencyInventoryPrepare")
+pub fn client_program_installed_effect_dependency_inventory_prepare(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  kinds : Array[String],
+  identities : Array[String?],
+  wires : Array[String],
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.prepare_installed_effect_dependency_inventory(
+    owner, prepared, request, plan, kinds, identities, wires, artifacts, max_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectDependencyTextRetain")
+pub fn client_program_installed_effect_dependency_text_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  text : String,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.retain_installed_effect_dependency_text(
+    owner, prepared, request, plan, text,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectDependencyCaptureReserve")
+pub fn client_program_installed_effect_dependency_capture_reserve(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  slots : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.reserve_installed_effect_dependency_capture(
+    owner, prepared, request, plan, definition, invocation, slots,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectDependencyCaptureBegin")
+pub fn client_program_installed_effect_dependency_capture_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  snapshots : Array[@publication.CapturedResultSnapshot],
+  sources : Array[@publication.CapturedEffectSourceArtifact],
+  local_sources : Array[@publication.CapturedLocalEffectSourceEvidence],
+  advances : Array[@publication.PendingSourceStateAdvance],
+  authoring : @publication.RunEvidenceValue,
+  models : Array[@publication.RunEvidenceValue],
+  preview : @publication.EffectPreviewIdentity,
+  plan_names : Array[String],
+  plan_wires : Array[String],
+  dependency_wire : String,
+  content_generations : Array[@publication.BoundContentGeneration],
+  max_body_bytes : Int,
+  max_body_nodes : Int,
+  max_body_depth : Int,
+) -> Result[
+  @publication.CapturedRunIssuancePreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_effect_dependency_capture(
+    owner, prepared, request, expected_plan, definition, invocation, definitions,
+    artifacts, manifest, receipt, snapshots, sources, local_sources, advances, authoring,
+    models, preview, plan_names, plan_wires, dependency_wire, content_generations,
+    max_body_bytes, max_body_nodes, max_body_depth,
+  )
+}

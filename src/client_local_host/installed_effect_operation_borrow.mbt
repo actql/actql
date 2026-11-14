@@ -136,8 +136,9 @@ fn installed_effect_operation_control_capacity(
     // variant/Some and the existing child reference, never another body owner.
     // The shared four-word Ledger policy adds1H4W; at most32 existing
     // wrapper contexts retain its borrowed reference (32R).
-    // Two closed dependency selectors and their shared original flight
-    // frame add8H32R8W before the Host constructs those methods.
+    // The private original association owns a frozen6-reference record,
+    // its temporary spread record and one WeakMap entry before registration.
+    // Its current function is borrowed from the existing control.
     record_headers: dependency_cache.record_headers +
     4L +
     8L +
@@ -724,6 +725,10 @@ fn retain_installed_effect_operation_controls(
         dependency_static: Map([]),
         dependency_group: None,
         dependency_inventory: None,
+        dependency_inventory_geometry: None,
+        dependency_capture_slots: None,
+        dependency_work: None,
+        dependency_capture: None,
         dependency_started: false,
         dependency_inputs: None,
         dependency_capacity: None,

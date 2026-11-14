@@ -523,3 +523,14 @@ pub fn[P] stop_node_managed_run_admission(
     Ok(_) => stop_imported_child_ledger(value.child)
   }
 }
+
+///|
+fn[P] prepared_run_operation_work_node_body(
+  owner : NodeManagedRunAdmission[P],
+) -> PreparationBodyBorrow[P]? {
+  if owner.cleaned {
+    None
+  } else {
+    owner.preparation_holder
+  }
+}

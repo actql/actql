@@ -71,6 +71,10 @@ priv struct ClientEffectOperationControls {
   ]
   mut dependency_group : (Int, Int)?
   mut dependency_inventory : @publication.CapturedEffectDependencyInventory?
+  mut dependency_inventory_geometry : @encode.EncodingConstructionGeometry?
+  mut dependency_work : @resources.PreparationPhaseWorkContinuation64?
+  mut dependency_capture_slots : Int?
+  mut dependency_capture : @publication.CapturedRunIssuancePreparation?
   mut dependency_started : Bool
   mut dependency_inputs : @strategy.CapturedEffectInputs?
   mut dependency_capacity : @execution.ExecutionCapacity?

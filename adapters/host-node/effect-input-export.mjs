@@ -86,6 +86,7 @@ export function retainPinnedEffectDependencyPayloads({
   }
   const bindings = retainCompletedEffectDependencyPayloads({execution, store,
     storedResults, control, runDefinition,
+    dependencyConstruction: owner.dependencyConstruction,
     dependencyInventoryWire: preparePinnedEffectDependencyInventory({
       sources, store, control, contractLimits: owner.contractLimits,
     }),

@@ -61,10 +61,16 @@ pub fn pin_installed_effect_sources(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  match
+    begin_installed_effect_dependency_work(admission, plan, ledger, control) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   control.dependency_started = true
   let refused : Ref[@resources.LedgerIssue?] = Ref(None)
   let census = match
-    @resources.with_prepared_run_operation_control_work(
+    with_installed_effect_dependency_work(
+      control,
       admission,
       plan,
       ledger,
@@ -140,7 +146,8 @@ pub fn pin_installed_effect_sources(
     return Err(InsufficientCapacity)
   }
   match
-    @resources.with_prepared_run_operation_control_work(
+    with_installed_effect_dependency_work(
+      control,
       admission,
       plan,
       ledger,
@@ -155,9 +162,9 @@ pub fn pin_installed_effect_sources(
       control.reservation,
       () => owner.effect_operation_opening && !owner.effect_operation_closing,
       spend => {
-        spend(work.to_int()).map_err(
-          issue => @resources.NodeManagedRunOperationIssue::Control(issue),
-        )
+        spend(work.to_int()).map_err(issue => {
+          @resources.NodeManagedRunOperationIssue::Control(issue)
+        })
       },
     ).map_err(installed_effect_operation_reservation_issue) {
     Err(issue) => return Err(issue)

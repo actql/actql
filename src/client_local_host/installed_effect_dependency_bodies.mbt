@@ -74,7 +74,8 @@ pub fn prepare_installed_effect_dependency_bodies(
   }
   let refused : Ref[@resources.LedgerIssue?] = Ref(None)
   let censuses = match
-    @resources.with_prepared_run_operation_control_work(
+    with_installed_effect_dependency_work(
+      control,
       admission,
       plan,
       ledger,
@@ -168,7 +169,8 @@ pub fn prepare_installed_effect_dependency_bodies(
     Ok(_) => ()
   }
   let (keys, firsts) = match
-    @resources.with_prepared_run_operation_control_work(
+    with_installed_effect_dependency_work(
+      control,
       admission,
       plan,
       ledger,
@@ -254,7 +256,8 @@ pub fn prepare_installed_effect_dependency_bodies(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let result = @resources.with_prepared_run_operation_control_work(
+  let result = with_installed_effect_dependency_work(
+    control,
     admission,
     plan,
     ledger,

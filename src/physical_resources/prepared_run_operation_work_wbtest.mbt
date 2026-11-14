@@ -78,8 +78,12 @@ test "operation Work refusal preserves spent prefix and closes the same view bef
     () => true,
     spend => {
       spend(3).unwrap()
-      assert_eq(spend(2), Err(PlanningLimit))
-      assert_eq(spend(1), Err(ForeignOwner))
+      assert_eq(spend(2), Err(PlanningLimit)) catch {
+        _ => panic()
+      }
+      assert_eq(spend(1), Err(ForeignOwner)) catch {
+        _ => panic()
+      }
       Err(Control(PlanningLimit))
     },
   )
@@ -126,14 +130,18 @@ test "operation Work checks foreign original and reentrant or stopped lifetime b
     control,
     () => {
       if reenter.val && same.val is Some(spend) {
-        assert_eq(spend(1), Err(ForeignOwner))
+        assert_eq(spend(1), Err(ForeignOwner)) catch {
+          _ => panic()
+        }
       }
       true
     },
     spend => {
       same.val = Some(spend)
       reenter.val = true
-      assert_eq(spend(1), Err(ForeignOwner))
+      assert_eq(spend(1), Err(ForeignOwner)) catch {
+        _ => panic()
+      }
       Err(Control(ForeignOwner))
     },
   )
@@ -182,7 +190,9 @@ test "operation Work view expires across another existing reservation resize" {
       // An existing token can grow without changing the capacity serial.
       // The original usage fence still catches that allocating boundary.
       grow_capacity_reservation(ledger, other, 1L, 1L).unwrap()
-      assert_eq(spend(1), Err(ForeignOwner))
+      assert_eq(spend(1), Err(ForeignOwner)) catch {
+        _ => panic()
+      }
       Err(Control(ForeignOwner))
     },
   )

@@ -61,13 +61,14 @@ fn[P] prepared_run_operation_work_binding(
 /// or transferable current proof. The closed caller retains its own flight
 /// latch and supplies a callback-free original-lifetime check. All allocating
 /// Resource callbacks, reentry and awaits must occur outside this segment.
-pub fn[P, R, E] with_prepared_run_operation_control_work(
+fn[P, R, E] with_prepared_run_operation_control_work_selected(
   value : PreparedRunAdmission[P],
   prepared : P,
   ledger : Ledger,
   original : () -> Result[Unit, E],
   control : CapacityReservation,
   live : () -> Bool,
+  publication_work : PreparationPhaseWorkContinuation64?,
   work : ((Int) -> Result[Unit, LedgerIssue]) -> Result[
     R,
     NodeManagedRunOperationIssue[E],
@@ -128,7 +129,19 @@ pub fn[P, R, E] with_prepared_run_operation_control_work(
     if units == 0 {
       return Ok(())
     }
-    match charge_planning_current(ledger, units) {
+    let charged = match publication_work {
+      None => charge_planning_current(ledger, units)
+      Some(receipt) =>
+        if !physical_equal(receipt.ledger_original, ledger) {
+          Err(ForeignOwner)
+        } else {
+          spend_preparation_phase_work_continuation64(receipt, units.to_int64()).map_err(_ => {
+              LedgerIssue::PlanningLimit
+            },
+          )
+        }
+    }
+    match charged {
       Err(issue) => {
         active.val = false
         Err(issue)
@@ -145,6 +158,113 @@ pub fn[P, R, E] with_prepared_run_operation_control_work(
       match spend(0) {
         Err(issue) => Err(Control(issue))
         Ok(_) => Ok(result)
+      }
+  }
+}
+
+///|
+// Unchanged dispatch-planning entrance.
+pub fn[P, R, E] with_prepared_run_operation_control_work(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  control : CapacityReservation,
+  live : () -> Bool,
+  work : ((Int) -> Result[Unit, LedgerIssue]) -> Result[
+    R,
+    NodeManagedRunOperationIssue[E],
+  ],
+) -> Result[R, NodeManagedRunOperationIssue[E]] {
+  with_prepared_run_operation_control_work_selected(
+    value,
+    prepared,
+    ledger,
+    original,
+    control,
+    live,
+    None,
+    work,
+  )
+}
+
+///|
+// Closed construction alternative uses one already-issued SAME Run receipt.
+// It changes no planning/attempt/external-operation counter or allowance.
+pub fn[P, R, E] with_prepared_run_operation_control_publication_work(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  control : CapacityReservation,
+  live : () -> Bool,
+  receipt : PreparationPhaseWorkContinuation64,
+  work : ((Int) -> Result[Unit, LedgerIssue]) -> Result[
+    R,
+    NodeManagedRunOperationIssue[E],
+  ],
+) -> Result[R, NodeManagedRunOperationIssue[E]] {
+  if !physical_equal(receipt.ledger_original, ledger) {
+    return Err(Control(ForeignOwner))
+  }
+  with_prepared_run_operation_control_work_selected(
+    value,
+    prepared,
+    ledger,
+    original,
+    control,
+    live,
+    Some(receipt),
+    work,
+  )
+}
+
+///|
+// The same body borrower retains the original input/body/reservation across
+// adoption. Numeric meter storage must already be funded by its caller.
+pub fn[P] begin_prepared_run_publication_work(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  maximum : Int64,
+) -> Result[PreparationPhaseWorkContinuation64, ImportedChildLedgerIssue] {
+  match check_prepared_run_admission(value, prepared, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let holder = match value {
+    NodePreparedRun(owner) => {
+      match check_node_managed_run_preparation(owner, prepared) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard prepared_run_operation_work_node_body(owner) is Some(holder) else {
+        return Err(Unavailable)
+      }
+      holder
+    }
+    BackedPreparedRun(owner) => {
+      match check_backed_prepared_run_binding(owner, prepared, ledger) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard owner.holder is Some(holder) else { return Err(Unavailable) }
+      holder
+    }
+  }
+  let result : Ref[PreparationPhaseWorkContinuation64?] = Ref(None)
+  match
+    (holder.reserve_phase_original)(
+      prepared,
+      0L,
+      0L,
+      PublicationProofWork(maximum, result),
+    ) {
+    Err(_) => Err(Unavailable)
+    Ok(_) =>
+      match result.val {
+        Some(receipt) => Ok(receipt)
+        None => Err(Unavailable)
       }
   }
 }

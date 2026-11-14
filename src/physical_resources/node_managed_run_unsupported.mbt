@@ -246,3 +246,10 @@ fn[P] prepared_run_operation_work_node_child(
 ) -> ImportedChildLedger? {
   None
 }
+
+///|
+fn[P] prepared_run_operation_work_node_body(
+  _owner : NodeManagedRunAdmission[P],
+) -> PreparationBodyBorrow[P]? {
+  None
+}

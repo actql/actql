@@ -2484,8 +2484,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     assertCurrent?.();
     const limits = runLimits(managedEffect);
     const controlConstruction = managedEffect?.controlConstruction;
-    if (managedEffect !== undefined && (typeof controlConstruction !== 'function' ||
-        typeof controlConstruction.pinSources !== 'function')) fail('InstalledEffectControlRuntimeUnavailable');
+    if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     const dependencyOriginal = managedEffect === undefined ? undefined
       : installedEffectDependencyOriginal(controlConstruction,moon);
     if(dependencyOriginal!==undefined&&(dependencyOriginal.parent!==managedEffect.value||

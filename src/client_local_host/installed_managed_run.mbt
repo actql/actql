@@ -1601,8 +1601,21 @@ pub fn quiesce_installed_managed_run(
       }
       // Returned Source/Result children have cut their aliases above. Cut
       // this control's own immutable DATA aliases before returning capacity.
+      if control.dependency_work is Some(work) {
+        if @resources.finish_preparation_phase_work_continuation64(work)
+          is Err(_) {
+          return Err(ForeignOriginal)
+        }
+        control.dependency_work = None
+      }
       control.dependency_static.clear()
       control.dependency_inventory = None
+      control.dependency_inventory_geometry = None
+      if control.dependency_capture is Some(issuer) {
+        issuer.cancel()
+      }
+      control.dependency_capture = None
+      control.dependency_capture_slots = None
       control.dependency_group = None
       match @resources.settle_capacity(ledger, control.reservation) {
         Ok(_) => {

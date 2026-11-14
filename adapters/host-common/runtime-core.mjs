@@ -6057,7 +6057,19 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Effect computation Preview');
       }
       signal?.throwIfAborted();
-      const preparation = checked(moon.strategyBeginEffectfulCapturedRun(
+      const original = evidence.dependencyConstruction === undefined ? undefined
+        : installedEffectDependencyOriginal(evidence.dependencyConstruction, moon);
+      if (original !== undefined) {
+        const slots = chain.definitions.length + chain.artifacts.length + evidence.snapshots.length +
+          evidence.effectSources.length + evidence.localEffectSources.length +
+          evidence.pendingSourceStateAdvances.length + evidence.modelEvidence.length +
+          (evidence.contentGenerations?.length ?? 0) + 2 * plans.length;
+        if (!Number.isSafeInteger(slots) || slots > 2147483647) throw new RangeError('EffectCaptureInventoryLimit');
+        checked(moon.clientProgramInstalledEffectDependencyCaptureReserve(original.parent, original.prepared,
+          original.request, original.plan, token(chain.runDefinition), token(chain.invocation), slots));
+        original.current();
+      }
+      const preparation = original === undefined ? checked(moon.strategyBeginEffectfulCapturedRun(
         token(chain.runDefinition), token(chain.invocation),
         chain.definitions.map(token), chain.artifacts.map(token),
         token(chain.manifest), token(chain.receipt),
@@ -6072,8 +6084,21 @@ function publicationControl(moon) {
         evidence.dependencyInventoryWire,
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
         contentCaptures(evidence.contentGenerations),
+      )) : checked(moon.clientProgramInstalledEffectDependencyCaptureBegin(
+        original.parent, original.prepared, original.request, original.plan,
+        token(chain.runDefinition), token(chain.invocation), chain.definitions.map(token),
+        chain.artifacts.map(token), token(chain.manifest), token(chain.receipt),
+        evidence.snapshots.map(snapshotToken), evidence.effectSources.map(effectSourceToken),
+        evidence.localEffectSources.map(localEffectSourceToken),
+        evidence.pendingSourceStateAdvances.map(sourceAdvanceToken), evidenceToken(evidence.authoringContext),
+        evidence.modelEvidence.map(evidenceToken), ownedPreview,
+        plans.map(value => value.name), plans.map(value => value.wire), evidence.dependencyInventoryWire,
+        contentCaptures(evidence.contentGenerations), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
       ));
-      return finishCapturedPreparation(preparation, signal);
+      original?.current();
+      const value = await finishCapturedPreparation(preparation, signal);
+      original?.current();
+      return value;
     },
     prepareLocalEffectDependencyInventory(artifacts, bodies, limits, construction) {
       issuanceLimits(limits, 'Effect dependency inventory');

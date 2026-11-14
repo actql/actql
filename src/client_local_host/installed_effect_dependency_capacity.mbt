@@ -152,6 +152,7 @@ fn installed_effect_dependency_fixed_capacity(
   let n = entries.to_int64()
   let d = depth.to_int64() + 1L
   let preflight = @source.json_source_preflight_control_extent()
+  let phase = @resources.preparation_phase_work_continuation64_construction_inventory()
   guard @shape.collection_construction_extent({
       // Censuses own a9-word geometry, source/role tuple and output pair.
       records: 5L * n,
@@ -174,8 +175,8 @@ fn installed_effect_dependency_fixed_capacity(
       // Contract emission adds <=6 fixed vocabulary member pairs per depth;
       // its borrowed Fields vector never grows with output field width.
       records: 16L + 24L * d,
-      record_references: 34L + 64L * d,
-      record_words: 35L + 32L * d,
+      record_references: phase.reference_slots + 5L + 34L + 64L * d,
+      record_words: phase.scalar_words + 2L + 35L + 32L * d,
       reference_arrays: 6L,
       reference_items: 12L * d,
       scalar_arrays: 0L,
