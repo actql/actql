@@ -181,7 +181,29 @@ pub fn prepare_installed_effect_dependency_inventory(
   // parsing gets a separate measured extent before the existing classifier.
   let roots_capacity = match
     segment(work => {
-      let mut roots_capacity = @execution.execution_capacity(0L, 0L).unwrap()
+      // The later catalog_original argument owns tuple1H2R + Some1H1R1W.
+      // Include it in this existing pre-entry grow, even with no Artifact
+      // roots; the Catalog helper's own fixed-control grow occurs too late.
+      let mut roots_capacity = @execution.preparation_execution_capacity({
+        retained: {
+          record_headers: 2L,
+          reference_slots: 3L,
+          scalar_words: 1L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        },
+        workspace: {
+          record_headers: 0L,
+          reference_slots: 0L,
+          scalar_words: 0L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        },
+        retained_nodes: 0L,
+        workspace_nodes: 0L,
+        retained_bytes: 0L,
+        workspace_bytes: 0L,
+      }).unwrap()
       for artifact in artifacts {
         if !work(1) {
           return Err(InsufficientCapacity)
