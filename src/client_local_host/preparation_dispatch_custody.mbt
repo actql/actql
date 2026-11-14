@@ -449,7 +449,7 @@ pub fn prepare_installed_effect_model_source_unit_catalog(
   }
   let bodies = []
   let seen : Map[String, Bool] = Map([])
-  let mut remaining = Int::min(max_bytes, 16777216)
+  let mut remaining = max_bytes
   for part in 0..<parts {
     let references = match
       @publication_host.client_effect_combined_source_unit_catalog_dependencies_at(
