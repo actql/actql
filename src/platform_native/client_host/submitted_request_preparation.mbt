@@ -125,6 +125,10 @@ pub fn[I] prepare_native_client_submitted_request_input(
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   verify_request_value_policy? : ((String) -> String?)? = None,
+  before_program_borrow? : (() -> Result[
+    Unit,
+    NativeClientSubmittedPreparationIssue,
+  ])? = None,
 ) -> Result[
   (NativeClientSubmittedPreparation, NativeClientSubmittedRequestBody),
   NativeClientSubmittedPreparationIssue,
@@ -152,6 +156,14 @@ pub fn[I] prepare_native_client_submitted_request_input(
   // Do not check, compile or continue it a second time at this Native handoff.
   match kind {
     @local.Pure => {
+      // Finish the caller's same-Request constructor before retaining the
+      // original Plan input. The callback receives no replacement authority.
+      if before_program_borrow is Some(prepare) {
+        match prepare() {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+      }
       let borrow = match
         @local.borrow_request_program_plan_input(owner, input) {
         Err(issue) => return Err(RequestPreparation(issue))

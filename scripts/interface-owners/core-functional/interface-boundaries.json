@@ -90931,7 +90931,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "6aa56a0b02b933244d0cecf9f44af95ad279b6650483bf7d345f958d4aa097cf",
+      "sha256": "8c43cdc57b90f01c95392927b485d6f860aab279ebce01e3d3e7ab836b07e530",
       "exports": [],
       "operations": [
         {
@@ -91027,7 +91027,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_diagnostic.mbt",
-      "sha256": "df504ab26fe06e22b4767c8c170007724ac819787259c6cbae0d9566a90d0bf8",
+      "sha256": "62c95e530fdc888b3712e73d13c0853f3b58e87995aee5516511aa63893b79df",
       "exports": [],
       "operations": [
         {
@@ -91985,6 +91985,319 @@
             "measure_client_local_normalization_construction",
             "observe_prepare_client_local_normalization",
             "prepared_client_local_normalization_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/cmd/native_client/local_command_business_request.mbt",
+      "sha256": "ebc9e127a2927192a3687d285a11da227e84db4f92341d2d1d33f4168f82d1d3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]prepare_local_native_whole_file_request_module",
+          "declaration": "[ I ] prepare_local_native_whole_file_request_module ( parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , declaration : @ row_host . RowDeclaration , row : LocalProjectMockRowBinding , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > @ local_values . ClientInstalledWholeSourceCapacity raise ClientStop"
+        },
+        {
+          "name": "[T]LocalCommandPreparationOriginal::with_business_request",
+          "declaration": "[ T ] LocalCommandPreparationOriginal : : with_business_request ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , callback : ( ) - > T raise ClientStop , ) - > T raise ClientStop"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::adopt_request_run",
+          "declaration": "LocalCommandBusinessPreparation : : adopt_request_run ( self : LocalCommandBusinessPreparation , request : @ run_host . ClientRequestIdentity , ) - > Unit raise ClientStop"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::compile_effect_first",
+          "declaration": "LocalCommandBusinessPreparation : : compile_effect_first ( self : LocalCommandBusinessPreparation , scope : String , configuration_cid : String , namespace_id : String , request_id : String , now : String , until : String , request : @ run_host . ClientRequestIdentity , current_time : ( ) - > String , ) - > LocalEffectFirstCompilation raise ClientStop"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::request_compilation",
+          "declaration": "LocalCommandBusinessPreparation : : request_compilation ( self : LocalCommandBusinessPreparation , ) - > @ run_host . ClientRunCompilation raise ClientStop"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::begin_business_request",
+          "declaration": "LocalCommandPreparationOriginal : : begin_business_request ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , ) - > Unit raise ClientStop"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_business_request",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_business_request ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , intent : @ run_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , ) - > ( @ local_host . NativeClientSubmittedPreparation , @ run_host . ClientLocalNormalization ? , ) raise ClientStop"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command original preparation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]prepare_local_native_whole_file_request_module",
+            "[T]LocalCommandPreparationOriginal::with_business_request",
+            "LocalCommandBusinessPreparation::adopt_request_run",
+            "LocalCommandBusinessPreparation::compile_effect_first",
+            "LocalCommandBusinessPreparation::request_compilation",
+            "LocalCommandPreparationOriginal::begin_business_request",
+            "LocalCommandPreparationOriginal::prepare_business_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/platform_native/client_host/submitted_preparation.mbt",
+      "sha256": "208870ade4d5979a3c0ffc0ffe8977e4c9e32e754aba249c8592f0dbba6a35e0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_client_submitted_preparation",
+          "declaration": "native_client_submitted_preparation ( value : NativeClientSubmittedPreparation , ) - > NativeClientPreparation"
+        },
+        {
+          "name": "native_client_submitted_preparation_intent_cid",
+          "declaration": "native_client_submitted_preparation_intent_cid ( value : NativeClientSubmittedPreparation , ) - > String"
+        },
+        {
+          "name": "prepare_native_client_submitted_program",
+          "declaration": "prepare_native_client_submitted_program ( intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , context : @ query . Context ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ host . ClientEffectComputationLimits , source_path ? : String"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_client_submitted_preparation",
+            "native_client_submitted_preparation_intent_cid",
+            "prepare_native_client_submitted_program"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
+      "sha256": "56d75e2e4b27de899eafec685090ac7ab2cdafe8960d82cd4c15e44be9669710",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]check_native_client_submitted_request_input",
+          "declaration": "[ I ] check_native_client_submitted_request_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , verify_request_value_policy ? : ( ( String ) - > String ? ) ?"
+        },
+        {
+          "name": "[I]prepare_native_client_submitted_request_input",
+          "declaration": "[ I ] prepare_native_client_submitted_request_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , verify_request_value_policy ? : ( ( String ) - > String ? ) ?"
+        },
+        {
+          "name": "prepare_native_client_submitted_request",
+          "declaration": "prepare_native_client_submitted_request ( owner : @ local . ClientRequestPreparation [ @ host . ClientSubmittedIntent ] , intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ ( NativeClientSubmittedPreparation , NativeClientSubmittedRequestBody ) , NativeClientSubmittedPreparationIssue , ]"
+        },
+        {
+          "name": "return_native_client_submitted_request_body",
+          "declaration": "return_native_client_submitted_request_body ( body : NativeClientSubmittedRequestBody , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]check_native_client_submitted_request_input",
+            "[I]prepare_native_client_submitted_request_input",
+            "prepare_native_client_submitted_request",
+            "return_native_client_submitted_request_body"
           ],
           "exports": [],
           "attributes": {

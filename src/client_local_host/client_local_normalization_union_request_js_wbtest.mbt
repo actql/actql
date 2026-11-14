@@ -260,16 +260,41 @@ test "normalization Request first cached original checks current before its firs
 }
 
 ///|
-test "normalization actual Native submitted preparation borrow order" {
+test "normalization preserves Native preborrow construction and rejects late borrow order" {
   let (parent, input) = normalization_request_control_fixture()
   let borrow = borrow_request_program_plan_input(parent, input).unwrap()
   let observed = match prepare_request_program_normalization(parent, input) {
     Ok(_) => "issued"
     Err(Preparation(WrongPhase)) => "request-wrong-phase-after-plan-borrow"
-    Err(issue) => { let original : Error = issue; @debug.to_string(original) }
+    Err(issue) => {
+      let original : Error = issue
+      @debug.to_string(original)
+    }
   }
   @resources.return_preparation_body_borrow(borrow).unwrap() |> ignore
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
-  assert_eq(observed, "issued")
+  assert_eq(observed, "request-wrong-phase-after-plan-borrow")
+  let (parent, input) = normalization_request_control_fixture()
+  let original = prepare_request_program_normalization(parent, input).unwrap()
+  let work = request_program_normalization_work(parent, input).unwrap()
+  let borrow = borrow_request_program_plan_input(parent, input).unwrap()
+  assert_true(
+    physical_equal(
+      @resources.preparation_body_borrow_value(borrow).unwrap(),
+      parent.compiled_program.unwrap(),
+    ),
+  )
+  assert_true(
+    physical_equal(
+      original,
+      @publication_host.prepared_client_local_normalization_original(
+        parent.compiled_program.unwrap(),
+      ).unwrap(),
+    ),
+  )
+  assert_eq(request_program_normalization_work(parent, input), Some(work))
+  @resources.return_preparation_body_borrow(borrow).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

@@ -6558,6 +6558,15 @@ independent; these projections do not grant Resource capacity or compile a body.
 
 ### Original normalization on the same Request
 
+The Native submitted-request handoff runs its selected original constructor
+inside the caller's already-active business Request, before borrowing the Plan
+input. Its optional `before_program_borrow` callback does not replace the
+Program, compiler, parent or authorization. Absence preserves the existing
+handoff. The CLI retains the same normalization returned by this constructor;
+it does not enter a nested business Request or repeat normalization after the
+Plan borrow. Typed normalization failures leave the original cleanup duties on
+the same parent.
+
 An ordinary Native Source computation keeps its original checked and compiled
 Program on the Request's existing preparation capacity. Its normalization audit
 runs in that same backed execution scope before the execution Plan is built.

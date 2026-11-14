@@ -128,6 +128,9 @@ fn local_native_preparation_diagnostic_kind(
 fn[T] local_stop_submitted_preparation(
   issue : @local_host.NativeClientSubmittedPreparationIssue,
 ) -> T raise ClientStop {
+  if issue is RequestNormalization(original) {
+    return local_stop_normalization(original)
+  }
   command_preparation_diagnostic.val = match issue {
     InvalidSubmittedInput => ProgramInvalid
     SubmittedInputLimit => PreparationLimit
@@ -147,6 +150,7 @@ fn[T] local_stop_submitted_preparation(
       local_frontend_diagnostic_kind(issue)
     Request(_) | RequestPreparation(_) => PreparationFailed
     RequestBranchUnavailable => UnsupportedPreparation
+    RequestNormalization(_) => PreparationFailed
   }
   // The existing caller propagates this rejection; it never retries another
   // checker. Preserve its old private carrier and cleanup routing unchanged.
