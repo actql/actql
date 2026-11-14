@@ -112,7 +112,7 @@ test('Table public129 Source views read real rows and retain SAME Saved after co
     table_name: 'rows', table_uuid: receipt.table_uuid, schema_cid: f.mapping.schema_cid};
   const resources = Array.from({length: 129}, (_, index) => `rows_${index}`);
   const configuration = JSON.parse(account());
-  configuration.entries.find(entry => entry.entry_id === 'read').resource = {any_of: resources};
+  configuration.entries.find(entry => entry.entry_id === 'read').resource = {any_of: [...resources].sort()};
   const accountConfiguration = canonicalJson(configuration);
   const sourceProfilePath = join(f.root, 'source129.json');
   await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-local-table-source/0.1',
