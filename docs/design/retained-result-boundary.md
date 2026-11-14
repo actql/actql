@@ -653,6 +653,17 @@ The inverse conversion serializes an existing completed cell representation
 through the same canonical encoder. It reads the sealed row/column storage one
 row at a time, with cumulative value/encoding limits and a bounded output batch;
 it neither accepts replacement rows nor reruns the producing computation.
+
+Physical batch export drains its same bounded writer within a logical row
+when that row exceeds one frame. This applies both to callers with prepaid
+export backing and to the existing same-Task numerical growth callback. The
+callback, when supplied, must still fund the complete measured row before
+payload emission; its absence does not grant capacity. Fragmenting adds no
+writer, measurement, reservation or owner and never enlarges a frame. Aggregate
+wire/node/depth/work limits, original currentness and the final exact receipt
+remain mandatory. Provisional chunks are neither complete rows nor storage
+acknowledgements. The ordinary complete-row reader keeps its separate mode and
+refuses a row which cannot fit its selected row buffer.
 End-of-rows is not a complete receipt: the final delimiter and hash must finish
 before the Store can seal its bytes. Storage binding requires the exact export
 content receipt, not matching CID text from another export or completion.

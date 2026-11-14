@@ -75,15 +75,33 @@ test "conservative physical row bound only drains earlier and preserves exact Un
     )
     cancel_completed_export_receipt(receipt)
   }
-  for batched in [false, true] {
-    let stream = physical_batch_fixture(16)
-    assert_true(
-      next_completed_output_export(stream, batch=batched)
-      is Err(Wire(Encoding(@encode.OutputLimit))),
-    )
-    assert_true(stream.source is None && stream.pending_row is None)
-    assert_true(finish_completed_output_export(stream) is Err(Closed))
+  let whole_row = physical_batch_fixture(16)
+  assert_true(
+    next_completed_output_export(whole_row)
+    is Err(Wire(Encoding(@encode.OutputLimit))),
+  )
+  assert_true(whole_row.source is None && whole_row.pending_row is None)
+  assert_true(finish_completed_output_export(whole_row) is Err(Closed))
+  // Physical batch mode bounds fragments, not the size of a logical row.
+  // The ordinary complete-row entrance above retains its original refusal.
+  let fragments = physical_batch_fixture(16)
+  let text = StringBuilder()
+  while next_completed_output_export(fragments, batch=true).unwrap()
+        is Some(part) {
+    assert_true(!part.is_empty() && @utf8.encode(part).length() <= 16)
+    text.write_string(part)
   }
+  let (receipt, tail) = finish_completed_output_export(fragments).unwrap()
+  text.write_string(tail)
+  assert_eq(
+    text.to_string(),
+    "[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]",
+  )
+  assert_eq(
+    receipt.content.cid,
+    "sha256:1f3a78f3ede9a4385bbcbf098a3f0fdb9b16dc3e0e8d78f05255682d9c25f3e0",
+  )
+  cancel_completed_export_receipt(receipt)
 }
 
 ///|
