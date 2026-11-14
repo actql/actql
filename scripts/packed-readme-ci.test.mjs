@@ -2510,3 +2510,60 @@ test('normal large-row acceptance keeps a small authored input and independently
   assert(Buffer.byteLength(JSON.stringify(Object.fromEntries(
     Array.from({length: 17}, (_, n) => [`f${n}`, 'x'.repeat(64000)])))) > 1048576);
 });
+
+test('required collection Saved consumes the original large-row handoff and checks every field before status', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const first = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node => node.type !== 'ImportDeclaration');
+  const invoke = Function('ports', `return (async () => {
+    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
+      observeRecordApprovalDescriptors,process,console}=ports;
+    ${source.slice(first.start)}
+  })();`);
+  const expected = Object.fromEntries(Array.from({length: 17}, (_, index) => ['f'+index, 'x'.repeat(64000)]));
+  assert.equal(Buffer.byteLength(JSON.stringify(expected)), 1088144);
+  for (const mode of ['exact', 'last-field-short', 'missing-field', 'foreign-ref']) {
+    const events = [], stored = new Map(); let output, closes = 0;
+    const original = {ref: {run: 'same-small'}, resultName: 'small', count: 100000,
+      largeRow: {ref: {run: mode === 'foreign-ref' ? 'foreign' : 'same-large'}, resultName: 'large',
+        rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: 1088144}};
+    const running = invoke({assert, join,
+      process: {argv: ['node','fixture','saved','/fresh/original.json'], pid: 456,
+        cwd: () => '/fresh', hrtime: process.hrtime, cpuUsage: process.cpuUsage},
+      console: {log(wire) {output = JSON.parse(wire);}}, setTimeout: async () => {},
+      async readFile(path) {assert.equal(path, '/fresh/original.json'); return JSON.stringify(original);},
+      async writeFile(path, wire) {stored.set(path, wire);},
+      unlink: () => assert.fail('Saved must not acquire or remove a Program'),
+      getSubmissionOutcome: () => assert.fail('No Saved submission outcome'),
+      getSubmissionInput: () => assert.fail('No Saved submit input'),
+      getSubmissionAttempt: () => assert.fail('No Saved submit attempt'),
+      observeRecordApprovalDescriptors: async () => ({openPaths: []}),
+      async open() {return {
+        startSource() {assert.fail('Saved must not submit');},
+        async attach(ref) {
+          assert(['same-small','same-large'].includes(ref.run), 'Only original references may be attached');
+          events.push('attach:'+ref.run);
+          return {result(name) {
+            assert.equal(name, ref.run === 'same-large' ? 'large' : 'small');
+            return {async all() {
+              events.push('all:'+ref.run);
+              if (ref.run === 'same-small') return Array.from({length: 100000}, () => ({n: 0}));
+              const row = {...expected};
+              if (mode === 'last-field-short') row.f16 = row.f16.slice(1);
+              if (mode === 'missing-field') delete row.f8;
+              return [row];
+            }};
+          }, async status() {events.push('status:'+ref.run); return {status: 'succeeded'};}};
+        }, async close() {closes++;},
+      };},
+    });
+    if (mode === 'exact') {
+      await running;
+      assert.deepEqual(events, ['attach:same-small','all:same-small','status:same-small',
+        'attach:same-large','all:same-large','status:same-large']);
+      assert.deepEqual(output.largeRow, {...original.largeRow, complete: true});
+      assert.equal(output.submits, 0); assert.equal(output.firstCloseCalls, 1);
+      assert.equal(output.complete, true);
+    } else {await assert.rejects(running); assert.equal(output.complete, false);}
+    assert.equal(closes, 1);
+  }
+});
