@@ -131,6 +131,26 @@ test('full Darwin and focused Native preparations retain their original fixture 
   assert.deepEqual(selectedPreparation(preparationProfiles(), {full: false, args: ['--deny-warn', 'src/platform_native/trusted_clock']}), []);
 });
 
+test('Linux selected ordinary backing and bounded files do not activate for unrelated inputs', () => {
+  const source = readFileSync(new URL('test-native-core.mjs', import.meta.url), 'utf8');
+  const predicate = source.slice(source.indexOf('const requiresFixture = '), source.indexOf('const projectConfiguration = '));
+  const ordinary = source.slice(source.indexOf('const ordinaryProcess = '), source.indexOf('const checkChild = '));
+  assert(predicate && ordinary);
+  for (const [paths, count, bounded] of [
+    [['src/stage_results'], 0, false],
+    [['src/platform_native/installed_arena_control/process_transport_wbtest.mbt'], 1, false],
+    [['src/platform_native/row_source/capacity_wbtest.mbt'], 1, false],
+    [['src/platform_native/bounded_files/owned_close_custody_wbtest.mbt'], 0, true],
+  ]) {
+    let calls = 0;
+    const result = runInNewContext(predicate + ordinary + "\nrequiresFixture('src/platform_native/bounded_files');", {
+      full: true, linuxCommonImporters: true, selection: {profiles: preparationProfiles(paths)},
+      namespace: '/original', nativeCoreOrdinaryProcessFixture() { calls++; return {}; },
+    });
+    assert.equal(calls, count); assert.equal(result, bounded);
+  }
+});
+
 test('Reader custody injection loads on the supported Native host profile', () => {
   const checkout = fileURLToPath(new URL('../', import.meta.url));
   const parent = join(checkout, '_build', 'native-reader-helper-tests');
