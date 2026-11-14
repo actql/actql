@@ -175,6 +175,13 @@ pub fn[I] project_request_check_outcome(
   original_document? : String? = None,
   document_format? : @syntax.Format = Json,
 ) -> Result[String?, ClientRequestPreparationIssue] {
+  if terminal is Preparation(ProgramJson(Syntax(issue))) {
+    return project_request_structural_check_observation(
+      owner, input, issue, visible_publication, context_ref, input_kind, input_revision,
+      input_bytes, declarations_revision, declarations_bytes, parameters_revision,
+      parameters_bytes, correlation_ref,
+    )
+  }
   if terminal is QuerySyntax(_) || terminal is QueryLowering(_) {
     return project_request_query_check_outcome(
       owner, input, terminal, visible_publication, context_ref, input_kind, input_revision,
@@ -204,6 +211,147 @@ pub fn[I] project_request_check_outcome(
     original_parameters~,
     original_document~,
     document_format~,
+  )
+}
+
+///|
+// The failed constructor already owns this exact issue and immutable index.
+// Project only those originals; no JSON readmission, semantic check, Program,
+// module, Run or completion is constructed by this reporting continuation.
+fn[I] project_request_structural_check_observation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  issue : @syntax.SyntaxError,
+  publication : String,
+  context_ref : String,
+  input_kind : String,
+  input_revision : String,
+  input_bytes : Int,
+  declarations_revision : String?,
+  declarations_bytes : Int,
+  parameters_revision : String?,
+  parameters_bytes : Int,
+  correlation_ref : String,
+) -> Result[String?, ClientRequestPreparationIssue] {
+  let phase = owner.phase
+  if phase != ProgramJson {
+    return if phase == Selecting { Err(WrongPhase) } else { Ok(None) }
+  }
+  guard owner.input is Some(held) &&
+    physical_equal(held, input) &&
+    owner.program_json is Some(child) &&
+    !child.busy &&
+    child.phase == Failed &&
+    child.structural_issue is Some(original) &&
+    physical_equal(original, issue) &&
+    child.indexed is Some(indexed) else {
+    return Err(ForeignOriginal)
+  }
+  if input_kind != "program" ||
+    !request_check_observation_reference(context_ref, "ctx:") ||
+    !request_check_observation_reference(input_revision, "rev:") ||
+    !request_check_observation_reference(correlation_ref, "corr:", digits=32) ||
+    input_bytes < 0 ||
+    declarations_revision is Some(_) ||
+    declarations_bytes != 0 ||
+    owner.native_query_declarations is Some(_) ||
+    parameters_bytes < 0 ||
+    parameters_revision
+    .map(value => !request_check_observation_reference(value, "rev:"))
+    .unwrap_or(false) {
+    return Err(Policy)
+  }
+  if (owner.native_parameters is Some(_)) != (parameters_revision is Some(_)) ||
+    (parameters_revision is None && parameters_bytes != 0) {
+    return Err(ForeignOriginal)
+  }
+  let cursor = @syntax.program_input_cursor(indexed)
+  // The existing writer/findings inventory also backs escaped pointer text.
+  // Prefix search copies at most one path per original path component, with
+  // those vectors overlapping the same admitted index and output String.
+  // The existing check_program_original_pointer refuses paths above65 before
+  // prefix construction. At most(path+1) prefixes of at most(path+1) slots
+  // coexist with the original/located/current cursor paths; four copies cover
+  // those roles. This reuses that format bound, not a new input/depth policy.
+  let path = match issue {
+    Decode(value) => Int::min(value.path.length(), 65).to_int64() + 1L
+    _ => 66L
+  }
+  guard request_check_observation_inventory_bytes(
+      publication, 4L,
+      // This closed structural issue emits no collected Source labels.
+       0L,
+    )
+    is Some(report) &&
+    @execution.execution_capacity_inventory_bytes([
+      { unit: @execution.ValueNodeSlots, count: path * path, copies: 4, },
+    ])
+    is Some(pointer) &&
+    @execution.checked_preparation_add_product(report, pointer, 1L)
+    is Some(bytes) else {
+    return Err(Policy)
+  }
+  owner.phase = Selecting
+  child.busy = true
+  preparation_module_call(
+    () => {
+      let (r, e) = match
+        @resources.preparation_capacity_working_extents(owner.capacity, input) {
+        Err(value) => return Err(Capacity(value))
+        Ok(value) => value
+      }
+      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+        @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+        return Err(Policy)
+      }
+      match
+        @resources.reserve_working_preparation_phase(
+          owner.capacity,
+          input,
+          r,
+          e,
+        ) {
+        Err(value) => return Err(Capacity(value))
+        Ok(_) => ()
+      }
+      guard owner.phase == Selecting &&
+        owner.input is Some(current_input) &&
+        physical_equal(current_input, input) &&
+        owner.program_json is Some(current) &&
+        physical_equal(current, child) &&
+        child.busy &&
+        child.phase == Failed &&
+        child.indexed is Some(current_index) &&
+        physical_equal(current_index, indexed) &&
+        child.structural_issue is Some(current_issue) &&
+        physical_equal(current_issue, original) else {
+        return Err(ForeignOriginal)
+      }
+      Ok(
+        Some(
+          @local_preparation.client_program_project_original_input_issue(
+            OriginalProgramIssue(original),
+            "",
+            @syntax.Json,
+            context_ref,
+            input_revision,
+            input_bytes,
+            None,
+            0,
+            parameters_revision,
+            parameters_bytes,
+            correlation_ref,
+            original_body=Some(cursor),
+          ),
+        ),
+      )
+    },
+    () => {
+      child.busy = false
+      if owner.phase == Selecting {
+        owner.phase = phase
+      }
+    },
   )
 }
 

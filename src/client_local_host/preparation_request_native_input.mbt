@@ -243,6 +243,7 @@ fn[I] request_program_index_preparation(
     structure: None,
     structure_quote: None,
     program: None,
+    structural_issue: None,
     work: None,
     limits,
     base_retained: r0,
