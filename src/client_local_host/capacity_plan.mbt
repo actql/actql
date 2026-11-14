@@ -304,10 +304,9 @@ fn client_local_capacity_plan(
         },
         row: {
           ..imports.row,
-          max_bytes: Int::max(
-            imports.row.max_bytes,
-            Int::min(row_wire, 16777216),
-          ),
+          // SAME finite checked row-wire proof; importer/framer constructors
+          // remain funded on their original task before allocating this bound.
+          max_bytes: Int::max(imports.row.max_bytes, row_wire),
           max_text_bytes: Int::max(
             imports.row.max_text_bytes,
             Int::min(text, row_wire),
@@ -378,12 +377,15 @@ fn client_local_capacity_plan(
     Int::max(
       10000,
       Int::min(
-        // Total wire demand can exceed a single supported physical frame.
-        // Preserve the existing Local/framer 16MiB bound for one value.
-        Int::min(
-          16777216,
-          Int::max(imports.row.max_bytes, imports.wire.max_bytes),
-        ),
+        // The actual provider measures one COMPLETE row, not one cell or
+        // physical chunk. Keep this same row/measurement bound; it grants no
+        // storage and does not enlarge the independent bounded batch window.
+        match leaf_text_wire {
+          // The SAME closed proof already separated per-row spelling from
+          // cumulative output. Total bytes cannot stand in for one row here.
+          Some(_) => imports.row.max_bytes
+          None => Int::max(imports.row.max_bytes, imports.wire.max_bytes)
+        },
         measurement.max_bytes,
       ),
     )

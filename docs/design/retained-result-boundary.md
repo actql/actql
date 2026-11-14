@@ -628,6 +628,12 @@ erase file responsibility. The standard strategy entry does not infer a retained
 representation from connector identity: representation-aware candidate/copy
 selection is a separate admission responsibility.
 
+A logical row may span multiple bounded physical chunks. The original READ
+workspace reserves row backing, decoded text and frame overlap from the same
+capacity before constructing its framer. Its verified total payload bounds the
+initialized backing; the explicit row, chunk, depth and signed-Int limits remain
+independent. A larger row does not enlarge a chunk or reserve another capacity.
+
 `CompletedOutputImport` is an explicit representation conversion. It admits
 values provisionally and checks the complete ordered identity against the exact
 source result before exposing a Local-readable copy. Matching content alone
@@ -635,6 +641,13 @@ cannot acquire another producer's completion authority. The new copy retains
 logical use restrictions, but does not inherit the original copy's physical
 failure condition. Conversion reservations and the resulting holding remain
 the physical Host's responsibility.
+
+Its identity verifier uses the existing hash-only canonical encoder: canonical
+text is never returned by this consumer and must not be buffered and discarded.
+Value admission, ordered identity, byte/node/depth/work limits and source
+currentness still apply. The positive physical batch setting remains validated;
+actual input framing owns that window, while a row may cross multiple chunks.
+Exporters that actually return canonical text retain their bounded buffer.
 
 The inverse conversion serializes an existing completed cell representation
 through the same canonical encoder. It reads the sealed row/column storage one

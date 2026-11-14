@@ -49,6 +49,14 @@ fn client_sequence_preparation_demand(
     expression_nodes += demand.authored_expression_nodes.to_int64()
     expression_text += demand.authored_expression_text_bytes.to_int64()
   }
+  // The same fold spends one visit for every original binding/projection
+  // occurrence before returning its retained count. That owner-specific
+  // inequality bounds the default binding inventory; no runtime/dispatch work
+  // or unrelated meter is converted to a count or Resource capacity.
+  if max_work - remaining >
+    2147483647 - client_standard_values_sequence_limits().max_bindings {
+    return Err(@strategy.GraphIssue::InvalidLimits)
+  }
   Ok({
     authored_literal_rows: rows.to_int(),
     authored_literal_cells: cells.to_int(),
@@ -89,10 +97,13 @@ fn client_sequence_limits_with_selected_demand(
   cells : Int,
 ) -> @lower.SequenceLimits {
   {
-    ..original,
     max_steps: steps,
     max_rows: rows,
     max_cells: cells,
+    // Existing known binding/projection occurrences each spent a visit in the
+    // SAME retained demand fold. Keep the old allowance for untallied shapes;
+    // explicit SequenceLimits still bypass this default DATA projection.
+    max_bindings: original.max_bindings + demand.work_used,
     max_name_bytes: original.max_name_bytes + demand.projection_name_bytes_bound,
     expressions: {
       ..original.expressions,

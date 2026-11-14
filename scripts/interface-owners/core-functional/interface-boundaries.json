@@ -3051,7 +3051,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4125,7 +4125,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6634,7 +6634,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -33447,7 +33447,7 @@
           }
         }
       ],
-      "sha256": "46774ad3d06dc613a41d97898dfc030efcb257ff11136884e5f424d161b50511",
+      "sha256": "3c248a4960c24904a8d1680fd71f7dbfbd5434b5f64b49b75dab91a40fe9e793",
       "exports": [],
       "operations": [
         {
@@ -33469,7 +33469,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -35039,7 +35039,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -35277,7 +35277,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -36693,7 +36693,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -36981,7 +36981,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -38969,7 +38969,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -48554,7 +48554,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48650,7 +48650,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -48959,7 +48959,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -52349,7 +52349,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -52483,7 +52483,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -52740,7 +52740,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -52838,7 +52838,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -53206,7 +53206,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -53467,7 +53467,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -53640,7 +53640,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -53753,7 +53753,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -54983,7 +54983,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -55614,7 +55614,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -58348,7 +58348,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -64482,7 +64482,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -86904,7 +86904,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -87357,7 +87357,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -88765,7 +88765,7 @@
     },
     {
       "module": "src/run_publication_host/client_sequence_preparation_demand.mbt",
-      "sha256": "1ce1578ace7198c3a0255ee6c937417346cc92536a21def6463997b7c358e6eb",
+      "sha256": "2f8e1bc742234d8af003098fe789c3ecaac42c111329510baf7016dbeda643da",
       "exports": [],
       "operations": [
         {
@@ -90331,6 +90331,248 @@
         }
       ],
       "referenceQualification": "Source ownership and selected component correspondence only; not a normal artifact, global RAM reservation or ordinary execution acceptance."
+    },
+    {
+      "module": "src/execution_relation/completed_output_import.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked completed Result identity and representation-conversion owner",
+      "referenceQualification": "Same-original source and focused component only; matching normal distribution, ordinary cold Saved and physical FD acceptance remain separate.",
+      "sha256": "98bf7927c8cb66ba9610e49bb041ea999e3983e8cdff6f84cdbd7986dcd81182",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_cancel_completed_output_import",
+          "declaration": "advance_cancel_completed_output_import ( value : CompletedOutputImport , quantum : Int , ) - > Bool"
+        },
+        {
+          "name": "append_completed_output_import",
+          "declaration": "append_completed_output_import ( value : CompletedOutputImport , supplied : Array [ @ admitted . CheckedValue ] , ) - > Result [ Unit , CompletedImportIssue ]"
+        },
+        {
+          "name": "append_completed_output_import_presence",
+          "declaration": "append_completed_output_import_presence ( value : CompletedOutputImport , row : AdmittedRelationRow , ) - > Result [ Unit , CompletedImportIssue ]"
+        },
+        {
+          "name": "cancel_completed_output_import",
+          "declaration": "cancel_completed_output_import ( value : CompletedOutputImport ) - > Bool"
+        },
+        {
+          "name": "completed_output_import_cumulative_work",
+          "declaration": "completed_output_import_cumulative_work ( value : CompletedOutputImport , ) - > Int64"
+        },
+        {
+          "name": "completed_output_occurrence_identity_matches",
+          "declaration": "completed_output_occurrence_identity_matches ( source : CompletedOutput , converted : CompletedOutput , ) - > Bool"
+        },
+        {
+          "name": "completed_output_same_occurrence",
+          "declaration": "completed_output_same_occurrence ( source : CompletedOutput , converted : CompletedOutput , ) - > Bool"
+        },
+        {
+          "name": "finish_completed_output_import",
+          "declaration": "finish_completed_output_import ( value : CompletedOutputImport , ) - > Result [ CompletedOutput , CompletedImportIssue ]"
+        },
+        {
+          "name": "prepare_completed_output_import",
+          "declaration": "prepare_completed_output_import ( source : CompletedOutput , max_rows : Int , values : ValueLimits , wire : RowWireLimits , max_batch_bytes : Int , deferred_reclamation ? : Bool"
+        },
+        {
+          "name": "prepare_producer_output_import",
+          "declaration": "prepare_producer_output_import ( input : ProducerRead , max_rows : Int , values : ValueLimits , wire : RowWireLimits , max_batch_bytes : Int , deferred_reclamation ? : Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_cancel_completed_output_import",
+            "append_completed_output_import",
+            "append_completed_output_import_presence",
+            "cancel_completed_output_import",
+            "completed_output_import_cumulative_work",
+            "completed_output_occurrence_identity_matches",
+            "completed_output_same_occurrence",
+            "finish_completed_output_import",
+            "prepare_completed_output_import",
+            "prepare_producer_output_import"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "`CompletedOutputImport` is an explicit representation conversion."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn prepare_completed_output_import("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_same_occurrence("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn finish_completed_output_import("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "There is no user callback/await between the two consumers"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/execution_relation/completed_output_import_wbtest.mbt",
+                "anchor": "conversion cannot publish different order truncated values or expired input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn advance_cancel_completed_output_import("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/execution_relation/completed_output_import.mbt",
+                "anchor": "pub fn completed_output_import_cumulative_work("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/execution_relation/admitted_output_stream.mbt",
+                "anchor": "Content verification uses the same encoder without allocating discarded"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/execution_relation/completed_output_import_wbtest.mbt",
+                "anchor": "retained import verifies canonical identity without buffering discarded row text"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/payload_frames.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing portable canonical Result-row framer and original READ workspace owner",
+      "referenceQualification": "Same-original source and focused component only; matching normal distribution, ordinary cold Saved and physical FD acceptance remain separate.",
+      "sha256": "dab5c96ed3d61ae232737007a57194d1408db1999e468075b62875d91ddccf5d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "cancel_durable_result_row_frames",
+          "declaration": "cancel_durable_result_row_frames ( frames : DurableResultRowFrames , ) - > Unit"
+        },
+        {
+          "name": "durable_row_frame_fail",
+          "declaration": "durable_row_frame_fail ( frames : DurableResultRowFrames , issue : DurableResultRowFrameIssue , ) - > Result [ Array [ String ] , DurableResultRowFrameIssue ]"
+        },
+        {
+          "name": "durable_row_frame_text",
+          "declaration": "durable_row_frame_text ( frames : DurableResultRowFrames , ) - > Result [ String , DurableResultRowFrameIssue ]"
+        },
+        {
+          "name": "feed_durable_result_row_frames",
+          "declaration": "feed_durable_result_row_frames ( frames : DurableResultRowFrames , chunk : Bytes , ) - > Result [ Array [ String ] , DurableResultRowFrameIssue ]"
+        },
+        {
+          "name": "finish_durable_result_row_frames",
+          "declaration": "finish_durable_result_row_frames ( frames : DurableResultRowFrames , ) - > Result [ DurableResultRowFrameSummary , DurableResultRowFrameIssue ]"
+        },
+        {
+          "name": "prepare_durable_result_row_frames",
+          "declaration": "prepare_durable_result_row_frames ( max_bytes : Int , max_rows : Int , max_row_bytes : Int , max_depth : Int , max_frame_bytes : Int , ) - > Result [ DurableResultRowFrames , DurableResultRowFrameIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cancel_durable_result_row_frames",
+            "durable_row_frame_fail",
+            "durable_row_frame_text",
+            "feed_durable_result_row_frames",
+            "finish_durable_result_row_frames",
+            "prepare_durable_result_row_frames"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "A logical row may span multiple bounded physical chunks."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "pub fn feed_durable_result_row_frames("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "Equal CIDs do not establish ownership or availability."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "pub fn prepare_durable_result_row_frames("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "incomplete rows remain in parser state."
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/payload_frames_test.mbt",
+                "anchor": "durable Result row frames reject structure and capacity violations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "pub fn cancel_durable_result_row_frames("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "reserve_request_result_read("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/payload_frames.mbt",
+                "anchor": "Physical chunk limits remain independent of the logical row bound."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read_js_wbtest.mbt",
+                "anchor": "same READ backs a row above the old sixteen MiB frame ceiling before construction"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

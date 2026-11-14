@@ -3645,7 +3645,7 @@
     {
       "module": "adapters/store-local/moonbit-row-frames.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4088710561ef83dd4bf953a9c8ba5bbdd0c63178ff1eb563983e3953d26e3b55",
+      "sha256": "55fb2ee019efe324a216ab230f68d07cc48729f13f5ea20d1794bfa612092375",
       "exports": [
         "createMoonBitRetainedRowFrames"
       ],

@@ -255,11 +255,13 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
   let (environment, publication) = request_query_publication_fixture()
   let document = if parameter {
     "{\"version\":\"actql/0.1\",\"id\":\"bound-text\",\"params\":{\"p\":{\"type\":\"string\"}},\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"as\":\"v\",\"values\":{\"schema\":{\"text\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"text\":{\"$param\":\"p\"}}]}}],\"results\":{\"rows\":{\"from\":\"v\",\"fields\":[\"text\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+  } else if mode == 11 {
+    original_many_small_text_working_program()
   } else if mode == 2 {
     original_cross_text_working_program()
-  } else if mode == 9 {
+  } else if mode == 9 || mode == 10 || mode == 11 {
     let columns : Array[String] = []
-    for index in 0..<17 {
+    for index in 0..<(if mode == 10 { 263 } else { 17 }) {
       columns.push("t AS f" + index.to_string())
     }
     "WITH x AS (SELECT REPEAT('x',64000) AS t) SELECT " +
@@ -287,7 +289,7 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
   ).unwrap()
   // Original captured Source plus supplied map: fewer than512 structural
   // values; long Text units do not become nodes in this component's snapshot.
-  let nodes = if mode == 2 { 4096L } else { 512L }
+  let nodes = if mode == 2 || mode == 11 { 4096L } else { 512L }
   reserve_request_snapshot(
     parent,
     input,
@@ -304,7 +306,7 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     input,
     request_document_test_source(
       document,
-      if parameter || mode == 2 {
+      if parameter || mode == 2 || mode == 11 {
         "json"
       } else {
         "sql"
@@ -330,7 +332,7 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  prepare_request_program_module_body(
+  let module_result = prepare_request_program_module_body(
     parent,
     input,
     contracts,
@@ -338,30 +340,101 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
     retained_output=false,
     provider_factory=_ => [],
-    source_free_max_work=if mode == 9 { Some(30000000) } else { None },
-  ).unwrap()
+    source_free_max_work=if mode == 9 || mode == 10 {
+      Some(30000000)
+    } else {
+      None
+    },
+  )
+  match module_result {
+    Ok(_) => ()
+    Err(Installed(issue)) => {
+      let detail = match issue {
+        InsufficientCapacity => "InsufficientCapacity"
+        MetadataCapacityUnavailable => "MetadataCapacityUnavailable"
+        Preparation(_) => "Preparation"
+        Resource(_) => "Resource"
+        Ledger(_) => "Ledger"
+        Sequence(SequenceLimit) => "SequenceLimit"
+        Sequence(KernelFailure(step, KernelBudgetExceeded)) =>
+          "KernelBudgetExceeded:" + step.to_string()
+        Sequence(KernelFailure(step, ExpressionFailure(_))) =>
+          "KernelExpression:" + step.to_string()
+        Sequence(KernelFailure(step, _)) => "KernelOther:" + step.to_string()
+        Sequence(_) => "SequenceOther"
+        Unsupported => "Unsupported"
+        ForeignOriginal => "ForeignOriginal"
+        AlreadyBound => "AlreadyBound"
+        Retired => "Retired"
+        CleanupPending => "CleanupPending"
+        SourceAcquisition(_) => "SourceAcquisition"
+        SourceRoute(_) => "SourceRoute"
+        ModelRead(_) => "ModelRead"
+        ModelLayout(_) => "ModelLayout"
+        SerializationPrefix(_) => "SerializationPrefix"
+      }
+      fail("BoundTextModule.Installed:" + detail)
+    }
+    Err(issue) => {
+      let original : Error = issue
+      fail("BoundTextModule:" + @debug.render(Repr(original), max_depth=24))
+    }
+  }
   let configuration = parent.program_source_free.unwrap().configuration.unwrap()
-  if mode == 9 || mode == 0 {
+  if mode == 9 || mode == 10 || mode == 0 {
     let available = @resources.ledger_limits(parent.ledger)
     for task in 0..<@strategy.graph_task_count(configuration.graph) {
       let planned = @local_driver.local_dispatch_preparation_task_capacity(
         configuration.dispatch,
         task,
       ).unwrap()
-      assert_true(planned.retained_bytes <= available.retained_bytes)
-      assert_true(planned.execution_bytes <= available.execution_bytes)
+      assert_true(
+        planned.retained_bytes <= available.retained_bytes,
+        msg="same finite task=" +
+          task.to_string() +
+          " retained=" +
+          planned.retained_bytes.to_string() +
+          " ceiling=" +
+          available.retained_bytes.to_string() +
+          " execution=" +
+          planned.execution_bytes.to_string() +
+          " row=" +
+          configuration.capacity_plan.imports.row.max_bytes.to_string() +
+          " wire=" +
+          configuration.capacity_plan.imports.wire.max_bytes.to_string() +
+          " text=" +
+          configuration.capacity_plan.imports.values.max_text_bytes.to_string() +
+          " value=" +
+          configuration.capacity_plan.max_value_bytes.to_string(),
+      )
+      assert_true(
+        planned.execution_bytes <= available.execution_bytes,
+        msg="same finite task execution: " +
+          planned.execution_bytes.to_string() +
+          " > " +
+          available.execution_bytes.to_string(),
+      )
     }
   }
-  if mode == 2 {
-    assert_true(configuration.capacity_plan.values.max_text_bytes >= 4095 * 512)
-    assert_true(configuration.capacity_plan.imports.row.max_bytes <= 16777216)
+  if mode == 2 || mode == 11 {
+    let expected_text = if mode == 11 { 64000 * 263 } else { 4095 * 512 }
+    assert_true(
+      configuration.capacity_plan.values.max_text_bytes >= expected_text,
+    )
+    assert_true(
+      configuration.capacity_plan.imports.row.max_bytes <=
+      configuration.capacity_plan.imports.wire.max_bytes,
+    )
     assert_true(configuration.capacity_plan.imports.max_batch_bytes <= 16777216)
   } else {
     assert_eq(
       configuration.capacity_plan.values.max_text_bytes,
       configuration.capacity_plan.values.max_work,
     )
-    assert_true(configuration.capacity_plan.imports.row.max_bytes <= 16777216)
+    assert_true(
+      configuration.capacity_plan.imports.row.max_bytes <=
+      configuration.capacity_plan.imports.wire.max_bytes,
+    )
     assert_true(configuration.capacity_plan.imports.max_batch_bytes <= 16777216)
     if !parameter {
       assert_eq(
@@ -447,7 +520,16 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     true
   }
   let output = match
-    execute_source_free_local_tasks_guarded(setup, 64, 100000, current) {
+    execute_source_free_local_tasks_guarded(
+      setup,
+      if mode == 10 || mode == 11 {
+        4096
+      } else {
+        64
+      },
+      100000,
+      current,
+    ) {
     Ok(value) => value
     Err(failure) => {
       let issue = local_values_execution_failure_issue(failure)
@@ -559,16 +641,35 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     mode != 5 && mode != 6,
     msg="refused/current-lost execution cannot publish an output",
   )
+  let live_usage = @resources.ledger_usage(parent.ledger)
+  let same_limits = @resources.ledger_limits(parent.ledger)
+  assert_true(
+    live_usage.reserved_execution_bytes <= same_limits.execution_bytes,
+  )
+  assert_true(
+    live_usage.reserved_retention_bytes + live_usage.held_bytes <=
+    same_limits.retained_bytes,
+  )
   let rows = output.rows().unwrap()
-  assert_eq(rows.length(), if mode == 2 { 512 } else { 1 })
-  let seen = Array::make(512, false)
+  assert_eq(
+    rows.length(),
+    if mode == 2 {
+      512
+    } else if mode == 11 {
+      263
+    } else {
+      1
+    },
+  )
+  let seen = Array::make(if mode == 11 { 263 } else { 512 }, false)
   for row in rows {
     guard @json.parse(row) is Object(fields) else {
       fail("complete original row required")
     }
-    if mode == 9 {
-      assert_eq(fields.length(), 17)
-      for index in 0..<17 {
+    if mode == 9 || mode == 10 {
+      let count = if mode == 10 { 263 } else { 17 }
+      assert_eq(fields.length(), count)
+      for index in 0..<count {
         assert_eq(
           fields.get("f" + index.to_string()),
           Some(Json::string("x".repeat(64000))),
@@ -583,6 +684,8 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
       actual,
       if mode == 2 {
         "expand:".repeat(585)
+      } else if mode == 11 {
+        "x".repeat(64000)
       } else {
         "x".repeat(
           if mode >= 4 {
@@ -595,18 +698,18 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
         )
       },
     )
-    if mode == 2 {
+    if mode == 2 || mode == 11 {
       guard fields.get("copy") is Some(Number(value, ..)) else {
         fail("original copy key required")
       }
       let copy = value.to_int()
-      assert_true(copy >= 0 && copy < 512)
+      assert_true(copy >= 0 && copy < seen.length())
       assert_eq(value, copy.to_double())
       assert_false(seen[copy])
       seen[copy] = true
     }
   }
-  if mode == 2 {
+  if mode == 2 || mode == 11 {
     assert_true(seen.all(value => value))
   }
   if mode == 8 {
@@ -752,4 +855,20 @@ test "ordinary measured Text fits actual finite task headroom without per-charac
 // No installed binary, public Store/Journal/Saved or physical Native ACK.
 test "original managed repeated Text retains all seventeen projected fields" {
   original_bound_text_working_case(9)
+}
+
+///|
+// Same existing managed Request/module/provider/Run, not a packed or public
+// Store/Saved campaign. All cells remain64k; the complete row exceeds16MiB.
+test "original managed wide Text row crosses old sixteen MiB without enlarging chunks" {
+  original_bound_text_working_case(10)
+}
+
+///|
+extern "js" fn original_many_small_text_working_program() -> String =
+  #|() => JSON.stringify({version:'actql/0.1',id:'many-small-rows-over-sixteen-mib',stages:[{id:'main',inputs:{},steps:[{as:'left_rows',values:{schema:{text:{type:'string',nullable:false}},rows:[{text:{literal:'x'.repeat(64000)}}]}},{as:'right_rows',values:{schema:{copy:{type:'number',nullable:false}},rows:Array.from({length:263},(_,copy)=>({copy}))}},{as:'output',from:'left_rows',cross_join:{with:'right_rows',select:{text:'left.text',copy:'right.copy'}}}],results:{rows:{from:'output',fields:['text','copy']}}}],results:{answer0:{from:{stage:'main',result:'rows'}}}})
+
+///|
+test "original many small Text rows cross sixteen MiB total on the same finite owner" {
+  original_bound_text_working_case(11)
 }
