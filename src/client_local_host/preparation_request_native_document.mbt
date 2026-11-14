@@ -81,7 +81,11 @@ pub fn[I] prepare_request_native_document_check(
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(Preparation(ForeignOriginal))
   }
-  let standard = @publication_host.client_standard_program_preparation_limits()
+  let standard = match
+    request_default_program_preparation_limits(owner, input) {
+    Err(issue) => return Err(issue)
+    Ok(limits) => limits
+  }
   let limits = match
     request_native_document_limits(document, standard.checking.input) {
     None => return Err(Preparation(Policy))
@@ -166,7 +170,14 @@ pub fn[I] prepare_request_native_document_check(
     }
   } else {
     owner.computation_limits = Some(program_limits)
-    match parse_request_query_syntax(owner, input, document, format) {
+    match
+      parse_request_query_syntax(
+        owner,
+        input,
+        document,
+        format,
+        lexical_work=request_source_lexical_work(document),
+      ) {
       Err(issue) => return Err(QuerySyntax(issue))
       Ok(_) => ()
     }
@@ -190,6 +201,11 @@ pub fn[I] prepare_request_native_document_check(
     ) {
     Err(issue) => return Err(Publication(issue))
     Ok(value) => value
+  }
+  let program_limits = match
+    request_default_lowered_program_limits(owner, program_limits) {
+    Err(issue) => return Err(issue)
+    Ok(limits) => limits
   }
   let (program_limits, effect_limits) = request_original_query_check_limits(
     owner,

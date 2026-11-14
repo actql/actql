@@ -224,18 +224,21 @@ test "fixed Request control envelope preserves original upper bound through the 
     // Original optional lexical-work Some and holder reference: 1H/1R/1W.
     16L +
     8L +
+    8L +
+    // Coheld shared post-lowering selected-limit return: 1H/1R.
+    16L +
     8L,
-    11440L,
+    11464L,
   )
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(11440L),
+    Some(11464L),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((15536L, 0L)),
+    Some((15560L, 0L)),
   )
   let growth = @resources.preparation_inventory_growth_entry_construction()
   assert_eq(
@@ -273,7 +276,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   ).unwrap()
   let reservation = owner.capacity
   let before = @resources.ledger_usage(owner.ledger)
-  assert_eq(before.reserved_retention_bytes, 15536L)
+  assert_eq(before.reserved_retention_bytes, 15560L)
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let small = @resources.ledger_usage(owner.ledger)
   reserve_request_snapshot(owner, input, 256L, 32L).unwrap()
@@ -290,7 +293,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((15536L, 0L)),
+    Some((15560L, 0L)),
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)

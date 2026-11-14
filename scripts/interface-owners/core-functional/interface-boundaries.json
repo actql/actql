@@ -43662,7 +43662,7 @@
     {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4cc18df8727acbbd7869fc13c15f9f868a01f3f09caf9c77bda8178334508732",
+      "sha256": "64b7973cda57be6e997eaf73f770c8c98fe9cd993bc1eb40503cd2e14d7d99e1",
       "role": "common-semantics",
       "owner": "Existing submitted-intent identity and original Request preparation Owners",
       "exports": [],
@@ -45110,7 +45110,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "47172d05e86e7e9fc3e7cf40e5ee51793a6794566ae07270ef0f80c635eaf5dd",
+      "sha256": "4023f7865da7ffdd38be15471f896484b2d73ed6bda3cb03cba696105c5a423b",
       "exports": [],
       "operations": [
         {
@@ -45464,7 +45464,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "22386d972d7bdc114997ed03fd1cca619c43ecacd59dcac9f057e46041c6dc43",
+      "sha256": "ef46f21f03cd9681ab2f61b795fc38158b61933348e56550b0011468351584e9",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -47727,7 +47727,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "85c9f07a530de696a99aa3d084ae5cda089e5a71ec7dae42ea970f0211248a11",
+      "sha256": "558977eda281a2dfc26675d2ddd051c4ded09b782368d2d43978827bd886fc6a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -47747,6 +47747,10 @@
         {
           "name": "request_query_syntax_data_bytes",
           "declaration": "request_query_syntax_data_bytes ( document : String , lexical_work ? : Int ?"
+        },
+        {
+          "name": "request_source_lexical_work",
+          "declaration": "request_source_lexical_work ( document : String ) - > Int ?"
         }
       ],
       "contracts": [
@@ -47756,7 +47760,8 @@
             "[I]parse_request_query_syntax",
             "[I]prepared_request_query_syntax",
             "[I]request_query_syntax_work",
-            "request_query_syntax_data_bytes"
+            "request_query_syntax_data_bytes",
+            "request_source_lexical_work"
           ],
           "exports": [],
           "attributes": {
@@ -86590,7 +86595,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_default_document.mbt",
-      "sha256": "3a0d397dce9d553df54d991ddc1afcfbf6ae187e1e46c723b5b6ff2a0e9658cd",
+      "sha256": "369349b0a464b0142c8285ba1154405fa89d1ca51691410eac58dcc37574d558",
       "exports": [],
       "operations": [
         {
@@ -86600,6 +86605,10 @@
         {
           "name": "[I]prepare_request_default_json_computation_input",
           "declaration": "[ I ] prepare_request_default_json_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , limits : @ syntax . Limits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]request_default_lowered_program_limits",
+          "declaration": "[ I ] request_default_lowered_program_limits ( owner : ClientRequestPreparation [ I ] , program_limits : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -86611,7 +86620,8 @@
           "operations": [
             "<module>",
             "[I,T]prepare_request_default_source_computation_check",
-            "[I]prepare_request_default_json_computation_input"
+            "[I]prepare_request_default_json_computation_input",
+            "[I]request_default_lowered_program_limits"
           ],
           "exports": [],
           "attributes": {
@@ -88533,13 +88543,17 @@
               {
                 "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
                 "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_work_calls_js_wbtest.mbt",
+                "anchor": "test \"Native static direct11 uses shared ordinary input selection without compiling\""
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "d1d4c8ea969a549c95e19c50bee3d8a808875999d3473dd21ecf93629c7289df"
+      "sha256": "c96972fb404c9ee475f99632fc4abf9f400c9843ccef5867267f9bb178d1440c"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
