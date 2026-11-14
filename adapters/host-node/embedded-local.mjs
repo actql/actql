@@ -1,4 +1,5 @@
-import {composeInstalledSourceEnvironment, readInstalledSourceEnvironment} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, readInstalledSourceEnvironment,
+  admitInstalledSourceFinalEnvironment} from './installed-funded-environment.mjs';
 import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
 import {localProjectFilesystem} from './local-files-native.mjs';
 import {createInstalledHostServices, installedSourceConfigurationReader,
@@ -1763,7 +1764,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let sourceCheckpointInventory;
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
-  let environmentBody, environmentEvidenceCid, composedEnvironment;
+  let environmentBody, environmentEvidenceCid, composedEnvironment, finalEnvironmentOriginal;
   let updateTargetOriginals;
   function assertMockEffectRunOriginal(original) {
     assertProjectRuntime();
@@ -2227,11 +2228,17 @@ async function openInstalledHost(originalInstallation, preparation) {
     // The exact task offer and execution obligations still select capability.
     const textTimeEnabled = environmentBody.host_policy_profile?.text_time_evaluation !== undefined;
     environmentBody = undefined;
-    environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
-      environmentWire, evidenceCid,
-      textTimeEnabled,
-      true, true, true, true,
-      calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
+    if (calendarArtifact === undefined && environmentWire === composedEnvironment.wire) {
+      finalEnvironmentOriginal = admitInstalledSourceFinalEnvironment(installationServices, moon,
+        composedEnvironment, {textTime:textTimeEnabled,numericProfileCid,graphLawCid:contentCid(graphLaw)});
+      environment = finalEnvironmentOriginal.admitted;
+    } else {
+      environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
+        environmentWire, evidenceCid,
+        textTimeEnabled,
+        true, true, true, true,
+        calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
+    }
     if (environment !== undefined) {
       environment = admitInstalledCalendar(moon, environment, calendarArtifact);
     }
@@ -2259,7 +2266,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (preparation !== undefined) originalInstallation.sourceCheckpointInventory = sourceCheckpointInventory;
         completeInstalledSourceInitialization(installationServices, originalInstallation,
           sourceEnvironmentOriginal.preparedEnvironment, environmentWire,
-          environment === composedEnvironment.admitted ? composedEnvironment : undefined);
+          finalEnvironmentOriginal ?? (environment === composedEnvironment.admitted ? composedEnvironment : undefined));
         if (sourceCheckpointInventory !== undefined) {
           sourceCheckpointInventory.custody.holder = borrowInstalledSourceInitialization(installationServices,
             originalInstallation, sourceEnvironmentOriginal.preparedEnvironment);

@@ -159,3 +159,39 @@ pub fn client_program_check_environment_from_wire(
     { rela, sga, tea, calendar, text_rank, },
   )
 }
+
+///|
+/// Final installed profile selection on the SAME funded canonical wire. Keep
+/// the public compatibility entry's selected graph/SGA/numeric checks; this
+/// empty-ModelTask cut cannot substitute an independently read document.
+#export_name("clientProgramCheckEnvironmentFromWireWithGraphProfile")
+pub fn client_program_check_environment_from_wire_with_graph_profile(
+  original : @check_environment.WireEnvironment,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+  graph_law_cid : String,
+) -> @program_check.CheckEnvironment? {
+  if !selected_graph_supported() ||
+    graph_law_cid != @graph_contract.law_cid() ||
+    (sga && !selected_sga_supported()) ||
+    @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) !=
+    0 {
+    return None
+  }
+  @publication_host.admit_client_check_environment_from_wire_with_numeric_profile_cid(
+    original,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid,
+    graph=true,
+  )
+}
