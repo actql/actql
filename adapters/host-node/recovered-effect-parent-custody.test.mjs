@@ -29,7 +29,7 @@ function fixture(selected=true){
     assert(retained,'parent retained before factory');events.push('construct child');return child;}}:{}};
   const members=[{memberIndex:0}],body={invocation_cid:'invocation',run_identity_cid:'run',
     authoring_context:{authoring_context_cid:'author'},effects:[{capability_evidence_cid:'capability',changes:[]}]};
-  const effect={recoveredPreviewKeys:()=>({}),admitPreviewIdentity:()=>({})};
+  const effect={recoveredPreviewKeys:()=>[[]],admitPreviewIdentity:()=>({})};
   const ledger={close(){events.push('close ledger');},recoverClaimFacts:()=>({})};
   const bindings={moon,owners:[owner],singular:undefined,limits:{maxMembers:1,maxRows:10,maxWork:100,
     key:{maxBytes:100,maxNodes:10,maxDepth:5},
