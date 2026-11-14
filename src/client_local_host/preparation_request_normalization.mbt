@@ -52,6 +52,10 @@ pub fn[I] prepare_request_program_normalization(
   if owner.program_normalization is None &&
     @publication_host.prepared_client_local_normalization_original(prepared)
     is Some(cached) {
+    match check_request_program_normalization_current(owner, input, capacity) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
     match
       @publication_host.prepared_client_local_normalization_evidence(
         prepared, cached,
