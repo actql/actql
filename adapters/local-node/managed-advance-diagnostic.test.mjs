@@ -383,3 +383,26 @@ test('original revision-stable observation joins budget DATA only after actual f
     await assert.rejects(observe({ref, principalId: 'foreign'}), /RunStateAccessDenied/u);
   }
 });
+
+test('Relation snapshot errors use the same failed-result budget projector and preserve the original Unit failure',()=>{
+  const text=readFileSync(new URL('./strategy-bundle.mjs',import.meta.url),'utf8');
+  const parsed=parse(text,{ecmaVersion:'latest',sourceType:'module'});let call;
+  const visit=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='CallExpression'&&node.callee?.name==='prepareLocalRelationSnapshot')call=node;
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(visit);else visit(value);
+  };visit(parsed);assert(call);const callback=call.arguments[2];
+  assert.equal(callback.type,'ArrowFunctionExpression');
+  const unitFailure=Object.freeze({original:'same failed Unit result'});
+  const primary=Object.assign(new Error('original reload refusal'),{code:'MoonBitHostFailure'});
+  const moon={strategyModule_local_ManagedAdvanceResourceDimension(result){
+    assert.strictEqual(result,unitFailure);return 'execution_bytes';
+  },strategyModule_local_ManagedAdvanceBudget(result){
+    assert.strictEqual(result,unitFailure);return budgetTuple(['execution_bytes',true,268840096n,268840095n,1073741824n]);
+  }};
+  const observed=Function('checkedLocalManagedAdvance','moon','checked','prepared',
+    `return (${text.slice(callback.start,callback.end)});`)(checkedLocalManagedAdvance,moon,
+      result=>{assert.strictEqual(result,unitFailure);throw primary;},{task:41});
+  assert.throws(()=>observed(unitFailure),error=>error===primary);
+  assert.match(publicBudgetMessage(primary),/requested_delta=268840096; remaining=268840095; policy=1073741824;/u);
+  assert.match(publicBudgetMessage(primary),/setting=installation.requestMemory.executionBytes/u);
+});

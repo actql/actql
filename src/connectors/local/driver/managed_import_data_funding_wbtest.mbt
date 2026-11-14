@@ -101,3 +101,47 @@ test "managed import parser extents follow each immutable row without refunding 
     start + first < @local.local_import_retention_capacity(limits).unwrap(),
   )
 }
+
+///|
+test "snapshot reload keeps coheld import and transport prefixes while reusing only completed export delta" {
+  // Thirty retired export bytes can cover a smaller new receiver, but the
+  // seven imported bytes and twenty earlier transport bytes still coexist.
+  assert_eq(
+    local_managed_snapshot_reload_extent(7L, 50L, 20L, 17L),
+    Some((20L, 37L)),
+  )
+  // A larger receiver extends exactly that same reserved peak, once.
+  assert_eq(
+    local_managed_snapshot_reload_extent(7L, 50L, 20L, 42L),
+    Some((20L, 42L)),
+  )
+  assert_eq(
+    local_managed_snapshot_reload_extent(7L, 20L, 20L, 42L),
+    Some((20L, 42L)),
+  )
+  // The normal large-row scalar geometry remains below the unchanged 1GiB
+  // execution policy only after its acknowledged nonoverlap transition.
+  let (transport, imported) = local_managed_snapshot_reload_extent(
+    0L, 404141616L, 0L, 672981712L,
+  ).unwrap()
+  assert_eq(transport, 0L)
+  assert_eq(184628624L + imported, 857610336L)
+  assert_true(184628624L + 404141616L + 672981712L > 1073741824L)
+}
+
+///|
+test "snapshot reload reclassification refuses foreign prefixes regression and overflow" {
+  for
+    args in [
+      (-1L, 50L, 20L, 17L),
+      (7L, 50L, -1L, 17L),
+      (7L, 50L, 51L, 17L),
+      (7L, 50L, 20L, 6L),
+      (9223372036854775807L, 1L, 0L, 9223372036854775807L),
+    ] {
+    assert_true(
+      local_managed_snapshot_reload_extent(args.0, args.1, args.2, args.3)
+      is None,
+    )
+  }
+}

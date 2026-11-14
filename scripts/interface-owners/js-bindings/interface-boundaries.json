@@ -106708,7 +106708,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c11000d936edf8c8b80247961d0ab02e7b7f35c4726c207d097acfd96bae662b",
+      "sha256": "da08eb1a3f44df24927c55d1a822e7a8472264ec8acf0b6a52f9fbcdefa987ce",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -106894,7 +106894,9 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#2",
-          "parameters": [],
+          "parameters": [
+            "result"
+          ],
           "async": false
         },
         {
@@ -106909,6 +106911,11 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#6",
           "parameters": [],
           "async": false
         },
@@ -107174,6 +107181,7 @@
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#3",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#4",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#6",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/init:read/init:read",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory#2",
@@ -107230,6 +107238,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "synchronization": [
@@ -107240,6 +107252,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "failure": [
@@ -107250,6 +107266,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "cancellation": [
@@ -107260,6 +107280,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "resources": [
@@ -107270,6 +107294,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "extension": [
@@ -107294,6 +107322,26 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/client_local_host/relation_snapshot_funding_wbtest.mbt",
+                "anchor": "acknowledged snapshot reuses only retired export backing before exact reload and preserves short refusal"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_data_funding_wbtest.mbt",
+                "anchor": "snapshot reload keeps coheld import and transport prefixes while reusing only completed export delta"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_data_funding_wbtest.mbt",
+                "anchor": "snapshot reload reclassification refuses foreign prefixes regression and overflow"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "Relation snapshot errors use the same failed-result budget projector and preserve the original Unit failure"
+              },
+              {
+                "path": "adapters/local-node/carrier-snapshot.test.mjs",
+                "anchor": "retains export custody until the actual seal promise settles"
               }
             ]
           }

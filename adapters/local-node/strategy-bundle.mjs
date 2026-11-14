@@ -403,8 +403,13 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             }
             if (carrierMaterial == null && createSnapshotLease != null &&
                 typeof operations.prepare_relation_snapshot === 'function') {
+              // These snapshot Results retain the SAME LocalDispatchIssue
+              // error family. The existing projector reads only Err; success
+              // payloads remain checked by their original snapshot consumer.
               snapshot = prepareLocalRelationSnapshot(
-                operations, createSnapshotLease, checked, signal, moon,
+                operations, createSnapshotLease,
+                result => checkedLocalManagedAdvance(moon, result, checked, prepared.task),
+                signal, moon,
               );
               relationSnapshotDiagnostic = await snapshot.roundtrip();
             }

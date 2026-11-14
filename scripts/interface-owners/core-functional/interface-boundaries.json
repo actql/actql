@@ -24531,7 +24531,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "c11000d936edf8c8b80247961d0ab02e7b7f35c4726c207d097acfd96bae662b",
+      "sha256": "da08eb1a3f44df24927c55d1a822e7a8472264ec8acf0b6a52f9fbcdefa987ce",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -24716,7 +24716,9 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#2",
-          "parameters": [],
+          "parameters": [
+            "result"
+          ],
           "async": false
         },
         {
@@ -24731,6 +24733,11 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#6",
           "parameters": [],
           "async": false
         },
@@ -24998,6 +25005,7 @@
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#3",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#4",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#6",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/init:read/init:read",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory#2",
@@ -25066,6 +25074,10 @@
               {
                 "path": "docs/design/physical-strategy-execution.md",
                 "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "synchronization": [
@@ -25076,6 +25088,10 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "failure": [
@@ -25090,6 +25106,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "cancellation": [
@@ -25100,6 +25120,10 @@
               {
                 "path": "docs/design/physical-strategy-execution.md",
                 "anchor": "# Serial physical strategy execution"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "resources": [
@@ -25110,6 +25134,10 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "extension": [
@@ -25134,6 +25162,26 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA'"
+              },
+              {
+                "path": "src/client_local_host/relation_snapshot_funding_wbtest.mbt",
+                "anchor": "acknowledged snapshot reuses only retired export backing before exact reload and preserves short refusal"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_data_funding_wbtest.mbt",
+                "anchor": "snapshot reload keeps coheld import and transport prefixes while reusing only completed export delta"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_data_funding_wbtest.mbt",
+                "anchor": "snapshot reload reclassification refuses foreign prefixes regression and overflow"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "Relation snapshot errors use the same failed-result budget projector and preserve the original Unit failure"
+              },
+              {
+                "path": "adapters/local-node/carrier-snapshot.test.mjs",
+                "anchor": "retains export custody until the actual seal promise settles"
               }
             ]
           }
@@ -54858,7 +54906,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "0478e867dc7034d6b6fa81a94cfae31d9ff38396d57054c0b9665befde9c4274",
+      "sha256": "25e877a7c372793ce9d0dbead303006b4de1439d615d51c5b59c62b5f25fb52b",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -54928,6 +54976,10 @@
           "declaration": "local_managed_import_start_bytes ( limits : @ local . LocalImportLimits , ) - > Int64 ?"
         },
         {
+          "name": "local_managed_snapshot_reload_extent",
+          "declaration": "local_managed_snapshot_reload_extent ( imported : Int64 , transport : Int64 , transport_prefix : Int64 , next : Int64 , ) - > ( Int64 , Int64 ) ?"
+        },
+        {
           "name": "local_relation_snapshot_reload_capacity",
           "declaration": "local_relation_snapshot_reload_capacity ( limits : @ local . LocalImportLimits , content : @ execution . AdmittedOutputStreamReceipt , ) - > Int64 ?"
         },
@@ -54945,6 +54997,7 @@
         {
           "operations": [
             "<module>",
+            "[A]with_local_managed_import_mutation",
             "[A]with_managed_scratch_use",
             "[T]install_local_managed_input_read",
             "[T]local_managed_captured_relation_input",
@@ -54960,10 +55013,10 @@
             "bind_physical_operation_input",
             "local_managed_import_next_extent",
             "local_managed_import_start_bytes",
+            "local_managed_snapshot_reload_extent",
+            "local_relation_snapshot_reload_capacity",
             "managed_row_transfer_bytes",
-            "start_local_managed_dispatch_node",
-            "[A]with_local_managed_import_mutation",
-            "local_relation_snapshot_reload_capacity"
+            "start_local_managed_dispatch_node"
           ],
           "exports": [],
           "attributes": {
@@ -55013,6 +55066,10 @@
               {
                 "path": "src/connectors/local/driver/dispatch.mbt",
                 "anchor": "@strategy.captured_task_input("
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "synchronization": [
@@ -55031,6 +55088,10 @@
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "fn[A] with_local_managed_import_mutation("
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "failure": [
@@ -55049,6 +55110,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "cancellation": [
@@ -55063,6 +55128,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "the original captured holding keep their independent charges and lifetimes."
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "resources": [
@@ -55169,6 +55238,10 @@
               {
                 "path": "src/execution_relation/bounded_global_count.mbt",
                 "anchor": "if !fund_output_retention("
+              },
+              {
+                "path": "docs/design/local-relation-storage.md",
+                "anchor": "After every append and the same Store seal have acknowledged the exact body,"
               }
             ],
             "extension": [
@@ -55517,6 +55590,26 @@
               {
                 "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
                 "anchor": "test \"managed advance diagnoses only the original control-work constructor\""
+              },
+              {
+                "path": "src/client_local_host/relation_snapshot_funding_wbtest.mbt",
+                "anchor": "acknowledged snapshot reuses only retired export backing before exact reload and preserves short refusal"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_data_funding_wbtest.mbt",
+                "anchor": "snapshot reload keeps coheld import and transport prefixes while reusing only completed export delta"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_data_funding_wbtest.mbt",
+                "anchor": "snapshot reload reclassification refuses foreign prefixes regression and overflow"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
+                "anchor": "Relation snapshot errors use the same failed-result budget projector and preserve the original Unit failure"
+              },
+              {
+                "path": "adapters/local-node/carrier-snapshot.test.mjs",
+                "anchor": "retains export custody until the actual seal promise settles"
               }
             ]
           }

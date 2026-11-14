@@ -360,6 +360,32 @@ fn local_managed_import_next_extent(
 }
 
 ///|
+// Same import prefix and pre-snapshot transport remain coheld. This arithmetic
+// supplies no ACK or grant; only the closed acknowledged snapshot calls it.
+fn local_managed_snapshot_reload_extent(
+  imported : Int64,
+  transport : Int64,
+  transport_prefix : Int64,
+  next : Int64,
+) -> (Int64, Int64)? {
+  if imported < 0L ||
+    transport_prefix < 0L ||
+    transport_prefix > transport ||
+    next < imported {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(
+      imported,
+      transport - transport_prefix,
+      1L,
+    )
+    is Some(previous) else {
+    return None
+  }
+  Some((transport_prefix, Int64::max(previous, next)))
+}
+
+///|
 // Only the exact finished export supplies these copy extents. They fund the
 // existing importer; all original admission and identity limits still apply.
 fn local_relation_snapshot_reload_capacity(
@@ -1378,32 +1404,89 @@ pub fn[T] start_local_managed_dispatch(
   }
   // Import DATA, evaluator scratch, framing and Result metadata coexist under
   // this original Task reservation. No live parent or other copy is credited.
-  let reserve_import = fn(next : Int64) -> Result[Unit, LocalDispatchIssue] {
+  let reserve_import = fn(
+    next : Int64,
+    retired_transport_prefix : Int64?,
+  ) -> Result[Unit, LocalDispatchIssue] {
     if !live.val || disposed.val || next < import_extra.val {
       return Err(Execution(Stopped))
     }
+    let (transport, imported) = match retired_transport_prefix {
+      None => (transport_extra.val, next)
+      Some(prefix) => {
+        // Only the closed snapshot's acknowledged Released -> Reloading
+        // transition selects this branch. Earlier transport and import DATA
+        // stay coheld. The completed export delta is now spare backing on
+        // this SAME reservation, never a physical release or a second grant.
+        guard local_managed_snapshot_reload_extent(
+            import_extra.val,
+            transport_extra.val,
+            prefix,
+            next,
+          )
+          is Some(extent) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        extent
+      }
+    }
     let mut total = setup.capacity.scratch_bytes
-    for
-      extra in [
-        working_extra.val,
-        metadata_extra.val,
-        transport_extra.val,
-        next,
-      ] {
+    for extra in [working_extra.val, metadata_extra.val, transport, imported] {
       guard @execution.checked_preparation_add_product(total, extra, 1L)
         is Some(value) else {
         return Err(Configuration(InvalidLimits))
       }
       total = value
     }
+    guard @execution.checked_preparation_add_product(
+        setup.capacity.scratch_bytes,
+        working_extra.val,
+        1L,
+      )
+      is Some(base) &&
+      @execution.checked_preparation_add_product(base, metadata_extra.val, 1L)
+      is Some(metadata) &&
+      @execution.checked_preparation_add_product(
+        metadata,
+        transport_extra.val,
+        1L,
+      )
+      is Some(transport_before) &&
+      @execution.checked_preparation_add_product(
+        transport_before,
+        import_extra.val,
+        1L,
+      )
+      is Some(previous) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    if total < previous {
+      return Err(Configuration(InvalidLimits))
+    }
+    let ledger = @strategy.captured_dag_ledger(setup.run)
+    let limits = @resources.ledger_admission_limits(ledger)
+    let usage = @resources.ledger_usage(ledger)
+    let needed = total - previous
+    let available = limits.execution_bytes - usage.reserved_execution_bytes
+    if needed > available {
+      return Err(
+        ExecutionCapacityRefusal(
+          ExecutionLimit,
+          needed,
+          available,
+          limits.execution_bytes,
+        ),
+      )
+    }
     match @strategy.grow_task_execution_workspace(setup.run, execution, total) {
       Err(issue) => return Err(Execution(Physical(issue)))
       Ok(_) => ()
     }
-    import_extra.val = next
     if !live.val || disposed.val {
       return Err(Execution(Stopped))
     }
+    import_extra.val = imported
+    transport_extra.val = transport
     Ok(())
   }
   let reserve_transport = fn(
@@ -1524,7 +1607,7 @@ pub fn[T] start_local_managed_dispatch(
             is Some(next) else {
             return Err(Configuration(InvalidLimits))
           }
-          match reserve_import(next) {
+          match reserve_import(next, None) {
             Err(issue) => return Err(issue)
             Ok(_) => ()
           }
@@ -2920,6 +3003,9 @@ pub fn[T] start_local_managed_dispatch(
       retained_imports.push(importing)
       let restored : Ref[@execution.CompletedOutput?] = Ref(None)
       let phase = Ref(SnapshotPhase::Saving)
+      // Preserve any earlier transport prefix through this snapshot. Only
+      // its later, completed exporter delta can be reused after physical ACK.
+      let snapshot_transport_prefix = transport_extra.val
       let emitted_bytes = Ref(0L)
       let reload_capacity : Ref[Int64?] = Ref(None)
       let fund_part = fn(part : String) -> Result[Unit, LocalDispatchIssue] {
@@ -3320,7 +3406,7 @@ pub fn[T] start_local_managed_dispatch(
                   is Some(next) else {
                   return Err(Configuration(InvalidLimits))
                 }
-                match reserve_import(next) {
+                match reserve_import(next, Some(snapshot_transport_prefix)) {
                   Ok(_) => ()
                   Err(issue) => {
                     phase.val = Failed

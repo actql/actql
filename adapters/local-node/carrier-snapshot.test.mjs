@@ -538,3 +538,40 @@ test('Relation cancellation inside bounded save cannot borrow staged output or a
   assert.equal(owner.cleanupHandle.status().pending,true);
   await owner.cleanupHandle.retry();assert.deepEqual(await readdir(directory),[]);
 });
+
+for (const boundary of ['acknowledged seal', 'failed seal', 'abort after seal']) {
+  test(`Relation ${boundary} retains export custody until the actual seal promise settles`, async () => {
+    const {directory,store}=await fileFixture();const f=relationFixture();
+    const controller=new AbortController(), failure=new Error('OriginalSealBoundary');
+    let enter, resume;const entered=new Promise(resolve=>{enter=resolve;});
+    const gate=new Promise(resolve=>{resume=resolve;});let acknowledged=false;
+    const release=f.operation.release_source;
+    f.operation.release_source=(...args)=>{
+      assert.equal(acknowledged,true,'no Core release/reuse before physical seal ACK');
+      return release(...args);
+    };
+    const lease={...store,reserve(amount){
+      const writer=store.reserve(amount);
+      return {...writer,async seal(identity){
+        enter();await gate;
+        if(boundary==='failed seal')throw failure;
+        const body=await writer.seal(identity);acknowledged=true;
+        if(boundary==='abort after seal')controller.abort(failure);
+        return body;
+      }};
+    }};
+    const owner=prepareLocalRelationSnapshot(f.operations,()=>lease,checked,controller.signal,moon);
+    const flight=owner.roundtrip();const rejected=boundary==='acknowledged seal'?undefined:
+      assert.rejects(flight,error=>error===failure);
+    await entered;
+    assert.equal(f.events.includes('revoke-source'),false);
+    assert.equal(f.events.includes('reload'),false);
+    assert.equal(owner.cleanupHandle.status().pending,true);
+    assert(store.status().reservedBytes>0,'unacknowledged Store bytes remain owned');
+    resume();
+    if(rejected){await rejected;assert.equal(f.events.includes('reload'),false);
+      assert.equal(f.events.includes('revoke-source'),false);await owner.cleanupHandle.retry();}
+    else await flight;
+    assert.equal(store.status().reservedBytes,0);assert.deepEqual(await readdir(directory),[]);
+  });
+}
