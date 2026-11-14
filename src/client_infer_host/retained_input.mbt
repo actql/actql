@@ -193,8 +193,36 @@ pub fn prepared_input_scope_snapshot(
     !active.advancing &&
     active.model is Some(model) &&
     @model.prepared_model_matches(prepared, model) &&
-    active.call_scope is Some(scope) else {
+    active.call_scope is Some(_) else {
     return Err(ForeignInput)
+  }
+  call_scope_snapshot(active)
+}
+
+///|
+/// The normal composed original prepares this exact DATA before handoff.
+/// Borrow its cached wire while the real Scope/input remain current. The
+/// explicit legacy entrance retains its original independent constructor.
+pub fn call_scope_snapshot(
+  active : Execution,
+) -> Result[String, @publication_host.ClientInferCallScopeIssue] {
+  guard !active.reclaimed &&
+    !active.cancelled &&
+    !active.advancing &&
+    active.call_scope is Some(scope) &&
+    active.rows is Some(rows) &&
+    @publication_host.client_infer_call_scope_matches_rows(
+      scope,
+      rows,
+      active.fixed_request_cid,
+    ) else {
+    return Err(ForeignInput)
+  }
+  if active.identity_body is Some(body) {
+    return match body.snapshot {
+      Some(wire) => Ok(wire)
+      None => Err(Encoding)
+    }
   }
   @publication_host.client_infer_call_scope_snapshot(scope)
 }

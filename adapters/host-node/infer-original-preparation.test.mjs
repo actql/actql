@@ -86,6 +86,48 @@ function fundedFixture(available = true, startIssue) {
   return {options, originalPreparation, calls, graph, consumer, active};
 }
 
+function preparedFactsFixture({original = true, refusal} = {}) {
+  const f=fundedFixture(), prepared={}, input={}, artifact={wire:'original-artifact'}, events=[];
+  if(original)f.originalPreparation.inputBodyRead=f.originalPreparation.read;
+  Object.assign(f.options.moon,{
+    clientProgramInferPreparedCallCount(value){assert.strictEqual(value,prepared);return 129;},
+    clientProgramInferPreparedInput:()=>input,
+    clientProgramInferPreparedInputArtifact:()=>artifact,
+    clientProgramInferPreparedIdentities:()=>({_0:'models/fixture',_1:'task-cid',_2:'request-cid'}),
+    clientProgramInferCallScopeSnapshot(value){
+      assert.strictEqual(value,f.active);events.push('snapshot');
+      return refusal===undefined?{$tag:1,_0:'same-original-cached-snapshot'}:{$tag:0,_0:refusal};
+    },
+    clientProgramInferPreparedCallAt(value,slot){assert.strictEqual(value,prepared);events.push(slot);return {wire:'slot-'+slot};},
+    strategyRunEvidenceJson:value=>value.wire,
+    clientProgramInferCallScopeUnitId:()=> 'unit',
+  });
+  return {...f,prepared,input,artifact,events,operation:openNodeInferOperation(f.options)};
+}
+
+test('prefunded prepared facts borrow129 original slots after the same cached-snapshot check', async()=>{
+  // Explicit adapter ports only; Core tests separately prove the real
+  // pre-handoff growth and129 prepared calls without a provider invocation.
+  const f=preparedFactsFixture(),facts=f.operation.preparedFacts(f.prepared);
+  assert.strictEqual(facts.preparedCallSet,f.prepared);assert.strictEqual(facts.input,f.input);
+  assert.equal(facts.slotWires.length,129);assert.equal(facts.slotWires[128],'slot-128');
+  assert.equal(facts.callScopeSnapshotWire,'same-original-cached-snapshot');
+  assert.equal(f.events[0],'snapshot');assert.equal(f.events.length,130);
+  await f.operation.close();
+});
+
+test('prefunded prepared facts refuse before slot wrappers on the actual snapshot-port refusal', async()=>{
+  const cause={kind:'ForeignInput'},f=preparedFactsFixture({refusal:cause});
+  assert.throws(()=>f.operation.preparedFacts(f.prepared),error=>error.cause===cause);
+  assert.deepEqual(f.events,['snapshot']);await f.operation.close();
+});
+
+test('prefunded prepared facts do not widen the separate legacy envelope', async()=>{
+  const f=preparedFactsFixture({original:false});
+  assert.throws(()=>f.operation.preparedFacts(f.prepared),{message:'InferPreparedOwnerUnavailable'});
+  assert.deepEqual(f.events,[]);await f.operation.close();
+});
+
 test('funded start claims original envelope before Core allocation and keeps distinct Model grant', async () => {
   const f = fundedFixture();
   const operation = openNodeInferOperation(f.options);

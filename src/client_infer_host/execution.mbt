@@ -1007,6 +1007,10 @@ fn stopped(active : Execution) -> Poll {
 ///|
 fn begin_model(active : Execution) -> Poll {
   guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
+  match prepare_original_infer_scope_snapshot(active) {
+    Err(issue) => return fail(active, issue)
+    Ok(_) => ()
+  }
   let mut model_limits = active.limits.model
   let started = match active.source {
     Physical(provider) =>
