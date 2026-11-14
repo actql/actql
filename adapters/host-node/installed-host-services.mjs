@@ -419,6 +419,77 @@ function retainCompletedSourceJson(original, material, workspace, value) {
   return value;
 }
 
+// Model metadata shares this SAME initialization material. One existing provider
+// slot holds its incremental retained total. Each call adds only THIS peak;
+// success replaces that peak with its original actual retained quantity. A
+// failed/current-refused constructor keeps its full debt and original inputs.
+function prepareModelTaskInput(original, material, projection, attempts, validate) {
+  if (material.modelFailure !== undefined) throw material.modelFailure.cause;
+  if (material.phase !== 'working' || material.busy || attempts.has(projection) ||
+      !projection || nodeTypes.isProxy(projection) || !Object.isFrozen(projection)) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  const fields = Object.getOwnPropertyDescriptors(projection);
+  if (Reflect.ownKeys(fields).length !== 3 || ['capacity', 'project', 'retained'].some(name =>
+      !Object.hasOwn(fields[name] ?? {}, 'value') || typeof fields[name].value !== 'function' ||
+      nodeTypes.isProxy(fields[name].value) || nodeTypes.isAsyncFunction(fields[name].value))) {
+    fail('InvalidInstalledModelTaskProjection');
+  }
+  validate(); original.current();
+  attempts.add(projection);
+  const accumulate = original.moon.clientProgramAccumulateModelTaskConstructionCapacity;
+  if (typeof accumulate !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+  const add = (previous, current) => {
+    const value = checked(Reflect.apply(accumulate, original.moon, [previous, current]));
+    if (!value || typeof value !== 'object' || nodeTypes.isProxy(value)) {
+      fail('InstalledSourceInputCapacityUnavailable');
+    }
+    return value;
+  };
+  const previous = material.modelRetained;
+  let index = material.modelProviderIndex;
+  const inputIndex = material.inputs.length;
+  try {
+    let peak;
+    material.busy = true;
+    try {peak = add(previous, requireSynchronousSourceConstruction(material,
+      Reflect.apply(fields.capacity.value, projection, [])));}
+    finally {material.busy = false;}
+    if (index === undefined) {
+      index = material.modelProviderIndex = material.providers.length;
+      material.providers.push(peak);
+    } else material.providers[index] = peak;
+    material.inputs.push(projection);
+    reserveSource(original, material);
+    validate(); original.current();
+    let value, retained;
+    material.busy = true;
+    try {
+      value = requireSynchronousSourceConstruction(material, Reflect.apply(fields.project.value, projection, []));
+      material.inputs.push(value);
+      if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || 'then' in value) {
+        fail('InvalidInstalledSourceNativeInput');
+      }
+      validate(); original.current();
+      retained = add(previous, requireSynchronousSourceConstruction(material,
+        Reflect.apply(fields.retained.value, projection, [value])));
+      validate(); original.current();
+    } finally {material.busy = false;}
+    // Same original current/parent is checked while the full peak remains held.
+    reserveSource(original, material);
+    validate(); original.current();
+    material.providers[index] = retained;
+    material.modelRetained = retained;
+    material.inputs[inputIndex] = undefined;
+    reconcileSource(original, material);
+    return value;
+  } catch (cause) {
+    material.modelFailure = {cause};
+    retainSourceFailure(material, cause);
+    throw cause;
+  }
+}
+
 // This reader is created only by the real initializer, before the first
 // configuration open. Its fixed Buffer peak is reserved before allocation;
 // actual received bytes fund native decoding BEFORE concat/text/JSON.parse.
@@ -522,6 +593,7 @@ export function installedSourceConfigurationReader(services) {
     finally {material.ioPending--;}
   }
   const metadataProjections = new WeakSet();
+  const modelProjections = new WeakSet();
   const validateMetadataInput = () => {
     if (sourceMaterial(original) !== material || material.phase !== 'working') {
       fail('ForeignInstalledSourceInitialization');
@@ -545,6 +617,10 @@ export function installedSourceConfigurationReader(services) {
       }};
   };
   const reader = Object.freeze({
+    prepareModelTaskInput(projection) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return prepareModelTaskInput(original, material, projection, modelProjections, validateMetadataInput);
+    },
     prepareNativeInput(projection) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
       return prepareSourceNativeInput(original, material, projection, metadataProjections,
@@ -2224,6 +2300,7 @@ export function retireInstalledSourceInitialization(services) {
     material.workspaces.clear();
     material.io = material.configurationReader = material.sourceOriginal = material.environment = material.environmentWire = undefined;
     material.retainEnvironmentNativeOriginal = undefined;
+    material.modelRetained = material.modelFailure = material.modelProviderIndex = undefined;
     material.input = material.unit = material.capacity = material.methods = undefined;
     original.initialPreparation = undefined;
     material.phase = 'retired';

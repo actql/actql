@@ -51,3 +51,21 @@ pub fn client_program_public_model_task_normalized_retained_capacity(
   let retained = @check_environment.normalized_public_model_task_retained_extent(original)
   client_check_environment_capacity(retained, retained)
 }
+
+///|
+/// Incremental SAME-owner quantity; no earlier Task/provider inventory is
+/// traversed. Missing means first prefix only, never an absent current quote.
+#export_name("clientProgramAccumulateModelTaskConstructionCapacity")
+pub fn client_program_accumulate_model_task_construction_capacity(
+  previous : @execution.ExecutionCapacity?,
+  current : @execution.ExecutionCapacity?,
+) -> Result[@execution.ExecutionCapacity?, @resources.PreparationCapacityIssue] {
+  guard current is Some(current) else { return Err(@resources.InvalidExtent) }
+  match previous {
+    None => Ok(Some(current))
+    Some(previous) => match @execution.add_execution_capacity(previous, current) {
+      Some(sum) => Ok(Some(sum))
+      None => Err(@resources.InvalidExtent)
+    }
+  }
+}
