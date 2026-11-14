@@ -320,7 +320,9 @@ test "selected large Source default sequence uses its same checked expression de
     selected.expressions.max_literal_text_bytes,
     original.expressions.max_literal_text_bytes,
   )
-  assert_eq(selected.max_steps, original.max_steps)
+  // Original generated Values/derive/select pipeline, retained before module
+  // construction by the shared full-sequence inventory (not Stage100).
+  assert_eq(selected.max_steps, 3)
   assert_eq(selected.max_bindings, original.max_bindings)
   let before = @resources.ledger_usage(parent.ledger)
   let sequence = match

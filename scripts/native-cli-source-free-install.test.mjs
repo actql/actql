@@ -608,9 +608,22 @@ test('Native numeric operator harness uses one selected install and preserves di
         return {code: 0, signal: null, stdout: JSON.stringify({kind: 'local_host_adopted'})};
       }
       if (low) {
-        assert.deepEqual(args, ['run', 'low.json', '--format', 'json', '--json']);
-        assert.equal(expected, 1);
-        return {code: 1, signal: null, stdout: '', stderr: JSON.stringify({code: 'ACTQL_E_PROGRAM_INVALID'})};
+        if (args[0] === 'run') {
+          assert.equal(expected, 1);
+          if (args[1] === 'low.json') {
+            assert.deepEqual(args, ['run', 'low.json', '--format', 'json', '--json']);
+            const small = JSON.parse(await readFile(join(cwd, 'low.json'), 'utf8'));
+            assert.deepEqual(small.stages[0].steps[0].values.rows, [{v0: 0}, {v0: 1}]);
+          } else {
+            assert.deepEqual(args, ['run', 'union-low.sql', '--format', 'sql', '--json']);
+            assert.equal(await readFile(join(cwd, 'union-low.sql'), 'utf8'),
+              'SELECT 0 AS n UNION ALL SELECT 1 AS n');
+          }
+          return {code: 1, signal: null, stdout: '', stderr: JSON.stringify({code: 'ACTQL_E_PROGRAM_INVALID'})};
+        }
+        assert.deepEqual(args, ['sql', 'SELECT 83 AS n', '--format', 'jsonl']);
+        assert.equal(expected, 0);
+        return {code: 0, signal: null, stdout: '{"n":83}\n'};
       }
       if (args[0] === 'result') {
         assert.equal(args[1], original.run_id);
@@ -624,10 +637,15 @@ test('Native numeric operator harness uses one selected install and preserves di
       return {code: 0, signal: null, stdout: JSON.stringify(original)};
     }});
   assert.deepEqual(calls, ['adopt', 'run', 'result', 'status', 'result'].map(operation => ({operation, low: false}))
-    .concat([{operation: 'adopt', low: true}, {operation: 'run', low: true}]));
+    .concat([{operation: 'adopt', low: true}, {operation: 'run', low: true},
+      {operation: 'run', low: true}, {operation: 'sql', low: true}]));
   assert.equal(report.first.rows, 100000); assert.equal(report.saved.rows, 100000);
   assert.equal(report.operator.lowPolicyRefused, true);
   assert.equal(report.operator.maxRows, 100000);
+  assert.deepEqual(report.operator.lowUnionRowPolicy, {explicitRowPolicy: 1, originalRejectedRows: 2,
+    recoveryRows: [{n: 83}], classification: 'static-row-policy-input-invalid',
+    sameParentBudgetRefusal: 'not-tested', recoveryFirstCloseObserved: false,
+    physicalAckIndependentlyObserved: false});
 });
 
 test('Native resource fixtures separate long scalars, Unicode escapes and small-input expansion', () => {

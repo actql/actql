@@ -143,6 +143,8 @@ fn[T] local_stop_submitted_preparation(
           )
         @checked.Checked(_) => PreparationFailed
       }
+    Request(QuerySyntax(Frontend(issue))) =>
+      local_frontend_diagnostic_kind(issue)
     Request(_) | RequestPreparation(_) => PreparationFailed
     RequestBranchUnavailable => UnsupportedPreparation
   }

@@ -1873,3 +1873,75 @@ test "Native thirty three task File Plan refuses unfunded growth without changin
     pure_file_budget_refusal=true,
   )
 }
+
+///|
+// Keep the original read-only terminal on its actual Native Request. Only the
+// closed diagnostic tag escapes the payload frame, as in the command caller.
+fn command_request_query_diagnostic_fixture(
+  facility : NativeMockReadmeRequestFacility,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  text : String,
+) -> Unit raise {
+  let wire : Json = {
+    "kind": "aql",
+    "input": { "text": Json::string(text), "format": "sql" },
+    "parameters": null,
+  }
+  let wire = local_project_mock_relation_wire(wire).unwrap()
+  let intent = @run_host.prepare_client_submitted_intent(wire, 65536, 8192, 64).unwrap()
+  guard @local_host.prepare_native_client_submitted_request_input(
+      facility.parent,
+      facility.input,
+      intent,
+      environment,
+      publication,
+    )
+    is Err(issue) else {
+    fail("the original Request must refuse this authored Query")
+  }
+  assert_true(
+    issue
+    is Request(
+      QuerySyntax(Frontend(QuerySyntax({ issue: Syntax(_) | Lexical(_), .. })))
+    ),
+  )
+  local_stop_submitted_preparation(issue) catch {
+    ClientStop(_) => ()
+  }
+}
+
+///|
+test "Native original Request parser failure retains invalid input after payload cleanup" {
+  let environment = explain_fixture_environment()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for text in ["SELECT )", "/* SYNTHETIC_UNTERMINATED_QUERY"] {
+    local_command_diagnostic_reset()
+    let facility = native_mock_readme_request_facility()
+    facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+    command_request_query_diagnostic_fixture(
+      facility, environment, publication, text,
+    )
+    ignore(
+      @local_values.abort_request_preparation_after_cleanup(facility.parent),
+    )
+    facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+    facility.arena.close_domain_retained_execution(facility.physical).unwrap()
+    @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
+    facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
+    facility.arena.try_close().unwrap()
+    let (code, _) = local_command_primary_diagnostic("ignored")
+    assert_eq(code, "ACTQL_E_PROGRAM_INVALID")
+    for json in [false, true] {
+      let rendered = local_command_failure_text(text, json)
+      assert_true(rendered.contains(code))
+      assert_false(rendered.contains(text))
+    }
+  }
+  local_command_diagnostic_reset()
+}

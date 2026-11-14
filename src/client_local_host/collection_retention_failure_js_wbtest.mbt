@@ -15,8 +15,18 @@ test "selected 512MiB collection preserves retention refusal and retires origina
     actual_request_profile=true,
     diagnostic_failure=Some(original),
   )
-  assert_true(
-    original.val
-    is Some(Driver(@local_driver.Execution(Physical(RetentionLimit)))),
-  )
+  guard original.val
+    is Some(
+      Driver(
+        @local_driver.ExecutionCapacityRefusal(
+          @resources.RetentionLimit,
+          needed,
+          available,
+          policy
+        )
+      )
+    ) else {
+    fail("expected the original typed collection retention refusal")
+  }
+  assert_true(needed > available && available >= 0L && policy >= available)
 }

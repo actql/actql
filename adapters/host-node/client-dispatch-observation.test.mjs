@@ -670,9 +670,13 @@ test('required installed preparation forwards only its same funded callback with
 test('dispatch final usage observes the same ledger only after original preparation retirement', () => {
   const install = ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
     node.declaration?.id?.name === 'installNodeClientDispatchOwner').declaration;
-  const declaration = install.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retire');
+  const declarations = ['retirementReady', 'retire'].map(name => {
+    const declaration = install.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+    assert(declaration, `Missing original retirement declaration: ${name}`);
+    return source.slice(declaration.start, declaration.end);
+  }).join('\n');
   const entries = new Map(), events = [], ledger = {retained: 7}, ref = {runDefinitionCid: 'original-retirement'};
-  const retire = compileFunction(source.slice(declaration.start, declaration.end) + '\nreturn retire;',
+  const retire = compileFunction(declarations + '\nreturn retire;',
     ['entries','keyOf','diagnostic','resourceUsage'])(entries, value => value.runDefinitionCid,
     (name, detail) => events.push({name, detail}), value => {
       assert.equal(value, ledger); return {reservedRetentionBytes: String(value.retained)};
@@ -693,7 +697,7 @@ test('dispatch final usage observes the same ledger only after original preparat
   for (const failureAt of ['usage', 'observer']) {
     const retained = new Map(), selected = {ref, acquisitionLedger: ledger, settled: true};
     retained.set(ref.runDefinitionCid, selected);
-    const observeRetirement = compileFunction(source.slice(declaration.start, declaration.end) + '\nreturn retire;',
+    const observeRetirement = compileFunction(declarations + '\nreturn retire;',
       ['entries','keyOf','diagnostic','resourceUsage'])(retained, value => value.runDefinitionCid,
       () => {throw new Error('ObserverUnavailable');}, () => {
         if (failureAt === 'usage') throw new Error('ObservationUnavailable');

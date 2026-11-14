@@ -457,9 +457,20 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
           last_task_reserved.val,
           msg="the actual final task must be registered before growth refusal",
         )
-        guard issue is Driver(Execution(Physical(@resources.ExecutionLimit))) else {
-          fail("expected original physical ExecutionLimit")
+        guard issue
+          is Driver(
+            ExecutionCapacityRefusal(
+              @resources.ExecutionLimit,
+              needed,
+              available,
+              policy
+            )
+          ) else {
+          fail("expected original typed ExecutionLimit reservation refusal")
         }
+        assert_true(
+          needed > available && available >= 0L && policy >= available,
+        )
         assert_true(cleaned)
         primary_failed.val = false
         return ()

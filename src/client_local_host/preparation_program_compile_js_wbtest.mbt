@@ -5,6 +5,8 @@ test "same Effect compiler backs bounded typed selections before constructor at 
   // One 1H/7R/1W record, one original holder reference, and the existing
   // collection owner's Array construction envelope; no copied String backing.
   assert_eq(program_effect_selection_extent_cost(1), Some(280L))
+  // Existing full-step observation and aggregate: 2W on the SAME quote.
+  assert_eq(sequence_full_step_delta_bytes, 8L * 2L)
   for retention in [true, false] {
     let (parent, owner, input, _) = request_effect_fixture()
     finish_effect_program_check_preparation(owner).unwrap() |> ignore
@@ -17,14 +19,22 @@ test "same Effect compiler backs bounded typed selections before constructor at 
     let blocker = @resources.reserve_capacity(
       parent.ledger,
       if retention {
-        limits.retained_bytes - before.0 - data - 279L
+        limits.retained_bytes -
+        before.0 -
+        data -
+        sequence_full_step_delta_bytes -
+        279L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - before.1 - data - 279L
+        limits.execution_bytes -
+        before.1 -
+        data -
+        sequence_full_step_delta_bytes -
+        279L
       },
     ).unwrap()
     let result = compile_effect_program_check_preparation(owner)
@@ -39,7 +49,15 @@ test "same Effect compiler backs bounded typed selections before constructor at 
       owner.compiled_effect is None && owner.compilation_known_work == 0L,
     )
     let quote = owner.compilation_quote
-    assert_eq(quote, Some((before.0 + data + 280L, before.1 + data + 280L)))
+    assert_eq(
+      quote,
+      Some(
+        (
+          before.0 + data + sequence_full_step_delta_bytes + 280L,
+          before.1 + data + sequence_full_step_delta_bytes + 280L,
+        ),
+      ),
+    )
     @resources.settle_capacity(parent.ledger, blocker).unwrap()
     assert_true(compile_effect_program_check_preparation(owner) is Ok(_))
     assert_eq(owner.compilation_quote, quote)

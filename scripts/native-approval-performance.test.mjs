@@ -10,9 +10,9 @@ import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, appr
 const sourceSha = 'a'.repeat(40), fixtureSha256 = 'b'.repeat(64), runnerSha256 = 'c'.repeat(64);
 const series = () => ({mode: 'final', sourceSha, fixtureSha256, runnerSha256,
   samples: Array.from({length: 30}, (_, iteration) => ({iteration, sourceSha, fixtureSha256,
-    runnerSha256, wallNs: 4000000000, cpuUserUs: 1000, cpuSystemUs: 1000, cpuScope: 'synthetic OS sample', peakRssBytes: 4096, rssScope: 'synthetic OS sample', completed: true, verified: true}))});
+    runnerSha256, wallNs: 2000000000, cpuUserUs: 1000, cpuSystemUs: 1000, cpuScope: 'synthetic OS sample', peakRssBytes: 4096, rssScope: 'synthetic OS sample', completed: true, verified: true}))});
 
-function smokeScenarios(wallNs = 5000000000) {
+function smokeScenarios(wallNs = 3000000000) {
   return ['deal-review-mock', 'churn-risk-mock'].map(template => ({template,
     commands: [{args: ['original-launcher', 'approve', 'original-checkpoint', '--wait', '--json'],
       code: 0, signal: null, wallNs}]}));
@@ -40,7 +40,7 @@ async function installedSmokeTail(scenarios, measureResources = false, writeFail
 test('ordinary Native smoke persists the original slow approvals before rejecting and never marks them passed', async () => {
   const original = smokeScenarios(6000000000);
   const {events, pending} = await installedSmokeTail(original);
-  await assert.rejects(pending, /approval maximum exceeds 5000 ms/u);
+  await assert.rejects(pending, /approval maximum exceeds 3000 ms/u);
   assert.deepEqual(events.map(event => event.kind), ['receipt']);
   assert.deepEqual(events[0].value.scenarios, original);
   assert.equal(events[0].value.approvalSmoke.status, 'failed');
@@ -48,10 +48,10 @@ test('ordinary Native smoke persists the original slow approvals before rejectin
   assert.equal(events[0].options.flag, 'wx');
 });
 
-test('ordinary Native smoke accepts five seconds and refuses one nanosecond above without a p95 claim', () => {
+test('ordinary Native smoke accepts three seconds and refuses one nanosecond above without a p95 claim', () => {
   const scenarios = smokeScenarios(), original = structuredClone(scenarios);
   const passed = performance.assessOrdinaryNativeApprovalSmoke(scenarios);
-  assert.equal(passed.status, 'passed'); assert.equal(passed.maximumMs, 5000);
+  assert.equal(passed.status, 'passed'); assert.equal(passed.maximumMs, 3000);
   assert.equal(passed.maximumMs, nativeApprovalTarget.maxMs);
   assert.equal(passed.formalAcceptance, false); assert.equal(passed.samples.length, 2);
   assert.equal(Object.hasOwn(passed, 'p95Ms'), false);
@@ -59,8 +59,8 @@ test('ordinary Native smoke accepts five seconds and refuses one nanosecond abov
   for (let index = 0; index < 2; index++) {
     const slow = structuredClone(scenarios); slow[index].commands[0].wallNs++;
     const result = performance.assessOrdinaryNativeApprovalSmoke(slow);
-    assert.equal(result.status, 'failed'); assert.equal(result.samples[index].wallNs, 5000000001);
-    assert(result.failures.some(reason => reason.includes('approval maximum exceeds 5000 ms')));
+    assert.equal(result.status, 'failed'); assert.equal(result.samples[index].wallNs, 3000000001);
+    assert(result.failures.some(reason => reason.includes('approval maximum exceeds 3000 ms')));
   }
 });
 
@@ -195,27 +195,28 @@ test('Native approval enforces both p95 and maximum without dropping slow failur
   assert(assessNativeApproval(p95).failures.some(value => value.includes('p95')));
 });
 
-test('Native approval accepts four seconds p95 and rejects one nanosecond above it', () => {
+test('Native approval accepts two seconds p95 and rejects one nanosecond above it', () => {
+  assert.deepEqual(nativeApprovalTarget, {samples: 30, p95Ms: 2000, maxMs: 3000});
   assert.equal(assessNativeApproval(series()).status, 'passed');
   const selected = series();
-  selected.samples[0].wallNs = selected.samples[1].wallNs = 4000000001;
+  selected.samples[0].wallNs = selected.samples[1].wallNs = 2000000001;
   const result = assessNativeApproval(selected);
   assert.equal(result.status, 'failed');
-  assert.deepEqual(result.failures, ['approval p95 exceeds 4000 ms']);
+  assert.deepEqual(result.failures, ['approval p95 exceeds 2000 ms']);
   assert.equal(result.summary.count, 30);
-  assert.equal(result.summary.p95Ms, 4000.000001);
+  assert.equal(result.summary.p95Ms, 2000.000001);
 });
 
-test('Native approval accepts five seconds maximum and rejects one nanosecond above it', () => {
-  const selected = series(); selected.samples[0].wallNs = 5000000000;
+test('Native approval accepts three seconds maximum and rejects one nanosecond above it', () => {
+  const selected = series(); selected.samples[0].wallNs = 3000000000;
   assert.equal(assessNativeApproval(selected).status, 'passed');
   selected.samples[0].wallNs++;
   const result = assessNativeApproval(selected);
   assert.equal(result.status, 'failed');
-  assert.deepEqual(result.failures, ['approval maximum exceeds 5000 ms']);
+  assert.deepEqual(result.failures, ['approval maximum exceeds 3000 ms']);
   assert.equal(result.summary.count, 30);
-  assert.equal(result.summary.p95Ms, 4000);
-  assert.equal(result.summary.maxMs, 5000.000001);
+  assert.equal(result.summary.p95Ms, 2000);
+  assert.equal(result.summary.maxMs, 3000.000001);
 });
 
 test('Native approval diagnostic samples do not supply a final acceptance p95', () => {
