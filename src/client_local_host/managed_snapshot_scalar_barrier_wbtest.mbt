@@ -90,7 +90,11 @@ fn managed_scalar_snapshot_barrier(cancel_on_release : Bool) -> Unit raise {
   assert_eq(@resources.ledger_usage(value.ledger), reloaded)
   cancel_armed.val = true
   if cancel_on_release {
-    assert_true((snapshot.finish)() is Err(@local_driver.Execution(Stopped)))
+    // Original cancellation also retires the snapshot's restored alias, so
+    // the pre-existing phase guard may refuse before the new post-call fence.
+    assert_true(
+      (snapshot.finish)() is Err(@local_driver.Configuration(InvalidLimits)),
+    )
     assert_true(
       (operations.prepare_finalization)(1, operations.storage_bytes, () => true)
       is Err(_),
