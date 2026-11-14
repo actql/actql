@@ -9,6 +9,7 @@ import {createInstalledHostServices, retireInstalledSourceInitialization, withIn
 import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition,
   admitInstalledSourceFinalEnvironment, assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from './installed-host-policy.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 
@@ -16,8 +17,8 @@ assert.ok(process.env.ACTQL_TEST_ENVIRONMENT_RUNTIME, 'Select the matching gener
 const native = await import(pathToFileURL(process.env.ACTQL_TEST_ENVIRONMENT_RUNTIME));
 const baseWire = readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8').trimEnd();
 const ok = value => ({$tag: 1, _0: value});
-function document(name) {
-  const body = JSON.parse(baseWire);withFixtureConnector(body, `connector://${name}/records`);
+function document(name, selectedBase = baseWire) {
+  const body = JSON.parse(selectedBase);withFixtureConnector(body, `connector://${name}/records`);
   delete body.evidence_bundle_cid;
   return canonicalJson({...body, evidence_bundle_cid: contentCid(body)});
 }
@@ -79,6 +80,52 @@ function fixture() {
 
 const finalProfiles = Object.freeze({textTime:false,
   numericProfileCid:'sha256:'+'a'.repeat(64),graphLawCid:'sha256:'+'b'.repeat(64)});
+
+// These scalar selectors are explicit fixtures, not Resource funding. The
+// actual Environment parser, checker, Source constructor quantities and
+// original association below use the retained real component namespace.
+function localPolicyRuntime() {
+  const original=Object.freeze({});
+  return {...native,
+    clientLocalResourcePolicyOriginal:()=>original,
+    clientLocalResourcePolicyRowCeiling(value){assert.strictEqual(value,original);return 1000;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value){assert.strictEqual(value,original);return 1000n;}};
+}
+
+test('Local graph defaults enter the first funded Source wire without a later policy change', () => {
+  const runtime=localPolicyRuntime();
+  const selected=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,undefined,undefined,undefined,true);
+  const expected={...JSON.parse(baseWire).host_policy_profile.capacity,
+    max_file_listing_items:1000,max_graph_construction_edges:1000,
+    max_graph_construction_input_rows:1000,max_graph_construction_nodes:1000};
+  assert.deepEqual(JSON.parse(selected).host_policy_profile.capacity,expected);
+  const f=fixture(), source=document('graph-defaults',selected);
+  const composed=composeInstalledSourceEnvironment(f.services,f.moon,selected,source);
+  assert.equal(composed.wire,source);
+  assert.deepEqual(composed.body.host_policy_profile.capacity,expected);
+  assert.equal(composed.evidenceCid,contentCid(composed.body));
+  assert.ok(['max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes']
+    .every(key=>Object.hasOwn(composed.body.host_policy_profile.capacity,key)));
+  const prepared=native.clientProgramPreparePublicSourceEnvironment(composed.admitted,
+    JSON.stringify({environmentCid:composed.evidenceCid,aliases:[]}));
+  assert.ok(prepared);
+  assert.doesNotThrow(()=>assertInstalledEnvironmentPublicationOriginal(f.services,f.moon,composed,prepared,source));
+  assert.equal(f.close(),true);
+});
+
+test('Local graph defaults preserve explicit values and leave generic published policy selection unchanged', () => {
+  const runtime=localPolicyRuntime(),original=JSON.parse(baseWire).host_policy_profile.capacity;
+  const explicit={...original,max_graph_construction_edges:17,max_graph_construction_nodes:23};
+  const selected=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,explicit,undefined,undefined,true);
+  assert.deepEqual(JSON.parse(selected).host_policy_profile.capacity,
+    {...explicit,max_graph_construction_input_rows:1000});
+  const independent=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,explicit);
+  assert.deepEqual(JSON.parse(independent).host_policy_profile.capacity,explicit);
+  assert.equal(selectInstalledHostEnvironment(runtime,baseWire),baseWire);
+  const generic=selectInstalledHostEnvironment(runtime,baseWire,explicit);
+  assert.deepEqual(JSON.parse(generic).host_policy_profile.capacity,explicit);
+  assert.equal(Object.hasOwn(JSON.parse(generic).host_policy_profile.capacity,'max_graph_construction_input_rows'),false);
+});
 
 test('initial Environment admission reserves its retained raw reference before the first index insertion', () => {
   const f=fixture();

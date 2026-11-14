@@ -69863,7 +69863,7 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78f13429a2d3ddf1bbbe8f1bb2e6c8cce6312761958229fa215c854440beeca5",
+      "sha256": "c708e00be971bad41711d69142e2b2926a4d955acc67cb8f47cb00be1a0662b8",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -69939,7 +69939,8 @@
             "baseWire",
             "selection",
             "lookupSelection",
-            "requestMemory"
+            "requestMemory",
+            "selectFinalGraphDefaults"
           ],
           "async": false
         },

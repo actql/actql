@@ -1752,11 +1752,14 @@ async function openInstalledHost(originalInstallation, preparation) {
   // not replace its policy with the ordinary Local row profile.
   // Ordinary Local materialization, including Remote Values/Source callers,
   // continues to consume the same installed Local Resource row selector.
-  const baseEnvironmentWire = originalInstallation.declaredFileBaseEnvironmentWire ??
-    ((mode === 'remote' && effectInstallation !== undefined) ||
+  const selectBaseEnvironment = (mode === 'remote' && effectInstallation !== undefined) ||
       selectedEffectPaths.length !== 0
-    ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment)(
-    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy, requestMemory);
+    ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment;
+  const baseEnvironmentWire = originalInstallation.declaredFileBaseEnvironmentWire ?? selectBaseEnvironment(
+    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy, requestMemory,
+    selectBaseEnvironment === selectInstalledLocalMaterializationEnvironment &&
+      calendarArtifact === undefined && modelInstallation === undefined && mockModels === undefined &&
+      (project === undefined || installedProjectOriginalsForRuntime(project, moon).modelRegistry === undefined));
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
