@@ -290,6 +290,26 @@ test('ordinary Journal cold reopening uses fresh startup custody for the same sa
   const f = await fixture('ordinary Journal actual service fresh-process cold reopen');
   const openAndClose = expected => `
     import assert from 'node:assert/strict'; import {join} from 'node:path';
+    import {connect} from '@actql/local-node';
+    const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
+    const duty=await client.prepareJournal();
+    assert.equal(await duty.admitRootFormat(client.root),${JSON.stringify(expected)});
+    const journal=await duty.openRequestJournal(join(client.root,'requests'),{});
+    journal.observationStorage();
+    assert.equal((await duty.close()).pending,false);
+    assert.equal((await client.scope.close()).pending,false);
+  `;
+  // Both children operate only on this newly created test's own state. No
+  // historical Run/DB/key is restored, repaired or replayed between processes.
+  f.run(openAndClose('new'));
+  f.run(openAndClose('current'));
+  f.scratch.passed();
+});
+
+test('ordinary Journal adapter retains the same nominal intent across separate-process cold reopening', async () => {
+  const f = await fixture('ordinary Journal actual service fresh-process cold reopen');
+  const openAndClose = expected => `
+    import assert from 'node:assert/strict'; import {join} from 'node:path';
     import {prepareHostJournalInstallation} from ${JSON.stringify(join(f.root, 'adapters/host-node/node-host-journal-installation.mjs'))};
     import {beginInitialControlInstallation} from ${JSON.stringify(join(f.root, 'adapters/host-node/node-initial-control-installation.mjs'))};
     import {readFileSync,writeFileSync} from 'node:fs';
