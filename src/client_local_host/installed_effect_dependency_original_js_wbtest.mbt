@@ -155,3 +155,85 @@ test "dependency original refuses copied owner and foreign retained inputs befor
   assert_true(execution.close())
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "completed dependency construction hands the same control back to its next original child" {
+  let (prepared, request, plan, owner, ledger, captured, execution) = dependency_original_fixture()
+  let inputs = pin_installed_effect_sources(
+    owner, prepared, request, plan, captured, 64,
+  ).unwrap()
+  let bodies = prepare_installed_effect_dependency_bodies(
+    owner, prepared, request, plan, inputs, 0, 1000000, 100000, 64,
+  ).unwrap()
+  assert_eq(bodies.length(), 6)
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  begin_installed_effect_operation_construction(child).unwrap()
+  complete_installed_effect_operation_construction(child).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  assert_eq(execution.rows().unwrap(), ["{\"id\":1}", "{\"id\":2}"])
+  assert_true(@strategy.release_captured_effect_inputs(inputs))
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "dependency successful cut refuses current cancellation and preserves its original peak" {
+  let armed = Ref(false)
+  let pending = Ref(false)
+  let current_calls = Ref(0)
+  let borrowed : Ref[ClientInstalledManagedRun?] = Ref(None)
+  let (prepared, request, plan, owner, ledger, captured, execution) = dependency_original_fixture(current=() => {
+      current_calls.val += 1
+      if armed.val {
+        armed.val = false
+        let original = borrowed.val.unwrap()
+        pending.val = retire_installed_managed_run(original)
+          is Err(CleanupPending)
+        original.effect_operation_closing = true
+      }
+    },
+  )
+  borrowed.val = Some(owner)
+  let inputs = pin_installed_effect_sources(
+    owner, prepared, request, plan, captured, 64,
+  ).unwrap()
+  let control = owner.effect_operation_controls.unwrap()
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, _) else {
+    fail("original adopted Effect preparation required")
+  }
+  retain_installed_effect_dependency_capacity(
+    owner,
+    preparation,
+    admission,
+    plan,
+    ledger,
+    control,
+    @execution.execution_capacity(17L, 4096L).unwrap(),
+  ).unwrap()
+  let peak = @resources.ledger_usage(ledger)
+  let previous = control.dependency_capacity.unwrap()
+  armed.val = true
+  let before_current = current_calls.val
+  assert_true(
+    complete_installed_effect_dependency_construction(
+      owner, prepared, request, plan,
+    )
+    is Err(Retired),
+  )
+  assert_true(pending.val && owner.effect_operation_closing)
+  assert_eq(current_calls.val - before_current, 1)
+  assert_eq(@resources.ledger_usage(ledger), peak)
+  assert_true(physical_equal(control.dependency_capacity.unwrap(), previous))
+  assert_false(owner.effect_operation_opening)
+  // The callback's first retirement was Pending, never an ACK. Test cleanup
+  // now ends the actual original input/execution and then retires that owner.
+  owner.effect_operation_closing = false
+  assert_true(@strategy.release_captured_effect_inputs(inputs))
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}

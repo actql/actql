@@ -17,6 +17,38 @@ pub fn prepare_installed_effect_dependency_bodies(
   Array[(String, @checked.CheckedLocalDependencyBody)],
   ClientInstalledManagedRunIssue,
 ] {
+  let result = prepare_installed_effect_dependency_bodies_original(
+    owner, prepared, request, expected_plan, inputs, unit, max_bytes, max_nodes,
+    max_depth,
+  )
+  match result {
+    Err(issue) => Err(issue)
+    Ok(value) =>
+      match
+        complete_installed_effect_dependency_construction(
+          owner, prepared, request, expected_plan,
+        ) {
+        Err(issue) => Err(issue)
+        Ok(_) => Ok(value)
+      }
+  }
+}
+
+///|
+fn prepare_installed_effect_dependency_bodies_original(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  inputs : @strategy.CapturedEffectInputs,
+  unit : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @checked.CheckedLocalDependencyBody)],
+  ClientInstalledManagedRunIssue,
+] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
   }

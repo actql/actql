@@ -260,8 +260,25 @@ fn retain_installed_effect_dependency_capacity(
       plan,
       dependency_capacity=Some(next),
     )
-    is Some((capacity, _)) else {
+    is Some((capacity, idle)) else {
     return Err(InsufficientCapacity)
+  }
+  let execution = if control.construction_deferred &&
+    !control.construction_active {
+    // Only this dependency constructor is running. Its own measured scratch
+    // coexists with retained DATA; the unrelated generic Effect frame is idle.
+    match
+      @execution.checked_preparation_add_product(
+        idle,
+        @execution.execution_capacity_execution_bytes(next) -
+        @execution.execution_capacity_retained_bytes(next),
+        1L,
+      ) {
+      Some(value) => value
+      None => return Err(InsufficientCapacity)
+    }
+  } else {
+    @execution.execution_capacity_execution_bytes(capacity)
   }
   match
     @resources.resize_prepared_run_operation_control_construction(
@@ -278,11 +295,86 @@ fn retain_installed_effect_dependency_capacity(
       },
       control.reservation,
       @execution.execution_capacity_retained_bytes(capacity),
-      @execution.execution_capacity_execution_bytes(capacity),
+      execution,
     ).map_err(installed_effect_operation_reservation_issue) {
     Err(issue) => Err(issue)
     Ok(_) => {
       control.dependency_capacity = Some(next)
+      Ok(())
+    }
+  }
+}
+
+///|
+// The closed public wrapper calls this only after its synchronous constructor
+// stack has returned. All emitted wire, typed bodies, pins and cache/control
+// records remain in the original retained prefix. Only completed dependency
+// scratch is returned; a failed constructor never reaches this cut.
+fn complete_installed_effect_dependency_construction(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) &&
+    physical_equal(original, owner) &&
+    owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) &&
+    physical_equal(plan, expected_plan) &&
+    owner.ledger is Some(ledger) &&
+    owner.effect_operation_controls is Some(control) &&
+    control.dependency_capacity is Some(previous) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_opening ||
+    owner.effect_operation_closing ||
+    control.construction_active ||
+    control.ledger_codec_active ||
+    control.constructor_frame is Some(_) ||
+    control.dependency_capture is Some(_) {
+    return Err(AlreadyBound)
+  }
+  match check_installed_effect_managed_run_binding(owner, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let retained = @execution.execution_capacity_retained_bytes(previous)
+  let completed = @execution.execution_capacity(retained, retained).unwrap()
+  guard installed_effect_control_capacity(
+      Some(control),
+      plan,
+      dependency_capacity=Some(completed),
+    )
+    is Some((capacity, idle)) else {
+    return Err(InsufficientCapacity)
+  }
+  owner.effect_operation_opening = true
+  defer {
+    owner.effect_operation_opening = false
+  }
+  match
+    @resources.resize_prepared_run_operation_control_construction(
+      admission,
+      plan,
+      ledger,
+      () => {
+        if !owner.effect_operation_opening || owner.effect_operation_closing {
+          return Err(ClientInstalledManagedRunIssue::Retired)
+        }
+        check_installed_effect_operation_original(
+          owner,
+          ledger,
+          preparation,
+          Some(control),
+        )
+      },
+      control.reservation,
+      @execution.execution_capacity_retained_bytes(capacity),
+      installed_effect_control_execution(Some(control), capacity, idle),
+    ).map_err(installed_effect_operation_reservation_issue) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      control.dependency_capacity = Some(completed)
       Ok(())
     }
   }

@@ -75,6 +75,37 @@ pub fn prepare_installed_effect_dependency_inventory(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, ClientInstalledManagedRunIssue] {
+  let result = prepare_installed_effect_dependency_inventory_original(
+    owner, prepared, request, expected_plan, kinds, identities, wires, artifacts,
+    max_bytes, max_nodes, max_depth,
+  )
+  match result {
+    Err(issue) => Err(issue)
+    Ok(value) =>
+      match
+        complete_installed_effect_dependency_construction(
+          owner, prepared, request, expected_plan,
+        ) {
+        Err(issue) => Err(issue)
+        Ok(_) => Ok(value)
+      }
+  }
+}
+
+///|
+fn prepare_installed_effect_dependency_inventory_original(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  kinds : Array[String],
+  identities : Array[String?],
+  wires : Array[String],
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
   }
