@@ -472,21 +472,32 @@ export function installedSourceReadBindings(source) {
 }
 
 export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {},
-  fallback = process.env.ACTQL_LOCAL_SOURCE_PROFILE) {
-  if (sourceProfilePaths !== undefined) {
-    if (sourceProfilePath !== undefined || fallback !== undefined ||
-        !validPluralSourcePaths(sourceProfilePaths)) {
-      throw new TypeError('InvalidInstalledSourceProfiles');
+  fallback = process.env.ACTQL_LOCAL_SOURCE_PROFILE, construct) {
+  const select = () => {
+    if (sourceProfilePaths !== undefined) {
+      if (sourceProfilePath !== undefined || fallback !== undefined ||
+          !validPluralSourcePaths(sourceProfilePaths)) {
+        throw new TypeError('InvalidInstalledSourceProfiles');
+      }
+      return Object.freeze([...sourceProfilePaths]);
     }
-    return Object.freeze([...sourceProfilePaths]);
-  }
-  const path = sourceProfilePath ?? fallback;
-  return path === undefined ? Object.freeze([]) : Object.freeze([path]);
+    const path = sourceProfilePath ?? fallback;
+    return path === undefined ? Object.freeze([]) : Object.freeze([path]);
+  };
+  if (construct === undefined) return select();
+  // The normal caller borrows the same detached Host input. Quote the actual
+  // returned array and plural validation's temporary array/Set before either
+  // constructor; retain an environment-selected path's text on this material.
+  const count = Array.isArray(sourceProfilePaths) ? BigInt(sourceProfilePaths.length)
+    : sourceProfilePath !== undefined || fallback !== undefined ? 1n : 0n;
+  const text = sourceProfilePath === undefined && sourceProfilePaths === undefined &&
+    typeof fallback === 'string' ? BigInt(fallback.length) : 0n;
+  return construct({retained: {nodes: count + 1n, text, wire: 0n},
+    workspace: {nodes: 2n * count + 2n, text: 0n, wire: 0n}}, select);
 }
 
 function validPluralSourcePaths(paths) {
   return Array.isArray(paths) && paths.length >= 2 &&
-    paths.length <= MAX_INSTALLED_SOURCE_AUTHORITIES &&
     Array.from(paths).every(path => typeof path === 'string' && isAbsolute(path)) &&
     new Set(paths).size === paths.length;
 }

@@ -9179,6 +9179,7 @@
           "operations": [
             "openPreparedInstalledHost/assertSourceInitializationSelection",
             "openPreparedInstalledHost/preparation/init:borrowSourceInitializationMaterial/init:borrowSourceInitializationMaterial",
+            "openPreparedInstalledHost/preparation/init:selectSourceProfilePaths/init:selectSourceProfilePaths",
             "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
             "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices/init:assertCurrent/init:assertCurrent"
           ],
@@ -9188,6 +9189,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The normal installation identity and Host opening select profile paths under"
               }
             ],
             "inputsOutputs": [
@@ -23356,6 +23361,16 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:selectSourceProfilePaths/init:selectSourceProfilePaths",
+          "parameters": [
+            "options",
+            "fallback",
+            "root",
+            "principalId"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:sourceInitializationServices/init:sourceInitializationServices",
           "parameters": [
             "runtime",
@@ -24202,6 +24217,7 @@
         "./ordinary-mock-account.mjs",
         "./ordinary-source-binding.mjs",
         "./result-access.mjs",
+        "./source-alias-construction.mjs",
         "./source-alias-publication.mjs",
         "./source-managed-original-input.mjs",
         "./source-profile-json.mjs",
@@ -24218,7 +24234,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "3841d7093630ffdb8a6bd350ed7deb66f2787f0dea8ebcb4241a2f886e9c7ed2"
+      "sha256": "a7297e09fd564bcd3b73014e8b1f9c472bb470187e5d953a3a70994aabd59785"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

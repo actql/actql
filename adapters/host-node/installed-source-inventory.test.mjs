@@ -118,13 +118,13 @@ const primary = message => error => {
   return true;
 };
 
-test('plural inventory admits 2 through 128 unique paths and preserves other entry paths', () => {
+test('plural profile paths admit the complete unique range and preserve other entry paths', () => {
   const paths = Array.from({length: 129}, (_, index) => `/source-${index}.json`);
-  for (const size of [2, 3, 128]) {
+  for (const size of [2, 3, 128, 129]) {
     assert.deepEqual(installedSourcePaths({sourceProfilePaths: paths.slice(0, size)}),
       paths.slice(0, size));
   }
-  for (const sourceProfilePaths of [[], [paths[0]], paths, [paths[0], paths[0]],
+  for (const sourceProfilePaths of [[], [paths[0]], [paths[0], paths[0]],
     [paths[0], 'relative']]) {
     assert.throws(() => installedSourcePaths({sourceProfilePaths}),
       {message: 'InvalidInstalledSourceProfiles'});
