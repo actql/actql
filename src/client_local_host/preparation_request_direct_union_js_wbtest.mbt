@@ -794,3 +794,43 @@ test "raw Native default selection consumes only its original funded wire withou
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "ordinary checking artifact work uses its same finite codec inventory rather than Stage groups" {
+  let (environment, publication) = request_query_publication_fixture()
+  for count in [10, 11, 40] {
+    let parts = Array::makei(count, i => "SELECT " + (i % 3).to_string() + " AS n")
+    let document = parts.join(" UNION ALL ")
+    let (parent, input) = native_driver_parent(document)
+    let result = prepare_request_default_source_computation_check(
+      parent,
+      input,
+      request_document_test_source(document, "sql"),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      None,
+      @publication_host.client_standard_effect_computation_limits(),
+    )
+    let selected = parent.computation_limits.unwrap()
+    let calls = request_preparation_work_calls(parent)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_true(result is Ok(_), msg=match result {
+      Ok(_) => "checked"
+      Err(issue) => direct_union_terminal_detail(issue)
+    })
+    let standard = @publication_host.client_standard_program_preparation_limits().checking.compilation
+    // Independent envelope of the actual identity constructors: metadata
+    // measure/write/UTF8 plus original admission, two node passes. This is a
+    // finite ceiling, not a claim that the configured quota was consumed.
+    let expected = standard.work.to_int64() +
+      4L * standard.artifacts.bytes.to_int64() +
+      2L * standard.artifacts.nodes.to_int64()
+    assert_eq(selected.checking.compilation.work.to_int64(), expected)
+    assert_eq(selected.checking.compilation.artifacts, standard.artifacts)
+    assert_eq(selected.checking.compilation.structure.stages, 3 * count)
+    assert_eq(calls, (1L, 1L, 1L, 0L))
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
