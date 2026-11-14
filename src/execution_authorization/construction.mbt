@@ -238,7 +238,7 @@ fn account_prepare_json_index(
 fn account_prepare_wire_decode(
   context : AccountConstructionContext,
   geometry : @source.JsonSourceGeometry,
-) -> Unit raise AccountConstructionStop {
+) -> AccountConfigurationConstructionUnits raise AccountConstructionStop {
   let n = Int::max(1, geometry.node_upper).to_int64()
   let o = Int::max(0, geometry.objects).to_int64()
   let a = Int::max(0, geometry.arrays).to_int64()
@@ -287,7 +287,174 @@ fn account_prepare_wire_decode(
   )
   account_prepare_construction(
     Some(context),
-    retained,
+    account_construction_zero,
     account_construction_add(retained, controls),
+  )
+  retained
+}
+
+///|
+// The canonical Account has the same closed tree shape as its wire. Count
+// containers/fields/names separately from text, including failed from_json,
+// normalization, exclusion sort and writer children. Overlap is separately
+// observed from the decoded original before admission enters that algorithm.
+fn account_prepare_admission(
+  context : AccountConstructionContext,
+  geometry : @source.JsonSourceGeometry,
+  typed : AccountConfigurationConstructionUnits,
+) -> Unit raise AccountConstructionStop {
+  let n = Int::max(1, geometry.node_upper).to_int64()
+  let o = Int::max(0, geometry.objects).to_int64()
+  let a = Int::max(0, geometry.arrays).to_int64()
+  let f = Int::max(0, geometry.fields).to_int64()
+  let t = @canonical.nfc_lf_retained_output_units(
+    geometry.quoted_raw_utf16_units.to_int64(),
+  ).unwrap_or_else(() => raise AccountConstructionStop)
+  // Coheld Json/CanonicalValue alternatives, Visit/Append/Next build frames,
+  // canonical tuple/frozen-array wrappers, compiled/canonical entry tuples and
+  // sort cursors. Two object maps are the document and normalization's seen
+  // keys; their buckets/growth belong to the shared collection constructor.
+  let collections = @shape.collection_construction_extent({
+    records: 8L * n + 8L * o + 32L,
+    record_references: 12L * n + 16L * o + 64L,
+    record_words: 8L * n + 32L,
+    reference_arrays: 6L * a + 8L * o + 16L,
+    reference_items: 12L * n + 8L * f + 32L,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 2L * o,
+    map_entries: 2L * f,
+  }).unwrap_or_else(() => raise AccountConstructionStop)
+  // CompileEntry retains four DimSets per scope/exclusion, copied/sorted name
+  // arrays and the final Account/CID. Typed source arrays remain coheld only
+  // as execution scratch. Count occurrences even when the runtime shares them.
+  let admitted = @shape.collection_construction_extent({
+    records: 8L * o + n + 8L,
+    record_references: 12L * o + 2L * n + 16L,
+    record_words: 4L * o + 8L,
+    reference_arrays: 6L * o + a + 2L,
+    reference_items: 8L * o + 4L * n,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  }).unwrap_or_else(() => raise AccountConstructionStop)
+  let retained = account_construction_units(
+    admitted.record_headers + n + 1L,
+    admitted.reference_slots,
+    admitted.scalar_words,
+    t + 71L,
+  )
+  let normalization = @canonical.nfc_lf_construction_scratch_extent(
+    geometry.longest_quoted_raw_utf16,
+  ).unwrap_or_else(() => raise AccountConstructionStop)
+  // Every actual canonical exclusion output is bounded by this SAME forest's
+  // names/keys and JSON punctuation. This is an output-byte bound only.
+  let output = account_representation_limit(6L * t + 8L * n + 2L * f + 256L)
+  let writer = @encode.text_writer_construction_inventory(
+    output,
+    Int::max(1, geometry.node_upper),
+    CANONICAL_MAX_DEPTH,
+  ).unwrap_or_else(() => raise AccountConstructionStop)
+  let scratch = account_construction_units(
+    collections.record_headers +
+    normalization.record_headers +
+    writer.record_headers +
+    n,
+    collections.reference_slots +
+    normalization.reference_slots +
+    writer.reference_slots,
+    collections.scalar_words +
+    normalization.scalar_words +
+    writer.scalar_words +
+    64L,
+    // canonical normalized forest, coheld keyed exclusion texts, the previous
+    // wire-order key, writer growth and the next NFC child's scratch.
+    3L * t +
+    2L * output.to_int64() +
+    normalization.owned_utf16_units +
+    writer.owned_utf16_units,
+    wire=256L,
+  )
+  account_prepare_construction(
+    Some(context),
+    retained,
+    account_construction_add(typed, account_construction_add(retained, scratch)),
+  )
+}
+
+///|
+fn account_selector_name_count(selector : Selector) -> Int64 {
+  match selector {
+    All => 0L
+    AnyOf(values) => values.length().to_int64()
+  }
+}
+
+///|
+fn account_box_name_count(box : SelectorBox) -> Int64 {
+  account_selector_name_count(box.principal) +
+  account_selector_name_count(box.connection) +
+  account_selector_name_count(box.resource) +
+  account_selector_name_count(box.operation)
+}
+
+///|
+// Observe the SAME decoded typed original without copying/sorting it. Equal
+// outcomes skip the split algorithm entirely. In a differing pair, at most
+// two original entries contribute exclusions and names to the live DFS stack.
+fn account_prepare_overlap(
+  context : AccountConstructionContext,
+  raw : RawAccountConfiguration,
+) -> Unit raise AccountConstructionStop {
+  let mut outcome : ConfiguredOutcome? = None
+  let mut mixed = false
+  let mut max_exclusions = 0L
+  let mut max_names = 0L
+  for entry in raw.entries {
+    match outcome {
+      None => outcome = Some(entry.outcome)
+      Some(first) => if first != entry.outcome { mixed = true }
+    }
+    let mut names = account_box_name_count(entry.scope)
+    for exclusion in entry.exclusions {
+      names += account_box_name_count(exclusion)
+    }
+    max_names = Int64::max(max_names, names)
+    max_exclusions = Int64::max(
+      max_exclusions,
+      entry.exclusions.length().to_int64(),
+    )
+  }
+  let frames = if mixed { 2L * max_exclusions + 1L } else { 1L }
+  let names = if mixed { 2L * max_names + 1L } else { 1L }
+  let slots = @counts.checked_nonnegative_add_product(0L, frames, names).unwrap_or_else(() => {
+      raise AccountConstructionStop
+    },
+  )
+  let items = @counts.checked_nonnegative_add_product(0L, slots, 16L).unwrap_or_else(() => {
+      raise AccountConstructionStop
+    },
+  )
+  let overlap = @shape.collection_construction_extent({
+    records: 16L * frames,
+    record_references: 32L * frames,
+    record_words: 16L * frames,
+    reference_arrays: 12L * frames,
+    reference_items: items,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  }).unwrap_or_else(() => raise AccountConstructionStop)
+  account_prepare_construction(
+    Some(context),
+    account_construction_zero,
+    account_construction_units(
+      overlap.record_headers + 16L,
+      overlap.reference_slots + 32L,
+      overlap.scalar_words + 32L,
+      0L,
+    ),
   )
 }

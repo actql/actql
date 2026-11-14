@@ -304,21 +304,49 @@ fn decode_account_configuration_prepared(
       }
     }
     account_prepare_json_index(context, geometry)
-    account_prepare_wire_decode(context, geometry)
-    Some(
+    let typed = account_prepare_wire_decode(context, geometry)
+    account_prepare_admission(context, geometry, typed)
+    match
       decode_account_configuration_source(
         source.unwrap(),
         bytes,
         bytes.length(),
-      ).map(value => {
-        context.wire_live = account_construction_initial
-        (value.0, value.1, context)
-      }),
-    )
+      ) {
+      Err(issue) => Some(Err(issue))
+      Ok((raw, original)) => {
+        context.wire_live = account_construction_add(
+          account_construction_initial, typed,
+        )
+        account_prepare_overlap(context, raw)
+        Some(Ok((raw, original, context)))
+      }
+    }
   } catch {
     AccountConstructionStop => {
       @source.cancel_json_source_preflight(preflight)
       None
     }
+  }
+}
+
+///|
+/// Prepare each constructor synchronously at the caller's original resource.
+/// None means that caller refused construction; it is never Account admission.
+/// The continuation is borrowed only for this call and is not retained by the
+/// admitted immutable Account or used by later current checks.
+pub fn admit_account_configuration_json_prepared(
+  body : String,
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[AdmittedAccountConfiguration, ConfigurationIssue]? {
+  match decode_account_configuration_prepared(body, prepare) {
+    None => None
+    Some(Err(issue)) => Some(Err(issue))
+    Some(Ok((raw, bytes, _))) =>
+      Some(
+        admit_account_configuration(raw).map(account => {
+          ..account,
+          original_wire: Some(bytes),
+        }),
+      )
   }
 }

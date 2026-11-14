@@ -9,6 +9,8 @@ priv struct NativeLocalAdoptionBinding {
   crypto : @crypto.Library
   capture : NativeLocalAdoptionCapture?
   preparation_issue : NativeLocalAdoptionIssue?
+  mut metadata_retained : Int64
+  mut construction_issue : @arena.InstalledArenaOriginalReadIssue?
   mut leave_pending : Bool
 }
 
@@ -62,6 +64,8 @@ fn prepare_local_adoption_binding(
     crypto,
     capture,
     preparation_issue,
+    metadata_retained: 0L,
+    construction_issue: None,
     leave_pending: false,
   }
 }
@@ -155,11 +159,20 @@ fn NativeLocalAdoptionBinding::operate(
     .map(issue => Capture(AdoptionJournal(issue)))
   } else {
     let original = match operation {
-      1 => capture.open()
-      2 => capture.check_current()
+      1 =>
+        capture.open(
+          construction=Some(value => self.prepare_account_construction(value)),
+        )
+      2 =>
+        capture.check_current(
+          construction=Some(value => self.prepare_account_construction(value)),
+        )
       _ => capture.close()
     }
-    original.issue().map(issue => Capture(issue))
+    match self.construction_issue {
+      Some(issue) => Some(Resources(@arena.Read(issue)))
+      None => original.issue().map(issue => Capture(issue))
+    }
   }
   if direct_read {
     match self.host.leave_local_host_phase(self.pair) {
@@ -205,6 +218,7 @@ fn NativeLocalAdoptionBinding::capture_journal(
         max_records,
         max_snapshot_bytes,
         max_retained_intent_bytes~,
+        metadata_retained=self.metadata_retained,
       ) {
       Ok(_) => None
       Err(issue) => Some(Capture(issue))
@@ -241,5 +255,37 @@ fn NativeLocalAdoptionBindingReply::issue_family(
     Some(Resources(_)) => 5
     Some(ReadScopePending) => 6
     Some(Leave(_, _)) => 7
+  }
+}
+
+///|
+fn NativeLocalAdoptionBinding::prepare_account_construction(
+  self : NativeLocalAdoptionBinding,
+  construction : @authorization.AccountConfigurationConstruction,
+) -> Bool {
+  guard self.construction_issue is None &&
+    local_account_construction_cost(construction.retained) is Some(r) &&
+    local_account_construction_cost(construction.execution) is Some(e) &&
+    @execution.checked_preparation_add_product(self.metadata_retained, r, 1L)
+    is Some(r) &&
+    @execution.checked_preparation_add_product(self.metadata_retained, e, 1L)
+    is Some(e) else {
+    return false
+  }
+  match
+    self.host.prepare_domain_original_read_construction(
+      self.read,
+      r,
+      e,
+      Int64::max(r, e),
+    ) {
+    Err(issue) => {
+      self.construction_issue = Some(issue)
+      false
+    }
+    Ok(_) => {
+      self.metadata_retained = r
+      true
+    }
   }
 }
