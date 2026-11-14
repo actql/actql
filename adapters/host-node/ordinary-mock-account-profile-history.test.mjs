@@ -199,7 +199,8 @@ test('diagnostic exception does not bootstrap explicit or unrecognized authoriza
   for(const operatorAuthorization of [null,{}, {accountConfig:'/not-opened',observe},
     {accountConfiguration:'explicit current Deny',observe},{decide(){},observe},
     {hostKey:{},observe},{unknown:true,observe},{observe:undefined},{observe:null},
-    {observe:'not-a-function'},{observe,[symbol]:true}]) {
+    {observe:'not-a-function'},{observe,[symbol]:true},Object.create({observe}),
+    Object.assign(Object.create({accountConfig:'/not-opened'}),{observe})]) {
     const f=await fixture();
     const result=await initializeOrdinaryMockAccount({...f.options,operatorAuthorization});
     assert.equal(result,undefined);
