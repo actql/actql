@@ -68,6 +68,34 @@ that byte guard. The [scalar wire derivation](../../src/client_local_host/scalar
 has no separate 1,000,000-byte cap. Consumer wire profiles and Store ceilings
 remain independent.
 
+For the existing flat JSON Number/Boolean/Text representation, the same
+schema visitor retains a representation flag alongside its node inventory.
+The wire guard uses that original flag and the existing ValueBudget counter:
+every UTF-8 Text or field-name byte already consumes that counter's `max_work`.
+Its unchanged finite limit therefore bounds these bytes without a second text
+policy. The original JSON escape and punctuation formula then bounds their
+wire representation. This is not a conversion from compilation, Ledger or CPU
+work to bytes. Recursive values, Decimal, references and Content keep their
+own existing proof or conservative profile; a node count alone proves no
+flat wire representation. Original literal Values retain their complete cached
+byte recipe even when it is smaller than a general output envelope.
+
+The default bounded Values and audited row chains fund actual persistent
+output on the same Task before each output commit. Dispatch preparation retains
+the same startup capacity that its selected default constructors consume;
+it does not first demand the maximum possible future output. Every child's
+fixed metadata and full live scratch remain backed. Sequential child scratch
+can retire while earlier accepted output remains retained. Bounded Values
+borrows its original frozen cells and measures/rechecks them with its funded
+cursors; it constructs no generic input forest or canonical measurement body.
+The Source-free Host commits its same registered managed realization for the
+next actual Task after input preparation. It no longer preselects every future
+Task against a simultaneous worst-case DATA envelope. The task start still
+admits all of its real simultaneous inputs, constructor and output holdings.
+Generic and injected providers keep their original complete envelopes. None of
+these constructor facts refund consumed work, bypass value/type admission,
+relax the explicit row framing guard, or acknowledge pending cleanup.
+
 Schema traversal, field names, bridge/completion inventories and Result view
 workspace use separate typed limits retained by
 [`capacity_plan.mbt`](../../src/client_local_host/capacity_plan.mbt). A smaller row

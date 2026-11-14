@@ -40,6 +40,9 @@ priv struct ClientLocalSchemaProofInventory {
   // Carrier storage is still priced by its original provider. This marks the
   // separate closed-item proof, not a synthetic Relation schema for that value.
   carrier_values : Bool
+  // Accumulated while the SAME existing contract-node visitor reads roots.
+  // Recursive/Decimal/reference proofs never imply a flat JSON wire bound.
+  flat_json_leaves : Bool
 }
 
 ///|
@@ -129,6 +132,7 @@ fn client_local_schema_proof_inventory(
   }
   let seen : Array[@lower.BoundPrepared] = []
   let mut nodes = 1L
+  let mut flat_json_leaves = leaf_only
   let mut names_total = 0L
   let mut fields = 0
   let mut names = 0
@@ -226,10 +230,11 @@ fn client_local_schema_proof_inventory(
       }
       let node_width = if leaf_only {
         guard client_local_json_schema_nodes(schema, remaining, value_depth)
-          is Some((nodes, used)) else {
+          is Some((nodes, used, flat)) else {
           return None
         }
         remaining -= used
+        flat_json_leaves = flat_json_leaves && flat
         nodes
       } else {
         width.to_int64() + 1L
@@ -315,10 +320,11 @@ fn client_local_schema_proof_inventory(
                 None
               },
             )
-            is Some((nodes, used)) else {
+            is Some((nodes, used, flat)) else {
             return None
           }
           remaining -= used
+          flat_json_leaves = flat_json_leaves && flat
           nodes
         } else {
           width.to_int64() + 1L
@@ -384,10 +390,11 @@ fn client_local_schema_proof_inventory(
                 None
               },
             )
-            is Some((nodes, used)) else {
+            is Some((nodes, used, flat)) else {
             return None
           }
           remaining -= used
+          flat_json_leaves = flat_json_leaves && flat
           nodes
         } else {
           width.to_int64() + 1L
@@ -473,6 +480,7 @@ fn client_local_schema_proof_inventory(
       None => closed_rows
     },
     carrier_values: carrier_bound is Some(_) || event_records,
+    flat_json_leaves,
   })
 }
 

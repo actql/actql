@@ -266,7 +266,7 @@ test "Signed64 record cells retain one value node without a numeric wire proof" 
     max_name_bytes=2,
   ).unwrap()
   assert_true(client_local_scalar_schema_width(schema) is None)
-  assert_eq(client_local_json_schema_nodes(schema, 1, 1), Some((2L, 0)))
+  assert_eq(client_local_json_schema_nodes(schema, 1, 1), Some((2L, 0, false)))
 }
 
 ///|

@@ -33548,7 +33548,7 @@
           }
         }
       ],
-      "sha256": "cb165790c9594738eeb296eb01cfa7c28a31992e8fded66f8f258a1885e86ca3",
+      "sha256": "46774ad3d06dc613a41d97898dfc030efcb257ff11136884e5f424d161b50511",
       "exports": [],
       "operations": [
         {
@@ -34180,7 +34180,7 @@
     },
     {
       "module": "src/client_local_host/host.mbt",
-      "sha256": "7bf9c6fe70ffda931beffd511eed07cbf3efae49d9e59268f9a061cd43d858b4",
+      "sha256": "63b7a1ba92cb5acd9dd30c3e81ebcad55ad4ec4392a4b17a775430c4ae94d918",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -48748,7 +48748,7 @@
     },
     {
       "module": "src/client_local_host/schema_proof_inventory.mbt",
-      "sha256": "b23029703c7b693dabddff6c743ac56aec41e3caadf2e00cd40b23702b3d5fd7",
+      "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -48869,7 +48869,7 @@
     },
     {
       "module": "src/client_local_host/serialization_capacity.mbt",
-      "sha256": "ab5ece7d6b2e989279dc95caefade747934d0174cded8b1cf4f6b77901e9b899",
+      "sha256": "bdf484e7abe1306bd79a5e2130d76665f4924a8ddc9c97fa6c2f2376a80c79c6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -48878,6 +48878,10 @@
         {
           "name": "client_local_json_leaf_schema",
           "declaration": "client_local_json_leaf_schema ( schema : @ schema . Schema ) - > Bool"
+        },
+        {
+          "name": "client_serialization_input_row_bound",
+          "declaration": "client_serialization_input_row_bound ( component : @ publication_host . ClientSerializationPlanGraph , ) - > Int ?"
         },
         {
           "name": "client_serialization_json_leaf_field_count",
@@ -48894,7 +48898,8 @@
             "<module>",
             "client_local_json_leaf_schema",
             "client_serialization_json_leaf_field_count",
-            "client_serialization_workspace_capacity"
+            "client_serialization_workspace_capacity",
+            "client_serialization_input_row_bound"
           ],
           "exports": [],
           "attributes": {
@@ -49052,7 +49057,7 @@
     },
     {
       "module": "src/client_local_host/value_node_demand.mbt",
-      "sha256": "b0ee315db4a6b98f045dfee9d15d7ca13d283ae073aa9597f9e9cf7639faa8a9",
+      "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -54199,7 +54204,7 @@
               },
               {
                 "path": "src/connectors/local/module.mbt",
-                "anchor": "let constructor_chain = ((unnest_chain || join_chain) && metered_retention) ||"
+                "anchor": "let constructor_chain = (count > 1 && metered_retention) || window_chain"
               },
               {
                 "path": "src/connectors/local/unnest_provider.mbt",
@@ -54219,7 +54224,7 @@
               },
               {
                 "path": "src/execution_relation/execution_capacity.mbt",
-                "anchor": "bounded_measurement=(borrowed_row && !borrowed_group)"
+                "anchor": "bounded_measurement=borrowed_values ||"
               },
               {
                 "path": "src/execution_relation/value_budget.mbt",

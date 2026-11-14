@@ -188,6 +188,26 @@ pub fn generated_bounded_sequence_capacity(
     is Some(schema) else {
     return generated_sequence_capacity(generated, limits, measurement)
   }
+  // One schema visit retains both original immediate-cell and borrowed Text
+  // constructor facts. Bounded Values measures/rechecks original frozen cells
+  // with workspace-funded cursors; it builds no input forest or canonical
+  // measurement body. Recursive/reference shapes keep their original quote.
+  let mut primitive_values = operation is @lower.ValuesStep(_)
+  let mut borrowed_values = primitive_values &&
+    @schema.all_fields_required(schema)
+  if primitive_values {
+    for index in 0..<@schema.field_count(schema) {
+      guard @schema.field_at(schema, index) is Some(field) else { return None }
+      let contract = @schema.field_contract(field)
+      primitive_values = primitive_values &&
+        (match contract.shape {
+          @contract.Number | @contract.Boolean => true
+          _ => false
+        })
+      borrowed_values = borrowed_values &&
+        json_leaf_representation_contract(contract)
+    }
+  }
   let borrowed_group = match operation {
     @lower.RowStep(kernel) => bounded_count_group_borrows_input(kernel)
     _ => false
@@ -352,14 +372,16 @@ pub fn generated_bounded_sequence_capacity(
     roots,
     roots,
     true,
-    borrowed_input_values=operation is @lower.AppendStep(_) ||
+    borrowed_input_values=borrowed_values ||
+      operation is @lower.AppendStep(_) ||
       borrowed_row ||
       borrowed_binary ||
       borrowed_cross ||
       borrowed_join,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
     // its constructor receives no physical measurement forest or wire buffer.
-    bounded_measurement=(borrowed_row && !borrowed_group) ||
+    bounded_measurement=borrowed_values ||
+      (borrowed_row && !borrowed_group) ||
       operation is @lower.AppendStep(_) ||
       borrowed_cross ||
       borrowed_join,
@@ -380,15 +402,7 @@ pub fn generated_bounded_sequence_capacity(
     !generated.contexts.any(context => {
       capacity_uses_fragment_step(generated, @lower.kernel_step(context.kernel))
     }) {
-    let mut primitive = true
-    for index in 0..<@schema.field_count(schema) {
-      guard @schema.field_at(schema, index) is Some(field) else { return None }
-      match @schema.field_contract(field).shape {
-        @contract.Number | @contract.Boolean => ()
-        _ => primitive = false
-      }
-    }
-    if primitive && @schema.field_count(schema) > 0 {
+    if primitive_values && @schema.field_count(schema) > 0 {
       guard execution_capacity_inventory_bytes([
           {
             unit: CursorRootSlots,
@@ -644,4 +658,15 @@ fn generated_sequence_capacity_with_roots(
   // Preserve the original separate dimensions of this sequence quote. The
   // enclosing domain declares which retained components coexist at execution.
   Some({ retained_bytes: retained, execution_bytes: execution, })
+}
+
+///|
+/// Existing flat JSON scalar representation, not value admission, operation
+/// support, authority or a complete resource proof. Shared by the wire bound
+/// and the bounded Values constructor which borrows these immutable cells.
+pub fn json_leaf_representation_contract(contract : @contract.Contract) -> Bool {
+  match contract.shape {
+    @contract.Number | @contract.Boolean | @contract.Text(_) => true
+    _ => false
+  }
 }

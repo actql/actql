@@ -297,8 +297,9 @@ test "one original primitive Values constructor keeps logical budgets without ph
   )
   let ordinary = generated_sequence_capacity(generated, limits, measure).unwrap()
   assert_true(ordinary.execution_bytes > whole.execution_bytes)
-  // Text keeps the conservative constructor envelope; unused DATA must not
-  // turn a non-primitive schema into this borrowed-scalar case.
+  // Required Text cells use the same original frozen Values and resumable
+  // measurement cursors. No canonical input body or measurement forest is
+  // constructed, while the complete output/row workspace stays funded.
   let text = prepare_generated_sequence(
     registered_relation_contracts(),
     prepared_sequence(
@@ -315,7 +316,25 @@ test "one original primitive Values constructor keeps logical budgets without ph
   let text_large = generated_bounded_sequence_capacity(
     text, limits, unused_measurement,
   ).unwrap()
-  assert_true(text_large.execution_bytes > text_small.execution_bytes)
+  assert_eq(text_large.execution_bytes, text_small.execution_bytes)
+  assert_eq(text_large.retained_bytes, text_small.retained_bytes)
+  let text_output = generated_bounded_sequence_capacity(
+    text,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        output_values: { ..values, max_text_bytes: 200, },
+      },
+    },
+    measure,
+  ).unwrap()
+  assert_true(text_output.retained_bytes > text_small.retained_bytes)
+  assert_true(text_output.execution_bytes > text_small.execution_bytes)
+  assert_true(
+    generated_sequence_capacity(text, limits, unused_measurement).unwrap().execution_bytes >
+    text_large.execution_bytes,
+  )
 }
 
 ///|

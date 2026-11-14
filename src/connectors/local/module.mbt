@@ -294,8 +294,8 @@ pub fn local_module_capacity_for_sequence(
 }
 
 ///|
-/// Startup DATA for exact built-in rows/Append, primitive Set/Join and checked
-/// row/CROSS JOIN/immediate JOIN chains. The unchanged
+/// Startup DATA for exact built-in Values/rows/Append, primitive Set/Join and
+/// checked bounded row/CROSS JOIN/immediate JOIN chains. The unchanged
 /// full capacity remains the fallback and semantic bound. Persistent output
 /// DATA is charged by the same task before each buffer commit; all fixed
 /// child metadata, input/measurement/traversal and one live child scratch
@@ -308,14 +308,15 @@ pub fn local_module_metered_output_start_capacity(
   let count = @execution.generated_sequence_step_count(sequence)
   guard installed.selected_default.get(slot) == Some(true) &&
     count > 0 &&
-    // Only the existing bounded row, Append and primitive Set/Join singletons attach their
-    // output budget to this same sequence's before-commit growth owner.
+    // Only these existing bounded singletons attach their output budget to
+    // this same sequence's before-commit growth owner.
     // Other single-step families keep their original full envelope.
     (
       count > 1 ||
       @execution.generated_sequence_step_at(sequence, 0)
       is Some(
-        @lower.RowStep(_)
+        @lower.ValuesStep(_)
+        | @lower.RowStep(_)
         | @lower.AppendStep(_)
         | @lower.SetStep(_)
         | @lower.JoinStep(_)
@@ -469,6 +470,10 @@ pub fn local_module_metered_output_start_capacity(
       Some(@lower.RowStep(kernel)) if window_chain &&
         @lower.kernel_body(kernel) is @lower.Groups(_) =>
         metered_retention = false
+      // The bounded Values child retains its original complete literal
+      // recipe below. Its same row-charge owner funds accepted output before
+      // transfer; a Values seed does not construct a legacy sequence table.
+      Some(@lower.ValuesStep(_)) => ()
       Some(@lower.CrossJoinStep(_)) => ()
       Some(@lower.AppendStep(_)) if count == 1 || join_chain =>
         if count > 1 {
@@ -697,8 +702,10 @@ pub fn local_module_metered_output_start_capacity(
               })
               .unwrap_or(false)
             let input = @lower.kernel_input_schema(kernel)
-            let mut funded_snapshot = count == 1 &&
-              @lower.kernel_body(kernel) is @lower.SnapshotMap(_) &&
+            let mut funded_snapshot = (
+                @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
+                @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
+              ) &&
               @lower.kernel_bindings(kernel) is Some(_) &&
               @schema.all_fields_required(input)
             for field in 0..<@schema.field_count(input) {
@@ -716,8 +723,7 @@ pub fn local_module_metered_output_start_capacity(
             // the still-live input or admitted preparation. This is not a
             // general constructed-output recipe: retain the full scratch and
             // use the same before-commit persistent-output growth owner.
-            let borrowed_bindings = (count == 1 || unnest_chain) &&
-              @schema.all_fields_required(input) &&
+            let borrowed_bindings = @schema.all_fields_required(input) &&
               selected_binding_outputs_borrowed(kernel)
             if !primitive && !funded_snapshot && !borrowed_bindings {
               metered_retention = false
@@ -791,8 +797,11 @@ pub fn local_module_metered_output_start_capacity(
     )
   }
   let mut fixed = 0L
-  let constructor_chain = ((unnest_chain || join_chain) && metered_retention) ||
-    window_chain
+  // Every selected child above is the same bounded before-commit constructor.
+  // Its chain retires child scratch before the next child. No legacy generic
+  // sequence table is built; keep every child's full scratch and fixed roots,
+  // while actual output DATA grows on the original shared attachment.
+  let constructor_chain = (count > 1 && metered_retention) || window_chain
   let mut scratch = if constructor_chain {
     0L
   } else {
@@ -810,19 +819,42 @@ pub fn local_module_metered_output_start_capacity(
         family=[],
       )
       is Some(provider) &&
-      managed_provider_capacity(provider, selected) is Some(child) &&
-      child.retained_bytes >= data &&
-      child.execution_bytes >= data &&
+      managed_provider_capacity(provider, selected) is Some(child) else {
+      return None
+    }
+    // A literal Values child may already quote less DATA than the general
+    // output allowance. Preserve its WHOLE original recipe; subtract no
+    // hypothetical maximum from its fixed metadata or real input storage.
+    let deferred_data = match
+      @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.ValuesStep(_)) => {
+        let prepared = @lower.bound_preparation(
+          @execution.generated_sequence_owner(sequence),
+        )
+        match @lower.node_at(prepared, step) {
+          // Literal admission may already have selected a smaller exact
+          // constructor. Keep that complete quote. Parameter Values retain
+          // the original general DATA envelope, which this same before-row
+          // charge replaces with actual retained output on the Task.
+          Some(node) if @lower.node_values_literal_text_bytes(node) is Some(_) =>
+            0L
+          _ => data
+        }
+      }
+      _ => data
+    }
+    guard child.retained_bytes >= deferred_data &&
+      child.execution_bytes >= deferred_data &&
       @execution.checked_preparation_add_product(
         fixed,
-        child.retained_bytes - data,
+        child.retained_bytes - deferred_data,
         1L,
       )
       is Some(next) else {
       return None
     }
     fixed = next
-    scratch = Int64::max(scratch, child.execution_bytes - data)
+    scratch = Int64::max(scratch, child.execution_bytes - deferred_data)
   }
   if constructor_chain {
     // The legacy sequence table is never constructed by this path. Retain
