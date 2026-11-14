@@ -42,28 +42,52 @@ test('remote Native outputs and tool homes remain private for all five stripped 
   assert(source.includes("join(root, 'compiler-tool')"));
 });
 
-test('macOS remote scheduling retains every exact original step in the same two slots with the HTTP lane independent',()=>{
+test('macOS scheduling retains exact platform steps in two slots and every original Linux counterpart',()=>{
   const original=JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json',import.meta.url)));
   const after=JSON.parse(readFileSync(new URL('./ci-native-background-groups.json',import.meta.url)));
   assert.equal(after['native-macos'].length,2);
   const workflow=parseYaml(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+  const counterparts=original.macosLinuxCounterparts;
+  assert.equal(counterparts.length,5);
+  const moved=new Set(counterparts.map(step=>step.name));
+  assert.equal(moved.size,5);
+  const cases={};
   for(const family of ['native','native-macos']) {
-    const actual=[...workflow.jobs[family+'-workloads'].steps,
+    const actual=cases[family]=[...workflow.jobs[family+'-workloads'].steps,
       ...workflow.jobs[family==='native'?'native-http':'native-http-macos'].steps,
       ...after[family].flatMap(group=>group.steps)].filter(step=>/^(?:Test |Verify registered)/u.test(step.name));
-    assert.equal(actual.length,original.jobs[family].length);
-    for(const expected of original.jobs[family]) {
+    const expectedSteps=original.jobs[family].filter(step=>family!=='native-macos'||!moved.has(step.name));
+    assert.deepEqual(actual.map(step=>step.name).sort(),expectedSteps.map(step=>step.name).sort());
+    for(const expected of expectedSteps) {
       const found=actual.filter(step=>step.name===expected.name);assert.equal(found.length,1);
       assert.equal(createHash('sha256').update(found[0].run).digest('hex'),expected.commandSha256);
       assert.deepEqual(found[0].env??{},expected.env);
     }
   }
+  // U2's explicit platform transfer retains the complete original Linux
+  // invocation, not a deleted obligation or a guessed equivalent command.
+  for(const expected of counterparts) {
+    assert.equal(expected.job,'native-workloads');
+    assert(original.jobs['native-macos'].some(step=>step.name===expected.name));
+    assert.equal(cases['native-macos'].filter(step=>step.name===expected.name).length,0);
+    const found=cases.native.filter(step=>step.id===expected.id&&step.name===expected.name);
+    assert.equal(found.length,1);
+    const originalLinux=original.jobs.native.find(step=>step.name===expected.name);
+    assert(originalLinux);
+    assert.equal(createHash('sha256').update(found[0].run).digest('hex'),originalLinux.commandSha256);
+    assert.deepEqual(found[0].env??{},originalLinux.env);
+  }
   assert(after.native.find(group=>group.name==='runtime').steps.some(step=>step.id==='native-remote'));
-  const remote=after['native-macos'].find(group=>group.steps.some(step=>step.id==='native-remote'));
   const http=after['native-macos'].find(group=>group.steps.some(step=>step.id==='native-http'));
-  assert.notEqual(remote.name,http.name);
-  assert.deepEqual(remote.steps.slice(-2).map(step=>step.id),['native-remote','native-http-controls']);
+  const controls=after['native-macos'].find(group=>group.steps.some(step=>step.id==='native-http-controls'));
+  assert.notEqual(http.name,controls.name);
+  assert.deepEqual(controls.steps.map(step=>step.id),['native-source','native-cancel','native-http-controls']);
   assert.equal(http.steps.find(step=>step.id==='native-http').timeoutMinutes,115);
+  assert.equal(controls.steps.at(-1).timeoutMinutes,115);
+  assert.deepEqual(workflow.jobs['native-http'].needs,['select-targets']);
+  assert.deepEqual(workflow.jobs['native-macos-workloads'].needs,['select-targets']);
+  assert.equal(workflow.jobs['native-macos-workloads'].steps.find(step=>step.id==='native-background-start').run,
+    'node scripts/ci-native-background-groups.mjs start native-macos');
 });
 
 test('all overlapping portable consumers select their existing verified original before importing its returned URL',()=>{
