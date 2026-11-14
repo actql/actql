@@ -871,7 +871,7 @@ test('collection aggregate requires completed full stream independently of succe
       rowBytes: true, originalChargeBeforeValidation: true, boundedBatches: true,
       batchBytes: true, earlyBreak: true, readerCancellation: true},
     oversizedRow: {rows: 1, arrayElements: 20000, maxRowRetainedValueBytes: 1048576, expectedRefusal: 'ResultRowRetainedLimit', complete: true},
-    largeRow: {rows: 1, fields: 17, textUnitsPerField: 64000, aboveLegacyRowWireBytes: 1048576,
+    largeRow: {ref: {run: 'same-large'}, resultName: 'large', rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: 1088144, aboveLegacyRowWireBytes: 1048576,
       explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true},
     originalProgramsRemovedAfterFirstClose: 6};
   for (const fullStream of [actual.fullStream, undefined, {rows: 99999, complete: true}]) {
@@ -1268,7 +1268,8 @@ test('completed original collection Saved is independent of a later capture case
         pid: 456, complete: true, firstClose: 'returned', aliveScopedFD: {before: 0, after: 0},
         submits: 0, sourceFreeMaxWork: 30000000,
         requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
-        cases: [{count: 100000, complete: true}]})};
+        cases: [{count: 100000, complete: true}],
+        largeRow: {complete: false, unexecutedReason: 'Requires completed original large-row handoff'}})};
     }}), error => error === failure);
   assert.deepEqual(commands, ['capture', 'saved']);
   assert.equal(report.collection[0].status, 'failed'); assert.equal(report.collection[0].completed, false);
@@ -2507,8 +2508,8 @@ test('normal large-row acceptance keeps a small authored input and independently
   assert(Buffer.byteLength(source) < 65536);
   assert(source.includes("'" + 'x'.repeat(64000) + "' AS t"));
   for (let field = 0; field < 17; field++) assert(source.includes(`t AS f${field}`));
-  assert(Buffer.byteLength(JSON.stringify(Object.fromEntries(
-    Array.from({length: 17}, (_, n) => [`f${n}`, 'x'.repeat(64000)])))) > 1048576);
+  assert.equal(Buffer.byteLength(JSON.stringify(Object.fromEntries(
+    Array.from({length: 17}, (_, n) => [`f${n}`, 'x'.repeat(64000)])))), 1088144);
 });
 
 test('required collection Saved consumes the original large-row handoff and checks every field before status', async () => {
@@ -2565,5 +2566,44 @@ test('required collection Saved consumes the original large-row handoff and chec
       assert.equal(output.complete, true);
     } else {await assert.rejects(running); assert.equal(output.complete, false);}
     assert.equal(closes, 1);
+  }
+});
+
+test('required collection parent rejects missing or foreign large Saved evidence while preserving independent small Saved', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  const large = {ref: {run: 'same-large'}, resultName: 'large', rows: 1, fields: 17,
+    textUnitsPerField: 64000, wireBytes: 1088144};
+  for (const mode of ['exact', 'missing-report', 'foreign-ref', 'short-wire', 'missing-handoff',
+    'foreign-capture', 'partial-capture']) {
+    const original = {ref: {run: 'same-small'}, resultName: 'small', count: 100000, largeRow: large};
+    const captured = {phase: 'capture', pid: 123, complete: true, firstClose: 'returned',
+      aliveScopedFD: {before: 0, after: 0}, cleanup: [],
+      cases: [{ref: original.ref, resultName: original.resultName, count: 100000, complete: true}],
+      largeRow: {...large, complete: true}};
+    const actual = {phase: 'saved', pid: 456, complete: true, firstClose: 'returned',
+      aliveScopedFD: {before: 0, after: 0}, submits: 0, sourceFreeMaxWork: 30000000,
+      requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
+      cases: [{count: 100000, complete: true}], largeRow: {...large, complete: true}};
+    if (mode === 'missing-report') delete actual.largeRow;
+    if (mode === 'foreign-ref') actual.largeRow.ref = {run: 'foreign'};
+    if (mode === 'short-wire') actual.largeRow.wireBytes--;
+    if (mode === 'missing-handoff') delete original.largeRow;
+    if (mode === 'foreign-capture') captured.largeRow.ref = {run: 'foreign'};
+    if (mode === 'partial-capture') {
+      delete original.largeRow; delete captured.largeRow; captured.complete = false;
+      actual.largeRow = {complete: false, unexecutedReason: 'Requires completed original large-row handoff'};
+    }
+    await writeFile(join(root, 'original.json'), JSON.stringify(original));
+    await writeFile(join(root, 'capture.observation.json'), JSON.stringify(captured));
+    const record = {phase: 'saved'};
+    const checking = run({collection: root, capturePid: 123, record, async command() {
+      return {pid: 456, code: 0, wallNs: 10, stdout: JSON.stringify(actual)};
+    }});
+    if (mode === 'exact' || mode === 'partial-capture') {
+      await checking; assert.equal(record.status, 'passed');
+      if (mode === 'partial-capture') assert.equal(record.largeRowUnexecutedReason,
+        'Requires completed original large-row handoff');
+    } else {await assert.rejects(checking); assert.equal(record.status, 'failed');}
   }
 });
