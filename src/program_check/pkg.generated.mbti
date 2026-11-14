@@ -403,6 +403,8 @@ pub fn local_common_normalization_inventory_requirements(LocalCommonNormalizatio
 
 pub fn local_common_normalization_inventory_work(LocalCommonNormalizationInventory) -> Int
 
+pub fn local_common_normalization_retained_extent(LocalCommonNormalizationInventory) -> (@decode_shape.CollectionConstructionExtent, Int64, Int64)?
+
 pub fn local_common_update_completion_free_inventory_matches(LocalCommonUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
 
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
@@ -500,6 +502,8 @@ pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 pub fn observe_finish_parsed_check_registry(ParsedCheckRegistry, calls_out? : @ref.Ref[Int64]?) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue]
 
 pub fn observe_finish_parsed_effect_check_registry(ParsedCheckRegistry) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
+
+pub fn observe_local_program_common_normalization_inventory(CheckedProgram, Int) -> (Result[LocalCommonNormalizationInventory, LocalCommonNormalizationIssue], Int)
 
 pub fn observe_parsed_check_carriers(ParsedCarriersInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
 

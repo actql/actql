@@ -1003,6 +1003,10 @@ pub fn client_local_journal_custody_body(Bytes, Bytes, (UInt64, UInt64)) -> Resu
 
 pub fn client_local_journal_custody_record(String, String, (UInt64, UInt64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
+pub fn client_local_normalization_preparation_work(ClientLocalNormalizationPreparation) -> Int
+
+pub fn client_local_normalization_retained_extent(ClientLocalNormalizationPreparation) -> (@decode_shape.CollectionConstructionExtent, Int64, Int64)?
+
 pub fn client_local_original_record_body(Array[(String, String)]) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
 pub fn client_local_original_record_fields(Bytes, Array[String]) -> Result[Array[String], ClientLocalOriginalCodecIssue]
@@ -1685,6 +1689,8 @@ pub fn finish_client_model_read_scope(ClientModelReadScope, ClientCompiledRun, @
 
 pub fn finish_client_node_model_read_state(ClientNodeModelStateWriter, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[String, ClientNodeModelStateIssue]
 
+pub fn finish_prepared_client_local_normalization(ClientLocalNormalizationPreparation) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
+
 pub fn grow_client_model_read_preparation_consumer_capacity(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn grow_client_model_read_preparing_capacity(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
@@ -1991,6 +1997,8 @@ pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publica
 
 pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
+pub fn measure_client_local_normalization_construction(ClientLocalNormalizationPreparation) -> Result[ClientLocalNormalizationConstruction, ClientLocalNormalizationIssue]
+
 pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, Int)?
 
 pub fn measure_installed_client_composed_infer_graph_construction(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, serialization? : ClientSerializationPlanGraph?, keyed_native_read? : (ClientKeyedAcquisition, @run_publication.PublicationContract)?) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue]
@@ -2040,6 +2048,8 @@ pub fn observe_prepare_checked_client_effect_computation(@program_check.EffectCo
 pub fn observe_prepare_checked_client_source_effect_computation(ClientSourceInput, @program_check.EffectComputationCandidate, ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[(Result[PreparedClientEffectComputation, ClientEffectComputationIssue], Int64), ClientSourcePreparationIssue]
 
 pub fn observe_prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int, values_max_rows? : Int?, calls_out? : @ref.Ref[Int64]?) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64)
+
+pub fn observe_prepare_client_local_normalization(PreparedClientProgram, ClientLocalNormalizationLimits) -> (Result[ClientLocalNormalizationPreparation, ClientLocalNormalizationIssue], Int)
 
 pub fn observe_prepared_client_multi_infer_plan_encoding(PreparedClientProgram, Array[ClientInferPlanGraph], ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, nodes_out~ : @ref.Ref[Int64]) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
@@ -2388,6 +2398,8 @@ pub fn prepared_client_infer_step(PreparedClientProgram) -> Int?
 pub fn prepared_client_infer_target_name(PreparedClientProgram, Int) -> String?
 
 pub fn prepared_client_local_normalization_evidence(PreparedClientProgram, ClientLocalNormalization) -> Result[@run_publication.RunEvidenceValue, ClientLocalNormalizationIssue]
+
+pub fn prepared_client_local_normalization_original(PreparedClientProgram) -> ClientLocalNormalization?
 
 pub fn prepared_client_model_measurement_storage(PreparedClientProgram, Array[ClientInferPlanGraph], ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
@@ -3812,6 +3824,11 @@ pub(all) struct ClientLocalLegacyPolicyRun {
 
 type ClientLocalNormalization
 
+pub(all) struct ClientLocalNormalizationConstruction {
+  body : @encode_core.EncodingConstructionGeometry
+  complete : @encode_core.EncodingConstructionGeometry
+}
+
 pub(all) enum ClientLocalNormalizationIssue {
   Inventory(@program_check.CompletionFreeInventoryIssue)
   ForeignPreparation
@@ -3820,6 +3837,15 @@ pub(all) enum ClientLocalNormalizationIssue {
   Evidence(@run_publication.RunEvidenceValueIssue)
   CommonInventory(@program_check.LocalCommonNormalizationIssue)
 }
+
+pub(all) struct ClientLocalNormalizationLimits {
+  max_work : Int
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+} derive(Eq, @debug.Debug)
+
+type ClientLocalNormalizationPreparation
 
 pub(all) enum ClientLocalOriginalCodecIssue {
   Encoding

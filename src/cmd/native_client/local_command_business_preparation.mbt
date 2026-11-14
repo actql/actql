@@ -128,10 +128,18 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
       // This original Pure route retains its unchanged normalization and
       // requirements. An Effect is never coerced into its body or authority.
       normalization = Some(
-        @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
-            stop("LocalOriginalNormalizationNotInstalled")
-          },
-        ),
+        self.with_business_request(capture, () => {
+          guard self.business is Some(business) &&
+            business.request_parent is Some(parent) &&
+            business.request_input is Some(input) else {
+            stop("LocalBusinessOriginalUnavailable")
+          }
+          match
+            @local_values.prepare_request_program_normalization(parent, input) {
+            Ok(original) => original
+            Err(issue) => local_stop_normalization(issue)
+          }
+        }),
       )
       let assets = runtime.assets
       if @run_host.prepared_client_acquisition_count(prepared) != 0 {

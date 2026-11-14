@@ -44,20 +44,178 @@ test "ordinary direct forty UNION branches retain original normalization through
     Pure,
   )
   let original = parent.compiled_program.unwrap()
-  let result = @publication_host.issue_prepared_client_local_normalization(
-    original,
+  assert_true(
+    @publication_host.issue_prepared_client_local_normalization(original)
+    is Err(CommonInventory(BudgetExceeded)),
   )
+  let result = prepare_request_program_normalization(parent, input)
   let cause = match result {
     Ok(_) => "issued"
-    Err(CommonInventory(BudgetExceeded)) => "common-inventory-budget"
-    Err(CommonInventory(InvalidLimits)) => "common-inventory-limits"
-    Err(CommonInventory(CompletionObserved)) => "common-completion"
-    Err(CommonInventory(ForeignOriginal)) => "common-foreign-original"
-    Err(CommonInventory(UnsupportedRequirement)) => "common-unsupported"
-    Err(Evidence(_)) => "evidence-encoding"
-    Err(_) => "other-typed-issue"
+    Err(Normalization(CommonInventory(BudgetExceeded))) =>
+      "common-inventory-budget"
+    Err(issue) => {
+      let original : Error = issue
+      fail(@debug.to_string(original))
+    }
   }
+  let (charged, spent, complete) = request_program_normalization_work(
+    parent, input,
+  ).unwrap()
+  assert_true(complete)
+  assert_true(charged > 16809L)
+  assert_eq(charged, spent)
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   assert_eq(cause, "issued")
+}
+
+///|
+fn normalization_request_control_fixture(
+  current? : () -> Bool = () => true,
+) -> (ClientRequestPreparation[Array[Int]], Array[Int]) raise {
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input, current~),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let sql = "SELECT 7 AS n"
+  reserve_request_snapshot(
+    parent,
+    input,
+    sql.length().to_int64() + 32L,
+    sql.length().to_int64() + 32L,
+  ).unwrap()
+  let (environment, publication) = request_query_publication_fixture()
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_native_test_value("{\"format\":\"sql\",\"text\":\"SELECT 7 AS n\"}"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+    public_primary=false,
+  ).unwrap()
+  assert_eq(
+    finish_request_checked_computation(parent, input, environment, publication).unwrap(),
+    Pure,
+  )
+  (parent, input)
+}
+
+///|
+test "normalization Request fences foreign and current reentry and retains the same original once" {
+  let action : Ref[(() -> Unit)?] = Ref(None)
+  let (parent, input) = normalization_request_control_fixture(current=() => {
+    if action.val is Some(run) {
+      run()
+    }
+    true
+  })
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    prepare_request_program_normalization(parent, [1])
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_true(parent.program_normalization is None)
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  let refused = Ref(false)
+  action.val = Some(() => {
+    action.val = None
+    let nested = prepare_request_program_normalization(parent, input)
+      is Err(Preparation(WrongPhase))
+    let cleanup = abort_request_preparation_after_cleanup(parent)
+      is Err(WrongPhase)
+    refused.val = nested && cleanup
+  })
+  let original = prepare_request_program_normalization(parent, input).unwrap()
+  assert_true(refused.val)
+  let work = request_program_normalization_work(parent, input).unwrap()
+  let usage = @resources.ledger_usage(parent.ledger)
+  let reused = prepare_request_program_normalization(parent, input).unwrap()
+  assert_true(physical_equal(original, reused))
+  assert_eq(request_program_normalization_work(parent, input), Some(work))
+  assert_eq(@resources.ledger_usage(parent.ledger), usage)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.program_normalization is None)
+  assert_true(
+    prepare_request_program_normalization(parent, input)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "normalization Request current refusal keeps its unentered audit and original cleanup" {
+  let current = Ref(true)
+  let (parent, input) = normalization_request_control_fixture(current=() => {
+    current.val
+  })
+  let before = @resources.ledger_usage(parent.ledger)
+  current.val = false
+  assert_true(
+    prepare_request_program_normalization(parent, input)
+    is Err(Preparation(Capacity(_))),
+  )
+  let original = parent.program_normalization.unwrap()
+  assert_true(
+    original.audit is None && original.work is None && original.result is None,
+  )
+  assert_eq(original.charged_work, 0L)
+  assert_eq(
+    @resources.ledger_usage(parent.ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.program_normalization is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "normalization Request cached success checks original current without repeating its audit" {
+  let current = Ref(true)
+  let calls = Ref(0)
+  let action : Ref[(() -> Unit)?] = Ref(None)
+  let (parent, input) = normalization_request_control_fixture(current=() => {
+    calls.val += 1
+    if action.val is Some(run) {
+      run()
+    }
+    current.val
+  })
+  let original = prepare_request_program_normalization(parent, input).unwrap()
+  let audit = parent.program_normalization.unwrap().audit.unwrap()
+  let work = request_program_normalization_work(parent, input)
+  let refused = Ref(false)
+  action.val = Some(() => {
+    action.val = None
+    refused.val = prepare_request_program_normalization(parent, input)
+      is Err(Preparation(WrongPhase)) &&
+      abort_request_preparation_after_cleanup(parent) is Err(WrongPhase)
+  })
+  let before = calls.val
+  let cached = prepare_request_program_normalization(parent, input).unwrap()
+  assert_true(physical_equal(original, cached))
+  assert_true(refused.val)
+  assert_eq(calls.val, before + 1)
+  assert_eq(request_program_normalization_work(parent, input), work)
+  current.val = false
+  assert_true(
+    prepare_request_program_normalization(parent, input)
+    is Err(Preparation(Capacity(_))),
+  )
+  assert_true(
+    physical_equal(audit, parent.program_normalization.unwrap().audit.unwrap()),
+  )
+  assert_eq(request_program_normalization_work(parent, input), work)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(parent.program_normalization is None)
+  assert_true(
+    prepare_request_program_normalization(parent, input)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

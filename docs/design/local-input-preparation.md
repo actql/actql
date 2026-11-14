@@ -6555,3 +6555,73 @@ also backs the coheld selected-limit return wrapper (one header/reference).
 Both callers use one lexical-work projection of the original document. Explicit
 profiles, current/reentry, overflow, semantic/algorithm work and cleanup remain
 independent; these projections do not grant Resource capacity or compile a body.
+
+### Original normalization on the same Request
+
+An ordinary Native Source computation keeps its original checked and compiled
+Program on the Request's existing preparation capacity. Its normalization audit
+runs in that same backed execution scope before the execution Plan is built.
+The caller selects the work and artifact byte/node/depth policy already retained
+by this original compiler; these maxima are neither work consumed nor new
+Resource credit. The independently callable bounded normalization issuer keeps
+its existing 10000-work and 1024-byte/32-node/8-depth defaults. A caller does not
+recognize that default by comparing equal limit records.
+
+The Common auditor remains the sole traversal of the original Stage, producer,
+parameter and operation occurrences. The resulting inventory retains the same
+checked Program and requirement closure, including all backend, numeric and
+execution prerequisites. It grants no execution support, permission, Run,
+replacement identity or cleanup acknowledgement. An empty journal follows only
+from that completed audit; Source syntax, row count or a successful checker
+cannot substitute for it. The existing journal body, catalog, identity preimage
+and sealer remain unchanged. Previously issued original journals retain their
+exact bytes and nominal preparation binding.
+
+The Request reserves the next audit constructor cohort before entering it. Its
+conservative variable-data estimate comes from the same observed Program,
+Catalog and checked-input material; it is not an allocation of a codec maximum.
+Once the audit frame returns, an inventory of its actual retained array capacity,
+entry Strings and order views replaces its disposed scratch. A bounded measuring
+writer then sizes the same journal emitter from those retained originals. Sizing
+the registered CID field uses only its fixed spelling and length, never an issued
+identity or a replacement hash. The actual journal parser, canonical values,
+UTF8/text/hash writers and completed evidence are backed from that measured
+shape before the existing sealer executes. Writer/parser scratch is reconciled
+only after its original constructor returns; the audit and issued evidence remain
+with the same Prepared and Plan/Run lifetime.
+
+Normalization has one named preparation-work phase between lowering/graph
+construction and execution-Plan construction. Its public variant is appended to
+preserve earlier constructor tags. The private execution-order fence is not a
+wire encoding or public counter. A returned work continuation spans the original
+resize boundary; no second meter, allowance, dispatch tariff or Root is minted.
+The actual audit's charged work and known metadata/emitter dimensions are
+reported separately from configured maxima, VM instruction counts and physical
+cleanup. Failed constructors retain only their known charged prefix; an
+unobserved failure tail is not reported as complete Usage.
+
+The existing Request driver owns synchronization and cancellation. It fences
+current/growth callbacks before they can reenter, replace its original input or
+retire a live constructor. Foreign input, a substituted compiler original,
+capacity refusal or a stopped current owner cannot enter a new audit. Reusing
+successful immutable normalization DATA does not repeat its audit or hash, but
+the public Request continuation still checks the same working capacity's current
+original before returning cached success. Presenting its already retained error
+is not a live continuation. Pending work and material remain attached to the same
+Request until its original after-cleanup retirement; success alone is no ACK.
+
+The Request adds one retained controller reference, priced as eight bytes by the
+existing common tariff before Request construction. The controller and its fixed
+synchronous work/measurement frames use the existing exclusive driver-control
+group; variable audit and publication material reserve separately. Successful
+original Program, captured, Model and Content handoffs sever the controller alias
+with their existing compiled-body aliases. Failed handoffs retain their originals.
+The same parent's cleanup finishes pending work and then clears these aliases;
+no separate retirement callback or owner is introduced.
+
+Verification distinguishes unchanged standalone refusal/preimages, ordinary
+Request audit/publication, foreign/current/reentry/once fences, ordered phase
+continuation and final alias retirement. Compiler type/interface checks establish
+only the selected source boundaries. Actual Native execution, retained Saved
+reads, target ABI and physical cleanup require their own matching artifacts and
+original callers; pure component success does not establish them.

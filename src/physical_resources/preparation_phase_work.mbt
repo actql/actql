@@ -61,6 +61,7 @@ pub(all) enum PreparationWorkPhase {
   // Appended to preserve existing constructor tags; execution ordering is below.
   RequestValuePolicyCheck
   RequestPolicySubjectPreparation
+  NormalizationAudit
 } derive(Eq, Debug)
 
 ///|
@@ -198,8 +199,11 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     RequestPolicySubjectPreparation => 53
     RequestValuePolicyCheck => 54
     LowerAndGraph => 55
-    ExecutionPlan => 56
-    PublicationProof => 57
+    // This private fence is not a constructor/ABI tag or serialized counter.
+    // Normalization belongs to the same Prepared before Plan construction.
+    NormalizationAudit => 56
+    ExecutionPlan => 57
+    PublicationProof => 58
   }
 }
 

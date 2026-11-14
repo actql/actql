@@ -90,11 +90,13 @@ pub fn local_program_common_normalization_inventory(
 fn audit_local_common_normalization_inventory(
   owner : CheckedProgram,
   max_work : Int,
+  work_out? : Ref[Int]? = None,
 ) -> Result[LocalCommonNormalizationInventory, LocalCommonNormalizationIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
   }
   let budget = { remaining: max_work, }
+  defer record_local_common_normalization_work(budget, max_work, work_out)
   try {
     local_common_charge(budget, 1)
     if owner.units.is_empty() {
@@ -326,4 +328,37 @@ pub fn local_common_normalization_entry_at(
     return None
   }
   Some((entry.path, rule, entry.authored, entry.canonical))
+}
+
+///|
+fn record_local_common_normalization_work(
+  budget : LocalCommonAuditBudget,
+  maximum : Int,
+  output : Ref[Int]?,
+) -> Unit {
+  if output is Some(value) {
+    value.val = maximum - budget.remaining
+  }
+}
+
+///|
+/// Observe the SAME original audit once. A failure reports only its known
+/// charged prefix, not complete failed-constructor Usage or physical work.
+pub fn observe_local_program_common_normalization_inventory(
+  owner : CheckedProgram,
+  max_work : Int,
+) -> (
+  Result[LocalCommonNormalizationInventory, LocalCommonNormalizationIssue],
+  Int,
+) {
+  if owner.has_effects {
+    return (Err(UnsupportedRequirement), 0)
+  }
+  let work = Ref(0)
+  let result = audit_local_common_normalization_inventory(
+    owner,
+    max_work,
+    work_out=Some(work),
+  )
+  (result, work.val)
 }

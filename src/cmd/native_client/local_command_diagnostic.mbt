@@ -340,3 +340,18 @@ fn local_bounded_file_diagnostic_message(
     None => original
   }
 }
+
+///|
+fn[T] local_stop_normalization(
+  issue : @local_values.ClientRequestNormalizationIssue,
+) -> T raise ClientStop {
+  command_preparation_diagnostic.val = match issue {
+    Normalization(CommonInventory(BudgetExceeded)) => PreparationLimit
+    Normalization(CommonInventory(InvalidLimits))
+    | Normalization(Evidence(RunEvidenceInvalidLimits)) => ConfigurationInvalid
+    Normalization(CommonInventory(UnsupportedRequirement | CompletionObserved)) =>
+      UnsupportedPreparation
+    _ => PreparationFailed
+  }
+  stop("LocalOriginalNormalizationNotInstalled")
+}

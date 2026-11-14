@@ -42965,7 +42965,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "12f253792cc4e5835e78a1d742b75a21df037cc571db8a6783fb685bed94cf12",
+      "sha256": "9c7b8dc76837b92de5eb0a3e88120e4c287df56ac06452cf8d28390f1799c021",
       "exports": [],
       "operations": [
         {
@@ -42998,6 +42998,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -43008,6 +43012,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "identity": [
@@ -43018,6 +43026,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "ownership": [
@@ -43028,6 +43040,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "synchronization": [
@@ -43038,6 +43054,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "failure": [
@@ -43048,6 +43068,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "cancellation": [
@@ -43058,6 +43082,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "resources": [
@@ -43068,6 +43096,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "extension": [
@@ -43078,6 +43110,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "verification": [
@@ -43100,6 +43136,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ]
           }
@@ -43987,6 +44027,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -44017,6 +44061,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "identity": [
@@ -44047,6 +44095,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "ownership": [
@@ -44077,6 +44129,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "synchronization": [
@@ -44107,6 +44163,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "failure": [
@@ -44137,6 +44197,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "cancellation": [
@@ -44167,6 +44231,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "resources": [
@@ -44197,6 +44265,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "extension": [
@@ -44227,6 +44299,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "verification": [
@@ -44273,13 +44349,17 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "8eae21b61d6df7c922e24cb6f72e3e1b34719ffa37bbb619cd28b0a1860e4d08"
+      "sha256": "f3fe003a7452d0709dfe9d2ac4f2877163a52d6c7b92f04075c9a15876fecbab"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
@@ -45464,7 +45544,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ef46f21f03cd9681ab2f61b795fc38158b61933348e56550b0011468351584e9",
+      "sha256": "d6c4a24d4441976c8ef7baa597e42a422f0bb36999eefad8f35d38cf813724b7",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -45548,6 +45628,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -45570,6 +45654,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "identity": [
@@ -45592,6 +45680,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "ownership": [
@@ -45614,6 +45706,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "synchronization": [
@@ -45636,6 +45732,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "failure": [
@@ -45658,6 +45758,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "cancellation": [
@@ -45680,6 +45784,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "resources": [
@@ -45706,6 +45814,10 @@
               {
                 "path": "docs/design/native-local-host-binding.md",
                 "anchor": "## Same Request Effect preparation lifetime"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "extension": [
@@ -45728,6 +45840,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "verification": [
@@ -45754,6 +45870,10 @@
               {
                 "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
                 "anchor": "test \"Request keeps live continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ]
           }
@@ -46531,6 +46651,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Checked compiler configuration at the installed module boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -46549,6 +46673,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Checked compiler configuration at the installed module boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "identity": [
@@ -46567,6 +46695,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Checked compiler configuration at the installed module boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "ownership": [
@@ -46581,6 +46713,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "synchronization": [
@@ -46595,6 +46731,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "failure": [
@@ -46609,6 +46749,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "cancellation": [
@@ -46623,6 +46767,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "resources": [
@@ -46637,6 +46785,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "extension": [
@@ -46651,6 +46803,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "verification": [
@@ -46673,6 +46829,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request module codec retains the selected checked profile without another current observation\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ]
           }
@@ -47295,7 +47455,7 @@
           }
         }
       ],
-      "sha256": "f88793c5735b24ff14f3d76c73a62ff2bf0540d49eb0b7cdc90732ad3045eadb",
+      "sha256": "e72b7c254adacd9d7b7014f465eef2ebe49dfe9ceb7abe5c3d24bab2d6ce2312",
       "exports": [],
       "operations": [
         {
@@ -78434,7 +78594,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_content_body.mbt",
-      "sha256": "d4b6b5de983f9f876bf255be8889fc290960b18e445632835e36531e0a232795",
+      "sha256": "74eca21a1fe4b3b03846889337e57c07252d084ed79a0013fd8abee4d8266acb",
       "exports": [],
       "operations": [
         {
@@ -78506,6 +78666,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -78516,6 +78680,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "identity": [
@@ -78530,6 +78698,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "ownership": [
@@ -78540,6 +78712,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "synchronization": [
@@ -78554,6 +78730,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "failure": [
@@ -78564,6 +78744,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "cancellation": [
@@ -78574,6 +78758,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "resources": [
@@ -78584,6 +78772,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "extension": [
@@ -78594,6 +78786,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "verification": [
@@ -78608,6 +78804,10 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ]
           }
@@ -90728,6 +90928,1130 @@
         }
       ],
       "referenceQualification": "Source ownership and selected component correspondence only; not a normal artifact, global RAM reservation or ordinary execution acceptance."
+    },
+    {
+      "module": "src/cmd/native_client/local_command_business_preparation.mbt",
+      "sha256": "6aa56a0b02b933244d0cecf9f44af95ad279b6650483bf7d345f958d4aa097cf",
+      "exports": [],
+      "operations": [
+        {
+          "name": "LocalCommandBusinessPreparation::current",
+          "declaration": "LocalCommandBusinessPreparation : : current ( self : LocalCommandBusinessPreparation , host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , environment : @ checked . CheckEnvironment , ) - > Bool"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_business_submission",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_business_submission ( self : LocalCommandPreparationOriginal , host : @ local_host . NativeLocalHostConnection , capture : @ local_host . NativeLocalJournalCapture , configuration : LocalCommandConfiguration , runtime : LocalPackagedRuntime , input_root : String , operation : String , child : @ argparse . Matches , original_input ? : ( LocalRunSubmission , @ run_host . ClientSubmittedIntent ) ?"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::select_business_file_source",
+          "declaration": "LocalCommandPreparationOriginal : : select_business_file_source ( self : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , ) - > ( LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command original preparation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "LocalCommandBusinessPreparation::current",
+            "LocalCommandPreparationOriginal::prepare_business_submission",
+            "LocalCommandPreparationOriginal::select_business_file_source"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/cmd/native_client/local_command_diagnostic.mbt",
+      "sha256": "df504ab26fe06e22b4767c8c170007724ac819787259c6cbae0d9566a90d0bf8",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]local_stop_native_preparation",
+          "declaration": "[ T ] local_stop_native_preparation ( issue : @ local_host . NativeClientPreparationIssue , ) - > T raise ClientStop"
+        },
+        {
+          "name": "[T]local_stop_normalization",
+          "declaration": "[ T ] local_stop_normalization ( issue : @ local_values . ClientRequestNormalizationIssue , ) - > T raise ClientStop"
+        },
+        {
+          "name": "[T]local_stop_runtime_requirements",
+          "declaration": "[ T ] local_stop_runtime_requirements ( issue : @ local_values . ClientLocalRequirementsIssue , ) - > T raise ClientStop"
+        },
+        {
+          "name": "[T]local_stop_submitted_preparation",
+          "declaration": "[ T ] local_stop_submitted_preparation ( issue : @ local_host . NativeClientSubmittedPreparationIssue , ) - > T raise ClientStop"
+        },
+        {
+          "name": "local_bounded_file_diagnostic_message",
+          "declaration": "local_bounded_file_diagnostic_message ( original : String , issue : @ files . NativeBoundedTextIssue , ) - > String"
+        },
+        {
+          "name": "local_check_diagnostic_kind",
+          "declaration": "local_check_diagnostic_kind ( diagnostic : @ checked . CheckDiagnostic , ) - > LocalCommandDiagnosticKind"
+        },
+        {
+          "name": "local_command_argument_diagnostic_json",
+          "declaration": "local_command_argument_diagnostic_json ( arguments : Array [ String ] ) - > Bool"
+        },
+        {
+          "name": "local_command_diagnostic_reset",
+          "declaration": "local_command_diagnostic_reset ( ) - > Unit"
+        },
+        {
+          "name": "local_command_diagnostic_text",
+          "declaration": "local_command_diagnostic_text ( code : String , message : String , json : Bool , ) - > String"
+        },
+        {
+          "name": "local_command_failure_text",
+          "declaration": "local_command_failure_text ( message : String , json : Bool ) - > String"
+        },
+        {
+          "name": "local_command_json_selected",
+          "declaration": "local_command_json_selected ( matches : @ argparse . Matches ) - > Bool"
+        },
+        {
+          "name": "local_command_primary_diagnostic",
+          "declaration": "local_command_primary_diagnostic ( message : String ) - > ( String , String )"
+        },
+        {
+          "name": "local_frontend_diagnostic_kind",
+          "declaration": "local_frontend_diagnostic_kind ( issue : @ frontend . Issue , ) - > LocalCommandDiagnosticKind"
+        },
+        {
+          "name": "local_native_preparation_diagnostic_kind",
+          "declaration": "local_native_preparation_diagnostic_kind ( issue : @ local_host . NativeClientPreparationIssue , ) - > LocalCommandDiagnosticKind"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "observation-presentation",
+      "owner": "Existing Native Local command original preparation",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]local_stop_native_preparation",
+            "[T]local_stop_normalization",
+            "[T]local_stop_runtime_requirements",
+            "[T]local_stop_submitted_preparation",
+            "local_bounded_file_diagnostic_message",
+            "local_check_diagnostic_kind",
+            "local_command_argument_diagnostic_json",
+            "local_command_diagnostic_reset",
+            "local_command_diagnostic_text",
+            "local_command_failure_text",
+            "local_command_json_selected",
+            "local_command_primary_diagnostic",
+            "local_frontend_diagnostic_kind",
+            "local_native_preparation_diagnostic_kind"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/physical_resources/preparation_phase_work.mbt",
+      "sha256": "580e2dafeb6b0b0b19722da1bfe5288fe9e77159930255d6bcd6b59935d038a2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]begin_preparation_phase_work",
+          "declaration": "[ I , P ] begin_preparation_phase_work ( owner : PreparationCapacity [ I , P ] , input : I , phase : PreparationWorkPhase , maximum_work : Int , ) - > Result [ PreparationPhaseWork , PreparationWorkIssue ]"
+        },
+        {
+          "name": "[I,P]begin_preparation_phase_work_continuation64",
+          "declaration": "[ I , P ] begin_preparation_phase_work_continuation64 ( owner : PreparationCapacity [ I , P ] , input : I , phase : PreparationWorkPhase , maximum_work : Int64 , ) - > Result [ PreparationPhaseWorkContinuation64 , PreparationWorkIssue ]"
+        },
+        {
+          "name": "[I,P]begin_preparation_phase_work64",
+          "declaration": "[ I , P ] begin_preparation_phase_work64 ( owner : PreparationCapacity [ I , P ] , input : I , phase : PreparationWorkPhase , maximum_work : Int64 , ) - > Result [ PreparationPhaseWork64 , PreparationWorkIssue ]"
+        },
+        {
+          "name": "[I,P]begin_preparation_work_state",
+          "declaration": "[ I , P ] begin_preparation_work_state ( owner : PreparationCapacity [ I , P ] , input : I , phase : PreparationWorkPhase , maximum : Int64 , ) - > Result [ PreparationPhaseWorkState [ I , P ] , PreparationWorkIssue ]"
+        },
+        {
+          "name": "[I,P]finish_preparation_work_state",
+          "declaration": "[ I , P ] finish_preparation_work_state ( state : PreparationPhaseWorkState [ I , P ] , ) - > Result [ Int64 , PreparationWorkIssue ]"
+        },
+        {
+          "name": "[I,P]resume_preparation_work_state",
+          "declaration": "[ I , P ] resume_preparation_work_state ( state : PreparationPhaseWorkState [ I , P ] , ) - > Result [ Unit , PreparationWorkIssue ]"
+        },
+        {
+          "name": "[I,P]return_preparation_work_state",
+          "declaration": "[ I , P ] return_preparation_work_state ( state : PreparationPhaseWorkState [ I , P ] , ) - > Result [ Unit , PreparationWorkIssue ]"
+        },
+        {
+          "name": "[I,P]spend_preparation_work_state",
+          "declaration": "[ I , P ] spend_preparation_work_state ( state : PreparationPhaseWorkState [ I , P ] , amount : Int64 , ) - > Result [ Unit , PreparationWorkIssue ]"
+        },
+        {
+          "name": "finish_preparation_phase_work",
+          "declaration": "finish_preparation_phase_work ( receipt : PreparationPhaseWork , ) - > Result [ Int , PreparationWorkIssue ]"
+        },
+        {
+          "name": "finish_preparation_phase_work_continuation64",
+          "declaration": "finish_preparation_phase_work_continuation64 ( receipt : PreparationPhaseWorkContinuation64 , ) - > Result [ Int64 , PreparationWorkIssue ]"
+        },
+        {
+          "name": "finish_preparation_phase_work64",
+          "declaration": "finish_preparation_phase_work64 ( receipt : PreparationPhaseWork64 , ) - > Result [ Int64 , PreparationWorkIssue ]"
+        },
+        {
+          "name": "preparation_phase_work_construction_inventory",
+          "declaration": "preparation_phase_work_construction_inventory ( ) - > PreparationWorkConstructionInventory"
+        },
+        {
+          "name": "preparation_phase_work_continuation64_construction_inventory",
+          "declaration": "preparation_phase_work_continuation64_construction_inventory ( ) - > PreparationWorkConstructionInventory"
+        },
+        {
+          "name": "preparation_phase_work_continuation64_retained_inventory",
+          "declaration": "preparation_phase_work_continuation64_retained_inventory ( ) - > PreparationWorkConstructionInventory"
+        },
+        {
+          "name": "preparation_work_ordinal",
+          "declaration": "preparation_work_ordinal ( phase : PreparationWorkPhase ) - > Int"
+        },
+        {
+          "name": "resume_preparation_phase_work_continuation64",
+          "declaration": "resume_preparation_phase_work_continuation64 ( receipt : PreparationPhaseWorkContinuation64 , ) - > Result [ Unit , PreparationWorkIssue ]"
+        },
+        {
+          "name": "return_preparation_phase_work_continuation64",
+          "declaration": "return_preparation_phase_work_continuation64 ( receipt : PreparationPhaseWorkContinuation64 , ) - > Result [ Unit , PreparationWorkIssue ]"
+        },
+        {
+          "name": "spend_preparation_phase_work",
+          "declaration": "spend_preparation_phase_work ( receipt : PreparationPhaseWork , amount : Int , ) - > Result [ Unit , PreparationWorkIssue ]"
+        },
+        {
+          "name": "spend_preparation_phase_work_continuation64",
+          "declaration": "spend_preparation_phase_work_continuation64 ( receipt : PreparationPhaseWorkContinuation64 , amount : Int64 , ) - > Result [ Unit , PreparationWorkIssue ]"
+        },
+        {
+          "name": "spend_preparation_phase_work64",
+          "declaration": "spend_preparation_phase_work64 ( receipt : PreparationPhaseWork64 , amount : Int64 , ) - > Result [ Unit , PreparationWorkIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource preparation capacity and phase-work family",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]begin_preparation_phase_work",
+            "[I,P]begin_preparation_phase_work_continuation64",
+            "[I,P]begin_preparation_phase_work64",
+            "[I,P]begin_preparation_work_state",
+            "[I,P]finish_preparation_work_state",
+            "[I,P]resume_preparation_work_state",
+            "[I,P]return_preparation_work_state",
+            "[I,P]spend_preparation_work_state",
+            "finish_preparation_phase_work",
+            "finish_preparation_phase_work_continuation64",
+            "finish_preparation_phase_work64",
+            "preparation_phase_work_construction_inventory",
+            "preparation_phase_work_continuation64_construction_inventory",
+            "preparation_phase_work_continuation64_retained_inventory",
+            "preparation_work_ordinal",
+            "resume_preparation_phase_work_continuation64",
+            "return_preparation_phase_work_continuation64",
+            "spend_preparation_phase_work",
+            "spend_preparation_phase_work_continuation64",
+            "spend_preparation_phase_work64"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/program_check/local_common_normalization.mbt",
+      "sha256": "9de1ed12f77772726d61cd1318afba4413d490f69814360d0bcd571b76991ad3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "audit_local_common_normalization_inventory",
+          "declaration": "audit_local_common_normalization_inventory ( owner : CheckedProgram , max_work : Int , work_out ? : Ref [ Int ] ?"
+        },
+        {
+          "name": "local_common_charge",
+          "declaration": "local_common_charge ( budget : LocalCommonAuditBudget , work : Int , ) - > Unit raise LocalCommonAuditFailure"
+        },
+        {
+          "name": "local_common_entry",
+          "declaration": "local_common_entry ( entries : Array [ LocalSortNormalizationEntry ] , entry : LocalSortNormalizationEntry , budget : LocalCommonAuditBudget , ) - > Unit raise LocalCommonAuditFailure"
+        },
+        {
+          "name": "local_common_normalization_entry_at",
+          "declaration": "local_common_normalization_entry_at ( inventory : LocalCommonNormalizationInventory , index : Int , ) - > ( String , String , String , String ) ?"
+        },
+        {
+          "name": "local_common_normalization_entry_count",
+          "declaration": "local_common_normalization_entry_count ( inventory : LocalCommonNormalizationInventory , ) - > Int"
+        },
+        {
+          "name": "local_common_normalization_inventory_matches",
+          "declaration": "local_common_normalization_inventory_matches ( inventory : LocalCommonNormalizationInventory , owner : CheckedProgram , ) - > Bool"
+        },
+        {
+          "name": "local_common_normalization_inventory_requirements",
+          "declaration": "local_common_normalization_inventory_requirements ( inventory : LocalCommonNormalizationInventory , ) - > @ context . StageRequirementClosure"
+        },
+        {
+          "name": "local_common_normalization_inventory_work",
+          "declaration": "local_common_normalization_inventory_work ( inventory : LocalCommonNormalizationInventory , ) - > Int"
+        },
+        {
+          "name": "local_program_common_normalization_inventory",
+          "declaration": "local_program_common_normalization_inventory ( owner : CheckedProgram , max_work : Int , ) - > Result [ LocalCommonNormalizationInventory , LocalCommonNormalizationIssue ]"
+        },
+        {
+          "name": "observe_local_program_common_normalization_inventory",
+          "declaration": "observe_local_program_common_normalization_inventory ( owner : CheckedProgram , max_work : Int , ) - > ( Result [ LocalCommonNormalizationInventory , LocalCommonNormalizationIssue ] , Int , )"
+        },
+        {
+          "name": "record_local_common_normalization_work",
+          "declaration": "record_local_common_normalization_work ( budget : LocalCommonAuditBudget , maximum : Int , output : Ref [ Int ] ? , ) - > Unit"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "audit_local_common_normalization_inventory",
+            "local_common_charge",
+            "local_common_entry",
+            "local_common_normalization_entry_at",
+            "local_common_normalization_entry_count",
+            "local_common_normalization_inventory_matches",
+            "local_common_normalization_inventory_requirements",
+            "local_common_normalization_inventory_work",
+            "local_program_common_normalization_inventory",
+            "observe_local_program_common_normalization_inventory",
+            "record_local_common_normalization_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/run_publication_host/client_local_normalization.mbt",
+      "sha256": "a7276dd58eb85034ae85b01a1cdc9672e9344e59f05b089fdc0d73b627befb1a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_completion_free_catalog_cid",
+          "declaration": "client_local_completion_free_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "emit_local_common_normalization_journal",
+          "declaration": "emit_local_common_normalization_journal ( inventory : @ checked . LocalCommonNormalizationInventory , writer : @ encode . Writer , identity ? : String ?"
+        },
+        {
+          "name": "issue_prepared_client_local_normalization",
+          "declaration": "issue_prepared_client_local_normalization ( owner : PreparedClientProgram , ) - > Result [ ClientLocalNormalization , ClientLocalNormalizationIssue ]"
+        },
+        {
+          "name": "local_assertion_catalog_cid",
+          "declaration": "local_assertion_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "local_common_normalization_catalog_cid",
+          "declaration": "local_common_normalization_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "local_common_normalization_journal_body",
+          "declaration": "local_common_normalization_journal_body ( inventory : @ checked . LocalCommonNormalizationInventory , max_wire_bytes : Int , max_nodes ? : Int"
+        },
+        {
+          "name": "local_completion_free_catalog_cid",
+          "declaration": "local_completion_free_catalog_cid ( inventory : @ checked . LocalCompletionFreeInventory , ) - > String"
+        },
+        {
+          "name": "local_decimal_sum_catalog_cid",
+          "declaration": "local_decimal_sum_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "local_dedupe_catalog_cid",
+          "declaration": "local_dedupe_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "local_default_parameter_catalog_cid",
+          "declaration": "local_default_parameter_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "local_default_set_catalog_cid",
+          "declaration": "local_default_set_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "local_join_catalog_cid",
+          "declaration": "local_join_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "local_normalization_catalog_cid",
+          "declaration": "local_normalization_catalog_cid ( inventory : ClientLocalNormalizationInventory , ) - > String"
+        },
+        {
+          "name": "local_normalization_inventory_matches",
+          "declaration": "local_normalization_inventory_matches ( inventory : ClientLocalNormalizationInventory , owner : @ checked . CheckedProgram , ) - > Bool"
+        },
+        {
+          "name": "local_unary_timestamp_catalog_cid",
+          "declaration": "local_unary_timestamp_catalog_cid ( ) - > String"
+        },
+        {
+          "name": "prepared_client_local_normalization_evidence",
+          "declaration": "prepared_client_local_normalization_evidence ( owner : PreparedClientProgram , value : ClientLocalNormalization , ) - > Result [ @ publication . RunEvidenceValue , ClientLocalNormalizationIssue ]"
+        },
+        {
+          "name": "restore_prepared_client_local_normalization",
+          "declaration": "restore_prepared_client_local_normalization ( owner : PreparedClientProgram , original : ClientLocalNormalization , wire : String , catalog_cid : String , ) - > Result [ @ publication . RunEvidenceValue , ClientLocalNormalizationIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_completion_free_catalog_cid",
+            "emit_local_common_normalization_journal",
+            "issue_prepared_client_local_normalization",
+            "local_assertion_catalog_cid",
+            "local_common_normalization_catalog_cid",
+            "local_common_normalization_journal_body",
+            "local_completion_free_catalog_cid",
+            "local_decimal_sum_catalog_cid",
+            "local_dedupe_catalog_cid",
+            "local_default_parameter_catalog_cid",
+            "local_default_set_catalog_cid",
+            "local_join_catalog_cid",
+            "local_normalization_catalog_cid",
+            "local_normalization_inventory_matches",
+            "local_unary_timestamp_catalog_cid",
+            "prepared_client_local_normalization_evidence",
+            "restore_prepared_client_local_normalization"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_normalization.mbt",
+      "sha256": "fa5d35f525c8ea206cc4b01b49c89096a06ee4b99bc581a78b6535e7aa2a20ed",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]check_request_program_normalization_current",
+          "declaration": "[ I ] check_request_program_normalization_current ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , ) - > Result [ Unit , ClientRequestNormalizationIssue ]"
+        },
+        {
+          "name": "[I]fail_request_program_normalization",
+          "declaration": "[ I ] fail_request_program_normalization ( owner : ClientRequestPreparation [ I ] , selected : ClientRequestProgramNormalization , primary : ClientRequestNormalizationIssue , ) - > Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ]"
+        },
+        {
+          "name": "[I]finish_request_program_normalization_work",
+          "declaration": "[ I ] finish_request_program_normalization_work ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_program_normalization",
+          "declaration": "[ I ] prepare_request_program_normalization ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_program_normalization_owned",
+          "declaration": "[ I ] prepare_request_program_normalization_owned ( owner : ClientRequestPreparation [ I ] , input : I , selected : ClientRequestProgramNormalization , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , ) - > Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ]"
+        },
+        {
+          "name": "[I]request_program_normalization_work",
+          "declaration": "[ I ] request_program_normalization_work ( owner : ClientRequestPreparation [ I ] , input : I , ) - > ( Int64 , Int64 , Bool ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]check_request_program_normalization_current",
+            "[I]fail_request_program_normalization",
+            "[I]finish_request_program_normalization_work",
+            "[I]prepare_request_program_normalization",
+            "[I]prepare_request_program_normalization_owned",
+            "[I]request_program_normalization_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_normalization_layout.mbt",
+      "sha256": "5402c422cba94a5bc7ec6f4e71e05f1973b8ab36e55a6238ec2473a39de94204",
+      "exports": [],
+      "operations": [
+        {
+          "name": "request_normalization_publication_extents",
+          "declaration": "request_normalization_publication_extents ( value : @ publication_host . ClientLocalNormalizationConstruction , ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "request_normalization_publication_extents"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/program_check/local_common_normalization_construction.mbt",
+      "sha256": "4027399155b0725f1c365b851f9db656b63386385de89438d16d618edea1a352",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_common_normalization_retained_extent",
+          "declaration": "local_common_normalization_retained_extent ( original : LocalCommonNormalizationInventory , ) - > ( @ shape . CollectionConstructionExtent , Int64 , Int64 ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_common_normalization_retained_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
+    },
+    {
+      "module": "src/run_publication_host/client_local_normalization_preparation.mbt",
+      "sha256": "122308f62b24e8a2421a754509941abe8534405854e6524d6d99e3bba9be9166",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_normalization_preparation_work",
+          "declaration": "client_local_normalization_preparation_work ( original : ClientLocalNormalizationPreparation , ) - > Int"
+        },
+        {
+          "name": "client_local_normalization_retained_extent",
+          "declaration": "client_local_normalization_retained_extent ( original : ClientLocalNormalizationPreparation , ) - > ( @ shape . CollectionConstructionExtent , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "finish_prepared_client_local_normalization",
+          "declaration": "finish_prepared_client_local_normalization ( original : ClientLocalNormalizationPreparation , ) - > Result [ ClientLocalNormalization , ClientLocalNormalizationIssue ]"
+        },
+        {
+          "name": "measure_client_local_normalization_construction",
+          "declaration": "measure_client_local_normalization_construction ( original : ClientLocalNormalizationPreparation , ) - > Result [ ClientLocalNormalizationConstruction , ClientLocalNormalizationIssue ]"
+        },
+        {
+          "name": "observe_prepare_client_local_normalization",
+          "declaration": "observe_prepare_client_local_normalization ( owner : PreparedClientProgram , limits : ClientLocalNormalizationLimits , ) - > ( Result [ ClientLocalNormalizationPreparation , ClientLocalNormalizationIssue ] , Int , )"
+        },
+        {
+          "name": "prepared_client_local_normalization_original",
+          "declaration": "prepared_client_local_normalization_original ( owner : PreparedClientProgram , ) - > ClientLocalNormalization ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_normalization_preparation_work",
+            "client_local_normalization_retained_extent",
+            "finish_prepared_client_local_normalization",
+            "measure_client_local_normalization_construction",
+            "observe_prepare_client_local_normalization",
+            "prepared_client_local_normalization_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing original normalization/Request source responsibilities only; not artifact, runtime, physical cleanup or ordinary acceptance."
     }
   ]
 }
