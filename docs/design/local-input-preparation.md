@@ -6579,6 +6579,29 @@ demand; it does not enlarge permission or credit finished/source storage before
 its original owner acknowledges release. Snapshot import still uses the exact
 finished receipt and grows the same Task reservation before construction.
 
+### Closed scalar snapshot import overlap
+
+A successfully completed dense Text/Number/Boolean snapshot import may share
+its decoded immutable Text with the receiving CheckedValues. The scalar
+admission retains the same decoded String; its parser Cursor and raw JSON
+record do not escape the decoder. The completed-import observation binds the
+exact importer and returned output, checks current availability and refuses
+partial, cancelled, copied, foreign, reentrant or nonscalar observations. This
+observation is quantity DATA, not a storage or cleanup acknowledgement.
+
+The original Task records at most the parser-text term already funded by its
+same finished snapshot receipt: eight times the smaller of the admitted row
+text bound and that receipt's measured value text. Reuse becomes available only
+after the original snapshot finish confirms framing/body release and old
+reference retirement. A reentrant stop cannot publish the overlap. Subsequent
+successful workspace growth moves only the consumed part of this term from
+the same Task's import extent to its working extent, once across all grows.
+The combined reservation never decreases or refunds capacity. Failed growth
+does not spend the remaining overlap. Receiving value Text, wire, framer row,
+batch, nodes, other live owners and all generic import costs remain covered;
+nested, reference and sparse schemas keep the complete existing path. Limits,
+identity, currentness, finalization and cleanup retain their original owners.
+
 ### Value-root entries and internal row decoding
 
 A constructed Array may retain many child values while using only one
