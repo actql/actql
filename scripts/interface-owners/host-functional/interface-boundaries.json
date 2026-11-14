@@ -32793,7 +32793,7 @@
               },
               {
                 "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const input = typeof journal.prepareSubmittedIntent === 'function' ?"
+                "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -34496,7 +34496,7 @@
               },
               {
                 "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const input = typeof journal.prepareSubmittedIntent === 'function' ?"
+                "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -37083,7 +37083,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1070997fa8ec095db60678952f54881a40e9480aa72ea444ae00f181038a4f70",
+      "sha256": "e3062223cdb02ea58695b2be070f57bc23aa05a37cf7138552d2b86e0540a385",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -38040,7 +38040,7 @@
               },
               {
                 "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const input = typeof journal.prepareSubmittedIntent === 'function' ?"
+                "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               }
             ],
             "verification": [

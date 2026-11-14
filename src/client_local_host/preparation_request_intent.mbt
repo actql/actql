@@ -58,63 +58,67 @@ pub fn[I] request_default_program_preparation_limits(
   @publication_host.ClientProgramPreparationLimits,
   ClientRequestTerminalIssue,
 ] {
-  request_selected_input_preparation_limits(owner, input, generated_query=false)
-}
-
-///|
-// A generated Stage owns at least one node in the SAME finite artifact
-// envelope. Authored JSON Stage policy is separate. This selects only a
-// constructor ceiling; the completed original Program later supplies its
-// actual Stage inventory to semantic checking.
-fn[I] request_default_query_preparation_limits(
-  owner : ClientRequestPreparation[I],
-  input : I,
-) -> Result[
-  @publication_host.ClientProgramPreparationLimits,
-  ClientRequestTerminalIssue,
-] {
-  request_selected_input_preparation_limits(owner, input, generated_query=true)
-}
-
-///|
-fn[I] request_selected_input_preparation_limits(
-  owner : ClientRequestPreparation[I],
-  input : I,
-  generated_query~ : Bool,
-) -> Result[
-  @publication_host.ClientProgramPreparationLimits,
-  ClientRequestTerminalIssue,
-] {
   guard owner.input is Some(original) && physical_equal(original, input) else {
     return Err(Preparation(ForeignOriginal))
   }
   guard owner.phase == Open && request_intent_input_ready(owner) else {
     return Err(Preparation(WrongPhase))
   }
-  guard request_captured_intent_limits(
-      owner.snapshot_units,
-      owner.snapshot_values,
-    )
-    is Some(selected) else {
-    return Err(Preparation(Policy))
-  }
   let standard = @publication_host.client_standard_program_preparation_limits()
+  let selected : @source.ParseLimits = if owner.snapshot_units == 0L &&
+    owner.snapshot_values == 0L &&
+    owner.snapshot_base is None &&
+    owner.submitted_intent is None &&
+    !owner.intent_attempted &&
+    owner.native_intake_base is Some(_) &&
+    owner.native_intake_wire_bytes > 0 {
+    // The raw Native producer already observed and funded this SAME original
+    // wire extent before constructing its Reader/document. Encoded bytes bound
+    // syntax nodes; these are NOT fabricated snapshot value/Text quantities.
+    // Keep this entrance's original depth, rather than substituting SDK depth.
+    let bytes = owner.native_intake_wire_bytes
+    {
+      max_input_bytes: bytes,
+      max_nodes: bytes,
+      max_depth: standard.checking.input.source.max_depth,
+    }
+  } else {
+    match
+      request_captured_intent_limits(
+        owner.snapshot_units,
+        owner.snapshot_values,
+      ) {
+      Some(selected) => selected
+      None => return Err(Preparation(Policy))
+    }
+  }
+  // Both native Program DATA and encoded SQL/Pipe/JSON/YAML documents belong
+  // to this SAME observed snapshot. Each admitted node/Stage/step/result or
+  // parameter requires at least one encoded byte. This finite upper bound
+  // is not a constructor allocation or permission; the existing Source and
+  // preparation owners still grow for their actual observations before use.
+  let nodes = selected.max_input_bytes
   Ok({
     ..standard,
     checking: {
-      ..standard.checking,
       input: {
-        source: selected,
+        source: { ..selected, max_nodes: nodes, },
         tree: {
-          max_nodes: selected.max_nodes,
+          max_nodes: nodes,
           max_depth: selected.max_depth,
           max_string_bytes: selected.max_input_bytes,
           max_total_string_bytes: selected.max_input_bytes,
         },
-        max_stages: if generated_query {
-          standard.checking.compilation.artifacts.nodes
-        } else {
-          standard.checking.input.max_stages
+        max_stages: nodes,
+      },
+      compilation: {
+        ..standard.checking.compilation,
+        structure: {
+          ..standard.checking.compilation.structure,
+          stages: nodes,
+          steps: nodes,
+          results: nodes,
+          parameters: nodes,
         },
       },
     },

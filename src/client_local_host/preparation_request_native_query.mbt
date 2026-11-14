@@ -208,6 +208,7 @@ fn[I, T] prepare_request_native_query_computation_input(
   supplied? : T? = None,
   declarations? : T? = None,
   public_primary? : Bool = true,
+  lexical_work? : Int? = None,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   match
     prepare_request_native_query_input(
@@ -219,7 +220,8 @@ fn[I, T] prepare_request_native_query_computation_input(
   // Borrow the SAME immutable selection already used by the input owner.
   // This existing parent slot later transfers to checking/compiler use.
   owner.computation_limits = Some(program_limits)
-  match parse_request_query_syntax(owner, input, document, format) {
+  match
+    parse_request_query_syntax(owner, input, document, format, lexical_work~) {
     Err(issue) => return Err(QuerySyntax(issue))
     Ok(_) => ()
   }
@@ -326,7 +328,7 @@ fn[I, T] prepare_request_native_source_computation_input(
   program_limits : @publication_host.ClientProgramPreparationLimits,
   supplied? : T? = None,
   public_primary? : Bool = true,
-  default_json? : Bool = false,
+  default_source? : Bool = false,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == Open &&
     !owner.native_parameters_ready &&
@@ -375,9 +377,12 @@ fn[I, T] prepare_request_native_source_computation_input(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    if default_json && selected == @frontend.Json {
+    if default_source && selected == @frontend.Json {
       return prepare_request_default_json_computation_input(
-        owner, input, document,
+        owner,
+        input,
+        document,
+        limits.input,
       )
     }
     return prepare_request_document_computation_input(
@@ -392,20 +397,17 @@ fn[I, T] prepare_request_native_source_computation_input(
       limits.input,
     )
   }
-  owner.phase = Open
-  let program_limits = if default_json {
-    // Reuse the existing captured intake selection once. Its outer node count
-    // does not measure the Query AST: syntax uses the lowering policy, then
-    // the generated Program retains its original artifact envelope.
-    let captured = match
-      request_default_query_preparation_limits(owner, input) {
-      Ok(selected) => selected
-      Err(issue) => return Err(issue)
+  let lexical_work = if default_source {
+    let original = request_source_lexical_work(document)
+    guard original is Some(_) else {
+      owner.phase = QuerySyntaxFailed
+      return Err(Preparation(ProgramCheck(Overflow)))
     }
-    { ..captured, values_max_rows: program_limits.values_max_rows, }
+    original
   } else {
-    program_limits
+    None
   }
+  owner.phase = Open
   prepare_request_native_query_computation_input(
     owner,
     input,
@@ -416,6 +418,7 @@ fn[I, T] prepare_request_native_source_computation_input(
     publication,
     program_limits,
     binding_limits=Some(request_query_binding_limits(limits)),
+    lexical_work~,
     public_primary~,
     supplied~,
     declarations~,

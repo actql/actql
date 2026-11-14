@@ -5,8 +5,8 @@ test "same Effect compiler backs bounded typed selections before constructor at 
   // One 1H/7R/1W record, one original holder reference, and the existing
   // collection owner's Array construction envelope; no copied String backing.
   assert_eq(program_effect_selection_extent_cost(1), Some(280L))
-  // Existing full-step observation and aggregate: 2W on the SAME quote.
-  assert_eq(sequence_full_step_delta_bytes, 8L * 2L)
+  // Two scalars on both the pipeline demand and aggregate: 4W before entry.
+  assert_eq(sequence_demand_scalar_delta_bytes, 8L * 4L)
   for retention in [true, false] {
     let (parent, owner, input, _) = request_effect_fixture()
     finish_effect_program_check_preparation(owner).unwrap() |> ignore
@@ -22,7 +22,7 @@ test "same Effect compiler backs bounded typed selections before constructor at 
         limits.retained_bytes -
         before.0 -
         data -
-        sequence_full_step_delta_bytes -
+        sequence_demand_scalar_delta_bytes -
         279L
       } else {
         0L
@@ -33,7 +33,7 @@ test "same Effect compiler backs bounded typed selections before constructor at 
         limits.execution_bytes -
         before.1 -
         data -
-        sequence_full_step_delta_bytes -
+        sequence_demand_scalar_delta_bytes -
         279L
       },
     ).unwrap()
@@ -53,8 +53,8 @@ test "same Effect compiler backs bounded typed selections before constructor at 
       quote,
       Some(
         (
-          before.0 + data + sequence_full_step_delta_bytes + 280L,
-          before.1 + data + sequence_full_step_delta_bytes + 280L,
+          before.0 + data + sequence_demand_scalar_delta_bytes + 280L,
+          before.1 + data + sequence_demand_scalar_delta_bytes + 280L,
         ),
       ),
     )

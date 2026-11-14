@@ -41907,7 +41907,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_compile.mbt",
-      "sha256": "27fba2b27947f6a3dedc017dc4346fc41630b548b1012cf02966ddf27605ff87",
+      "sha256": "561ded1b0382ca2cd30557a2865bd1beede3c69e571f081636d1890e7e4470d2",
       "exports": [],
       "operations": [
         {
@@ -43662,7 +43662,7 @@
     {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "cd885e0ce44fab568306414b1203a410a0e2289d6f2596ddc7f5176dfe40148a",
+      "sha256": "64b7973cda57be6e997eaf73f770c8c98fe9cd993bc1eb40503cd2e14d7d99e1",
       "role": "common-semantics",
       "owner": "Existing submitted-intent identity and original Request preparation Owners",
       "exports": [],
@@ -43684,16 +43684,8 @@
           "declaration": "[ I ] request_default_program_preparation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
         },
         {
-          "name": "[I]request_default_query_preparation_limits",
-          "declaration": "[ I ] request_default_query_preparation_limits ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
-        },
-        {
           "name": "[I]request_intent_input_ready",
           "declaration": "[ I ] request_intent_input_ready ( owner : ClientRequestPreparation [ I ] ) - > Bool"
-        },
-        {
-          "name": "[I]request_selected_input_preparation_limits",
-          "declaration": "[ I ] request_selected_input_preparation_limits ( owner : ClientRequestPreparation [ I ] , input : I , generated_query ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
         },
         {
           "name": "[I]request_submitted_intent_original",
@@ -43740,8 +43732,6 @@
             "[I]request_default_program_preparation_limits",
             "request_captured_intent_limits",
             "[I]finish_request_native_intake_wire",
-            "[I]request_default_query_preparation_limits",
-            "[I]request_selected_input_preparation_limits",
             "[I]reserve_request_native_intake_wire",
             "[I]reserve_request_retained_intent_source"
           ],
@@ -45120,7 +45110,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "00b82962a79595144bf4d48e72a7e541cb553b1d5fc87c004694197724d3de4b",
+      "sha256": "4023f7865da7ffdd38be15471f896484b2d73ed6bda3cb03cba696105c5a423b",
       "exports": [],
       "operations": [
         {
@@ -45474,7 +45464,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2fba90929950a8437ac25e7b39552d9f09129894464d8fc665e5af4297240023",
+      "sha256": "ef46f21f03cd9681ab2f61b795fc38158b61933348e56550b0011468351584e9",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -47737,7 +47727,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b5eaf15c1e1dee3c971e5dba11708dfd19dd870ff1a983ac0dfbe5a58870c268",
+      "sha256": "558977eda281a2dfc26675d2ddd051c4ded09b782368d2d43978827bd886fc6a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -47756,7 +47746,11 @@
         },
         {
           "name": "request_query_syntax_data_bytes",
-          "declaration": "request_query_syntax_data_bytes ( document : String ) - > Int64 ?"
+          "declaration": "request_query_syntax_data_bytes ( document : String , lexical_work ? : Int ?"
+        },
+        {
+          "name": "request_source_lexical_work",
+          "declaration": "request_source_lexical_work ( document : String ) - > Int ?"
         }
       ],
       "contracts": [
@@ -47766,7 +47760,8 @@
             "[I]parse_request_query_syntax",
             "[I]prepared_request_query_syntax",
             "[I]request_query_syntax_work",
-            "request_query_syntax_data_bytes"
+            "request_query_syntax_data_bytes",
+            "request_source_lexical_work"
           ],
           "exports": [],
           "attributes": {
@@ -86595,7 +86590,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_default_document.mbt",
-      "sha256": "76489b19f935d2ad7a86fed3d067ff970ca57aa07f0670413a973fe8406cac5d",
+      "sha256": "369349b0a464b0142c8285ba1154405fa89d1ca51691410eac58dcc37574d558",
       "exports": [],
       "operations": [
         {
@@ -86604,7 +86599,11 @@
         },
         {
           "name": "[I]prepare_request_default_json_computation_input",
-          "declaration": "[ I ] prepare_request_default_json_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+          "declaration": "[ I ] prepare_request_default_json_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , limits : @ syntax . Limits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]request_default_lowered_program_limits",
+          "declaration": "[ I ] request_default_lowered_program_limits ( owner : ClientRequestPreparation [ I ] , program_limits : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestTerminalIssue , ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -86616,7 +86615,8 @@
           "operations": [
             "<module>",
             "[I,T]prepare_request_default_source_computation_check",
-            "[I]prepare_request_default_json_computation_input"
+            "[I]prepare_request_default_json_computation_input",
+            "[I]request_default_lowered_program_limits"
           ],
           "exports": [],
           "attributes": {
@@ -88538,13 +88538,17 @@
               {
                 "path": "src/client_local_host/preparation_request_query_selection_js_wbtest.mbt",
                 "anchor": "test \"default Source large flat literal reaches the same compiler under selected finite memory\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_work_calls_js_wbtest.mbt",
+                "anchor": "test \"Native static direct11 uses shared ordinary input selection without compiling\""
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "d1d4c8ea969a549c95e19c50bee3d8a808875999d3473dd21ecf93629c7289df"
+      "sha256": "c96972fb404c9ee475f99632fc4abf9f400c9843ccef5867267f9bb178d1440c"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
@@ -88657,7 +88661,7 @@
     },
     {
       "module": "src/lowering_relation/sequence_preparation_demand.mbt",
-      "sha256": "e9f689d757af80d642f42a9b396ae9b10561e56e7d64f5bc2fabff1140814a6e",
+      "sha256": "87ebe134586df8865214909792248e52f4469b76eec1683e1064cbe54954f7d6",
       "exports": [],
       "operations": [
         {
@@ -88756,7 +88760,7 @@
     },
     {
       "module": "src/run_publication_host/client_sequence_preparation_demand.mbt",
-      "sha256": "88745533faba0453f01a7c53f94e15f48de44f94a0ff3e75b33bc2fd1bd14424",
+      "sha256": "1ce1578ace7198c3a0255ee6c937417346cc92536a21def6463997b7c358e6eb",
       "exports": [],
       "operations": [
         {

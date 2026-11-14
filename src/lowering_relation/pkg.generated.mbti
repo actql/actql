@@ -1995,6 +1995,7 @@ pub(all) struct SequencePreparationDemand {
   authored_expression_nodes : Int
   work_used : Int
   full_sequence_steps : Int
+  authored_expression_text_bytes : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SequencePreparationDemandIssue {
