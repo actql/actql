@@ -217,6 +217,15 @@ test "original few long Values retain their complete text working demand" {
                 "OriginalValuesExecution:ManagedCompletion"
               IdentityExport(_) => "OriginalValuesExecution:IdentityExport"
               CarrierSnapshot(_) => "OriginalValuesExecution:CarrierSnapshot"
+              ExecutionCapacityRefusal(cause, needed, available, policy) =>
+                "OriginalValuesExecution:ExecutionCapacityRefusal:" +
+                @debug.to_string(cause) +
+                ":needed=" +
+                needed.to_string() +
+                ":available=" +
+                available.to_string() +
+                ":policy=" +
+                policy.to_string()
             }
           Estimate(_) => "OriginalValuesExecution:Estimate"
           FinalizationLimit => "OriginalValuesExecution:FinalizationLimit"

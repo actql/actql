@@ -1900,6 +1900,7 @@ function publicationControl(moon) {
   let control = publicationControls.get(moon);
   if (control !== undefined) return control;
   const tokens = new WeakMap();
+  const recoveredEffectCaptures = new WeakMap();
   const capturedComputationPreparations = new WeakMap();
   const contractBounds = new WeakMap();
   const issuedDeliveryGrants = new WeakMap();
@@ -2081,6 +2082,18 @@ function publicationControl(moon) {
       }));
     }
     return value;
+  };
+  // Complete immutable DATA only; callers retain their original Read/Run
+  // reservation and all current/physical duties. Shared by fresh and recovery.
+  const inspectPreparedEffectCapturedRun = prepared => {
+    const existing = recoveredEffectCaptures.get(prepared);
+    if (existing !== undefined) return existing;
+    const actual = moon.clientProgramRecoveredEffectCapturedRunLimits(prepared);
+    const limits = Object.freeze({maxWireBytes:runtimeField(actual,0), maxNodes:runtimeField(actual,1), maxDepth:runtimeField(actual,2)});
+    issuanceLimits(limits, 'original Effect captured Run');
+    const captured = inspect(moon.clientProgramRecoveredEffectCapturedRunContract(prepared), limits);
+    recoveredEffectCaptures.set(captured, prepared); recoveredEffectCaptures.set(prepared, captured);
+    return captured;
   };
   const token = value => {
     const result = tokens.get(value);
@@ -5175,6 +5188,37 @@ function publicationControl(moon) {
         parent, input, request, token(runDefinition), encryptedBytes,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
+    reserveEffectCaptureEncrypted(parent, input, request, runDefinition, encryptedBytes, limits) {
+      issuanceLimits(limits, 'Effect capture encrypted recovery');
+      if (!Number.isSafeInteger(encryptedBytes) || encryptedBytes < 0 || encryptedBytes > 2147483647) throw new TypeError('Invalid Effect capture encrypted Resource');
+      return checked(moon.clientProgramReserveRequestEffectCaptureEncrypted(parent, input, request, token(runDefinition), encryptedBytes,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    reserveEffectCaptureEnvelope(parent, input, request, runDefinition, wire, limits) {
+      issuanceLimits(limits, 'Effect capture envelope recovery');
+      if (typeof wire !== 'string') throw new TypeError('Invalid Effect capture envelope Resource');
+      return checked(moon.clientProgramReserveRequestEffectCaptureEnvelope(parent, input, request, token(runDefinition), wire));
+    },
+    reserveEffectCaptureDecoded(parent, input, request, runDefinition, wire, limits) {
+      issuanceLimits(limits, 'Effect capture decoded recovery');
+      if (typeof wire !== 'string') throw new TypeError('Invalid Effect capture decoded Resource');
+      return checked(moon.clientProgramReserveRequestEffectCaptureDecoded(parent, input, request, token(runDefinition), wire));
+    },
+    admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits) {
+      issuanceLimits(limits, 'Effect captured Run recovery');
+      if (typeof wire !== 'string') throw new TypeError('Invalid Effect captured Run recovery');
+      const prepared = checked(moon.clientProgramAdmitRequestEffectCapturedRun(parent, input, request, token(runDefinition), wire));
+      return inspectPreparedEffectCapturedRun(prepared);
+    },
+    admitLiveEffectCapturedRun(owner, wire) {
+      if (typeof wire !== 'string') throw new TypeError('Invalid live Effect captured Run recovery');
+      return inspectPreparedEffectCapturedRun(checked(moon.clientProgramAdmitInstalledEffectCapturedRun(owner, wire)));
+    },
+    retireRecoveredEffectCapturedRun(captured) {
+      const prepared = recoveredEffectCaptures.get(captured);
+      if (prepared === undefined) throw new TypeError('Foreign recovered Effect captured Run');
+      recoveredEffectCaptures.delete(captured); recoveredEffectCaptures.delete(prepared);
+    },
     admitCapturedEffectSourceFromCapture(preview, memberIndex, invocation,
       artifact, capturedRun, storeAuthorityCid, limits) {
       issuanceLimits(limits, 'recovered Effect source');
@@ -5912,6 +5956,11 @@ function publicationControl(moon) {
           !Array.isArray(chain.artifacts)) {
         throw new TypeError('Invalid Effectful computation evidence chain');
       }
+      const prepared = recoveredEffectCaptures.get(chain.capturedRun);
+      if (prepared !== undefined) return moon.clientProgramRecoveredEffectCapturedRunChainValid(
+        token(chain.runDefinition), token(chain.invocation), chain.definitions.map(token), chain.artifacts.map(token),
+        token(chain.manifest), token(chain.computationReceipt), token(chain.capturedRun), prepared, ownedPreview,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
       return moon.strategyEffectfulComputationEvidenceChainValid(
         token(chain.runDefinition), token(chain.invocation),
         chain.definitions.map(token), chain.artifacts.map(token),
@@ -5996,6 +6045,9 @@ function publicationControl(moon) {
     },
     // Schema material from the authenticated capture, not current configuration.
     capturedEffectDependencySchemas(capturedRun) {
+      const prepared = recoveredEffectCaptures.get(capturedRun);
+      if (prepared !== undefined) return Object.freeze(moon.clientProgramRecoveredEffectCapturedRunSchemas(prepared)
+        .map(pair => Object.freeze({cid:runtimeField(pair,0), wire:runtimeField(pair,1)})));
       const captured = inspect(token(capturedRun));
       const inventory = JSON.parse(captured.wire).effect_context?.effect_dependency_inventory;
       if (captured.name !== 'captured_run' || !Array.isArray(inventory) || inventory.length > 4096) {
@@ -6015,15 +6067,15 @@ function publicationControl(moon) {
     // Callers first validate the Captured Run chain; issuance binds receipts.
     capturedEffectDependencyPayloadBindings(capturedRun, bindings) {
       const captured = inspect(token(capturedRun));
-      const inventory = JSON.parse(captured.wire).effect_context
-        ?.effect_dependency_inventory;
-      if (captured.name !== 'captured_run' || !Array.isArray(inventory) ||
-          !Array.isArray(bindings) || bindings.length > 4096) {
+      const prepared = recoveredEffectCaptures.get(capturedRun);
+      const inventory = prepared === undefined ? JSON.parse(captured.wire).effect_context?.effect_dependency_inventory : undefined;
+      if (captured.name !== 'captured_run' || (prepared === undefined && !Array.isArray(inventory)) ||
+          !Array.isArray(bindings) || (prepared === undefined && bindings.length > 4096)) {
         throw new TypeError('InvalidEffectDependencyPayloadBindings');
       }
-      const required = new Set(inventory.filter(entry =>
-        entry.kind === 'result_artifact' || entry.kind === 'table_input_artifact')
-        .map(entry => entry.cid));
+      const required = new Set(prepared === undefined ? inventory.filter(entry =>
+        entry.kind === 'result_artifact' || entry.kind === 'table_input_artifact').map(entry => entry.cid)
+        : moon.clientProgramRecoveredEffectCapturedRunPayloads(prepared));
       const seen = new Set();
       const owned = bindings.map(binding => {
         if (binding === null || typeof binding !== 'object' ||

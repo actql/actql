@@ -43,7 +43,8 @@ priv enum ClientRequestDomainCompilationInputs {
   // never continues into a compiler, Source/Model/Effect Plan or send owner.
   RequestEffectCaptureRecovery(
     @publication_host.ClientRequestIdentity,
-    @publication.PublicationContract
+    @publication.PublicationContract,
+    ClientRequestEffectCaptureMaterial?
   )
   // A saved Model continuation keeps its Journal-selected pair while the
   // existing Request reservation funds reconstruction. It cannot compile a
@@ -770,6 +771,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
     }
   }
   match finish_request_program_normalization_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match finish_request_effect_capture_work(owner) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

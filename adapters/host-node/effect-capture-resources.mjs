@@ -45,10 +45,11 @@ function recoveryView(state) {
     state.preparing = true;
     try {
       if (state.live) {
-        checked(state.context.runtime.clientProgramReserveInstalledEffectCaptureRecovery(
-          state.value, encryptedBytes));
+        const reserve = state.context.runtime.clientProgramReserveInstalledEffectCaptureEncrypted
+          ?? state.context.runtime.clientProgramReserveInstalledEffectCaptureRecovery;
+        checked(Reflect.apply(reserve, state.context.runtime, [state.value, encryptedBytes]));
       } else {
-        Reflect.apply(state.reserve, state.control, [state.parent, state.input,
+        Reflect.apply(state.reserveEncrypted, state.control, [state.parent, state.input,
           state.request, state.runDefinition, encryptedBytes, state.limits]);
       }
       if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
@@ -78,9 +79,14 @@ function recoveryView(state) {
         await Reflect.apply(state.resultCleanup, undefined, []);
         state.resultCleanup = undefined;
       }
+      if (state.capturedRun !== undefined) {
+        Reflect.apply(state.retireCaptured, state.control, [state.capturedRun]);
+        state.capturedRun = state.retireCaptured = undefined;
+      }
       // Only after actual original child cleanup. Clear the variable aliases
       // before returning capacity: the original return may consume then fail.
       state.request = state.runDefinition = state.control = state.reserve = state.limits = state.input = undefined;
+      state.reserveEncrypted = state.reserveEnvelope = state.reserveDecoded = state.admitCaptured = state.retireCaptured = undefined;
       state.failure = undefined;
       // The original Request settlement still enters its existing Resource
       // current callback. Keep that same light control until settlement ACK;
@@ -107,14 +113,51 @@ function recoveryView(state) {
     return flight;
   };
   view = Object.freeze({reserve,
+    reserveEnvelope(wire) {
+      if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      state.preparing = true;
+      try {
+        if (state.live) {
+          const envelope = state.context.runtime.clientProgramReserveInstalledEffectCaptureEnvelope;
+          if (envelope !== undefined) checked(Reflect.apply(envelope, state.context.runtime, [state.value, wire]));
+        } else Reflect.apply(state.reserveEnvelope, state.control,
+          [state.parent, state.input, state.request, state.runDefinition, wire, state.limits]);
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+      } catch (cause) {captureFailure(state,cause); throw cause;}
+      finally {state.preparing=false;}
+    },
     reserveDecoded(wire) {
       if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
         fail('EffectCaptureResourceUnavailable');
       }
-      if (!state.live) return;
       state.preparing = true;
-      try {checked(state.context.runtime.clientProgramReserveInstalledEffectCaptureDecoded(state.value, wire));}
+      try {
+        if (state.live) checked(state.context.runtime.clientProgramReserveInstalledEffectCaptureDecoded(state.value, wire));
+        else Reflect.apply(state.reserveDecoded, state.control,
+          [state.parent, state.input, state.request, state.runDefinition, wire, state.limits]);
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+      }
       catch (cause) {captureFailure(state, cause); throw cause;}
+      finally {state.preparing = false;}
+    },
+    admitCapturedRun(wire) {
+      if (state.live && (typeof state.context.runtime.clientProgramInstalledEffectCapturePreparedAvailable !== 'function' ||
+          !state.context.runtime.clientProgramInstalledEffectCapturePreparedAvailable(state.value))) return undefined;
+      if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      state.preparing = true;
+      try {
+        const captured = state.live ? state.control.admitLiveEffectCapturedRun(state.value, wire)
+          : Reflect.apply(state.admitCaptured, state.control,
+            [state.parent, state.input, state.request, state.runDefinition, wire, state.limits]);
+        if (state.capturedRun !== undefined && state.capturedRun !== captured) fail('EffectCaptureResourceUnavailable');
+        state.capturedRun = captured;
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+        return captured;
+      } catch (cause) {captureFailure(state, cause); throw cause;}
       finally {state.preparing = false;}
     },
     retainCleanup(operation) {
@@ -172,6 +215,11 @@ export function prepareEffectCaptureResources({moon, control, request, runDefini
     maxNodes: contractLimits.maxNodes, maxDepth: contractLimits.maxDepth});
   const state = {context: {runtime: moon}, control, request, runDefinition, limits,
     reserve: control.reserveEffectCaptureRecovery, assertCurrent, retired,
+    reserveEncrypted: control.reserveEffectCaptureEncrypted,
+    reserveEnvelope: control.reserveEffectCaptureEnvelope,
+    reserveDecoded: control.reserveEffectCaptureDecoded,
+    admitCaptured: control.admitRecoveredEffectCapturedRun,
+    retireCaptured: control.retireRecoveredEffectCapturedRun,
     live: managed !== undefined, busy: false, preparing: false, closing: false, closed: false,
     unknownChild: false};
   const view = recoveryView(state);
@@ -196,6 +244,9 @@ export function prepareEffectCaptureResources({moon, control, request, runDefini
         managed.value, managed.prepared, managed.request, managed.definitionOriginal.definition,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     } else {
+      if (typeof state.reserveEncrypted !== 'function' || typeof state.reserveEnvelope !== 'function' ||
+          typeof state.reserveDecoded !== 'function' || typeof state.admitCaptured !== 'function' ||
+          typeof state.retireCaptured !== 'function') fail('EffectCaptureResourceUnavailable');
       assertRequestPreparationControl(state.context);
       // New physical-process custody of this already selected saved Request,
       // not another semantic Request/Run or the old compiler/Source route.

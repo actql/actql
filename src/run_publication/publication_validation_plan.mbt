@@ -110,6 +110,7 @@ fn original_chain_validation_inputs(
     manifest,
     receipt,
     captured_run,
+    dependency_inventory: None,
     preview: None,
     max_wire_bytes: usage.bytes,
     max_nodes: usage.nodes,

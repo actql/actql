@@ -12,8 +12,16 @@ fn request_effect_capture_recovery_capacity(
   max_depth : Int,
   nodes? : Int? = None,
   definition_nodes? : Int? = None,
+  staged_envelope? : Bool = false,
+  envelope_nodes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
-  let tree_nodes = nodes.unwrap_or(encrypted_bytes)
+  let tree_nodes = nodes.unwrap_or(
+    if staged_envelope {
+      envelope_nodes.unwrap_or(0)
+    } else {
+      encrypted_bytes
+    },
+  )
   let definition_tree_nodes = definition_nodes.unwrap_or(definition_units)
   if encrypted_bytes < 0 ||
     tree_nodes < 0 ||
@@ -31,10 +39,23 @@ fn request_effect_capture_recovery_capacity(
   // peak and the three inventories bounded by the actual plaintext spelling.
   // Legacy cold callers without plaintext geometry retain their original quote.
   let node_slots = match nodes {
-    None => bytes * 3L
-    Some(_) => Int64::max(bytes, tree_nodes.to_int64() * 3L)
+    None =>
+      if staged_envelope {
+        envelope_nodes.unwrap_or(0).to_int64()
+      } else {
+        bytes * 3L
+      }
+    Some(_) =>
+      Int64::max(
+        if staged_envelope {
+          envelope_nodes.unwrap_or(0).to_int64()
+        } else {
+          bytes
+        },
+        tree_nodes.to_int64() * 3L,
+      )
   }
-  @execution.execution_capacity_inventory(
+  let base = @execution.execution_capacity_inventory(
     [
       // One selected physical piece and one failed-close piece can coexist.
       // The Store's original consumeObject piece bound is 65536, independent
@@ -87,6 +108,27 @@ fn request_effect_capture_recovery_capacity(
     ],
     RetainedAlongsideExecution,
   )
+  guard base is Some(base) else { return None }
+  let work = @resources.preparation_phase_work_continuation64_construction_inventory()
+  guard @execution.preparation_representation_cost({
+      record_headers: work.record_headers + 8L,
+      reference_slots: work.reference_slots + 16L,
+      scalar_words: work.scalar_words + 12L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(control) &&
+    @execution.execution_capacity(control, control) is Some(fixed) else {
+    return None
+  }
+  guard installed_effect_dependency_fixed_capacity(0, 0, max_depth)
+    is Some(lexical) else {
+    return None
+  }
+  standard_create_sum_capacities(
+    [base, fixed, lexical],
+    sequential_workspace=false,
+  )
 }
 
 ///|
@@ -106,6 +148,41 @@ pub fn[I] reserve_request_effect_capture_recovery(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
+  reserve_request_effect_capture_recovery_owned(
+    owner, input, request, definition, encrypted_bytes, max_wire_bytes, max_nodes,
+    max_depth, false,
+  )
+}
+
+///|
+pub fn[I] reserve_request_effect_capture_encrypted(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  encrypted_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  reserve_request_effect_capture_recovery_owned(
+    owner, input, request, definition, encrypted_bytes, max_wire_bytes, max_nodes,
+    max_depth, true,
+  )
+}
+
+///|
+fn[I] reserve_request_effect_capture_recovery_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  encrypted_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  staged_envelope : Bool,
+) -> Result[Unit, ClientRequestPreparationIssue] {
   guard (owner.phase == Open || owner.phase == EffectCaptureRecovery) &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
@@ -121,6 +198,7 @@ pub fn[I] reserve_request_effect_capture_recovery(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      staged_envelope~,
     ) {
     None => return Err(Policy)
     Some(value) => value
@@ -142,16 +220,26 @@ pub fn[I] reserve_request_effect_capture_recovery(
       // The two-reference domain variant uses the existing four-reference
       // resident slot. Its fixed controls use the Request entrance allowance.
       owner.program_domain_compilation_inputs = Some(
-        RequestEffectCaptureRecovery(request, definition),
+        RequestEffectCaptureRecovery(request, definition, None),
       )
       owner.program_plan_quote = Some(base)
       owner.phase = EffectCaptureRecovery
     }
-    Some(RequestEffectCaptureRecovery(old_request, old_definition)) =>
+    Some(RequestEffectCaptureRecovery(old_request, old_definition, material)) => {
       if !physical_equal(old_request, request) ||
         !physical_equal(old_definition, definition) {
         return Err(ForeignOriginal)
       }
+      if material is Some(material) &&
+        (
+          material.max_wire_bytes != max_wire_bytes ||
+          material.max_nodes != max_nodes ||
+          material.max_depth != max_depth ||
+          material.staged_envelope != staged_envelope
+        ) {
+        return Err(ForeignOriginal)
+      }
+    }
     _ => return Err(ForeignOriginal)
   }
   guard owner.program_plan_quote is Some((base_r, base_e)) &&
@@ -186,11 +274,48 @@ pub fn[I] reserve_request_effect_capture_recovery(
   if owner.phase != Selecting ||
     !(owner.input is Some(original) && physical_equal(original, input)) ||
     !(owner.program_domain_compilation_inputs
-    is Some(RequestEffectCaptureRecovery(old_request, old_definition)) &&
+    is Some(RequestEffectCaptureRecovery(old_request, old_definition, _)) &&
     physical_equal(old_request, request) &&
     physical_equal(old_definition, definition)) {
     return Err(ForeignOriginal)
   }
   owner.phase = EffectCaptureRecovery
-  result.map_err(issue => Capacity(issue))
+  match result {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(_) => ()
+  }
+  match owner.program_domain_compilation_inputs {
+    Some(RequestEffectCaptureRecovery(_, _, Some(material))) =>
+      if encrypted_bytes > 0 {
+        material.encrypted_bytes = Some(
+          Int::max(material.encrypted_bytes.unwrap_or(0), encrypted_bytes),
+        )
+      }
+    _ =>
+      owner.program_domain_compilation_inputs = Some(
+        RequestEffectCaptureRecovery(
+          request,
+          definition,
+          Some({
+            encrypted_bytes: if encrypted_bytes > 0 {
+              Some(encrypted_bytes)
+            } else {
+              None
+            },
+            wire: None,
+            staged_envelope,
+            envelope_wire: None,
+            envelope_nodes: None,
+            observed_wire: None,
+            nodes: None,
+            captured: None,
+            work: None,
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          }),
+        ),
+      )
+  }
+  Ok(())
 }

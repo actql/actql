@@ -7,6 +7,7 @@ priv struct ComputationEvidenceInputs {
   manifest : PublicationContract
   receipt : PublicationContract
   captured_run : PublicationContract
+  dependency_inventory : CapturedEffectDependencyInventory?
   preview : EffectPreviewIdentity?
   max_wire_bytes : Int
   max_nodes : Int

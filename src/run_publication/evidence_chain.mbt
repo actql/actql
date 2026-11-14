@@ -334,7 +334,11 @@ fn computation_evidence_capture_preflight(
   let { invocation, preview, max_wire_bytes, max_nodes, max_depth, .. } = inputs
   let { effect_context, .. } = prelude
   if !captured_effect_context_dependencies_valid(
-      effect_context, max_wire_bytes, max_nodes, max_depth,
+      effect_context,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      prepared=inputs.dependency_inventory,
     ) {
     return Err(EvidenceInventoryMismatch("effect_dependency_inventory"))
   }
@@ -386,6 +390,7 @@ fn validate_computation_run_evidence_chain(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  dependency_inventory? : CapturedEffectDependencyInventory? = None,
 ) -> Result[Unit, RunEvidenceChainIssue] {
   let workspace = publication_evidence_workspace(max_nodes)
   let preparation = start_computation_evidence_check(
@@ -397,6 +402,7 @@ fn validate_computation_run_evidence_chain(
       manifest,
       receipt,
       captured_run,
+      dependency_inventory,
       preview,
       max_wire_bytes,
       max_nodes,

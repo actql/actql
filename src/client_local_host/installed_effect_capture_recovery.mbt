@@ -16,7 +16,11 @@ struct ClientInstalledEffectCaptureRecovery {
   mut material : @resources.CapacityReservation?
   mut material_bytes : Int?
   mut material_nodes : Int?
+  mut material_staged_envelope : Bool
+  mut material_envelope_wire : String?
+  mut material_envelope_nodes : Int?
   mut material_wire : String?
+  mut material_captured : @publication.PreparedCapturedEffectRun?
   mut material_ready : Bool
   mut transitioning : Bool
   mut closing : Bool
@@ -73,7 +77,11 @@ pub fn prepare_installed_effect_capture_recovery(
     material: None,
     material_bytes: None,
     material_nodes: None,
+    material_staged_envelope: false,
+    material_envelope_wire: None,
+    material_envelope_nodes: None,
     material_wire: None,
+    material_captured: None,
     material_ready: false,
     transitioning: false,
     closing: false,
@@ -138,6 +146,7 @@ pub fn reserve_installed_effect_capture_recovery(
           owner.max_nodes,
           owner.max_depth,
           nodes=Some(0),
+          staged_envelope=owner.material_staged_envelope,
         )
         is Some(required) &&
         request_effect_capture_recovery_capacity(
@@ -167,6 +176,19 @@ pub fn reserve_installed_effect_capture_recovery(
     },
     () => owner.transitioning = false,
   )
+}
+
+///|
+pub fn reserve_installed_effect_capture_encrypted(
+  owner : ClientInstalledEffectCaptureRecovery,
+  bytes : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if owner.material is None && !owner.transitioning && !owner.closing {
+    owner.material_staged_envelope = owner.parent is Some(parent) &&
+      parent.effect_operation_controls is Some(control) &&
+      control.dependency_work is Some(_)
+  }
+  reserve_installed_effect_capture_recovery(owner, bytes)
 }
 
 ///|
@@ -205,18 +227,35 @@ pub fn reserve_installed_effect_capture_decoded(
   }
   guard owner.material_bytes is Some(bytes) &&
     wire.length() <= bytes &&
-    effect_capture_wire_nodes(wire) is Some(nodes) else {
+    (
+      !owner.material_staged_envelope ||
+      owner.material_envelope_nodes is Some(_)
+    ) else {
     return Err(ForeignOriginal)
   }
   if owner.material_wire is Some(original) && original != wire {
     return Err(ForeignOriginal)
   }
-  owner.material_nodes = Some(nodes)
-  owner.material_wire = Some(wire)
-  owner.material_ready = false
   owner.transitioning = true
   preparation_module_call(
     () => {
+      let nodes = if owner.material_wire == Some(wire) &&
+        owner.material_nodes is Some(nodes) {
+        nodes
+      } else if owner.material_staged_envelope {
+        match observe_installed_effect_capture_plaintext_nodes(owner, wire) {
+          Err(issue) => return Err(issue)
+          Ok(nodes) => nodes
+        }
+      } else {
+        match effect_capture_wire_nodes(wire) {
+          Some(nodes) => nodes
+          None => return Err(ForeignOriginal)
+        }
+      }
+      owner.material_nodes = Some(nodes)
+      owner.material_wire = Some(wire)
+      owner.material_ready = false
       match resize_installed_effect_capture_recovery_material(owner, false) {
         Err(issue) => Err(issue)
         Ok(_) => {
@@ -396,6 +435,8 @@ fn resize_installed_effect_capture_recovery_material(
       owner.max_nodes,
       owner.max_depth,
       nodes=Some(nodes),
+      staged_envelope=owner.material_staged_envelope,
+      envelope_nodes=owner.material_envelope_nodes,
     )
     is Some(required) &&
     request_effect_capture_recovery_capacity(
@@ -422,7 +463,14 @@ fn resize_installed_effect_capture_recovery_material(
     guard @execution.execution_capacity_inventory_bytes([
         {
           unit: ValueNodeSlots,
-          count: Int64::max(bytes.to_int64(), nodes.to_int64() * 3L) -
+          count: Int64::max(
+            if owner.material_staged_envelope {
+              owner.material_envelope_nodes.unwrap_or(0).to_int64()
+            } else {
+              bytes.to_int64()
+            },
+            nodes.to_int64() * 3L,
+          ) -
           nodes.to_int64() * 2L,
           copies: 1,
         },
@@ -468,6 +516,9 @@ pub fn retire_installed_effect_capture_recovery(
   owner.request = None
   owner.definition = None
   owner.material_wire = None
+  owner.material_captured = None
+  owner.material_envelope_wire = None
+  owner.material_envelope_nodes = None
   owner.material_nodes = None
   owner.material_ready = false
   owner.transitioning = true

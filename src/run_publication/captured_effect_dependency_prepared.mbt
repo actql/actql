@@ -4,6 +4,7 @@
 // issuance. It is no Resource owner, capacity token, read grant or ACK.
 struct PreparedCapturedEffectDependencyInventory {
   bodies : Array[CapturedEffectDependencyBody]
+  roots : Array[CapturedEffectDependencyBody]
   limits : CapturedEffectDependencyLimits
   geometry : @encode.EncodingConstructionGeometry
 }
@@ -82,6 +83,7 @@ pub fn prepare_captured_effect_dependency_inventory(
   // policy and numeric growth must cover this SAME measured geometry.
   Ok({
     bodies: held,
+    roots: held_roots,
     limits: { ..limits, max_total_bytes: geometry.bytes, },
     geometry,
   })
@@ -155,7 +157,7 @@ pub fn issue_prepared_captured_effect_dependency_inventory(
   if body_bytes > value.limits.max_total_bytes {
     return Err(ByteLimit)
   }
-  Ok({ bodies, wire, })
+  Ok({ bodies, roots: value.roots, wire, })
 }
 
 ///|
@@ -173,4 +175,46 @@ pub fn captured_effect_dependency_body_index_geometry(
       1L
   }
   (body.node.references.length(), units)
+}
+
+///|
+/// Compare immutable semantic root DATA only. Physical Source/Result custody
+/// and current authorization are independent, fresh obligations at each use.
+pub fn captured_effect_dependency_inventory_matches_roots(
+  inventory : CapturedEffectDependencyInventory,
+  roots : Array[CapturedEffectDependencyBody],
+  work? : ((Int) -> Bool)? = None,
+) -> Bool {
+  let expected : Map[String, String] = Map([])
+  let found : Map[String, Bool] = Map([])
+  for root in inventory.roots {
+    if !dependency_validation_key_work(
+        work,
+        root.node.kind,
+        root.node.identity,
+        2,
+      ) {
+      return false
+    }
+    let key = dependency_key(root.node.kind, root.node.identity)
+    match expected.get(key) {
+      Some(wire) => if wire != root.wire { return false }
+      None => expected[key] = root.wire
+    }
+  }
+  for root in roots {
+    if !dependency_validation_key_work(
+        work,
+        root.node.kind,
+        root.node.identity,
+        2,
+      ) ||
+      !dependency_validation_work(work, root.wire.length()) {
+      return false
+    }
+    let key = dependency_key(root.node.kind, root.node.identity)
+    guard expected.get(key) == Some(root.wire) else { return false }
+    found[key] = true
+  }
+  found.length() == expected.length()
 }

@@ -3,6 +3,7 @@
 /// same body/graph checks; this alone is not an execution or custody permit.
 struct CapturedEffectDependencyInventory {
   bodies : Array[CapturedEffectDependencyBody]
+  roots : Array[CapturedEffectDependencyBody]
   wire : String
 }
 
@@ -82,6 +83,8 @@ fn dependency_inventory_validate_size(
   roots : Array[CapturedEffectDependencyBody],
   wire_bytes : Int,
   limits : CapturedEffectDependencyLimits,
+  prepared? : Bool = false,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[Unit, CapturedEffectDependencyIssue] {
   if wire_bytes > limits.max_total_bytes {
     return Err(ByteLimit)
@@ -93,7 +96,14 @@ fn dependency_inventory_validate_size(
     }
     envelope -= body.node.canonical_bytes
   }
-  validate_captured_effect_dependency_bodies(bodies, roots, envelope, limits)
+  validate_selected_captured_effect_dependency_bodies(
+    bodies,
+    roots,
+    envelope,
+    limits,
+    prepared~,
+    work~,
+  )
 }
 
 ///|
@@ -157,7 +167,7 @@ pub fn issue_captured_effect_dependency_inventory(
       @utf8.encode(wire).length(),
       limits,
     ) {
-    Ok(_) => Ok({ bodies: ordered, wire, })
+    Ok(_) => Ok({ bodies: ordered, roots: roots.copy(), wire, })
     Err(issue) => Err(issue)
   }
 }
@@ -178,6 +188,22 @@ pub fn admit_captured_effect_dependency_inventory(
     Ok(value) => value
     Err(_) => return Err(InvalidBody)
   }
+  admit_captured_effect_dependency_inventory_material(
+    value, wire, roots, limits, max_nodes, max_json_depth,
+  )
+}
+
+///|
+fn admit_captured_effect_dependency_inventory_material(
+  value : @json.CanonicalValue,
+  wire : String,
+  roots : Array[CapturedEffectDependencyBody],
+  limits : CapturedEffectDependencyLimits,
+  max_nodes : Int,
+  max_json_depth : Int,
+  prepared? : Bool = false,
+  work? : ((Int) -> Bool)? = None,
+) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue] {
   if canonical_value_wire(
       value,
       limits.max_total_bytes,
@@ -188,14 +214,20 @@ pub fn admit_captured_effect_dependency_inventory(
     return Err(InvalidBody)
   }
   guard value is @json.Array(entries) else { return Err(InvalidBody) }
-  let entries = @json.array_values(entries)
-  if entries.length() > limits.max_entries {
+  if @json.array_count(entries) > limits.max_entries {
     return Err(EntryLimit)
   }
+  if !dependency_validation_work(work, @json.array_count(entries)) {
+    return Err(ReferenceLimit)
+  }
+  let entries = @json.array_values(entries)
   let bodies : Array[CapturedEffectDependencyBody] = []
   let mut previous = ""
   let mut previous_kind = ""
   for entry in entries {
+    if !dependency_validation_work(work, 1) {
+      return Err(ReferenceLimit)
+    }
     guard object_fields(entry) is Ok(fields) &&
       fields.length() == 3 &&
       evidence_string(entry, "kind") is Some(kind) &&
@@ -228,6 +260,11 @@ pub fn admit_captured_effect_dependency_inventory(
     }
     previous = identity
     previous_kind = kind
+    for _ in 0..<6 {
+      if !dependency_validation_work(work, body_wire.length()) {
+        return Err(ReferenceLimit)
+      }
+    }
     let admitted = admit_captured_effect_dependency_body(
       kind,
       Some(identity),
@@ -251,8 +288,10 @@ pub fn admit_captured_effect_dependency_inventory(
       roots,
       @utf8.encode(wire).length(),
       limits,
+      prepared~,
+      work~,
     ) {
-    Ok(_) => Ok({ bodies, wire, })
+    Ok(_) => Ok({ bodies, roots: roots.copy(), wire, })
     Err(issue) => Err(issue)
   }
 }

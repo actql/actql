@@ -7,7 +7,7 @@ import {prepareEffectCaptureResources} from './effect-capture-resources.mjs';
 // phase results are explicit ports, not a matching Common or quota proof.
 const ok = value => ({$tag:1, _0:value});
 function fixture({live = false, beginFailure, reserveFailure, retireFailure,
-  retirementCurrent = false, complete, begin} = {}) {
+  retirementCurrent = false, complete, begin, decodedFailure, admitFailure} = {}) {
   const events = [], request = {}, definition = {}, parent = {}, policy = {}, value = {};
   let view, admission, originalInput, retired = 0, failRetire = retireFailure, stopped = false;
   const stop = () => {
@@ -90,7 +90,26 @@ function fixture({live = false, beginFailure, reserveFailure, retireFailure,
   };
   const limits = Object.freeze({maxWireBytes:10000, maxNodes:1000, maxDepth:64});
   const managed = live ? {value:{}, prepared:{}, request, definitionOriginal:{definition:{}}} : undefined;
+  const captured = Object.freeze({name:'captured_run', wire:'original captured'});
   const control = {
+    reserveEffectCaptureEncrypted(...args) {return Reflect.apply(control.reserveEffectCaptureRecovery, control, args);},
+    reserveEffectCaptureEnvelope(owner,input,identity,runDefinition,wire) {
+      assert.equal(this,control);assert.equal(owner,parent);assert.equal(input,originalInput);
+      assert.equal(identity,request);assert.equal(runDefinition,definition);events.push(['cold-envelope',wire]);
+    },
+    reserveEffectCaptureDecoded(owner, input, identity, runDefinition, wire, selected) {
+      assert.equal(this, control); assert.equal(owner, parent); assert.equal(input, originalInput);
+      assert.equal(identity, request); assert.equal(runDefinition, definition); assert.equal(selected.maxDepth,64);
+      events.push(['cold-decoded', wire]); if (decodedFailure !== undefined) throw decodedFailure;
+    },
+    admitRecoveredEffectCapturedRun(owner, input, identity, runDefinition, wire) {
+      assert.equal(this, control); assert.equal(owner, parent); assert.equal(input, originalInput);
+      assert.equal(identity, request); assert.equal(runDefinition, definition); assert.equal(wire,captured.wire);
+      events.push('cold-admit'); if (admitFailure !== undefined) throw admitFailure; return captured;
+    },
+    retireRecoveredEffectCapturedRun(actual) {
+      assert.equal(this, control); assert.equal(actual,captured); events.push('cold-retire-data');
+    },
     reserveEffectCaptureRecovery(owner, input, identity, runDefinition, bytes, selected) {
       assert.equal(this, control); assert.equal(owner, parent); assert.equal(input, originalInput);
       assert.equal(input.request, request); assert.equal(input.runDefinition, definition);
@@ -268,4 +287,41 @@ test('live begin reentry and pending close cannot enter Definition admission or 
   assert.equal(f.events.includes('live-complete'), false);
   assert.deepEqual(f.events.filter(Array.isArray), []);
   assert.equal(await view.close(), true);
+});
+
+
+test('cold decoded funding precedes parsing and retains the same typed refusal through first close', async () => {
+  const primary = new Error('same Read decoded capacity refused');
+  const f = fixture({decodedFailure:primary}), view = f.open();
+  view.begin(); view.reserve(128);
+  let parsed = false;
+  try {
+    view.reserveDecoded('{'); parsed = true; JSON.parse('{');
+    assert.fail('refused prefix reached parser');
+  } catch (error) {assert.equal(error,primary); view.finish(true,error);}
+  assert.equal(parsed,false); assert.equal(f.events.includes('cold-admit'),false);
+  assert.equal(await view.close(),true); assert.equal(f.retired,1);
+});
+
+test('cold prepared DATA stays with the original Read through failed schema cleanup and is cut before parent settlement', async () => {
+  const f=fixture(), view=f.open(); let pending=true, cleanupCalls=0;
+  const primary=new Error('same returned schema cleanup');
+  view.begin(); view.reserve(256); view.reserveDecoded('{"captured_run":"original captured"}');
+  const captured=view.admitCapturedRun('original captured');
+  assert.equal(view.admitCapturedRun('original captured'),captured);
+  view.retainCleanup(()=>{cleanupCalls++; if(pending)throw primary;}); view.finish(false);
+  await assert.rejects(view.close(),e=>e===primary);
+  assert.equal(f.events.includes('cold-retire-data'),false); assert.equal(f.events.includes('abort'),false);
+  pending=false; assert.equal(await view.close(),true); assert.equal(cleanupCalls,2);
+  assert.ok(f.events.indexOf('cold-retire-data')<f.events.indexOf('abort'));
+  assert.throws(()=>view.admitCapturedRun('original captured'),{code:'EffectCaptureResourceUnavailable'});
+});
+
+test('cold admission failure preserves primary and unknown physical cleanup never becomes ACK', async () => {
+  const primary=Object.assign(new Error('cold semantic refusal'),{cleanupPending:true});
+  const f=fixture({admitFailure:primary}),view=f.open();
+  view.begin();view.reserve(256);view.reserveDecoded('{"captured_run":"original captured"}');
+  assert.throws(()=>view.admitCapturedRun('original captured'),e=>e===primary);view.finish(true,primary);
+  assert.equal(await view.close(),false);assert.equal(f.events.includes('abort'),false);
+  assert.equal(f.events.includes('cold-retire-data'),false);assert.equal(f.retired,0);
 });

@@ -4318,7 +4318,7 @@ async function openOriginalLocalPublicationStore(
   };
   const readPrivateEvidenceObject = async (
     name, semanticCid, holdingCid, index = 0, objectCount = 1, originalHolding,
-    retainOriginalRead,
+    retainOriginalRead, beforeEnvelope,
   ) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name)) {
@@ -4378,10 +4378,19 @@ async function openOriginalLocalPublicationStore(
       if (receivedBytes !== expectedBytes) {
         fail('InvalidPublicationPhysicalHoldingStore');
       }
+      // Initial SAME-Read reservation already covers bytes and this String.
+      // The closed numeric envelope census then precedes any generic parser;
+      // its typed Resource refusal is the primary cause, outside AEAD wrapping.
+      const envelopeWire = bytes.toString('utf8');
+      if (beforeEnvelope !== undefined) {
+        if (typeof beforeEnvelope !== 'function' || beforeEnvelope(envelopeWire) !== undefined) {
+          fail('InvalidPublicationPrivateEvidence');
+        }
+      }
       let plaintext;
       try {
         let envelope;
-        try { envelope = JSON.parse(bytes.toString('utf8')); }
+        try { envelope = JSON.parse(envelopeWire); }
         catch (error) { fail('PublicationPrivateEvidenceCorrupt', error); }
         if (!exactKeys(envelope, ['version', 'nonce', 'tag', 'ciphertext']) ||
             envelope.version !== 'actql-private-publication-evidence/0.1') {
@@ -4464,7 +4473,7 @@ async function openOriginalLocalPublicationStore(
               fail('InvalidPublicationPrivateEvidence');
             }
           }
-        });
+        }, beforeRead?.reserveEnvelope);
       return await consume(plaintext, context);
     } finally {
       // This overload never hands byte custody to its caller. Typed values

@@ -23,6 +23,7 @@ fn receipt_original_nominal_inputs() -> ComputationEvidenceInputs {
     manifest: receipt,
     receipt,
     captured_run,
+    dependency_inventory: None,
     preview: None,
     max_wire_bytes: 65536,
     max_nodes: 4096,

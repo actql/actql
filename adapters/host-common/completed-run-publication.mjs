@@ -921,7 +921,7 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
     artifacts: body.artifacts.map(wire => admit('result_artifact', wire)),
     manifest: admit('result_manifest', body.manifest),
     computationReceipt: admit('run_receipt', body.computation_receipt),
-    capturedRun: admit('captured_run', body.captured_run),
+    capturedRun: recoveryResources?.admitCapturedRun?.(body.captured_run) ?? admit('captured_run', body.captured_run),
   };
   const preview = control.admitEffectComputationPreview(body.preview, run,
     control.admitRunEvidence('authoring_context', body.authoring_context,
@@ -1033,7 +1033,12 @@ async function withCaptureRecoveryResources(resources, consume) {
   Reflect.apply(begin, resources, []);
   let failed = true, cause;
   try {
-    const value = await consume(bytes => Reflect.apply(reserve, resources, [bytes]));
+    const beforeRead = bytes => Reflect.apply(reserve, resources, [bytes]);
+    if (typeof resources.reserveEnvelope === 'function') {
+      Object.defineProperty(beforeRead, 'reserveEnvelope', {value: wire =>
+        Reflect.apply(resources.reserveEnvelope, resources, [wire])});
+    }
+    const value = await consume(beforeRead);
     failed = false;
     return value;
   } catch (error) {
@@ -1152,7 +1157,7 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
   const manifest = admit('result_manifest', captured.manifest);
   const computationReceipt = admit('run_receipt',
     captured.computation_receipt);
-  const capturedRun = admit('captured_run', captured.captured_run);
+  const capturedRun = recoveryResources?.admitCapturedRun?.(captured.captured_run) ?? admit('captured_run', captured.captured_run);
   if (capturedRun.identity !== record.manifest_cid) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }

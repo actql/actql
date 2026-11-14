@@ -387,3 +387,35 @@ test('original private-read admission refuses before ciphertext allocation and d
     assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
   } finally {crypto.createDecipheriv = original; syncBuiltinESMExports();}
 });
+
+test('same private Read funds encrypted envelope before generic JSON parse or AEAD and preserves refusal', async t => {
+  const f=await fixture(t), originalParse=JSON.parse, originalDecrypt=crypto.createDecipheriv;
+  const primary=new Error('same envelope Resource refused');
+  let envelopeParses=0,decrypts=0,consumers=0,selected;
+  JSON.parse=function(wire,...args){
+    if(typeof wire==='string'&&wire.includes('actql-private-publication-evidence/0.1'))envelopeParses++;
+    return Reflect.apply(originalParse,JSON,[wire,...args]);
+  };
+  crypto.createDecipheriv=(...args)=>{decrypts++;return Reflect.apply(originalDecrypt,crypto,args);};
+  syncBuiltinESMExports();
+  const beforeRead=bytes=>{selected=bytes;};
+  Object.defineProperty(beforeRead,'reserveEnvelope',{value:wire=>{
+    assert.equal(typeof wire,'string');assert.ok(Buffer.byteLength(wire)<=selected);
+    assert.equal(envelopeParses,0);assert.equal(decrypts,0);throw primary;
+  }});
+  try{
+    await assert.rejects(f.store.readPrivateEvidence(f.name,f.semantic,f.holding,()=>{consumers++;},beforeRead),e=>e===primary);
+    assert.equal(envelopeParses,0);assert.equal(decrypts,0);assert.equal(consumers,0);
+    assert.notEqual(await f.store.inspectPhysicalHolding(f.holding),undefined);
+  }finally{JSON.parse=originalParse;crypto.createDecipheriv=originalDecrypt;syncBuiltinESMExports();}
+});
+
+test('same envelope census precedes decryption and plaintext consumer on successful original Read', async t=>{
+  const f=await fixture(t),events=[];
+  const beforeRead=bytes=>{assert.ok(bytes>0);events.push('extent');};
+  Object.defineProperty(beforeRead,'reserveEnvelope',{value:wire=>{assert.equal(typeof wire,'string');events.push('envelope');}});
+  const value=await f.store.readPrivateEvidence(f.name,f.semantic,f.holding,(_bytes,read)=>{
+    events.push('plaintext');return JSON.parse(read.releaseBytes());
+  },beforeRead);
+  assert.deepEqual(events,['extent','envelope','plaintext']);assert.equal(value.items.length,2);
+});
