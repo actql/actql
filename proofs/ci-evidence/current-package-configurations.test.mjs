@@ -297,7 +297,31 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.deepEqual(packageImports(httpBody).imports, packageImports(unionBody).imports);
   execFileSync('git', ['merge-base', '--is-ancestor', unionRevision, httpRevision], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', httpRevision, 'HEAD'], {cwd: root});
-  assert.deepEqual(currentPackageConfigurations[path], {revision: httpRevision, digest: httpDigest, rule});
+  const captureRevision = 'b7db611269f5dc99479479a476bf871df2648db2';
+  const captureDigest = '1cd56a66ead5f9dfded6969e5836b261a318410fae7582eef3aecd34eb5d78ef';
+  const captureSelectors = [
+    'installed_effect_catalog_group_js_wbtest.mbt',
+    'effect_model_catalog_selection_js_wbtest.mbt',
+    'client_local_normalization_union_request_js_wbtest.mbt',
+    'preparation_request_effect_capture_decoded_js_wbtest.mbt',
+    'installed_effect_dependency_original_js_wbtest.mbt',
+    'installed_effect_publication_binding_js_wbtest.mbt',
+  ].map(name => `    "${name}": [ "js" ],\n`);
+  const captureBody = gitTree(root, captureRevision).read(path).toString();
+  assert.equal(hash(captureBody), captureDigest);
+  assert.equal(Buffer.byteLength(captureBody), 11425);
+  assert.equal(captureSelectors.reduce((bytes, selector) => bytes + Buffer.byteLength(selector), 0), 406);
+  let beforeCaptureSelectors = captureBody;
+  for (const selector of captureSelectors) {
+    assert.equal(captureBody.split(selector).length, 2);
+    beforeCaptureSelectors = beforeCaptureSelectors.replace(selector, '');
+  }
+  assert.equal(beforeCaptureSelectors, httpBody,
+    'only six literal JS fixture selectors extend the complete 45906 descriptor');
+  assert.deepEqual(packageImports(captureBody).imports, packageImports(httpBody).imports);
+  execFileSync('git', ['merge-base', '--is-ancestor', httpRevision, captureRevision], {cwd: root});
+  execFileSync('git', ['merge-base', '--is-ancestor', captureRevision, 'HEAD'], {cwd: root});
+  assert.deepEqual(currentPackageConfigurations[path], {revision: captureRevision, digest: captureDigest, rule});
   assert.equal(hash(fileBody), fileDigest);
   assert.equal(fileBody.split(fileSelector).length, 2);
   execFileSync('git', ['merge-base', '--is-ancestor', readRevision, fileRevision], {cwd: root});
@@ -498,9 +522,11 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.equal(currentPackageConfigurationReviewFor(request(path, hash(intakeRevision))), null);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(previous).imports, 'actql/actql/capacity_policy'].sort());
-  assert.equal(currentTree.read(path).toString(), httpBody);
+  assert.equal(currentTree.read(path).toString(), captureBody);
   assert.equal(hash(currentTree.read('toolchain.json')), toolchainDigest);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, httpDigest))?.revision, httpRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, captureDigest))?.revision, captureRevision);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, httpDigest)), null,
+    'the complete 45906 preimage remains historical, not current evidence');
   assert.equal(currentPackageConfigurationReviewFor(request(path, unionDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, fileDigest)), null);
   assert.equal(currentPackageConfigurationReviewFor(request(path, readDigest)), null);
@@ -526,7 +552,7 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/logical_request_scope/*')?.members, scopeMembers);
   assert.deepEqual(packageImports(currentTree.read('src/logical_request_scope/moon.pkg').toString()).imports,
     ['actql/actql/canonical_value', 'actql/actql/encode_core', 'actql/actql/sha256', 'moonbitlang/core/encoding/utf8'].sort());
-  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, provenanceSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors, ...readSelectors, fileSelector, unionSelector, httpSelector].map(selector =>
+  for (const member of [...members, ...catalogMembers, ...scopeMembers, ...[reentrySelector, keyedSelector, originalSelector, valuesSelector, provenanceSelector, ...selectors, ...successorSelectors, ...completionSelectors, ...workSelectors, ...readSelectors, fileSelector, unionSelector, httpSelector, ...captureSelectors].map(selector =>
     'src/client_local_host/' + JSON.parse(selector.trim().split(':')[0]))]) {
     assert(selected.paths.includes(member), member);
     assert.equal(currentTree.entries.get(member)?.kind, 'blob');
@@ -541,9 +567,17 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
     !member.slice('src/client_local_host/'.length).includes('/')).sort();
   assert(localMembers.includes('src/client_local_host/preparation_request_direct_union_js_wbtest.mbt'));
   assert(localMembers.includes('src/client_local_host/preparation_request_http_input_js_wbtest.mbt'));
+  for (const selector of captureSelectors)
+    assert(localMembers.includes('src/client_local_host/' + JSON.parse(selector.trim().split(':')[0])));
   assert.deepEqual(selected.directories.find(entry => entry.path === 'src/client_local_host/*')?.members, localMembers);
   for (const changed of [previous, callbackBody, valuesBody, effectBody, body, reentryBody, catalogBody, fourSelectorBody, currentBody, modelBody, requestSelectorBody, selectorBody, readBody,
-    fileBody, unionBody,
+    fileBody, unionBody, httpBody,
+    ...captureSelectors.flatMap(selector => [captureBody.replace(selector, ''),
+      captureBody.replace(selector, selector.replace('"js"', '"native"')),
+      captureBody.replace(selector, selector.replace('"js"', '"wasm"')),
+      captureBody.replace(selector, selector.replace('.mbt', '_unreviewed.mbt'))]),
+    captureBody.replace(captureSelectors[0], captureSelectors[0] + captureSelectors[0]),
+    captureBody + '\noptions(pre_build: {command: "unreviewed"})\n',
     httpBody.replace(httpSelector, httpSelector.replace('"js"', '"native"')),
     httpBody.replace(httpSelector, httpSelector.replace('"js"', '"wasm"')),
     httpBody.replace(httpSelector, httpSelector.replace('.mbt', '_unreviewed.mbt')),
@@ -577,6 +611,8 @@ test('current Local Host successor binds its pure Ledger-open import and preserv
   }
   for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
     assert.equal(currentPackageConfigurationReviewFor({...request(path, httpDigest), ...delta}), null);
+  for (const delta of [{target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, captureDigest), ...delta}), null);
 });
 
 test('historical Local Host review preserves the original carrier, Source builder and Model completion preimages', () => {
@@ -752,8 +788,8 @@ test('current query configuration binds both JS-only files without changing impo
 });
 
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
-  assert.equal(Object.keys(currentPackageConfigurations).length, 20);
-  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 14);
+  assert.equal(Object.keys(currentPackageConfigurations).length, 22);
+  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 16);
   const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
   for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     const revision = entry.revision ?? currentConfigurationReviewRevision;

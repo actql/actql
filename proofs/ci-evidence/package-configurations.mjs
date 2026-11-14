@@ -111,7 +111,9 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-14-session-direct-union-selector-review.md.
   // One further literal JS-only HTTP Request input selector; imports unchanged.
   // See docs/reviews/2026-11-14-session-http-input-selector-review.md.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '24a013cbcf540ebf0c47fba54b93516ad0ef498549a669237e6710f2232ce778', rule: 'literal-target-selectors-with-bound-source-membership', revision: '45906df586b5439ac03235e3b1a9b8f1576b98ec'}),
+  // Six exact JS fixture selectors for original capture, Catalog, normalization
+  // and publication binding; removing them restores the complete 45906 input.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '1cd56a66ead5f9dfded6969e5836b261a318410fae7582eef3aecd34eb5d78ef', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'b7db611269f5dc99479479a476bf871df2648db2'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
