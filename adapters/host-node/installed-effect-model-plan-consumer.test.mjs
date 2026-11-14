@@ -3,7 +3,7 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun,
-  finishInstalledEffectModelScope, installedEffectModelPreparation} from './installed-effect-managed-run.mjs';
+  finishInstalledEffectModelScope, installedEffectModelPreparation, fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
 
 // Actual JS owner; the nominal Common/Root/Model/Scope ports are explicit.
 // This does not issue an actual admission, Model permission or cleanup ACK.
@@ -543,9 +543,9 @@ test('Effect Model cold read retains exact failed issuance and refuses lost orig
   assert.equal(other.reads(), 0);
 });
 
-function pluralEffectModelFixture({physical = false} = {}) {
+function pluralEffectModelFixture({physical = false, count = 2} = {}) {
   const f = fixture(), definition = {}, compiled = f.model.compiled, finishedScopes = new Set();
-  const models = Object.freeze([0, 1].map(() => Object.freeze({kind: physical ? 'installed-model' : 'local-mock', compiled,
+  const models = Object.freeze(Array.from({length: count}, () => Object.freeze({kind: physical ? 'installed-model' : 'local-mock', compiled,
     definition: f.model.definition, occurrence: {}, graph: {}})));
   const selections = Object.freeze(models.map(model => Object.freeze({localMock: !physical,
     occurrence: model.occurrence, graph: model.graph, ...(physical ? {originalReadInstallation: {}, selectedBounds: {},
@@ -555,7 +555,7 @@ function pluralEffectModelFixture({physical = false} = {}) {
         const result = f.options.publicationControl.finishCheckedClientInferOriginalReadScope(compiled, definition, selectedGraph, scope, true);
         if (result) finishedScopes.add(scope); return result;
       }} : {})})));
-  const graph = Object.freeze(models.map(model => model.graph)), scopes = [{}, {}], demands = [{}, {}], providers = [{}, {}];
+  const graph = Object.freeze(models.map(model => model.graph)), scopes = models.map(() => ({})), demands = models.map(() => ({})), providers = models.map(() => ({}));
   f.options.model = Object.freeze({compiled, definition: f.model.definition, graph, components: models});
   f.options.modelSelection = Object.freeze({graph, components: selections});
   f.options.facts = Object.freeze({...f.options.facts, runDefinition: definition});
@@ -693,4 +693,37 @@ test('plural physical Effect finishes each trusted Scope view exactly once while
   const count = calls.filter(call => call[0] === 'finish').length;
   finishInstalledEffectModelScope(run, true, checked);
   assert.equal(calls.filter(call => call[0] === 'finish').length, count);
+});
+
+
+test('129 selected Model definitions require same current admitted Run rather than count or a getter', () => {
+  const {f,revoke}=pluralEffectModelFixture({count:129});
+  let reads=0;
+  f.runtime.clientProgramInstalledEffectFundedModelSelectionCount=(value,prepared,request)=>{
+    same([value,prepared,request],[f.parent,f.prepared,f.options.request]); reads++; return ok(129);
+  };
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run=readInstalledEffectManagedPlanRun(f.options);
+  const original=installedEffectModelPreparation(run,()=>({}),f.options.assertCurrent);
+  assert.equal(original.components.length,129);
+  assert.equal(fundedEffectModelGroupCount(original),129);
+  assert.equal(fundedEffectModelGroupCount({...original}),undefined);
+  assert.equal(fundedEffectModelGroupCount({fundedGroupCount:()=>129}),undefined);
+  assert.equal(reads,1);
+  revoke();
+  assert.throws(()=>fundedEffectModelGroupCount(original),/OriginalCurrentLost/);
+  assert.equal(reads,1,'mutable current refusal precedes native owner projection');
+});
+
+test('129 group cannot outlive its original numerical scope or hide Core capacity refusal', () => {
+  const one=pluralEffectModelFixture({count:129}), f=one.f, failure=new Error('OriginalCapacityRefused');
+  f.runtime.clientProgramInstalledEffectFundedModelSelectionCount=()=>{throw failure;};
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run=readInstalledEffectManagedPlanRun(f.options), original=installedEffectModelPreparation(run,()=>({}),f.options.assertCurrent);
+  assert.throws(()=>fundedEffectModelGroupCount(original),error=>error===failure);
+  run.modelScopeFinished=true;
+  assert.equal(fundedEffectModelGroupCount(original),undefined);
+  const legacy=pluralEffectModelFixture({count:129}); prepareInstalledEffectManagedPlanRun(legacy.f.options);
+  const legacyRun=readInstalledEffectManagedPlanRun(legacy.f.options);
+  assert.equal(fundedEffectModelGroupCount(installedEffectModelPreparation(legacyRun,()=>({}),legacy.f.options.assertCurrent)),undefined);
 });

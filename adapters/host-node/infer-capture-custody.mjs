@@ -4,6 +4,8 @@
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
+import {fundInferCaptureInventory, fundedInferCaptureInventoryCount,
+  fundedInferStoppedAttemptCount} from './infer-operation.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 
@@ -34,6 +36,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let publicationCleanupFlight, publicationRetirementFlight;
   let publicationCleaned = false, publicationRetired = false;
   let storedCaptureWireLimit;
+  let captureInventory, publicationFunding, evaluation, projectedModelEvidence;
 
   // Same immutable original Store extent, before constructing its exporter.
   // This scalar is not funding, persistence, currentness or a cleanup ACK.
@@ -70,6 +73,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     publicationFor = undefined;
     faultInjection = undefined;
     storedCaptureWireLimit = undefined;
+    captureInventory = publicationFunding = evaluation = projectedModelEvidence = undefined;
     publicationRetired = true;
   }
   function retireAliases() {
@@ -196,11 +200,15 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     // capacity before these additional captures/exporters/metadata are built.
     // Its initial record and per-slot/raw phases require earlier startup funds.
     publicationOriginal.reserveOriginalPublicationCapacity?.();
+    captureInventory = fundInferCaptureInventory(operation, publicationOriginal);
+    publicationFunding = publicationOriginal;
     captureOutput ??= operation.acquireOutput();
     if (captureOutput === undefined) throw new Error('InstalledInferOutputUnavailable');
     capture = operation.acquireCapture();
     count = moon.clientProgramInferCaptureCallCount(capture);
-    if (!Number.isInteger(count) || count < 0 || count > 128) {
+    const funded = fundedInferCaptureInventoryCount(captureInventory, operation);
+    if (!Number.isInteger(count) || count < 0 || count > 2147483647 ||
+        (count > 128 && funded !== count) || funded !== undefined && funded !== count) {
       throw new Error('InstalledInferCaptureInventoryUnavailable');
     }
     return true;
@@ -236,7 +244,9 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     if (attemptsStored) return;
     await persistSourceObservation();
     const attempts = operation.stoppedAttemptCount();
-    if (!Number.isInteger(attempts) || attempts < 0 || attempts > 128) {
+    const funded = fundedInferStoppedAttemptCount(operation);
+    if (!Number.isInteger(attempts) || attempts < 0 || attempts > 2147483647 ||
+        (attempts > 128 && funded !== attempts)) {
       throw new Error('InstalledInferAttemptInventoryUnavailable');
     }
     for (let index = 0; index < attempts; index++) {
@@ -443,11 +453,16 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     // Count of the actual retained completed capture, not a persistence proof
     // or publication grant. The same Core issuer verifies the complete slots.
     completedCallCount() {return capture !== undefined && !publicationCleaned && !reclaimed ? count : undefined;},
-    modelEvidence() {return !publicationRetired && !reclaimed && captureStored ? Object.freeze([...modelEvidence]) : undefined;},
+    completedInventoryReceipt() {return capture !== undefined && !publicationCleaned && !reclaimed ? captureInventory : undefined;},
+    modelEvidence() {return !publicationRetired && !reclaimed && captureStored
+      ? projectedModelEvidence ??= Object.freeze([...modelEvidence]) : undefined;},
     // This immutable original is available only after the existing Store
     // commit. It conveys no read/capture permission and retains no new owner.
     evaluationBundle() {
       if (!captureStored || !exportComplete || reclaimed || publicationCleaned) return undefined;
+      if (evaluation !== undefined) return evaluation;
+      const funded = fundInferCaptureInventory(operation, publicationFunding);
+      if (count > 128 && fundedInferCaptureInventoryCount(funded, operation) !== count) return undefined;
       const calls = [];
       for (let slot = 0; slot < count; slot++) {
         const call = moon.clientProgramInferCaptureCall(capture, slot);
@@ -458,7 +473,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       }
       const usage = typeof moon.clientProgramInferCaptureExportWireUsage === 'function'
         ? checked(moon.clientProgramInferCaptureExportWireUsage(exporter)) : undefined;
-      return Object.freeze({wire, cid: moon.clientProgramInferCaptureExportIdentity(exporter), count,
+      return evaluation = Object.freeze({wire, cid: moon.clientProgramInferCaptureExportIdentity(exporter), count,
         ...(usage === undefined ? {} : {usage}),
         calls: Object.freeze(calls)});
     },

@@ -252,6 +252,9 @@ struct ModelState {
   mut prepared_capacity : @resources.CapacityReservation?
   // Private proposal; this extra reference has no adopted physical coefficient.
   mut original_startup : OriginalModelStartup?
+  // Pre-send proof construction stays on this SAME Task Ledger through stop
+  // and Store custody; cancellation cannot create a publication borrow.
+  mut attempt_proof_capacity : ModelAttemptProofCapacity?
   reservations : Map[Int, @resources.Reservation]
   send_mask : Array[Bool]?
   mut reservation_next_slot : Int
@@ -1155,6 +1158,7 @@ fn start_model_owned(
     ledger,
     prepared_capacity: capacity,
     original_startup,
+    attempt_proof_capacity: None,
     reservations,
     send_mask: send_mask.map(mask => mask.copy()),
     reservation_next_slot: 0,

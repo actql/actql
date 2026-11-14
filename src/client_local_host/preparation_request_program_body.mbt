@@ -137,6 +137,12 @@ fn[I] request_program_plan_quote(
       is Some(e) else {
       return Err(Policy)
     }
+    guard @publication_host.prepared_client_composed_infer_count(owner.compiled_program.unwrap()) is Some(model_count) &&
+      installed_model_selection_layout(model_count) is Some((model_r, model_e)) &&
+      @execution.checked_preparation_add_product(r, model_r, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(e, model_e, 1L) is Some(e) else {
+      return Err(Policy)
+    }
     // The shared Compute constructor now retains its original tail execution
     // aggregate. This is one fixed scalar, not another Plan or policy knob.
     if e > 9223372036854775807L - installed_compute_tail_inventory_bytes {

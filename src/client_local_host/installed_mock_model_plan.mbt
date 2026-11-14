@@ -412,6 +412,22 @@ fn prepare_installed_mock_model_plan_owned(
         None => return Err(InsufficientCapacity)
       }
   }
+  guard installed_model_selection_layout(1) is Some((selection_r, selection_e)) &&
+    @execution.checked_preparation_add_product(
+      limits.retained_bytes,
+      selection_r,
+      1L,
+    )
+    is Some(retained_bytes) &&
+    @execution.checked_preparation_add_product(
+      limits.execution_bytes,
+      selection_e,
+      1L,
+    )
+    is Some(execution_bytes) else {
+    return Err(InsufficientCapacity)
+  }
+  let limits = { ..limits, retained_bytes, execution_bytes, }
   Ok({
     prepared,
     request,

@@ -1335,6 +1335,17 @@ fn prepare_installed_effect_managed_plan_owned(
     is Some(temporary) else {
     return Err(InsufficientCapacity)
   }
+  let model_count = model
+    .map(value => value.components.map(values => values.length()).unwrap_or(1))
+    .unwrap_or(0)
+  guard installed_model_selection_layout(model_count)
+    is Some((model_r, model_e)) &&
+    @execution.checked_preparation_add_product(controls, model_r, 1L)
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(temporary, model_e - model_r, 1L)
+    is Some(temporary) else {
+    return Err(InsufficientCapacity)
+  }
   if retained > 9223372036854775807L - controls ||
     execution > 9223372036854775807L - controls - temporary {
     return Err(Unsupported)

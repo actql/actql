@@ -215,3 +215,16 @@ pub fn restrict_model_send_slots(
 pub fn model_cleanup_progress(active : Execution) -> Int {
   active.model.map(@model.model_cleanup_progress).unwrap_or(0)
 }
+
+///|
+/// Actual stopped traces with the SAME Task's pre-send proof reservation.
+/// This selects no new cleanup/publication grant after cancellation.
+pub fn funded_stopped_attempt_count(active : Execution) -> Int? {
+  if active.reclaimed {
+    return None
+  }
+  match active.model {
+    None => None
+    Some(model) => @model.funded_stopped_model_attempt_count(model)
+  }
+}

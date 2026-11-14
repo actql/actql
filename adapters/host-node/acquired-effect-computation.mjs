@@ -1,3 +1,4 @@
+import {fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
 // Physical custody while one admitted Effect Run acquires its source and
 // computes. This does not retry acquisition, Compute, or an Effect dispatch.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
@@ -8,7 +9,8 @@ import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan, prepa
 import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
-import {openNodeComposedInferProvider, startCompleteInferObservation} from './infer-operation.mjs';
+import {openNodeComposedInferProvider, startCompleteInferObservation,
+  fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
@@ -927,7 +929,8 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
   sourceContinuation, faultInjection, current, sourcePlan, managedRun, originalHost}) {
   const selected = infer.components, originals = originalPreparation?.components;
-  if (!Array.isArray(selected) || selected.length < 2 || selected.length > 128 ||
+  if (!Array.isArray(selected) || selected.length < 2 ||
+      selected.length > 128 && fundedEffectModelGroupCount(originalPreparation) !== selected.length ||
       !Object.isFrozen(selected) || !Array.isArray(originalModelComponents) ||
       originalModelComponents.length !== selected.length ||
       !Array.isArray(originalModelSelection?.components) ||
@@ -967,9 +970,12 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     child.completed = true;
     if (children.some(member => !member.completed)) return true;
     let calls = 0;
+    let allFunded = true;
     for (const member of children) {
       const count = member.capture.completedCallCount();
-      if (!Number.isSafeInteger(count) || count < 0 || count > 128 - calls) {
+      allFunded &&= fundedInferCaptureInventoryCount(member.capture.completedInventoryReceipt?.(), member.operation) === count;
+      if (!Number.isSafeInteger(count) || count < 0 || count > 2147483645 - calls ||
+          (!allFunded && count > 128 - calls)) {
         throw new Error('InstalledComposedInferOriginalObservationUnavailable');
       }
       calls += count;
@@ -1067,41 +1073,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
             captureOwner: child.capture, continuation: child.continuation,
             current: publicationCurrent,
             authorityScopeCid: acquired.authorityScopeCid,
-            copyFunding(bundle, kind) {
-              publicationCurrent();
-              const failure = code => {
-                const error = new Error(code);
-                if (kind === 'typed-input') error.code = code;
-                return error;
-              };
-              const usage = bundle.usage;
-              if (usage === undefined || !Number.isSafeInteger(bundle.count) || bundle.count < 1 || bundle.count > 128 ||
-                  runtimeField(usage, 0) !== Buffer.byteLength(bundle.wire)) {
-                throw failure('RequiredEvidenceUnavailable');
-              }
-              let retained = 0n, execution = 0n;
-              for (let slot = 0; slot < bundle.count; slot++) {
-                const logical = kind === 'typed-input' ? child.operation.evaluationInput(slot) : undefined;
-                const physical = kind === 'typed-input' ? undefined : child.operation.evaluationRequest(slot);
-                if (kind === 'typed-input' ? logical === undefined || logical.callWire !== bundle.calls[slot].callWire
-                  : physical === undefined) throw failure('RequiredEvidenceUnavailable');
-                const request = kind === 'typed-input' ? logical.request : runtimeField(physical, 0);
-                const shape = checked(moon.clientProgramModelRequestInputFrameGeometry(request, 65536));
-                const text = bundle.calls[slot].callWire.length + (kind === 'typed-input' ? 0
-                  : runtimeField(physical, 1).length + runtimeField(physical, 2).length);
-                if (!Number.isSafeInteger(text) || text > 2147483647) throw failure('EvaluationBudgetExceeded');
-                const capacity = checked(moon.clientProgramEffectModelEvidenceCopyCapacity(
-                  runtimeField(usage, 0), runtimeField(usage, 1), runtimeField(usage, 2), shape, text, bundle.count));
-                const r = runtimeField(capacity, 0), e = runtimeField(capacity, 1);
-                retained = r > retained ? r : retained; execution = e > execution ? e : execution;
-              }
-              // Still-live Unit metadata remains in the base. Sequential
-              // copies reuse this original owner's high-water window, not a
-              // retained sum of ended scratch. No consumed work is refunded.
-              publicationOwner.growOriginalPublicationCapacity(
-                earlyIdentityRetained + retained, earlyIdentityExecution + execution);
-              publicationCurrent();
-            },
+            copyFunding: originalInferEvidenceCopyFunding({moon, funding: publicationOwner, operation: child.operation,
+              current: publicationCurrent, retainedPrefix: () => earlyIdentityRetained,
+              executionPrefix: () => earlyIdentityExecution}),
             retainCopy(copy) {
               if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained');
               child.copy = copy;

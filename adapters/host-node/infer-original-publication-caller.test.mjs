@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {openNodeInferOperation,startCompleteInferObservation} from './infer-operation.mjs';
+import {openNodeInferOperation,startCompleteInferObservation, fundInferCaptureInventory,
+  fundedInferCaptureInventoryCount, fundedInferStoppedAttemptCount, fundInferEvidenceCopy,
+  inferEvidenceCopyFunded, originalInferCopyFunding, inferCopyFundingOriginal} from './infer-operation.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
+import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 // Actual operation code, explicit Common/Resource ports. These DATA amounts
@@ -550,4 +553,137 @@ test('original generated publication keeps the same native refusal and retained 
   assert.deepEqual(f.calls, ['reserve', 'issue']);
   assert.equal(operation.releaseOriginalPublicationCapacity(), true);
   assert.equal(operation.cleanup(), true);
+});
+
+
+// These tests enter the actual operation's private nominal registry. The Core
+// ports below are explicit numerical/current doubles, not runtime acceptance.
+function materializationFixture(options) {
+  const f=fixture(options), grows=[];
+  f.moon.clientProgramOriginalInferCaptureInventoryCapacity=(active,borrow)=>{
+    assert.equal(active,f.active);assert.equal(borrow,f.borrow);
+    f.calls.push('inventory');return {$tag:1,_0:{_0:129,_1:100n,_2:150n}};
+  };
+  f.moon.clientProgramGrowOriginalInferPublicationCapacity=(active,borrow,r,e)=>{
+    assert.equal(active,f.active);assert.equal(borrow,f.borrow);grows.push([r,e]);
+    f.calls.push('grow');return {$tag:1,_0:undefined};
+  };
+  return {...f,grows};
+}
+
+test('actual original129 inventory grows before a receipt and retains each coheld prefix',()=>{
+  const f=materializationFixture();
+  const receipt=fundInferCaptureInventory(f.operation);
+  assert.equal(fundedInferCaptureInventoryCount(receipt,f.operation),129);
+  assert.equal(fundedInferCaptureInventoryCount({},f.operation),undefined);
+  const foreign=fixture();
+  assert.equal(fundedInferCaptureInventoryCount(receipt,foreign.operation),undefined);
+  assert.deepEqual(f.grows,[[223n,606n]]);
+  const second=fundInferCaptureInventory(f.operation);
+  assert.equal(fundedInferCaptureInventoryCount(second,f.operation),129);
+  assert.deepEqual(f.grows,[[223n,606n],[323n,706n]],'first retained wrappers remain charged');
+  Object.assign(f.moon,{
+    clientProgramInferEvaluationRequest:()=>({_0:{},_1:'',_2:''}),
+    clientProgramModelRequestInputFrameGeometry:()=>({$tag:1,_0:{}}),
+    clientProgramEffectModelEvidenceCopyCapacity:()=>({$tag:1,_0:{_0:25n,_1:50n}}),
+  });
+  const bundle=Object.freeze({count:129,wire:'{}',usage:{_0:2,_1:1,_2:1},
+    calls:Array.from({length:129},()=>({callWire:'{}'}))});
+  const funding=originalInferCopyFunding(f.operation,f.operation,()=>{});
+  assert.equal(inferCopyFundingOriginal(funding),true);
+  const copy=fundInferEvidenceCopy(f.operation,f.operation,bundle,undefined,0n,0n);
+  assert.equal(inferEvidenceCopyFunded(copy,bundle,undefined),true);
+  assert.equal(inferEvidenceCopyFunded(copy,{count:129},'typed-input'),false);
+  assert.equal(inferEvidenceCopyFunded(copy,bundle,'typed-input'),false);
+  assert.deepEqual(f.grows.at(-1),[348n,706n]);
+  assert.equal(f.operation.cleanup(),false);
+  assert.equal(f.operation.releaseOriginalPublicationCapacity(),true);
+  assert.equal(fundedInferCaptureInventoryCount(receipt,f.operation),undefined);
+  assert.equal(f.operation.cleanup(),true);
+});
+
+test('legacy or forged reserve methods cannot fund129 and current/foreign rejects before constructor',()=>{
+  const fake={prepareOriginalCaptureInventory(){assert.fail('not a nominal original');},
+    reserveOriginalPublicationCapacity(){assert.fail('not numeric funding');}};
+  assert.equal(fundInferCaptureInventory(fake),undefined);
+  assert.equal(inferCopyFundingOriginal(originalInferCopyFunding(fake,fake,()=>{})),false);
+  const legacy=fixture();
+  assert.equal(fundInferCaptureInventory(legacy.operation),undefined);
+  assert.equal(legacy.calls.includes('reserve'),false);
+  const f=materializationFixture(),foreign=fixture(),issue={kind:'ForeignOrRetiredOriginal'};
+  f.moon.clientProgramOriginalInferCaptureInventoryCapacity=(active)=>{
+    assert.equal(active,foreign.active);return {$tag:0,_0:issue};
+  };
+  assert.throws(()=>fundInferCaptureInventory(foreign.operation,f.operation),e=>e.cause===issue);
+  assert.deepEqual(f.grows,[]);
+  assert.equal(f.operation.publicationCapacityPending(),true,'failed child keeps exact original borrow');
+  assert.equal(f.operation.releaseOriginalPublicationCapacity(),true);
+  assert.equal(f.operation.cleanup(),true);
+  assert.equal(legacy.operation.cleanup(),true);assert.equal(foreign.operation.cleanup(),true);
+});
+
+test('small original budget refuses129 before receipt and failed cleanup cannot acknowledge it',()=>{
+  const f=materializationFixture(),issue={kind:'RetentionLimit'};
+  f.moon.clientProgramGrowOriginalInferPublicationCapacity=()=>({$tag:0,_0:issue});
+  assert.throws(()=>fundInferCaptureInventory(f.operation),e=>e.cause===issue);
+  assert.equal(f.operation.publicationCapacityPending(),true);
+  assert.equal(f.operation.cleanup(),false);
+  f.releaseComplete(false);
+  assert.equal(f.operation.releaseOriginalPublicationCapacity(),false);
+  assert.equal(f.operation.cleanup(),false);
+  f.releaseComplete(true);
+  assert.equal(f.operation.releaseOriginalPublicationCapacity(),true);
+  assert.equal(f.operation.cleanup(),true);
+});
+
+test('stopped129 uses only original pre-send proof witness and no late publication reserve',()=>{
+  const f=fixture();
+  f.moon.clientProgramInferFundedStoppedAttemptCount=active=>{assert.equal(active,f.active);return 129;};
+  assert.equal(fundedInferStoppedAttemptCount(f.operation),129);
+  assert.equal(f.calls.includes('reserve'),false);
+  assert.equal(fundedInferStoppedAttemptCount({fundedStoppedAttemptCount:()=>129}),undefined);
+  f.moon.clientProgramInferFundedStoppedAttemptCount=()=>-1;
+  assert.equal(fundedInferStoppedAttemptCount(f.operation),undefined);
+  assert.equal(f.operation.cleanup(),true);
+  assert.equal(fundedInferStoppedAttemptCount(f.operation),undefined);
+});
+
+
+test('cancelled129 actual custody retains parent through same pending Store ACK without late borrowing',async()=>{
+  const f=fixture(),stored=new Map();let commits=0,proofs=0,ack,entered;
+  const gate=new Promise(resolve=>{ack=resolve;}), atStore=new Promise(resolve=>{entered=resolve;});
+  Object.assign(f.moon,{
+    clientProgramInferFundedStoppedAttemptCount:()=>129,
+    clientProgramInferStoppedAttemptCount:()=>129,
+    clientProgramInferStoppedAttemptSlot:(_active,index)=>index,
+    clientProgramAdvanceInferStoppedRawUsage:(_active,slot,quantum)=>{
+      assert.equal(quantum,1);assert.equal(f.calls.includes('cleanup'),false);return {$tag:1,_0:{_0:true,_1:1n}};
+    },
+    clientProgramInferAttemptEvidence:(_active,slot)=>{proofs++;return {$tag:1,_0:{slot}};},
+    clientProgramInferAttemptLeaf:(proof,kind)=>({wire:JSON.stringify({slot:proof.slot,kind})}),
+    strategyRunEvidenceJson:value=>value.wire,
+    clientProgramIssueInferAttachmentAdmission:()=>({$tag:1,_0:undefined}),
+  });
+  const store={
+    confirmPrivateEvidence:async binding=>stored.get(binding.holdingCid),
+    preparePrivateEvidence:async(name,wire)=>({physicalCid:name,bytes:Buffer.byteLength(wire),
+      prepared:{status:()=>({pending:false}),async release(){}}}),
+    async commitPhysicalHolding(record){
+      commits++;if(commits===1){entered();await gate;}stored.set(record.holding_cid,record);
+    },
+  };
+  const control={admitRunEvidence:(name,wire)=>({name,wire,identity:name}),
+    modelPrivateHoldingCid:(_run,_store,name,slot)=>name+slot};
+  const capture=openNodeInferCaptureCustody({moon:f.moon,operation:f.operation,control,
+    plan:{runDefinition:{}},store,storeAuthorityCid:'same-store',publicationFor:()=>assert.fail('stopped cannot publish')});
+  let settled=false;
+  const closing=capture.custody.close().then(()=>{settled=true;});
+  await atStore;
+  assert.equal(settled,false);assert.equal(f.calls.includes('cleanup'),false);
+  assert.equal(f.calls.includes('reserve'),false,'cancel cleanup cannot borrow terminal publication capacity');
+  ack();await closing;
+  assert.equal(proofs,129);assert.equal(commits,516);assert.equal(stored.size,516);
+  assert.equal(f.calls.filter(x=>x==='cleanup').length,1);
+  assert.equal(capture.custody.cleanupPending(),false);
+  assert.equal(f.calls.includes('reserve'),false);
 });

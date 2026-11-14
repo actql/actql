@@ -107,6 +107,13 @@ fn[I] request_effect_plan_quote(
       is Some(e) else {
       return Err(Policy)
     }
+    guard @publication_host.prepared_client_effect_infer_count(prepared)
+      is Some(model_count) &&
+      installed_model_selection_layout(model_count) is Some((model_r, model_e)) &&
+      @execution.checked_preparation_add_product(r, model_r, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(e, model_e, 1L) is Some(e) else {
+      return Err(Policy)
+    }
     // The captured Effect's existing schema walk also resolves its SAME
     // checked Result endpoints. Back the additional fixed scratch before
     // that call; no new graph, proof arrays or caller-selected bounds.

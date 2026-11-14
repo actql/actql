@@ -7,6 +7,23 @@ import {prepareInstalledEffectControlConstruction} from './installed-effect-plan
 import {selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openNodeComposedInferProvider, retireNodeInferOriginalRead} from './infer-operation.mjs';
 
+const modelGroupPreparations = new WeakMap();
+const preparedEffectRuns = new WeakSet();
+
+// Only an installed original Run can expose this already funded inventory.
+// A component count or caller-created getter never substitutes for its Resource
+// admission. Escaped preparation views weakly borrow that same live Run.
+export function fundedEffectModelGroupCount(preparation) {
+  const original = modelGroupPreparations.get(preparation), run = original?.run.deref();
+  if (run === undefined || !preparedEffectRuns.has(run) || !run.preparationFunded ||
+      run.closed || run.modelScopeFinished || run.modelPreparation !== preparation) return undefined;
+  original.current();
+  const count = original.checked(Reflect.apply(original.read, run.runtime,
+    [run.value, run.prepared, run.request]));
+  original.current();
+  return Number.isSafeInteger(count) && count === run.modelMembers?.length ? count : undefined;
+}
+
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
 export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
@@ -28,8 +45,9 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   if (liveRuns.size >= 4096) fail('InstalledComputeRunLimit');
   const run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, requestInput, selection, model, modelSelection,
     definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined, modelScope: undefined,
-    closed: false, selecting: false, operationsBegun: false};
+    closed: false, selecting: false, operationsBegun: false, checkModelGroupCount: checked};
   runs.set(prepared, run);
+  preparedEffectRuns.add(run);
   liveRuns.add(run);
   try {
     // The sole installed issuer supplies a frozen own-DATA tuple. Do not move
@@ -316,6 +334,12 @@ export function installedEffectModelPreparation(run, publicationCapacity, assert
   run.modelPreparation = Object.freeze({components,
     retain() {current(); for (const component of components) component.retain();},
     retire() {current(); for (const component of components) if (component.retire() !== true) return false; return true;}});
+  const read = run.runtime.clientProgramInstalledEffectFundedModelSelectionCount;
+  if (preparedEffectRuns.has(run) && run.preparationFunded && typeof read === 'function') {
+    // checked is retained on the same installed record before its constructor.
+    modelGroupPreparations.set(run.modelPreparation, {run: new WeakRef(run), current,
+      checked: run.checkModelGroupCount, read});
+  }
   return run.modelPreparation;
 }
 

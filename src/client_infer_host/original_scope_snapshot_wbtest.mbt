@@ -241,10 +241,16 @@ fn original_129_snapshot_fixture(
   ).unwrap()
   bind_dispatch_admission(active, permit).unwrap()
   let mut selected = None
+  let mut requests_ready = false
   for _ in 0..<200000 {
     if active.model is Some(model) &&
       @model.prepared_model_call_set(model) is Some(prepared) {
       selected = Some(prepared)
+      break
+    }
+    if !durable_calls && active.model is Some(model) &&
+      @model.model_execution_prepared_request_bytes(model, 128) is Some(_) {
+      requests_ready = true
       break
     }
     let polled = advance(active, 1).unwrap()
@@ -264,7 +270,11 @@ fn original_129_snapshot_fixture(
       }
     }
   }
-  assert_eq(@model.prepared_model_call_count(selected.unwrap()), Some(129))
+  if durable_calls {
+    assert_eq(@model.prepared_model_call_count(selected.unwrap()), Some(129))
+  } else {
+    assert_true(requests_ready)
+  }
   assert_eq(calls.val, 0)
   assert_eq(
     call_scope_snapshot(active).unwrap(),

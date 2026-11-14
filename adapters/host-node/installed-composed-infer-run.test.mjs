@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding} from './infer-operation.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 
 function beforeInstallation({failClose = false, retainedBytes = 0n, abort = false} = {}) {
@@ -237,7 +238,7 @@ async function composedPublicationHandoff({complete = true, preflight = false} =
     assert.strictEqual(definition, plan.runDefinition); return name;
   };
   const run = composedSourceFunction('./installed-composed-infer-run.mjs', 'runInstalledComposedInfers', {
-    runtimeField: (value, index) => value[index], checked: value => value,
+    runtimeField: (value, index) => value[index], checked: value => value, fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding,
     withLocalExecutionPauseHandler: value => value,
     runCapturedStrategy() {assert.fail('intermediate Model driver cannot request public checked Result mode');},
     async runCapturedInternalStrategy(actual, options, signal, observer, cleanup) {
