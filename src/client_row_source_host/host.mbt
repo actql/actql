@@ -328,6 +328,22 @@ fn prepare_row_acquisition_owned(
     ) else {
     return Err(Physical(InvalidLimits))
   }
+  let residual_rows = match listing_rows {
+    None => 100
+    Some(rows) => {
+      // Both limits belong to this SAME requirement and resolved original
+      // listing. An explicit caller guard stays narrower than the physical
+      // ceiling; neither count grants backing or bypasses value admission.
+      let selected = Int64::min(
+        @planning.query_requirement_guards(requirement).max_rows.to_int64(),
+        listing_rows_maximum(rows),
+      )
+      if selected < 0L || selected > 2147483647L {
+        return Err(Physical(InvalidLimits))
+      }
+      selected.to_int()
+    }
+  }
   // The residual filter and capture measure every captured value; the
   // capture holds at most 500 KB of text, what the standard Host's Local
   // fragments evaluate at once.
@@ -351,7 +367,7 @@ fn prepare_row_acquisition_owned(
       limits: {
         execution: {
           rows: {
-            max_rows: 100,
+            max_rows: residual_rows,
             metadata_entries: 10000,
             retained_entries: 10000,
             operation_entries: 10000,

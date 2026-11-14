@@ -34787,7 +34787,7 @@
     },
     {
       "module": "src/client_local_host/client_sequence.mbt",
-      "sha256": "0cd7223083b0bd72ce416f4998f577e275f13830f34ff0e5e0a882ed9b8f89ba",
+      "sha256": "a4de78e6cef026eaefe1c0a878e72a179586f9d70a094b299dbb84ae899919ea",
       "exports": [],
       "operations": [
         {
@@ -34905,6 +34905,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
               }
             ],
             "inputsOutputs": [
@@ -34915,6 +34919,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
               }
             ],
             "identity": [
@@ -34925,6 +34933,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
               }
             ],
             "ownership": [
@@ -34945,6 +34957,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
               }
             ],
             "failure": [
@@ -34975,6 +34991,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
               }
             ],
             "extension": [
@@ -35007,6 +35027,10 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "same Request acquired Model prefix"
+              },
+              {
+                "path": "src/client_local_host/query_listing_row_policy_wbtest.mbt",
+                "anchor": "ordinary listing101 residual uses the original finite policy while explicit100 remains narrower"
               }
             ]
           }
@@ -50999,7 +51023,7 @@
     },
     {
       "module": "src/client_row_source_host/host.mbt",
-      "sha256": "e3fe283b75d7f786e24c52bf78c061ecda3d291153738ccebb2d7d15a4dbe8e0",
+      "sha256": "a22d1e08349329a029ad3dc01b57f6f86ce3739bb81ff54b509174170ee74038",
       "exports": [],
       "operations": [
         {
@@ -51252,6 +51276,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
+              },
+              {
+                "path": "src/client_local_host/client_query_requirement.mbt",
+                "anchor": "fn installed_local_query_guard_rows("
               }
             ],
             "identity": [
@@ -51262,6 +51294,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
+              },
+              {
+                "path": "src/client_local_host/client_query_requirement.mbt",
+                "anchor": "fn installed_local_query_guard_rows("
               }
             ],
             "ownership": [
@@ -51282,6 +51322,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
+              },
+              {
+                "path": "src/client_local_host/client_query_requirement.mbt",
+                "anchor": "fn installed_local_query_guard_rows("
               }
             ],
             "failure": [
@@ -51320,6 +51368,14 @@
               {
                 "path": "src/client_row_source_host/input_listing_capacity.mbt",
                 "anchor": "fn grow_row_input_listing_phase("
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
+              },
+              {
+                "path": "src/client_local_host/client_query_requirement.mbt",
+                "anchor": "fn installed_local_query_guard_rows("
               }
             ],
             "extension": [
@@ -51330,6 +51386,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Acquired Model prefix on the original Request"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "For an ordinary Query-shaped listing, the installed requirement selects its"
+              },
+              {
+                "path": "src/client_local_host/client_query_requirement.mbt",
+                "anchor": "fn installed_local_query_guard_rows("
               }
             ],
             "verification": [
@@ -51352,6 +51416,10 @@
               {
                 "path": "src/client_local_host/installed_whole_listing_parent_js_wbtest.mbt",
                 "anchor": "test \"Effect preparation parent grows its original listing RowRun"
+              },
+              {
+                "path": "src/client_local_host/query_listing_row_policy_wbtest.mbt",
+                "anchor": "ordinary listing101 residual uses the original finite policy while explicit100 remains narrower"
               }
             ]
           }
@@ -51359,8 +51427,9 @@
         {
           "operations": [
             "abort_row_run",
+            "close_accounted_row_run",
             "close_row_run",
-            "close_accounted_row_run"
+            "row_run_normal_available"
           ],
           "exports": [],
           "attributes": {
@@ -51372,6 +51441,10 @@
               {
                 "path": "src/client_row_source_host/host.mbt",
                 "anchor": "fn abort_row_run("
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "Existing normal-use state only, never a current observation, acquisition"
               }
             ],
             "inputsOutputs": [

@@ -673,7 +673,7 @@ fn prepare_client_local_sequences_owned(
   // The Fragment consumes the same row domain admitted for this original
   // task owner. A larger Values profile must not revert to the default 100
   // after the first Values step; all other Fragment budgets stay independent.
-  let fragment_rows = client_local_owner_sequence_limits(prepared).max_rows.to_int64()
+  let owner_fragment_rows = client_local_owner_sequence_limits(prepared).max_rows.to_int64()
   let physical : @execution.RegistryLimits = match compilation_limits {
     Some(original) =>
       {
@@ -774,7 +774,7 @@ fn prepare_client_local_sequences_owned(
       Some((source_task, source_index)) if source_task == task => source_index
       _ => 0
     }
-    let acquiring = match prepared {
+    let acquisition = match prepared {
       Pure(value) =>
         (match query_time {
           Some((original, request)) =>
@@ -785,8 +785,7 @@ fn prepare_client_local_sequences_owned(
             @publication_host.prepare_client_query_acquisition(
               value, task, source_index,
             )
-        })
-        is Ok(_)
+        }).to_option()
       Effect(value) =>
         (match query_time {
           Some((original, request)) =>
@@ -797,8 +796,20 @@ fn prepare_client_local_sequences_owned(
             @publication_host.prepare_client_effect_query_acquisition(
               value, task, source_index,
             )
-        })
-        is Ok(_)
+        }).to_option()
+    }
+    let acquiring = acquisition is Some(_)
+    // An acquisition's existing checked request owns its finite row domain.
+    // Select it before Fragment requests/contexts are constructed; the Values
+    // default belongs only to nonacquiring execution. No extra preparation or
+    // replacement of an issued QueryRequirement occurs here.
+    let fragment_rows = match acquisition {
+      Some(query) =>
+        match installed_local_query_guard_rows(query) {
+          Some(rows) => rows.to_int64()
+          None => return Err(Unsupported)
+        }
+      None => owner_fragment_rows
     }
     // Whole serialization-prefix preparation retains the original acquisition
     // expression contexts even when the selected barrier has a later task

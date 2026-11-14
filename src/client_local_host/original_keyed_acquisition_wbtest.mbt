@@ -22,6 +22,8 @@ fn original_keyed_environment_members(bodies : Array[String]) -> Json raise {
 fn original_keyed_declaration_environment(
   relation_versions? : Bool = false,
   file_request_fields? : Bool = false,
+  listing_maximum? : Int64 = 3L,
+  listing_bytes? : Int64 = 32768L,
 ) -> (@row_source_host.RowDeclaration, String) raise {
   let listing = "{\"media_type\":{\"nullable\":true,\"type\":\"string\"},\"modified_at\":{\"nullable\":true,\"type\":\"timestamp\"},\"name\":{\"nullable\":false,\"type\":\"string\"},\"path\":{\"nullable\":true,\"type\":\"string\"},\"resource\":{\"nullable\":false,\"resource_kind\":\"file\",\"type\":\"resource_ref\"},\"size_bytes\":{\"nullable\":true,\"type\":\"number\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
   let content = "{\"content\":{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"content_ref\"},\"resource\":{\"nullable\":false,\"resource_kind\":\"file\",\"type\":\"resource_ref\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
@@ -81,7 +83,13 @@ fn original_keyed_declaration_environment(
         "a".repeat(64) +
         "\",\"allow_unfiltered_listing\":true,\"kind\":\"file_listing\",\"listing_schema_contract_cid\":\"" +
         listing_schema +
-        "\",\"max_examined_items\":9,\"max_listing_bytes\":32768,\"max_listing_duration_ms\":10000,\"max_listing_items\":3,\"max_listing_pages\":4,\"max_request_attempts\":4,\"maximum_path_length\":64,\"selectable\":[\"paths\",\"glob\"],\"version\":\"actql-file-list/0.1\",\"version_capability\":{\"contract_cid\":\"sha256:" +
+        "\",\"max_examined_items\":" +
+        Int64::max(9L, listing_maximum).to_string() +
+        ",\"max_listing_bytes\":" +
+        listing_bytes.to_string() +
+        ",\"max_listing_duration_ms\":10000,\"max_listing_items\":" +
+        listing_maximum.to_string() +
+        ",\"max_listing_pages\":4,\"max_request_attempts\":4,\"maximum_path_length\":64,\"selectable\":[\"paths\",\"glob\"],\"version\":\"actql-file-list/0.1\",\"version_capability\":{\"contract_cid\":\"sha256:" +
         "b".repeat(64) +
         "\",\"required_nonnull\":true}}}",
       )
@@ -161,6 +169,8 @@ fn original_keyed_run_fixture(
   unknown_left_rows? : Bool = false,
   serialization_max_bytes? : Int = 4096,
   typed_content_input? : Bool = false,
+  listing_maximum? : Int64 = 3L,
+  listing_bytes? : Int64 = 32768L,
 ) -> (
   @row_source_host.RowDeclaration,
   @publication_host.PreparedClientProgram,
@@ -178,6 +188,8 @@ fn original_keyed_run_fixture(
   ).unwrap()
   let (declaration, environment) = original_keyed_declaration_environment(
     relation_versions~,
+    listing_maximum~,
+    listing_bytes~,
   )
   let document =
     #|{"version":"actql/0.1","id":"original-keyed-content","stages":[{"id":"capture","inputs":{"contents":{"connector":"content-fixture","resource":"contents"},"files":{"connector":"content-fixture","resource":"files","request":{"paths":["invoice.pdf"],"glob":null}}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"selected"},{"join":{"left":"selected","with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"from":"captured","assert_rows":{"unique_by":["name"]}},{"serialize":{"format":"jsonl","fields":["name","content"],"order_by":[{"name":"asc"}],"name":"captured.jsonl","bounds":{"max_rows":3,"max_bytes":4096}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["name","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"capture","result":"rows"}}}}
