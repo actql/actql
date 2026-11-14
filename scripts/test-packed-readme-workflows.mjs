@@ -9,6 +9,7 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {prepareHealthPackages, mockWorkflowMetrics, execute} from './health-monitor-adapters.mjs';
 import {packedEffectControlCases, runMockEffectControls} from './packed-mock-effect-controls.mjs';
 import {runPackedAccountControls} from './packed-account-controls.mjs';
+import {packedModelControlPhases, runPackedModelControls} from './packed-model-controls.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
 export const packedReadmeCases = Object.freeze([
@@ -438,6 +439,8 @@ export async function runPackedReadmeWorkflows(root) {
       unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close'
         : phase === 'large-row-saved' ? 'Requires both original large Results, SQL removal and FIRST close' : 'Requires verified normal packages'})),
     account: {completed: false, status: 'unexecuted', unexecutedReason: 'Requires verified normal packages'},
+    model: packedModelControlPhases.map(phase => ({phase, completed: false, status: 'unexecuted',
+      unexecutedReason: 'Requires the same verified normal packages and original capture'})),
     projectFiles: ['capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires original two-file JOIN and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
@@ -459,13 +462,16 @@ export async function runPackedReadmeWorkflows(root) {
     } catch (error) {failures.push(error);}
     try {await runPackedAccountControls({prepared, root, repository, command, report, cleanup});}
     catch (error) {failures.push(error);}
+    try {await runPackedModelControls({prepared, root, repository, command, records: report.model, failures});}
+    catch (error) {failures.push(error);}
     try {
       await runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup});
     } catch (error) {failures.push(error);}
     await runReadmeCases({prepared, root, repository, command, report, failures});
     await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
     await runMockEffectControls({prepared, root, repository, command, records: report.controls, failures});
-    report.complete = failures.length === 0 && report.account.completed && report.collection.every(row => row.completed) &&
+    report.complete = failures.length === 0 && report.account.completed &&
+      report.model.every(row => row.completed && row.status === 'passed') && report.collection.every(row => row.completed) &&
       report.projectFiles.every(row => row.completed) &&
       report.cases.every(row => row.completed) && report.compositions.every(row => row.completed) && report.controls.every(row => row.completed);
   } catch (error) {failures.push(error);}
