@@ -13,15 +13,19 @@ import {nativeClientFileResponseTestFile, nativeCoreScopedTestEnvironment}
 
 test('Native staged import quote belongs only to its exact scoped Request case', () => {
   const wrapper = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
+  const module = parse(wrapper, {ecmaVersion: 'latest', sourceType: 'module'});
+  const predicate = module.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'requiresFixture'));
+  assert(predicate, 'Use the actual selected-fixture predicate, not a successful stub');
   const fixtureStart = wrapper.indexOf('const fixtureEnvironment = {');
   const fixtureEnd = wrapper.indexOf('\n};', fixtureStart);
   assert(fixtureStart >= 0 && fixtureEnd > fixtureStart);
   const fixtureBody = wrapper.slice(fixtureStart + 'const fixtureEnvironment = '.length, fixtureEnd + 2);
-  const base = runInNewContext('(' + fixtureBody + ')', {
+  const base = runInNewContext(wrapper.slice(predicate.start, predicate.end) + '\n(' + fixtureBody + ')', {
     process: {env: {ACTQL_TEST_NATIVE_IMPORT_QUOTE: 'ambient',
       ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: '/ambient/file',
       ACTQL_TEST_CLIENT_FILE_RECEIPT_APPROVE_RESOLUTION_WIRE: 'ambient-file-receipt'}, platform: 'darwin', arch: 'arm64'},
-    full: false, args: [], namespace: '/original', root: '/checkout', join,
+    full: false, linuxCommonImporters: false, args: [], namespace: '/original', root: '/checkout', join,
     httpLifetime: {}, clientFiles: {}, bundle: {}, clientCheckpoint: {}, fileReceiptCheckpoint: {}, privateHost: {},
     originalSigning: {}, processRegion: {}, readerCustody: {}, projectConfiguration: {}, walFixture: undefined,
   });
@@ -42,7 +46,7 @@ test('Native staged import quote belongs only to its exact scoped Request case',
       else if (value && typeof value === 'object') visit(value);
     }
   }
-  visit(parse(wrapper, {ecmaVersion: 'latest', sourceType: 'module'}));
+  visit(module);
   assert.equal(environments.length, 1, 'One actual async scoped child environment required');
   const environment = wrapper.slice(environments[0].start, environments[0].end);
   const source = 'src/cmd/native_client/local_project_mock_request_physical_scoped_wbtest.mbt';
