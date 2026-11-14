@@ -259,8 +259,12 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     original_cross_text_working_program()
   } else if mode == 9 {
     let columns : Array[String] = []
-    for index in 0..<17 { columns.push("t AS f" + index.to_string()) }
-    "WITH x AS (SELECT REPEAT('x',64000) AS t) SELECT " + columns.join(",") + " FROM x"
+    for index in 0..<17 {
+      columns.push("t AS f" + index.to_string())
+    }
+    "WITH x AS (SELECT REPEAT('x',64000) AS t) SELECT " +
+    columns.join(",") +
+    " FROM x"
   } else if mode >= 4 {
     "SELECT REPEAT('x', 150000) AS text"
   } else if mode == 3 {
@@ -337,20 +341,28 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     source_free_max_work=if mode == 9 { Some(30000000) } else { None },
   ).unwrap()
   let configuration = parent.program_source_free.unwrap().configuration.unwrap()
+  if mode == 9 || mode == 0 {
+    let available = @resources.ledger_limits(parent.ledger)
+    for task in 0..<@strategy.graph_task_count(configuration.graph) {
+      let planned = @local_driver.local_dispatch_preparation_task_capacity(
+        configuration.dispatch,
+        task,
+      ).unwrap()
+      assert_true(planned.retained_bytes <= available.retained_bytes)
+      assert_true(planned.execution_bytes <= available.execution_bytes)
+    }
+  }
   if mode == 2 {
     assert_true(configuration.capacity_plan.values.max_text_bytes >= 4095 * 512)
     assert_true(configuration.capacity_plan.imports.row.max_bytes <= 16777216)
     assert_true(configuration.capacity_plan.imports.max_batch_bytes <= 16777216)
   } else {
-    assert_eq(configuration.capacity_plan.values.max_text_bytes, 500000)
-    assert_true(
-      configuration.capacity_plan.imports.row.max_bytes <=
-      local_materialization_policy.relation_wire_bytes,
+    assert_eq(
+      configuration.capacity_plan.values.max_text_bytes,
+      configuration.capacity_plan.values.max_work,
     )
-    assert_true(
-      configuration.capacity_plan.imports.max_batch_bytes <=
-      local_materialization_policy.relation_wire_bytes,
-    )
+    assert_true(configuration.capacity_plan.imports.row.max_bytes <= 16777216)
+    assert_true(configuration.capacity_plan.imports.max_batch_bytes <= 16777216)
     if !parameter {
       assert_eq(
         configuration.capacity_plan.execution.rows.operation_entries,
@@ -486,6 +498,23 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
           Driver(Configuration(Execution(InputSet))) => "BoundTextInputSet"
           Driver(Configuration(InvalidLimits)) => "BoundTextInvalidLimits"
           Driver(IdentityExport(_)) => "BoundTextExport"
+          Driver(ManagedValues(Admission(cause))) =>
+            "BoundTextManagedAdmission:" + @debug.to_string(cause)
+          Driver(ManagedValues(Guard(MeasurementWork))) =>
+            "BoundTextManagedMeasurementWork"
+          Driver(ManagedValues(Guard(Measurement(_, row, column, _)))) =>
+            "BoundTextManagedMeasurement:" +
+            row.to_string() +
+            ":" +
+            column.to_string()
+          Driver(ManagedValues(Closed)) => "BoundTextManagedClosed"
+          Driver(ManagedValues(MeasurementIndexLimit)) =>
+            "BoundTextManagedMeasurementIndex"
+          Driver(ManagedValues(ReferenceUnavailable(row, column))) =>
+            "BoundTextManagedReference:" +
+            row.to_string() +
+            ":" +
+            column.to_string()
           Driver(ManagedValues(_)) => "BoundTextManagedValues"
           Driver(ManagedCompletion(_)) => "BoundTextCompletion"
           Driver(Configuration(InputUnavailable)) => "BoundTextInputUnavailable"
@@ -540,7 +569,10 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     if mode == 9 {
       assert_eq(fields.length(), 17)
       for index in 0..<17 {
-        assert_eq(fields.get("f" + index.to_string()), Some(Json::string("x".repeat(64000))))
+        assert_eq(
+          fields.get("f" + index.to_string()),
+          Some(Json::string("x".repeat(64000))),
+        )
       }
       continue
     }

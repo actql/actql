@@ -355,7 +355,11 @@ fn execute_local_tasks_guarded(
     if !current() {
       return reject(Fenced)
     }
-    if continuation {
+    // The same original Source-free Host has one selected Local module.
+    // Commit its actual managed candidate only after preparing this next
+    // Task with its real inputs; no whole-Run future DATA reservation is
+    // needed. The start boundary still admits its complete simultaneous cost.
+    if continuation || first == 0 {
       match
         @strategy.select_captured_managed_registration(
           run,

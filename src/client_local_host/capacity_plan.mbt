@@ -128,11 +128,23 @@ fn client_local_capacity_plan(
     value_node_demand~,
     source_free_max_work~,
   )
-  let original_values_text = if scalar_demand is None {
+  let leaf_text_wire = if scalar_demand is None {
     value_node_demand.bind(demand => {
       match client_local_original_values_text_bound(sequences, demand) {
-        Some(value) if value.0 > values.max_text_bytes => Some(value)
-        _ => None
+        Some(value) => Some(value)
+        None if content is None && demand.original.flat_json_leaves => {
+          // This same closed JSON-leaf schema has no opaque reference wire.
+          // ValueBudget charges every UTF-8 text/name byte against max_work;
+          // that original counter already bounds cumulative Text. Reuse its
+          // units, never Ledger planning work or an assumed expression value.
+          let text = values.max_work
+          client_local_json_leaf_wire_byte_bound(
+            demand.nodes,
+            1,
+            text.to_int64(),
+          ).map(wire => (text, wire, wire))
+        }
+        None => None
       }
     })
   } else {
@@ -142,7 +154,7 @@ fn client_local_capacity_plan(
     value_node_demand is Some(original) {
     Some({
       ..original,
-      text_bound: match original_values_text {
+      text_bound: match leaf_text_wire {
         Some((bytes, _, _)) => Some(bytes)
         None =>
           match content {
@@ -186,10 +198,10 @@ fn client_local_capacity_plan(
   // IO observes scalar cells plus row field names, not evaluator intermediates.
   // Keep expression text independent unless every original typed child and
   // generated step has a separate text-free proof.
-  let decimal_text = value_node_demand.bind(demand => demand.text_bound)
+  let checked_text = value_node_demand.bind(demand => demand.text_bound)
   let io_text = match scalar_demand {
     Some(demand) => Some(demand.name_bytes)
-    None => decimal_text
+    None => checked_text
   }
   let values = match io_text {
     Some(bytes) => { ..values, max_text_bytes: bytes, }
@@ -197,7 +209,7 @@ fn client_local_capacity_plan(
   }
   let execution = if io_text is Some(bytes) &&
     (
-      decimal_text is Some(_) ||
+      checked_text is Some(_) ||
       client_local_text_free_scalar_sequences(sequences)
     ) {
     {
@@ -214,7 +226,7 @@ fn client_local_capacity_plan(
   } else {
     execution
   }
-  let measurement = match original_values_text {
+  let measurement = match leaf_text_wire {
     Some((_, wire, _)) =>
       { ..measurement, max_bytes: Int::max(measurement.max_bytes, wire), }
     None => measurement
@@ -282,7 +294,7 @@ fn client_local_capacity_plan(
   // These are working/transport extents of the SAME checked Values, not new
   // policy or capacity. Quote and provider construction consume them together;
   // the original Ledger and operator facility still admit the resulting cost.
-  let imports = match original_values_text {
+  let imports = match leaf_text_wire {
     Some((text, wire, row_wire)) =>
       {
         ..imports,
@@ -308,7 +320,7 @@ fn client_local_capacity_plan(
       }
     None => imports
   }
-  let exports = match original_values_text {
+  let exports = match leaf_text_wire {
     Some((_, wire, row_wire)) =>
       {
         ..exports,
@@ -329,7 +341,7 @@ fn client_local_capacity_plan(
   // reference envelope; arbitrary ContentRef still has no such proof. Use a
   // conservative punctuation/numeric envelope per node and escaped text.
   let content_wire = if content is Some(_) &&
-    decimal_text is Some(bytes) &&
+    checked_text is Some(bytes) &&
     value_node_demand is Some(demand) {
     client_local_json_leaf_wire_byte_bound(demand.nodes, 1, bytes.to_int64())
   } else {

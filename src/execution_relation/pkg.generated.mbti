@@ -19,6 +19,7 @@ import {
   "actql/actql/source_value",
   "actql/actql/text_time_bounds",
   "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -876,6 +877,8 @@ pub fn infer_rows_preparation_stopped(InferRowsPreparation) -> Bool
 pub fn infer_rows_preparation_usage(InferRowsPreparation) -> (Int, Int, Int)
 
 pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt
+
+pub fn json_leaf_representation_contract(@value_contract.Contract) -> Bool
 
 pub fn json_source_preflight_capacity(Int) -> ExecutionCapacity?
 

@@ -721,7 +721,6 @@ fn bind_client_local_configuration(
   let task_count = @strategy.graph_task_count(graph)
   let registry = original.registry
   let capacity = original.capacity
-  let retained_output = original.retained_output
   let same_graph = match captured_effect {
     None => physical_equal(@strategy.captured_dag_graph(run), graph)
     Some(value) =>
@@ -822,10 +821,11 @@ fn bind_client_local_configuration(
           Ok(_) => ()
           Err(_) => return reject_client_local_run(run)
         }
-      } else if retained_output || first_compute == 2 {
-        // Source-free and bounded multiple-root Hosts use the existing
-        // installed offers and common selection. Do not pretend that one
-        // capture's statistics describe all independent input roots.
+      } else if first_compute == 2 {
+        // Bounded multiple-root Hosts keep their existing installed offers.
+        // Do not pretend that one capture's statistics describe independent
+        // roots. Source-free managed tasks select their original registration
+        // with actual live inputs below, not a whole future DATA envelope.
         let offers = []
         for task in first_compute..<task_count {
           if @strategy.captured_task_completed(run, task) {

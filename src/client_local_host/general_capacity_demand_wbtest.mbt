@@ -91,9 +91,12 @@ test "closed text UNION keeps its checked finite demand through installed prepar
   let original = original.unwrap()
   let retained_plan = original.capacity_plan
   assert_eq(retained_plan.execution.rows.max_rows, 4)
-  assert_eq(retained_plan.values.max_text_bytes, 500000)
-  assert_eq(retained_plan.imports.wire.max_bytes, 1000000)
-  assert_eq(retained_plan.exports.wire.max_bytes, 1000000)
+  // This flat checked representation uses its SAME finite ValueBudget text
+  // counter and the existing escaping formula, not an unrelated byte cap.
+  assert_eq(retained_plan.values.max_work, 20000000)
+  assert_eq(retained_plan.values.max_text_bytes, 20000000)
+  assert_eq(retained_plan.imports.wire.max_bytes, 120004441)
+  assert_eq(retained_plan.exports.wire.max_bytes, 120004441)
   assert_true(
     client_local_capacity_plan_matches(retained_plan, original.sequences, rows),
   )
@@ -185,14 +188,14 @@ test "leaf demand preserves Unicode nullable text and nested fallback budgets" {
     assets.ordered,
   ).unwrap()
   for
-    (query, leaf) in [
-      ("SELECT '日本語🙂' AS x", true),
+    (query, leaf, flat) in [
+      ("SELECT '日本語🙂' AS x", true, true),
       (
         "SELECT CASE WHEN TRUE THEN '日本語🙂' ELSE CAST(NULL AS STRING) END AS x",
-        true,
+        true, true,
       ),
-      ("SELECT [1,2] AS x", true),
-      ("SELECT STRUCT(1 AS a) AS x", true),
+      ("SELECT [1,2] AS x", true, false),
+      ("SELECT STRUCT(1 AS a) AS x", true, false),
     ] {
     let lowered = @frontend.lower(
       query,
@@ -224,10 +227,18 @@ test "leaf demand preserves Unicode nullable text and nested fallback budgets" {
     assert_eq(plan.value_node_demand is Some(_), leaf)
     assert_true(client_local_capacity_plan_matches(plan, sequences, rows))
     assert_eq(plan.execution.rows.max_rows, 1)
-    assert_eq(plan.values.max_text_bytes, 500000)
+    assert_eq(plan.value_node_demand.unwrap().original.flat_json_leaves, flat)
+    assert_eq(plan.values.max_text_bytes, if flat { 20000000 } else { 500000 })
     assert_eq(plan.values.max_depth, 100)
     assert_eq(plan.values.max_work, 20000000)
-    assert_eq(plan.imports.wire.max_bytes, 1000000)
+    assert_eq(
+      plan.imports.wire.max_bytes,
+      if flat {
+        30 + 6 * 20000000 + 3 + 29 * plan.values.max_nodes
+      } else {
+        1000000
+      },
+    )
     assert_true(
       client_local_schema_proof_inventory(
         sequences,
@@ -410,7 +421,7 @@ test "checked node proof does not spend the original root field visits twice" {
   let schema = @schema.from_object(root).unwrap()
   // The inventory has already spent one visit for each original root field.
   // No nested contract remains, even when that leaves zero proof work.
-  assert_eq(client_local_json_schema_nodes(schema, 0, 100), Some((3L, 0)))
+  assert_eq(client_local_json_schema_nodes(schema, 0, 100), Some((3L, 0, true)))
 }
 
 ///|

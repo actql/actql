@@ -114,7 +114,18 @@ pub fn prepare_local_dispatch_plan(
     }
   }
   let capacities = Array::makei(physical_sequences.length(), index => {
-    @local.local_module_capacity(implementation, index)
+    // The same selected default constructor funds variable output before
+    // commit on this Task. Retain its actual startup quote for the offer,
+    // rather than requiring the unrelated full future DATA maximum first.
+    match
+      @local.local_module_metered_output_start_capacity(
+        implementation,
+        index,
+        physical_sequences[index],
+      ) {
+      Some(original) => Some(original)
+      None => @local.local_module_capacity(implementation, index)
+    }
   })
   let original : LocalDispatchPreparation = {
     graph,
