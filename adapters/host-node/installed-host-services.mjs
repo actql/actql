@@ -1,3 +1,4 @@
+import {createAccountConstruction} from './account-construction.mjs';
 import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition, bindInstalledEnvironmentConstruction,
   assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
 import {installedEnvironmentDataWriterConstructionGeometry,
@@ -1736,7 +1737,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       const input = domain(siteOptions, ['authorization','commonMoon','runtimeBundleCid','configurationReader','ownAuthorization']);
       owned.siteAttempted = true;
       const authorization = await Reflect.apply(authorizationConstructor, undefined, [{accountConfiguration,
-        root: original.root, principalId: original.principalId, gateOptions: {runtime: original.moon}}]);
+        root: original.root, principalId: original.principalId, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}}]);
       owned.authorization = authorization;
       current();
       const site = await Reflect.apply(siteConstructor, undefined, [siteArgument, {...input, authorization,
@@ -1842,7 +1843,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         current();
         const authorization = await installRowSourceAuthorization({accountConfiguration,
           root: original.root, principalId: original.principalId,
-          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon}});
+          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}});
         owned.authorization = authorization;
         current();
         const site = installedTableReadSite({connection: input.connection, authorization,
@@ -1914,7 +1915,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         current();
         const authorization = await installRowSourceAuthorization({accountConfiguration,
           root: original.root, principalId: original.principalId,
-          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon}});
+          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}});
         owned.authorization = authorization;
         current();
         const adapter = await createInstalledTableEffect({...input, bridge, moon: original.moon,
@@ -2252,7 +2253,7 @@ export function captureInstalledSourceServices(receiver, unavailable) {
   });
 }
 
-export function createInstalledHostServices({root, principalId, moon, assertCurrent, receiver, initialPreparation}) {
+export function createInstalledHostServices({root, principalId, moon, assertCurrent, accountCurrent, receiver, initialPreparation}) {
   if (typeof root !== 'string' || !root || typeof principalId !== 'string' || !principalId ||
       !moon || typeof moon !== 'object' || typeof assertCurrent !== 'function') fail('InvalidInstalledHostServices');
   const selected = new WeakMap(), sites = new WeakMap(), siteInstallations = new WeakMap();
@@ -2543,6 +2544,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       return openInstalledRowSite({...options,
         ...(effectCredentialLimits === undefined ? {} : {runAcquisitionLimits: effectCredentialLimits}),
         root, principalId, commonMoon: moon, runtimeBundleCid, assertCurrent: current,
+        accountConstruction: installedAccountConstruction(services),
         configurationReader: installedSourceConfigurationReader(services)}).then(original => {
           sites.set(original.site, implementation);
           siteInstallations.set(original.site, selection);
@@ -2558,7 +2560,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
   const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
-    sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
+    sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, accountCurrent, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
     admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping});
   return services;
 }
@@ -2576,4 +2578,27 @@ export function retainInstalledHostServiceInstallation(services, installation, r
   if (previous !== undefined && previous !== runtimeBundleCid) fail(
     'InstalledHostServiceRuntimeChanged');
   original.selected.set(installation, runtimeBundleCid);
+}
+
+// Private Account facet on the SAME initial/continued Host material. A
+// nominal/control scope is insufficient; this entrance requires the actual
+// selected Core capacity retained by this installed service.
+export function installedAccountConstruction(services) {
+  const original = installations.get(services);
+  // Standalone legacy installers have no original numeric carrier. Ordinary
+  // Host construction always supplies its actual initialization preparation.
+  if (original !== undefined && original.initialPreparation === undefined) return undefined;
+  if (original === undefined || typeof original.accountCurrent !== 'function') fail('AccountConstructionUnavailable');
+  original.accountCurrent();
+  const material = sourceMaterial(original);
+  if (material === undefined || material.capacity === undefined || material.input === undefined) fail('AccountConstructionUnavailable');
+  return original.accountConstruction ??= createAccountConstruction({moon: original.moon,
+    current: original.accountCurrent,
+    prepareRead: () => original.moon.clientProgramPrepareInstalledAccountRead(material.capacity, material.input)});
+}
+
+export async function closeInstalledAccountConstruction(services) {
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  return original.accountConstruction === undefined || await original.accountConstruction.close();
 }

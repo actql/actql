@@ -38,3 +38,35 @@ pub fn client_program_local_standard_account_configuration(
     signing_key_resource,
   })
 }
+
+///|
+#export_name("clientProgramLocalStandardAccountConfigurationPrepared")
+pub fn client_program_local_standard_account_configuration_prepared(
+  account_id : String,
+  principal : String,
+  control_connection : String,
+  configured_connections : Array[String],
+  model_tasks : Array[(String, String)],
+  request_target : (String, String)?,
+  signing_key_resource : String?,
+  prepare : (Int64, Int64) -> Bool,
+) -> Result[String, @authorization.LocalStandardProfileIssue]? {
+  @authorization.local_standard_account_configuration_prepared(
+    {
+      account_id,
+      principal,
+      control_connection,
+      configured_connections,
+      model_tasks,
+      request_target,
+      signing_key_resource,
+    },
+    request => {
+      guard account_bridge_cost(request.retained) is Some(r) &&
+        account_bridge_cost(request.execution) is Some(e) else {
+        return false
+      }
+      prepare(r, e)
+    },
+  )
+}

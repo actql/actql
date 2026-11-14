@@ -196,6 +196,7 @@ function captureEffectTargets(effectTargets) {
       mappings: Object.freeze([...mappings.values()]),
       configuration: Object.freeze({
         accountConfiguration: authorization.accountConfiguration,
+        accountConstruction: authorization.accountConstruction,
         context: Object.freeze({...context}),
       })};
   });
@@ -225,13 +226,13 @@ export async function installHostRunAcceptance(options) {
       typeof authorization.observe !== 'function') {
     fail('InvalidRemoteHostAuthorization');
   }
-  const {accountConfig, accountConfiguration, decisionTimeoutMs = 30_000,
+  const {accountConfig, accountConfiguration, accountConstruction, decisionTimeoutMs = 30_000,
     maxInFlightDecisions = 16, maxRetainedDecisions = 1024} = authorization;
   const decisionBudget = createAuthorizationDecisionBudget({
     maxInFlightDecisions, maxRetainedDecisions});
   let gate;
   try {
-    gate = await createLocalAuthorizationGate({accountConfig,
+    gate = await createLocalAuthorizationGate({accountConfig, accountConstruction,
       accountConfiguration, principal: ownerPrincipal, decisionTimeoutMs,
       decisionBudget});
   } catch (cause) {
@@ -332,7 +333,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // Snapshot every plural account and context before installation awaits.
   const installedEffectTargets = effectTargets === undefined ? []
     : captureEffectTargets(effectTargets);
-  const {accountConfig, accountConfiguration, reviewers, reviewReaders,
+  const {accountConfig, accountConfiguration, accountConstruction, reviewers, reviewReaders,
     hostKey, decide, answeringAuthorities, effectRequiredClaims = [],
     checkpointTtlMs = 24 * 60 * 60 * 1000,
     leaseMs = 60_000, maxReviewBytes = MAX_REVIEW_BYTES,
@@ -401,7 +402,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // The current trusted authorization context: principal, account and the
   // admitted configuration identity. A resume under another one fails
   // revalidation before any protected work.
-  const gate = await createLocalAuthorizationGate({accountConfig,
+  const gate = await createLocalAuthorizationGate({accountConfig, accountConstruction,
     accountConfiguration, principal: ownerPrincipal, ...decisionOptions});
   const configured = gate.configurationCid !== undefined;
   // The source's read decision uses the source installation's own account
@@ -421,7 +422,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     const entry = sourceInventory === undefined ? {configuration}
       : installedSources[sourceIndex++];
     if (sourceInventory === undefined) installedSources.push(entry);
-    entry.gate = await createLocalAuthorizationGate({
+    entry.gate = await createLocalAuthorizationGate({accountConstruction,
         accountConfiguration: configuration.accountConfiguration,
         context: configuration.context, ...decisionOptions});
   }
@@ -432,11 +433,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
     context: Object.freeze({...effectTarget.context}),
   });
   const effectTargetGate = effectTarget === undefined ? undefined :
-    await createLocalAuthorizationGate({
+    await createLocalAuthorizationGate({accountConstruction,
       accountConfiguration: effectTarget.accountConfiguration,
       context: effectTarget.context, ...decisionOptions});
   for (const installed of installedEffectTargets) {
-    installed.gate = await createLocalAuthorizationGate({
+    installed.gate = await createLocalAuthorizationGate({accountConstruction,
       accountConfiguration: installed.configuration.accountConfiguration,
       context: installed.configuration.context, ...decisionOptions});
   }
@@ -622,13 +623,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
     operation: 'write'});
   // The gate that continues approved requests: the same configuration and
   // durable journal; a resume never defers again.
-  const resumeGate = await createLocalAuthorizationGate({accountConfig,
+  const resumeGate = await createLocalAuthorizationGate({accountConfig, accountConstruction,
     accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
     deferral: {journal,
       authorities, binding,
       describe() { fail('ResumeDoesNotDefer'); }}});
   for (const installed of installedSources) {
-    installed.resumeGate = await createLocalAuthorizationGate({
+    installed.resumeGate = await createLocalAuthorizationGate({accountConstruction,
       accountConfiguration: installed.configuration.accountConfiguration,
       context: installed.configuration.context, ...decisionOptions,
       deferral: {journal, authorities, binding,
@@ -885,7 +886,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       authorities.map(item => item.reviewerId);
     const intentCid = capturedValueCid(acquisitionIntent(requestCid, captured,
       occurrence));
-    const deferring = await createLocalAuthorizationGate({
+    const deferring = await createLocalAuthorizationGate({accountConstruction,
       accountConfiguration: configuration.accountConfiguration,
       context: configuration.context, ...decisionOptions, decide,
       answeringAuthorities: decide === undefined ? undefined : answering,
@@ -1780,7 +1781,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       const port = !attachImmediate ? journalPort : {...journalPort,
         persistCheckpoint: checkpoint => journalPort.attachModelCallSetCheckpoint(checkpoint)};
-      const model = await createLocalAuthorizationGate({accountConfig,
+      const model = await createLocalAuthorizationGate({accountConfig, accountConstruction,
         accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
         decide, requiredClaims: ['invocation_scope_approved'],
         answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
@@ -1868,7 +1869,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         authorityScopeCid, principalId: ownerPrincipal, inventoryCid, target});
       // Bind the exact provider data retained and shown for this approval.
       const scopeCid = `sha256:${hex(canonicalValueJson(scope, {dataKeys: true}))}`;
-      const read = await createLocalAuthorizationGate({
+      const read = await createLocalAuthorizationGate({accountConstruction,
         accountConfiguration: installed.configuration.accountConfiguration,
         context: installed.configuration.context, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
@@ -2034,7 +2035,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         }
         return review;
       };
-      const common = {accountConfig, accountConfiguration,
+      const common = {accountConfig, accountConfiguration, accountConstruction,
         principal: ownerPrincipal, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities === undefined
           ? authorities.map(item => item.reviewerId)
@@ -2264,7 +2265,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         authority_scope_cid: authorityScopeCid,
         principal_id: ownerPrincipal, occurrence});
       const scopeCid = contentCid(scope);
-      const read = await createLocalAuthorizationGate({
+      const read = await createLocalAuthorizationGate({accountConstruction,
         accountConfiguration: configuration.accountConfiguration,
         context: configuration.context, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
@@ -2477,7 +2478,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       const answering = answeringAuthorities ??
         authorities.map(item => item.reviewerId);
-      const deferring = await createLocalAuthorizationGate({accountConfig,
+      const deferring = await createLocalAuthorizationGate({accountConfig, accountConstruction,
         accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
         decide,
         answeringAuthorities: decide === undefined ? undefined : answering,

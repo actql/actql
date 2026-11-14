@@ -229,6 +229,7 @@ export async function installRowSourceAuthorization({accountConfiguration,
     return decision;
   };
   return Object.freeze({...gate, context, accountConfiguration,
+    accountConstruction: gateOptions.accountConstruction,
     issued: decision => issued.has(decision),
     authorize: async (...args) => own(await gate.authorize(...args)),
     resume: async (...args) => own(await gate.resume(...args))});
@@ -3134,6 +3135,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     ...(tableReadTargets === undefined ? {} : {tableReadTargets, declarationCatalogCid: declared.catalog_cid}),
     readAuthorization: Object.freeze({
       accountConfiguration: authorization.accountConfiguration,
+      accountConstruction: authorization.accountConstruction,
       context: authorization.context}),
     sourceAccess,
     sourceReadAccesses,
@@ -3262,7 +3264,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
 
 
 export async function openInstalledRowSite({root, principalId, commonMoon,
-  installation, runtimeBundleCid, accountConfiguration, originalContext,
+  installation, runtimeBundleCid, accountConfiguration, originalContext, accountConstruction,
   connection, profile, resolveSecret, ca, responseHeaders = [],
   admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits,
   assertCurrent, receiver, configurationReader, prepareSecretMaterial, openCredentialJournal}) {
@@ -3304,7 +3306,7 @@ export async function openInstalledRowSite({root, principalId, commonMoon,
   try {
     authorization = await installRowSourceAuthorization({root, principalId,
       connectorRegistration: registration, accountConfiguration, originalContext,
-      gateOptions: {runtime: commonMoon}});
+      gateOptions: {runtime: commonMoon, accountConstruction}});
     current();
     if (prepareSecretMaterial !== undefined) {
       // Retain the returned original before inspecting methods/currentness.
