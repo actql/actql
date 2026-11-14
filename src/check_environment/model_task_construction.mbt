@@ -106,7 +106,7 @@ pub fn model_tasks_admission_construction_extent(
     // Contract readers retain their typed trees while subsequent hashes run.
     // Their keys/scalars borrow the original wire arena. Co-count both complete
     // valid Contract envelopes, without treating every node as both containers.
-    let contract = {
+    let contract : RegistryConstructionExtent = {
       record_headers: contracts.retained.record_headers + contracts.scratch.record_headers,
       reference_slots: contracts.retained.reference_slots + contracts.scratch.reference_slots,
       scalar_words: contracts.retained.scalar_words + contracts.scratch.scalar_words,
