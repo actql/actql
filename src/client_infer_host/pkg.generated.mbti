@@ -61,6 +61,8 @@ pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispa
 
 pub fn bind_egress_admission(Execution, @run_publication_host.ClientInferEgressAdmission) -> Result[Unit, Issue]
 
+pub fn bind_installed_effect_publication_invocation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientCompiledRun, InvocationBinding) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
+
 pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[InvocationBinding, InvocationBindingIssue]
 
 pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, ObservationIssuance) -> Result[InvocationBinding, InvocationBindingIssue]
@@ -144,6 +146,8 @@ pub fn handoff_pending(Execution) -> Bool
 pub fn identity_pending(Execution) -> Bool
 
 pub fn invocation_binding_invocation(InvocationBinding) -> @run_publication.PublicationContract?
+
+pub fn invocation_binding_matches_run(InvocationBinding, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn invocation_binding_observation(InvocationBinding) -> @run_publication.RunEvidenceValue?
 

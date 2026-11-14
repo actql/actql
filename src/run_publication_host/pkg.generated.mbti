@@ -531,6 +531,10 @@ pub fn client_effect_allowed_serialization_run(ClientEffectAllowedRun) -> Result
 
 pub fn client_effect_combined_source_unit_catalog_bodies(ClientEffectCombinedSourceUnit, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[Array[(String, String, String)], ClientEffectAcquiredEvidenceIssue]
 
+pub fn client_effect_combined_source_unit_catalog_dependencies_at(ClientEffectCombinedSourceUnit, Int) -> Result[Array[(String, String)], ClientEffectAcquiredEvidenceIssue]
+
+pub fn client_effect_combined_source_unit_catalog_subject(ClientEffectCombinedSourceUnit) -> (@program_check.CheckedProgram, Int, Int)
+
 pub fn client_effect_combined_source_unit_dependency_bodies(ClientEffectCombinedSourceUnit) -> Array[(String, String, String)]
 
 pub fn client_effect_combined_source_unit_invocation(ClientEffectCombinedSourceUnit) -> ClientEffectLocalInvocation
@@ -600,6 +604,12 @@ pub fn client_effect_local_artifact_dependency_root(ClientEffectLocalResultArtif
 pub fn client_effect_local_artifact_invocation(ClientEffectLocalResultArtifact) -> ClientEffectLocalInvocation
 
 pub fn client_effect_local_artifact_invocation_cid(ClientEffectLocalResultArtifact) -> String
+
+pub fn client_effect_local_artifact_matches_computation(ClientEffectLocalResultArtifact, PreparedClientEffectComputation) -> Bool
+
+pub fn client_effect_local_artifact_matches_inputs(ClientEffectLocalResultArtifact, @physical_strategy_host.CapturedEffectInputs) -> Bool
+
+pub fn client_effect_local_artifact_run_definition_cid(ClientEffectLocalResultArtifact) -> String?
 
 pub fn client_effect_local_identity_cid(ClientEffectLocalIdentity) -> String
 
@@ -685,6 +695,8 @@ pub fn client_effect_prepared_original_compilation(ClientEffectPreparedOriginal)
 
 pub fn client_effect_prepared_original_prepared(ClientEffectPreparedOriginal) -> PreparedClientEffectComputation
 
+pub fn client_effect_publication_originals_match(PreparedClientEffectRun, PreparedClientEffectComputation, ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
+
 pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObservation) -> String
 
 pub fn client_effect_result_import_observation_json(ClientEffectResultImportObservation) -> String
@@ -712,6 +724,14 @@ pub fn client_effect_run_start_current(ClientEffectAllowedRun, @run_publication.
 pub fn client_effect_source_binding_request(@remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest) -> Result[ClientRequestIdentity?, ClientEffectSourceDispatchIssue]
 
 pub fn client_effect_source_evidence_facts(ClientEffectCompilation, Int, Int) -> @query_planning.QuerySourceEvidenceFacts?
+
+pub fn client_effect_source_free_invocation_original_compilation(ClientEffectSourceFreeInvocationOriginal) -> ClientEffectCompilation
+
+pub fn client_effect_source_free_invocation_original_invocation(ClientEffectSourceFreeInvocationOriginal) -> @run_publication.PublicationContract
+
+pub fn client_effect_source_free_invocation_original_matches(ClientEffectSourceFreeInvocationOriginal, ClientEffectCompilation) -> Bool
+
+pub fn client_effect_source_free_invocation_original_observation(ClientEffectSourceFreeInvocationOriginal) -> @run_publication.RunEvidenceValue
 
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
 
@@ -1693,7 +1713,7 @@ pub fn finish_client_keyed_capture_request_plan(ClientKeyedLookupInput, Int, Int
 
 pub fn finish_client_keyed_lookup_input(ClientKeyedLookupInput) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
-pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int, retain_body? : Bool, native_completion? : (String, Int64)?) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
+pub fn finish_client_keyed_lookup_publication_input(ClientKeyedLookupInput, Int, Int, Int, retain_body? : Bool, native_completion? : (String, Int64)?, defer_catalog? : Bool) -> Result[@execution_relation.SuppliedRelationRead, ClientKeyedRequestIssue]
 
 pub fn finish_client_keyed_lookup_request_plan(ClientKeyedLookupInput, Int, Int, Int) -> Result[ClientKeyedLookupRequestIdentity, ClientKeyedRequestIssue]
 
@@ -1820,6 +1840,8 @@ pub fn issue_client_effect_run_materials(ClientEffectAllowedRun, @run_publicatio
 pub fn issue_client_effect_run_policy_originals(PreparedClientEffectComputation) -> Result[String, ClientRunPolicyOriginalsIssue]
 
 pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_effect_source_free_invocation_original(ClientEffectCompilation, String, Int, Int, Int) -> Result[ClientEffectSourceFreeInvocationOriginal, @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_effect_target_installation(String) -> Result[(String, String), ClientEffectUpdateTargetIssue]
 
@@ -2377,7 +2399,7 @@ pub fn prepared_client_effect_normalization_evidence(PreparedClientEffectComputa
 
 pub fn prepared_client_effect_publication_data_policy_cid(PreparedClientEffectComputation) -> String?
 
-pub fn prepared_client_effect_publication_policy_bodies(PreparedClientEffectComputation, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?, retained_body_keys? : Map[String, String]?) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
+pub fn prepared_client_effect_publication_policy_bodies(PreparedClientEffectComputation, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?, retained_body_keys? : Map[String, String]?, retain_catalog? : Bool) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
 
 pub fn prepared_client_effect_request_scope(PreparedClientEffectComputation, ClientRequestIdentity) -> Result[@logical_request_scope.LogicalRequestScope, ClientRequestIdentityIssue]
 
@@ -3259,6 +3281,8 @@ pub(all) enum ClientEffectSourceDispatchIssue {
   ForeignInput
   Protocol(@remote_site_protocol.DispatchIssue)
 }
+
+type ClientEffectSourceFreeInvocationOriginal
 
 type ClientEffectSourceUnitInputs
 

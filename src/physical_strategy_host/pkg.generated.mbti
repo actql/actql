@@ -151,6 +151,10 @@ pub fn captured_effect_command_key_validation_matches(CapturedEffectCommandKeyVa
 
 pub fn captured_effect_command_requires_input_key(CapturedEffectInputs, Int, Int) -> Result[Bool, CapturedEffectCommandKeyIssue]
 
+pub fn captured_effect_dependency_port_census_geometry(CapturedEffectDependencyPortCensus) -> (Int, Int, Int, Int, Int64)
+
+pub fn captured_effect_dependency_unit_count(CapturedEffectRunDAG) -> Int
+
 pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
 
 pub fn captured_effect_input_borrow(CapturedEffectInput) -> CapturedAnyResultBorrow
@@ -172,6 +176,8 @@ pub fn captured_effect_input_stage(CapturedEffectInput) -> Int
 pub fn captured_effect_input_task(CapturedEffectInput) -> Int
 
 pub fn captured_effect_inputs_acquired_source_matches(CapturedEffectInputs, Int, @execution_query.CapturedSourceRelationIdentity) -> Bool
+
+pub fn captured_effect_inputs_closed(CapturedEffectInputs) -> Bool
 
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
@@ -361,6 +367,8 @@ pub fn captured_result_output_set_pin_at(CapturedResultOutputSet, Int) -> Captur
 
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
 
+pub fn captured_source_input_original_matches(CapturedDAG, Int, Int, @execution_query.CapturedInputSource) -> Bool
+
 pub fn captured_supplied_task_input(CapturedDAG, Int, input_index? : Int) -> Result[@execution_relation.SuppliedRelationRead, RunIssue]
 
 pub fn captured_table_input_borrow_available(CapturedTableInputBorrow) -> Bool
@@ -418,6 +426,8 @@ pub fn captured_task_retirement_pending(CapturedDAG) -> Bool
 pub fn captured_task_source_matches(CapturedDAG, Int, @execution_query.CapturedInputSource) -> Bool
 
 pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
+
+pub fn census_captured_effect_dependency_ports(CapturedEffectRunDAG, Int, Int, (Int) -> Bool) -> Result[CapturedEffectDependencyPortCensus, RunIssue]
 
 pub fn charge_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -692,6 +702,8 @@ pub fn pin_captured_result_output_set(CapturedDAG, Array[(Int, @execution_relati
 pub fn pin_captured_table_input_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedTableInputOccurrence)], Int) -> Result[CapturedTableInputOutputSet, RunIssue]
 
 pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
+
+pub fn pin_censused_captured_effect_sources(CapturedEffectDependencyPortCensus, Int?) -> Result[CapturedEffectInputs, RunIssue]
 
 pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
 
@@ -1087,6 +1099,8 @@ pub(all) enum CapturedEffectCurrentBindingIssue {
   ForeignCapability(Int)
   ForeignAuthority(Int)
 } derive(@debug.Debug)
+
+type CapturedEffectDependencyPortCensus
 
 pub(all) enum CapturedEffectGuardIssue {
   InvalidLimits
