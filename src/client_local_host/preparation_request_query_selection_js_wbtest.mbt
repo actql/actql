@@ -316,12 +316,28 @@ test "selected large Source default sequence uses its same checked expression de
   assert_eq(selected.expressions.max_literal_nodes, 20001)
   assert_eq(selected.expressions.max_work, original.expressions.max_work)
   assert_eq(selected.expressions.max_depth, original.expressions.max_depth)
-  assert_eq(
-    selected.expressions.max_literal_text_bytes,
+  // Text selection now follows the checker's cached UTF8 receipt, which also
+  // covers admitted contract/name text. This numeric payload still fits the
+  // original explicitly selected text budget; no literal grant is inferred.
+  assert_true(
+    selected.expressions.max_literal_text_bytes >=
     original.expressions.max_literal_text_bytes,
   )
-  // Original generated Values/derive/select pipeline, retained before module
-  // construction by the shared full-sequence inventory (not Stage100).
+  let original_text = {
+    ..selected,
+    expressions: {
+      ..selected.expressions,
+      max_literal_text_bytes: original.expressions.max_literal_text_bytes,
+    },
+  }
+  assert_true(
+    @publication_host.prepare_prepared_client_full_sequence(
+      prepared, 0, original_text,
+    )
+    is Ok(_),
+  )
+  // Original generated Values/derive/select pipeline: the full-sequence
+  // projection already retains this cached inventory rather than Stage100.
   assert_eq(selected.max_steps, 3)
   assert_eq(selected.max_bindings, original.max_bindings)
   let before = @resources.ledger_usage(parent.ledger)
@@ -551,4 +567,169 @@ test "large Source module preserves explicit small codec refusal before its fact
     abort_request_preparation_after_cleanup(parent).unwrap()
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
+}
+
+///|
+test "ordinary large literal sequence carries its original checked text demand" {
+  let projections : Array[String] = []
+  for i in 0..<17 {
+    projections.push("t AS f" + i.to_string())
+  }
+  let document = "WITH x AS (SELECT '" +
+    "x".repeat(64000) +
+    "' AS t) SELECT " +
+    projections.join(",") +
+    " FROM x"
+  let limits = client_local_preparation_initial_limits(
+    client_local_resource_policy(),
+    retained_bytes=Some(1073741824L),
+    execution_bytes=Some(1073741824L),
+  ).unwrap()
+  let (parent, input) = native_driver_parent(
+    document,
+    initial_limits=Some(limits),
+  )
+  let (environment, publication) = request_query_publication_fixture()
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(document, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  finish_request_checked_computation(parent, input, environment, publication).unwrap()
+  |> ignore
+  let holder = borrow_request_program_plan_input(parent, input).unwrap()
+  let prepared = parent.compiled_program.unwrap()
+  let selected = @publication_host.prepared_client_values_task_sequence_limits(
+    prepared, 0,
+  ).unwrap()
+  let ordinary = @publication_host.prepare_prepared_client_full_sequence(
+    prepared, 0, selected,
+  )
+  // Isolate ONLY the original text quota, keeping nodes/work/depth and all
+  // selected sequence bounds unchanged. This is a typed source diagnostic,
+  // never a larger product policy or a runtime output/storage allowance.
+  let exact = {
+    ..selected,
+    expressions: { ..selected.expressions, max_literal_text_bytes: 64000, },
+  }
+  let exact_outcome = @publication_host.prepare_prepared_client_full_sequence(
+    prepared, 0, exact,
+  )
+  let short = {
+    ..exact,
+    expressions: { ..exact.expressions, max_literal_text_bytes: 63999, },
+  }
+  let short_outcome = @publication_host.prepare_prepared_client_full_sequence(
+    prepared, 0, short,
+  )
+  let original_text_refusal = ordinary
+    is Err(
+      Sequence(
+        KernelFailure(
+          1,
+          ExpressionFailure({ kind: ExpressionBudgetExceeded, .. })
+        )
+      )
+    )
+  let counters = (
+    parent._observed_query_parse_calls,
+    parent._observed_query_lower_calls,
+    parent._observed_program_compile_calls,
+  )
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  println(
+    "LITERAL_TEXT ordinary=" +
+    selected.expressions.max_literal_text_bytes.to_string() +
+    " exact64000=" +
+    (exact_outcome is Ok(_)).to_string() +
+    " original_text_refusal=" +
+    original_text_refusal.to_string(),
+  )
+  assert_true(exact_outcome is Ok(_))
+  assert_true(
+    short_outcome
+    is Err(
+      Sequence(
+        KernelFailure(
+          1,
+          ExpressionFailure({ kind: ExpressionBudgetExceeded, .. })
+        )
+      )
+    ),
+  )
+  assert_eq(counters, (1L, 1L, 1L))
+  assert_true(ordinary is Ok(_))
+}
+
+///|
+test "ordinary literal demand composes cached UTF8 across original bindings" {
+  let document = "SELECT '" +
+    "é".repeat(8000) +
+    "' AS a, '" +
+    "x".repeat(8000) +
+    "' AS b"
+  let (parent, input) = native_driver_parent(document)
+  let (environment, publication) = request_query_publication_fixture()
+  prepare_request_default_source_computation_check(
+    parent,
+    input,
+    request_document_test_source(document, "sql"),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    None,
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  finish_request_checked_computation(parent, input, environment, publication).unwrap()
+  |> ignore
+  let holder = borrow_request_program_plan_input(parent, input).unwrap()
+  let prepared = parent.compiled_program.unwrap()
+  let selected = @publication_host.prepared_client_values_task_sequence_limits(
+    prepared, 0,
+  ).unwrap()
+  assert_true(selected.expressions.max_literal_text_bytes >= 24000)
+  assert_true(
+    @publication_host.prepare_prepared_client_full_sequence(
+      prepared, 0, selected,
+    )
+    is Ok(_),
+  )
+  let exact = {
+    ..selected,
+    expressions: { ..selected.expressions, max_literal_text_bytes: 24000, },
+  }
+  assert_true(
+    @publication_host.prepare_prepared_client_full_sequence(prepared, 0, exact)
+    is Ok(_),
+  )
+  let short = {
+    ..exact,
+    expressions: { ..exact.expressions, max_literal_text_bytes: 23999, },
+  }
+  assert_true(
+    @publication_host.prepare_prepared_client_full_sequence(prepared, 0, short)
+    is Err(
+      Sequence(
+        KernelFailure(
+          1,
+          ExpressionFailure({ kind: ExpressionBudgetExceeded, .. })
+        )
+      )
+    ),
+  )
+  assert_eq(parent._observed_query_parse_calls, 1L)
+  assert_eq(parent._observed_query_lower_calls, 1L)
+  assert_eq(parent._observed_program_compile_calls, 1L)
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

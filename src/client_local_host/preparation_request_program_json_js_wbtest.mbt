@@ -190,18 +190,20 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
   // slots (1H/2R/1W =40 bytes), before any later module constructor.
   // Default generated-Query selection adds four records (4H/11R/14W).
   // Common observed input selections add3H/6R/13W =200 bytes.
+  // The selected lexical-work Some/scalar and original holder reference add
+  // 1H/1R/1W =32 bytes before the syntax grow.
   // The existing 4096-byte entry group remains separate.
   // This independent tariff expansion includes no domain Source or Check body.
   let (retained, execution) = client_request_preparation_control_capacity(
     client_local_resource_policy(),
   ).unwrap()
-  assert_eq(retained, 15504L)
+  assert_eq(retained, 15536L)
   assert_eq(
-    16L * (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L) +
-    8L * (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L) +
-    8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L) +
+    16L * (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L + 1L) +
+    8L * (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L + 1L) +
+    8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L + 1L) +
     4096L,
-    15504L,
+    15536L,
   )
   assert_eq(16L * 4L + 8L * 3L + 8L * 4L, 120L)
   assert_eq(16L * 2L + 8L * 2L + 8L * 2L, 64L)
@@ -225,7 +227,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
       let usage = @resources.ledger_usage(parent.ledger)
       backed_before_resize.val = parent.phase == Selecting &&
         parent.program_json is None &&
-        usage.reserved_retention_bytes == 15504L &&
+        usage.reserved_retention_bytes == 15536L &&
         usage.reserved_execution_bytes == 0L
     }
     true
@@ -254,7 +256,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
     16L * (585L + 8L + 1L) + 8L * (228L + 4L + 2L) + 8L * (1254L + 20L + 2L),
     21536L + 48L,
   )
-  assert_eq(usage.reserved_retention_bytes, 15504L + 21536L + 48L)
+  assert_eq(usage.reserved_retention_bytes, 15536L + 21536L + 48L)
   assert_eq(usage.reserved_execution_bytes, 21536L + 48L)
   assert_true(physical_equal(child.capacity, parent.capacity))
   abort_request_preparation_after_cleanup(parent).unwrap()

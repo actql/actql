@@ -208,6 +208,7 @@ fn[I, T] prepare_request_native_query_computation_input(
   supplied? : T? = None,
   declarations? : T? = None,
   public_primary? : Bool = true,
+  lexical_work? : Int? = None,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   match
     prepare_request_native_query_input(
@@ -219,7 +220,8 @@ fn[I, T] prepare_request_native_query_computation_input(
   // Borrow the SAME immutable selection already used by the input owner.
   // This existing parent slot later transfers to checking/compiler use.
   owner.computation_limits = Some(program_limits)
-  match parse_request_query_syntax(owner, input, document, format) {
+  match
+    parse_request_query_syntax(owner, input, document, format, lexical_work~) {
     Err(issue) => return Err(QuerySyntax(issue))
     Ok(_) => ()
   }
@@ -326,7 +328,7 @@ fn[I, T] prepare_request_native_source_computation_input(
   program_limits : @publication_host.ClientProgramPreparationLimits,
   supplied? : T? = None,
   public_primary? : Bool = true,
-  default_json? : Bool = false,
+  default_source? : Bool = false,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == Open &&
     !owner.native_parameters_ready &&
@@ -375,7 +377,7 @@ fn[I, T] prepare_request_native_source_computation_input(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    if default_json && selected == @frontend.Json {
+    if default_source && selected == @frontend.Json {
       return prepare_request_default_json_computation_input(
         owner,
         input,
@@ -395,6 +397,20 @@ fn[I, T] prepare_request_native_source_computation_input(
       limits.input,
     )
   }
+  let lexical_work = if default_source {
+    // Scanner advancement charges at most one per input scalar. Initial
+    // quoted-identifier/parameter normalization charges at most the decoded
+    // source units again. Reuse the original String length, not a new scan or
+    // the unrelated dispatch planning-work unit. Keep genuine Int headroom.
+    let units = document.length().to_int64()
+    guard units <= 1073741823L else {
+      owner.phase = QuerySyntaxFailed
+      return Err(Preparation(ProgramCheck(Overflow)))
+    }
+    Some((2L * units).to_int())
+  } else {
+    None
+  }
   owner.phase = Open
   prepare_request_native_query_computation_input(
     owner,
@@ -406,6 +422,7 @@ fn[I, T] prepare_request_native_source_computation_input(
     publication,
     program_limits,
     binding_limits=Some(request_query_binding_limits(limits)),
+    lexical_work~,
     public_primary~,
     supplied~,
     declarations~,

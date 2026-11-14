@@ -724,7 +724,7 @@ pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClient
 
 pub fn open_source_free_local_retained_host_on_ledger(@run_publication_host.PreparedClientProgram, @physical_resources.Ledger, ClientInstalledSequenceContracts, String, String?, String?, requirements? : ClientLocalRequirements?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
-pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @source_frontend.Format, source_path? : String) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
+pub fn[I] parse_request_query_syntax(ClientRequestPreparation[I], I, String, @source_frontend.Format, source_path? : String, lexical_work? : Int?) -> Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]
 
 pub fn pin_installed_effect_model_unit_results(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedEffectRunDAG, Int) -> Result[@physical_strategy_host.CapturedEffectLocalUnitInputs, ClientEffectUnitPreparationIssue]
 

@@ -3153,7 +3153,26 @@ separate 100-step default during fragment measurement. Per-task selection
 reads the same original inventory. The per-pipeline observation and aggregate
 may coexist with their new scalar, so the original compilation reservation
 prices two scalar words through the common tariff before these constructors.
-This adds no scan, capacity grant or replacement owner. The error owner alone
+This adds no scan, capacity grant or replacement owner.
+
+During that same binding inventory, the canonical demand also composes the
+original typed expressions' cached UTF8 accounting. That receipt includes
+admitted scalar-literal, contract and name text; it supplies known checked
+text to the lowering quota, not the configured maximum, runtime output size or
+a new storage allowance. It does not establish complete demand for untallied
+opaque JSON bodies or late parameter values; their original admission limits
+remain independently present.
+The shared and task selectors carry it into the existing expression text limit,
+so a checked long literal is not reset to an unrelated 10,000-byte default at
+Kernel construction. Explicit smaller sequence/expression text budgets retain
+their original refusal. Dynamic parameter and runtime expansion remain separate
+input/output obligations; static text demand does not grant them capacity.
+The new scalar on the per-pipeline demand and aggregate adds two more words;
+the same pre-compilation reservation therefore prices four words total for the
+full-step and text additions before either constructor. No Source/typing/tree
+scan, UTF8 Buffer, semantic check or additional capacity owner is created.
+
+The error owner alone
 recognizes exact nested sequence-budget failures for the existing analysis-limit
 projection; foreign, retired and general construction failures stay uncertain.
 
@@ -6275,9 +6294,10 @@ Unknown physical outcomes retain these same duties and consumed work.
 A retained structured Program and a Source envelope have different inventory
 subjects. Observing the envelope's single document String does not establish
 the JSON/YAML document's structural node count or the SQL/Pipe lowering's Program
-inventory. The Native Source continuation retains its original syntax policy;
-its existing same-Request document/Query constructor reserves the selected
-representation before parsing or lowering. The structured Program continuation
+inventory. The Native Source continuation selects the same observed default
+input and lexical-work bounds as Node/RelA, while preserving its original
+result convention. Its same-Request document/Query constructor reserves the
+selected representation before parsing or lowering. The structured Program continuation
 continues to use its observed native input inventory. No permission, additional
 check, fallback compiler or numerical resource grant follows from this choice.
 
@@ -6494,3 +6514,22 @@ inventories and separately selected explicit import profiles retain their
 original route. Cumulative value/work/identity checks, byte/depth bounds and
 SDK per-row retention controls remain independent. Quote and decoder consume
 the same selected profile under the original Task reservation.
+
+### Retained Source lexical work
+
+The default Node, RelA and Native Source entrances select lexical work from the
+same retained document: scanner advancement charges at most its UTF-16 unit
+count, and first quoted-name normalization charges at most that count again.
+The selected work bound is therefore twice the original String length, checked
+against the existing signed-Int representation. This uses the scanner's raw
+work unit, not dispatch planning work, time or capacity headroom. No second
+input scan or parser is needed. Explicit selected budgets remain unchanged.
+
+The existing Request retains that selection with the document and syntax quote.
+A refused grow cannot replace it. The fixed Request prefix backs the selection
+holder before callbacks; the syntax grow separately backs the coheld original
+and selected limit records before their constructors. The original phase work
+observer, current fence, once-only parser, lowering, checker and cleanup remain
+in place. Grammar, expression, nesting and other independent work limits are
+unchanged; a lexical bound does not establish their complete demand. Native
+keeps its original result convention through the same default Source entry.
